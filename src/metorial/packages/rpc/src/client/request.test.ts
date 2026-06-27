@@ -16,6 +16,15 @@ let createRpcResponse = (calls: { id: string; result?: any; status?: number }[])
     { status: 200, headers: { 'content-type': 'application/json' } }
   );
 
+let importRequest = async (key: string) =>
+  // @ts-ignore Test-only cache buster to force a fresh module instance.
+  ((await import(`./request?test=${key}`)) as typeof import('./request')).request;
+
+let importClientBuilder = async (key: string) =>
+  // @ts-ignore Test-only cache buster to force a fresh module instance.
+  ((await import(`./shared/clientBuilder?test=${key}`)) as typeof import('./shared/clientBuilder'))
+    .clientBuilder;
+
 describe('request', () => {
   beforeEach(() => {
     (globalThis as any).window = {};
@@ -43,8 +52,7 @@ describe('request', () => {
       );
     });
 
-    // @ts-ignore Test-only cache buster to force a fresh module instance.
-    let { request } = (await import(`./request?test=batch-default`)) as typeof import('./request');
+    let request = await importRequest('batch-default');
 
     let first = request({
       endpoint: 'http://localhost/rpc',
@@ -87,8 +95,7 @@ describe('request', () => {
       );
     });
 
-    // @ts-ignore Test-only cache buster to force a fresh module instance.
-    let { request } = (await import(`./request?test=disable-batching`)) as typeof import('./request');
+    let request = await importRequest('disable-batching');
 
     let immediate = request({
       endpoint: 'http://localhost/rpc',
@@ -124,5 +131,52 @@ describe('request', () => {
 
     await expect(immediate).resolves.toMatchObject({ data: 'immediate', status: 200 });
     await expect(batched).resolves.toMatchObject({ data: 'batched', status: 200 });
+  });
+
+  test('uses client-level disableBatching by default and allows per-call override', async () => {
+    let requestSpy = vi.fn(async call => ({
+      data: { disableBatching: call.disableBatching ?? false },
+      status: 200,
+      headers: {}
+    }));
+
+    let clientBuilder = await importClientBuilder('client-global-disable-batching');
+    let createClient = clientBuilder(requestSpy);
+
+    let client = createClient<{
+      test: {
+        call: (
+          input: { value: string },
+          opts?: { disableBatching?: boolean }
+        ) => Promise<{ disableBatching: boolean }>;
+      };
+    }>({
+      endpoint: 'http://localhost/rpc',
+      disableBatching: true
+    });
+
+    await expect(client.test.call({ value: 'default' })).resolves.toEqual({
+      disableBatching: true
+    });
+    await expect(
+      client.test.call({ value: 'override' }, { disableBatching: false })
+    ).resolves.toEqual({
+      disableBatching: false
+    });
+
+    expect(requestSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        name: 'test:call',
+        disableBatching: true
+      })
+    );
+    expect(requestSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        name: 'test:call',
+        disableBatching: false
+      })
+    );
   });
 });

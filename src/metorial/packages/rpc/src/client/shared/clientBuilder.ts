@@ -4,6 +4,7 @@ import { Requester } from './requester';
 export interface ClientOpts {
   endpoint: string;
   referrerPolicy?: RequestInit['referrerPolicy'];
+  disableBatching?: boolean;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
   onRequest?: (d: {
@@ -29,6 +30,8 @@ export let clientBuilder =
     proxy<T>(
       async (path, data, requestOpts?: ClientRequestOpts) =>
         await withContext(async context => {
+          let disableBatching = requestOpts?.disableBatching ?? clientOpts.disableBatching;
+
           let headers = {
             ...clientOpts.headers,
             ...(await clientOpts.getHeaders?.()),
@@ -51,7 +54,7 @@ export let clientBuilder =
               headers,
               query: requestOpts?.query,
               referrerPolicy: clientOpts.referrerPolicy,
-              disableBatching: requestOpts?.disableBatching,
+              disableBatching,
               context
             });
           }
@@ -64,7 +67,7 @@ export let clientBuilder =
               headers,
               query: requestOpts?.query,
               referrerPolicy: clientOpts.referrerPolicy,
-              disableBatching: requestOpts?.disableBatching,
+              disableBatching,
               context
             })
           ).data;
