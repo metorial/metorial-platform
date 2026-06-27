@@ -2,8 +2,8 @@ model Account {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  ownerOrganizationOid BigInt?
-  ownerOrganization    Organization? @relation("AccountOwnerOrganization", fields: [ownerOrganizationOid], references: [oid], onDelete: Cascade)
+  organizationOid BigInt?       @map("ownerOrganizationOid")
+  organization    Organization? @relation("AccountOwnerOrganization", fields: [organizationOid], references: [oid], onDelete: Cascade)
 
   rootOwnerAccountOid BigInt?
   rootOwnerAccount    Account?  @relation("AccountRootOwnerAccount", fields: [rootOwnerAccountOid], references: [oid], onDelete: Cascade)

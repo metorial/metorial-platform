@@ -14,14 +14,14 @@ class AccountServiceImpl {
     if (accountRef.current) return await accountRef.current(i.organization);
 
     let existingAccount = await db.account.findFirst({
-      where: { ownerOrganizationOid: i.organization.oid }
+      where: { organizationOid: i.organization.oid }
     });
     if (existingAccount) return existingAccount;
 
     return await db.account.create({
       data: {
         id: await ID.generateId('account'),
-        ownerOrganizationOid: i.organization.oid
+        organizationOid: i.organization.oid
       }
     });
   }

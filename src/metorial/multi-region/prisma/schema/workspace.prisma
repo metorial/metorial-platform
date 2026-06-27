@@ -27,7 +27,7 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  workspaceProfiles WorkspaceProfile[]
+  profiles WorkspaceProfile[]
 }
 
 enum WorkspaceProfileStatus {
