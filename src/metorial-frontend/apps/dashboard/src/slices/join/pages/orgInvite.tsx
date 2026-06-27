@@ -28,7 +28,9 @@ export let OrganizationInvitePage = () => {
     <SetupLayout
       main={{
         title: `Join ${invite.data?.organization?.name ?? '...'} on Metorial`,
-        description: `${invite.data?.invitedBy ? `${invite.data.invitedBy.name} has` : 'You have'} been invited to join ${invite.data?.organization?.name ?? 'an organization'} on Metorial.`
+        description: invite.data?.invitedBy
+          ? `${invite.data.invitedBy.name} has invited you to join ${invite.data.organization?.name ?? 'an organization'} on Metorial.`
+          : `You have been invited to join ${invite.data?.organization?.name ?? 'an organization'} on Metorial.`
       }}
       backgroundUrl={bg}
     >
@@ -54,6 +56,7 @@ export let OrganizationInvitePage = () => {
             >
               Accept
             </Button>
+
             <Button
               fullWidth
               variant="soft"
@@ -69,7 +72,10 @@ export let OrganizationInvitePage = () => {
 
       {state == 'rejected' && (
         <div>
-          <p>Your invitation has been rejected. You may click the link again to accept.</p>
+          <p>
+            You have rejected the invitation to join{' '}
+            {invite.data?.organization?.name ?? 'the organization'}.
+          </p>
 
           <Spacer height={15} />
 
