@@ -24,6 +24,7 @@ model Cell {
   cellTokens                        CellToken[]
   workspaces                        Workspace[]
   instances                         Instance[]
+  workspaceProfiles                 WorkspaceProfile[]
 }
 
 model CellToken {

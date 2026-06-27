@@ -11,6 +11,10 @@ let getSecureRandomInt = () => {
 
 export let cell = globalDB.cell.upsert({
   where: { identifier: deploymentIdentifier },
-  create: { identifier: deploymentIdentifier, oid: getSecureRandomInt() },
-  update: {}
+  create: {
+    identifier: deploymentIdentifier,
+    oid: getSecureRandomInt(),
+    endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT
+  },
+  update: { endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT }
 });

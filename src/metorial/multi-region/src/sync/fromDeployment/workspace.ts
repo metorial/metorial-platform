@@ -24,7 +24,7 @@ export let upsertWorkspace = async (workspaceId: string) => {
     portalId: workspace.portal?.id,
     organizationId: workspace.organization?.id,
     createdAt: workspace.createdAt,
-    deletedAt: workspace.deletedAt
+    updatedAt: workspace.updatedAt
   };
 
   await globalDB.workspace.upsert({
