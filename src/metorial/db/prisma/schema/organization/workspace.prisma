@@ -48,6 +48,8 @@ model GlobalProfile {
   workspaceProfiles WorkspaceProfile[]
   emails            GlobalProfileEmail[]
   workspaceInvites  WorkspaceInvite[]
+  users             User[]
+  consumers         Consumer[]
 }
 
 model GlobalProfileEmail {

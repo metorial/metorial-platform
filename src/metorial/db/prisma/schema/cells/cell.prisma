@@ -1,0 +1,12 @@
+model Cell {
+  oid Int @id @default(autoincrement())
+
+  identifier String @unique
+
+  isCurrentDeployment Boolean
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  accounts Account[]
+}

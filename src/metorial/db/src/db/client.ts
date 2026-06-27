@@ -75,25 +75,37 @@ let createClient = () => {
 
           if (baseClient[normalizedModelName].fields.oid?.typeName == 'BigInt') {
             // @ts-ignore
-            args.args.data.oid = generator.nextId();
+            if (typeof args.args.data.oid === 'undefined') {
+              // @ts-ignore
+              args.args.data.oid = generator.nextId();
+            }
           }
 
           // @ts-ignore
           if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
             // @ts-ignore
-            args.args.data.id = generator.nextId();
+            if (typeof args.args.data.id === 'undefined') {
+              // @ts-ignore
+              args.args.data.id = generator.nextId();
+            }
           }
 
           // @ts-ignore
           if (baseClient[normalizedModelName].fields.oid?.typeName == 'Int') {
             // @ts-ignore
-            args.args.data.oid = getSecureRandomInt();
+            if (typeof args.args.data.oid === 'undefined') {
+              // @ts-ignore
+              args.args.data.oid = getSecureRandomInt();
+            }
           }
 
           // @ts-ignore
           if (baseClient[normalizedModelName].fields.id?.typeName == 'Int') {
             // @ts-ignore
-            args.args.data.id = getSecureRandomInt();
+            if (typeof args.args.data.id === 'undefined') {
+              // @ts-ignore
+              args.args.data.id = getSecureRandomInt();
+            }
           }
 
           return args.query(args.args);
@@ -108,7 +120,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.oid = generator.nextId();
+              if (typeof item.oid === 'undefined') {
+                // @ts-ignore
+                item.oid = generator.nextId();
+              }
             }
           }
 
@@ -118,7 +133,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.id = generator.nextId();
+              if (typeof item.id === 'undefined') {
+                // @ts-ignore
+                item.id = generator.nextId();
+              }
             }
           }
 
@@ -128,7 +146,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.oid = getSecureRandomInt();
+              if (typeof item.oid === 'undefined') {
+                // @ts-ignore
+                item.oid = getSecureRandomInt();
+              }
             }
           }
 
@@ -138,7 +159,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.id = getSecureRandomInt();
+              if (typeof item.id === 'undefined') {
+                // @ts-ignore
+                item.id = getSecureRandomInt();
+              }
             }
           }
 
@@ -154,7 +178,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.oid = generator.nextId();
+              if (typeof item.oid === 'undefined') {
+                // @ts-ignore
+                item.oid = generator.nextId();
+              }
             }
           }
 
@@ -164,7 +191,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.id = generator.nextId();
+              if (typeof item.id === 'undefined') {
+                // @ts-ignore
+                item.id = generator.nextId();
+              }
             }
           }
 
@@ -174,7 +204,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.oid = getSecureRandomInt();
+              if (typeof item.oid === 'undefined') {
+                // @ts-ignore
+                item.oid = getSecureRandomInt();
+              }
             }
           }
 
@@ -184,7 +217,10 @@ let createClient = () => {
 
             for (let item of data) {
               // @ts-ignore
-              item.id = getSecureRandomInt();
+              if (typeof item.id === 'undefined') {
+                // @ts-ignore
+                item.id = getSecureRandomInt();
+              }
             }
           }
 
@@ -197,32 +233,44 @@ let createClient = () => {
 
           if (baseClient[normalizedModelName].fields.oid?.typeName == 'BigInt') {
             // @ts-ignore
-            args.args.create.oid = generator.nextId();
+            if (typeof args.args.create.oid === 'undefined') {
+              // @ts-ignore
+              args.args.create.oid = generator.nextId();
+            }
           }
 
           // @ts-ignore
           if (baseClient[normalizedModelName].fields.id?.typeName == 'BigInt') {
             // @ts-ignore
-            args.args.create.id = generator.nextId();
+            if (typeof args.args.create.id === 'undefined') {
+              // @ts-ignore
+              args.args.create.id = generator.nextId();
+            }
           }
 
           // @ts-ignore
           if (baseClient[normalizedModelName].fields.oid?.typeName == 'Int') {
             // @ts-ignore
-            args.args.create.oid = getSecureRandomInt();
+            if (typeof args.args.create.oid === 'undefined') {
+              // @ts-ignore
+              args.args.create.oid = getSecureRandomInt();
+            }
           }
 
           // @ts-ignore
           if (baseClient[normalizedModelName].fields.id?.typeName == 'Int') {
             // @ts-ignore
-            args.args.create.id = getSecureRandomInt();
+            if (typeof args.args.create.id === 'undefined') {
+              // @ts-ignore
+              args.args.create.id = getSecureRandomInt();
+            }
           }
 
           return args.query(args.args);
         }
       }
     }
-  }) as PrismaClient;
+  }) as any as PrismaClient;
 };
 
 let db: PrismaClient = createClient();

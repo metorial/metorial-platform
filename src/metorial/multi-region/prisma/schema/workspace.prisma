@@ -5,7 +5,7 @@ enum WorkspaceType {
 
 enum WorkspaceStatus {
   active
-  inactive
+  archived
   deleted
 }
 

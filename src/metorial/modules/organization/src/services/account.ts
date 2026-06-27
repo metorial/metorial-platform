@@ -21,8 +21,7 @@ class AccountServiceImpl {
     return await db.account.create({
       data: {
         id: await ID.generateId('account'),
-        ownerOrganizationOid: i.organization.oid,
-        type: 'organization'
+        ownerOrganizationOid: i.organization.oid
       }
     });
   }

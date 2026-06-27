@@ -13,6 +13,9 @@ model Account {
   ownerAccount        Account?  @relation("AccountOwnerAccount", fields: [ownerAccountOid], references: [oid], onDelete: Cascade)
   directChildAccounts Account[] @relation("AccountOwnerAccount")
 
+  cellOid Int?
+  cell    Cell? @relation(fields: [cellOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
