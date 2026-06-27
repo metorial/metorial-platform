@@ -1,11 +1,8 @@
-import { v } from '@lowerdeck/validation';
 import type { ValidationType } from '@lowerdeck/validation';
+import { v } from '@lowerdeck/validation';
 import { Cursor } from './cursor';
-import {
-  paginatedProviderMongoose,
-  paginatedProviderPrisma
-} from './paginatedProvider';
 import type { PaginatedProvider, PaginatedProviderInput } from './paginatedProvider';
+import { paginatedProviderMongoose, paginatedProviderPrisma } from './paginatedProvider';
 import type { PaginatedList } from './types';
 
 export interface PaginatorInput {
@@ -50,15 +47,7 @@ export class Paginator<T> {
         order: v.optional(v.enumOf(['asc', 'desc']))
       }),
       inner ?? v.object({})
-    ]) as ValidationType<
-      Inner & {
-        limit?: number;
-        after?: string;
-        before?: string;
-        cursor?: string;
-        order?: 'asc' | 'desc';
-      }
-    >;
+    ]) as ValidationType<Inner & PaginatorInput>;
   }
 
   static present<T, R>(
@@ -89,6 +78,20 @@ export class Paginator<T> {
       pagination: {
         has_more_after: list.pagination.hasNextPage,
         has_more_before: list.pagination.hasPreviousPage
+      }
+    };
+  }
+
+  static async presentInternal<T, R>(
+    list: PaginatedList<T>,
+    presenter: (item: T) => R | Promise<R>
+  ) {
+    return {
+      object: `list`,
+      items: (await Promise.all(list.items.map(item => presenter(item)))).filter(Boolean),
+      pagination: {
+        hasMoreAfter: list.pagination.hasNextPage,
+        hasMoreBefore: list.pagination.hasPreviousPage
       }
     };
   }
