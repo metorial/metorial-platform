@@ -42,6 +42,13 @@ let Row = styled(Link)`
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
+
+  &[data-has-side-content='true'] {
+    @media (max-width: 1000px) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+  }
 `;
 
 let ProviderCell = styled.div`
@@ -126,7 +133,11 @@ export let HomeProvidersTable = (filter: DashboardInstanceProviderListingsListQu
             );
 
             return (
-              <Row key={listing.id} to={href}>
+              <Row
+                key={listing.id}
+                to={href}
+                data-has-side-content={!!listing.categories.length}
+              >
                 <ProviderCell>
                   <Avatar
                     entity={{
