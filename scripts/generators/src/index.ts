@@ -35,53 +35,6 @@ let generateTypeExports = (
   return exports.join('\n');
 };
 
-// Update the main public API to include generated types
-let updateMainPublicAPI = async (
-  typeIdToName: Map<string, { typeName: string; mapperName: string }>,
-  version: string,
-  rootOutputFolder: string
-) => {
-  // Find the main public API file
-  let mainApiPath = path.join(
-    rootOutputFolder,
-    '..',
-    '..',
-    '..',
-    'packages',
-    'metorial',
-    'src',
-    'metorial',
-    '__init__.py'
-  );
-
-  try {
-    if (await fs.pathExists(mainApiPath)) {
-      let currentContent = await fs.readFile(mainApiPath, 'utf-8');
-
-      // Generate import statements for the generated types
-      let typeNames = Array.from(typeIdToName.values()).map(t => t.typeName);
-      let mapperNames = Array.from(typeIdToName.values()).map(t => t.mapperName);
-
-      // Create import statement for the generated package
-      let generatedImport = `from metorial_generated.${version} import *`;
-
-      // Check if the import already exists
-      if (!currentContent.includes(generatedImport)) {
-        // Add the import after the existing imports
-        let lines = currentContent.split('\n');
-        let insertIndex = lines.findIndex(line => line.startsWith('__version__'));
-
-        if (insertIndex > 0) {
-          lines.splice(insertIndex, 0, '', '    # Generated types from API', generatedImport);
-          await fs.writeFile(mainApiPath, lines.join('\n'));
-        }
-      }
-    }
-  } catch (error) {
-    console.warn('Could not update main public API:', error);
-  }
-};
-
 let args = process.argv.slice(2);
 let url = args[0];
 let rootOutputFolder = args[1];
@@ -179,7 +132,7 @@ if (language === 'go') {
 }
 
 let versionsRoot =
-  language === 'typescript' || language === 'python'
+  language === 'typescript'
     ? path.join(rootOutputFolder, 'src')
     : rootOutputFolder;
 
@@ -198,6 +151,14 @@ if (language !== 'go') {
   }
 
   if (language === 'python') {
+    // Remove the legacy `<root>/src/<version>` layout from previous generator
+    // versions; the consolidated Python layout writes per-version content
+    // directly to `<root>/<alias>` (e.g. `_generated/magnetar`).
+    let legacySrcRoot = path.join(rootOutputFolder, 'src');
+    if (await fs.pathExists(legacySrcRoot)) {
+      await fs.remove(legacySrcRoot);
+    }
+
     let keepAliases = new Set(filteredVersions.map(version => getVersionAlias(version.version)));
     let knownAliases = new Set(versions.versions.map(version => getVersionAlias(version.version)));
     let rootEntries = await fs.readdir(rootOutputFolder);
@@ -258,10 +219,18 @@ for (let version of filteredVersions) {
     endpoints = endpoints.filter(e => e.allPaths.length > 0);
   }
 
-  // For Go, output goes directly to the output folder (no src/ subdirectory)
-  let outputFolder = language === 'go'
-    ? rootOutputFolder
-    : path.join(rootOutputFolder, 'src', version.version);
+  // For Go and Python, output goes directly under the root output folder
+  // (Go: `<root>`, Python: `<root>/<alias>` e.g. `_generated/magnetar`).
+  // TypeScript keeps the per-version `src/<version>` layout consumed by
+  // metorial-node.
+  let outputFolder: string;
+  if (language === 'go') {
+    outputFolder = rootOutputFolder;
+  } else if (language === 'python') {
+    outputFolder = path.join(rootOutputFolder, getVersionAlias(version.version));
+  } else {
+    outputFolder = path.join(rootOutputFolder, 'src', version.version);
+  }
 
   await fs.ensureDir(outputFolder);
 
@@ -685,9 +654,6 @@ for (let version of filteredVersions) {
       `${outputFolder}/__init__.py`,
       `from .resources import *\nfrom .endpoints import *\n\n# Type exports for better discoverability\n${typeExports}`
     );
-
-    // Also update the main public API to include generated types
-    await updateMainPublicAPI(typeIdToName, version.version, rootOutputFolder);
   } else if (language === 'typescript') {
     await fs.writeFile(
       `${outputFolder}/index.ts`,

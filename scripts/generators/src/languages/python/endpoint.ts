@@ -128,7 +128,7 @@ export let createController = async (i: {
   let datetimeImports = needsDatetimeImports ? 'from datetime import datetime\n' : '';
 
   let source = dedent`
-    ${typingImports}${datetimeImports}from metorial_util_endpoint import BaseMetorialEndpoint, MetorialEndpointManager, MetorialRequest
+    ${typingImports}${datetimeImports}from metorial._endpoint import BaseMetorialEndpoint, MetorialEndpointManager, MetorialRequest
     from ..resources import ${resourcesImports}
 
     class ${className}(BaseMetorialEndpoint):
