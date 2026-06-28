@@ -54,9 +54,13 @@ export let syncInstanceToDeploymentQueueProcessor = syncInstanceToDeploymentQueu
         localInstanceWithSameSlug &&
         localInstanceWithSameSlug.createdAt > cellInstance.createdAt
       ) {
+        console.log(
+          `[syncInstanceToDeploymentQueueProcessor] localInstanceWithSameSlug: ${localInstanceWithSameSlug.id} - ${localInstanceWithSameSlug.slug}`
+        );
+
         await db.instance.update({
-          where: { id: instance.id },
-          data: { slug: `${instance.slug}-${generateCode(3)}` }
+          where: { id: localInstanceWithSameSlug.id },
+          data: { slug: `${localInstanceWithSameSlug.slug}-${generateCode(3)}` }
         });
       }
     }
