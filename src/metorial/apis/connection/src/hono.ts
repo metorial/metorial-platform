@@ -19,6 +19,32 @@ let normalizeErrorForSentry = (error: unknown) => {
   return normalized;
 };
 
+let getErrorCandidates = (error: unknown): unknown[] => {
+  let candidates = [error];
+  let cause =
+    error && typeof error == 'object' && 'cause' in error ? (error as { cause?: unknown }).cause : null;
+
+  if (cause !== undefined && cause !== null && cause !== error) {
+    candidates.push(cause);
+  }
+
+  return candidates;
+};
+
+let isExpectedConnectionAbortError = (error: unknown) => {
+  return getErrorCandidates(error).some(candidate => {
+    if (!candidate || typeof candidate != 'object') return false;
+
+    let name = 'name' in candidate ? (candidate as { name?: unknown }).name : undefined;
+    let message = 'message' in candidate ? (candidate as { message?: unknown }).message : undefined;
+
+    return (
+      name === 'AbortError' &&
+      (message === 'The connection was closed.' || message === 'This operation was aborted')
+    );
+  });
+};
+
 let getRequestContext = (c?: Context) => {
   if (!c) return undefined;
 
@@ -37,6 +63,7 @@ export let reportConnectionError = (
   }
 ) => {
   if (isServiceError(error) && error.data.status < 500) return;
+  if (isExpectedConnectionAbortError(error)) return;
 
   Sentry.captureException(normalizeErrorForSentry(error), {
     extra: {
