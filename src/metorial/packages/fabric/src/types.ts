@@ -410,8 +410,8 @@ export interface FabricEvents {
   'workspace_policy.created:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
   'workspace_policy.updated:before': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
   'workspace_policy.updated:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
-  'workspace_policy.deleted:before': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
-  'workspace_policy.deleted:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
+  'workspace_policy.deleted:before': { workspacePolicy: WorkspacePolicy; };
+  'workspace_policy.deleted:after': { workspacePolicy: WorkspacePolicy; };
 
   'workspace_group_assignment.created:before':
     | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember }
@@ -420,16 +420,16 @@ export interface FabricEvents {
     | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember; workspaceGroupAssignment: WorkspaceGroupAssignment }
     | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; consumerProfileGroup: ConsumerProfileGroup; workspaceGroupAssignment: WorkspaceGroupAssignment };
   'workspace_group_assignment.deleted:before':
-    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember; workspaceGroupAssignment: WorkspaceGroupAssignment }
-    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; consumerProfileGroup: ConsumerProfileGroup; workspaceGroupAssignment: WorkspaceGroupAssignment };
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; workspaceGroupAssignment: WorkspaceGroupAssignment }
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; };
   'workspace_group_assignment.deleted:after':
-    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember; workspaceGroupAssignment: WorkspaceGroupAssignment }
-    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; consumerProfileGroup: ConsumerProfileGroup; workspaceGroupAssignment: WorkspaceGroupAssignment };
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; workspaceGroupAssignment: WorkspaceGroupAssignment }
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; };
 
   'workspace_policy_assignment.created:before': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
   'workspace_policy_assignment.created:after': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
-  'workspace_policy_assignment.deleted:before': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
-  'workspace_policy_assignment.deleted:after': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
+  'workspace_policy_assignment.deleted:before': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
+  'workspace_policy_assignment.deleted:after': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
 
   'consumer.profile.created:before': { surface: ConsumerSurface };
   'consumer.profile.created:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
