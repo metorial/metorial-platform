@@ -88,19 +88,13 @@ export let syncWorkspaceInvitesSingleQueueProcessor = syncWorkspaceInvitesSingle
 );
 
 Fabric.listen('workspace_invite.updated:after', async event => {
-  await syncWorkspaceInvitesSingleQueue.add({
-    workspaceInviteId: event.workspaceInvite.id
-  });
+  await upsertWorkspaceInvite(event.workspaceInvite.id);
 });
 
 Fabric.listen('workspace_invite.created:after', async event => {
-  await syncWorkspaceInvitesSingleQueue.add({
-    workspaceInviteId: event.workspaceInvite.id
-  });
+  await upsertWorkspaceInvite(event.workspaceInvite.id);
 });
 
 Fabric.listen('workspace_invite.deleted:after', async event => {
-  await syncWorkspaceInvitesSingleQueue.add({
-    workspaceInviteId: event.workspaceInvite.id
-  });
+  await upsertWorkspaceInvite(event.workspaceInvite.id);
 });

@@ -57,19 +57,13 @@ export let syncWorkspaceProfilesSingleQueueProcessor =
   });
 
 Fabric.listen('workspace_profile.updated:after', async event => {
-  await syncWorkspaceProfilesSingleQueue.add({
-    workspaceProfileId: event.workspaceProfile.id
-  });
+  await upsertWorkspaceProfile(event.workspaceProfile.id);
 });
 
 Fabric.listen('workspace_profile.created:after', async event => {
-  await syncWorkspaceProfilesSingleQueue.add({
-    workspaceProfileId: event.workspaceProfile.id
-  });
+  await upsertWorkspaceProfile(event.workspaceProfile.id);
 });
 
 Fabric.listen('workspace_profile.deleted:after', async event => {
-  await syncWorkspaceProfilesSingleQueue.add({
-    workspaceProfileId: event.workspaceProfile.id
-  });
+  await upsertWorkspaceProfile(event.workspaceProfile.id);
 });

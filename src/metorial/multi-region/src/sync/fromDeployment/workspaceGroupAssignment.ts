@@ -91,25 +91,14 @@ export let syncWorkspaceGroupAssignmentsSingleQueueProcessor =
   });
 
 Fabric.listen('workspace_group_assignment.created:after', async event => {
-  await syncWorkspaceGroupAssignmentsSingleQueue.add({
-    workspaceGroupAssignmentId: event.workspaceGroupAssignment.id
-  });
+  await upsertWorkspaceGroupAssignment(event.workspaceGroupAssignment.id);
 });
 
 Fabric.listen('workspace_group_assignment.deleted:after', async event => {
-  let workspaceGroupAssignmentId =
-    'workspaceGroupAssignment' in event ? event.workspaceGroupAssignment.id : undefined;
-  if (!workspaceGroupAssignmentId) {
-    await globalDB.workspaceGroupAssignment.deleteMany({
-      where: {
-        workspaceGroupId: event.workspaceGroup.id,
-        workspaceProfileId: event.workspaceProfile.id
-      }
-    });
-    return;
-  }
-
-  await syncWorkspaceGroupAssignmentsSingleQueue.add({
-    workspaceGroupAssignmentId
+  await globalDB.workspaceGroupAssignment.deleteMany({
+    where: {
+      workspaceGroupId: event.workspaceGroup.id,
+      workspaceProfileId: event.workspaceProfile.id
+    }
   });
 });

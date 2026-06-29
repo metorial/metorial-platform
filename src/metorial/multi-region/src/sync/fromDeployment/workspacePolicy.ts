@@ -77,20 +77,19 @@ let syncWorkspacePoliciesSingleQueue = createQueue<{ workspacePolicyId: string }
   name: 'global/sync/from-deployment/wpo-single'
 });
 
-export let syncWorkspacePoliciesSingleQueueProcessor = syncWorkspacePoliciesSingleQueue.process(
-  async data => {
+export let syncWorkspacePoliciesSingleQueueProcessor =
+  syncWorkspacePoliciesSingleQueue.process(async data => {
     await upsertWorkspacePolicy(data.workspacePolicyId);
-  }
-);
-
-for (let type of [
-  'workspace_policy.updated:after',
-  'workspace_policy.created:after',
-  'workspace_policy.deleted:after'
-] as const) {
-  Fabric.listen(type, async event => {
-    await syncWorkspacePoliciesSingleQueue.add({
-      workspacePolicyId: event.workspacePolicy.id
-    });
   });
-}
+
+Fabric.listen('workspace_policy.updated:after', async event => {
+  await upsertWorkspacePolicy(event.workspacePolicy.id);
+});
+
+Fabric.listen('workspace_policy.created:after', async event => {
+  await upsertWorkspacePolicy(event.workspacePolicy.id);
+});
+
+Fabric.listen('workspace_policy.deleted:after', async event => {
+  await upsertWorkspacePolicy(event.workspacePolicy.id);
+});

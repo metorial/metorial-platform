@@ -83,14 +83,14 @@ export let syncWorkspaceGroupsSingleQueueProcessor = syncWorkspaceGroupsSingleQu
   }
 );
 
-for (let type of [
-  'workspace_group.updated:after',
-  'workspace_group.created:after',
-  'workspace_group.deleted:after'
-] as const) {
-  Fabric.listen(type, async event => {
-    await syncWorkspaceGroupsSingleQueue.add({
-      workspaceGroupId: event.workspaceGroup.id
-    });
-  });
-}
+Fabric.listen('workspace_group.updated:after', async event => {
+  await upsertWorkspaceGroup(event.workspaceGroup.id);
+});
+
+Fabric.listen('workspace_group.created:after', async event => {
+  await upsertWorkspaceGroup(event.workspaceGroup.id);
+});
+
+Fabric.listen('workspace_group.deleted:after', async event => {
+  await upsertWorkspaceGroup(event.workspaceGroup.id);
+});

@@ -77,13 +77,13 @@ export let syncWorkspacesSingleQueueProcessor = syncWorkspacesSingleQueue.proces
 );
 
 Fabric.listen('workspace.updated:after', async event => {
-  await syncWorkspacesSingleQueue.add({ workspaceId: event.workspace.id });
+  await upsertWorkspace(event.workspace.id);
 });
 
 Fabric.listen('workspace.created:after', async event => {
-  await syncWorkspacesSingleQueue.add({ workspaceId: event.workspace.id });
+  await upsertWorkspace(event.workspace.id);
 });
 
 Fabric.listen('workspace.deleted:after', async event => {
-  await syncWorkspacesSingleQueue.add({ workspaceId: event.workspace.id });
+  await upsertWorkspace(event.workspace.id);
 });

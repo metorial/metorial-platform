@@ -93,13 +93,9 @@ export let syncWorkspacePolicyAssignmentsSingleQueueProcessor =
   });
 
 Fabric.listen('workspace_policy_assignment.created:after', async event => {
-  await syncWorkspacePolicyAssignmentsSingleQueue.add({
-    workspacePolicyAssignmentId: event.workspacePolicyAssignment.id
-  });
+  await upsertWorkspacePolicyAssignment(event.workspacePolicyAssignment.id);
 });
 
 Fabric.listen('workspace_policy_assignment.deleted:after', async event => {
-  await syncWorkspacePolicyAssignmentsSingleQueue.add({
-    workspacePolicyAssignmentId: event.workspacePolicyAssignment.id
-  });
+  await upsertWorkspacePolicyAssignment(event.workspacePolicyAssignment.id);
 });
