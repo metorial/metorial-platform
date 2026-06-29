@@ -26,6 +26,10 @@ model Cell {
   instances                         Instance[]
   workspaceProfiles                 WorkspaceProfile[]
   workspaceInvites                  WorkspaceInvite[]
+  workspaceGroups                   WorkspaceGroup[]
+  workspacePolicies                 WorkspacePolicy[]
+  workspaceGroupAssignments         WorkspaceGroupAssignment[]
+  workspacePolicyAssignments        WorkspacePolicyAssignment[]
 }
 
 model CellToken {

@@ -40,10 +40,30 @@ import {
   syncWorkspacesSingleQueueProcessor
 } from './workspace';
 import {
+  syncWorkspaceGroupsCron,
+  syncWorkspaceGroupsManyQueueProcessor,
+  syncWorkspaceGroupsSingleQueueProcessor
+} from './workspaceGroup';
+import {
+  syncWorkspaceGroupAssignmentsCron,
+  syncWorkspaceGroupAssignmentsManyQueueProcessor,
+  syncWorkspaceGroupAssignmentsSingleQueueProcessor
+} from './workspaceGroupAssignment';
+import {
   syncWorkspaceInvitesCron,
   syncWorkspaceInvitesManyQueueProcessor,
   syncWorkspaceInvitesSingleQueueProcessor
 } from './workspaceInvite';
+import {
+  syncWorkspacePoliciesCron,
+  syncWorkspacePoliciesManyQueueProcessor,
+  syncWorkspacePoliciesSingleQueueProcessor
+} from './workspacePolicy';
+import {
+  syncWorkspacePolicyAssignmentsCron,
+  syncWorkspacePolicyAssignmentsManyQueueProcessor,
+  syncWorkspacePolicyAssignmentsSingleQueueProcessor
+} from './workspacePolicyAssignment';
 import { syncWorkspaceProfilesSingleQueueProcessor } from './workspaceProfile';
 
 export let fromDeploymentSyncProcessors = combineQueueProcessors([
@@ -75,9 +95,25 @@ export let fromDeploymentSyncProcessors = combineQueueProcessors([
   syncWorkspacesManyQueueProcessor,
   syncWorkspacesSingleQueueProcessor,
 
+  syncWorkspaceGroupsCron,
+  syncWorkspaceGroupsManyQueueProcessor,
+  syncWorkspaceGroupsSingleQueueProcessor,
+
+  syncWorkspaceGroupAssignmentsCron,
+  syncWorkspaceGroupAssignmentsManyQueueProcessor,
+  syncWorkspaceGroupAssignmentsSingleQueueProcessor,
+
   syncWorkspaceInvitesCron,
   syncWorkspaceInvitesManyQueueProcessor,
   syncWorkspaceInvitesSingleQueueProcessor,
+
+  syncWorkspacePoliciesCron,
+  syncWorkspacePoliciesManyQueueProcessor,
+  syncWorkspacePoliciesSingleQueueProcessor,
+
+  syncWorkspacePolicyAssignmentsCron,
+  syncWorkspacePolicyAssignmentsManyQueueProcessor,
+  syncWorkspacePolicyAssignmentsSingleQueueProcessor,
 
   syncInstancesCron,
   syncInstancesManyQueueProcessor,
