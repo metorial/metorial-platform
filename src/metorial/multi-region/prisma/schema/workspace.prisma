@@ -28,6 +28,7 @@ model Workspace {
   updatedAt DateTime @default(now()) @updatedAt
 
   profiles WorkspaceProfile[]
+  invites  WorkspaceInvite[]
 }
 
 enum WorkspaceProfileStatus {
@@ -61,4 +62,43 @@ model WorkspaceProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum WorkspaceInviteStatus {
+  pending
+  accepted
+  rejected
+  deleted
+}
+
+model WorkspaceInvite {
+  id String @id
+
+  status WorkspaceInviteStatus @default(pending)
+
+  email String
+
+  accountId String
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  globalProfileId String
+  globalProfile   GlobalProfile @relation(fields: [globalProfileId], references: [id], onDelete: Cascade)
+
+  consumerInviteId     String? @unique
+  organizationInviteId String? @unique
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime
+
+  @@unique([workspaceId, globalProfileId])
+  @@index([accountId])
+  @@index([workspaceId])
+  @@index([globalProfileId])
 }

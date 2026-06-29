@@ -9,6 +9,7 @@ model GlobalProfile {
 
   emails            GlobalProfileEmail[]
   workspaceProfiles WorkspaceProfile[]
+  workspaceInvites  WorkspaceInvite[]
 }
 
 model GlobalProfileEmail {
