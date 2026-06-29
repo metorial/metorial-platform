@@ -14,6 +14,7 @@ import { db } from '../../db';
 import { getId } from '../../id';
 import { getAxiosSsrfFilter } from '../http/axiosSsrf';
 import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
+import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 import {
   type OAuthConfiguration,
   type RegistrationResponse,
@@ -21,7 +22,6 @@ import {
   type TokenResponse,
   type UserProfile
 } from './types';
-import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
 
 axios.defaults.headers.common['Accept-Encoding'] = 'gzip';
 
@@ -51,21 +51,21 @@ export class OAuthUtils {
   }
 
   static buildAuthorizationUrl({
-    authEndpoint,
     clientId,
     redirectUri,
     scopes,
     state,
-    codeChallenge
+    codeChallenge,
+    config
   }: {
-    authEndpoint: string;
     clientId: string;
     redirectUri: string;
     scopes: string[];
     state?: string;
     codeChallenge?: string;
+    config: OAuthConfiguration;
   }): string {
-    let url = new URL(normalizeAuthorizationUrl(authEndpoint));
+    let url = new URL(normalizeAuthorizationUrl(config.authorization_endpoint));
 
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', clientId);
@@ -82,6 +82,10 @@ export class OAuthUtils {
     if (codeChallenge) {
       url.searchParams.set('code_challenge', codeChallenge);
       url.searchParams.set('code_challenge_method', 'S256');
+    }
+
+    if (config.resource) {
+      url.searchParams.set('resource', config.resource);
     }
 
     return url.toString();
@@ -128,7 +132,12 @@ export class OAuthUtils {
     };
 
     if (clientSecret) {
-      if (config.token_endpoint_auth_methods_supported?.includes('client_secret_basic')) {
+      let hasBasic =
+        config.token_endpoint_auth_methods_supported?.includes('client_secret_basic');
+      let hasPost =
+        config.token_endpoint_auth_methods_supported?.includes('client_secret_post');
+
+      if (hasBasic && !hasPost) {
         headers.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
       } else {
         body.set('client_id', clientId);
@@ -201,7 +210,12 @@ export class OAuthUtils {
     };
 
     if (clientSecret) {
-      if (config.token_endpoint_auth_methods_supported?.includes('client_secret_basic')) {
+      let hasBasic =
+        config.token_endpoint_auth_methods_supported?.includes('client_secret_basic');
+      let hasPost =
+        config.token_endpoint_auth_methods_supported?.includes('client_secret_post');
+
+      if (hasBasic && !hasPost) {
         headers.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
       } else {
         body.set('client_id', clientId);

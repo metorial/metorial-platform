@@ -15,6 +15,11 @@ export interface OAuthConfiguration {
   code_challenge_methods_supported?: string[];
   registration_endpoint?: string;
 
+  // Metorial fields
+  resource?: string;
+  authorization_servers?: string[];
+  bearer_methods_supported?: ('header' | 'body' | 'query')[];
+
   // [key: string]: any;
 }
 

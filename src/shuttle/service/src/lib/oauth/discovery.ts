@@ -85,7 +85,14 @@ export class OAuthDiscovery {
     for (let serverUrl of authServers) {
       try {
         let serverConfig = await this.fetchAuthorizationServerConfig(serverUrl);
-        if (serverConfig) return serverConfig;
+        if (serverConfig) {
+          return {
+            authorization_servers: authServers,
+            authorization_server: serverUrl,
+            ...config,
+            ...serverConfig
+          };
+        }
       } catch (error) {
         console.debug(`Failed to discover authorization server ${serverUrl}:`, error);
       }
