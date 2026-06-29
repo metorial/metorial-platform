@@ -1,13 +1,11 @@
 import { delay } from '@lowerdeck/delay';
 import { isServiceError } from '@lowerdeck/error';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry, shouldIgnoreSentryHttpError } from '@lowerdeck/sentry';
 import { MetorialDashboardSDK, MetorialUser } from '@metorial/dashboard-sdk';
 import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { withDashboardSDK } from '../../sdk';
 import { redirectToAuth } from './redirect';
-
-let Sentry = getSentry();
 
 let authRequiredRef = { current: true };
 export let setAuthRequired = (required: boolean) => {
@@ -55,13 +53,9 @@ export let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) =>
       }
     }
 
-    if (
-      err.code != 'unauthorized' &&
-      err.code != 'not_found' &&
-      err.code != 'bad_request' &&
-      err.code != 'invalid_data'
-    )
-      Sentry.captureException(err);
+    if (!shouldIgnoreSentryHttpError(err)) {
+      getSentry().captureException(err);
+    }
 
     throw err;
   }
