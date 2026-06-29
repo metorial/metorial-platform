@@ -6,7 +6,8 @@ import {
   ConsumerSurface,
   ConsumerSurfaceProviderGroup,
   db,
-  ID
+  ID,
+  withTransaction
 } from '@metorial/db';
 
 class ConsumerSurfaceProviderGroupServiceImpl {
@@ -97,7 +98,7 @@ class ConsumerSurfaceProviderGroupServiceImpl {
     let oldIndex = d.consumerSurfaceProviderGroup.index;
     let surfaceOid = d.consumerSurfaceProviderGroup.consumerSurfaceOid;
 
-    await db.$transaction(async tx => {
+    await withTransaction(async tx => {
       await tx.consumerSurfaceProviderGroup.delete({
         where: { oid: d.consumerSurfaceProviderGroup.oid }
       });
@@ -168,7 +169,7 @@ class ConsumerSurfaceProviderGroupServiceImpl {
 
     let surfaceOid = d.consumerSurfaceProviderGroup.consumerSurfaceOid;
 
-    await db.$transaction(async tx => {
+    await withTransaction(async tx => {
       if (newIndex < oldIndex) {
         await tx.consumerSurfaceProviderGroup.updateMany({
           where: {

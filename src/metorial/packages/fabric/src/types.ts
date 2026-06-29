@@ -5,8 +5,10 @@ import {
   AccessRole,
   ApiKey,
   ConsumerAuthTenant,
+  ConsumerGroup,
   ConsumerInvite,
   ConsumerProfile,
+  ConsumerProfileGroup,
   ConsumerSurface,
   Instance,
   MachineAccess,
@@ -34,7 +36,11 @@ import {
   User,
   UserSession,
   Workspace,
+  WorkspaceGroup,
+  WorkspaceGroupAssignment,
   WorkspaceInvite,
+  WorkspacePolicy,
+  WorkspacePolicyAssignment,
   WorkspaceProfile
 } from '@metorial/db';
 import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
@@ -381,12 +387,67 @@ export interface FabricEvents {
     | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
     | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
 
+  'workspace_group.created:before':
+    | { team: Team }
+    | { consumerGroup: ConsumerGroup };
+  'workspace_group.created:after':
+    | { workspaceGroup: WorkspaceGroup; team: Team }
+    | { workspaceGroup: WorkspaceGroup; consumerGroup: ConsumerGroup };
+  'workspace_group.updated:before':
+    | { workspaceGroup: WorkspaceGroup; team: Team }
+    | { workspaceGroup: WorkspaceGroup; consumerGroup: ConsumerGroup };
+  'workspace_group.updated:after':
+    | { workspaceGroup: WorkspaceGroup; team: Team }
+    | { workspaceGroup: WorkspaceGroup; consumerGroup: ConsumerGroup };
+  'workspace_group.deleted:before':
+    | { workspaceGroup: WorkspaceGroup; team: Team }
+    | { workspaceGroup: WorkspaceGroup; consumerGroup: ConsumerGroup };
+  'workspace_group.deleted:after':
+    | { workspaceGroup: WorkspaceGroup; team: Team }
+    | { workspaceGroup: WorkspaceGroup; consumerGroup: ConsumerGroup };
+
+  'workspace_policy.created:before': { accessPolicy: AccessPolicy };
+  'workspace_policy.created:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
+  'workspace_policy.updated:before': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
+  'workspace_policy.updated:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
+  'workspace_policy.deleted:before': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
+  'workspace_policy.deleted:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
+
+  'workspace_group_assignment.created:before':
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember }
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; consumerProfileGroup: ConsumerProfileGroup };
+  'workspace_group_assignment.created:after':
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember; workspaceGroupAssignment: WorkspaceGroupAssignment }
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; consumerProfileGroup: ConsumerProfileGroup; workspaceGroupAssignment: WorkspaceGroupAssignment };
+  'workspace_group_assignment.deleted:before':
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember; workspaceGroupAssignment: WorkspaceGroupAssignment }
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; consumerProfileGroup: ConsumerProfileGroup; workspaceGroupAssignment: WorkspaceGroupAssignment };
+  'workspace_group_assignment.deleted:after':
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; teamMember: TeamMember; workspaceGroupAssignment: WorkspaceGroupAssignment }
+    | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; consumerProfileGroup: ConsumerProfileGroup; workspaceGroupAssignment: WorkspaceGroupAssignment };
+
+  'workspace_policy_assignment.created:before': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
+  'workspace_policy_assignment.created:after': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
+  'workspace_policy_assignment.deleted:before': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
+  'workspace_policy_assignment.deleted:after': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
+
   'consumer.profile.created:before': { surface: ConsumerSurface };
   'consumer.profile.created:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.updated:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.updated:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.deleted:before': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
   'consumer.profile.deleted:after': { consumerProfile: ConsumerProfile, surface: ConsumerSurface };
+  'consumer.profile.group.added:before': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup };
+  'consumer.profile.group.added:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
+  'consumer.profile.group.removed:before': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
+  'consumer.profile.group.removed:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
+
+  'consumer.group.created:before': { consumerSurface: ConsumerSurface, input: { name: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
+  'consumer.group.created:after': { consumerSurface: ConsumerSurface, consumerGroup: ConsumerGroup, input: { name: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
+  'consumer.group.updated:before': { consumerGroup: ConsumerGroup, input: { name?: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
+  'consumer.group.updated:after': { consumerGroup: ConsumerGroup, input: { name?: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
+  'consumer.group.archived:before': { organization: Organization, consumerGroup: ConsumerGroup };
+  'consumer.group.archived:after': { organization: Organization, consumerGroup: ConsumerGroup };
 
   'consumer.invite.created:before': { consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };
   'consumer.invite.created:after': { consumerInvite: ConsumerInvite, consumerProfile: ConsumerProfile, consumerSurface: ConsumerSurface, performedBy: OrganizationActor };

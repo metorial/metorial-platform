@@ -31,38 +31,11 @@ model Workspace {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  sites    Site[]
-  profiles WorkspaceProfile[]
-  invites  WorkspaceInvite[]
-}
-
-model GlobalProfile {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  name String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  workspaceProfiles WorkspaceProfile[]
-  emails            GlobalProfileEmail[]
-  workspaceInvites  WorkspaceInvite[]
-  users             User[]
-  consumers         Consumer[]
-}
-
-model GlobalProfileEmail {
-  oid BigInt @id @default(autoincrement())
-  id  String @unique
-
-  email String @unique
-
-  globalProfileOid BigInt
-  globalProfile    GlobalProfile @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  sites             Site[]
+  profiles          WorkspaceProfile[]
+  invites           WorkspaceInvite[]
+  workspaceGroups   WorkspaceGroup[]
+  workspacePolicies WorkspacePolicy[]
 }
 
 enum WorkspaceProfileStatus {
@@ -107,6 +80,9 @@ model WorkspaceProfile {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
+  policies WorkspacePolicyAssignment[]
+  groups   WorkspaceGroupAssignment[]
+
   @@unique([workspaceOid, globalProfileOid])
 }
 
@@ -146,4 +122,120 @@ model WorkspaceInvite {
   expiresAt DateTime
 
   @@unique([workspaceOid, globalProfileOid])
+}
+
+enum WorkspaceGroupType {
+  consumer_group
+  organization_team
+}
+
+enum WorkspaceGroupStatus {
+  active
+  archived
+  deleted
+}
+
+enum WorkspaceGroupAssignmentType {
+  everyone
+  admin
+  custom
+}
+
+model WorkspaceGroup {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type           WorkspaceGroupType
+  status         WorkspaceGroupStatus
+  assignmentType WorkspaceGroupAssignmentType
+
+  name        String
+  description String?
+
+  workspaceOid BigInt
+  workspace    Workspace @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  policies                  WorkspacePolicyAssignment[]
+  workspaceGroupAssignments WorkspaceGroupAssignment[]
+}
+
+enum WorkspacePolicyType {
+  organization_policy
+}
+
+enum WorkspacePolicyStatus {
+  active
+  archived
+  deleted
+}
+
+enum WorkspacePolicyAssignmentType {
+  everyone
+  admin
+  custom
+}
+
+model WorkspacePolicy {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type           WorkspacePolicyType
+  status         WorkspacePolicyStatus
+  assignmentType WorkspacePolicyAssignmentType
+
+  name        String
+  description String?
+
+  workspaceOid BigInt
+  workspace    Workspace @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt
+  account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  assignments WorkspacePolicyAssignment[]
+}
+
+model WorkspacePolicyAssignment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  workspacePolicyOid BigInt
+  workspacePolicy    WorkspacePolicy @relation(fields: [workspacePolicyOid], references: [oid], onDelete: Cascade)
+
+  workspaceGroupOid BigInt?
+  workspaceGroup    WorkspaceGroup? @relation(fields: [workspaceGroupOid], references: [oid], onDelete: Cascade)
+
+  workspaceProfileOid BigInt?
+  workspaceProfile    WorkspaceProfile? @relation(fields: [workspaceProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([workspacePolicyOid, workspaceGroupOid])
+  @@unique([workspacePolicyOid, workspaceProfileOid])
+}
+
+model WorkspaceGroupAssignment {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  workspaceGroupOid BigInt
+  workspaceGroup    WorkspaceGroup @relation(fields: [workspaceGroupOid], references: [oid], onDelete: Cascade)
+
+  workspaceProfileOid BigInt
+  workspaceProfile    WorkspaceProfile @relation(fields: [workspaceProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([workspaceGroupOid, workspaceProfileOid])
 }

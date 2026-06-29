@@ -23,4 +23,6 @@ model Account {
   namespaces        Namespace[]
   workspaceProfiles WorkspaceProfile[]
   workspaceInvites  WorkspaceInvite[]
+  workspaceGroups   WorkspaceGroup[]
+  workspacePolicies WorkspacePolicy[]
 }

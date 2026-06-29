@@ -1,7 +1,15 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { ConsumerGroup, ConsumerSurface, db, ID, Organization } from '@metorial/db';
+import {
+  ConsumerGroup,
+  ConsumerSurface,
+  db,
+  ID,
+  Organization,
+  withTransaction
+} from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { searchConsumerGroupIds } from '@metorial/module-search';
 import {
   consumerGroupArchivedQueue,
@@ -19,14 +27,19 @@ class ConsumerGroupServiceImpl {
       isDefault?: boolean;
     };
   }) {
-    let consumerGroup = await db.$transaction(async tx => {
+    let consumerGroup = await withTransaction(async tx => {
+      await Fabric.fire('consumer.group.created:before', {
+        consumerSurface: d.consumerSurface,
+        input: d.input
+      });
+
       let accessTag = await tx.accessTag.create({
         data: {
           instanceOid: d.consumerSurface.instanceOid
         }
       });
 
-      return await tx.consumerGroup.create({
+      let consumerGroup = await tx.consumerGroup.create({
         data: {
           id: await ID.generateId('consumerGroup'),
           status: 'active',
@@ -39,6 +52,14 @@ class ConsumerGroupServiceImpl {
           accessTagOid: accessTag.oid
         }
       });
+
+      await Fabric.fire('consumer.group.created:after', {
+        consumerSurface: d.consumerSurface,
+        consumerGroup,
+        input: d.input
+      });
+
+      return consumerGroup;
     });
 
     await consumerGroupCreatedQueue.add({ consumerGroupId: consumerGroup.id });
@@ -129,16 +150,30 @@ class ConsumerGroupServiceImpl {
       throw new ServiceError(notFoundError('consumer.group'));
     }
 
-    let consumerGroup = await db.consumerGroup.update({
-      where: {
-        oid: d.consumerGroup.oid
-      },
-      data: {
-        name: d.input.name,
-        description: d.input.description,
-        ssoGroupIds: d.input.ssoGroupIds,
-        isDefault: d.input.isDefault
-      }
+    let consumerGroup = await withTransaction(async tx => {
+      await Fabric.fire('consumer.group.updated:before', {
+        consumerGroup: d.consumerGroup,
+        input: d.input
+      });
+
+      let consumerGroup = await tx.consumerGroup.update({
+        where: {
+          oid: d.consumerGroup.oid
+        },
+        data: {
+          name: d.input.name,
+          description: d.input.description,
+          ssoGroupIds: d.input.ssoGroupIds,
+          isDefault: d.input.isDefault
+        }
+      });
+
+      await Fabric.fire('consumer.group.updated:after', {
+        consumerGroup,
+        input: d.input
+      });
+
+      return consumerGroup;
     });
 
     await consumerGroupUpdatedQueue.add({ consumerGroupId: consumerGroup.id });
@@ -159,15 +194,29 @@ class ConsumerGroupServiceImpl {
       throw new ServiceError(notFoundError('consumer.group'));
     }
 
-    let consumerGroup = await db.consumerGroup.update({
-      where: {
-        oid: d.consumerGroup.oid
-      },
-      data: {
-        status: 'archived',
-        archivedAt: new Date(),
-        deletedAt: null
-      }
+    let consumerGroup = await withTransaction(async tx => {
+      await Fabric.fire('consumer.group.archived:before', {
+        organization: d.organization,
+        consumerGroup: d.consumerGroup
+      });
+
+      let consumerGroup = await tx.consumerGroup.update({
+        where: {
+          oid: d.consumerGroup.oid
+        },
+        data: {
+          status: 'archived',
+          archivedAt: new Date(),
+          deletedAt: null
+        }
+      });
+
+      await Fabric.fire('consumer.group.archived:after', {
+        organization: d.organization,
+        consumerGroup
+      });
+
+      return consumerGroup;
     });
 
     await consumerGroupArchivedQueue.add({ consumerGroupId: consumerGroup.id });

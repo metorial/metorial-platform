@@ -1,0 +1,28 @@
+model GlobalProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  workspaceProfiles WorkspaceProfile[]
+  emails            GlobalProfileEmail[]
+  workspaceInvites  WorkspaceInvite[]
+  users             User[]
+  consumers         Consumer[]
+}
+
+model GlobalProfileEmail {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  email String @unique
+
+  globalProfileOid BigInt
+  globalProfile    GlobalProfile @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

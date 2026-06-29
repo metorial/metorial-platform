@@ -799,12 +799,37 @@ class ConsumerProfileServiceImpl {
     let groups = await this.getAssignableGroupsOrThrow(d);
 
     if (groups.length) {
-      await db.consumerProfileGroup.createMany({
-        data: groups.map(group => ({
-          profileOid: d.consumerProfile.oid,
-          groupOid: group.oid
-        })),
-        skipDuplicates: true
+      await withTransaction(async db => {
+        let existingMemberships = await db.consumerProfileGroup.findMany({
+          where: {
+            profileOid: d.consumerProfile.oid,
+            groupOid: {
+              in: groups.map(group => group.oid)
+            }
+          }
+        });
+        let existingGroupOids = new Set(existingMemberships.map(membership => membership.groupOid));
+        let groupsToAdd = groups.filter(group => !existingGroupOids.has(group.oid));
+
+        for (let group of groupsToAdd) {
+          await Fabric.fire('consumer.profile.group.added:before', {
+            consumerProfile: d.consumerProfile,
+            consumerGroup: group
+          });
+
+          let consumerProfileGroup = await db.consumerProfileGroup.create({
+            data: {
+              profileOid: d.consumerProfile.oid,
+              groupOid: group.oid
+            }
+          });
+
+          await Fabric.fire('consumer.profile.group.added:after', {
+            consumerProfile: d.consumerProfile,
+            consumerGroup: group,
+            consumerProfileGroup
+          });
+        }
       });
     }
 
@@ -819,10 +844,41 @@ class ConsumerProfileServiceImpl {
   }) {
     let groups = await this.getAssignableGroupsOrThrow(d);
 
-    await db.consumerProfileGroup.deleteMany({
-      where: {
-        profileOid: d.consumerProfile.oid,
-        groupOid: { in: groups.map(group => group.oid) }
+    await withTransaction(async db => {
+      let existingMemberships = await db.consumerProfileGroup.findMany({
+        where: {
+          profileOid: d.consumerProfile.oid,
+          groupOid: { in: groups.map(group => group.oid) }
+        }
+      });
+      let existingMembershipByGroupOid = new Map(
+        existingMemberships.map(membership => [membership.groupOid, membership])
+      );
+
+      for (let group of groups) {
+        let consumerProfileGroup = existingMembershipByGroupOid.get(group.oid);
+        if (!consumerProfileGroup) continue;
+
+        await Fabric.fire('consumer.profile.group.removed:before', {
+          consumerProfile: d.consumerProfile,
+          consumerGroup: group,
+          consumerProfileGroup
+        });
+
+        await db.consumerProfileGroup.delete({
+          where: {
+            profileOid_groupOid: {
+              profileOid: d.consumerProfile.oid,
+              groupOid: group.oid
+            }
+          }
+        });
+
+        await Fabric.fire('consumer.profile.group.removed:after', {
+          consumerProfile: d.consumerProfile,
+          consumerGroup: group,
+          consumerProfileGroup
+        });
       }
     });
 
