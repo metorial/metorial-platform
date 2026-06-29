@@ -49,7 +49,7 @@ model Server {
   serverSpecifications               ServerSpecification[]
   changeNotifications                ChangeNotification[]
   remoteOAuthConnections             RemoteOAuthConnection[]
-  remoteOAuthConfig                  RemoteOAuthConfig?                  @relation("forRemoteOAuthConfig")
+  remoteOAuthConfig                  RemoteOAuthConfig[]                 @relation("forRemoteOAuthConfig")
   delegatedOAuthConfig               DelegatedOAuthConfig?               @relation("forDelegatedOAuthConfig")
   serverAuthConfigs                  ServerAuthConfig[]
   serverOAuthCredentials             ServerOAuthCredentials[]

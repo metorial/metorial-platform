@@ -1,6 +1,7 @@
 import { delay } from '@lowerdeck/delay';
 import { isServiceError } from '@lowerdeck/error';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { encode } from '@toon-format/toon';
 import type {
   RemoteOAuthConfig,
   RemoteOAuthDiscoveryDocument,
@@ -73,96 +74,102 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
       let oauthConfig: RemoteOAuthConfig | null = null;
       let remoteServerNeedsManualAuthentication = false;
 
-      if (server.remoteOauthConfigOid) {
-        oauthConfig = await db.remoteOAuthConfig.findUnique({
-          where: { oid: server.remoteOauthConfigOid }
-        });
-      } else {
-        let config: OAuthConfiguration | undefined = undefined;
-        let discovery: RemoteOAuthDiscoveryDocument | undefined = undefined;
+      let config: OAuthConfiguration | undefined = undefined;
+      let discovery: RemoteOAuthDiscoveryDocument | undefined = undefined;
 
-        if (data.oauthConfig) {
-          let valRes = oauthConfigValidator.validate(data.oauthConfig);
-          if (!valRes.success) {
-            deployingStep.log(`Invalid OAuth configuration provided.`);
-            valRes.errors.forEach(err => {
-              deployingStep.log(`Error: ${err}`);
-            });
-            throw new Error('Invalid OAuth configuration provided');
-          }
-
-          config = data.oauthConfig as OAuthConfiguration;
-        } else {
-          let newDiscovery =
-            await remoteOAuthDiscoveryService.discoverOauthConfigWithoutRegistrationSafe({
-              discoveryUrl: data.remoteUrl
-            });
-          if (newDiscovery) {
-            config = newDiscovery.config;
-            discovery = newDiscovery;
-          }
+      if (data.oauthConfig) {
+        let valRes = oauthConfigValidator.validate(data.oauthConfig);
+        if (!valRes.success) {
+          deployingStep.log(`Invalid OAuth configuration provided.`);
+          valRes.errors.forEach(err => {
+            deployingStep.log(`Error: ${err}`);
+          });
+          throw new Error('Invalid OAuth configuration provided');
         }
 
-        if (config) {
-          oauthConfig = await db.remoteOAuthConfig.create({
-            data: {
-              ...getId('remoteOAuthConfig'),
-              discoverStatus: 'discovering',
-              name: server.name,
-              config,
-              providerName: discovery?.providerName ?? url.hostname,
-              providerUrl: discovery?.providerUrl ?? url.origin,
-              discoveryUrl: discovery?.discoveryUrl,
-              scopes: config.scopes_supported ?? [],
-              serverOid: server.oid,
-              oauthDiscoveryDocumentOid: discovery?.oid
-            }
+        config = data.oauthConfig as OAuthConfiguration;
+      } else {
+        let newDiscovery =
+          await remoteOAuthDiscoveryService.discoverOauthConfigWithoutRegistrationSafe({
+            discoveryUrl: data.remoteUrl
           });
+        if (newDiscovery) {
+          config = newDiscovery.config;
+          discovery = newDiscovery;
+        }
+      }
 
+      if (config) {
+        oauthConfig = await db.remoteOAuthConfig.create({
+          data: {
+            ...getId('remoteOAuthConfig'),
+            discoverStatus: 'discovering',
+            name: server.name,
+            config,
+            providerName: discovery?.providerName ?? url.hostname,
+            providerUrl: discovery?.providerUrl ?? url.origin,
+            discoveryUrl: discovery?.discoveryUrl,
+            scopes: config.scopes_supported ?? [],
+            serverOid: server.oid,
+            oauthDiscoveryDocumentOid: discovery?.oid
+          }
+        });
+
+        await discoverRemoteOAuthConfigQueue.add({ oauthConfigId: oauthConfig!.id });
+
+        for (let i = 0; i < 50; i++) {
+          oauthConfig = await db.remoteOAuthConfig.findUniqueOrThrow({
+            where: { oid: oauthConfig!.oid }
+          });
+          if (oauthConfig.discoverStatus != 'discovering') break;
+          await delay(1000);
+        }
+
+        if (oauthConfig.discoverStatus == 'discovering') {
+          deployingStep.log(`OAuth configuration discovery timed out.`);
+          throw new Error('OAuth configuration discovery timed out');
+        }
+
+        if (oauthConfig.discoverStatus == 'failed') {
+          deployingStep.log(`OAuth configuration discovery failed.`);
+          deployingStep.log(`Error Code: ${oauthConfig.errorCode}`);
+          deployingStep.log(`Message: ${oauthConfig.errorMessage}`);
+        } else {
+          deployingStep.log(`OAuth configuration discovered successfully.`);
+          deployingStep.log('Provider details:');
+          deployingStep.log(`Name: ${oauthConfig.providerName}`);
+          deployingStep.log(`URL: ${oauthConfig.providerUrl}`);
+
+          // If the discovery succeeded, we can update the server to point to the new OAuth config
           await db.server.updateMany({
             where: { oid: server.oid },
             data: { remoteOauthConfigOid: oauthConfig.oid }
           });
 
-          await discoverRemoteOAuthConfigQueue.add({ oauthConfigId: oauthConfig!.id });
+          // For backwards compatibility, we need to update all existing
+          // remote connections to use the new config
+          await db.remoteOAuthConnection.updateMany({
+            where: {
+              serverOid: server.oid,
+              status: { not: 'inactive' },
+              discoveryStatus: { not: 'failed' }
+            },
+            data: { configOid: oauthConfig.oid }
+          });
 
-          for (let i = 0; i < 50; i++) {
-            oauthConfig = await db.remoteOAuthConfig.findUniqueOrThrow({
-              where: { oid: oauthConfig!.oid }
-            });
-            if (oauthConfig.discoverStatus != 'discovering') break;
-            await delay(1000);
-          }
+          deployingStep.log(encode(oauthConfig.config));
+        }
+      } else {
+        let manualAuth = await OAuthDiscovery.checkIfManualAuthIsNeeded(data.remoteUrl);
 
-          if (oauthConfig.discoverStatus == 'discovering') {
-            deployingStep.log(`OAuth configuration discovery timed out.`);
-            throw new Error('OAuth configuration discovery timed out');
-          }
-
-          if (oauthConfig.discoverStatus == 'failed') {
-            deployingStep.log(`OAuth configuration discovery failed.`);
-            deployingStep.log(`Error Code: ${oauthConfig.errorCode}`);
-            deployingStep.log(`Message: ${oauthConfig.errorMessage}`);
-          } else {
-            deployingStep.log(`OAuth configuration discovered successfully.`);
-            deployingStep.log('Provider details:');
-            deployingStep.log(`Name: ${oauthConfig.providerName}`);
-            deployingStep.log(`URL: ${oauthConfig.providerUrl}`);
-          }
+        if (manualAuth) {
+          deployingStep.log(`Server requires manual authentication. OAuth is not supported.`);
+          deployingStep.log(
+            `Follow the provider's specification for settings the required headers or query parameters. You can pass them to Metorial using the headers and query fields when creating a provider config.`
+          );
+          remoteServerNeedsManualAuthentication = true;
         } else {
-          let manualAuth = await OAuthDiscovery.checkIfManualAuthIsNeeded(data.remoteUrl);
-
-          if (manualAuth) {
-            deployingStep.log(
-              `Server requires manual authentication. OAuth is not supported.`
-            );
-            deployingStep.log(
-              `Follow the provider's specification for settings the required headers or query parameters. You can pass them to Metorial using the headers and query fields when creating a provider config.`
-            );
-            remoteServerNeedsManualAuthentication = true;
-          } else {
-            deployingStep.log(`Server does not use OAuth authentication.`);
-          }
+          deployingStep.log(`Server does not use OAuth authentication.`);
         }
       }
 
