@@ -7,6 +7,19 @@ import { isMetorialSDKError } from '@metorial/util-endpoint';
 import { withDashboardSDK } from '../../sdk';
 import { redirectToAuth } from './redirect';
 
+let ignoredSDKAuthErrorCodes = new Set([
+  'bad_request',
+  'invalid_data',
+  'not_found',
+  'unauthorized'
+]);
+
+let shouldIgnoreSentryAuthError = (error: unknown) => {
+  if (shouldIgnoreSentryHttpError(error)) return true;
+
+  return isMetorialSDKError(error) && ignoredSDKAuthErrorCodes.has(error.code);
+};
+
 let authRequiredRef = { current: true };
 export let setAuthRequired = (required: boolean) => {
   authRequiredRef.current = required;
@@ -53,7 +66,7 @@ export let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) =>
       }
     }
 
-    if (!shouldIgnoreSentryHttpError(err)) {
+    if (!shouldIgnoreSentryAuthError(err)) {
       getSentry().captureException(err);
     }
 
