@@ -75,6 +75,19 @@ export let getCustomProviderRedeployInput = (
     };
   }
 
+  if (customProvider.type === 'remote') {
+    let remote = customProvider.draft.remoteMcpServer;
+    if (!remote) return null;
+
+    return {
+      from: {
+        type: 'remote',
+        remoteUrl: remote.url,
+        protocol: remote.transport
+      }
+    };
+  }
+
   return null;
 };
 
