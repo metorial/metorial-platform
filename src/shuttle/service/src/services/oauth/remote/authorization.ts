@@ -109,17 +109,19 @@ class remoteOauthAuthorizationServiceImpl {
       serverOAuthSetup: d.serverOAuthSetup ?? setup.serverOAuthSetup
     });
 
+    let redirectUrl = OAuthUtils.buildAuthorizationUrl({
+      clientId: DANGEROUS_unencryptedCredentials.clientId,
+      redirectUri,
+      scopes: d.connection.config.scopes,
+      state: setup.stateIdentifier!,
+      codeChallenge,
+      config
+    });
+
     return {
       type: 'redirect' as const,
       setup,
-      redirectUrl: OAuthUtils.buildAuthorizationUrl({
-        authEndpoint: config.authorization_endpoint,
-        clientId: DANGEROUS_unencryptedCredentials.clientId,
-        redirectUri,
-        scopes: d.connection.config.scopes,
-        state: setup.stateIdentifier!,
-        codeChallenge
-      })
+      redirectUrl
     };
   }
 

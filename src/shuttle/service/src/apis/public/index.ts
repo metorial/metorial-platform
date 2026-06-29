@@ -1,5 +1,5 @@
-import { createHono } from '@lowerdeck/hono';
 import { validationError } from '@lowerdeck/error';
+import { createHono } from '@lowerdeck/hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import z from 'zod';
 import { db } from '../../db';
@@ -59,66 +59,66 @@ export let publicApp = createHono()
   })
   .get('/ping', c => c.text('OK'))
   .get('/shuttle-oauth/start', async c => {
-      let parsedQuery = parseQuery(c, shuttleOauthStartQuerySchema);
-      if (!parsedQuery.ok) return parsedQuery.response;
+    let parsedQuery = parseQuery(c, shuttleOauthStartQuerySchema);
+    if (!parsedQuery.ok) return parsedQuery.response;
 
-      let query = parsedQuery.data;
-      let setup = await serverOAuthSetupService.consumeServerOAuthSetup({
-        serverOAuthSetupId: query.setup_id
-      });
-
-      if (setup.state) {
-        setCookie(c, STATE_COOKIE_NAME, setup.state, { path: '/' });
-      }
-
-      return c.redirect(setup.url);
-    })
-  .get('/shuttle-oauth/callback', async c => {
-      let parsedQuery = parseQuery(c, shuttleOauthCallbackQuerySchema);
-      if (!parsedQuery.ok) return parsedQuery.response;
-
-      let query = { ...parsedQuery.data };
-
-      if (!query.state) {
-        let stateCookie = getCookie(c, STATE_COOKIE_NAME);
-        if (stateCookie) {
-          query.state = stateCookie;
-        }
-      }
-
-      let delegatedSetup = query.state
-        ? await db.delegatedOAuthConnectionSetup.findFirst({
-            where: { stateIdentifier: query.state }
-          })
-        : null;
-
-      let redirectUrl: string;
-
-      if (delegatedSetup) {
-        let res = await delegatedOauthAuthorizationService.completeAuthorization({
-          fullUrl: c.req.url,
-          response: {
-            code: query.code,
-            state: query.state,
-            error: query.error,
-            errorDescription: query.error_description
-          }
-        });
-        redirectUrl = res.redirectUrl;
-      } else {
-        let res = await remoteOauthAuthorizationService.completeAuthorization({
-          fullUrl: c.req.url,
-          response: {
-            code: query.code,
-            state: query.state,
-            error: query.error,
-            errorDescription: query.error_description
-          }
-        });
-        redirectUrl = res.redirectUrl;
-      }
-
-      deleteCookie(c, STATE_COOKIE_NAME, { path: '/' });
-
-      return c.redirect(redirectUrl, 302);
+    let query = parsedQuery.data;
+    let setup = await serverOAuthSetupService.consumeServerOAuthSetup({
+      serverOAuthSetupId: query.setup_id
     });
+
+    if (setup.state) {
+      setCookie(c, STATE_COOKIE_NAME, setup.state, { path: '/' });
+    }
+
+    return c.redirect(setup.url);
+  })
+  .get('/shuttle-oauth/callback', async c => {
+    let parsedQuery = parseQuery(c, shuttleOauthCallbackQuerySchema);
+    if (!parsedQuery.ok) return parsedQuery.response;
+
+    let query = { ...parsedQuery.data };
+
+    if (!query.state) {
+      let stateCookie = getCookie(c, STATE_COOKIE_NAME);
+      if (stateCookie) {
+        query.state = stateCookie;
+      }
+    }
+
+    let delegatedSetup = query.state
+      ? await db.delegatedOAuthConnectionSetup.findFirst({
+          where: { stateIdentifier: query.state }
+        })
+      : null;
+
+    let redirectUrl: string;
+
+    if (delegatedSetup) {
+      let res = await delegatedOauthAuthorizationService.completeAuthorization({
+        fullUrl: c.req.url,
+        response: {
+          code: query.code,
+          state: query.state,
+          error: query.error,
+          errorDescription: query.error_description
+        }
+      });
+      redirectUrl = res.redirectUrl;
+    } else {
+      let res = await remoteOauthAuthorizationService.completeAuthorization({
+        fullUrl: c.req.url,
+        response: {
+          code: query.code,
+          state: query.state,
+          error: query.error,
+          errorDescription: query.error_description
+        }
+      });
+      redirectUrl = res.redirectUrl;
+    }
+
+    deleteCookie(c, STATE_COOKIE_NAME, { path: '/' });
+
+    return c.redirect(redirectUrl, 302);
+  });

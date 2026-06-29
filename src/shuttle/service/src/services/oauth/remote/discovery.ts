@@ -1,6 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { differenceInMinutes } from 'date-fns';
 import { db } from '../../../db';
 import { getId } from '../../../id';
 import { OAuthDiscovery } from '../../../lib/oauth/discovery';
@@ -9,13 +8,6 @@ import { oauthConfigValidator, type OAuthConfiguration } from '../../../lib/oaut
 
 class remoteOAuthDiscoveryServiceImpl {
   async discoverOauthConfigWithoutRegistration(d: { discoveryUrl: string }) {
-    let existingDoc = await db.remoteOAuthDiscoveryDocument.findUnique({
-      where: { discoveryUrl: d.discoveryUrl }
-    });
-    if (existingDoc && differenceInMinutes(new Date(), existingDoc.refreshedAt) < 15) {
-      return existingDoc;
-    }
-
     let doc = await OAuthDiscovery.discover(d.discoveryUrl);
     if (!doc) {
       throw new ServiceError(
@@ -37,21 +29,24 @@ class remoteOAuthDiscoveryServiceImpl {
 
     let configHash = await OAuthUtils.getConfigHash(doc, []);
 
+    let inner = {
+      config: doc as any,
+      configHash,
+      refreshedAt: new Date(),
+
+      version: 1,
+
+      providerName: OAuthUtils.getProviderName(doc),
+      providerUrl: OAuthUtils.getProviderUrl(doc),
+      discoveryUrl: d.discoveryUrl
+    };
+
     return await db.remoteOAuthDiscoveryDocument.upsert({
       where: { discoveryUrl: d.discoveryUrl },
-      update: {},
+      update: inner,
       create: {
         ...getId('remoteOAuthDiscoveryDocument'),
-
-        config: doc as any,
-        configHash,
-        refreshedAt: new Date(),
-
-        version: 1,
-
-        providerName: OAuthUtils.getProviderName(doc),
-        providerUrl: OAuthUtils.getProviderUrl(doc),
-        discoveryUrl: d.discoveryUrl
+        ...inner
       }
     });
   }
