@@ -34,8 +34,16 @@ export let defaultConfig: MetorialConfig = {
 
   urls: {
     getInviteUrl: invite => {
+      if (invite.type === 'enterprise') {
+        return new URL(
+          `${env.urls.APP_URL}/join/enterprise/${invite.enterpriseId}/${invite.key}`
+        ).toString();
+      }
+
       let url = new URL(`${env.urls.APP_URL}/join?invite_key=${invite.key}`);
-      if (invite.email) url.searchParams.set('email', invite.email);
+      if (invite.email) {
+        url.searchParams.set('email', invite.email);
+      }
 
       return url.toString();
     },
