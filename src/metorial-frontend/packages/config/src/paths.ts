@@ -987,6 +987,90 @@ let AccountPaths = Object.assign(
   }
 );
 
+let AdminPaths = Object.assign(
+  (accountId: string | null | undefined, ...subPages: SubPages) => {
+    if (!accountId) return '#';
+
+    return joinPaths('admin', accountId, ...subPages);
+  },
+  {
+    home: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, ...subPages),
+    members: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'members', ...subPages),
+    member: (
+      accountId: string | null | undefined,
+      memberId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!memberId) return '#';
+
+      return AdminPaths(accountId, 'members', memberId, ...subPages);
+    },
+    invites: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'invites', ...subPages),
+    invite: (
+      accountId: string | null | undefined,
+      inviteId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!inviteId) return '#';
+
+      return AdminPaths(accountId, 'invites', inviteId, ...subPages);
+    },
+    groups: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'groups', ...subPages),
+    group: (
+      accountId: string | null | undefined,
+      groupId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!groupId) return '#';
+
+      return AdminPaths(accountId, 'groups', groupId, ...subPages);
+    },
+    policies: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'policies', ...subPages),
+    policy: (
+      accountId: string | null | undefined,
+      policyId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!policyId) return '#';
+
+      return AdminPaths(accountId, 'policies', policyId, ...subPages);
+    },
+    workspaces: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'workspaces', ...subPages),
+    workspace: (
+      accountId: string | null | undefined,
+      workspaceId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!workspaceId) return '#';
+
+      return AdminPaths(accountId, 'workspaces', workspaceId, ...subPages);
+    },
+    auth: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'auth', ...subPages),
+    auditLogs: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'audit-logs', ...subPages),
+    billing: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'billing', ...subPages),
+    billingWorkspace: (
+      accountId: string | null | undefined,
+      workspaceId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!workspaceId) return '#';
+
+      return AdminPaths(accountId, 'billing', workspaceId, ...subPages);
+    },
+    settings: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'settings', ...subPages)
+  }
+);
+
 let OrganizationPaths = Object.assign(
   (organization: EntityParam, ...subPages: SubPages) => {
     if (!organization) return '#';
@@ -1096,6 +1180,7 @@ export let Paths = {
   instance: InstancePaths,
   project: ProjectPaths,
   account: AccountPaths,
+  admin: AdminPaths,
   organization: OrganizationPaths,
   welcome: WelcomePaths,
   dashboardInstanceRedirect
