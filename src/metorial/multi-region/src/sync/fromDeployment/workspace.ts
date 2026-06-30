@@ -85,5 +85,5 @@ Fabric.listen('workspace.created:after', async event => {
 });
 
 Fabric.listen('workspace.deleted:after', async event => {
-  await upsertWorkspace(event.workspace.id);
+  await syncWorkspacesSingleQueue.add({ workspaceId: event.workspace.id });
 });
