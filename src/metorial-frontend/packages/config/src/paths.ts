@@ -1041,13 +1041,12 @@ let dashboardInstanceRedirect = (
   let query = queryIndex >= 0 ? fullInstancePath.slice(queryIndex + 1) : '';
 
   let segments = pathname.split('/').filter(Boolean);
-  if (segments[0] !== 'i' || segments.length < 4) return fullInstancePath;
+  if (segments[0] !== 'i' || segments.length < 2) return fullInstancePath;
 
-  let prefix = InstancePaths.home(
-    { slug: segments[1] },
-    { slug: segments[2] },
-    { slug: segments[3] }
-  );
+  let prefix =
+    segments.length >= 4
+      ? `/${segments.slice(0, 4).join('/')}`
+      : `/${segments.slice(0, 2).join('/')}`;
 
   let resPath = pathname.slice(prefix.length);
 
