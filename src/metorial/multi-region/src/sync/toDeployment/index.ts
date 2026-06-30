@@ -1,5 +1,6 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { syncConsumerSurfaceToDeploymentQueueProcessor } from './consumerSurface';
+import { syncGlobalProfileToDeploymentQueueProcessor } from './globalProfile';
 import { syncInstanceToDeploymentQueueProcessor } from './instance';
 import { syncOAuthAppToDeploymentQueueProcessor } from './oauth';
 import { syncOrganizationToDeploymentQueueProcessor } from './organization';
@@ -10,6 +11,7 @@ import { syncUserToDeploymentQueueProcessor } from './user';
 
 export let toDeploymentSyncProcessors = combineQueueProcessors([
   syncToDeploymentQueueProcessor,
+  syncGlobalProfileToDeploymentQueueProcessor,
   syncUserToDeploymentQueueProcessor,
   syncOrganizationToDeploymentQueueProcessor,
   syncPortalToDeploymentQueueProcessor,

@@ -3,6 +3,7 @@ import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
 import { syncConsumerSurfaceToDeploymentQueue } from './consumerSurface';
+import { syncGlobalProfileToDeploymentQueue } from './globalProfile';
 import { syncInstanceToDeploymentQueue } from './instance';
 import { syncOAuthAppToDeploymentQueue } from './oauth';
 import { syncOrganizationToDeploymentQueue } from './organization';
@@ -23,6 +24,35 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
   let endTime = new Date();
 
   let timeRange = { gt: startTime, lte: endTime };
+
+  let globalProfileCursor: string | undefined = undefined;
+  while (true) {
+    let globalProfiles = await globalDB.globalProfile.findMany({
+      where: {
+        id: { gt: globalProfileCursor },
+        OR: [
+          { updatedAt: timeRange },
+          {
+            emails: {
+              some: {
+                OR: [{ createdAt: timeRange }, { updatedAt: timeRange }]
+              }
+            }
+          }
+        ]
+      },
+      orderBy: { id: 'asc' },
+      take: 100,
+      include: { emails: true }
+    });
+    if (globalProfiles.length === 0) break;
+
+    await syncGlobalProfileToDeploymentQueue.addMany(
+      globalProfiles.map(globalProfile => ({ globalProfile }))
+    );
+
+    globalProfileCursor = globalProfiles[globalProfiles.length - 1].id as string;
+  }
 
   let userCursor: string | undefined = undefined;
   while (true) {
