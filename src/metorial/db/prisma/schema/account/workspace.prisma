@@ -1,6 +1,7 @@
 enum WorkspaceType {
   organization
   portal
+  enterprise
 }
 
 enum WorkspaceStatus {
@@ -26,6 +27,8 @@ model Workspace {
 
   portalOid BigInt? @unique
   portal    Portal? @relation(fields: [portalOid], references: [oid], onDelete: Cascade)
+
+  enterpriseId String? @unique
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
@@ -66,6 +69,8 @@ model WorkspaceProfile {
 
   organizationMemberOid BigInt?             @unique
   organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: Cascade)
+
+  enterpriseMemberId String? @unique
 
   consumerOid BigInt?
   consumer    Consumer? @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
@@ -115,6 +120,8 @@ model WorkspaceInvite {
 
   organizationInviteOid BigInt?             @unique
   organizationInvite    OrganizationInvite? @relation(fields: [organizationInviteOid], references: [oid], onDelete: Cascade)
+
+  enterpriseInviteId String? @unique
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
@@ -168,6 +175,7 @@ model WorkspaceGroup {
 
 enum WorkspacePolicyType {
   organization_policy
+  enterprise_role
 }
 
 enum WorkspacePolicyStatus {

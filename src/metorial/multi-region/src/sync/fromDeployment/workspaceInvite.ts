@@ -26,6 +26,7 @@ export let upsertWorkspaceInvite = async (workspaceInviteId: string) => {
     globalProfileId: workspaceInvite.globalProfile.id,
     consumerInviteId: workspaceInvite.consumerInvite?.id,
     organizationInviteId: workspaceInvite.organizationInvite?.id,
+    enterpriseInviteId: workspaceInvite.enterpriseInviteId,
     deletedAt: workspaceInvite.deletedAt,
     createdAt: workspaceInvite.createdAt,
     updatedAt: workspaceInvite.updatedAt,

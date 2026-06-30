@@ -1,6 +1,7 @@
 enum WorkspaceType {
   organization
   portal
+  enterprise
 }
 
 enum WorkspaceStatus {
@@ -20,6 +21,7 @@ model Workspace {
   accountId      String
   portalId       String?
   organizationId String?
+  enterpriseId   String?
 
   ownerOid Int
   owner    Cell @relation(fields: [ownerOid], references: [oid])
@@ -52,6 +54,7 @@ model WorkspaceProfile {
   consumerId           String?
   consumerProfileId    String?
   instanceConsumerId   String?
+  enterpriseMemberId   String?
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -93,6 +96,7 @@ model WorkspaceInvite {
 
   consumerInviteId     String? @unique
   organizationInviteId String? @unique
+  enterpriseInviteId   String? @unique
 
   ownerOid Int
   owner    Cell @relation(fields: [ownerOid], references: [oid])
@@ -121,6 +125,7 @@ enum WorkspaceGroupStatus {
 
 enum WorkspacePolicyType {
   organization_policy
+  enterprise_role
 }
 
 enum WorkspacePolicyStatus {
@@ -197,7 +202,7 @@ model WorkspacePolicy {
 model WorkspaceGroupAssignment {
   id String @id
 
-  accountId  String
+  accountId   String
   workspaceId String
 
   workspaceGroupId String
@@ -222,7 +227,7 @@ model WorkspaceGroupAssignment {
 model WorkspacePolicyAssignment {
   id String @id
 
-  accountId  String
+  accountId   String
   workspaceId String
 
   workspacePolicyId String

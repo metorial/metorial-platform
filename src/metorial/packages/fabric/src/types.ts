@@ -134,6 +134,37 @@ export type ProviderEventBase = {
   input?: Record<string, any>;
 };
 
+export type FabricEnterprise = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type FabricEnterpriseMemberRole = 'super_admin';
+
+export type FabricEnterpriseMember = {
+  id: string;
+  status: 'active' | 'inactive';
+  roles: FabricEnterpriseMemberRole[];
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+};
+
+export type FabricEnterpriseInvite = {
+  id: string;
+  email: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'deleted';
+  roles: FabricEnterpriseMemberRole[];
+  createdAt: Date;
+  expiresAt: Date;
+  deletedAt: Date | null;
+  acceptedAt: Date | null;
+  rejectedAt: Date | null;
+};
+
 export type KeyProviderEventKeyProvider = {
   object: 'nebula#key_provider';
   id: string;
@@ -351,41 +382,53 @@ export interface FabricEvents {
 
   'workspace.created:before':
     | { organization: Organization }
-    | { portal: Portal };
+    | { portal: Portal }
+    | { enterprise: FabricEnterprise };
   'workspace.created:after':
     | { workspace: Workspace; organization: Organization }
-    | { workspace: Workspace; portal: Portal };
+    | { workspace: Workspace; portal: Portal }
+    | { workspace: Workspace; enterprise: FabricEnterprise };
   'workspace.updated:before':
     | { workspace: Workspace; organization: Organization }
-    | { workspace: Workspace; portal: Portal };
+    | { workspace: Workspace; portal: Portal }
+    | { workspace: Workspace; enterprise: FabricEnterprise };
   'workspace.updated:after':
     | { workspace: Workspace; organization: Organization }
-    | { workspace: Workspace; portal: Portal };
+    | { workspace: Workspace; portal: Portal }
+    | { workspace: Workspace; enterprise: FabricEnterprise };
   'workspace.deleted:before':
     | { workspace: Workspace; organization: Organization }
-    | { workspace: Workspace; portal: Portal };
+    | { workspace: Workspace; portal: Portal }
+    | { workspace: Workspace };
   'workspace.deleted:after':
     | { workspace: Workspace; organization: Organization }
-    | { workspace: Workspace; portal: Portal };
+    | { workspace: Workspace; portal: Portal }
+    | { workspace: Workspace };
 
   'workspace_profile.created:before':
     | { consumerProfile: ConsumerProfile }
-    | { organizationMember: OrganizationMember };
+    | { organizationMember: OrganizationMember }
+    | { enterpriseMember: FabricEnterpriseMember };
   'workspace_profile.created:after':
     | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
-    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember }
+    | { workspaceProfile: WorkspaceProfile; enterpriseMember: FabricEnterpriseMember };
   'workspace_profile.updated:before':
     | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
-    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember }
+    | { workspaceProfile: WorkspaceProfile; enterpriseMember: FabricEnterpriseMember };
   'workspace_profile.updated:after':
     | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
-    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember }
+    | { workspaceProfile: WorkspaceProfile; enterpriseMember: FabricEnterpriseMember };
   'workspace_profile.deleted:before':
     | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
-    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember }
+    | { workspaceProfile: WorkspaceProfile; enterpriseMember: FabricEnterpriseMember };
   'workspace_profile.deleted:after':
     | { workspaceProfile: WorkspaceProfile; consumerProfile: ConsumerProfile }
-    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember };
+    | { workspaceProfile: WorkspaceProfile; organizationMember: OrganizationMember }
+    | { workspaceProfile: WorkspaceProfile; enterpriseMember: FabricEnterpriseMember };
 
   'workspace_group.created:before':
     | { team: Team }
@@ -406,10 +449,10 @@ export interface FabricEvents {
     | { workspaceGroup: WorkspaceGroup; team: Team }
     | { workspaceGroup: WorkspaceGroup; consumerGroup: ConsumerGroup };
 
-  'workspace_policy.created:before': { accessPolicy: AccessPolicy };
-  'workspace_policy.created:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
-  'workspace_policy.updated:before': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
-  'workspace_policy.updated:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy };
+  'workspace_policy.created:before': { accessPolicy: AccessPolicy } | { enterpriseId: string; role: FabricEnterpriseMemberRole };
+  'workspace_policy.created:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy } | { workspacePolicy: WorkspacePolicy; enterpriseId: string; role: FabricEnterpriseMemberRole };
+  'workspace_policy.updated:before': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy } | { workspacePolicy: WorkspacePolicy; enterpriseId: string; role: FabricEnterpriseMemberRole };
+  'workspace_policy.updated:after': { workspacePolicy: WorkspacePolicy; accessPolicy: AccessPolicy } | { workspacePolicy: WorkspacePolicy; enterpriseId: string; role: FabricEnterpriseMemberRole };
   'workspace_policy.deleted:before': { workspacePolicy: WorkspacePolicy; };
   'workspace_policy.deleted:after': { workspacePolicy: WorkspacePolicy; };
 
@@ -426,8 +469,12 @@ export interface FabricEvents {
     | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; workspaceGroupAssignment: WorkspaceGroupAssignment }
     | { workspaceGroup: WorkspaceGroup; workspaceProfile: WorkspaceProfile; consumerGroup: ConsumerGroup; };
 
-  'workspace_policy_assignment.created:before': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
-  'workspace_policy_assignment.created:after': { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
+  'workspace_policy_assignment.created:before':
+    | { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile }
+    | { enterpriseMember: FabricEnterpriseMember; workspacePolicy: WorkspacePolicy; workspaceProfile?: WorkspaceProfile };
+  'workspace_policy_assignment.created:after':
+    | { accessPolicyAssignment: AccessPolicyAssignment; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile }
+    | { enterpriseMember: FabricEnterpriseMember; workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceProfile?: WorkspaceProfile };
   'workspace_policy_assignment.deleted:before': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
   'workspace_policy_assignment.deleted:after': { workspacePolicy: WorkspacePolicy; workspacePolicyAssignment: WorkspacePolicyAssignment; workspaceGroup?: WorkspaceGroup; workspaceProfile?: WorkspaceProfile };
 
@@ -456,20 +503,26 @@ export interface FabricEvents {
 
   'workspace_invite.created:before':
     | { consumerInvite: ConsumerInvite }
-    | { organizationInvite: OrganizationInvite };
+    | { organizationInvite: OrganizationInvite }
+    | { enterpriseInvite: FabricEnterpriseInvite };
   'workspace_invite.created:after':
     | { workspaceInvite: WorkspaceInvite; consumerInvite: ConsumerInvite }
-    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite }
+    | { workspaceInvite: WorkspaceInvite; enterpriseInvite: FabricEnterpriseInvite };
   'workspace_invite.updated:before':
     | { workspaceInvite: WorkspaceInvite; consumerInvite: ConsumerInvite }
-    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite }
+    | { workspaceInvite: WorkspaceInvite; enterpriseInvite: FabricEnterpriseInvite };
   'workspace_invite.updated:after':
     | { workspaceInvite: WorkspaceInvite; consumerInvite: ConsumerInvite }
-    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite }
+    | { workspaceInvite: WorkspaceInvite; enterpriseInvite: FabricEnterpriseInvite };
   'workspace_invite.deleted:before':
-    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite }
+    | { workspaceInvite: WorkspaceInvite; enterpriseInvite: FabricEnterpriseInvite };
   'workspace_invite.deleted:after':
-    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite };
+    | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite }
+    | { workspaceInvite: WorkspaceInvite; enterpriseInvite: FabricEnterpriseInvite };
 
   'consumer.auth_tenant.created:before': { organization: Organization; instance: Instance };
   'consumer.auth_tenant.created:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };

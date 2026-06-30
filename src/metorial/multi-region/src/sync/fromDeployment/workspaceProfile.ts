@@ -31,6 +31,7 @@ export let upsertWorkspaceProfile = async (workspaceProfileId: string) => {
 
     userId: workspaceProfile.user?.id,
     organizationMemberId: workspaceProfile.organizationMember?.id,
+    enterpriseMemberId: workspaceProfile.enterpriseMemberId,
 
     consumerId: workspaceProfile.consumer?.id,
     consumerProfileId: workspaceProfile.consumerProfile?.id,

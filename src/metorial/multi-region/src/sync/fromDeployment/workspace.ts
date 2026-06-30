@@ -23,6 +23,7 @@ export let upsertWorkspace = async (workspaceId: string) => {
     accountId: workspace.account.id,
     portalId: workspace.portal?.id,
     organizationId: workspace.organization?.id,
+    enterpriseId: workspace.enterpriseId,
     createdAt: workspace.createdAt,
     updatedAt: workspace.updatedAt
   };
