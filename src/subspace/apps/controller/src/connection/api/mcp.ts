@@ -52,6 +52,21 @@ let isLongRunningMcpMethod = (method: unknown) => {
   return method === 'tools/call' || method === 'prompts/get' || method === 'resources/read';
 };
 
+let applyConnectionHeaders = (
+  c: any,
+  con: {
+    session: { id: string };
+    connection?: { id: string; token: string } | null;
+  }
+) => {
+  c.res.headers.set('Metorial-Session-Id', con.session.id);
+  if (con.connection) {
+    c.res.headers.set('Mcp-Session-Id', con.connection.token);
+    c.res.headers.set('Metorial-Connection-Id', con.connection.id);
+    c.res.headers.set('Metorial-Connection-Token', con.connection.token);
+  }
+};
+
 export let mcpRouter = createHono().all(`/:key?`, async c => {
   if (isDev) {
     c.res.headers.set('Access-Control-Allow-Origin', '*');
@@ -160,12 +175,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
         let endpoint = new URL(metorialProxyUrl);
         endpoint.searchParams.set('connection_token', connection.token);
 
-        c.res.headers.set('Metorial-Session-Id', con.session.id);
-        if (con.connection) {
-          c.res.headers.set('Mcp-Session-Id', con.connection.token);
-          c.res.headers.set('Metorial-Connection-Id', con.connection.id);
-          c.res.headers.set('Metorial-Connection-Token', con.connection.token);
-        }
+        applyConnectionHeaders(c, con);
 
         await stream.writeSSE({
           event: 'endpoint',
@@ -191,16 +201,11 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
 
       let con = await McpConnection.create(baseParams);
 
-      c.res.headers.set('Metorial-Session-Id', con.session.id);
-      if (con.connection) {
-        c.res.headers.set('Mcp-Session-Id', con.connection.token);
-        c.res.headers.set('Metorial-Connection-Id', con.connection.id);
-        c.res.headers.set('Metorial-Connection-Token', con.connection.token);
-      }
-
       await con.handleMessage(json, {
         waitForResponse: false
       });
+
+      applyConnectionHeaders(c, con);
 
       return c.text('OK', 200);
     }
@@ -214,12 +219,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
 
       let con = await McpConnection.create(baseParams);
 
-      c.res.headers.set('Metorial-Session-Id', con.session.id);
-      if (con.connection) {
-        c.res.headers.set('Mcp-Session-Id', con.connection.token);
-        c.res.headers.set('Metorial-Connection-Id', con.connection.id);
-        c.res.headers.set('Metorial-Connection-Token', con.connection.token);
-      }
+      applyConnectionHeaders(c, con);
 
       let lastMessageId = c.req.header('Last-Event-ID');
 
@@ -252,15 +252,10 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
 
       let con = await McpConnection.create(baseParams);
 
-      c.res.headers.set('Metorial-Session-Id', con.session.id);
-      if (con.connection) {
-        c.res.headers.set('Mcp-Session-Id', con.connection.token);
-        c.res.headers.set('Metorial-Connection-Id', con.connection.id);
-        c.res.headers.set('Metorial-Connection-Token', con.connection.token);
-      }
-
       if (isLongRunningMcpMethod(json?.method)) {
         return streamSSE(c, async stream => {
+          applyConnectionHeaders(c, con);
+
           let res = await con.handleMessageWithProgress(
             json,
             {
@@ -272,6 +267,8 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
               });
             }
           );
+
+          applyConnectionHeaders(c, con);
 
           if (!res || !res.mcp) {
             await stream.writeSSE({
@@ -301,6 +298,8 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
       let res = await con.handleMessage(json, {
         waitForResponse: true
       });
+
+      applyConnectionHeaders(c, con);
 
       if (!res) {
         // return streamSSE(c, async stream => {
@@ -334,12 +333,7 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
     if (c.req.method === 'DELETE') {
       let con = await McpConnection.create(baseParams);
 
-      c.res.headers.set('Metorial-Session-Id', con.session.id);
-      if (con.connection) {
-        c.res.headers.set('Mcp-Session-Id', con.connection.token);
-        c.res.headers.set('Metorial-Connection-Id', con.connection.id);
-        c.res.headers.set('Metorial-Connection-Token', con.connection.token);
-      }
+      applyConnectionHeaders(c, con);
 
       await con.disableConnection();
       return c.text('OK', 200);

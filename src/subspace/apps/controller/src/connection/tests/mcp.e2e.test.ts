@@ -84,6 +84,74 @@ describe('mcp.e2e', () => {
     }
   );
 
+  it(
+    'returns streamable HTTP connection headers from initialize and accepts follow-up calls',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase
+      });
+
+      let initializeResponse = await localFetch(ctx.proxyUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json, text/event-stream',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 'initialize-request',
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-03-26',
+            capabilities: {},
+            clientInfo: {
+              name: 'subspace-e2e',
+              version: '1.0.0'
+            }
+          }
+        })
+      });
+
+      let sessionId = initializeResponse.headers.get('Mcp-Session-Id');
+      let connectionId = initializeResponse.headers.get('Metorial-Connection-Id');
+      let connectionToken = initializeResponse.headers.get('Metorial-Connection-Token');
+      let initializeMessages = await getStreamableHttpSseMessages(initializeResponse);
+
+      expect(sessionId).toBeTruthy();
+      expect(connectionId).toBeTruthy();
+      expect(connectionToken).toBeTruthy();
+      expect(initializeMessages.find(message => message.id === 'initialize-request')?.result).toBeTruthy();
+
+      let toolsResponse = await localFetch(ctx.proxyUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json, text/event-stream',
+          'Content-Type': 'application/json',
+          'MCP-Session-ID': sessionId!
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 'tool-call-request',
+          method: 'tools/call',
+          params: {
+            name: 'add',
+            arguments: {
+              a: 1,
+              b: 2
+            }
+          }
+        })
+      });
+
+      let toolMessages = await getStreamableHttpSseMessages(toolsResponse);
+      expect(toolMessages.find(message => message.id === 'tool-call-request')?.result?.content?.[0]?.text).toContain(
+        'Result: 3'
+      );
+    }
+  );
+
   it.each(transportCases)(
     'keeps long-running tool calls alive over $name',
     { timeout: 120_000 },
