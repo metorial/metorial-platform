@@ -156,7 +156,8 @@ class AccessPolicyAssignmentService {
     allowDefault?: boolean;
   }) {
     assertPolicyBelongsToOrganization(d);
-    assertAssignablePolicy(d);
+
+    if (d.accessPolicy.type !== 'admin') assertAssignablePolicy(d);
 
     return await withTransaction(async db => {
       let existingAssignment = await db.accessPolicyAssignment.findFirst({
@@ -215,7 +216,7 @@ class AccessPolicyAssignmentService {
     performedBy?: OrganizationActor;
     context?: Context;
   }) {
-    assertAssignablePolicy(d);
+    if (d.accessPolicy.type !== 'admin') assertAssignablePolicy(d);
 
     return await withTransaction(async db => {
       let accessPolicyAssignment = await db.accessPolicyAssignment.findFirst({
