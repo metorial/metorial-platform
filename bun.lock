@@ -754,6 +754,20 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/lowerdeck/packages/basic-rest": {
+      "name": "@lowerdeck/basic-rest",
+      "version": "2.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/proxy": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@lowerdeck/tsconfig": "workspace:2.0.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/lowerdeck/packages/cache": {
       "name": "@lowerdeck/cache",
       "version": "2.0.0",
@@ -5551,6 +5565,8 @@
 
     "@lowerdeck/base62": ["@lowerdeck/base62@workspace:src/lowerdeck/packages/base62"],
 
+    "@lowerdeck/basic-rest": ["@lowerdeck/basic-rest@workspace:src/lowerdeck/packages/basic-rest"],
+
     "@lowerdeck/cache": ["@lowerdeck/cache@workspace:src/lowerdeck/packages/cache"],
 
     "@lowerdeck/canonicalize": ["@lowerdeck/canonicalize@workspace:src/lowerdeck/packages/canonicalize"],
@@ -9710,6 +9726,8 @@
     "@lowerdeck/api-mux/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@lowerdeck/base62/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@lowerdeck/basic-rest/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@lowerdeck/canonicalize/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
