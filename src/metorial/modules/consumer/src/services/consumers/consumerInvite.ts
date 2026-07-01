@@ -154,6 +154,34 @@ class ConsumerInviteServiceImpl {
     return consumerInvite;
   }
 
+  async deleteConsumerInvite(d: {
+    consumerSurface: ConsumerSurface;
+    consumerInviteId: string;
+  }) {
+    let consumerInvite = await db.consumerInvite.findFirst({
+      where: {
+        surfaceOid: d.consumerSurface.oid,
+        id: d.consumerInviteId
+      },
+      include
+    });
+    if (!consumerInvite) {
+      throw new ServiceError(notFoundError('consumer.invite'));
+    }
+
+    if (consumerInvite.status !== 'pending') {
+      throw new ServiceError(notFoundError('consumer.invite'));
+    }
+
+    await db.consumerInvite.delete({
+      where: {
+        oid: consumerInvite.oid
+      }
+    });
+
+    return consumerInvite;
+  }
+
   async listConsumerInvites(d: {
     consumerSurface: ConsumerSurface;
     search?: string;
