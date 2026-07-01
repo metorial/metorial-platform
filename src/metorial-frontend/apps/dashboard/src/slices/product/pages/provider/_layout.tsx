@@ -16,7 +16,7 @@ import {
 } from '@metorial/state';
 import { Avatar, Callout, Flex, LinkTabs, Spacer } from '@metorial/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Outlet, useLocation, useParams, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { OpenExplorerButton } from '../../components/openExplorer';
 import { UseProviderButton } from '../../scenes/providers/useProviderButton';
 import {
@@ -49,7 +49,7 @@ export let ProviderLayout = () => {
     }
   }, [providerId, provider.data]);
 
-  let versions = useProviderVersions(instance.data?.id, providerId);
+  let versions = useProviderVersions(instance.data?.id, provider.data?.id);
   let allVersions: ProviderVersion[] = versions.data?.items ?? [];
   let currentVersionId = providerData?.currentVersion?.id;
   let sortedVersions = useMemo(
