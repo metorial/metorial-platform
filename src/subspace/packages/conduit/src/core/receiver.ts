@@ -445,7 +445,7 @@ export class Receiver {
         (processing.lastExtensionSentAt === 0 || timeSinceLastExtension >= 1000);
 
       if (shouldSendExtension) {
-        const extensionMs = 10000; // Request 10 more seconds
+        let extensionMs = this.config.timeoutExtensionMs;
         let extension: TimeoutExtension = {
           messageId: processing.message.messageId,
           extensionMs,

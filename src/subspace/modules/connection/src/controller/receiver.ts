@@ -1,6 +1,7 @@
 import { internalServerError, isServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
+import type { TopicContext } from '@metorial-subspace/conduit';
 import type {
   BroadcastMessage,
   ConduitHeartbeatPong,
@@ -20,10 +21,67 @@ import { getConnectionBackendConnection } from './state/backend';
 
 let Sentry = getSentry();
 
+let CONDUIT_CONNECTION_MAX_PROCESSING_MS = 20 * 60 * 1000;
+let PENDING_REQUEST_TTL_REFRESH_MS = 10_000;
+let PENDING_REQUEST_LOG_THRESHOLDS_MS = [30_000, 60_000, 5 * 60_000];
+
 const NO_OUTPUT_ERROR = {
   type: 'error',
   data: { code: 'no_result', message: 'Provided did not return a result' }
 } satisfies PrismaJson.SessionMessageOutput;
+
+class ConnectionMessageTimeoutError extends Error {
+  constructor(
+    public readonly messageId: string,
+    public readonly timeoutMs: number
+  ) {
+    super(`message ${messageId} exceeded receiver timeout (${timeoutMs}ms)`);
+    this.name = 'ConnectionMessageTimeoutError';
+  }
+}
+
+let startPendingRequestActivity = (opts: {
+  ctx: TopicContext;
+  state: ConnectionState;
+  message: SessionMessage;
+}) => {
+  let stopped = false;
+  let startedAt = Date.now();
+  let nextLogThresholdIndex = 0;
+
+  let emitTick = async () => {
+    if (stopped) return;
+
+    let elapsedMs = Date.now() - startedAt;
+    opts.ctx.extendTtl(opts.state.messageTTLExtensionMs);
+
+    while (
+      nextLogThresholdIndex < PENDING_REQUEST_LOG_THRESHOLDS_MS.length &&
+      elapsedMs >= PENDING_REQUEST_LOG_THRESHOLDS_MS[nextLogThresholdIndex]!
+    ) {
+      let thresholdMs = PENDING_REQUEST_LOG_THRESHOLDS_MS[nextLogThresholdIndex]!;
+      console.warn(
+        `CONNECTION.receiver.pending_request receiverId=${connectionReceiver?.getReceiverId() ?? 'unknown'} messageId=${opts.message.id} methodOrToolKey=${opts.message.methodOrToolKey ?? 'unknown'} elapsedMs=${elapsedMs} thresholdMs=${thresholdMs}`
+      );
+      nextLogThresholdIndex++;
+    }
+
+  };
+
+  let ttlInterval = setInterval(() => {
+    void emitTick().catch(err => {
+      Sentry.captureException(err);
+      console.error(`CONNECTION.receiver.ttl_refresh.error messageId=${opts.message.id}`, err);
+    });
+  }, PENDING_REQUEST_TTL_REFRESH_MS);
+
+  return {
+    stop: () => {
+      stopped = true;
+      clearInterval(ttlInterval);
+    }
+  };
+};
 
 let connectionReceiver:
   | (ReturnType<typeof conduit.createConduitReceiver> & { started: Promise<void> })
@@ -231,9 +289,29 @@ export let startReceiver = () => {
       let message = await db.sessionMessage.findFirstOrThrow({
         where: { id: data.sessionMessageId }
       });
+      let pendingRequest = startPendingRequestActivity({ ctx, state, message });
+      let providerPromise = sendToProviderInner(data, message);
+      let timedOut = false;
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
       try {
-        let result = await sendToProviderInner(data, message);
+        providerPromise.catch(err => {
+          if (!timedOut) return;
+          Sentry.captureException(err);
+          console.warn(
+            `CONNECTION.receiver.provider_after_timeout messageId=${message.id} methodOrToolKey=${message.methodOrToolKey ?? 'unknown'} timeoutMs=${state.messageProcessingTimeoutMs}:`,
+            err
+          );
+        });
+
+        let timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            timedOut = true;
+            reject(new ConnectionMessageTimeoutError(message.id, state.messageProcessingTimeoutMs));
+          }, state.messageProcessingTimeoutMs);
+        });
+
+        let result = await Promise.race([providerPromise, timeoutPromise]);
 
         if (!result.output) {
           return {
@@ -241,7 +319,9 @@ export let startReceiver = () => {
             status: 'succeeded' as const,
             output: null,
             completedAt: new Date(),
-            slateToolCall: result.slateToolCall
+            slateToolCall: result.slateToolCall,
+            failureReason: undefined,
+            closeContext: false
           };
         }
 
@@ -261,9 +341,34 @@ export let startReceiver = () => {
           status,
           output,
           completedAt: new Date(),
-          slateToolCall: result.slateToolCall
+          slateToolCall: result.slateToolCall,
+          failureReason: undefined,
+          closeContext: false
         };
       } catch (err) {
+        if (err instanceof ConnectionMessageTimeoutError) {
+          Sentry.captureException(err);
+          console.error(
+            `CONNECTION.receiver.message_timeout messageId=${message.id} methodOrToolKey=${message.methodOrToolKey ?? 'unknown'} timeoutMs=${err.timeoutMs}`
+          );
+
+          return {
+            isSystemError: false,
+            output: {
+              type: 'error',
+              data: {
+                code: 'timeout',
+                message: `The request exceeded the configured tenant timeout of ${err.timeoutMs}ms.`
+              }
+            } satisfies PrismaJson.SessionMessageOutput,
+            status: 'failed' as const,
+            completedAt: new Date(),
+            slateToolCall: undefined,
+            failureReason: 'timeout' as const,
+            closeContext: true
+          };
+        }
+
         Sentry.captureException(err);
 
         console.error('Error processing tool invocation:', err);
@@ -279,8 +384,15 @@ export let startReceiver = () => {
           output: { type: 'error', data: error } satisfies PrismaJson.SessionMessageOutput,
           status: 'failed' as const,
           completedAt: new Date(),
-          slateToolCall: undefined
+          slateToolCall: undefined,
+          failureReason: 'system_error' as const,
+          closeContext: false
         };
+      } finally {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        pendingRequest.stop();
       }
     };
 
@@ -296,7 +408,7 @@ export let startReceiver = () => {
           completedAt: res.completedAt,
           slateToolCall: res.slateToolCall,
           responderParticipant: providerParticipant,
-          failureReason: res.isSystemError ? 'system_error' : undefined
+          failureReason: res.failureReason ?? (res.isSystemError ? 'system_error' : undefined)
         }
       );
 
@@ -322,6 +434,15 @@ export let startReceiver = () => {
         );
       }
 
+      if (res.closeContext) {
+        setTimeout(() => {
+          void ctx.close().catch(err => {
+            console.error('Error closing timed out receiver context:', err);
+            Sentry.captureException(err);
+          });
+        }, 0);
+      }
+
       return result;
     };
 
@@ -339,9 +460,18 @@ export let startReceiver = () => {
           completedAt: res.completedAt,
           slateToolCall: res.slateToolCall,
           responderParticipant: state.participant,
-          failureReason: res.isSystemError ? 'system_error' : undefined
+          failureReason: res.failureReason ?? (res.isSystemError ? 'system_error' : undefined)
         }
       );
+
+      if (res.closeContext) {
+        setTimeout(() => {
+          void ctx.close().catch(err => {
+            console.error('Error closing timed out receiver context:', err);
+            Sentry.captureException(err);
+          });
+        }, 0);
+      }
     };
 
     ctx.onMessage(async (data: ConduitInput) => {
@@ -381,6 +511,10 @@ export let startReceiver = () => {
         Sentry.captureException(err);
       }
     });
+  }, {
+    timeoutExtensionThreshold: 5_000,
+    timeoutExtensionMs: 15_000,
+    maxProcessingMs: CONDUIT_CONNECTION_MAX_PROCESSING_MS
   });
 
   let started = receiver.start();

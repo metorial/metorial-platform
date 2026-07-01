@@ -1,9 +1,15 @@
 import { serialize } from '@lowerdeck/serialize';
 import type { ConduitResult } from '@metorial-subspace/connection-utils';
 import { conduitResultToMcpMessage } from '@metorial-subspace/connection-utils';
+import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { broadcastNats } from '../lib/nats';
 import { topics } from '../lib/topic';
 import type { McpManager } from './manager';
+
+let PROGRESS_INITIAL_DELAY_MS = 5_000;
+let PROGRESS_INTERVAL_MS = 10_000;
+
+export type McpProgressToken = string | number;
 
 export type McpControlMessage =
   | {
@@ -14,6 +20,26 @@ export type McpControlMessage =
   | {
       type: 'ping_received';
     };
+
+export let getMcpProgressToken = (msg: JSONRPCMessage): McpProgressToken | null => {
+  let token = (msg as any)?.params?._meta?.progressToken;
+  if (typeof token === 'string' || typeof token === 'number') {
+    return token;
+  }
+
+  return null;
+};
+
+export let isProgressNotificationForToken = (
+  msg: JSONRPCMessage,
+  progressToken: McpProgressToken
+) => {
+  return (
+    'method' in msg &&
+    msg.method === 'notifications/progress' &&
+    (msg as any)?.params?.progressToken === progressToken
+  );
+};
 
 export class McpControlMessageHandler {
   #lastInteractionAt: number;
@@ -40,6 +66,53 @@ export class McpControlMessageHandler {
       }),
       serialize.encode(msg)
     );
+  }
+
+  startProgressNotifier(d: { progressToken: McpProgressToken; message?: string }) {
+    let stopped = false;
+    let startedAt = Date.now();
+
+    let emit = async () => {
+      if (stopped) return;
+
+      await this.sendControlMessage({
+        type: 'mcp_control_message',
+        channel: 'broadcast_response_or_notification',
+        conduit: {
+          status: 'succeeded',
+          message: null,
+          completedAt: null,
+          output: {
+            type: 'mcp',
+            data: {
+              jsonrpc: '2.0',
+              method: 'notifications/progress',
+              params: {
+                progressToken: d.progressToken,
+                progress: Date.now() - startedAt,
+                message: d.message
+              }
+            } satisfies JSONRPCMessage
+          }
+        }
+      });
+    };
+
+    let initialTimeout = setTimeout(() => {
+      void emit().catch(() => {});
+    }, PROGRESS_INITIAL_DELAY_MS);
+
+    let interval = setInterval(() => {
+      void emit().catch(() => {});
+    }, PROGRESS_INTERVAL_MS);
+
+    return {
+      stop: () => {
+        stopped = true;
+        clearTimeout(initialTimeout);
+        clearInterval(interval);
+      }
+    };
   }
 
   async controlListener(d: { selectedChannels: 'all' | 'broadcast' }) {

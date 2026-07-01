@@ -6,6 +6,9 @@ import { SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT } from '../../const';
 import { type ConnectionBaseState, getConnectionBaseState } from './base';
 import { createProviderRun } from './providerRun';
 
+let DEFAULT_MESSAGE_PROCESSING_TIMEOUT_MS = 30_000;
+let MAX_MESSAGE_PROCESSING_TIMEOUT_MS = 10 * 60 * 1000;
+
 export class ConnectionState {
   #instanceExtensionIv: NodeJS.Timeout;
   #refetchIv: NodeJS.Timeout;
@@ -73,6 +76,13 @@ export class ConnectionState {
     }
 
     return 1000 * 60 * 2;
+  }
+
+  get messageProcessingTimeoutMs() {
+    return Math.min(
+      MAX_MESSAGE_PROCESSING_TIMEOUT_MS,
+      this.sessionProvider.tenant.messageProcessingTimeoutMs ?? DEFAULT_MESSAGE_PROCESSING_TIMEOUT_MS
+    );
   }
 
   get connection() {

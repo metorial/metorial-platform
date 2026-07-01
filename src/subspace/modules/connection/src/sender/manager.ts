@@ -9,6 +9,8 @@ import {
 } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { getSentry } from '@lowerdeck/sentry';
+import { serialize } from '@lowerdeck/serialize';
+import { ConduitSendError } from '@metorial-subspace/conduit';
 import type { ConduitInput, ConduitResult } from '@metorial-subspace/connection-utils';
 import {
   type AgentInstance,
@@ -58,6 +60,7 @@ import {
 } from '../const';
 import { env } from '../env';
 import { conduit } from '../lib/conduit';
+import { broadcastNats } from '../lib/nats';
 import {
   buildConnectionFailedDetail,
   buildConnectionFailedTool,
@@ -81,7 +84,10 @@ let instanceLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-let sender = conduit.createSender();
+let sender = conduit.createSender({
+  defaultTimeout: 15_000,
+  maxRetries: 0
+});
 
 export interface InitProps {
   client: {
@@ -1041,6 +1047,21 @@ export class SenderManager {
       parentMessage: d.parentMessage
     });
 
+    let publishTargetedResult = async (result: ConduitResult) => {
+      await broadcastNats.publish(
+        topics.sessionConnection.encode({
+          session: this.session,
+          connection
+        }),
+        serialize.encode({
+          type: 'message_processed',
+          sessionId: this.session.id,
+          channel: 'targeted_response',
+          result
+        })
+      );
+    };
+
     let processingPromise = (async () => {
       try {
         let res = await sender.send(topics.instance.encode({ instance, connection }), {
@@ -1061,21 +1082,39 @@ export class SenderManager {
             from: { type: 'system' }
           });
 
-          await completeMessage(
+          let failureReason =
+            typeof res.error === 'string' && /timeout/i.test(res.error)
+              ? ('timeout' as const)
+              : ('system_error' as const);
+
+          message = await completeMessage(
             { messageId: message.id },
             {
               status: 'failed',
               completedAt: new Date(),
-              failureReason: 'system_error',
+              failureReason,
               responderParticipant: system,
               output: {
                 type: 'error',
-                data: internalServerError({
-                  message: 'Failed to process tool call'
-                }).toResponse()
+                data:
+                  failureReason === 'timeout'
+                    ? {
+                        code: 'timeout',
+                        message: 'The conduit request timed out before the provider responded.'
+                      }
+                    : internalServerError({
+                        message: 'Failed to process tool call'
+                      }).toResponse()
               }
             }
           );
+
+          await publishTargetedResult({
+            message,
+            output: message.output,
+            status: message.status,
+            completedAt: message.completedAt
+          });
         } else {
           let data = res.result as ConduitResult;
           message = Object.assign(message, {
@@ -1085,9 +1124,48 @@ export class SenderManager {
         }
       } catch (err) {
         Sentry.captureException(err);
-        if (process.env.NODE_ENV !== 'production') {
-          console.error('Error sending tool call message:', err);
-        }
+
+        console.error('Error sending tool call message:', err);
+
+        let system = await upsertParticipant({
+          session: this.session,
+          from: { type: 'system' }
+        });
+
+        let failureReason =
+          err instanceof ConduitSendError && /timeout/i.test(err.message)
+            ? ('timeout' as const)
+            : ('system_error' as const);
+        let errorResponse =
+          failureReason === 'timeout'
+            ? {
+                code: 'timeout',
+                message: err instanceof Error ? err.message : 'The conduit request timed out.'
+              }
+            : internalServerError({
+                message: err instanceof Error ? err.message : 'Failed to process tool call'
+              }).toResponse();
+
+        message = await completeMessage(
+          { messageId: message.id },
+          {
+            status: 'failed',
+            completedAt: new Date(),
+            failureReason,
+            responderParticipant: system,
+            output: {
+              type: 'error',
+              data: errorResponse
+            }
+          }
+        );
+
+        await publishTargetedResult({
+          message,
+          output: message.output,
+          status: message.status,
+          completedAt: message.completedAt
+        });
       }
     })();
 
