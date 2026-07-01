@@ -12,6 +12,7 @@ import { getId } from '../../id';
 import { getRegistrySlatePathParams } from '../../lib/registrySlatePath';
 import { getRegistryClient, getRegistryQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
+import { resolveSlateDeploymentConfig } from './config';
 import { buildSlateDeploymentFiles } from './packageFiles';
 
 export let hasServingSlateDeployment = (version: {
@@ -176,6 +177,12 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
         `Created function with id ${func.id} for deployment, creating deployment...`
       );
 
+      let config = resolveSlateDeploymentConfig({
+        manifest: version.manifest,
+        defaultMemorySizeMb: env.functionBay.FUNCTION_BAY_DEFAULT_MEMORY_MB,
+        defaultTimeoutSeconds: env.functionBay.FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS
+      });
+
       let functionDeployment = await functionBay.functionDeployment.create({
         functionId: func.id,
         tenantId: (await functionBayTenant).id,
@@ -184,10 +191,7 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
           identifier: 'nodejs',
           version: '24.x'
         },
-        config: {
-          memorySizeMb: env.functionBay.FUNCTION_BAY_DEFAULT_MEMORY_MB,
-          timeoutSeconds: env.functionBay.FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS
-        },
+        config,
         env: {},
         files: deploymentFiles.files
       });

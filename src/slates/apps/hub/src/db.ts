@@ -61,6 +61,7 @@ declare global {
       name: string;
       version: string;
       description?: string;
+      timeout?: number;
     }
 
     type SlateDeploymentProviderDeploymentInfo = {
