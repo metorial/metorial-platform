@@ -274,6 +274,18 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
           );
 
           if (!res || !res.mcp) {
+            await stream.writeSSE({
+              data: JSON.stringify({
+                jsonrpc: '2.0',
+                id: json?.id ?? null,
+                error: {
+                  code: -32603,
+                  message: 'No response produced for MCP request'
+                }
+              })
+            });
+
+            await delay(100);
             return;
           }
 

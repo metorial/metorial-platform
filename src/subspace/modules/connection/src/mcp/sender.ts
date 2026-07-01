@@ -126,9 +126,28 @@ export class McpSender {
     });
 
     try {
-      return await run();
-    } finally {
+      let result = await run();
+
+      let backgroundPromise =
+        result &&
+        typeof result === 'object' &&
+        'processingPromise' in (result as object) &&
+        (result as { processingPromise?: Promise<void> }).processingPromise
+          ? (result as { processingPromise?: Promise<void> }).processingPromise
+          : undefined;
+
+      if (backgroundPromise) {
+        backgroundPromise.finally(() => {
+          notifier.stop();
+        });
+        return result;
+      }
+
       notifier.stop();
+      return result;
+    } catch (err) {
+      notifier.stop();
+      throw err;
     }
   }
 

@@ -85,9 +85,11 @@ let instanceLock = createLock({
 });
 
 let sender = conduit.createSender({
-  defaultTimeout: 15_000,
-  maxRetries: 0
+  defaultTimeout: 10_000,
+  maxRetries: 2
 });
+let DEFAULT_MESSAGE_PROCESSING_TIMEOUT_MS = 30_000;
+let MAX_MESSAGE_PROCESSING_TIMEOUT_MS = 10 * 60 * 1000;
 
 export interface InitProps {
   client: {
@@ -111,6 +113,11 @@ export interface CallToolProps {
   clientMcpId?: PrismaJson.SessionMessageClientMcpId;
   parentMessage?: SessionMessage;
 }
+
+type CallToolResult = Omit<ConduitResult, 'message'> & {
+  message: SessionMessage;
+  processingPromise?: Promise<void>;
+};
 
 export interface SenderMangerProps {
   sessionId: string;
@@ -988,7 +995,7 @@ export class SenderManager {
     } satisfies ConduitResult;
   }
 
-  async callTool(d: CallToolProps) {
+  async callTool(d: CallToolProps): Promise<CallToolResult> {
     let connection = this.connection;
     if (!connection) {
       throw new ServiceError(
@@ -1177,8 +1184,9 @@ export class SenderManager {
       message,
       output: message.output,
       status: message.status,
-      completedAt: message.completedAt
-    } satisfies ConduitResult;
+      completedAt: message.completedAt,
+      processingPromise: d.waitForResponse ? undefined : processingPromise
+    } satisfies CallToolResult;
   }
 
   #createConnectionPromise: Promise<SessionConnection> | null = null;

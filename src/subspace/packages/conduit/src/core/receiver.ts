@@ -303,11 +303,27 @@ export class Receiver {
     await this.handlerSemaphore.acquire();
 
     const now = Date.now();
-    this.processingMessages.set(message.messageId, {
+    let processingMessage: ProcessingMessage = {
       message,
       startTime: now,
       lastExtensionSentAt: 0,
       currentDeadline: now + message.timeout
+    };
+    this.processingMessages.set(message.messageId, processingMessage);
+
+    let initialExtensionMs = this.config.timeoutExtensionMs;
+    let initialExtension: TimeoutExtension = {
+      messageId: message.messageId,
+      extensionMs: initialExtensionMs,
+      type: 'timeout_extension'
+    };
+    processingMessage.lastExtensionSentAt = now;
+    processingMessage.currentDeadline = now + initialExtensionMs;
+    this.sendExtension(message, initialExtension).catch(err => {
+      console.error(
+        `CONDUIT.receiver.processMessage.initial_extension_error receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic}:`,
+        err
+      );
     });
 
     let ceilingTimer: Timer | undefined;

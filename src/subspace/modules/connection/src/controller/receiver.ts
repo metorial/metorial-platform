@@ -454,7 +454,7 @@ export let startReceiver = () => {
       await completeMessage(
         { messageId: data.sessionMessageId },
         {
-          output: { type: 'mcp', data: data.mcpMessage },
+          output: res.output ?? ({ type: 'mcp', data: data.mcpMessage } satisfies PrismaJson.SessionMessageOutput),
           status: res.status,
           providerRun: state.providerRun,
           completedAt: res.completedAt,

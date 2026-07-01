@@ -24,6 +24,7 @@ interface InFlightMessage {
   currentTimeout: number;
   messageId: string;
   subscriptionId?: string;
+  hasReceivedUpdate: boolean;
 }
 
 export class Sender {
@@ -72,19 +73,23 @@ export class Sender {
     let actualTimeout = timeout ?? this.config.defaultTimeout;
     let messageId = this.generateMessageId();
 
-    return this.retryManager.withRetry(async attemptNumber => {
-      let message: ConduitMessage = {
-        messageId,
-        topic,
-        payload,
-        replySubject: '', // Will be set by transport
-        timeout: actualTimeout,
-        sentAt: Date.now(),
-        retryCount: attemptNumber
-      };
+    return this.retryManager.withRetry(
+      async attemptNumber => {
+        let message: ConduitMessage = {
+          messageId,
+          topic,
+          payload,
+          replySubject: '', // Will be set by transport
+          timeout: actualTimeout,
+          sentAt: Date.now(),
+          retryCount: attemptNumber
+        };
 
-      return await this.sendMessage(message, actualTimeout);
-    }, `Send message ${messageId} to topic ${topic}`);
+        return await this.sendMessage(message, actualTimeout);
+      },
+      `Send message ${messageId} to topic ${topic}`,
+      error => !(error instanceof ConduitSendError) || error.retryable
+    );
   }
 
   async pingReceiver(receiverId: string, timeoutMs?: number): Promise<ConduitResponse> {
@@ -315,12 +320,24 @@ export class Sender {
         if (inFlight?.subscriptionId) {
           this.safeUnsubscribe(inFlight.subscriptionId).catch(() => {});
         }
+        if (!(inFlight?.hasReceivedUpdate ?? false)) {
+          this.coordination.releaseTopicOwnership(message.topic, receiverId).catch(err => {
+            console.warn(
+              `CONDUIT.sender.release_owner_after_pickup_timeout senderId=${this.senderId} topic=${message.topic} receiverId=${receiverId}:`,
+              err
+            );
+          });
+        }
         reject(
           new ConduitSendError(
-            `Request timeout after ${currentTimeout}ms`,
+            inFlight?.hasReceivedUpdate
+              ? `Request timed out after receiver stopped sending updates (${currentTimeout}ms)`
+              : `Request timeout before receiver pickup (${currentTimeout}ms)`,
             message.messageId,
             message.topic,
-            message.retryCount
+            message.retryCount,
+            undefined,
+            !(inFlight?.hasReceivedUpdate ?? false)
           )
         );
       }, currentTimeout);
@@ -349,7 +366,8 @@ export class Sender {
         },
         timeout: timeoutHandle,
         currentTimeout,
-        messageId: message.messageId
+        messageId: message.messageId,
+        hasReceivedUpdate: false
       });
 
       // Generate a unique reply subject and subscribe to it
@@ -497,6 +515,8 @@ export class Sender {
       return;
     }
 
+    inFlight.hasReceivedUpdate = true;
+
     // Clear old timeout
     clearTimeout(inFlight.timeout);
 
@@ -510,7 +530,9 @@ export class Sender {
           `Request timeout after extension (${newTimeout}ms)`,
           extension.messageId,
           '',
-          0
+          0,
+          undefined,
+          false
         )
       );
     }, newTimeout);
