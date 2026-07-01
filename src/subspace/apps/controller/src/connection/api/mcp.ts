@@ -48,6 +48,10 @@ let parseOptionalJsonHeader = <T>(
   return { success: true as const, data: parsed.data };
 };
 
+let isLongRunningMcpMethod = (method: unknown) => {
+  return method === 'tools/call' || method === 'prompts/get' || method === 'resources/read';
+};
+
 export let mcpRouter = createHono().all(`/:key?`, async c => {
   if (isDev) {
     c.res.headers.set('Access-Control-Allow-Origin', '*');
@@ -248,16 +252,43 @@ export let mcpRouter = createHono().all(`/:key?`, async c => {
 
       let con = await McpConnection.create(baseParams);
 
-      let res = await con.handleMessage(json, {
-        waitForResponse: true
-      });
-
       c.res.headers.set('Metorial-Session-Id', con.session.id);
       if (con.connection) {
         c.res.headers.set('Mcp-Session-Id', con.connection.token);
         c.res.headers.set('Metorial-Connection-Id', con.connection.id);
         c.res.headers.set('Metorial-Connection-Token', con.connection.token);
       }
+
+      if (isLongRunningMcpMethod(json?.method)) {
+        return streamSSE(c, async stream => {
+          let res = await con.handleMessageWithProgress(
+            json,
+            {
+              waitForResponse: true
+            },
+            async event => {
+              await stream.writeSSE({
+                data: JSON.stringify(event.mcp)
+              });
+            }
+          );
+
+          if (!res || !res.mcp) {
+            return;
+          }
+
+          await stream.writeSSE({
+            id: res.message?.id,
+            data: JSON.stringify(res.mcp)
+          });
+
+          await delay(100);
+        });
+      }
+
+      let res = await con.handleMessage(json, {
+        waitForResponse: true
+      });
 
       if (!res) {
         // return streamSSE(c, async stream => {

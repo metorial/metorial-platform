@@ -7,6 +7,7 @@ export let tenantPresenter = (tenant: Tenant) => ({
   identifier: tenant.identifier,
   name: tenant.name,
   logRetentionInDays: tenant.logRetentionInDays,
+  messageProcessingTimeoutMs: tenant.messageProcessingTimeoutMs,
   enforceSessionExpiry: tenant.enforceSessionExpiry,
 
   onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,

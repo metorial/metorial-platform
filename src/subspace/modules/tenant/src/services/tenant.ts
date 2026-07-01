@@ -17,6 +17,7 @@ class tenantServiceImpl {
       onlyAllowTrustedProviders?: boolean;
       isWhitelabel?: boolean;
       logRetentionInDays?: number;
+      messageProcessingTimeoutMs?: number;
       enforceSessionExpiry?: boolean;
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
@@ -45,6 +46,7 @@ class tenantServiceImpl {
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays,
+          messageProcessingTimeoutMs: d.input.messageProcessingTimeoutMs,
           enforceSessionExpiry: d.input.enforceSessionExpiry,
           allowAuthConfigExport: d.input.allowAuthConfigExport,
           allowAuthConfigImport: d.input.allowAuthConfigImport,
@@ -60,6 +62,7 @@ class tenantServiceImpl {
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays ?? 30,
+          messageProcessingTimeoutMs: d.input.messageProcessingTimeoutMs ?? 30000,
           enforceSessionExpiry: d.input.enforceSessionExpiry ?? false,
           allowAuthConfigExport: d.input.allowAuthConfigExport ?? false,
           allowAuthConfigImport: d.input.allowAuthConfigImport ?? false,

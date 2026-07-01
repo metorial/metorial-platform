@@ -25,6 +25,15 @@ let transportCases = [
 
 let defaultTransportCase = transportCases[0];
 
+let getStreamableHttpSseMessages = async (response: Response) => {
+  let body = await response.text();
+
+  return body
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => JSON.parse(line.slice('data:'.length).trim()));
+};
+
 describe('mcp.e2e', () => {
   let lifecycle = setupMcpE2ELifecycle();
   let api = createHono().route('/:solutionId/:tenantId/sessions/:sessionId/mcp', mcpRouter);
@@ -75,6 +84,84 @@ describe('mcp.e2e', () => {
     }
   );
 
+  it.each(transportCases)(
+    'keeps long-running tool calls alive over $name',
+    { timeout: 120_000 },
+    async transportCase => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase
+      });
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: transportCase.clientTransport,
+        fetch: localFetch
+      });
+
+      try {
+        await mcp.connect();
+
+        let tools = await mcp.client.listTools();
+        let slowTool = tools.tools.find(tool => /slow_operation/.test(tool.name));
+        expect(slowTool).toBeTruthy();
+
+        let result = await mcp.client.callTool({
+          name: slowTool!.name,
+          arguments: { delayMs: 12_000 }
+        });
+        let text = (
+          result as { content?: Array<{ type?: string; text?: string }> }
+        ).content?.find(p => p.type === 'text')?.text;
+
+        expect(text).toContain('Slow operation completed after 12000ms');
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
+
+  it(
+    'enforces the tenant message processing timeout for long-running tool calls',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase
+      });
+
+      await testDb.tenant.update({
+        where: { oid: ctx.session.tenantOid },
+        data: {
+          messageProcessingTimeoutMs: 1_000
+        }
+      });
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: defaultTransportCase.clientTransport,
+        fetch: localFetch
+      });
+
+      try {
+        await mcp.connect();
+
+        let tools = await mcp.client.listTools();
+        let slowTool = tools.tools.find(tool => /slow_operation/.test(tool.name));
+        expect(slowTool).toBeTruthy();
+
+        await expect(
+          mcp.client.callTool({
+            name: slowTool!.name,
+            arguments: { delayMs: 3_000 }
+          })
+        ).rejects.toThrow(/tenant timeout|timed out|timeout/i);
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
+
   it(
     'returns 202 Accepted with no body for streamable HTTP notifications',
     { timeout: 120_000 },
@@ -110,6 +197,99 @@ describe('mcp.e2e', () => {
 
         expect(response.status).toBe(202);
         expect(await response.text()).toBe('');
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
+
+  it(
+    'emits progress notifications only when _meta.progressToken is provided',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase
+      });
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: defaultTransportCase.clientTransport,
+        fetch: localFetch
+      });
+
+      try {
+        await mcp.connect();
+
+        expect(mcp.transport).toBeInstanceOf(StreamableHTTPClientTransport);
+
+        let tools = await mcp.client.listTools();
+        let slowTool = tools.tools.find(tool => /slow_operation/.test(tool.name));
+        expect(slowTool).toBeTruthy();
+
+        let sessionId = (mcp.transport as StreamableHTTPClientTransport).sessionId!;
+        let progressToken = 'progress-token-123';
+
+        let withProgressResponse = await localFetch(ctx.proxyUrl, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json, text/event-stream',
+            'Content-Type': 'application/json',
+            'MCP-Session-ID': sessionId
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'call-with-progress',
+            method: 'tools/call',
+            params: {
+              name: slowTool!.name,
+              arguments: { delayMs: 6_500 },
+              _meta: { progressToken }
+            }
+          })
+        });
+
+        let withProgressMessages = await getStreamableHttpSseMessages(withProgressResponse);
+        let progressMessages = withProgressMessages.filter(
+          message => message.method === 'notifications/progress'
+        );
+        let finalMessage = withProgressMessages.find(message => message.id === 'call-with-progress');
+
+        expect(progressMessages.length).toBeGreaterThan(0);
+        expect(progressMessages.every(message => message.params?.progressToken === progressToken)).toBe(
+          true
+        );
+        expect(finalMessage?.result?.content?.[0]?.text).toContain(
+          'Slow operation completed after 6500ms'
+        );
+
+        let withoutProgressResponse = await localFetch(ctx.proxyUrl, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json, text/event-stream',
+            'Content-Type': 'application/json',
+            'MCP-Session-ID': sessionId
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'call-without-progress',
+            method: 'tools/call',
+            params: {
+              name: slowTool!.name,
+              arguments: { delayMs: 6_500 }
+            }
+          })
+        });
+
+        let withoutProgressMessages = await getStreamableHttpSseMessages(withoutProgressResponse);
+
+        expect(
+          withoutProgressMessages.some(message => message.method === 'notifications/progress')
+        ).toBe(false);
+        expect(
+          withoutProgressMessages.find(message => message.id === 'call-without-progress')?.result
+            ?.content?.[0]?.text
+        ).toContain('Slow operation completed after 6500ms');
       } finally {
         await mcp.cleanup();
       }
