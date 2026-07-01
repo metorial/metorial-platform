@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { renderWithLoader, useForm } from '@metorial-io/data-hooks';
-import { Button, Flex, Text, Group, Badge, Input, Spacer, Datalist, Select, Callout, RenderDate, confirm } from '@metorial-io/ui';
+import { Button, Flex, Text, Group, Badge, Input, Spacer, Datalist, Select, Callout, RenderDate } from '@metorial-io/ui';
 import { useSubRegistry, useTenant, useAddSubRegistryFilter, useRemoveSubRegistryFilter } from '../../hooks';
 import { BackLink } from '../../components/BackLink';
 import { MonoCode, MonoText } from '../../components/styled';
@@ -41,16 +41,14 @@ export let SubRegistryDetail = () => {
       })
   });
 
-  let handleRemoveFilter = (filterId: string) => {
-    confirm({
-      title: 'Remove Filter',
-      description: 'Are you sure you want to remove this filter? This will change which slates appear in this sub-registry.',
-      confirmText: 'Remove Filter',
-      onConfirm: () => {
-        if (!tenantId || !subRegistryId) return;
-        removeFilter.mutate({ tenantId, subRegistryId, filterId });
-      }
-    });
+  let handleRemoveFilter = async (filterId: string) => {
+    let shouldRemove = window.confirm(
+      'Are you sure you want to remove this filter? This will change which slates appear in this sub-registry.'
+    );
+
+    if (!shouldRemove || !tenantId || !subRegistryId) return;
+
+    await removeFilter.mutate({ tenantId, subRegistryId, filterId });
   };
 
   return renderWithLoader({ subRegistry })(({ subRegistry }) => (
