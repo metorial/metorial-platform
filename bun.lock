@@ -3336,6 +3336,7 @@
         "@prisma/extension-read-replicas": "^0.5.0",
         "@sentry/bun": "^10.38.0",
         "@sentry/cli": "^3.2.0",
+        "@toon-format/toon": "^2.3.0",
         "@types/pg": "^8.16.0",
         "axios": "^1.13.2",
         "date-fns": "^4.1.0",
