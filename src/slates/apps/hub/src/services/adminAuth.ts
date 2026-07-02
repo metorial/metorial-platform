@@ -6,7 +6,7 @@ import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 
-let SESSION_DURATION_HOURS = 1;
+let SESSION_DURATION_HOURS = 24 * 7;
 
 class adminAuthServiceImpl {
   async isEnabled() {
