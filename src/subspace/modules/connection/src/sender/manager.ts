@@ -86,6 +86,11 @@ let instanceLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+let connectionTokenLock = createLock({
+  name: 'sub/conn/session/connectionToken/lock',
+  redisUrl: env.service.REDIS_URL
+});
+
 let sender = conduit.createSender({
   defaultTimeout: 10_000,
   maxRetries: 2
@@ -165,101 +170,137 @@ export class SenderManager {
 
   private static async resolveSession(d: SenderMangerProps) {
     if (d.connectionToken) {
-      let connection = await db.sessionConnection.findFirst({
-        where: {
-          token: d.connectionToken,
-          tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
-          solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
-        },
-        include: {
-          session: {
-            include: {
-              ephemeralManagedSession: true
-            }
+      let loadConnection = async () =>
+        await db.sessionConnection.findFirst({
+          where: {
+            token: d.connectionToken,
+            tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
+            solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
           },
-          participant: true,
-          tenant: true,
-          solution: true
+          include: {
+            session: {
+              include: {
+                ephemeralManagedSession: true
+              }
+            },
+            participant: true,
+            tenant: true,
+            solution: true
+          }
+        });
+
+      let connection = await loadConnection();
+
+      if (connection?.session.ephemeralManagedSession) {
+        let currentSession = await ephemeralManagedSessionService.resolveBackingSessionById({
+          sessionId: connection.session.ephemeralManagedSession.id,
+          tenantId: d.tenantId,
+          solutionId: d.solutionId
+        });
+
+        if (currentSession && currentSession.oid !== connection.session.oid) {
+          let resolvedConnection = await connectionTokenLock.usingLock(
+            d.connectionToken,
+            async () => {
+              let lockedConnection = await loadConnection();
+              if (!lockedConnection) return null;
+
+              if (lockedConnection.session.ephemeralManagedSession) {
+                let lockedCurrentSession =
+                  await ephemeralManagedSessionService.resolveBackingSessionById({
+                    sessionId: lockedConnection.session.ephemeralManagedSession.id,
+                    tenantId: d.tenantId,
+                    solutionId: d.solutionId
+                  });
+
+                if (
+                  lockedCurrentSession &&
+                  lockedCurrentSession.oid !== lockedConnection.session.oid
+                ) {
+                  let now = new Date();
+                  let oldToken = lockedConnection.token;
+                  let replacementToken = await ID.generateId('sessionConnection_token');
+
+                  let currentConnection = await withTransaction(async db => {
+                    await db.sessionConnection.update({
+                      where: { oid: lockedConnection.oid },
+                      data: {
+                        token: replacementToken,
+                        isReplaced: true
+                      }
+                    });
+
+                    let newConnection = await db.sessionConnection.create({
+                      data: {
+                        ...getId('sessionConnection'),
+                        token: oldToken,
+                        isEphemeral: lockedCurrentSession.isEphemeral,
+                        status: lockedConnection.status,
+                        transport: lockedConnection.transport,
+                        isParentDeleted: lockedConnection.isParentDeleted,
+                        hasErrors: lockedConnection.hasErrors,
+                        hasWarnings: lockedConnection.hasWarnings,
+                        state: lockedConnection.state,
+                        initState: lockedConnection.initState,
+                        isManuallyDisabled: lockedConnection.isManuallyDisabled,
+                        isReplaced: false,
+                        isForManualToolCalls: lockedConnection.isForManualToolCalls,
+                        sessionOid: lockedCurrentSession.oid,
+                        participantOid: lockedConnection.participantOid,
+                        tenantOid: lockedCurrentSession.tenantOid,
+                        environmentOid: lockedCurrentSession.environmentOid,
+                        solutionOid: lockedCurrentSession.solutionOid,
+                        mcpData: lockedConnection.mcpData,
+                        mcpTransport: lockedConnection.mcpTransport,
+                        mcpProtocolVersion: lockedConnection.mcpProtocolVersion,
+                        privateMetadata: lockedConnection.privateMetadata,
+                        expiresAt:
+                          lockedConnection.initState === 'pending'
+                            ? addMinutes(new Date(), UNINITIALIZED_SESSION_EXPIRATION_MINUTES)
+                            : addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
+                        lastPingAt: now,
+                        lastActiveAt: now,
+                        disconnectedAt:
+                          lockedConnection.state === 'connected'
+                            ? null
+                            : lockedConnection.disconnectedAt
+                      },
+                      include: { participant: true }
+                    });
+
+                    await db.session.updateMany({
+                      where: { oid: lockedCurrentSession.oid },
+                      data: {
+                        connectionState: newConnection.state,
+                        lastConnectionCreatedAt: now,
+                        lastActiveAt: now
+                      }
+                    });
+
+                    return newConnection;
+                  });
+
+                  return {
+                    ...lockedCurrentSession,
+                    connection: currentConnection
+                  };
+                }
+              }
+
+              return {
+                ...lockedConnection.session,
+                tenant: lockedConnection.tenant,
+                solution: lockedConnection.solution,
+                connection: lockedConnection
+              };
+            }
+          );
+
+          if (resolvedConnection) return resolvedConnection;
         }
-      });
+      }
 
       if (connection) {
-        if (connection.session.ephemeralManagedSession) {
-          let currentSession = await ephemeralManagedSessionService.resolveBackingSessionById({
-            sessionId: connection.session.ephemeralManagedSession.id,
-            tenantId: d.tenantId,
-            solutionId: d.solutionId
-          });
-
-          if (currentSession && currentSession.oid !== connection.session.oid) {
-            let now = new Date();
-            let oldToken = connection.token;
-            let replacementToken = await ID.generateId('sessionConnection_token');
-
-            let currentConnection = await withTransaction(async db => {
-              await db.sessionConnection.update({
-                where: { oid: connection.oid },
-                data: {
-                  token: replacementToken,
-                  isReplaced: true
-                }
-              });
-
-              let newConnection = await db.sessionConnection.create({
-                data: {
-                  ...getId('sessionConnection'),
-                  token: oldToken,
-                  isEphemeral: currentSession.isEphemeral,
-                  status: connection.status,
-                  transport: connection.transport,
-                  isParentDeleted: connection.isParentDeleted,
-                  hasErrors: connection.hasErrors,
-                  hasWarnings: connection.hasWarnings,
-                  state: connection.state,
-                  initState: connection.initState,
-                  isManuallyDisabled: connection.isManuallyDisabled,
-                  isReplaced: false,
-                  isForManualToolCalls: connection.isForManualToolCalls,
-                  sessionOid: currentSession.oid,
-                  participantOid: connection.participantOid,
-                  tenantOid: currentSession.tenantOid,
-                  environmentOid: currentSession.environmentOid,
-                  solutionOid: currentSession.solutionOid,
-                  mcpData: connection.mcpData,
-                  mcpTransport: connection.mcpTransport,
-                  mcpProtocolVersion: connection.mcpProtocolVersion,
-                  privateMetadata: connection.privateMetadata,
-                  expiresAt:
-                    connection.initState === 'pending'
-                      ? addMinutes(new Date(), UNINITIALIZED_SESSION_EXPIRATION_MINUTES)
-                      : addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
-                  lastPingAt: now,
-                  lastActiveAt: now,
-                  disconnectedAt:
-                    connection.state === 'connected' ? null : connection.disconnectedAt
-                },
-                include: { participant: true }
-              });
-
-              await db.session.updateMany({
-                where: { oid: currentSession.oid },
-                data: {
-                  connectionState: newConnection.state,
-                  lastConnectionCreatedAt: now,
-                  lastActiveAt: now
-                }
-              });
-
-              return newConnection;
-            });
-
-            return {
-              ...currentSession,
-              connection: currentConnection
-            };
-          }
-        }
-
         return {
           ...connection.session,
           tenant: connection.tenant,
@@ -514,6 +555,11 @@ export class SenderManager {
             include: { pairVersion: true }
           })
         };
+      } else {
+        await db.sessionProviderInstance.updateMany({
+          where: { oid: currentInstance.oid },
+          data: { expiresAt: new Date() }
+        });
       }
     }
 
