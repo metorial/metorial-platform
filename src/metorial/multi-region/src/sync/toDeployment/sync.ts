@@ -2,6 +2,7 @@ import { createCron } from '@metorial/cron';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+import { syncAccountDomainToDeploymentQueue } from './accountDomain';
 import { syncConsumerSurfaceToDeploymentQueue } from './consumerSurface';
 import { syncGlobalProfileToDeploymentQueue } from './globalProfile';
 import { syncInstanceToDeploymentQueue } from './instance';
@@ -180,6 +181,52 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
     await syncOAuthAppToDeploymentQueue.addMany(oAuthApps.map(app => ({ app })));
 
     oAuthAppCursor = oAuthApps[oAuthApps.length - 1].id as string;
+  }
+
+  let accountDomainCursor: string | undefined = undefined;
+  while (true) {
+    let accountDomains = await globalDB.accountDomain.findMany({
+      where: {
+        id: { gt: accountDomainCursor },
+        OR: [
+          { updatedAt: timeRange },
+          {
+            verifications: {
+              some: {
+                OR: [
+                  { createdAt: timeRange },
+                  { updatedAt: timeRange },
+                  {
+                    statusChanges: {
+                      some: {
+                        createdAt: timeRange
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      orderBy: { id: 'asc' },
+      take: 100,
+      include: {
+        verifications: {
+          include: {
+            statusChanges: true
+          }
+        },
+        statusChanges: true
+      }
+    });
+    if (accountDomains.length === 0) break;
+
+    await syncAccountDomainToDeploymentQueue.addMany(
+      accountDomains.map(accountDomain => ({ accountDomain }))
+    );
+
+    accountDomainCursor = accountDomains[accountDomains.length - 1].id as string;
   }
 
   await globalDB.cell.updateMany({

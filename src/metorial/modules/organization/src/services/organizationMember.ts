@@ -45,6 +45,33 @@ class OrganizationMemberService {
     }
   }
 
+  private async assertOrganizationStillHasAnotherAdmin(d: {
+    db: Pick<typeof db, 'organizationMember'>;
+    organization: Organization;
+    member: OrganizationMember;
+  }) {
+    if (d.member.role !== 'admin') return;
+
+    let otherAdminCount = await d.db.organizationMember.count({
+      where: {
+        organizationOid: d.organization.oid,
+        status: 'active',
+        role: 'admin',
+        oid: { not: d.member.oid },
+        user: {
+          type: { not: 'system' }
+        }
+      }
+    });
+    if (otherAdminCount > 0) return;
+
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Admins cannot be removed unless there is another admin'
+      })
+    );
+  }
+
   async createOrganizationMember(d: {
     user: User;
     organization: Organization;
@@ -161,6 +188,14 @@ class OrganizationMemberService {
     }
 
     return withTransaction(async db => {
+      if (d.member.role == 'admin' && d.input.role == 'member') {
+        await this.assertOrganizationStillHasAnotherAdmin({
+          db,
+          organization: d.organization,
+          member: d.member
+        });
+      }
+
       await Fabric.fire('organization.member.updated:before', {
         ...d,
         performedBy: d.performedBy
@@ -201,6 +236,12 @@ class OrganizationMemberService {
     await this.ensureOrganizationMemberActive(d.member);
 
     return withTransaction(async db => {
+      await this.assertOrganizationStillHasAnotherAdmin({
+        db,
+        organization: d.organization,
+        member: d.member
+      });
+
       await Fabric.fire('organization.member.deleted:before', {
         ...d,
         performedBy: d.performedBy

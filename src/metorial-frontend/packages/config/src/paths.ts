@@ -1053,6 +1053,8 @@ let AdminPaths = Object.assign(
     },
     auth: (accountId: string | null | undefined, ...subPages: SubPages) =>
       AdminPaths(accountId, 'auth', ...subPages),
+    domains: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'auth/domains', ...subPages),
     auditLogs: (accountId: string | null | undefined, ...subPages: SubPages) =>
       AdminPaths(accountId, 'audit-logs', ...subPages),
     billing: (accountId: string | null | undefined, ...subPages: SubPages) =>

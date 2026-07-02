@@ -25,4 +25,5 @@ model Account {
   workspaceInvites  WorkspaceInvite[]
   workspaceGroups   WorkspaceGroup[]
   workspacePolicies WorkspacePolicy[]
+  accountDomains    AccountDomain[]
 }
