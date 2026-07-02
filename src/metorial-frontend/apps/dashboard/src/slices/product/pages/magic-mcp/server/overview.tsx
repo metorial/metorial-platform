@@ -8,9 +8,9 @@ import {
   useMagicMcpTokens
 } from '@metorial/state';
 import { Attributes, Flex, RenderDate, Text } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { Box, ID, Table } from '@metorial/ui-product';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
 
 export let MagicMcpServerOverviewPage = () => {
@@ -105,7 +105,6 @@ export let MagicMcpServerOverviewPage = () => {
         ) ?? createdToken;
       let activeTokenSecret = activeToken?.secret;
       let consumerOwners = server.data.consumerOwners;
-      let consumerOwner = consumerOwners[0];
 
       let fullUrl =
         streamableHttpUrl && activeTokenSecret
@@ -132,35 +131,28 @@ export let MagicMcpServerOverviewPage = () => {
             ]}
           />
 
-          {consumerOwner && (
-            <Attributes
-              itemWidth="300px"
-              attributes={[
-                {
-                  label: 'Name',
-                  content: consumerOwner.consumerProfileName || consumerOwner.consumerName
-                },
-                {
-                  label: 'Email',
-                  content: (
-                    <Link
-                      to={Paths.instance.identity.consumer(
-                        organization.data,
-                        project.data,
-                        instance.data,
-                        consumerOwner.consumerId
-                      )}
-                    >
-                      {consumerOwner.consumerProfileEmail || consumerOwner.consumerEmail}
-                    </Link>
-                  )
-                },
-                {
-                  label: 'Consumer ID',
-                  content: <ID id={consumerOwner.consumerId} />
-                }
-              ]}
-            />
+          {consumerOwners.length > 0 && (
+            <Box
+              title="User Access"
+              description="Accounts that have access this Magic MCP server."
+            >
+              <Table
+                headers={['Name', 'Email', 'Consumer ID']}
+                data={consumerOwners.map(consumerOwner => ({
+                  href: Paths.instance.identity.consumer(
+                    organization.data,
+                    project.data,
+                    instance.data,
+                    consumerOwner.consumerId
+                  ),
+                  data: [
+                    consumerOwner.consumerProfileName || consumerOwner.consumerName,
+                    consumerOwner.consumerProfileEmail || consumerOwner.consumerEmail,
+                    <ID id={consumerOwner.consumerId} />
+                  ]
+                }))}
+              />
+            </Box>
           )}
 
           {/* <Spacer height={16} />
