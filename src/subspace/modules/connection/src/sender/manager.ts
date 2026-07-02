@@ -29,7 +29,8 @@ import {
   type SessionParticipant,
   type SessionProvider,
   type Solution,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import { isRecordDeleted } from '@metorial-subspace/list-utils';
 import {
@@ -52,21 +53,22 @@ import {
   sessionProviderNameTemplateService
 } from '@metorial-subspace/module-session';
 import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
-import { addDays, addMinutes } from 'date-fns';
+import { addDays, addMinutes, differenceInMinutes } from 'date-fns';
 import {
   DEFAULT_SESSION_EXPIRATION_DAYS,
   SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT,
+  SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES,
   UNINITIALIZED_SESSION_EXPIRATION_MINUTES
 } from '../const';
 import { env } from '../env';
 import { conduit } from '../lib/conduit';
-import { broadcastNats } from '../lib/nats';
 import {
   buildConnectionFailedDetail,
   buildConnectionFailedTool,
   CONNECTION_FAILED_TOOL_KEY,
   type ConnectionFailedProvider
 } from '../lib/connectionFailedTool';
+import { broadcastNats } from '../lib/nats';
 import { isSyntheticTool } from '../lib/syntheticTool';
 import { topics } from '../lib/topic';
 import { completeMessage } from '../shared/completeMessage';
@@ -88,8 +90,6 @@ let sender = conduit.createSender({
   defaultTimeout: 10_000,
   maxRetries: 2
 });
-let DEFAULT_MESSAGE_PROCESSING_TIMEOUT_MS = 30_000;
-let MAX_MESSAGE_PROCESSING_TIMEOUT_MS = 10 * 60 * 1000;
 
 export interface InitProps {
   client: {
@@ -172,7 +172,11 @@ export class SenderManager {
           solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
         },
         include: {
-          session: true,
+          session: {
+            include: {
+              ephemeralManagedSession: true
+            }
+          },
           participant: true,
           tenant: true,
           solution: true
@@ -180,6 +184,82 @@ export class SenderManager {
       });
 
       if (connection) {
+        if (connection.session.ephemeralManagedSession) {
+          let currentSession = await ephemeralManagedSessionService.resolveBackingSessionById({
+            sessionId: connection.session.ephemeralManagedSession.id,
+            tenantId: d.tenantId,
+            solutionId: d.solutionId
+          });
+
+          if (currentSession && currentSession.oid !== connection.session.oid) {
+            let now = new Date();
+            let oldToken = connection.token;
+            let replacementToken = await ID.generateId('sessionConnection_token');
+
+            let currentConnection = await withTransaction(async db => {
+              await db.sessionConnection.update({
+                where: { oid: connection.oid },
+                data: {
+                  token: replacementToken,
+                  isReplaced: true
+                }
+              });
+
+              let newConnection = await db.sessionConnection.create({
+                data: {
+                  ...getId('sessionConnection'),
+                  token: oldToken,
+                  isEphemeral: currentSession.isEphemeral,
+                  status: connection.status,
+                  transport: connection.transport,
+                  isParentDeleted: connection.isParentDeleted,
+                  hasErrors: connection.hasErrors,
+                  hasWarnings: connection.hasWarnings,
+                  state: connection.state,
+                  initState: connection.initState,
+                  isManuallyDisabled: connection.isManuallyDisabled,
+                  isReplaced: false,
+                  isForManualToolCalls: connection.isForManualToolCalls,
+                  sessionOid: currentSession.oid,
+                  participantOid: connection.participantOid,
+                  tenantOid: currentSession.tenantOid,
+                  environmentOid: currentSession.environmentOid,
+                  solutionOid: currentSession.solutionOid,
+                  mcpData: connection.mcpData,
+                  mcpTransport: connection.mcpTransport,
+                  mcpProtocolVersion: connection.mcpProtocolVersion,
+                  privateMetadata: connection.privateMetadata,
+                  expiresAt:
+                    connection.initState === 'pending'
+                      ? addMinutes(new Date(), UNINITIALIZED_SESSION_EXPIRATION_MINUTES)
+                      : addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
+                  lastPingAt: now,
+                  lastActiveAt: now,
+                  disconnectedAt:
+                    connection.state === 'connected' ? null : connection.disconnectedAt
+                },
+                include: { participant: true }
+              });
+
+              await db.session.updateMany({
+                where: { oid: currentSession.oid },
+                data: {
+                  connectionState: newConnection.state,
+                  lastConnectionCreatedAt: now,
+                  lastActiveAt: now
+                }
+              });
+
+              return newConnection;
+            });
+
+            return {
+              ...currentSession,
+              connection: currentConnection
+            };
+          }
+        }
+
         return {
           ...connection.session,
           tenant: connection.tenant,
@@ -421,16 +501,20 @@ export class SenderManager {
       include: { pairVersion: true }
     });
     if (currentInstance) {
-      return {
-        status: 'ok' as const,
-        instance: await db.sessionProviderInstance.update({
-          where: { oid: currentInstance.oid },
-          data: {
-            expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
-          },
-          include: { pairVersion: true }
-        })
-      };
+      let ageInMinutes = Math.abs(differenceInMinutes(new Date(), currentInstance.createdAt));
+
+      if (ageInMinutes <= SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) {
+        return {
+          status: 'ok' as const,
+          instance: await db.sessionProviderInstance.update({
+            where: { oid: currentInstance.oid },
+            data: {
+              expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
+            },
+            include: { pairVersion: true }
+          })
+        };
+      }
     }
 
     return instanceLock.usingLock(provider.id, async () => {
