@@ -4,6 +4,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { queueJobId, withSessionTemplateSyncLock } from '../../lib/sessionTemplateSync';
+import { enqueueSessionTemplateInvalidateRuntime } from './sessionTemplate';
 
 export let sessionTemplateProviderCreatedQueue = createQueue<{
   sessionTemplateProviderId: string;
@@ -91,6 +92,7 @@ export let sessionTemplateSyncHashQueueProcessor = sessionTemplateSyncHashQueue.
       if (!sessionTemplate || sessionTemplate.status !== 'active') {
         return;
       }
+      let previousHash = sessionTemplate.hash;
 
       let providers = await db.sessionTemplateProvider.findMany({
         where: {
@@ -131,6 +133,12 @@ export let sessionTemplateSyncHashQueueProcessor = sessionTemplateSyncHashQueue.
         where: { oid: sessionTemplate.oid },
         data: { hash }
       });
+
+      if (previousHash !== hash) {
+        await enqueueSessionTemplateInvalidateRuntime({
+          sessionTemplateId: sessionTemplate.id
+        });
+      }
     });
   }
 );
