@@ -297,6 +297,8 @@ export class SenderManager {
           );
 
           if (resolvedConnection) return resolvedConnection;
+
+          connection = await loadConnection();
         }
       }
 
