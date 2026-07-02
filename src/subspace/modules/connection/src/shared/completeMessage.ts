@@ -84,9 +84,8 @@ export let completeMessage = async (
       }
     }
   };
-  let didTransition = false;
 
-  let message = await db.$transaction(async tx => {
+  let { message, didTransition } = await db.$transaction(async tx => {
     let result = await tx.sessionMessage.updateMany({
       where: {
         ...messageWhere,
@@ -103,13 +102,14 @@ export let completeMessage = async (
       }
     });
     if (result.count === 0) {
-      return await tx.sessionMessage.findFirstOrThrow({
-        where: messageWhere,
-        include: messageInclude
-      });
+      return {
+        didTransition: false,
+        message: await tx.sessionMessage.findFirstOrThrow({
+          where: messageWhere,
+          include: messageInclude
+        })
+      };
     }
-
-    didTransition = true;
 
     let message = await tx.sessionMessage.findFirstOrThrow({
       where: messageWhere,
@@ -140,7 +140,10 @@ export let completeMessage = async (
       }
     }
 
-    return message;
+    return {
+      didTransition: true,
+      message
+    };
   });
 
   if (!didTransition) return message;

@@ -201,4 +201,83 @@ describe('completeMessage', () => {
     expect(mocks.db.sessionEvent.createMany).toHaveBeenCalled();
     expect(mocks.finalizeMessageQueue.add).toHaveBeenCalledWith({ messageId: 'msg_transition' });
   });
+
+  it('does not run post-transaction side effects after a retried transaction loses the race', async () => {
+    let currentMessage = {
+      id: 'msg_retry',
+      oid: 3n,
+      session: { oid: 31n },
+      connection: { oid: 32n },
+      toolCall: null
+    };
+    let completedMessage = {
+      id: 'msg_retry',
+      oid: 3n,
+      status: 'failed',
+      output: {
+        type: 'error',
+        data: { code: 'timeout', message: 'The request exceeded the tenant timeout.' }
+      },
+      completedAt: new Date(),
+      providerRunOid: null,
+      connectionOid: 32n,
+      sessionOid: 31n,
+      tenantOid: 33n,
+      solutionOid: 34n,
+      environmentOid: 35n,
+      errorOid: 36n,
+      toolCall: null
+    };
+    let firstAttemptTx = {
+      sessionMessage: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+      },
+      toolCall: {
+        updateMany: vi.fn()
+      },
+      toolCallAttachment: {
+        createMany: vi.fn()
+      }
+    };
+    let retriedAttemptTx = {
+      sessionMessage: {
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        findFirstOrThrow: vi.fn().mockResolvedValue(completedMessage)
+      },
+      toolCall: {
+        updateMany: vi.fn()
+      },
+      toolCallAttachment: {
+        createMany: vi.fn()
+      }
+    };
+
+    mocks.db.sessionMessage.findFirstOrThrow.mockResolvedValue(currentMessage);
+    mocks.db.$transaction.mockImplementation(async cb => {
+      await cb(firstAttemptTx);
+      return await cb(retriedAttemptTx);
+    });
+
+    let message = await completeMessage(
+      { messageId: 'msg_retry' },
+      {
+        status: 'failed',
+        failureReason: 'timeout',
+        responderParticipant: { oid: 99n },
+        completedAt: new Date(),
+        output: {
+          type: 'error',
+          data: { code: 'timeout', message: 'The conduit request timed out before the provider responded.' }
+        }
+      }
+    );
+
+    expect(message).toBe(completedMessage);
+    expect(mocks.createError).not.toHaveBeenCalled();
+    expect(mocks.db.sessionMessage.update).not.toHaveBeenCalled();
+    expect(mocks.db.sessionEvent.updateMany).not.toHaveBeenCalled();
+    expect(mocks.db.sessionEvent.createMany).not.toHaveBeenCalled();
+    expect(mocks.finalizeMessageQueue.add).not.toHaveBeenCalled();
+  });
 });
