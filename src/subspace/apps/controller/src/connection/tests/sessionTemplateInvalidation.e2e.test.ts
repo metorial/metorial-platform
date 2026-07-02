@@ -319,4 +319,73 @@ describe('sessionTemplateInvalidation.e2e', () => {
       expect(activeTokenConnection.oid).not.toBe(oldConnection.oid);
     }
   );
+
+  it(
+    'serializes concurrent connection-token reuse during ephemeral managed session rotation',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createTemplateRuntimeContext();
+      let oldConnectionToken = 'shared-session-connection-token';
+      let oldConnection = await testDb.sessionConnection.create({
+        data: {
+          ...getId('sessionConnection'),
+          token: oldConnectionToken,
+          isEphemeral: true,
+          status: 'active',
+          transport: 'mcp',
+          state: 'connected',
+          initState: 'pending',
+          isManuallyDisabled: false,
+          isReplaced: false,
+          mcpTransport: 'streamable_http',
+          mcpProtocolVersion: null,
+          mcpData: {},
+          sessionOid: ctx.session.oid,
+          tenantOid: ctx.tenant.oid,
+          solutionOid: ctx.solution.oid,
+          environmentOid: ctx.environment.oid,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+          lastPingAt: new Date()
+        }
+      });
+
+      await testDb.ephemeralManagedSession.update({
+        where: { oid: ctx.ephemeralManagedSession.oid },
+        data: {
+          willRotateAt: new Date(Date.now() - 1000)
+        }
+      });
+
+      let [firstConnection, secondConnection] = await Promise.all([
+        McpConnection.create({
+          sessionId: ctx.session.id,
+          solutionId: ctx.solution.id,
+          tenantId: ctx.tenant.id,
+          connectionToken: oldConnectionToken,
+          mcpTransport: 'streamable_http'
+        }),
+        McpConnection.create({
+          sessionId: ctx.session.id,
+          solutionId: ctx.solution.id,
+          tenantId: ctx.tenant.id,
+          connectionToken: oldConnectionToken,
+          mcpTransport: 'streamable_http'
+        })
+      ]);
+
+      let refreshedOldConnection = await testDb.sessionConnection.findUniqueOrThrow({
+        where: { oid: oldConnection.oid }
+      });
+      let activeTokenConnection = await testDb.sessionConnection.findUniqueOrThrow({
+        where: { token: oldConnectionToken }
+      });
+
+      expect(firstConnection.connection?.oid).toBe(activeTokenConnection.oid);
+      expect(secondConnection.connection?.oid).toBe(activeTokenConnection.oid);
+      expect(firstConnection.session.oid).toBe(activeTokenConnection.sessionOid);
+      expect(secondConnection.session.oid).toBe(activeTokenConnection.sessionOid);
+      expect(refreshedOldConnection.isReplaced).toBe(true);
+      expect(refreshedOldConnection.token).not.toBe(oldConnectionToken);
+    }
+  );
 });
