@@ -536,35 +536,6 @@ export class SenderManager {
   }
 
   private async ensureProviderInstance(provider: SessionProvider) {
-    let currentInstance = await db.sessionProviderInstance.findFirst({
-      where: {
-        sessionProviderOid: provider.oid,
-        expiresAt: { gt: new Date() }
-      },
-      include: { pairVersion: true }
-    });
-    if (currentInstance) {
-      let ageInMinutes = Math.abs(differenceInMinutes(new Date(), currentInstance.createdAt));
-
-      if (ageInMinutes <= SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) {
-        return {
-          status: 'ok' as const,
-          instance: await db.sessionProviderInstance.update({
-            where: { oid: currentInstance.oid },
-            data: {
-              expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
-            },
-            include: { pairVersion: true }
-          })
-        };
-      } else {
-        await db.sessionProviderInstance.updateMany({
-          where: { oid: currentInstance.oid },
-          data: { expiresAt: new Date() }
-        });
-      }
-    }
-
     return instanceLock.usingLock(provider.id, async () => {
       let currentInstance = await db.sessionProviderInstance.findFirst({
         where: {
@@ -574,10 +545,24 @@ export class SenderManager {
         include: { pairVersion: true }
       });
       if (currentInstance) {
-        return {
-          status: 'ok' as const,
-          instance: currentInstance
-        };
+        let ageInMinutes = Math.abs(differenceInMinutes(new Date(), currentInstance.createdAt));
+        if (ageInMinutes <= SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) {
+          return {
+            status: 'ok' as const,
+            instance: await db.sessionProviderInstance.update({
+              where: { oid: currentInstance.oid },
+              data: {
+                expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
+              },
+              include: { pairVersion: true }
+            })
+          };
+        }
+
+        await db.sessionProviderInstance.updateMany({
+          where: { oid: currentInstance.oid },
+          data: { expiresAt: new Date() }
+        });
       }
 
       let fullProvider = await db.sessionProvider.findFirstOrThrow({
