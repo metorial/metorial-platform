@@ -5,30 +5,6 @@ import { ssoUserPresenter, ssoUserUpdatePresenter } from '../../presenters';
 import { tenantApp } from './_middleware';
 
 export let ssoUsersController = tenantApp.controller({
-  create: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        email: v.string(),
-        firstName: v.string(),
-        lastName: v.string(),
-        status: v.optional(v.enumOf(['active', 'deprovisioned']))
-      })
-    )
-    .do(async ({ input, tenant }) => {
-      let user = await ssoIdentityService.createUser({
-        tenant,
-        input: {
-          email: input.email,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          status: input.status
-        }
-      });
-      return ssoUserPresenter(user);
-    }),
-
   list: tenantApp
     .handler()
     .input(

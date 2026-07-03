@@ -89,7 +89,7 @@ export let ssoDirectoriesController = tenantApp.controller({
         directoryId: v.string(),
         name: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
-        status: v.optional(v.enumOf(['active', 'disabled']))
+        status: v.optional(v.enumOf(['disabled']))
       })
     )
     .do(async ({ input, tenant }) => {

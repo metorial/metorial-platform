@@ -16,6 +16,7 @@ export type SsoUserChangeSource =
   | 'user_reconciled'
   | 'directory_user_changed'
   | 'directory_user_deleted'
+  | 'directory_disabled'
   | 'directory_group_membership_changed'
   | 'directory_group_deleted'
   | 'profile_group_role_membership_reconciled';

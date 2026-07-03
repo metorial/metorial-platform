@@ -117,28 +117,6 @@ class SsoIdentityServiceImpl {
     });
   }
 
-  async createUser(d: {
-    tenant: SsoTenant;
-    input: {
-      email: string;
-      firstName: string;
-      lastName: string;
-      status?: 'active' | 'deprovisioned';
-    };
-  }) {
-    return await db.ssoUser.create({
-      data: {
-        ...getId('ssoUser'),
-        tenantOid: d.tenant.oid,
-        email: d.input.email,
-        firstName: d.input.firstName,
-        lastName: d.input.lastName,
-        status: d.input.status ?? 'active'
-      },
-      include: ssoUserInclude
-    });
-  }
-
   async listUsers(d: {
     tenant: SsoTenant;
     filters?: {

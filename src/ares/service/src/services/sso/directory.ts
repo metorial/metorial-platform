@@ -12,6 +12,7 @@ import type {
 import { db } from '../../db';
 import { getId } from '../../id';
 import { jackson } from '../../lib/jackson';
+import { enqueueDisableSsoDirectoryUsers } from '../../queues/disableSsoDirectoryUsers';
 
 let ssoDirectoryInclude = {
   connection: {
@@ -223,21 +224,25 @@ class SsoDirectoryServiceImpl {
       throw new ServiceError(notFoundError('sso.directory'));
     }
 
-    if (d.status === 'disabled') {
-      await db.ssoUserProfile.updateMany({
-        where: { ownerDirectoryOid: d.directory.oid },
-        data: {
-          ownerDirectoryOid: null,
-          status: 'deprovisioned'
-        }
-      });
+    if (d.status === 'active' && d.directory.status === 'disabled') {
+      throw new ServiceError(
+        badRequestError({ message: 'Disabled directories cannot be reactivated' })
+      );
     }
 
-    return await db.ssoDirectory.update({
+    let directory = await db.ssoDirectory.update({
       where: { oid: d.directory.oid },
       data: { status: d.status },
       include: ssoDirectoryInclude
     });
+
+    if (d.status === 'disabled' && d.directory.status !== 'disabled') {
+      await enqueueDisableSsoDirectoryUsers({
+        directoryId: directory.id
+      });
+    }
+
+    return directory;
   }
 
   async deleteDirectory(d: { tenant: SsoTenant; directory: SsoDirectory }) {

@@ -11,6 +11,7 @@ import type {
 import { db } from '../../db';
 import { getId } from '../../id';
 import { jackson } from '../../lib/jackson';
+import { enqueueDisableSsoDirectoryUsers } from '../../queues/disableSsoDirectoryUsers';
 
 let ssoConnectionInclude = {
   tenant: true,
@@ -295,6 +296,14 @@ class SsoConnectionServiceImpl {
     }
 
     if (d.status === 'disabled') {
+      let directories = await db.ssoDirectory.findMany({
+        where: {
+          connectionOid: d.connection.oid,
+          status: { not: 'disabled' }
+        },
+        select: { id: true }
+      });
+
       await db.ssoUserProfile.updateMany({
         where: { connectionOid: d.connection.oid },
         data: { status: 'deprovisioned' }
@@ -304,6 +313,14 @@ class SsoConnectionServiceImpl {
         where: { connectionOid: d.connection.oid },
         data: { status: 'disabled' }
       });
+
+      await Promise.all(
+        directories.map(directory =>
+          enqueueDisableSsoDirectoryUsers({
+            directoryId: directory.id
+          })
+        )
+      );
     }
 
     return await db.ssoConnection.update({
