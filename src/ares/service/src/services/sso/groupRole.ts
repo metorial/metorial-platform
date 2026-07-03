@@ -233,76 +233,81 @@ class SsoGroupRoleServiceImpl {
     displayName?: string | null;
     metadata?: Record<string, any>;
   }) {
-    let value = d.value;
-    if (!value) {
-      throw new ServiceError(badRequestError({ message: 'Group value is required' }));
-    }
-
-    let rootGroup = await this.upsertRootGroup({
-      tenant: { oid: d.connection.tenantOid },
-      value,
-      displayName: d.displayName,
-      metadata: d.metadata
-    });
-
-    let existing = await db.ssoConnectionGroup.findFirst({
-      where: { connectionOid: d.connection.oid, value }
-    });
-
-    if (existing) {
-      let group = await db.ssoConnectionGroup.update({
-        where: { oid: existing.oid },
-        data: {
-          rootGroupOid: rootGroup.oid,
-          displayName: d.displayName ?? undefined,
-          metadata: d.metadata ?? undefined
+    return withTransaction(
+      async db => {
+        let value = d.value;
+        if (!value) {
+          throw new ServiceError(badRequestError({ message: 'Group value is required' }));
         }
-      });
 
-      return (
-        await this.syncConnectionGroupRoot({
-          group,
-          connection: d.connection,
-          rootGroup
-        })
-      ).group;
-    }
-
-    try {
-      let group = await db.ssoConnectionGroup.create({
-        data: {
-          ...getId('ssoConnectionGroup'),
-          connectionOid: d.connection.oid,
-          rootGroupOid: rootGroup.oid,
+        let rootGroup = await this.upsertRootGroup({
+          tenant: { oid: d.connection.tenantOid },
           value,
-          displayName: d.displayName ?? null,
-          metadata: d.metadata ?? undefined
+          displayName: d.displayName,
+          metadata: d.metadata
+        });
+
+        let existing = await db.ssoConnectionGroup.findFirst({
+          where: { connectionOid: d.connection.oid, value }
+        });
+
+        if (existing) {
+          let group = await db.ssoConnectionGroup.update({
+            where: { oid: existing.oid },
+            data: {
+              rootGroupOid: rootGroup.oid,
+              displayName: d.displayName ?? undefined,
+              metadata: d.metadata ?? undefined
+            }
+          });
+
+          return (
+            await this.syncConnectionGroupRoot({
+              group,
+              connection: d.connection,
+              rootGroup
+            })
+          ).group;
         }
-      });
 
-      return (
-        await this.syncConnectionGroupRoot({
-          group,
-          connection: d.connection,
-          rootGroup
-        })
-      ).group;
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) throw error;
+        try {
+          let group = await db.ssoConnectionGroup.create({
+            data: {
+              ...getId('ssoConnectionGroup'),
+              connectionOid: d.connection.oid,
+              rootGroupOid: rootGroup.oid,
+              value,
+              displayName: d.displayName ?? null,
+              metadata: d.metadata ?? undefined
+            }
+          });
 
-      let group = await db.ssoConnectionGroup.findFirst({
-        where: { connectionOid: d.connection.oid, value }
-      });
-      if (!group) throw error;
+          return (
+            await this.syncConnectionGroupRoot({
+              group,
+              connection: d.connection,
+              rootGroup
+            })
+          ).group;
+        } catch (error) {
+          if (!isUniqueConstraintError(error)) throw error;
 
-      return (
-        await this.syncConnectionGroupRoot({
-          group,
-          connection: d.connection,
-          rootGroup
-        })
-      ).group;
-    }
+          let group = await db.ssoConnectionGroup.findFirst({
+            where: { connectionOid: d.connection.oid, value }
+          });
+          if (!group) throw error;
+
+          return (
+            await this.syncConnectionGroupRoot({
+              group,
+              connection: d.connection,
+              rootGroup
+            })
+          ).group;
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   async upsertRole(d: {
@@ -311,74 +316,80 @@ class SsoGroupRoleServiceImpl {
     displayName?: string | null;
     metadata?: Record<string, any>;
   }) {
-    let value = d.value;
-    if (!value) throw new ServiceError(badRequestError({ message: 'Role value is required' }));
+    return withTransaction(
+      async db => {
+        let value = d.value;
+        if (!value)
+          throw new ServiceError(badRequestError({ message: 'Role value is required' }));
 
-    let rootRole = await this.upsertRootRole({
-      tenant: { oid: d.connection.tenantOid },
-      value,
-      displayName: d.displayName,
-      metadata: d.metadata
-    });
-
-    let existing = await db.ssoConnectionRole.findFirst({
-      where: { connectionOid: d.connection.oid, value }
-    });
-
-    if (existing) {
-      let role = await db.ssoConnectionRole.update({
-        where: { oid: existing.oid },
-        data: {
-          rootRoleOid: rootRole.oid,
-          displayName: d.displayName ?? undefined,
-          metadata: d.metadata ?? undefined
-        }
-      });
-
-      return (
-        await this.syncConnectionRoleRoot({
-          role,
-          connection: d.connection,
-          rootRole
-        })
-      ).role;
-    }
-
-    try {
-      let role = await db.ssoConnectionRole.create({
-        data: {
-          ...getId('ssoConnectionRole'),
-          connectionOid: d.connection.oid,
-          rootRoleOid: rootRole.oid,
+        let rootRole = await this.upsertRootRole({
+          tenant: { oid: d.connection.tenantOid },
           value,
-          displayName: d.displayName ?? null,
-          metadata: d.metadata ?? undefined
+          displayName: d.displayName,
+          metadata: d.metadata
+        });
+
+        let existing = await db.ssoConnectionRole.findFirst({
+          where: { connectionOid: d.connection.oid, value }
+        });
+
+        if (existing) {
+          let role = await db.ssoConnectionRole.update({
+            where: { oid: existing.oid },
+            data: {
+              rootRoleOid: rootRole.oid,
+              displayName: d.displayName ?? undefined,
+              metadata: d.metadata ?? undefined
+            }
+          });
+
+          return (
+            await this.syncConnectionRoleRoot({
+              role,
+              connection: d.connection,
+              rootRole
+            })
+          ).role;
         }
-      });
 
-      return (
-        await this.syncConnectionRoleRoot({
-          role,
-          connection: d.connection,
-          rootRole
-        })
-      ).role;
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) throw error;
+        try {
+          let role = await db.ssoConnectionRole.create({
+            data: {
+              ...getId('ssoConnectionRole'),
+              connectionOid: d.connection.oid,
+              rootRoleOid: rootRole.oid,
+              value,
+              displayName: d.displayName ?? null,
+              metadata: d.metadata ?? undefined
+            }
+          });
 
-      let role = await db.ssoConnectionRole.findFirst({
-        where: { connectionOid: d.connection.oid, value }
-      });
-      if (!role) throw error;
+          return (
+            await this.syncConnectionRoleRoot({
+              role,
+              connection: d.connection,
+              rootRole
+            })
+          ).role;
+        } catch (error) {
+          if (!isUniqueConstraintError(error)) throw error;
 
-      return (
-        await this.syncConnectionRoleRoot({
-          role,
-          connection: d.connection,
-          rootRole
-        })
-      ).role;
-    }
+          let role = await db.ssoConnectionRole.findFirst({
+            where: { connectionOid: d.connection.oid, value }
+          });
+          if (!role) throw error;
+
+          return (
+            await this.syncConnectionRoleRoot({
+              role,
+              connection: d.connection,
+              rootRole
+            })
+          ).role;
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   async listRootGroups(d: {
