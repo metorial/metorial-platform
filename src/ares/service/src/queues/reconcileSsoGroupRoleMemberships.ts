@@ -41,6 +41,7 @@ export let reconcileSsoGroupRoleMembershipsQueueProcessor =
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       select: { id: true },
+      orderBy: { id: 'asc' },
       take: 500
     });
     if (profiles.length === 0) return;

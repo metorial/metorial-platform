@@ -11,6 +11,16 @@ import { ssoIdentityService } from './identity';
 import type { SsoDirectoryWithApp } from './types';
 import { hashUid, uniqueValues } from './utils';
 
+let getPersistedUserProfileGroups = async (userProfileOid: bigint) => {
+  let groupLinks = await db.ssoUserProfileGroup.findMany({
+    where: { userProfileOid },
+    select: { group: { select: { value: true } } },
+    orderBy: { oid: 'asc' }
+  });
+
+  return uniqueValues(groupLinks.map(link => link.group.value));
+};
+
 let upsertUserProfileFromDirectoryUser = async (d: {
   directory: SsoDirectory;
   userPayload: User;
@@ -347,9 +357,7 @@ class SsoDirectorySyncServiceImpl {
       member: d.member
     });
 
-    let groups = d.member
-      ? uniqueValues([...profile.groups, userPayload.group.id])
-      : profile.groups.filter(group => group !== userPayload.group.id);
+    let groups = await getPersistedUserProfileGroups(profile.oid);
 
     let updatedProfile = await db.ssoUserProfile.update({
       where: { oid: profile.oid },
@@ -459,10 +467,12 @@ class SsoDirectorySyncServiceImpl {
     );
 
     for (let profile of affectedProfiles.values()) {
+      let groups = await getPersistedUserProfileGroups(profile.oid);
+
       await db.ssoUserProfile.update({
         where: { oid: profile.oid },
         data: {
-          groups: profile.groups.filter(groupValue => groupValue !== group.value),
+          groups,
           isGroupRoleMemberReconciled: true
         }
       });
