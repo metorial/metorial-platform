@@ -175,19 +175,6 @@ class SsoConnectionServiceImpl {
       status: d.filters?.statuses?.length
         ? { in: d.filters.statuses as SsoConnectionStatus[] }
         : undefined,
-      directories: d.filters?.directoryIds?.length
-        ? { some: { id: { in: d.filters.directoryIds } } }
-        : d.filters?.externalIds?.length
-          ? {
-              some: {
-                userProfiles: {
-                  some: {
-                    externalId: { in: d.filters.externalIds }
-                  }
-                }
-              }
-            }
-          : undefined,
       userProfiles:
         d.filters?.userIds?.length || d.filters?.userProfileIds?.length
           ? {
@@ -202,6 +189,22 @@ class SsoConnectionServiceImpl {
             }
           : undefined,
       AND: [
+        d.filters?.directoryIds?.length
+          ? { directories: { some: { id: { in: d.filters.directoryIds } } } }
+          : undefined,
+        d.filters?.externalIds?.length
+          ? {
+              directories: {
+                some: {
+                  userProfiles: {
+                    some: {
+                      externalId: { in: d.filters.externalIds }
+                    }
+                  }
+                }
+              }
+            }
+          : undefined,
         d.filters?.groupIds?.length
           ? {
               OR: [

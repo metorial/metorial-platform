@@ -596,6 +596,7 @@ describe('OrganizationMemberService', () => {
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
+            count: vi.fn().mockResolvedValue(1),
             update: vi.fn().mockResolvedValue(updatedMember)
           }
         };

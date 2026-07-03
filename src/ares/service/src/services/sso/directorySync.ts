@@ -101,6 +101,7 @@ let upsertUserProfileFromDirectoryUser = async (d: {
 
   if (d.syncRoles) {
     let roles = d.userPayload.roles ?? [];
+
     await ssoGroupRoleService.replaceUserProfileRoles({
       connection: directory.connection,
       userProfile: profile,
@@ -445,11 +446,23 @@ class SsoDirectorySyncServiceImpl {
 
     await db.ssoUserProfileGroup.deleteMany({ where: { groupOid: group.oid } });
 
-    for (let link of affectedLinks) {
-      if (!link.userProfile.ownedUser) continue;
+    let affectedProfiles = new Map(
+      affectedLinks.map(link => [link.userProfile.oid, link.userProfile])
+    );
+
+    for (let profile of affectedProfiles.values()) {
+      await db.ssoUserProfile.update({
+        where: { oid: profile.oid },
+        data: {
+          groups: profile.groups.filter(groupValue => groupValue !== group.value),
+          isGroupRoleMemberReconciled: true
+        }
+      });
+
+      if (!profile.ownedUser) continue;
 
       await reconcileSingleSsoUserQueue.add({
-        ssoUserId: link.userProfile.ownedUser.id,
+        ssoUserId: profile.ownedUser.id,
         source: 'directory_group_deleted',
         scimOperationId: d.scimOperationId
       });
