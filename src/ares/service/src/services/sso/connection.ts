@@ -1,6 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 import type {
   SsoConnection,
   SsoConnectionStatus,
@@ -10,7 +11,7 @@ import { db } from '../../db';
 import { getId } from '../../id';
 import { jackson } from '../../lib/jackson';
 
-export let ssoConnectionService = {
+class SsoConnectionServiceImpl {
   async createSamlConnection(d: {
     tenant: SsoTenant;
     input: {
@@ -51,7 +52,7 @@ export let ssoConnectionService = {
         metadata: d.input.metadata ?? undefined
       }
     });
-  },
+  }
 
   async createOidcConnection(d: {
     tenant: SsoTenant;
@@ -98,7 +99,7 @@ export let ssoConnectionService = {
         metadata: d.input.metadata ?? undefined
       }
     });
-  },
+  }
 
   async listConnections(d: { tenant: SsoTenant }) {
     return Paginator.create(({ prisma }) =>
@@ -110,13 +111,13 @@ export let ssoConnectionService = {
           })
       )
     );
-  },
+  }
 
   async getConnectionsByTenant(d: { tenant: SsoTenant }) {
     return await db.ssoConnection.findMany({
       where: { tenantOid: d.tenant.oid, status: 'active' }
     });
-  },
+  }
 
   async getConnectionById(d: { connectionId: string; tenant: SsoTenant }) {
     let con = await db.ssoConnection.findFirst({
@@ -124,7 +125,7 @@ export let ssoConnectionService = {
     });
     if (!con) throw new ServiceError(notFoundError('sso.connection'));
     return con;
-  },
+  }
 
   async setConnectionStatus(d: {
     tenant: SsoTenant;
@@ -152,4 +153,9 @@ export let ssoConnectionService = {
       data: { status: d.status }
     });
   }
-};
+}
+
+export let ssoConnectionService = Service.create(
+  'SsoConnectionService',
+  () => new SsoConnectionServiceImpl()
+).build();

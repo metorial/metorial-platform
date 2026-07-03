@@ -1,10 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import type { SsoConnection, SsoTenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId, ID } from '../../id';
 import { ssoConnectionService } from './connection';
 
-export let ssoSetupService = {
+class SsoSetupServiceImpl {
   async createSetup(d: { tenant: SsoTenant; input: { redirectUri: string } }) {
     return await db.ssoConnectionSetup.create({
       data: {
@@ -14,7 +15,7 @@ export let ssoSetupService = {
         redirectUri: d.input.redirectUri
       }
     });
-  },
+  }
 
   async getSetupByClientSecret(d: { clientSecret: string }) {
     let setup = await db.ssoConnectionSetup.findUnique({
@@ -23,7 +24,7 @@ export let ssoSetupService = {
     });
     if (!setup) throw new ServiceError(notFoundError('sso.setup'));
     return setup;
-  },
+  }
 
   async createConnectionForSetup(d: {
     clientSecret: string;
@@ -75,4 +76,9 @@ export let ssoSetupService = {
 
     return { setup, tenant: setup.tenant, connection };
   }
-};
+}
+
+export let ssoSetupService = Service.create(
+  'SsoSetupService',
+  () => new SsoSetupServiceImpl()
+).build();

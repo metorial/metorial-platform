@@ -1,5 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 import type { App, SsoTenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId, ID } from '../../id';
@@ -9,7 +10,7 @@ let tenantInclude = {
   ssoTenantDomain: true
 };
 
-export let ssoTenantService = {
+class SsoTenantServiceImpl {
   async createTenant(d: {
     app: App;
     input: {
@@ -31,7 +32,7 @@ export let ssoTenantService = {
       },
       include: tenantInclude
     });
-  },
+  }
 
   async updateTenant(d: {
     tenant: SsoTenant;
@@ -52,7 +53,7 @@ export let ssoTenantService = {
       },
       include: tenantInclude
     });
-  },
+  }
 
   async getTenantById(d: { tenantId: string }) {
     let tenant = await db.ssoTenant.findUnique({
@@ -61,13 +62,13 @@ export let ssoTenantService = {
     });
     if (!tenant) throw new ServiceError(notFoundError('sso.tenant'));
     return tenant;
-  },
+  }
 
   async getTenantByClientId(d: { clientId: string }) {
     let tenant = await db.ssoTenant.findUnique({ where: { clientId: d.clientId } });
     if (!tenant) throw new ServiceError(notFoundError('sso.tenant'));
     return tenant;
-  },
+  }
 
   async listTenants(d: { app: App }) {
     return Paginator.create(({ prisma }) =>
@@ -80,7 +81,7 @@ export let ssoTenantService = {
           })
       )
     );
-  },
+  }
 
   async listGlobalTenants() {
     return Paginator.create(({ prisma }) =>
@@ -96,7 +97,7 @@ export let ssoTenantService = {
           })
       )
     );
-  },
+  }
 
   async setGlobal(d: { tenant: SsoTenant; isGlobal: boolean }) {
     return await db.ssoTenant.update({
@@ -104,7 +105,7 @@ export let ssoTenantService = {
       data: { isGlobal: d.isGlobal },
       include: tenantInclude
     });
-  },
+  }
 
   async addTenantDomain(d: {
     tenant: SsoTenant;
@@ -138,7 +139,7 @@ export let ssoTenantService = {
         appOid: d.tenant.appOid
       }
     });
-  },
+  }
 
   async removeTenantDomain(d: { tenant: SsoTenant; domain: string }) {
     let domain = d.domain.trim().toLowerCase();
@@ -155,7 +156,7 @@ export let ssoTenantService = {
     await db.ssoTenantDomain.delete({ where: { oid: tenantDomain.oid } });
 
     return tenantDomain;
-  },
+  }
 
   async getTenantByDomain(d: { app: App; domain: string }) {
     let tenantDomain = await db.ssoTenantDomain.findFirst({
@@ -176,4 +177,9 @@ export let ssoTenantService = {
 
     return tenantDomain?.tenant ?? null;
   }
-};
+}
+
+export let ssoTenantService = Service.create(
+  'SsoTenantService',
+  () => new SsoTenantServiceImpl()
+).build();

@@ -51,6 +51,9 @@ model SsoUserChange {
   source        String
   changedFields String[]
 
+  scimOperationOid BigInt?
+  scimOperation    SsoScimOperation? @relation(fields: [scimOperationOid], references: [oid], onDelete: SetNull)
+
   /// [JsonValue]
   assignedGroups Json
 
@@ -64,5 +67,6 @@ model SsoUserChange {
 
   @@index([userOid, createdAt])
   @@index([tenantOid, createdAt])
+  @@index([scimOperationOid])
   @@index([createdAt])
 }

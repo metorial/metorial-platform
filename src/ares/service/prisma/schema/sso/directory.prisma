@@ -59,6 +59,8 @@ model SsoScimOperation {
 
   createdAt DateTime @default(now())
 
+  userChanges SsoUserChange[]
+
   @@index([createdAt])
   @@index([directoryOid, createdAt])
   @@index([appOid, createdAt])

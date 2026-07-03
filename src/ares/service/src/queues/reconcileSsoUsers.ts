@@ -33,6 +33,7 @@ export let reconcileSsoUsersQueue = createQueue<{
 export let reconcileSingleSsoUserQueue = createQueue<{
   ssoUserId: string;
   source?: SsoUserChangeSource;
+  scimOperationId?: string;
 }>({
   name: 'ares/sso/user/reconcileSingle',
   redisUrl,
@@ -99,21 +100,12 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
       if (ownerProfile.status === 'deprovisioned') return;
 
       for (let profileGroup of ownerProfile.groupLinks) {
-        let rootGroup =
-          profileGroup.group.rootGroup ??
-          (await ssoGroupRoleService.upsertRootGroup({
-            tenant: { oid: user.tenantOid },
-            value: profileGroup.group.value,
-            displayName: profileGroup.group.displayName,
-            metadata: (profileGroup.group.metadata as Record<string, any> | null) ?? undefined
-          }));
-
-        if (!profileGroup.group.rootGroupOid) {
-          await tdb.ssoConnectionGroup.update({
-            where: { oid: profileGroup.group.oid },
-            data: { rootGroupOid: rootGroup.oid }
-          });
-        }
+        let { rootGroup } =
+          profileGroup.group.rootGroup
+            ? { rootGroup: profileGroup.group.rootGroup }
+            : await ssoGroupRoleService.syncConnectionGroupRoot({
+                group: profileGroup.group
+              });
 
         try {
           await tdb.ssoUserGroup.create({
@@ -129,21 +121,12 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
       }
 
       for (let profileRole of ownerProfile.roleLinks) {
-        let rootRole =
-          profileRole.role.rootRole ??
-          (await ssoGroupRoleService.upsertRootRole({
-            tenant: { oid: user.tenantOid },
-            value: profileRole.role.value,
-            displayName: profileRole.role.displayName,
-            metadata: (profileRole.role.metadata as Record<string, any> | null) ?? undefined
-          }));
-
-        if (!profileRole.role.rootRoleOid) {
-          await tdb.ssoConnectionRole.update({
-            where: { oid: profileRole.role.oid },
-            data: { rootRoleOid: rootRole.oid }
-          });
-        }
+        let { rootRole } =
+          profileRole.role.rootRole
+            ? { rootRole: profileRole.role.rootRole }
+            : await ssoGroupRoleService.syncConnectionRoleRoot({
+                role: profileRole.role
+              });
 
         try {
           await tdb.ssoUserRole.create({
@@ -161,7 +144,8 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
 
     await enqueueSsoUserChange({
       ssoUserId: user.id,
-      source: data.source ?? 'user_reconciled'
+      source: data.source ?? 'user_reconciled',
+      scimOperationId: data.scimOperationId
     });
   }
 );

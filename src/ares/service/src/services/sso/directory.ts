@@ -1,6 +1,7 @@
 import type { DirectoryType } from '@boxyhq/saml-jackson';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 import type {
   SsoConnection,
   SsoDirectory,
@@ -11,7 +12,7 @@ import { db } from '../../db';
 import { getId } from '../../id';
 import { jackson } from '../../lib/jackson';
 
-export let ssoDirectoryService = {
+class SsoDirectoryServiceImpl {
   async createDirectory(d: {
     tenant: SsoTenant;
     connection: SsoConnection;
@@ -64,7 +65,7 @@ export let ssoDirectoryService = {
         secret: res.data.scim?.secret
       }
     };
-  },
+  }
 
   async listDirectories(d: { connection: SsoConnection }) {
     return Paginator.create(({ prisma }) =>
@@ -76,7 +77,7 @@ export let ssoDirectoryService = {
           })
       )
     );
-  },
+  }
 
   async getDirectoryById(d: {
     tenant: SsoTenant;
@@ -92,7 +93,7 @@ export let ssoDirectoryService = {
     });
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
     return directory;
-  },
+  }
 
   async getDirectoryByInternalId(d: { internalId: string }) {
     let directory = await db.ssoDirectory.findFirst({
@@ -105,7 +106,7 @@ export let ssoDirectoryService = {
     });
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
     return directory;
-  },
+  }
 
   async setDirectoryStatus(d: {
     tenant: SsoTenant;
@@ -139,4 +140,9 @@ export let ssoDirectoryService = {
       data: { status: d.status }
     });
   }
-};
+}
+
+export let ssoDirectoryService = Service.create(
+  'SsoDirectoryService',
+  () => new SsoDirectoryServiceImpl()
+).build();

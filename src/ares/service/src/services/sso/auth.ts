@@ -1,9 +1,10 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import type { SsoTenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId, ID } from '../../id';
 
-export let ssoAuthService = {
+class SsoAuthServiceImpl {
   async createAuth(d: {
     tenant: SsoTenant;
     input: {
@@ -22,7 +23,7 @@ export let ssoAuthService = {
         email: d.input.email ?? null
       }
     });
-  },
+  }
 
   async getAuthByClientSecret(d: { clientSecret: string }) {
     let auth = await db.ssoAuth.findUnique({
@@ -31,7 +32,7 @@ export let ssoAuthService = {
     });
     if (!auth) throw new ServiceError(notFoundError('sso.auth'));
     return auth;
-  },
+  }
 
   async completeAuth(d: { authId: string }) {
     let auth = await db.ssoAuth.findUnique({
@@ -64,4 +65,9 @@ export let ssoAuthService = {
       userProfile: auth.userProfile
     };
   }
-};
+}
+
+export let ssoAuthService = Service.create(
+  'SsoAuthService',
+  () => new SsoAuthServiceImpl()
+).build();

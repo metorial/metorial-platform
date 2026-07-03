@@ -5,6 +5,7 @@ import type {
   SsoUser,
   SsoUserProfile
 } from '../../../prisma/generated/client';
+import { Service } from '@lowerdeck/service';
 import { db } from '../../db';
 import { getId } from '../../id';
 import { reconcileSingleSsoUserQueue } from '../../queues/reconcileSsoUsers';
@@ -16,6 +17,7 @@ let setSsoUserOwnerProfile = async (d: {
   profile: SsoUserProfile;
   enqueueReconciliation?: boolean;
   reconciliationSource?: SsoUserChangeSource;
+  reconciliationScimOperationId?: string;
 }) => {
   let user = await db.ssoUser.update({
     where: { oid: d.user.oid },
@@ -25,14 +27,15 @@ let setSsoUserOwnerProfile = async (d: {
   if (d.enqueueReconciliation ?? true) {
     await reconcileSingleSsoUserQueue.add({
       ssoUserId: user.id,
-      source: d.reconciliationSource ?? 'owner_profile_changed'
+      source: d.reconciliationSource ?? 'owner_profile_changed',
+      scimOperationId: d.reconciliationScimOperationId
     });
   }
 
   return user;
 };
 
-export let ssoIdentityService = {
+class SsoIdentityServiceImpl {
   async upsertUser(d: {
     tenant: SsoTenant;
     email: string;
@@ -64,7 +67,7 @@ export let ssoIdentityService = {
         lastName: d.lastName
       }
     });
-  },
+  }
 
   async upsertUserProfile(d: {
     tenant: SsoTenant;
@@ -73,6 +76,7 @@ export let ssoIdentityService = {
     updateMemberships?: boolean;
     enqueueReconciliation?: boolean;
     reconciliationSource?: SsoUserChangeSource;
+    reconciliationScimOperationId?: string;
     data: {
       email: string;
       uid: string;
@@ -130,7 +134,8 @@ export let ssoIdentityService = {
         user: d.user,
         profile,
         enqueueReconciliation: d.enqueueReconciliation,
-        reconciliationSource: d.reconciliationSource
+        reconciliationSource: d.reconciliationSource,
+        reconciliationScimOperationId: d.reconciliationScimOperationId
       });
 
       return profile;
@@ -173,11 +178,12 @@ export let ssoIdentityService = {
       user: d.user,
       profile,
       enqueueReconciliation: d.enqueueReconciliation,
-      reconciliationSource: d.reconciliationSource
+      reconciliationSource: d.reconciliationSource,
+      reconciliationScimOperationId: d.reconciliationScimOperationId
     });
 
     return profile;
-  },
+  }
 
   async linkDirectoryUserProfile(d: {
     directory: SsoDirectory;
@@ -248,7 +254,7 @@ export let ssoIdentityService = {
         }
       });
     }
-  },
+  }
 
   async setUserProfileOwnerDirectory(d: {
     userProfile: SsoUserProfile;
@@ -259,4 +265,9 @@ export let ssoIdentityService = {
       data: { ownerDirectoryOid: d.directory.oid }
     });
   }
-};
+}
+
+export let ssoIdentityService = Service.create(
+  'SsoIdentityService',
+  () => new SsoIdentityServiceImpl()
+).build();

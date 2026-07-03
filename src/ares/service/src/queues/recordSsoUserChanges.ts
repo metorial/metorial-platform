@@ -26,6 +26,7 @@ export let recordSsoUserChangeQueue = createQueue<{
   source: SsoUserChangeSource;
   changedAt: string;
   snapshot: SsoUserChangeSnapshot;
+  scimOperationId?: string;
 }>({
   name: 'ares/sso/user/change',
   redisUrl,
@@ -89,6 +90,7 @@ export let buildSsoUserChangeSnapshot = async (ssoUserId: string) => {
 export let enqueueSsoUserChange = async (d: {
   ssoUserId: string;
   source: SsoUserChangeSource;
+  scimOperationId?: string;
 }) => {
   let snapshot = await buildSsoUserChangeSnapshot(d.ssoUserId);
   if (!snapshot) return;
@@ -102,7 +104,8 @@ export let enqueueSsoUserChange = async (d: {
         ssoUserId: d.ssoUserId,
         source: d.source,
         changedAt: new Date().toISOString(),
-        snapshot
+        snapshot,
+        scimOperationId: d.scimOperationId
       },
       opts: { id: changeId }
     }
@@ -125,6 +128,13 @@ export let recordSsoUserChangeQueueProcessor = recordSsoUserChangeQueue.process(
     select: { oid: true }
   });
 
+  let scimOperation = data.scimOperationId
+    ? await db.ssoScimOperation.findUnique({
+        where: { id: data.scimOperationId },
+        select: { oid: true }
+      })
+    : null;
+
   try {
     await db.ssoUserChange.create({
       data: {
@@ -142,6 +152,7 @@ export let recordSsoUserChangeQueueProcessor = recordSsoUserChangeQueue.process(
           : null,
         source: data.source,
         changedFields,
+        scimOperationOid: scimOperation?.oid ?? null,
         assignedGroups: data.snapshot.assignedGroups,
         assignedRoles: data.snapshot.assignedRoles,
         snapshot: data.snapshot,

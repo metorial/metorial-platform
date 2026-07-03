@@ -45,9 +45,23 @@ export let scimApp = createHono().all('/:directoryId/:resourceType/:resourceId?'
   let directory: Awaited<ReturnType<typeof ssoDirectoryService.getDirectoryByInternalId>> | null =
     null;
   let eventNames: string[] = [];
+  let scimOperationId: string | undefined;
 
   try {
     directory = await ssoDirectoryService.getDirectoryByInternalId({ internalId: directoryId });
+
+    let scimOperation = await ssoDirectorySyncService.beginScimOperation({
+      directory,
+      input: {
+        internalDirectoryId: directoryId,
+        method: c.req.method,
+        resourceType: resourceType.toLowerCase(),
+        resourceId,
+        query,
+        requestBody
+      }
+    });
+    scimOperationId = scimOperation?.id;
 
     let res = await jackson.directorySyncController.requests.handle(
       {
@@ -61,26 +75,43 @@ export let scimApp = createHono().all('/:directoryId/:resourceType/:resourceId?'
       },
       async (event: DirectorySyncEvent) => {
         eventNames.push(event.event);
-        await ssoDirectorySyncService.handleDirectorySyncEvent({ directory: directory!, event });
+        await ssoDirectorySyncService.handleDirectorySyncEvent({
+          directory: directory!,
+          event,
+          scimOperationId
+        });
       }
     );
 
-    await ssoDirectorySyncService.recordScimOperation({
-      directory,
-      input: {
-        internalDirectoryId: directoryId,
-        method: c.req.method,
-        resourceType: resourceType.toLowerCase(),
-        resourceId,
-        query,
-        requestBody,
-        responseBody: res.data,
-        statusCode: res.status,
-        success: res.status >= 200 && res.status < 400,
-        durationMs: Date.now() - startedAt,
-        eventNames
-      }
-    });
+    if (scimOperationId) {
+      await ssoDirectorySyncService.completeScimOperation({
+        scimOperationId,
+        input: {
+          responseBody: res.data,
+          statusCode: res.status,
+          success: res.status >= 200 && res.status < 400,
+          durationMs: Date.now() - startedAt,
+          eventNames
+        }
+      });
+    } else {
+      await ssoDirectorySyncService.recordScimOperation({
+        directory,
+        input: {
+          internalDirectoryId: directoryId,
+          method: c.req.method,
+          resourceType: resourceType.toLowerCase(),
+          resourceId,
+          query,
+          requestBody,
+          responseBody: res.data,
+          statusCode: res.status,
+          success: res.status >= 200 && res.status < 400,
+          durationMs: Date.now() - startedAt,
+          eventNames
+        }
+      });
+    }
 
     return c.json(res.data, res.status as any);
   } catch (error: any) {
@@ -90,23 +121,37 @@ export let scimApp = createHono().all('/:directoryId/:resourceType/:resourceId?'
       status: '400'
     };
 
-    await ssoDirectorySyncService.recordScimOperation({
-      directory,
-      input: {
-        internalDirectoryId: directoryId,
-        method: c.req.method,
-        resourceType: resourceType.toLowerCase(),
-        resourceId,
-        query,
-        requestBody,
-        responseBody,
-        statusCode: 400,
-        success: false,
-        durationMs: Date.now() - startedAt,
-        eventNames,
-        errorMessage: error?.message ?? 'SCIM request failed'
-      }
-    });
+    if (scimOperationId) {
+      await ssoDirectorySyncService.completeScimOperation({
+        scimOperationId,
+        input: {
+          responseBody,
+          statusCode: 400,
+          success: false,
+          durationMs: Date.now() - startedAt,
+          eventNames,
+          errorMessage: error?.message ?? 'SCIM request failed'
+        }
+      });
+    } else {
+      await ssoDirectorySyncService.recordScimOperation({
+        directory,
+        input: {
+          internalDirectoryId: directoryId,
+          method: c.req.method,
+          resourceType: resourceType.toLowerCase(),
+          resourceId,
+          query,
+          requestBody,
+          responseBody,
+          statusCode: 400,
+          success: false,
+          durationMs: Date.now() - startedAt,
+          eventNames,
+          errorMessage: error?.message ?? 'SCIM request failed'
+        }
+      });
+    }
 
     return c.json(responseBody, 400);
   }

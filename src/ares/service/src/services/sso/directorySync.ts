@@ -1,5 +1,6 @@
 import type { DirectorySyncEvent, Group, User, UserWithGroup } from '@boxyhq/saml-jackson';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import type { SsoDirectory } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId } from '../../id';
@@ -16,6 +17,7 @@ let upsertUserProfileFromDirectoryUser = async (d: {
   syncRoles: boolean;
   enqueueReconciliation?: boolean;
   reconciliationSource?: SsoUserChangeSource;
+  scimOperationId?: string;
 }) => {
   let directory = await db.ssoDirectory.findUnique({
     where: { oid: d.directory.oid },
@@ -56,6 +58,7 @@ let upsertUserProfileFromDirectoryUser = async (d: {
       updateMemberships: false,
       enqueueReconciliation: false,
       reconciliationSource: d.reconciliationSource,
+      reconciliationScimOperationId: d.scimOperationId,
       data: {
         email: d.userPayload.email,
         uid: d.userPayload.id,
@@ -115,14 +118,78 @@ let upsertUserProfileFromDirectoryUser = async (d: {
   if (d.enqueueReconciliation ?? true) {
     await reconcileSingleSsoUserQueue.add({
       ssoUserId: user.id,
-      source: d.reconciliationSource ?? 'directory_user_changed'
+      source: d.reconciliationSource ?? 'directory_user_changed',
+      scimOperationId: d.scimOperationId
     });
   }
 
   return { directory, user, profile };
 };
 
-export let ssoDirectorySyncService = {
+class SsoDirectorySyncServiceImpl {
+  async beginScimOperation(d: {
+    directory?: SsoDirectoryWithApp | null;
+    input: {
+      internalDirectoryId: string;
+      method: string;
+      resourceType: string;
+      resourceId?: string;
+      query?: Record<string, any>;
+      requestBody?: any;
+    };
+  }) {
+    try {
+      return await db.ssoScimOperation.create({
+        data: {
+          ...getId('ssoScimOperation'),
+          directoryOid: d.directory?.oid,
+          appOid: d.directory?.connection?.tenant?.appOid,
+          internalDirectoryId: d.input.internalDirectoryId,
+          method: d.input.method,
+          resourceType: d.input.resourceType,
+          resourceId: d.input.resourceId,
+          query: d.input.query,
+          requestBody: d.input.requestBody,
+          statusCode: 0,
+          success: false,
+          durationMs: 0,
+          eventNames: []
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to begin SCIM operation', error);
+      return null;
+    }
+  }
+
+  async completeScimOperation(d: {
+    scimOperationId: string;
+    input: {
+      responseBody?: any;
+      statusCode: number;
+      success: boolean;
+      durationMs: number;
+      eventNames: string[];
+      errorMessage?: string;
+    };
+  }) {
+    try {
+      await db.ssoScimOperation.update({
+        where: { id: d.scimOperationId },
+        data: {
+          responseBody: d.input.responseBody,
+          statusCode: d.input.statusCode,
+          success: d.input.success,
+          durationMs: d.input.durationMs,
+          eventNames: uniqueValues(d.input.eventNames),
+          errorMessage: d.input.errorMessage
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to complete SCIM operation', error);
+    }
+  }
+
   async recordScimOperation(d: {
     directory?: SsoDirectoryWithApp | null;
     input: {
@@ -163,9 +230,13 @@ export let ssoDirectorySyncService = {
     } catch (error) {
       console.warn('Failed to record SCIM operation', error);
     }
-  },
+  }
 
-  async handleDirectorySyncEvent(d: { directory: SsoDirectory; event: DirectorySyncEvent }) {
+  async handleDirectorySyncEvent(d: {
+    directory: SsoDirectory;
+    event: DirectorySyncEvent;
+    scimOperationId?: string;
+  }) {
     let eventName = d.event.event;
 
     if (eventName === 'user.created' || eventName === 'user.updated') {
@@ -190,17 +261,22 @@ export let ssoDirectorySyncService = {
         member: eventName === 'group.user_added'
       });
     }
-  },
+  }
 
-  async syncUserFromDirectoryEvent(d: { directory: SsoDirectory; event: DirectorySyncEvent }) {
+  async syncUserFromDirectoryEvent(d: {
+    directory: SsoDirectory;
+    event: DirectorySyncEvent;
+    scimOperationId?: string;
+  }) {
     let { profile } = await upsertUserProfileFromDirectoryUser({
       directory: d.directory,
       userPayload: d.event.data as User,
-      syncRoles: true
+      syncRoles: true,
+      scimOperationId: d.scimOperationId
     });
 
     return profile;
-  },
+  }
 
   async syncGroupFromDirectoryEvent(d: {
     directory: SsoDirectory;
@@ -222,12 +298,13 @@ export let ssoDirectorySyncService = {
         raw: groupPayload.raw ?? groupPayload
       }
     });
-  },
+  }
 
   async syncGroupMembershipFromDirectoryEvent(d: {
     directory: SsoDirectory;
     event: DirectorySyncEvent;
     member: boolean;
+    scimOperationId?: string;
   }) {
     let directory = await db.ssoDirectory.findUnique({
       where: { oid: d.directory.oid },
@@ -240,7 +317,8 @@ export let ssoDirectorySyncService = {
       directory,
       userPayload,
       syncRoles: true,
-      enqueueReconciliation: false
+      enqueueReconciliation: false,
+      scimOperationId: d.scimOperationId
     });
 
     await ssoGroupRoleService.upsertGroup({
@@ -273,15 +351,17 @@ export let ssoDirectorySyncService = {
 
     await reconcileSingleSsoUserQueue.add({
       ssoUserId: user.id,
-      source: 'directory_group_membership_changed'
+      source: 'directory_group_membership_changed',
+      scimOperationId: d.scimOperationId
     });
 
     return updatedProfile;
-  },
+  }
 
   async deleteUserFromDirectoryEvent(d: {
     directory: SsoDirectory;
     event: DirectorySyncEvent;
+    scimOperationId?: string;
   }) {
     let externalId = d.event.data.id;
     if (!externalId) return;
@@ -329,15 +409,17 @@ export let ssoDirectorySyncService = {
       if (user) {
         await reconcileSingleSsoUserQueue.add({
           ssoUserId: user.id,
-          source: 'directory_user_deleted'
+          source: 'directory_user_deleted',
+          scimOperationId: d.scimOperationId
         });
       }
     }
-  },
+  }
 
   async deleteGroupFromDirectoryEvent(d: {
     directory: SsoDirectory;
     event: DirectorySyncEvent;
+    scimOperationId?: string;
   }) {
     let directory = await db.ssoDirectory.findUnique({
       where: { oid: d.directory.oid },
@@ -367,8 +449,14 @@ export let ssoDirectorySyncService = {
 
       await reconcileSingleSsoUserQueue.add({
         ssoUserId: link.userProfile.ownedUser.id,
-        source: 'directory_group_deleted'
+        source: 'directory_group_deleted',
+        scimOperationId: d.scimOperationId
       });
     }
   }
-};
+}
+
+export let ssoDirectorySyncService = Service.create(
+  'SsoDirectorySyncService',
+  () => new SsoDirectorySyncServiceImpl()
+).build();
