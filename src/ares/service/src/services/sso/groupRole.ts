@@ -39,37 +39,42 @@ class SsoGroupRoleServiceImpl {
     connection?: Pick<SsoConnection, 'tenantOid'>;
     rootGroup?: SsoGroup;
   }): Promise<{ group: SsoConnectionGroup; rootGroup: SsoGroup }> {
-    if (!d.group.value) {
-      throw new ServiceError(badRequestError({ message: 'Group value is required' }));
-    }
+    return withTransaction(
+      async db => {
+        if (!d.group.value) {
+          throw new ServiceError(badRequestError({ message: 'Group value is required' }));
+        }
 
-    let connection =
-      d.connection ??
-      (await db.ssoConnection.findUnique({
-        where: { oid: d.group.connectionOid },
-        select: { tenantOid: true }
-      }));
-    if (!connection) throw new ServiceError(notFoundError('sso.connection'));
+        let connection =
+          d.connection ??
+          (await db.ssoConnection.findUnique({
+            where: { oid: d.group.connectionOid },
+            select: { tenantOid: true }
+          }));
+        if (!connection) throw new ServiceError(notFoundError('sso.connection'));
 
-    let rootGroup =
-      d.rootGroup ??
-      (await this.upsertRootGroup({
-        tenant: { oid: connection.tenantOid },
-        value: d.group.value,
-        displayName: d.group.displayName,
-        metadata: (d.group.metadata as Record<string, any> | null) ?? undefined
-      }));
+        let rootGroup =
+          d.rootGroup ??
+          (await this.upsertRootGroup({
+            tenant: { oid: connection.tenantOid },
+            value: d.group.value,
+            displayName: d.group.displayName,
+            metadata: (d.group.metadata as Record<string, any> | null) ?? undefined
+          }));
 
-    if (d.group.rootGroupOid === rootGroup.oid) {
-      return { group: d.group, rootGroup };
-    }
+        if (d.group.rootGroupOid === rootGroup.oid) {
+          return { group: d.group, rootGroup };
+        }
 
-    let group = await db.ssoConnectionGroup.update({
-      where: { oid: d.group.oid },
-      data: { rootGroupOid: rootGroup.oid }
-    });
+        let group = await db.ssoConnectionGroup.update({
+          where: { oid: d.group.oid },
+          data: { rootGroupOid: rootGroup.oid }
+        });
 
-    return { group, rootGroup };
+        return { group, rootGroup };
+      },
+      { ifExists: true }
+    );
   }
 
   async syncConnectionRoleRoot(d: {
@@ -77,37 +82,42 @@ class SsoGroupRoleServiceImpl {
     connection?: Pick<SsoConnection, 'tenantOid'>;
     rootRole?: SsoRole;
   }): Promise<{ role: SsoConnectionRole; rootRole: SsoRole }> {
-    if (!d.role.value) {
-      throw new ServiceError(badRequestError({ message: 'Role value is required' }));
-    }
+    return withTransaction(
+      async db => {
+        if (!d.role.value) {
+          throw new ServiceError(badRequestError({ message: 'Role value is required' }));
+        }
 
-    let connection =
-      d.connection ??
-      (await db.ssoConnection.findUnique({
-        where: { oid: d.role.connectionOid },
-        select: { tenantOid: true }
-      }));
-    if (!connection) throw new ServiceError(notFoundError('sso.connection'));
+        let connection =
+          d.connection ??
+          (await db.ssoConnection.findUnique({
+            where: { oid: d.role.connectionOid },
+            select: { tenantOid: true }
+          }));
+        if (!connection) throw new ServiceError(notFoundError('sso.connection'));
 
-    let rootRole =
-      d.rootRole ??
-      (await this.upsertRootRole({
-        tenant: { oid: connection.tenantOid },
-        value: d.role.value,
-        displayName: d.role.displayName,
-        metadata: (d.role.metadata as Record<string, any> | null) ?? undefined
-      }));
+        let rootRole =
+          d.rootRole ??
+          (await this.upsertRootRole({
+            tenant: { oid: connection.tenantOid },
+            value: d.role.value,
+            displayName: d.role.displayName,
+            metadata: (d.role.metadata as Record<string, any> | null) ?? undefined
+          }));
 
-    if (d.role.rootRoleOid === rootRole.oid) {
-      return { role: d.role, rootRole };
-    }
+        if (d.role.rootRoleOid === rootRole.oid) {
+          return { role: d.role, rootRole };
+        }
 
-    let role = await db.ssoConnectionRole.update({
-      where: { oid: d.role.oid },
-      data: { rootRoleOid: rootRole.oid }
-    });
+        let role = await db.ssoConnectionRole.update({
+          where: { oid: d.role.oid },
+          data: { rootRoleOid: rootRole.oid }
+        });
 
-    return { role, rootRole };
+        return { role, rootRole };
+      },
+      { ifExists: true }
+    );
   }
 
   async upsertRootGroup(d: {
@@ -116,47 +126,52 @@ class SsoGroupRoleServiceImpl {
     displayName?: string | null;
     metadata?: Record<string, any>;
   }) {
-    let value = d.value;
-    if (!value) {
-      throw new ServiceError(badRequestError({ message: 'Group value is required' }));
-    }
+    return withTransaction(
+      async db => {
+        let value = d.value;
+        if (!value) {
+          throw new ServiceError(badRequestError({ message: 'Group value is required' }));
+        }
 
-    let existing = await db.ssoGroup.findFirst({
-      where: { tenantOid: d.tenant.oid, value }
-    });
+        let existing = await db.ssoGroup.findFirst({
+          where: { tenantOid: d.tenant.oid, value }
+        });
 
-    if (existing) {
-      return await db.ssoGroup.update({
-        where: { oid: existing.oid },
-        data: {
-          displayName: d.displayName ?? undefined,
-          metadata: d.metadata ?? undefined
-        },
-        include: ssoRootGroupInclude
-      });
-    }
+        if (existing) {
+          return await db.ssoGroup.update({
+            where: { oid: existing.oid },
+            data: {
+              displayName: d.displayName ?? undefined,
+              metadata: d.metadata ?? undefined
+            },
+            include: ssoRootGroupInclude
+          });
+        }
 
-    try {
-      return await db.ssoGroup.create({
-        data: {
-          ...getId('ssoGroup'),
-          tenantOid: d.tenant.oid,
-          value,
-          displayName: d.displayName ?? null,
-          metadata: d.metadata ?? undefined
-        },
-        include: ssoRootGroupInclude
-      });
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) throw error;
+        try {
+          return await db.ssoGroup.create({
+            data: {
+              ...getId('ssoGroup'),
+              tenantOid: d.tenant.oid,
+              value,
+              displayName: d.displayName ?? null,
+              metadata: d.metadata ?? undefined
+            },
+            include: ssoRootGroupInclude
+          });
+        } catch (error) {
+          if (!isUniqueConstraintError(error)) throw error;
 
-      let group = await db.ssoGroup.findFirst({
-        where: { tenantOid: d.tenant.oid, value },
-        include: ssoRootGroupInclude
-      });
-      if (!group) throw error;
-      return group;
-    }
+          let group = await db.ssoGroup.findFirst({
+            where: { tenantOid: d.tenant.oid, value },
+            include: ssoRootGroupInclude
+          });
+          if (!group) throw error;
+          return group;
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   async upsertRootRole(d: {
@@ -165,45 +180,51 @@ class SsoGroupRoleServiceImpl {
     displayName?: string | null;
     metadata?: Record<string, any>;
   }) {
-    let value = d.value;
-    if (!value) throw new ServiceError(badRequestError({ message: 'Role value is required' }));
+    return withTransaction(
+      async db => {
+        let value = d.value;
+        if (!value)
+          throw new ServiceError(badRequestError({ message: 'Role value is required' }));
 
-    let existing = await db.ssoRole.findFirst({
-      where: { tenantOid: d.tenant.oid, value }
-    });
+        let existing = await db.ssoRole.findFirst({
+          where: { tenantOid: d.tenant.oid, value }
+        });
 
-    if (existing) {
-      return await db.ssoRole.update({
-        where: { oid: existing.oid },
-        data: {
-          displayName: d.displayName ?? undefined,
-          metadata: d.metadata ?? undefined
-        },
-        include: ssoRootRoleInclude
-      });
-    }
+        if (existing) {
+          return await db.ssoRole.update({
+            where: { oid: existing.oid },
+            data: {
+              displayName: d.displayName ?? undefined,
+              metadata: d.metadata ?? undefined
+            },
+            include: ssoRootRoleInclude
+          });
+        }
 
-    try {
-      return await db.ssoRole.create({
-        data: {
-          ...getId('ssoRole'),
-          tenantOid: d.tenant.oid,
-          value,
-          displayName: d.displayName ?? null,
-          metadata: d.metadata ?? undefined
-        },
-        include: ssoRootRoleInclude
-      });
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) throw error;
+        try {
+          return await db.ssoRole.create({
+            data: {
+              ...getId('ssoRole'),
+              tenantOid: d.tenant.oid,
+              value,
+              displayName: d.displayName ?? null,
+              metadata: d.metadata ?? undefined
+            },
+            include: ssoRootRoleInclude
+          });
+        } catch (error) {
+          if (!isUniqueConstraintError(error)) throw error;
 
-      let role = await db.ssoRole.findFirst({
-        where: { tenantOid: d.tenant.oid, value },
-        include: ssoRootRoleInclude
-      });
-      if (!role) throw error;
-      return role;
-    }
+          let role = await db.ssoRole.findFirst({
+            where: { tenantOid: d.tenant.oid, value },
+            include: ssoRootRoleInclude
+          });
+          if (!role) throw error;
+          return role;
+        }
+      },
+      { ifExists: true }
+    );
   }
 
   async upsertGroup(d: {

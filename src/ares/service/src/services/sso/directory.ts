@@ -225,15 +225,11 @@ class SsoDirectoryServiceImpl {
 
     if (d.status === 'disabled') {
       await db.ssoUserProfile.updateMany({
-        where: {
-          directories: { some: { directoryOid: d.directory.oid } }
-        },
-        data: { status: 'deprovisioned' }
-      });
-
-      await db.ssoUserProfile.updateMany({
         where: { ownerDirectoryOid: d.directory.oid },
-        data: { ownerDirectoryOid: null }
+        data: {
+          ownerDirectoryOid: null,
+          status: 'deprovisioned'
+        }
       });
     }
 
