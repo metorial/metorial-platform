@@ -70,6 +70,7 @@ class SsoIdentityServiceImpl {
     email: string;
     firstName: string;
     lastName: string;
+    status?: 'active' | 'deprovisioned';
   }) {
     let existing = await db.ssoUser.findFirst({
       where: { tenantOid: d.tenant.oid, email: d.email }
@@ -79,7 +80,7 @@ class SsoIdentityServiceImpl {
       return await db.ssoUser.update({
         where: { oid: existing.oid },
         data: {
-          status: 'active',
+          status: d.status ?? 'active',
           firstName: d.firstName,
           lastName: d.lastName
         },
@@ -90,7 +91,7 @@ class SsoIdentityServiceImpl {
     return await db.ssoUser.create({
       data: {
         ...getId('ssoUser'),
-        status: 'active',
+        status: d.status ?? 'active',
         tenantOid: d.tenant.oid,
         email: d.email,
         firstName: d.firstName,

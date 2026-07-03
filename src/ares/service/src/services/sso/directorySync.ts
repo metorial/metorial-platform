@@ -29,7 +29,8 @@ let upsertUserProfileFromDirectoryUser = async (d: {
     tenant: directory.connection.tenant,
     email: d.userPayload.email,
     firstName: d.userPayload.first_name,
-    lastName: d.userPayload.last_name
+    lastName: d.userPayload.last_name,
+    status: d.userPayload.active ? 'active' : 'deprovisioned'
   });
 
   let linkedProfile = await db.ssoDirectoryUserProfile.findFirst({

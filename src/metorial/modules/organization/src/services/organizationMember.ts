@@ -46,30 +46,31 @@ class OrganizationMemberService {
   }
 
   private async assertOrganizationStillHasAnotherAdmin(d: {
-    db: Pick<typeof db, 'organizationMember'>;
     organization: Organization;
     member: OrganizationMember;
   }) {
     if (d.member.role !== 'admin') return;
 
-    let otherAdminCount = await d.db.organizationMember.count({
-      where: {
-        organizationOid: d.organization.oid,
-        status: 'active',
-        role: 'admin',
-        oid: { not: d.member.oid },
-        user: {
-          type: { not: 'system' }
+    return withTransaction(async db => {
+      let otherAdminCount = await db.organizationMember.count({
+        where: {
+          organizationOid: d.organization.oid,
+          status: 'active',
+          role: 'admin',
+          oid: { not: d.member.oid },
+          user: {
+            type: { not: 'system' }
+          }
         }
-      }
-    });
-    if (otherAdminCount > 0) return;
+      });
+      if (otherAdminCount > 0) return;
 
-    throw new ServiceError(
-      forbiddenError({
-        message: 'Admins cannot be removed unless there is another admin'
-      })
-    );
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Admins cannot be removed unless there is another admin'
+        })
+      );
+    });
   }
 
   async createOrganizationMember(d: {
@@ -190,7 +191,6 @@ class OrganizationMemberService {
     return withTransaction(async db => {
       if (d.member.role == 'admin' && d.input.role == 'member') {
         await this.assertOrganizationStillHasAnotherAdmin({
-          db,
           organization: d.organization,
           member: d.member
         });
@@ -237,7 +237,6 @@ class OrganizationMemberService {
 
     return withTransaction(async db => {
       await this.assertOrganizationStillHasAnotherAdmin({
-        db,
         organization: d.organization,
         member: d.member
       });
