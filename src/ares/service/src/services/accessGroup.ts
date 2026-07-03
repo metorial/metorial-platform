@@ -116,7 +116,9 @@ class AccessGroupServiceImpl {
     });
   }
 
-  async checkAppAccess(d: { user: User; app: App } | { user: User; appOid: bigint }): Promise<boolean> {
+  async checkAppAccess(
+    d: { user: User; app: App } | { user: User; appOid: bigint }
+  ): Promise<boolean> {
     let appOid = 'app' in d ? d.app.oid : d.appOid;
 
     let assignments = await db.accessGroupAssignment.findMany({
@@ -223,6 +225,7 @@ class AccessGroupServiceImpl {
           let match = await db.ssoUserProfile.findFirst({
             where: {
               tenantOid: { in: matchingTenants.map(t => t.oid) },
+              status: 'active',
               email: { in: emailAddresses }
             }
           });
@@ -235,8 +238,15 @@ class AccessGroupServiceImpl {
         let match = await db.ssoUserProfile.findFirst({
           where: {
             tenantOid: { in: tenantOids },
+            status: 'active',
             email: { in: emailAddresses },
-            groups: { hasSome: ssoGroupValues }
+            groupLinks: {
+              some: {
+                group: {
+                  value: { in: ssoGroupValues }
+                }
+              }
+            }
           }
         });
         if (match) return true;
@@ -247,8 +257,15 @@ class AccessGroupServiceImpl {
         let match = await db.ssoUserProfile.findFirst({
           where: {
             tenantOid: { in: tenantOids },
+            status: 'active',
             email: { in: emailAddresses },
-            roles: { hasSome: ssoRoleValues }
+            roleLinks: {
+              some: {
+                role: {
+                  value: { in: ssoRoleValues }
+                }
+              }
+            }
           }
         });
         if (match) return true;

@@ -11,6 +11,7 @@ export let cleanupCron = createCron(
   async () => {
     let now = new Date();
     let oneWeekAgo = subDays(now, 7);
+    let twoWeeksAgo = subDays(now, 14);
 
     await db.authAttempt.deleteMany({
       where: { createdAt: { lt: oneWeekAgo } }
@@ -22,6 +23,10 @@ export let cleanupCron = createCron(
 
     await db.authBlock.deleteMany({
       where: { blockedAt: { lt: oneWeekAgo } }
+    });
+
+    await db.ssoScimOperation.deleteMany({
+      where: { createdAt: { lt: twoWeeksAgo } }
     });
   }
 );

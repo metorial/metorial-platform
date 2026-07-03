@@ -152,10 +152,10 @@ export let ssoAuthApp = createHono()
       let connection = await db.ssoConnection.findUnique({
         where: { oid: auth.connectionOid! }
       });
-      if (!connection) {
+      if (!connection || connection.status !== 'active') {
         throw new ServiceError(
           badRequestError({
-            message: 'Connection not found for auth.'
+            message: 'Connection not found or disabled for auth.'
           })
         );
       }

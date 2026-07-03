@@ -32,4 +32,5 @@ model App {
   accessGroups           AccessGroup[]
   accessGroupAssignments AccessGroupAssignment[]
   ssoTenantDomain        SsoTenantDomain[]
+  ssoScimOperations      SsoScimOperation[]
 }

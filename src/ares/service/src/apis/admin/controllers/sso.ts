@@ -4,7 +4,11 @@ import { env } from '../../../env';
 import { adminService } from '../../../services/admin';
 import { ssoService } from '../../../services/sso';
 import { adminApp } from '../middleware/admin';
-import { ssoConnectionPresenter, ssoTenantPresenter } from '../presenters';
+import {
+  ssoConnectionPresenter,
+  ssoDirectoryPresenter,
+  ssoTenantPresenter
+} from '../presenters';
 
 export let ssoController = adminApp.controller({
   listTenants: adminApp
@@ -88,6 +92,136 @@ export let ssoController = adminApp.controller({
       let paginator = await ssoService.listConnections({ tenant });
       let list = await paginator.run(input);
       return Paginator.presentLight(list, ssoConnectionPresenter);
+    }),
+
+  setConnectionStatus: adminApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        connectionId: v.string(),
+        status: v.enumOf(['active', 'disabled'])
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoService.getConnectionById({
+        tenant,
+        connectionId: input.connectionId
+      });
+      let updated = await ssoService.setConnectionStatus({
+        tenant,
+        connection,
+        status: input.status
+      });
+      return ssoConnectionPresenter(updated);
+    }),
+
+  createDirectory: adminApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        connectionId: v.string(),
+        name: v.string(),
+        type: v.string(),
+        metadata: v.optional(v.record(v.any()))
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoService.getConnectionById({
+        tenant,
+        connectionId: input.connectionId
+      });
+      let { directory, scim } = await ssoService.createDirectory({
+        tenant,
+        connection,
+        input: {
+          name: input.name,
+          type: input.type as any,
+          metadata: input.metadata
+        }
+      });
+
+      return {
+        directory: ssoDirectoryPresenter(directory),
+        scim
+      };
+    }),
+
+  listDirectories: adminApp
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          tenantId: v.string(),
+          connectionId: v.string()
+        })
+      )
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoService.getConnectionById({
+        tenant,
+        connectionId: input.connectionId
+      });
+      let paginator = await ssoService.listDirectories({ connection });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, ssoDirectoryPresenter);
+    }),
+
+  getDirectory: adminApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        connectionId: v.string(),
+        directoryId: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoService.getConnectionById({
+        tenant,
+        connectionId: input.connectionId
+      });
+      let directory = await ssoService.getDirectoryById({
+        tenant,
+        connection,
+        directoryId: input.directoryId
+      });
+      return ssoDirectoryPresenter(directory);
+    }),
+
+  setDirectoryStatus: adminApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        connectionId: v.string(),
+        directoryId: v.string(),
+        status: v.enumOf(['active', 'disabled'])
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoService.getConnectionById({
+        tenant,
+        connectionId: input.connectionId
+      });
+      let directory = await ssoService.getDirectoryById({
+        tenant,
+        connection,
+        directoryId: input.directoryId
+      });
+      let updated = await ssoService.setDirectoryStatus({
+        tenant,
+        connection,
+        directory,
+        status: input.status
+      });
+      return ssoDirectoryPresenter(updated);
     }),
 
   listGlobalTenants: adminApp

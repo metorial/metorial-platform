@@ -1,5 +1,6 @@
 import type {
   SsoConnection,
+  SsoDirectory,
   SsoTenant,
   SsoTenantDomain
 } from '../../../../prisma/generated/client';
@@ -35,10 +36,27 @@ export let ssoConnectionPresenter = (connection: SsoConnection) => ({
 
   id: connection.id,
   name: connection.name,
+  status: connection.status,
   providerType: connection.providerType,
   providerName: connection.providerName,
 
   createdAt: connection.createdAt
+});
+
+export let ssoDirectoryPresenter = (directory: SsoDirectory) => ({
+  object: 'ares#ssoDirectory' as const,
+
+  id: directory.id,
+  name: directory.name,
+  type: directory.type,
+  status: directory.status,
+  scimPath: directory.scimPath,
+  scimEndpoint: directory.scimEndpoint,
+  scimSecret: directory.scimSecret,
+  metadata: directory.metadata,
+
+  createdAt: directory.createdAt,
+  updatedAt: directory.updatedAt
 });
 
 export let ssoTenantDomainPresenter = (tenantDomain: SsoTenantDomain) => ({

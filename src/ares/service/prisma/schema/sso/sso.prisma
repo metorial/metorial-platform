@@ -58,12 +58,19 @@ enum SsoConnectionProviderType {
   oidc
 }
 
+enum SsoConnectionStatus {
+  active
+  disabled
+}
+
 model SsoConnection {
   oid BigInt @id
   id  String @unique
 
   tenantOid BigInt
   tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  status SsoConnectionStatus @default(active)
 
   internalId           String
   internalClientId     String
@@ -83,6 +90,122 @@ model SsoConnection {
   connectionSetups SsoConnectionSetup[]
   userProfiles     SsoUserProfile[]
   auths            SsoAuth[]
+  directories      SsoDirectory[]
+  groups           SsoGroup[]
+  roles            SsoRole[]
+}
+
+enum SsoDirectoryStatus {
+  active
+  disabled
+}
+
+model SsoDirectory {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoDirectoryStatus @default(active)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  internalId String @unique
+
+  name         String
+  type         String
+  scimPath     String
+  scimEndpoint String
+  scimSecret   String
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  ownedUserProfiles SsoUserProfile[]          @relation("SsoUserProfileOwnerDirectory")
+  userProfiles      SsoDirectoryUserProfile[]
+  scimOperations    SsoScimOperation[]
+
+  @@unique([connectionOid, internalId])
+}
+
+model SsoScimOperation {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt?
+  directory    SsoDirectory? @relation(fields: [directoryOid], references: [oid], onDelete: SetNull)
+
+  appOid BigInt?
+  app    App?    @relation(fields: [appOid], references: [oid], onDelete: SetNull)
+
+  internalDirectoryId String
+  method              String
+  resourceType        String
+  resourceId          String?
+  statusCode          Int
+  success             Boolean
+  durationMs          Int
+  eventNames          String[]
+  errorMessage        String?  @db.Text
+
+  /// [JsonObject]
+  query Json?
+
+  /// [JsonValue]
+  requestBody Json?
+
+  /// [JsonValue]
+  responseBody Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([directoryOid, createdAt])
+  @@index([appOid, createdAt])
+}
+
+model SsoGroup {
+  oid BigInt @id
+  id  String @unique
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userProfiles SsoUserProfileGroup[]
+
+  @@unique([connectionOid, value])
+}
+
+model SsoRole {
+  oid BigInt @id
+  id  String @unique
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userProfiles SsoUserProfileRole[]
+
+  @@unique([connectionOid, value])
 }
 
 enum SsoConnectionSetupStatus {
@@ -130,9 +253,16 @@ model SsoUser {
   @@index([tenantOid, email])
 }
 
+enum SsoUserProfileStatus {
+  active
+  deprovisioned
+}
+
 model SsoUserProfile {
   oid BigInt @id
   id  String @unique
+
+  status SsoUserProfileStatus @default(active)
 
   tenantOid BigInt
   tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -152,6 +282,11 @@ model SsoUserProfile {
   roles     String[]
   groups    String[]
 
+  isGroupRoleMemberReconciled Boolean @default(false)
+
+  ownerDirectoryOid BigInt?
+  ownerDirectory    SsoDirectory? @relation("SsoUserProfileOwnerDirectory", fields: [ownerDirectoryOid], references: [oid], onDelete: SetNull)
+
   /// [JsonObject]
   raw Json
 
@@ -164,6 +299,68 @@ model SsoUserProfile {
   auths SsoAuth[]
 
   userIdentities UserIdentity[]
+  groupLinks     SsoUserProfileGroup[]
+  roleLinks      SsoUserProfileRole[]
+  directories    SsoDirectoryUserProfile[]
+}
+
+model SsoUserProfileGroup {
+  oid BigInt @id
+  id  String @unique
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    SsoGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userProfileOid, groupOid])
+  @@index([groupOid])
+}
+
+model SsoUserProfileRole {
+  oid BigInt @id
+  id  String @unique
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  roleOid BigInt
+  role    SsoRole @relation(fields: [roleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userProfileOid, roleOid])
+  @@index([roleOid])
+}
+
+model SsoDirectoryUserProfile {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt
+  directory    SsoDirectory @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  externalId String?
+
+  /// [JsonObject]
+  raw Json?
+
+  lastSeenAt      DateTime?
+  deprovisionedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([directoryOid, userProfileOid])
+  @@unique([directoryOid, externalId])
 }
 
 enum SsoAuthStatus {

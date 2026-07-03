@@ -24,6 +24,7 @@ let ret = await jack({
   externalUrl: env.service.ARES_SSO_URL,
   samlPath: '/sso/jxn/saml/callback',
   oidcPath: '/sso/jxn/oidc/callback',
+  scimPath: '/sso/scim',
   samlAudience: env.sso.SAML_AUDIENCE,
   db: {
     engine: 'sql',
@@ -37,6 +38,7 @@ let ret = await jack({
 export let jackson = {
   apiController: ret.apiController,
   oauthController: ret.oauthController,
+  directorySyncController: ret.directorySyncController,
 
   redirectUrl: `${env.service.ARES_SSO_URL}/*`,
   defaultRedirectUrl: {
