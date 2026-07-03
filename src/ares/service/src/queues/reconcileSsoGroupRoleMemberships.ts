@@ -60,7 +60,7 @@ export let reconcileSingleSsoGroupRoleMembershipQueueProcessor =
   reconcileSingleSsoGroupRoleMembershipQueue.process(async data => {
     let profile = await db.ssoUserProfile.findUnique({
       where: { id: data.userProfileId },
-      include: { connection: true }
+      include: { connection: true, ownedUser: true }
     });
 
     if (!profile) return;
@@ -83,6 +83,13 @@ export let reconcileSingleSsoGroupRoleMembershipQueueProcessor =
       where: { oid: profile.oid },
       data: { isGroupRoleMemberReconciled: true }
     });
+
+    if (profile.ownedUser) {
+      await ssoService.enqueueSsoUserReconciliation(
+        profile.ownedUser,
+        'profile_group_role_membership_reconciled'
+      );
+    }
   });
 
 export let reconcileSsoGroupRoleMembershipsProcessor = combineQueueProcessors([

@@ -1,0 +1,68 @@
+enum SsoUserStatus {
+  active
+  deprovisioned
+}
+
+model SsoUser {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoUserStatus @default(active)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  email     String
+  firstName String
+  lastName  String
+
+  ownerProfileOid BigInt?         @unique
+  ownerProfile    SsoUserProfile? @relation("SsoUserOwnerProfile", fields: [ownerProfileOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles   SsoUserProfile[]
+  groupLinks SsoUserGroup[]
+  roleLinks  SsoUserRole[]
+  auths      SsoAuth[]
+  changes    SsoUserChange[]
+
+  @@index([tenantOid, email])
+}
+
+model SsoUserChange {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt?
+  user    SsoUser? @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
+  userId          String
+  status          SsoUserStatus
+  email           String
+  firstName       String
+  lastName        String
+  ownerProfileOid BigInt?
+
+  source        String
+  changedFields String[]
+
+  /// [JsonValue]
+  assignedGroups Json
+
+  /// [JsonValue]
+  assignedRoles Json
+
+  /// [JsonObject]
+  snapshot Json
+
+  createdAt DateTime @default(now())
+
+  @@index([userOid, createdAt])
+  @@index([tenantOid, createdAt])
+  @@index([createdAt])
+}

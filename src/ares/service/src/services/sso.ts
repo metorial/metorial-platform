@@ -23,6 +23,7 @@ import { db, withTransaction } from '../db';
 import { getId, ID } from '../id';
 import { jackson } from '../lib/jackson';
 import { reconcileSingleSsoUserQueue } from '../queues/reconcileSsoUsers';
+import { type SsoUserChangeSource } from '../queues/recordSsoUserChanges';
 
 let uniqueValues = (values: string[]) => {
   let seen = new Set<string>();
@@ -48,11 +49,13 @@ type SsoDirectoryWithApp = SsoDirectory & {
 };
 
 class SsoServiceImpl {
-  private async enqueueSsoUserReconciliation(user: SsoUser) {
+  async enqueueSsoUserReconciliation(
+    user: Pick<SsoUser, 'id'>,
+    source: SsoUserChangeSource = 'owner_profile_changed'
+  ) {
     await reconcileSingleSsoUserQueue.addManyWithOps([
       {
-        data: { ssoUserId: user.id },
-        opts: { id: user.id }
+        data: { ssoUserId: user.id, source }
       }
     ]);
   }
@@ -61,6 +64,7 @@ class SsoServiceImpl {
     user: SsoUser;
     profile: SsoUserProfile;
     enqueueReconciliation?: boolean;
+    reconciliationSource?: SsoUserChangeSource;
   }) {
     let user = await db.ssoUser.update({
       where: { oid: d.user.oid },
@@ -68,7 +72,7 @@ class SsoServiceImpl {
     });
 
     if (d.enqueueReconciliation ?? true) {
-      await this.enqueueSsoUserReconciliation(user);
+      await this.enqueueSsoUserReconciliation(user, d.reconciliationSource);
     }
 
     return user;
@@ -712,7 +716,7 @@ class SsoServiceImpl {
     });
 
     if (existing) {
-      return await db.ssoUser.update({
+      let user = await db.ssoUser.update({
         where: { oid: existing.oid },
         data: {
           status: 'active',
@@ -720,9 +724,11 @@ class SsoServiceImpl {
           lastName: d.lastName
         }
       });
+
+      return user;
     }
 
-    return await db.ssoUser.create({
+    let user = await db.ssoUser.create({
       data: {
         ...getId('ssoUser'),
         status: 'active',
@@ -732,6 +738,8 @@ class SsoServiceImpl {
         lastName: d.lastName
       }
     });
+
+    return user;
   }
 
   async upsertUserProfile(d: {
@@ -740,6 +748,7 @@ class SsoServiceImpl {
     user: SsoUser;
     updateMemberships?: boolean;
     enqueueReconciliation?: boolean;
+    reconciliationSource?: SsoUserChangeSource;
     data: {
       email: string;
       uid: string;
@@ -796,7 +805,8 @@ class SsoServiceImpl {
       await this.setSsoUserOwnerProfile({
         user: d.user,
         profile,
-        enqueueReconciliation: d.enqueueReconciliation
+        enqueueReconciliation: d.enqueueReconciliation,
+        reconciliationSource: d.reconciliationSource
       });
 
       return profile;
@@ -838,7 +848,8 @@ class SsoServiceImpl {
     await this.setSsoUserOwnerProfile({
       user: d.user,
       profile,
-      enqueueReconciliation: d.enqueueReconciliation
+      enqueueReconciliation: d.enqueueReconciliation,
+      reconciliationSource: d.reconciliationSource
     });
 
     return profile;
@@ -1255,6 +1266,7 @@ class SsoServiceImpl {
     userPayload: User;
     syncRoles: boolean;
     enqueueReconciliation?: boolean;
+    reconciliationSource?: SsoUserChangeSource;
   }) {
     let directory = await db.ssoDirectory.findUnique({
       where: { oid: d.directory.oid },
@@ -1294,6 +1306,7 @@ class SsoServiceImpl {
         user,
         updateMemberships: false,
         enqueueReconciliation: false,
+        reconciliationSource: d.reconciliationSource,
         data: {
           email: d.userPayload.email,
           uid: d.userPayload.id,
@@ -1353,7 +1366,8 @@ class SsoServiceImpl {
     await this.setSsoUserOwnerProfile({
       user,
       profile,
-      enqueueReconciliation: d.enqueueReconciliation
+      enqueueReconciliation: d.enqueueReconciliation,
+      reconciliationSource: d.reconciliationSource ?? 'directory_user_changed'
     });
 
     return { directory, user, profile };
@@ -1465,7 +1479,7 @@ class SsoServiceImpl {
       }
     });
 
-    await this.enqueueSsoUserReconciliation(user);
+    await this.enqueueSsoUserReconciliation(user, 'directory_group_membership_changed');
 
     return updatedProfile;
   }
@@ -1516,7 +1530,7 @@ class SsoServiceImpl {
       let user = await db.ssoUser.findUnique({
         where: { oid: link.userProfile.userOid }
       });
-      if (user) await this.enqueueSsoUserReconciliation(user);
+      if (user) await this.enqueueSsoUserReconciliation(user, 'directory_user_deleted');
     }
   }
 
@@ -1540,7 +1554,21 @@ class SsoServiceImpl {
     });
     if (!group) return;
 
+    let affectedLinks = await db.ssoUserProfileGroup.findMany({
+      where: { groupOid: group.oid },
+      include: { userProfile: { include: { ownedUser: true } } }
+    });
+
     await db.ssoUserProfileGroup.deleteMany({ where: { groupOid: group.oid } });
+
+    for (let link of affectedLinks) {
+      if (!link.userProfile.ownedUser) continue;
+
+      await this.enqueueSsoUserReconciliation(
+        link.userProfile.ownedUser,
+        'directory_group_deleted'
+      );
+    }
   }
 }
 

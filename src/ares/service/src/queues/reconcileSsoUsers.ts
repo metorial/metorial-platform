@@ -2,6 +2,10 @@ import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { db, withTransaction } from '../db';
 import { getId } from '../id';
+import {
+  enqueueSsoUserChange,
+  type SsoUserChangeSource
+} from './recordSsoUserChanges';
 import { ssoService } from '../services/sso';
 
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -28,6 +32,7 @@ export let reconcileSsoUsersQueue = createQueue<{
 
 export let reconcileSingleSsoUserQueue = createQueue<{
   ssoUserId: string;
+  source?: SsoUserChangeSource;
 }>({
   name: 'ares/sso/user/reconcileSingle',
   redisUrl,
@@ -48,7 +53,7 @@ export let reconcileSsoUsersQueueProcessor = reconcileSsoUsersQueue.process(asyn
 
   await reconcileSingleSsoUserQueue.addManyWithOps(
     users.map(user => ({
-      data: { ssoUserId: user.id },
+      data: { ssoUserId: user.id, source: 'user_reconciled' },
       opts: { id: user.id }
     }))
   );
@@ -152,6 +157,11 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
           if (!isUniqueConstraintError(error)) throw error;
         }
       }
+    });
+
+    await enqueueSsoUserChange({
+      ssoUserId: user.id,
+      source: data.source ?? 'user_reconciled'
     });
   }
 );
