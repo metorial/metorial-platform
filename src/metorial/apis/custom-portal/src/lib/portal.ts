@@ -5,13 +5,13 @@ import {
   ServiceError,
   unauthorizedError
 } from '@lowerdeck/error';
+import type { ServiceRequest } from '@lowerdeck/rpc-server';
 import {
   consumerAuthService,
   isPathBasedPortalRoutingTemplate,
   env as portalEnv,
   portalService
 } from '@metorial/module-consumer';
-import type { ServiceRequest } from '@metorial/rpc';
 import {
   clearPortalSessionCookie,
   getAuthStateCookieName,

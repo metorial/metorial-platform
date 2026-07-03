@@ -52,7 +52,7 @@ let createBatchUrl = (call: Call) => {
 let createSingleUrl = (call: Call) => {
   let url = createBatchUrl(call);
   if (!url.pathname.endsWith('/')) url.pathname += '/';
-  url.pathname += `$${call.name}`;
+  url.pathname += call.name.replace(/:/g, '.');
   return url;
 };
 
@@ -81,7 +81,7 @@ let runCalls = async (
     reject: (error: any) => void;
   }[]
 ) => {
-  let isSingle = c.length == 1;
+  let isSingle = c.length == 1 && c[0]!.call.useDirectMethodRoute;
   let url = isSingle ? createSingleUrl(c[0]!.call) : createBatchUrl(call);
   let body = isSingle ? serialize.encode(c[0]!.call.payload) : createBatchBody(c);
 
@@ -105,6 +105,7 @@ let runCalls = async (
     headers,
     body,
     credentials: 'include',
+    referrerPolicy: c[0]!.call.referrerPolicy,
 
     // @ts-ignore
     keepalive: false
@@ -183,13 +184,19 @@ let runCalls = async (
 };
 
 let performRequest = (call: Call) => {
+  if (call.disableBatching) {
+    return new Promise((resolve, reject) => {
+      runCalls(call, [{ call, resolve, reject }]).catch(reject);
+    });
+  }
+
   if (isServer) {
     return new Promise((resolve, reject) => {
       runCalls(call, [{ call, resolve, reject }]).catch(reject);
     });
   }
 
-  let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}`;
+  let key = `${canonicalize(call.headers)}${canonicalize(call.query)}${call.endpoint}${canonicalize(call.referrerPolicy ?? null)}`;
 
   if (!calls[key]) calls[key] = { calls: [], to: null };
   let current = calls[key]!;

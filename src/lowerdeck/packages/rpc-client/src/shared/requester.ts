@@ -16,6 +16,9 @@ export interface Call {
   payload: any;
   endpoint: string;
   headers: Record<string, string>;
+  referrerPolicy?: RequestInit['referrerPolicy'];
+  disableBatching?: boolean;
+  useDirectMethodRoute?: boolean;
   signature?:
     | string
     | {

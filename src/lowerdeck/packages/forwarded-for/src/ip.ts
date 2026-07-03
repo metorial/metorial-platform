@@ -17,7 +17,6 @@ export let extractIp = (headers: Record<string, string> | Headers) => {
   ) as Record<string, string>;
 
   let ipHeader =
-    headerObject['metorial-connecting-ip'] ||
     headerObject['cf-connecting-ip'] ||
     headerObject['x-forwarded-for'] ||
     headerObject['x-real-ip'];

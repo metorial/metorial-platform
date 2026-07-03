@@ -11,6 +11,9 @@ export type SignatureTokenResult =
 
 export interface ClientOpts {
   endpoint: string;
+  referrerPolicy?: RequestInit['referrerPolicy'];
+  disableBatching?: boolean;
+  useDirectMethodRoute?: boolean;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
   getSignatureToken?: () => Promise<SignatureTokenResult> | SignatureTokenResult;
@@ -21,6 +24,12 @@ export interface ClientOpts {
     headers: Record<string, string | undefined>;
     query?: Record<string, string | undefined>;
   }) => any;
+}
+
+export interface ClientRequestOpts {
+  headers?: Record<string, string | undefined>;
+  query?: Record<string, string | undefined>;
+  disableBatching?: boolean;
 }
 
 let noopWithContext = (cb: (ctx: any) => any) => cb({});
@@ -59,15 +68,10 @@ export let clientBuilder =
   (request: Requester, withContext: (cb: (ctx: any) => any) => any = noopWithContext) =>
   <T extends object>(clientOpts: ClientOpts) =>
     proxy<T>(
-      async (
-        path,
-        data,
-        requestOpts?: {
-          headers?: Record<string, string | undefined>;
-          query?: Record<string, string | undefined>;
-        }
-      ) =>
+      async (path, data, requestOpts?: ClientRequestOpts) =>
         await withContext(async context => {
+          let disableBatching = requestOpts?.disableBatching ?? clientOpts.disableBatching;
+          let useDirectMethodRoute = clientOpts.useDirectMethodRoute ?? false;
           let signature = await clientOpts.getSignatureToken?.();
 
           let headers = {
@@ -98,6 +102,9 @@ export let clientBuilder =
                   ? signature
                   : signature && { ...signature, headers: undefined },
               query: requestOpts?.query,
+              referrerPolicy: clientOpts.referrerPolicy,
+              disableBatching,
+              useDirectMethodRoute,
               context
             });
           }
@@ -113,6 +120,9 @@ export let clientBuilder =
                   ? signature
                   : signature && { ...signature, headers: undefined },
               query: requestOpts?.query,
+              referrerPolicy: clientOpts.referrerPolicy,
+              disableBatching,
+              useDirectMethodRoute,
               context
             })
           ).data;

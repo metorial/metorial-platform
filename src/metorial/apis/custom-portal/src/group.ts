@@ -1,4 +1,4 @@
-import { Group } from '@metorial/rpc';
+import { Group } from '@lowerdeck/rpc-server';
 import {
   assertPortalRequestMatchesPortal,
   resolvePortalFromId,

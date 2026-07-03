@@ -1,6 +1,6 @@
-import { isAllowedPortalOriginForTemplate, env as portalEnv } from '@metorial/module-consumer';
+import { createServer, InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { getConfig } from '@metorial/config';
-import { createServer, InferClient, rpcMux } from '@metorial/rpc';
+import { isAllowedPortalOriginForTemplate, env as portalEnv } from '@metorial/module-consumer';
 import { authController } from './controllers/auth';
 import { bootController } from './controllers/boot';
 import { pluginOAuthSelectionController } from './controllers/pluginOAuthSelection';

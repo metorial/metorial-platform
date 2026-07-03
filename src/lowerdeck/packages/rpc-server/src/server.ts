@@ -14,6 +14,8 @@ let tracer = trace.getTracer('lowerdeck.rpc-server.calls');
 
 let verbose = process.env.NODE_ENV !== 'production';
 
+let normalizeHandlerName = (name: string) => name.replace(/\./g, ':');
+
 export let createServer =
   (opts: {
     onError?: (opts: {
@@ -33,7 +35,7 @@ export let createServer =
   }) =>
   (controller: Controller<any>) => {
     let findHandler = (name: string): Handler<any, any, any> | null => {
-      let parts = name.split(':');
+      let parts = normalizeHandlerName(name).split(':');
       let current = controller;
 
       while (current && parts.length > 0) {

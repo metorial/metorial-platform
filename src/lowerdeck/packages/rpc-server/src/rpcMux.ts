@@ -38,13 +38,11 @@ let validation = v.object({
   )
 });
 
+let normalizeHandlerName = (name: string) => name.replace(/\./g, ':');
+
 let summarizeRpcTarget = (url: URL, body: any) => {
   let pathParts = url.pathname.split('/').filter(Boolean);
   let lastPart = pathParts[pathParts.length - 1] ?? '';
-
-  if (lastPart.startsWith('$') && lastPart.length > 1) {
-    return lastPart.slice(1);
-  }
 
   let callNames: string[] = [];
   if (body && typeof body == 'object' && Array.isArray(body.calls)) {
@@ -64,6 +62,19 @@ let summarizeRpcTarget = (url: URL, body: any) => {
   }
 
   return url.pathname;
+};
+
+let getDirectRouteHandlerName = (url: URL, rpcPath: string) => {
+  let pathParts = url.pathname.split('/').filter(Boolean);
+  let rpcPathParts = new URL(rpcPath, 'https://rpc.local').pathname.split('/').filter(Boolean);
+
+  if (pathParts.length != rpcPathParts.length + 1) return null;
+  if (rpcPathParts.some((part, i) => pathParts[i] != part)) return null;
+
+  let lastPart = pathParts[pathParts.length - 1] ?? '';
+  let rawName = lastPart.startsWith('$') ? lastPart.slice(1) : lastPart;
+  if (!rawName) return null;
+  return normalizeHandlerName(rawName);
 };
 
 export let rpcMux = (
@@ -102,7 +113,7 @@ export let rpcMux = (
   }[]
 ) => {
   let handlerNameToRpcMap = new Map<string, number>(
-    rpcs.flatMap((rpc, i) => rpc.handlerNames.map(name => [name, i]))
+    rpcs.flatMap((rpc, i) => rpc.handlerNames.map(name => [normalizeHandlerName(name), i]))
   );
 
   return {
@@ -229,8 +240,7 @@ export let rpcMux = (
       let baggage = req.headers.get('baggage');
 
       let ip = parseForwardedFor(
-        req.headers.get('lowerdeck-connecting-ip') ??
-          req.headers.get('cf-connecting-ip') ??
+        req.headers.get('cf-connecting-ip') ??
           req.headers.get('x-forwarded-for') ??
           req.headers.get('x-real-ip')
       );
@@ -250,7 +260,8 @@ export let rpcMux = (
 
       let incomingParent = trace.getSpanContext(extractedTraceContext);
       let canTrace = isTelemetryEnabled() && (!!incomingParent || !!opts.allowRootSpan);
-      let requestSpanTarget = summarizeRpcTarget(url, body);
+      let directRouteHandlerName = getDirectRouteHandlerName(url, opts.path);
+      let requestSpanTarget = directRouteHandlerName ?? summarizeRpcTarget(url, body);
       let requestSpanName = `rpc request: ${requestSpanTarget}`;
       let requestSpanOp = 'rpc.server.request';
 
@@ -350,13 +361,11 @@ export let rpcMux = (
                             status: 200
                           };
 
-                          let pathParts = url.pathname.split('/').filter(Boolean);
-                          let lastPart = pathParts[pathParts.length - 1] ?? '';
-
-                          let isSingle = lastPart[0] == '$';
+                          let directHandlerName = getDirectRouteHandlerName(url, opts.path);
+                          let isSingle = directHandlerName != null;
 
                           if (isSingle) {
-                            let id = lastPart.slice(1);
+                            let id = directHandlerName!;
                             let rpcIndex = handlerNameToRpcMap.get(id);
                             if (rpcIndex == undefined) {
                               return new Response(
@@ -389,7 +398,9 @@ export let rpcMux = (
                             }
 
                             for (let call of valRes.value.calls) {
-                              let rpcIndex = handlerNameToRpcMap.get(call.name);
+                              let rpcIndex = handlerNameToRpcMap.get(
+                                normalizeHandlerName(call.name)
+                              );
                               if (rpcIndex == undefined) {
                                 return new Response(
                                   JSON.stringify(
@@ -400,7 +411,10 @@ export let rpcMux = (
                               }
 
                               let calls = callsByRpc.get(rpcIndex) ?? [];
-                              calls.push(call as any);
+                              calls.push({
+                                ...call,
+                                name: normalizeHandlerName(call.name)
+                              } as any);
                               callsByRpc.set(rpcIndex, calls);
                             }
                           }

@@ -1,4 +1,4 @@
-import { createClient } from '@metorial/rpc/client';
+import { createClient } from '@lowerdeck/rpc-client';
 import type { CustomPortalClient } from './src';
 
 export let createCustomPortalClient = (endpoint: string) => {

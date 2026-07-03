@@ -1,4 +1,4 @@
-import type { ServiceRequest } from '@metorial/rpc';
+import type { ServiceRequest } from '@lowerdeck/rpc-server';
 
 let getBaseCookieOptions = () => ({
   path: '/',

@@ -5,10 +5,17 @@ import { serialize } from '@lowerdeck/serialize';
 let originalWindow = (globalThis as any).window;
 let sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-let importRequest = async () => {
-  vi.resetModules();
-  return ((await import('./request')) as typeof import('./request')).request;
-};
+let importRequest = async (key: string) =>
+  // @ts-ignore Test-only cache buster to force a fresh module instance.
+  ((await import(`./request?test=${key}`)) as typeof import('./request')).request;
+
+let importClientBuilder = async (key: string) =>
+  // @ts-ignore Test-only cache buster to force a fresh module instance.
+  (
+    (await import(
+      `./shared/clientBuilder?test=${key}`
+    )) as typeof import('./shared/clientBuilder')
+  ).clientBuilder;
 
 let createBatchResponse = (calls: { id: string; result?: any; status?: number }[]) =>
   new Response(
@@ -40,7 +47,7 @@ describe('request', () => {
 
   test('posts a single call to the direct method route with the raw payload body', async () => {
     let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      expect(String(input)).toBe('http://localhost/rpc/$health:check');
+      expect(String(input)).toBe('http://localhost/rpc/health.check');
       expect(serialize.decode(init?.body as string)).toEqual({ hello: 'world' });
 
       return new Response(serialize.encode({ ok: true }), {
@@ -49,7 +56,7 @@ describe('request', () => {
       });
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route');
 
     await expect(
       request({
@@ -57,6 +64,7 @@ describe('request', () => {
         name: 'health:check',
         payload: { hello: 'world' },
         headers: {},
+        useDirectMethodRoute: true,
         context: {}
       })
     ).resolves.toMatchObject({
@@ -69,7 +77,7 @@ describe('request', () => {
 
   test('preserves query params on single direct-route requests', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      expect(String(input)).toBe('http://localhost/rpc/$health:check?foo=bar&baz=qux');
+      expect(String(input)).toBe('http://localhost/rpc/health.check?foo=bar&baz=qux');
       expect(serialize.decode(init?.body as string)).toEqual({ ok: true });
 
       return new Response(serialize.encode({ done: true }), {
@@ -78,7 +86,7 @@ describe('request', () => {
       });
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route-query');
 
     await expect(
       request({
@@ -87,6 +95,7 @@ describe('request', () => {
         payload: { ok: true },
         headers: {},
         query: { foo: 'bar', baz: 'qux' },
+        useDirectMethodRoute: true,
         context: {}
       })
     ).resolves.toMatchObject({
@@ -103,7 +112,7 @@ describe('request', () => {
       });
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route-null');
 
     await expect(
       request({
@@ -111,6 +120,7 @@ describe('request', () => {
         name: 'health:check',
         payload: {},
         headers: {},
+        useDirectMethodRoute: true,
         context: {}
       })
     ).resolves.toMatchObject({
@@ -131,13 +141,14 @@ describe('request', () => {
       );
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route-payload');
 
     let res = await request({
       endpoint: 'http://localhost/rpc',
       name: 'health:check',
       payload: {},
       headers: {},
+      useDirectMethodRoute: true,
       context: {}
     });
 
@@ -156,7 +167,7 @@ describe('request', () => {
       let headers = init?.headers as Record<string, string>;
 
       expect(headers[rpcSignatureHeader]).toBeDefined();
-      expect(String(input)).toBe('http://localhost/rpc/$health:check');
+      expect(String(input)).toBe('http://localhost/rpc/health.check');
       expect(
         await verifyRpcSignature({
           token,
@@ -173,7 +184,7 @@ describe('request', () => {
       });
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route-signature');
 
     await expect(
       request({
@@ -182,6 +193,7 @@ describe('request', () => {
         payload: { signed: true },
         headers: {},
         signature: token,
+        useDirectMethodRoute: true,
         context: {}
       })
     ).resolves.toMatchObject({
@@ -215,7 +227,7 @@ describe('request', () => {
       });
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route-signature-headers');
 
     await expect(
       request({
@@ -229,6 +241,7 @@ describe('request', () => {
         signature: {
           secret: token
         },
+        useDirectMethodRoute: true,
         context: {}
       })
     ).resolves.toMatchObject({
@@ -249,7 +262,7 @@ describe('request', () => {
       });
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route-no-signature');
 
     await expect(
       request({
@@ -257,6 +270,7 @@ describe('request', () => {
         name: 'health:check',
         payload: {},
         headers: {},
+        useDirectMethodRoute: true,
         context: {}
       })
     ).resolves.toMatchObject({
@@ -278,7 +292,7 @@ describe('request', () => {
       );
     });
 
-    let request = await importRequest();
+    let request = await importRequest('single-route-error');
 
     await expect(
       request({
@@ -286,6 +300,7 @@ describe('request', () => {
         name: 'health:check',
         payload: {},
         headers: {},
+        useDirectMethodRoute: true,
         context: {}
       })
     ).rejects.toMatchObject({
@@ -309,7 +324,7 @@ describe('request', () => {
       );
     });
 
-    let request = await importRequest();
+    let request = await importRequest('browser-batch');
 
     let first = request({
       endpoint: 'http://localhost/rpc',
@@ -340,11 +355,40 @@ describe('request', () => {
     await expect(second).resolves.toMatchObject({ data: 'second', status: 200 });
   });
 
+  test('keeps single calls on the batch endpoint unless the direct route is enabled', async () => {
+    (globalThis as any).window = {};
+
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      expect(String(input)).toBe('http://localhost/rpc');
+
+      let body = JSON.parse(init?.body as string);
+      expect(body.calls).toHaveLength(1);
+      expect(body.calls[0].name).toBe('test:single');
+
+      return createBatchResponse([{ id: body.calls[0].id, result: 'batched-single' }]);
+    });
+
+    let request = await importRequest('browser-single-default');
+
+    let single = request({
+      endpoint: 'http://localhost/rpc',
+      name: 'test:single',
+      payload: { value: 'single' },
+      headers: {},
+      context: {}
+    });
+
+    await sleep(25);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    await expect(single).resolves.toMatchObject({ data: 'batched-single', status: 200 });
+  });
+
   test('sends a single queued browser call to the direct method route', async () => {
     (globalThis as any).window = {};
 
     let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      expect(String(input)).toBe('http://localhost/rpc/$test:single');
+      expect(String(input)).toBe('http://localhost/rpc/test.single');
       expect(serialize.decode(init?.body as string)).toEqual({ value: 'single' });
 
       return new Response(serialize.encode({ ok: 'single' }), {
@@ -353,13 +397,14 @@ describe('request', () => {
       });
     });
 
-    let request = await importRequest();
+    let request = await importRequest('browser-single');
 
     let single = request({
       endpoint: 'http://localhost/rpc',
       name: 'test:single',
       payload: { value: 'single' },
       headers: {},
+      useDirectMethodRoute: true,
       context: {}
     });
 
@@ -373,5 +418,166 @@ describe('request', () => {
       data: { ok: 'single' },
       status: 200
     });
+  });
+
+  test('sends disableBatching requests immediately and on their own', async () => {
+    (globalThis as any).window = {};
+
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      expect(String(input)).toBe('http://localhost/rpc');
+      let body = JSON.parse(init?.body as string);
+      let firstCall = body.calls[0];
+
+      if (firstCall.name == 'test:immediate') {
+        expect(firstCall.name).toBe('test:immediate');
+        expect(firstCall.payload).toEqual({ value: 'immediate' });
+
+        return createBatchResponse([{ id: firstCall.id, result: 'immediate' }]);
+      }
+
+      expect(firstCall.name).toBe('test:batched');
+      expect(firstCall.payload).toEqual({ value: 'batched' });
+
+      return createBatchResponse([{ id: firstCall.id, result: 'batched' }]);
+    });
+
+    let request = await importRequest('browser-disable-batching');
+
+    let immediate = request({
+      endpoint: 'http://localhost/rpc',
+      name: 'test:immediate',
+      payload: { value: 'immediate' },
+      headers: {},
+      disableBatching: true,
+      context: {}
+    });
+    let batched = request({
+      endpoint: 'http://localhost/rpc',
+      name: 'test:batched',
+      payload: { value: 'batched' },
+      headers: {},
+      context: {}
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    let [, firstInit] = fetchSpy.mock.calls[0]!;
+    expect(JSON.parse(firstInit?.body as string).calls[0].payload).toEqual({
+      value: 'immediate'
+    });
+
+    await sleep(25);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    let [, secondInit] = fetchSpy.mock.calls[1]!;
+    expect(JSON.parse(secondInit?.body as string).calls[0].payload).toEqual({
+      value: 'batched'
+    });
+
+    await expect(immediate).resolves.toMatchObject({ data: 'immediate', status: 200 });
+    await expect(batched).resolves.toMatchObject({ data: 'batched', status: 200 });
+  });
+
+  test('uses client-level disableBatching by default and allows per-call override', async () => {
+    let requestSpy = vi.fn(async call => ({
+      data: { disableBatching: call.disableBatching ?? false },
+      status: 200,
+      headers: {}
+    }));
+
+    let createClient = await importClientBuilder('client-disable-batching');
+    createClient = createClient(requestSpy);
+
+    let client = createClient<{
+      test: {
+        call: (
+          input: { value: string },
+          opts?: { disableBatching?: boolean }
+        ) => Promise<{ disableBatching: boolean }>;
+      };
+    }>({
+      endpoint: 'http://localhost/rpc',
+      disableBatching: true
+    });
+
+    await expect(client.test.call({ value: 'default' })).resolves.toEqual({
+      disableBatching: true
+    });
+    await expect(
+      client.test.call({ value: 'override' }, { disableBatching: false })
+    ).resolves.toEqual({
+      disableBatching: false
+    });
+
+    expect(requestSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        name: 'test:call',
+        disableBatching: true
+      })
+    );
+    expect(requestSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        name: 'test:call',
+        disableBatching: false
+      })
+    );
+  });
+
+  test('forwards client-level direct-route opt-in to the requester', async () => {
+    let requestSpy = vi.fn(async call => ({
+      data: { useDirectMethodRoute: call.useDirectMethodRoute ?? false },
+      status: 200,
+      headers: {}
+    }));
+
+    let createClient = await importClientBuilder('client-direct-route');
+    createClient = createClient(requestSpy);
+
+    let client = createClient<{
+      test: {
+        call: (input: { value: string }) => Promise<{ useDirectMethodRoute: boolean }>;
+      };
+    }>({
+      endpoint: 'http://localhost/rpc',
+      useDirectMethodRoute: true
+    });
+
+    await expect(client.test.call({ value: 'default' })).resolves.toEqual({
+      useDirectMethodRoute: true
+    });
+
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'test:call',
+        useDirectMethodRoute: true
+      })
+    );
+  });
+
+  test('forwards referrerPolicy to fetch', async () => {
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      expect(init?.referrerPolicy).toBe('unsafe-url');
+      let body = JSON.parse(init?.body as string);
+
+      return createBatchResponse([{ id: body.calls[0].id, result: { ok: true } }]);
+    });
+
+    let createClient = await importClientBuilder('client-referrer-policy');
+    createClient = createClient(await importRequest('client-referrer-policy-request'));
+
+    let client = createClient<{
+      test: {
+        call: (input: { value: string }) => Promise<{ ok: boolean }>;
+      };
+    }>({
+      endpoint: 'http://localhost/rpc',
+      referrerPolicy: 'unsafe-url'
+    });
+
+    await expect(client.test.call({ value: 'ok' })).resolves.toEqual({ ok: true });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

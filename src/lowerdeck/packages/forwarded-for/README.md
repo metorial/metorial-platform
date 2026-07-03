@@ -25,10 +25,9 @@ const ips = parseForwardedFor(request.headers.get('x-forwarded-for'));
 console.log(ips); // ['192.168.1.1', '10.0.0.1']
 
 // Checked headers in order:
-// 1. metorial-connecting-ip
-// 2. cf-connecting-ip (Cloudflare)
-// 3. x-forwarded-for (first IP)
-// 4. x-real-ip
+// 1. cf-connecting-ip (Cloudflare)
+// 2. x-forwarded-for (first IP)
+// 3. x-real-ip
 
 // Works with plain objects or Headers API
 extractIp({

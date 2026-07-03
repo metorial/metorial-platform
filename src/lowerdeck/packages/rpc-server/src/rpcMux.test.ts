@@ -46,7 +46,121 @@ let createRpcRequest = (opts: { body: string; signatureHeader?: string }) =>
     body: opts.body
   });
 
+let createDirectRpcRequest = (opts: {
+  path: string;
+  body: string;
+  signatureHeader?: string;
+}) =>
+  new Request(`https://example.test/rpc/${opts.path}`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/rpc+json',
+      ...(opts.signatureHeader ? { [rpcSignatureHeader]: opts.signatureHeader } : {})
+    },
+    body: opts.body
+  });
+
 describe('rpcMux signatures', () => {
+  test('accepts direct routes without a dollar prefix', async () => {
+    let rpc = createTestRpc();
+    let response = await rpc.fetch(
+      createDirectRpcRequest({
+        path: 'ping',
+        body: serialize.encode({ hello: 'world' })
+      })
+    );
+    let responseBody = serialize.decode(await response.text()) as any;
+
+    expect(response.status).toBe(200);
+    expect(responseBody.input).toEqual({ hello: 'world' });
+  });
+
+  test('accepts direct routes with a dollar prefix', async () => {
+    let rpc = createTestRpc();
+    let response = await rpc.fetch(
+      createDirectRpcRequest({
+        path: '$ping',
+        body: serialize.encode({ hello: 'world' })
+      })
+    );
+    let responseBody = serialize.decode(await response.text()) as any;
+
+    expect(response.status).toBe(200);
+    expect(responseBody.input).toEqual({ hello: 'world' });
+  });
+
+  test('accepts dotted handler names for direct routes', async () => {
+    let app = new Group().controller({
+      user: new Group().controller({
+        profile: new Group().handler().do(async ctx => ({ ok: true, input: ctx.input }))
+      })
+    });
+    let rpc = rpcMux({ path: '/' }, [createServer({})(app)]);
+    let response = await rpc.fetch(
+      createDirectRpcRequest({
+        path: 'user.profile',
+        body: serialize.encode({ hello: 'world' })
+      })
+    );
+    let responseBody = serialize.decode(await response.text()) as any;
+
+    expect(response.status).toBe(200);
+    expect(responseBody.input).toEqual({ hello: 'world' });
+  });
+
+  test('accepts dotted handler names in batch calls', async () => {
+    let app = new Group().controller({
+      user: new Group().controller({
+        profile: new Group().handler().do(async ctx => ({ ok: true, input: ctx.input }))
+      })
+    });
+    let rpc = rpcMux({ path: '/' }, [createServer({})(app)]);
+    let response = await rpc.fetch(
+      new Request('https://example.test/rpc?batch=1', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/rpc+json'
+        },
+        body: serialize.encode({
+          calls: [
+            {
+              id: 'call_1',
+              name: 'user.profile',
+              payload: { hello: 'world' }
+            }
+          ]
+        })
+      })
+    );
+    let responseBody = serialize.decode(await response.text()) as any;
+
+    expect(response.status).toBe(200);
+    expect(responseBody.calls[0].result.input).toEqual({ hello: 'world' });
+  });
+
+  test('ignores proprietary connecting-ip headers when resolving request IP', async () => {
+    let app = new Group().controller({
+      ping: new Group().handler().do(async ctx => ({ ip: ctx.ip ?? null }))
+    });
+
+    let rpc = rpcMux({ path: '/' }, [createServer({})(app)]);
+    let response = await rpc.fetch(
+      new Request('https://example.test/rpc?batch=1', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/rpc+json',
+          'lowerdeck-connecting-ip': '198.51.100.10',
+          'metorial-connecting-ip': '198.51.100.11'
+        },
+        body: createRpcBody()
+      })
+    );
+    let responseBody = serialize.decode(await response.text()) as any;
+
+    expect(response.status).toBe(200);
+    expect(responseBody.calls[0].result.ip).toBe(null);
+  });
+
   test('accepts unsigned requests when no signature provider is configured', async () => {
     let rpc = createTestRpc();
     let body = createRpcBody();
