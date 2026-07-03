@@ -1,0 +1,46 @@
+enum SsoConnectionProviderType {
+  saml
+  oidc
+}
+
+enum SsoConnectionStatus {
+  active
+  disabled
+}
+
+model SsoConnection {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  status SsoConnectionStatus @default(active)
+
+  internalId           String
+  internalClientId     String
+  internalClientSecret String
+
+  providerType SsoConnectionProviderType
+  providerName String?
+
+  name String
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connectionSetups SsoConnectionSetup[]
+  userProfiles     SsoUserProfile[]
+  auths            SsoAuth[]
+  directories      SsoDirectory[]
+  groups           SsoConnectionGroup[]
+  roles            SsoConnectionRole[]
+}
+
+enum SsoDirectoryStatus {
+  active
+  disabled
+}

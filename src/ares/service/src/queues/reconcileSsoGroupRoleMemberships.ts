@@ -5,7 +5,20 @@ import { ssoService } from '../services/sso';
 
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-export let reconcileSsoGroupRoleMembershipsQueue = createQueue<{}>({
+export let reconcileSsoGroupRoleMembershipsCron = createCron(
+  {
+    name: 'ares/sso/grm/reconcile',
+    cron: '0 * * * *',
+    redisUrl
+  },
+  async () => {
+    await reconcileSsoGroupRoleMembershipsQueue.add({});
+  }
+);
+
+export let reconcileSsoGroupRoleMembershipsQueue = createQueue<{
+  cursor?: string;
+}>({
   name: 'ares/sso/grm/reconcileMany',
   redisUrl,
   workerOpts: { concurrency: 1 }
@@ -19,25 +32,16 @@ export let reconcileSingleSsoGroupRoleMembershipQueue = createQueue<{
   workerOpts: { concurrency: 10 }
 });
 
-export let reconcileSsoGroupRoleMembershipsCron = createCron(
-  {
-    name: 'ares/sso/grm/reconcile',
-    cron: '*/5 * * * *',
-    redisUrl
-  },
-  async () => {
-    await reconcileSsoGroupRoleMembershipsQueue.add({});
-  }
-);
-
 export let reconcileSsoGroupRoleMembershipsQueueProcessor =
-  reconcileSsoGroupRoleMembershipsQueue.process(async () => {
+  reconcileSsoGroupRoleMembershipsQueue.process(async data => {
     let profiles = await db.ssoUserProfile.findMany({
-      where: { isGroupRoleMemberReconciled: false },
+      where: {
+        isGroupRoleMemberReconciled: false,
+        id: data.cursor ? { gt: data.cursor } : undefined
+      },
       select: { id: true },
-      take: 1000
+      take: 500
     });
-
     if (profiles.length === 0) return;
 
     await reconcileSingleSsoGroupRoleMembershipQueue.addManyWithOps(
@@ -46,6 +50,10 @@ export let reconcileSsoGroupRoleMembershipsQueueProcessor =
         opts: { id: profile.id }
       }))
     );
+
+    await reconcileSsoGroupRoleMembershipsQueue.add({
+      cursor: profiles[profiles.length - 1]!.id
+    });
   });
 
 export let reconcileSingleSsoGroupRoleMembershipQueueProcessor =

@@ -235,11 +235,12 @@ class AccessGroupServiceImpl {
 
       let ssoGroupValues = rulesByType.get('sso_group');
       if (ssoGroupValues) {
-        let match = await db.ssoUserProfile.findFirst({
+        let match = await db.ssoUser.findFirst({
           where: {
             tenantOid: { in: tenantOids },
             status: 'active',
             email: { in: emailAddresses },
+            ownerProfile: { status: 'active' },
             groupLinks: {
               some: {
                 group: {
@@ -254,11 +255,12 @@ class AccessGroupServiceImpl {
 
       let ssoRoleValues = rulesByType.get('sso_role');
       if (ssoRoleValues) {
-        let match = await db.ssoUserProfile.findFirst({
+        let match = await db.ssoUser.findFirst({
           where: {
             tenantOid: { in: tenantOids },
             status: 'active',
             email: { in: emailAddresses },
+            ownerProfile: { status: 'active' },
             roleLinks: {
               some: {
                 role: {

@@ -1,0 +1,238 @@
+model SsoConnectionGroup {
+  oid BigInt @id
+  id  String @unique
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  rootGroupOid BigInt?
+  rootGroup    SsoGroup? @relation(fields: [rootGroupOid], references: [oid], onDelete: SetNull)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userProfiles SsoUserProfileGroup[]
+
+  @@unique([connectionOid, value])
+  @@index([rootGroupOid])
+}
+
+model SsoConnectionRole {
+  oid BigInt @id
+  id  String @unique
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  rootRoleOid BigInt?
+  rootRole    SsoRole? @relation(fields: [rootRoleOid], references: [oid], onDelete: SetNull)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  userProfiles SsoUserProfileRole[]
+
+  @@unique([connectionOid, value])
+  @@index([rootRoleOid])
+}
+
+model SsoGroup {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connectionGroups SsoConnectionGroup[]
+  users            SsoUserGroup[]
+
+  @@unique([tenantOid, value])
+}
+
+model SsoRole {
+  oid BigInt @id
+  id  String @unique
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  value       String
+  displayName String?
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connectionRoles SsoConnectionRole[]
+  users           SsoUserRole[]
+
+  @@unique([tenantOid, value])
+}
+
+enum SsoUserProfileStatus {
+  active
+  deprovisioned
+}
+
+model SsoUserProfile {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoUserProfileStatus @default(active)
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  userOid BigInt
+  user    SsoUser @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  email     String
+  uid       String
+  uidHash   String
+  sub       String?
+  firstName String
+  lastName  String
+  roles     String[]
+  groups    String[]
+
+  isGroupRoleMemberReconciled Boolean @default(false)
+
+  ownerDirectoryOid BigInt?
+  ownerDirectory    SsoDirectory? @relation("SsoUserProfileOwnerDirectory", fields: [ownerDirectoryOid], references: [oid], onDelete: SetNull)
+
+  /// [JsonObject]
+  raw Json
+
+  /// [JsonObject]
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  auths SsoAuth[]
+
+  userIdentities UserIdentity[]
+  ownedUser      SsoUser?                  @relation("SsoUserOwnerProfile")
+  groupLinks     SsoUserProfileGroup[]
+  roleLinks      SsoUserProfileRole[]
+  directories    SsoDirectoryUserProfile[]
+}
+
+model SsoUserGroup {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt
+  user    SsoUser @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    SsoGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userOid, groupOid])
+  @@index([groupOid])
+}
+
+model SsoUserRole {
+  oid BigInt @id
+  id  String @unique
+
+  userOid BigInt
+  user    SsoUser @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  roleOid BigInt
+  role    SsoRole @relation(fields: [roleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userOid, roleOid])
+  @@index([roleOid])
+}
+
+model SsoUserProfileGroup {
+  oid BigInt @id
+  id  String @unique
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    SsoConnectionGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userProfileOid, groupOid])
+  @@index([groupOid])
+}
+
+model SsoUserProfileRole {
+  oid BigInt @id
+  id  String @unique
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  roleOid BigInt
+  role    SsoConnectionRole @relation(fields: [roleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userProfileOid, roleOid])
+  @@index([roleOid])
+}
+
+model SsoDirectoryUserProfile {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt
+  directory    SsoDirectory @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  externalId String?
+
+  /// [JsonObject]
+  raw Json?
+
+  lastSeenAt      DateTime?
+  deprovisionedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([directoryOid, userProfileOid])
+  @@unique([directoryOid, externalId])
+}

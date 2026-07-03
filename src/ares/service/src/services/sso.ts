@@ -22,6 +22,7 @@ import type {
 import { db, withTransaction } from '../db';
 import { getId, ID } from '../id';
 import { jackson } from '../lib/jackson';
+import { reconcileSingleSsoUserQueue } from '../queues/reconcileSsoUsers';
 
 let uniqueValues = (values: string[]) => {
   let seen = new Set<string>();
@@ -47,6 +48,32 @@ type SsoDirectoryWithApp = SsoDirectory & {
 };
 
 class SsoServiceImpl {
+  private async enqueueSsoUserReconciliation(user: SsoUser) {
+    await reconcileSingleSsoUserQueue.addManyWithOps([
+      {
+        data: { ssoUserId: user.id },
+        opts: { id: user.id }
+      }
+    ]);
+  }
+
+  private async setSsoUserOwnerProfile(d: {
+    user: SsoUser;
+    profile: SsoUserProfile;
+    enqueueReconciliation?: boolean;
+  }) {
+    let user = await db.ssoUser.update({
+      where: { oid: d.user.oid },
+      data: { ownerProfileOid: d.profile.oid }
+    });
+
+    if (d.enqueueReconciliation ?? true) {
+      await this.enqueueSsoUserReconciliation(user);
+    }
+
+    return user;
+  }
+
   async createTenant(d: {
     app: App;
     input: {
@@ -687,13 +714,18 @@ class SsoServiceImpl {
     if (existing) {
       return await db.ssoUser.update({
         where: { oid: existing.oid },
-        data: { firstName: d.firstName, lastName: d.lastName }
+        data: {
+          status: 'active',
+          firstName: d.firstName,
+          lastName: d.lastName
+        }
       });
     }
 
     return await db.ssoUser.create({
       data: {
         ...getId('ssoUser'),
+        status: 'active',
         tenantOid: d.tenant.oid,
         email: d.email,
         firstName: d.firstName,
@@ -707,6 +739,7 @@ class SsoServiceImpl {
     connection: SsoConnection;
     user: SsoUser;
     updateMemberships?: boolean;
+    enqueueReconciliation?: boolean;
     data: {
       email: string;
       uid: string;
@@ -760,6 +793,12 @@ class SsoServiceImpl {
         });
       }
 
+      await this.setSsoUserOwnerProfile({
+        user: d.user,
+        profile,
+        enqueueReconciliation: d.enqueueReconciliation
+      });
+
       return profile;
     }
 
@@ -796,11 +835,17 @@ class SsoServiceImpl {
       });
     }
 
+    await this.setSsoUserOwnerProfile({
+      user: d.user,
+      profile,
+      enqueueReconciliation: d.enqueueReconciliation
+    });
+
     return profile;
   }
 
-  async upsertGroup(d: {
-    connection: SsoConnection;
+  async upsertRootGroup(d: {
+    tenant: SsoTenant | { oid: bigint };
     value: string;
     displayName?: string | null;
     metadata?: Record<string, any>;
@@ -810,7 +855,7 @@ class SsoServiceImpl {
       throw new ServiceError(badRequestError({ message: 'Group value is required' }));
 
     let existing = await db.ssoGroup.findFirst({
-      where: { connectionOid: d.connection.oid, value }
+      where: { tenantOid: d.tenant.oid, value }
     });
 
     if (existing) {
@@ -827,7 +872,7 @@ class SsoServiceImpl {
       return await db.ssoGroup.create({
         data: {
           ...getId('ssoGroup'),
-          connectionOid: d.connection.oid,
+          tenantOid: d.tenant.oid,
           value,
           displayName: d.displayName ?? null,
           metadata: d.metadata ?? undefined
@@ -837,15 +882,15 @@ class SsoServiceImpl {
       if (!isUniqueConstraintError(error)) throw error;
 
       let group = await db.ssoGroup.findFirst({
-        where: { connectionOid: d.connection.oid, value }
+        where: { tenantOid: d.tenant.oid, value }
       });
       if (!group) throw error;
       return group;
     }
   }
 
-  async upsertRole(d: {
-    connection: SsoConnection;
+  async upsertRootRole(d: {
+    tenant: SsoTenant | { oid: bigint };
     value: string;
     displayName?: string | null;
     metadata?: Record<string, any>;
@@ -854,7 +899,7 @@ class SsoServiceImpl {
     if (!value) throw new ServiceError(badRequestError({ message: 'Role value is required' }));
 
     let existing = await db.ssoRole.findFirst({
-      where: { connectionOid: d.connection.oid, value }
+      where: { tenantOid: d.tenant.oid, value }
     });
 
     if (existing) {
@@ -871,7 +916,7 @@ class SsoServiceImpl {
       return await db.ssoRole.create({
         data: {
           ...getId('ssoRole'),
-          connectionOid: d.connection.oid,
+          tenantOid: d.tenant.oid,
           value,
           displayName: d.displayName ?? null,
           metadata: d.metadata ?? undefined
@@ -881,10 +926,127 @@ class SsoServiceImpl {
       if (!isUniqueConstraintError(error)) throw error;
 
       let role = await db.ssoRole.findFirst({
-        where: { connectionOid: d.connection.oid, value }
+        where: { tenantOid: d.tenant.oid, value }
       });
       if (!role) throw error;
       return role;
+    }
+  }
+
+  async upsertGroup(d: {
+    connection: SsoConnection;
+    value: string;
+    displayName?: string | null;
+    metadata?: Record<string, any>;
+  }) {
+    let value = d.value;
+    if (!value)
+      throw new ServiceError(badRequestError({ message: 'Group value is required' }));
+
+    let rootGroup = await this.upsertRootGroup({
+      tenant: { oid: d.connection.tenantOid },
+      value,
+      displayName: d.displayName,
+      metadata: d.metadata
+    });
+
+    let existing = await db.ssoConnectionGroup.findFirst({
+      where: { connectionOid: d.connection.oid, value }
+    });
+
+    if (existing) {
+      return await db.ssoConnectionGroup.update({
+        where: { oid: existing.oid },
+        data: {
+          rootGroupOid: rootGroup.oid,
+          displayName: d.displayName ?? undefined,
+          metadata: d.metadata ?? undefined
+        }
+      });
+    }
+
+    try {
+      return await db.ssoConnectionGroup.create({
+        data: {
+          ...getId('ssoConnectionGroup'),
+          connectionOid: d.connection.oid,
+          rootGroupOid: rootGroup.oid,
+          value,
+          displayName: d.displayName ?? null,
+          metadata: d.metadata ?? undefined
+        }
+      });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+
+      let group = await db.ssoConnectionGroup.findFirst({
+        where: { connectionOid: d.connection.oid, value }
+      });
+      if (!group) throw error;
+      if (group.rootGroupOid === rootGroup.oid) return group;
+
+      return await db.ssoConnectionGroup.update({
+        where: { oid: group.oid },
+        data: { rootGroupOid: rootGroup.oid }
+      });
+    }
+  }
+
+  async upsertRole(d: {
+    connection: SsoConnection;
+    value: string;
+    displayName?: string | null;
+    metadata?: Record<string, any>;
+  }) {
+    let value = d.value;
+    if (!value) throw new ServiceError(badRequestError({ message: 'Role value is required' }));
+
+    let rootRole = await this.upsertRootRole({
+      tenant: { oid: d.connection.tenantOid },
+      value,
+      displayName: d.displayName,
+      metadata: d.metadata
+    });
+
+    let existing = await db.ssoConnectionRole.findFirst({
+      where: { connectionOid: d.connection.oid, value }
+    });
+
+    if (existing) {
+      return await db.ssoConnectionRole.update({
+        where: { oid: existing.oid },
+        data: {
+          rootRoleOid: rootRole.oid,
+          displayName: d.displayName ?? undefined,
+          metadata: d.metadata ?? undefined
+        }
+      });
+    }
+
+    try {
+      return await db.ssoConnectionRole.create({
+        data: {
+          ...getId('ssoConnectionRole'),
+          connectionOid: d.connection.oid,
+          rootRoleOid: rootRole.oid,
+          value,
+          displayName: d.displayName ?? null,
+          metadata: d.metadata ?? undefined
+        }
+      });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+
+      let role = await db.ssoConnectionRole.findFirst({
+        where: { connectionOid: d.connection.oid, value }
+      });
+      if (!role) throw error;
+      if (role.rootRoleOid === rootRole.oid) return role;
+
+      return await db.ssoConnectionRole.update({
+        where: { oid: role.oid },
+        data: { rootRoleOid: rootRole.oid }
+      });
     }
   }
 
@@ -1092,6 +1254,7 @@ class SsoServiceImpl {
     directory: SsoDirectory;
     userPayload: User;
     syncRoles: boolean;
+    enqueueReconciliation?: boolean;
   }) {
     let directory = await db.ssoDirectory.findUnique({
       where: { oid: d.directory.oid },
@@ -1130,6 +1293,7 @@ class SsoServiceImpl {
         connection: directory.connection,
         user,
         updateMemberships: false,
+        enqueueReconciliation: false,
         data: {
           email: d.userPayload.email,
           uid: d.userPayload.id,
@@ -1186,7 +1350,13 @@ class SsoServiceImpl {
       });
     }
 
-    return { directory, profile };
+    await this.setSsoUserOwnerProfile({
+      user,
+      profile,
+      enqueueReconciliation: d.enqueueReconciliation
+    });
+
+    return { directory, user, profile };
   }
 
   async handleDirectorySyncEvent(d: { directory: SsoDirectory; event: DirectorySyncEvent }) {
@@ -1260,10 +1430,11 @@ class SsoServiceImpl {
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
 
     let userPayload = d.event.data as UserWithGroup;
-    let { profile } = await this.upsertUserProfileFromDirectoryUser({
+    let { user, profile } = await this.upsertUserProfileFromDirectoryUser({
       directory,
       userPayload,
-      syncRoles: true
+      syncRoles: true,
+      enqueueReconciliation: false
     });
 
     await this.upsertGroup({
@@ -1286,13 +1457,17 @@ class SsoServiceImpl {
       ? uniqueValues([...profile.groups, userPayload.group.id])
       : profile.groups.filter(group => group !== userPayload.group.id);
 
-    return await db.ssoUserProfile.update({
+    let updatedProfile = await db.ssoUserProfile.update({
       where: { oid: profile.oid },
       data: {
         groups,
         isGroupRoleMemberReconciled: true
       }
     });
+
+    await this.enqueueSsoUserReconciliation(user);
+
+    return updatedProfile;
   }
 
   async deleteUserFromDirectoryEvent(d: {
@@ -1337,6 +1512,11 @@ class SsoServiceImpl {
         userProfile: link.userProfile,
         roles: []
       });
+
+      let user = await db.ssoUser.findUnique({
+        where: { oid: link.userProfile.userOid }
+      });
+      if (user) await this.enqueueSsoUserReconciliation(user);
     }
   }
 
@@ -1352,7 +1532,7 @@ class SsoServiceImpl {
 
     let groupPayload = d.event.data as Group;
 
-    let group = await db.ssoGroup.findFirst({
+    let group = await db.ssoConnectionGroup.findFirst({
       where: {
         connectionOid: directory.connectionOid,
         value: groupPayload.id
