@@ -15,44 +15,35 @@ export let ssoConnectionsController = tenantApp.controller({
   create: tenantApp
     .handler()
     .input(
-      v.object({
-        tenantId: v.string(),
-        providerType: v.enumOf(['saml', 'oidc']),
-        providerName: v.optional(v.string()),
-        name: v.string(),
-        metadata: v.optional(v.record(v.any())),
-        samlMetadata: v.optional(
-          v.union([
+      v.union([
+        v.object({
+          tenantId: v.string(),
+          providerType: v.literal('saml'),
+          providerName: v.optional(v.string()),
+          name: v.string(),
+          metadata: v.optional(v.record(v.any())),
+          samlMetadata: v.union([
             v.object({ type: v.literal('xml'), payload: v.string() }),
             v.object({ type: v.literal('url'), url: v.string() })
           ])
-        ),
-        oidcDiscoveryUrl: v.optional(v.string()),
-        clientId: v.optional(v.string()),
-        clientSecret: v.optional(v.string())
-      })
+        }),
+        v.object({
+          tenantId: v.string(),
+          providerType: v.literal('oidc'),
+          providerName: v.optional(v.string()),
+          name: v.string(),
+          metadata: v.optional(v.record(v.any())),
+          oidcDiscoveryUrl: v.string(),
+          clientId: v.string(),
+          clientSecret: v.string()
+        })
+      ])
     )
     .do(async ({ input, tenant }) => {
+      let { tenantId: _, ...connectionInput } = input;
       let connection = await ssoConnectionService.createConnection({
         tenant,
-        input:
-          input.providerType === 'saml'
-            ? {
-                providerType: 'saml',
-                providerName: input.providerName,
-                name: input.name,
-                metadata: input.metadata,
-                samlMetadata: input.samlMetadata!
-              }
-            : {
-                providerType: 'oidc',
-                providerName: input.providerName,
-                name: input.name,
-                metadata: input.metadata,
-                oidcDiscoveryUrl: input.oidcDiscoveryUrl!,
-                clientId: input.clientId!,
-                clientSecret: input.clientSecret!
-              }
+        input: connectionInput
       });
       return ssoConnectionPresenter(connection);
     }),

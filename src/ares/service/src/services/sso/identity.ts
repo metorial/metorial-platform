@@ -64,6 +64,22 @@ let setSsoUserOwnerProfile = async (d: {
   return user;
 };
 
+let shouldSetUserOwnerProfileFromUpsert = async (d: {
+  user: SsoUser;
+  profile: SsoUserProfile;
+}) => {
+  if (d.profile.ownerDirectoryOid) return true;
+
+  let currentUser = await db.ssoUser.findUnique({
+    where: { oid: d.user.oid },
+    select: {
+      ownerProfile: { select: { ownerDirectoryOid: true } }
+    }
+  });
+
+  return !currentUser?.ownerProfile?.ownerDirectoryOid;
+};
+
 class SsoIdentityServiceImpl {
   async upsertUser(d: {
     tenant: SsoTenant;
@@ -478,13 +494,15 @@ class SsoIdentityServiceImpl {
         });
       }
 
-      await setSsoUserOwnerProfile({
-        user: d.user,
-        profile,
-        enqueueReconciliation: d.enqueueReconciliation,
-        reconciliationSource: d.reconciliationSource,
-        reconciliationScimOperationId: d.reconciliationScimOperationId
-      });
+      if (await shouldSetUserOwnerProfileFromUpsert({ user: d.user, profile })) {
+        await setSsoUserOwnerProfile({
+          user: d.user,
+          profile,
+          enqueueReconciliation: d.enqueueReconciliation,
+          reconciliationSource: d.reconciliationSource,
+          reconciliationScimOperationId: d.reconciliationScimOperationId
+        });
+      }
 
       return await this.getUserProfileById({
         tenant: d.tenant,
@@ -525,13 +543,15 @@ class SsoIdentityServiceImpl {
       });
     }
 
-    await setSsoUserOwnerProfile({
-      user: d.user,
-      profile,
-      enqueueReconciliation: d.enqueueReconciliation,
-      reconciliationSource: d.reconciliationSource,
-      reconciliationScimOperationId: d.reconciliationScimOperationId
-    });
+    if (await shouldSetUserOwnerProfileFromUpsert({ user: d.user, profile })) {
+      await setSsoUserOwnerProfile({
+        user: d.user,
+        profile,
+        enqueueReconciliation: d.enqueueReconciliation,
+        reconciliationSource: d.reconciliationSource,
+        reconciliationScimOperationId: d.reconciliationScimOperationId
+      });
+    }
 
     return await this.getUserProfileById({
       tenant: d.tenant,
@@ -618,6 +638,16 @@ class SsoIdentityServiceImpl {
       where: { oid: d.userProfile.oid },
       data: { ownerDirectoryOid: d.directory.oid }
     });
+  }
+
+  async setUserOwnerProfile(d: {
+    user: SsoUser;
+    profile: SsoUserProfile;
+    enqueueReconciliation?: boolean;
+    reconciliationSource?: SsoUserChangeSource;
+    reconciliationScimOperationId?: string;
+  }) {
+    return await setSsoUserOwnerProfile(d);
   }
 }
 

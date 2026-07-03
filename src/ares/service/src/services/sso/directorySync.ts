@@ -99,6 +99,14 @@ let upsertUserProfileFromDirectoryUser = async (d: {
     }
   });
 
+  await ssoIdentityService.setUserOwnerProfile({
+    user,
+    profile,
+    enqueueReconciliation: false,
+    reconciliationSource: d.reconciliationSource,
+    reconciliationScimOperationId: d.scimOperationId
+  });
+
   if (d.syncRoles) {
     let roles = d.userPayload.roles ?? [];
 

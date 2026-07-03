@@ -6,7 +6,7 @@ import { ssoRolesController } from './roles';
 import { ssoTenantsController } from './tenants';
 import { ssoUsersController } from './users';
 
-export let ssoController = internalApp.controller({
+export let ssoV2Controller = internalApp.controller({
   tenants: ssoTenantsController,
   connections: ssoConnectionsController,
   directories: ssoDirectoriesController,
