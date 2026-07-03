@@ -27,17 +27,43 @@ let calls: {
   };
 } = {};
 
-let runCalls = async (
-  call: Call,
+let decodeResponseBody = (body: string) => {
+  let parsed = JSON.parse(body);
+
+  if (
+    parsed &&
+    typeof parsed == 'object' &&
+    Object.keys(parsed).length == 1 &&
+    typeof parsed.$$TYPES$$ == 'object' &&
+    parsed.$$TYPES$$?.__mode == 'object'
+  ) {
+    return null;
+  }
+
+  return serialize.decode(parsed);
+};
+
+let createBatchUrl = (call: Call) => {
+  let url = new URL(call.endpoint);
+  url.search = new URLSearchParams(call.query).toString();
+  return url;
+};
+
+let createSingleUrl = (call: Call) => {
+  let url = createBatchUrl(call);
+  if (!url.pathname.endsWith('/')) url.pathname += '/';
+  url.pathname += `$${call.name}`;
+  return url;
+};
+
+let createBatchBody = (
   c: {
     call: Call;
     resolve: (value: any) => void;
     reject: (error: any) => void;
   }[]
-) => {
-  let url = new URL(call.endpoint);
-  url.search = new URLSearchParams(call.query).toString();
-  let body = serialize.encode({
+) =>
+  serialize.encode({
     calls: c
       .map(x => ({
         id: x.call.id,
@@ -46,6 +72,18 @@ let runCalls = async (
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
   });
+
+let runCalls = async (
+  call: Call,
+  c: {
+    call: Call;
+    resolve: (value: any) => void;
+    reject: (error: any) => void;
+  }[]
+) => {
+  let isSingle = c.length == 1;
+  let url = isSingle ? createSingleUrl(c[0]!.call) : createBatchUrl(call);
+  let body = isSingle ? serialize.encode(c[0]!.call.payload) : createBatchBody(c);
 
   let headers: Record<string, string> = {
     'Content-Type': 'application/rpc+json',
@@ -72,19 +110,25 @@ let runCalls = async (
     keepalive: false
   })
     .then(async res => ({
-      res: serialize.decode(
-        (await res.json()) as {
-          calls: {
-            id: string;
-            status: number;
-            result: any;
-          }[];
-        }
-      ),
-
-      headers: res.headers
+      res: decodeResponseBody(await res.text()),
+      headers: res.headers,
+      status: res.status
     }))
-    .then(({ res, headers }) => {
+    .then(({ res, headers, status }) => {
+      if (isSingle) {
+        if (status >= 200 && status < 300) {
+          c[0]!.resolve({
+            data: res,
+            status,
+            headers
+          });
+          return;
+        }
+
+        c[0]!.reject(ServiceError.fromResponse(res));
+        return;
+      }
+
       if (res.__typename == 'error') {
         let err = ServiceError.fromResponse(res);
         c.forEach(x => x.reject(err));

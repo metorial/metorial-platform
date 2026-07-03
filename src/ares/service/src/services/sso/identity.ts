@@ -1,16 +1,45 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
 import type {
+  Prisma,
   SsoConnection,
   SsoDirectory,
   SsoTenant,
   SsoUser,
-  SsoUserProfile
+  SsoUserProfile,
+  SsoUserProfileStatus,
+  SsoUserStatus
 } from '../../../prisma/generated/client';
-import { Service } from '@lowerdeck/service';
 import { db } from '../../db';
 import { getId } from '../../id';
 import { reconcileSingleSsoUserQueue } from '../../queues/reconcileSsoUsers';
 import type { SsoUserChangeSource } from '../../queues/recordSsoUserChanges';
 import { ssoGroupRoleService } from './groupRole';
+
+let ssoUserProfileNestedInclude = {
+  connection: true,
+  ownerDirectory: true,
+  directories: { include: { directory: true } },
+  groupLinks: { include: { group: { include: { rootGroup: true } } } },
+  roleLinks: { include: { role: { include: { rootRole: true } } } }
+} satisfies Prisma.SsoUserProfileInclude;
+
+let ssoUserProfileInclude = {
+  ...ssoUserProfileNestedInclude,
+  user: true
+} satisfies Prisma.SsoUserProfileInclude;
+
+let ssoUserInclude = {
+  ownerProfile: { include: ssoUserProfileNestedInclude },
+  profiles: { include: ssoUserProfileNestedInclude },
+  groupLinks: { include: { group: true } },
+  roleLinks: { include: { role: true } }
+} satisfies Prisma.SsoUserInclude;
+
+let ssoUserChangeInclude = {
+  scimOperation: true
+} satisfies Prisma.SsoUserChangeInclude;
 
 let setSsoUserOwnerProfile = async (d: {
   user: SsoUser;
@@ -53,7 +82,8 @@ class SsoIdentityServiceImpl {
           status: 'active',
           firstName: d.firstName,
           lastName: d.lastName
-        }
+        },
+        include: ssoUserInclude
       });
     }
 
@@ -65,8 +95,325 @@ class SsoIdentityServiceImpl {
         email: d.email,
         firstName: d.firstName,
         lastName: d.lastName
-      }
+      },
+      include: ssoUserInclude
     });
+  }
+
+  async createUser(d: {
+    tenant: SsoTenant;
+    input: {
+      email: string;
+      firstName: string;
+      lastName: string;
+      status?: 'active' | 'deprovisioned';
+    };
+  }) {
+    return await db.ssoUser.create({
+      data: {
+        ...getId('ssoUser'),
+        tenantOid: d.tenant.oid,
+        email: d.input.email,
+        firstName: d.input.firstName,
+        lastName: d.input.lastName,
+        status: d.input.status ?? 'active'
+      },
+      include: ssoUserInclude
+    });
+  }
+
+  async listUsers(d: {
+    tenant: SsoTenant;
+    filters?: {
+      userIds?: string[];
+      userProfileIds?: string[];
+      connectionIds?: string[];
+      groupIds?: string[];
+      roleIds?: string[];
+      uids?: string[];
+      directoryIds?: string[];
+      externalIds?: string[];
+      emails?: string[];
+      statuses?: string[];
+    };
+  }) {
+    let where: Prisma.SsoUserWhereInput = {
+      tenantOid: d.tenant.oid,
+      id: d.filters?.userIds?.length ? { in: d.filters.userIds } : undefined,
+      status: d.filters?.statuses?.length
+        ? { in: d.filters.statuses as SsoUserStatus[] }
+        : undefined,
+      AND: [
+        d.filters?.connectionIds?.length
+          ? {
+              profiles: { some: { connection: { id: { in: d.filters.connectionIds } } } }
+            }
+          : undefined,
+        d.filters?.userProfileIds?.length
+          ? { profiles: { some: { id: { in: d.filters.userProfileIds } } } }
+          : undefined,
+        d.filters?.uids?.length
+          ? { profiles: { some: { uid: { in: d.filters.uids } } } }
+          : undefined,
+        d.filters?.directoryIds?.length
+          ? {
+              profiles: {
+                some: {
+                  directories: { some: { directory: { id: { in: d.filters.directoryIds } } } }
+                }
+              }
+            }
+          : undefined,
+        d.filters?.externalIds?.length
+          ? {
+              profiles: {
+                some: { directories: { some: { externalId: { in: d.filters.externalIds } } } }
+              }
+            }
+          : undefined,
+        d.filters?.emails?.length
+          ? {
+              OR: [
+                { email: { in: d.filters.emails } },
+                { profiles: { some: { email: { in: d.filters.emails } } } }
+              ]
+            }
+          : undefined,
+        d.filters?.groupIds?.length
+          ? {
+              OR: [
+                { groupLinks: { some: { group: { id: { in: d.filters.groupIds } } } } },
+                {
+                  profiles: {
+                    some: {
+                      groupLinks: { some: { group: { id: { in: d.filters.groupIds } } } }
+                    }
+                  }
+                },
+                {
+                  profiles: {
+                    some: {
+                      groupLinks: {
+                        some: { group: { rootGroup: { id: { in: d.filters.groupIds } } } }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          : undefined,
+        d.filters?.roleIds?.length
+          ? {
+              OR: [
+                { roleLinks: { some: { role: { id: { in: d.filters.roleIds } } } } },
+                {
+                  profiles: {
+                    some: { roleLinks: { some: { role: { id: { in: d.filters.roleIds } } } } }
+                  }
+                },
+                {
+                  profiles: {
+                    some: {
+                      roleLinks: {
+                        some: { role: { rootRole: { id: { in: d.filters.roleIds } } } }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          : undefined
+      ].filter(Boolean) as Prisma.SsoUserWhereInput[]
+    };
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.ssoUser.findMany({
+            ...opts,
+            where,
+            include: ssoUserInclude
+          })
+      )
+    );
+  }
+
+  async getUserById(d: { tenant: SsoTenant; userId: string }) {
+    let user = await db.ssoUser.findFirst({
+      where: { tenantOid: d.tenant.oid, id: d.userId },
+      include: ssoUserInclude
+    });
+    if (!user) throw new ServiceError(notFoundError('sso.user'));
+    return user;
+  }
+
+  async updateUser(d: {
+    tenant: SsoTenant;
+    user: SsoUser;
+    input: {
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      status?: 'active' | 'deprovisioned';
+    };
+  }) {
+    if (d.user.tenantOid !== d.tenant.oid) {
+      throw new ServiceError(notFoundError('sso.user'));
+    }
+
+    return await db.ssoUser.update({
+      where: { oid: d.user.oid },
+      data: {
+        email: d.input.email,
+        firstName: d.input.firstName,
+        lastName: d.input.lastName,
+        status: d.input.status
+      },
+      include: ssoUserInclude
+    });
+  }
+
+  async deleteUser(d: { tenant: SsoTenant; user: SsoUser }) {
+    return await this.updateUser({
+      tenant: d.tenant,
+      user: d.user,
+      input: { status: 'deprovisioned' }
+    });
+  }
+
+  async listUserProfiles(d: {
+    tenant: SsoTenant;
+    connection?: SsoConnection;
+    filters?: {
+      userIds?: string[];
+      userProfileIds?: string[];
+      connectionIds?: string[];
+      groupIds?: string[];
+      roleIds?: string[];
+      uids?: string[];
+      directoryIds?: string[];
+      externalIds?: string[];
+      emails?: string[];
+      statuses?: string[];
+    };
+  }) {
+    let where: Prisma.SsoUserProfileWhereInput = {
+      tenantOid: d.tenant.oid,
+      id: d.filters?.userProfileIds?.length ? { in: d.filters.userProfileIds } : undefined,
+      status: d.filters?.statuses?.length
+        ? { in: d.filters.statuses as SsoUserProfileStatus[] }
+        : undefined,
+      uid: d.filters?.uids?.length ? { in: d.filters.uids } : undefined,
+      connectionOid: d.connection?.oid,
+      connection: d.filters?.connectionIds?.length
+        ? { id: { in: d.filters.connectionIds } }
+        : undefined,
+      user: {
+        id: d.filters?.userIds?.length ? { in: d.filters.userIds } : undefined,
+        email: d.filters?.emails?.length ? { in: d.filters.emails } : undefined
+      },
+      AND: [
+        d.filters?.emails?.length ? { OR: [{ email: { in: d.filters.emails } }] } : undefined,
+        d.filters?.directoryIds?.length
+          ? {
+              directories: { some: { directory: { id: { in: d.filters.directoryIds } } } }
+            }
+          : undefined,
+        d.filters?.externalIds?.length
+          ? { directories: { some: { externalId: { in: d.filters.externalIds } } } }
+          : undefined,
+        d.filters?.groupIds?.length
+          ? {
+              OR: [
+                { groupLinks: { some: { group: { id: { in: d.filters.groupIds } } } } },
+                {
+                  groupLinks: {
+                    some: { group: { rootGroup: { id: { in: d.filters.groupIds } } } }
+                  }
+                }
+              ]
+            }
+          : undefined,
+        d.filters?.roleIds?.length
+          ? {
+              OR: [
+                { roleLinks: { some: { role: { id: { in: d.filters.roleIds } } } } },
+                {
+                  roleLinks: {
+                    some: { role: { rootRole: { id: { in: d.filters.roleIds } } } }
+                  }
+                }
+              ]
+            }
+          : undefined
+      ].filter(Boolean) as Prisma.SsoUserProfileWhereInput[]
+    };
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.ssoUserProfile.findMany({
+            ...opts,
+            where,
+            include: ssoUserProfileInclude
+          })
+      )
+    );
+  }
+
+  async getUserProfileById(d: {
+    tenant: SsoTenant;
+    userProfileId: string;
+    connection?: SsoConnection;
+  }) {
+    let profile = await db.ssoUserProfile.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        id: d.userProfileId,
+        connectionOid: d.connection?.oid
+      },
+      include: ssoUserProfileInclude
+    });
+    if (!profile) throw new ServiceError(notFoundError('sso.user_profile'));
+    return profile;
+  }
+
+  async listUserUpdates(d: {
+    tenant: SsoTenant;
+    filters?: {
+      userIds?: string[];
+      emails?: string[];
+      statuses?: string[];
+    };
+  }) {
+    let where: Prisma.SsoUserChangeWhereInput = {
+      tenantOid: d.tenant.oid,
+      userId: d.filters?.userIds?.length ? { in: d.filters.userIds } : undefined,
+      email: d.filters?.emails?.length ? { in: d.filters.emails } : undefined,
+      status: d.filters?.statuses?.length
+        ? { in: d.filters.statuses as SsoUserStatus[] }
+        : undefined
+    };
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.ssoUserChange.findMany({
+            ...opts,
+            where,
+            include: ssoUserChangeInclude
+          })
+      )
+    );
+  }
+
+  async getUserUpdateById(d: { tenant: SsoTenant; userUpdateId: string }) {
+    let update = await db.ssoUserChange.findFirst({
+      where: { tenantOid: d.tenant.oid, id: d.userUpdateId },
+      include: ssoUserChangeInclude
+    });
+    if (!update) throw new ServiceError(notFoundError('sso.user_update'));
+    return update;
   }
 
   async upsertUserProfile(d: {
@@ -138,7 +485,10 @@ class SsoIdentityServiceImpl {
         reconciliationScimOperationId: d.reconciliationScimOperationId
       });
 
-      return profile;
+      return await this.getUserProfileById({
+        tenant: d.tenant,
+        userProfileId: profile.id
+      });
     }
 
     let profile = await db.ssoUserProfile.create({
@@ -182,7 +532,10 @@ class SsoIdentityServiceImpl {
       reconciliationScimOperationId: d.reconciliationScimOperationId
     });
 
-    return profile;
+    return await this.getUserProfileById({
+      tenant: d.tenant,
+      userProfileId: profile.id
+    });
   }
 
   async linkDirectoryUserProfile(d: {

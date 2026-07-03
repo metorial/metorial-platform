@@ -3,6 +3,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
+  Prisma,
   SsoConnection,
   SsoDirectory,
   SsoDirectoryStatus,
@@ -11,6 +12,19 @@ import type {
 import { db } from '../../db';
 import { getId } from '../../id';
 import { jackson } from '../../lib/jackson';
+
+let ssoDirectoryInclude = {
+  connection: {
+    include: {
+      tenant: true
+    }
+  },
+  userProfiles: {
+    include: {
+      userProfile: true
+    }
+  }
+} satisfies Prisma.SsoDirectoryInclude;
 
 class SsoDirectoryServiceImpl {
   async createDirectory(d: {
@@ -55,25 +69,67 @@ class SsoDirectoryServiceImpl {
         scimEndpoint: res.data.scim?.endpoint ?? '',
         scimSecret: res.data.scim?.secret ?? '',
         metadata: d.input.metadata ?? undefined
-      }
+      },
+      include: ssoDirectoryInclude
     });
 
     return {
       directory,
       scim: {
+        path: res.data.scim?.path,
         endpoint: res.data.scim?.endpoint,
         secret: res.data.scim?.secret
       }
     };
   }
 
-  async listDirectories(d: { connection: SsoConnection }) {
+  async listDirectories(d: {
+    tenant?: SsoTenant;
+    connection?: SsoConnection;
+    filters?: {
+      userIds?: string[];
+      userProfileIds?: string[];
+      connectionIds?: string[];
+      groupIds?: string[];
+      roleIds?: string[];
+      directoryIds?: string[];
+      statuses?: string[];
+    };
+  }) {
+    let where: Prisma.SsoDirectoryWhereInput = {
+      id: d.filters?.directoryIds?.length ? { in: d.filters.directoryIds } : undefined,
+      status: d.filters?.statuses?.length
+        ? { in: d.filters.statuses as SsoDirectoryStatus[] }
+        : undefined,
+      connectionOid: d.connection?.oid,
+      connection: {
+        tenantOid: d.tenant?.oid,
+        id: d.filters?.connectionIds?.length ? { in: d.filters.connectionIds } : undefined
+      },
+      userProfiles:
+        d.filters?.userIds?.length || d.filters?.userProfileIds?.length
+          ? {
+              some: {
+                userProfile: {
+                  id: d.filters?.userProfileIds?.length
+                    ? { in: d.filters.userProfileIds }
+                    : undefined,
+                  user: d.filters?.userIds?.length
+                    ? { id: { in: d.filters.userIds } }
+                    : undefined
+                }
+              }
+            }
+          : undefined
+    };
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.ssoDirectory.findMany({
             ...opts,
-            where: { connectionOid: d.connection.oid }
+            where,
+            include: ssoDirectoryInclude
           })
       )
     );
@@ -89,7 +145,20 @@ class SsoDirectoryServiceImpl {
         id: d.directoryId,
         connectionOid: d.connection.oid,
         connection: { tenantOid: d.tenant.oid }
-      }
+      },
+      include: ssoDirectoryInclude
+    });
+    if (!directory) throw new ServiceError(notFoundError('sso.directory'));
+    return directory;
+  }
+
+  async getTenantDirectoryById(d: { tenant: SsoTenant; directoryId: string }) {
+    let directory = await db.ssoDirectory.findFirst({
+      where: {
+        id: d.directoryId,
+        connection: { tenantOid: d.tenant.oid }
+      },
+      include: ssoDirectoryInclude
     });
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
     return directory;
@@ -106,6 +175,39 @@ class SsoDirectoryServiceImpl {
     });
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
     return directory;
+  }
+
+  async updateDirectory(d: {
+    tenant: SsoTenant;
+    directory: SsoDirectory;
+    input: {
+      name?: string;
+      metadata?: Record<string, any>;
+      status?: SsoDirectoryStatus;
+    };
+  }) {
+    let existing = await this.getTenantDirectoryById({
+      tenant: d.tenant,
+      directoryId: d.directory.id
+    });
+
+    if (d.input.status && d.input.status !== existing.status) {
+      return await this.setDirectoryStatus({
+        tenant: d.tenant,
+        connection: existing.connection,
+        directory: existing,
+        status: d.input.status
+      });
+    }
+
+    return await db.ssoDirectory.update({
+      where: { oid: existing.oid },
+      data: {
+        name: d.input.name,
+        metadata: d.input.metadata
+      },
+      include: ssoDirectoryInclude
+    });
   }
 
   async setDirectoryStatus(d: {
@@ -137,7 +239,22 @@ class SsoDirectoryServiceImpl {
 
     return await db.ssoDirectory.update({
       where: { oid: d.directory.oid },
-      data: { status: d.status }
+      data: { status: d.status },
+      include: ssoDirectoryInclude
+    });
+  }
+
+  async deleteDirectory(d: { tenant: SsoTenant; directory: SsoDirectory }) {
+    let existing = await this.getTenantDirectoryById({
+      tenant: d.tenant,
+      directoryId: d.directory.id
+    });
+
+    return await this.setDirectoryStatus({
+      tenant: d.tenant,
+      connection: existing.connection,
+      directory: existing,
+      status: 'disabled'
     });
   }
 }

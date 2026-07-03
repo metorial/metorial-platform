@@ -7,7 +7,8 @@ import { getId, ID } from '../../id';
 
 let tenantInclude = {
   _count: { select: { connections: true } },
-  ssoTenantDomain: true
+  ssoTenantDomain: true,
+  app: { select: { id: true, clientId: true } }
 };
 
 class SsoTenantServiceImpl {

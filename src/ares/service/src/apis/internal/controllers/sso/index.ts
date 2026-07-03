@@ -1,0 +1,16 @@
+import { internalApp } from '../../_app';
+import { ssoConnectionsController } from './connections';
+import { ssoDirectoriesController } from './directories';
+import { ssoGroupsController } from './groups';
+import { ssoRolesController } from './roles';
+import { ssoTenantsController } from './tenants';
+import { ssoUsersController } from './users';
+
+export let ssoController = internalApp.controller({
+  tenants: ssoTenantsController,
+  connections: ssoConnectionsController,
+  directories: ssoDirectoriesController,
+  groups: ssoGroupsController,
+  roles: ssoRolesController,
+  users: ssoUsersController
+});

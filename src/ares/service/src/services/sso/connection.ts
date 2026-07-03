@@ -1,8 +1,9 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
+  Prisma,
   SsoConnection,
   SsoConnectionStatus,
   SsoTenant
@@ -10,6 +11,13 @@ import type {
 import { db } from '../../db';
 import { getId } from '../../id';
 import { jackson } from '../../lib/jackson';
+
+let ssoConnectionInclude = {
+  tenant: true,
+  directories: true,
+  groups: { include: { rootGroup: true } },
+  roles: { include: { rootRole: true } }
+} satisfies Prisma.SsoConnectionInclude;
 
 class SsoConnectionServiceImpl {
   async createSamlConnection(d: {
@@ -50,7 +58,8 @@ class SsoConnectionServiceImpl {
         providerName: d.input.provider,
         name: d.input.name,
         metadata: d.input.metadata ?? undefined
-      }
+      },
+      include: ssoConnectionInclude
     });
   }
 
@@ -97,17 +106,128 @@ class SsoConnectionServiceImpl {
         providerName: d.input.provider,
         name: d.input.name,
         metadata: d.input.metadata ?? undefined
+      },
+      include: ssoConnectionInclude
+    });
+  }
+
+  async createConnection(d: {
+    tenant: SsoTenant;
+    input:
+      | {
+          providerType: 'saml';
+          name: string;
+          metadata?: Record<string, any>;
+          providerName?: string;
+          samlMetadata: { type: 'xml'; payload: string } | { type: 'url'; url: string };
+        }
+      | {
+          providerType: 'oidc';
+          name: string;
+          metadata?: Record<string, any>;
+          providerName?: string;
+          oidcDiscoveryUrl: string;
+          clientId: string;
+          clientSecret: string;
+        };
+  }) {
+    if (d.input.providerType === 'saml') {
+      return await this.createSamlConnection({
+        tenant: d.tenant,
+        input: {
+          name: d.input.name,
+          metadata: d.input.metadata,
+          provider: d.input.providerName ?? d.input.providerType,
+          samlMetadata: d.input.samlMetadata
+        }
+      });
+    }
+
+    return await this.createOidcConnection({
+      tenant: d.tenant,
+      input: {
+        name: d.input.name,
+        metadata: d.input.metadata,
+        provider: d.input.providerName ?? d.input.providerType,
+        oidcDiscoveryUrl: d.input.oidcDiscoveryUrl,
+        clientId: d.input.clientId,
+        clientSecret: d.input.clientSecret
       }
     });
   }
 
-  async listConnections(d: { tenant: SsoTenant }) {
+  async listConnections(d: {
+    tenant: SsoTenant;
+    filters?: {
+      userIds?: string[];
+      userProfileIds?: string[];
+      connectionIds?: string[];
+      groupIds?: string[];
+      roleIds?: string[];
+      directoryIds?: string[];
+      externalIds?: string[];
+      statuses?: string[];
+    };
+  }) {
+    let where: Prisma.SsoConnectionWhereInput = {
+      tenantOid: d.tenant.oid,
+      id: d.filters?.connectionIds?.length ? { in: d.filters.connectionIds } : undefined,
+      status: d.filters?.statuses?.length
+        ? { in: d.filters.statuses as SsoConnectionStatus[] }
+        : undefined,
+      directories: d.filters?.directoryIds?.length
+        ? { some: { id: { in: d.filters.directoryIds } } }
+        : d.filters?.externalIds?.length
+          ? {
+              some: {
+                userProfiles: {
+                  some: {
+                    externalId: { in: d.filters.externalIds }
+                  }
+                }
+              }
+            }
+          : undefined,
+      userProfiles:
+        d.filters?.userIds?.length || d.filters?.userProfileIds?.length
+          ? {
+              some: {
+                user: d.filters?.userIds?.length
+                  ? { id: { in: d.filters.userIds } }
+                  : undefined,
+                id: d.filters?.userProfileIds?.length
+                  ? { in: d.filters.userProfileIds }
+                  : undefined
+              }
+            }
+          : undefined,
+      AND: [
+        d.filters?.groupIds?.length
+          ? {
+              OR: [
+                { groups: { some: { id: { in: d.filters.groupIds } } } },
+                { groups: { some: { rootGroup: { id: { in: d.filters.groupIds } } } } }
+              ]
+            }
+          : undefined,
+        d.filters?.roleIds?.length
+          ? {
+              OR: [
+                { roles: { some: { id: { in: d.filters.roleIds } } } },
+                { roles: { some: { rootRole: { id: { in: d.filters.roleIds } } } } }
+              ]
+            }
+          : undefined
+      ].filter(Boolean) as Prisma.SsoConnectionWhereInput[]
+    };
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.ssoConnection.findMany({
             ...opts,
-            where: { tenantOid: d.tenant.oid }
+            where,
+            include: ssoConnectionInclude
           })
       )
     );
@@ -121,10 +241,45 @@ class SsoConnectionServiceImpl {
 
   async getConnectionById(d: { connectionId: string; tenant: SsoTenant }) {
     let con = await db.ssoConnection.findFirst({
-      where: { id: d.connectionId, tenantOid: d.tenant.oid }
+      where: { id: d.connectionId, tenantOid: d.tenant.oid },
+      include: ssoConnectionInclude
     });
     if (!con) throw new ServiceError(notFoundError('sso.connection'));
     return con;
+  }
+
+  async updateConnection(d: {
+    tenant: SsoTenant;
+    connection: SsoConnection;
+    input: {
+      name?: string;
+      providerName?: string | null;
+      metadata?: Record<string, any>;
+      status?: SsoConnectionStatus;
+    };
+  }) {
+    if (d.connection.tenantOid !== d.tenant.oid) {
+      throw new ServiceError(notFoundError('sso.connection'));
+    }
+
+    if (d.input.status && d.input.status !== d.connection.status) {
+      return await this.setConnectionStatus({
+        tenant: d.tenant,
+        connection: d.connection,
+        status: d.input.status
+      });
+    }
+
+    return await db.ssoConnection.update({
+      where: { oid: d.connection.oid },
+      data: {
+        name: d.input.name,
+        providerName:
+          d.input.providerName !== undefined ? (d.input.providerName ?? null) : undefined,
+        metadata: d.input.metadata
+      },
+      include: ssoConnectionInclude
+    });
   }
 
   async setConnectionStatus(d: {
@@ -150,7 +305,16 @@ class SsoConnectionServiceImpl {
 
     return await db.ssoConnection.update({
       where: { oid: d.connection.oid },
-      data: { status: d.status }
+      data: { status: d.status },
+      include: ssoConnectionInclude
+    });
+  }
+
+  async deleteConnection(d: { tenant: SsoTenant; connection: SsoConnection }) {
+    return await this.setConnectionStatus({
+      tenant: d.tenant,
+      connection: d.connection,
+      status: 'disabled'
     });
   }
 }
