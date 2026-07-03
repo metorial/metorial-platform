@@ -6,7 +6,7 @@ import {
   enqueueSsoUserChange,
   type SsoUserChangeSource
 } from './recordSsoUserChanges';
-import { ssoService } from '../services/sso';
+import { ssoGroupRoleService } from '../services/sso/groupRole';
 
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 let isUniqueConstraintError = (error: unknown) => (error as any)?.code === 'P2002';
@@ -101,7 +101,7 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
       for (let profileGroup of ownerProfile.groupLinks) {
         let rootGroup =
           profileGroup.group.rootGroup ??
-          (await ssoService.upsertRootGroup({
+          (await ssoGroupRoleService.upsertRootGroup({
             tenant: { oid: user.tenantOid },
             value: profileGroup.group.value,
             displayName: profileGroup.group.displayName,
@@ -131,7 +131,7 @@ export let reconcileSingleSsoUserQueueProcessor = reconcileSingleSsoUserQueue.pr
       for (let profileRole of ownerProfile.roleLinks) {
         let rootRole =
           profileRole.role.rootRole ??
-          (await ssoService.upsertRootRole({
+          (await ssoGroupRoleService.upsertRootRole({
             tenant: { oid: user.tenantOid },
             value: profileRole.role.value,
             displayName: profileRole.role.displayName,

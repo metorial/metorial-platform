@@ -8,7 +8,8 @@ import { tickets } from '../../../lib/tickets';
 import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
-import { ssoService } from '../../../services/sso';
+import { ssoAuthService } from '../../../services/sso/auth';
+import { ssoTenantService } from '../../../services/sso/tenant';
 import { resolveApp } from '../lib/resolveApp';
 import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
 
@@ -142,14 +143,14 @@ export let authHooksApp = createHono()
 
     let app = await resolveApp(ticket.appClientId);
 
-    let tenant = await ssoService.getTenantById({ tenantId: ticket.ssoTenantId });
+    let tenant = await ssoTenantService.getTenantById({ tenantId: ticket.ssoTenantId });
     if (tenant.appOid !== app.oid && !tenant.isGlobal) {
       throw new ServiceError(
         badRequestError({ message: 'SSO tenant does not belong to this app' })
       );
     }
 
-    let ssoAuth = await ssoService.createAuth({
+    let ssoAuth = await ssoAuthService.createAuth({
       tenant,
       input: {
         redirectUri: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`,
@@ -185,7 +186,7 @@ export let authHooksApp = createHono()
       throw new ServiceError(badRequestError({ message: 'Missing tenant_id or auth_id' }));
     }
 
-    let { tenant, connection, userProfile } = await ssoService.completeAuth({
+    let { tenant, connection, userProfile } = await ssoAuthService.completeAuth({
       authId
     });
 

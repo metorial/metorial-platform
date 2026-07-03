@@ -1,7 +1,8 @@
 import type { DirectorySyncEvent } from '@boxyhq/saml-jackson';
 import { createHono } from '@lowerdeck/hono';
 import { jackson } from '../../../lib/jackson';
-import { ssoService } from '../../../services/sso';
+import { ssoDirectoryService } from '../../../services/sso/directory';
+import { ssoDirectorySyncService } from '../../../services/sso/directorySync';
 
 let getBody = async (c: any) => {
   if (c.req.method === 'GET' || c.req.method === 'DELETE') return undefined;
@@ -41,11 +42,12 @@ export let scimApp = createHono().all('/:directoryId/:resourceType/:resourceId?'
   let resourceId = c.req.param('resourceId');
   let requestBody = await getBody(c);
   let query = getQuery(c);
-  let directory: Awaited<ReturnType<typeof ssoService.getDirectoryByInternalId>> | null = null;
+  let directory: Awaited<ReturnType<typeof ssoDirectoryService.getDirectoryByInternalId>> | null =
+    null;
   let eventNames: string[] = [];
 
   try {
-    directory = await ssoService.getDirectoryByInternalId({ internalId: directoryId });
+    directory = await ssoDirectoryService.getDirectoryByInternalId({ internalId: directoryId });
 
     let res = await jackson.directorySyncController.requests.handle(
       {
@@ -59,11 +61,11 @@ export let scimApp = createHono().all('/:directoryId/:resourceType/:resourceId?'
       },
       async (event: DirectorySyncEvent) => {
         eventNames.push(event.event);
-        await ssoService.handleDirectorySyncEvent({ directory: directory!, event });
+        await ssoDirectorySyncService.handleDirectorySyncEvent({ directory: directory!, event });
       }
     );
 
-    await ssoService.recordScimOperation({
+    await ssoDirectorySyncService.recordScimOperation({
       directory,
       input: {
         internalDirectoryId: directoryId,
@@ -88,7 +90,7 @@ export let scimApp = createHono().all('/:directoryId/:resourceType/:resourceId?'
       status: '400'
     };
 
-    await ssoService.recordScimOperation({
+    await ssoDirectorySyncService.recordScimOperation({
       directory,
       input: {
         internalDirectoryId: directoryId,

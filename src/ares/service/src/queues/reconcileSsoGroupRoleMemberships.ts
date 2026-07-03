@@ -1,7 +1,8 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../db';
-import { ssoService } from '../services/sso';
+import { ssoGroupRoleService } from '../services/sso/groupRole';
+import { reconcileSingleSsoUserQueue } from './reconcileSsoUsers';
 
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -68,12 +69,12 @@ export let reconcileSingleSsoGroupRoleMembershipQueueProcessor =
 
     if (!profile.connection) throw new QueueRetryError();
 
-    await ssoService.replaceUserProfileGroups({
+    await ssoGroupRoleService.replaceUserProfileGroups({
       connection: profile.connection,
       userProfile: profile,
       groups: profile.groups
     });
-    await ssoService.replaceUserProfileRoles({
+    await ssoGroupRoleService.replaceUserProfileRoles({
       connection: profile.connection,
       userProfile: profile,
       roles: profile.roles
@@ -85,10 +86,10 @@ export let reconcileSingleSsoGroupRoleMembershipQueueProcessor =
     });
 
     if (profile.ownedUser) {
-      await ssoService.enqueueSsoUserReconciliation(
-        profile.ownedUser,
-        'profile_group_role_membership_reconciled'
-      );
+      await reconcileSingleSsoUserQueue.add({
+        ssoUserId: profile.ownedUser.id,
+        source: 'profile_group_role_membership_reconciled'
+      });
     }
   });
 

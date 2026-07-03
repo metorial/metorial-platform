@@ -29,7 +29,7 @@ import { accessGroupService } from './accessGroup';
 import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
-import { ssoService } from './sso';
+import { ssoTenantService } from './sso/tenant';
 import { userService } from './user';
 
 class AuthServiceImpl {
@@ -105,7 +105,7 @@ class AuthServiceImpl {
 
     let { email, domain } = parseEmail(d.email);
 
-    let ssoTenant = await ssoService.getTenantByDomain({
+    let ssoTenant = await ssoTenantService.getTenantByDomain({
       app: d.app,
       domain
     });

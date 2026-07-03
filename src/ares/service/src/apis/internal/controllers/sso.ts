@@ -2,7 +2,10 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { env } from '../../../env';
 import { adminService } from '../../../services/admin';
-import { ssoService } from '../../../services/sso';
+import { ssoConnectionService } from '../../../services/sso/connection';
+import { ssoDirectoryService } from '../../../services/sso/directory';
+import { ssoSetupService } from '../../../services/sso/setup';
+import { ssoTenantService } from '../../../services/sso/tenant';
 import { internalApp } from '../_app';
 import {
   ssoConnectionPresenter,
@@ -23,7 +26,7 @@ export let ssoController = internalApp.controller({
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-      let paginator = await ssoService.listTenants({ app });
+      let paginator = await ssoTenantService.listTenants({ app });
       let list = await paginator.run(input);
       return Paginator.presentLight(list, ssoTenantPresenter);
     }),
@@ -36,7 +39,7 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.id });
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.id });
       return ssoTenantPresenter(tenant);
     }),
 
@@ -52,7 +55,7 @@ export let ssoController = internalApp.controller({
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-      let tenant = await ssoService.createTenant({
+      let tenant = await ssoTenantService.createTenant({
         app,
         input: {
           name: input.name,
@@ -74,8 +77,8 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let updatedTenant = await ssoService.updateTenant({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let updatedTenant = await ssoTenantService.updateTenant({
         tenant,
         input: {
           name: input.name,
@@ -95,8 +98,8 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let setup = await ssoService.createSetup({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let setup = await ssoSetupService.createSetup({
         tenant,
         input: { redirectUri: input.redirectUri }
       });
@@ -115,8 +118,8 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let tenantDomain = await ssoService.addTenantDomain({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let tenantDomain = await ssoTenantService.addTenantDomain({
         tenant,
         input: {
           domain: input.domain
@@ -134,8 +137,8 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      await ssoService.removeTenantDomain({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      await ssoTenantService.removeTenantDomain({
         tenant,
         domain: input.domain
       });
@@ -152,8 +155,8 @@ export let ssoController = internalApp.controller({
       )
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let paginator = await ssoService.listConnections({ tenant });
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let paginator = await ssoConnectionService.listConnections({ tenant });
       let list = await paginator.run(input);
       return Paginator.presentLight(list, ssoConnectionPresenter);
     }),
@@ -168,12 +171,12 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let connection = await ssoService.getConnectionById({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoConnectionService.getConnectionById({
         tenant,
         connectionId: input.connectionId
       });
-      let updated = await ssoService.setConnectionStatus({
+      let updated = await ssoConnectionService.setConnectionStatus({
         tenant,
         connection,
         status: input.status
@@ -200,12 +203,12 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let connection = await ssoService.getConnectionById({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoConnectionService.getConnectionById({
         tenant,
         connectionId: input.connectionId
       });
-      let { directory, scim } = await ssoService.createDirectory({
+      let { directory, scim } = await ssoDirectoryService.createDirectory({
         tenant,
         connection,
         input: {
@@ -232,12 +235,12 @@ export let ssoController = internalApp.controller({
       )
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let connection = await ssoService.getConnectionById({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoConnectionService.getConnectionById({
         tenant,
         connectionId: input.connectionId
       });
-      let paginator = await ssoService.listDirectories({ connection });
+      let paginator = await ssoDirectoryService.listDirectories({ connection });
       let list = await paginator.run(input);
       return Paginator.presentLight(list, ssoDirectoryPresenter);
     }),
@@ -252,12 +255,12 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let connection = await ssoService.getConnectionById({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoConnectionService.getConnectionById({
         tenant,
         connectionId: input.connectionId
       });
-      let directory = await ssoService.getDirectoryById({
+      let directory = await ssoDirectoryService.getDirectoryById({
         tenant,
         connection,
         directoryId: input.directoryId
@@ -276,17 +279,17 @@ export let ssoController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let connection = await ssoService.getConnectionById({
+      let tenant = await ssoTenantService.getTenantById({ tenantId: input.tenantId });
+      let connection = await ssoConnectionService.getConnectionById({
         tenant,
         connectionId: input.connectionId
       });
-      let directory = await ssoService.getDirectoryById({
+      let directory = await ssoDirectoryService.getDirectoryById({
         tenant,
         connection,
         directoryId: input.directoryId
       });
-      let updated = await ssoService.setDirectoryStatus({
+      let updated = await ssoDirectoryService.setDirectoryStatus({
         tenant,
         connection,
         directory,

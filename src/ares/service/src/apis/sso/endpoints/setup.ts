@@ -1,7 +1,7 @@
 import { createHono, useValidatedBody, useValidatedQuery } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import { env } from '../../../env';
-import { ssoService } from '../../../services/sso';
+import { ssoSetupService } from '../../../services/sso/setup';
 import { errorHtml } from '../pages/error';
 import { setupConfigureHtml } from '../pages/setup-configure';
 import { setupSelectHtml } from '../pages/setup-select';
@@ -19,7 +19,7 @@ export let setupApp = createHono()
       );
       let clientSecret = 'client_secret' in res ? res.client_secret : res.clientSecret;
 
-      let setup = await ssoService.getSetupByClientSecret({ clientSecret });
+      let setup = await ssoSetupService.getSetupByClientSecret({ clientSecret });
 
       if (setup.status === 'completed') {
         return c.redirect(`/sso/setup/complete?clientSecret=${clientSecret}`);
@@ -46,7 +46,7 @@ export let setupApp = createHono()
         })
       );
 
-      let setup = await ssoService.getSetupByClientSecret({ clientSecret });
+      let setup = await ssoSetupService.getSetupByClientSecret({ clientSecret });
 
       if (setup.status === 'completed') {
         return c.redirect(`/sso/setup/complete?clientSecret=${clientSecret}`);
@@ -131,7 +131,7 @@ export let setupApp = createHono()
         return c.json({ error: 'Provider not found' }, 404);
       }
 
-      await ssoService.createConnectionForSetup({
+      await ssoSetupService.createConnectionForSetup({
         clientSecret,
         providerId,
         name,
@@ -156,7 +156,7 @@ export let setupApp = createHono()
         })
       );
 
-      let setup = await ssoService.getSetupByClientSecret({ clientSecret });
+      let setup = await ssoSetupService.getSetupByClientSecret({ clientSecret });
 
       if (setup.status !== 'completed' || !setup.connection) {
         return c.redirect(`/sso/setup?clientSecret=${clientSecret}`);

@@ -5,7 +5,9 @@ import { createHash, randomBytes } from 'crypto';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { jackson } from '../../../lib/jackson';
-import { ssoService } from '../../../services/sso';
+import { ssoAuthService } from '../../../services/sso/auth';
+import { ssoConnectionService } from '../../../services/sso/connection';
+import { ssoIdentityService } from '../../../services/sso/identity';
 import { authSelectConnectionHtml } from '../pages/auth-select-connection';
 import { errorHtml } from '../pages/error';
 
@@ -27,7 +29,7 @@ export let ssoAuthApp = createHono()
         })
       );
 
-      let auth = await ssoService.getAuthByClientSecret({
+      let auth = await ssoAuthService.getAuthByClientSecret({
         clientSecret: body.client_secret
       });
 
@@ -39,7 +41,7 @@ export let ssoAuthApp = createHono()
         return c.redirect(finalRedirectUri.toString());
       }
 
-      let connections = await ssoService.getConnectionsByTenant({
+      let connections = await ssoConnectionService.getConnectionsByTenant({
         tenant: auth.tenant
       });
       if (connections.length == 0) {
@@ -142,7 +144,7 @@ export let ssoAuthApp = createHono()
         })
       );
 
-      let auth = await ssoService.getAuthByClientSecret({
+      let auth = await ssoAuthService.getAuthByClientSecret({
         clientSecret: body.state
       });
       if (auth.status === 'completed') {
@@ -172,14 +174,14 @@ export let ssoAuthApp = createHono()
 
       let userInfo = await jackson.oauthController.userInfo(tokenRes.access_token);
 
-      let user = await ssoService.upsertUser({
+      let user = await ssoIdentityService.upsertUser({
         tenant: auth.tenant,
         email: userInfo.email,
         firstName: userInfo.firstName,
         lastName: userInfo.lastName
       });
 
-      let profile = await ssoService.upsertUserProfile({
+      let profile = await ssoIdentityService.upsertUserProfile({
         tenant: auth.tenant,
         connection,
         user,
