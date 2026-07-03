@@ -24,6 +24,7 @@ describe('tenant.e2e', () => {
       name: 'Test Tenant',
       identifier: 'test-tenant',
       logRetentionInDays: 14,
+      messageProcessingTimeoutMs: 45000,
       environments: [
         {
           name: 'Development',
@@ -38,6 +39,7 @@ describe('tenant.e2e', () => {
       identifier: 'test-tenant',
       name: 'Test Tenant',
       logRetentionInDays: 14,
+      messageProcessingTimeoutMs: 45000,
       allowAuthConfigExport: false,
       allowAuthConfigImport: false,
       createdAt: expect.any(Date)
@@ -52,6 +54,7 @@ describe('tenant.e2e', () => {
     });
 
     expect(updated).toMatchObject({
+      messageProcessingTimeoutMs: 45000,
       allowAuthConfigExport: true,
       allowAuthConfigImport: true
     });
@@ -66,8 +69,34 @@ describe('tenant.e2e', () => {
       identifier: tenant.identifier,
       name: tenant.name,
       logRetentionInDays: 14,
+      messageProcessingTimeoutMs: 45000,
       allowAuthConfigExport: true,
       allowAuthConfigImport: true
+    });
+  });
+
+  it('rejects messageProcessingTimeoutMs above the maximum', async () => {
+    let anonymousClient = createSubspaceControllerTestClient();
+    let solution = await anonymousClient.solution.upsert({
+      name: 'Test Solution',
+      identifier: 'test-solution'
+    });
+
+    let client = createSubspaceControllerTestClient({
+      headers: {
+        'Subspace-Solution-Id': solution.id
+      }
+    });
+
+    await expect(
+      client.tenant.upsert({
+        name: 'Test Tenant',
+        identifier: 'test-tenant',
+        messageProcessingTimeoutMs: 1000 * 60 * 10 + 1,
+        environments: []
+      })
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('messageProcessingTimeoutMs must be less than or equal')
     });
   });
 });

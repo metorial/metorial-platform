@@ -21,7 +21,8 @@ let rawSlateJsonValidation = v.object({
   description: v.optional(v.string()),
   categories: v.optional(v.array(v.string())),
   skills: v.optional(v.array(v.string())),
-  logoUrl: v.optional(v.string())
+  logoUrl: v.optional(v.string()),
+  timeout: v.optional(v.number({}))
 });
 
 let packageJsonValidation = v.object({
@@ -66,7 +67,8 @@ export let slateJsonValidation = v.object({
   description: v.optional(v.string()),
   categories: v.optional(v.array(v.string())),
   skills: v.optional(v.array(v.string())),
-  logoUrl: v.optional(v.string())
+  logoUrl: v.optional(v.string()),
+  timeout: v.optional(v.number({}))
 });
 
 let parseJsonFile = <T>(d: {
@@ -193,7 +195,8 @@ export let normalizeSlatePackage = (d: {
     description: rawSlateJson.description ?? packageJson.description,
     categories: rawSlateJson.categories,
     skills: rawSlateJson.skills,
-    logoUrl: rawSlateJson.logoUrl
+    logoUrl: rawSlateJson.logoUrl,
+    timeout: rawSlateJson.timeout
   } satisfies ValidationTypeValue<typeof slateJsonValidation>;
 
   let validationResult = slateJsonValidation.validate(manifest);

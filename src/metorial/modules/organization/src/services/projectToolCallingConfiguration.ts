@@ -49,7 +49,8 @@ class ProjectToolCallingConfigurationService {
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
     return {
-      collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls
+      collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls,
+      messageProcessingTimeoutMs: tenant.messageProcessingTimeoutMs
     };
   }
 
@@ -60,6 +61,7 @@ class ProjectToolCallingConfigurationService {
     context: Context;
     input: {
       collectOperationDescriptionForToolCalls?: boolean;
+      messageProcessingTimeoutMs?: number;
     };
   }) {
     await this.ensureProjectActive(d.project);
@@ -74,20 +76,24 @@ class ProjectToolCallingConfigurationService {
       environments: [],
       collectOperationDescriptionForToolCalls:
         d.input.collectOperationDescriptionForToolCalls ??
-        tenant.collectOperationDescriptionForToolCalls
+        tenant.collectOperationDescriptionForToolCalls,
+      messageProcessingTimeoutMs:
+        d.input.messageProcessingTimeoutMs ?? tenant.messageProcessingTimeoutMs
     });
 
     await Fabric.fire('organization.project.tool_calling_configuration.updated:after', {
       ...d,
       configuration: {
         collectOperationDescriptionForToolCalls:
-          updatedTenant.collectOperationDescriptionForToolCalls
+          updatedTenant.collectOperationDescriptionForToolCalls,
+        messageProcessingTimeoutMs: updatedTenant.messageProcessingTimeoutMs
       }
     });
 
     return {
       collectOperationDescriptionForToolCalls:
-        updatedTenant.collectOperationDescriptionForToolCalls
+        updatedTenant.collectOperationDescriptionForToolCalls,
+      messageProcessingTimeoutMs: updatedTenant.messageProcessingTimeoutMs
     };
   }
 }

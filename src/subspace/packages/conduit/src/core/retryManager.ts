@@ -5,7 +5,11 @@ export class RetryManager {
     private backoffMultiplier: number
   ) {}
 
-  async withRetry<T>(fn: (attemptNumber: number) => Promise<T>, context: string): Promise<T> {
+  async withRetry<T>(
+    fn: (attemptNumber: number) => Promise<T>,
+    context: string,
+    shouldRetry?: (error: Error, attemptNumber: number) => boolean
+  ): Promise<T> {
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -14,7 +18,9 @@ export class RetryManager {
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
 
-        if (attempt < this.maxRetries) {
+        let retryable = shouldRetry ? shouldRetry(lastError, attempt) : true;
+
+        if (attempt < this.maxRetries && retryable) {
           let backoffMs = this.calculateBackoff(attempt);
           console.warn(
             `${context} failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffMs}ms:`,
@@ -25,9 +31,11 @@ export class RetryManager {
       }
     }
 
-    throw new Error(
-      `${context} failed after ${this.maxRetries + 1} attempts: ${lastError?.message}`
-    );
+    if (lastError) {
+      throw lastError;
+    }
+
+    throw new Error(`${context} failed after ${this.maxRetries + 1} attempts`);
   }
 
   calculateBackoff(attempt: number): number {

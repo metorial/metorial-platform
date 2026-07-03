@@ -234,7 +234,7 @@ export let slatesHubEnv: Env = [
   },
   {
     key: 'FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS',
-    defaultValue: '15'
+    defaultValue: '60'
   },
   {
     key: 'SIGNAL_API_URL',

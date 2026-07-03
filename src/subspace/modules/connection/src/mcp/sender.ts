@@ -55,7 +55,11 @@ import { mcpOutputSchemaNormalizer } from '../lib/mcpOutputSchemaNormalizer';
 import { providerToolPresenter } from '../presenter';
 import { injectToolCallOperationIntoInputSchema } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
-import type { McpControlMessageHandler } from './control';
+import {
+  getMcpProgressToken,
+  type McpControlMessageHandler,
+  type McpProgressToken
+} from './control';
 import type { McpManager } from './manager';
 
 let Sentry = getSentry();
@@ -103,6 +107,47 @@ export class McpSender {
       };
     } catch {
       return null;
+    }
+  }
+
+  private async withProgressNotification<T>(
+    msg: JSONRPCMessage,
+    run: () => Promise<T>,
+    getMessage: (progressToken: McpProgressToken) => string | undefined
+  ) {
+    let progressToken = getMcpProgressToken(msg);
+    if (progressToken === null) {
+      return await run();
+    }
+
+    let notifier = this.control.startProgressNotifier({
+      progressToken,
+      message: getMessage(progressToken)
+    });
+
+    try {
+      let result = await run();
+
+      let backgroundPromise =
+        result &&
+        typeof result === 'object' &&
+        'processingPromise' in (result as object) &&
+        (result as { processingPromise?: Promise<void> }).processingPromise
+          ? (result as { processingPromise?: Promise<void> }).processingPromise
+          : undefined;
+
+      if (backgroundPromise) {
+        backgroundPromise.finally(() => {
+          notifier.stop();
+        });
+        return result;
+      }
+
+      notifier.stop();
+      return result;
+    } catch (err) {
+      notifier.stop();
+      throw err;
     }
   }
 
@@ -331,6 +376,7 @@ export class McpSender {
           return { mcp: resourceTemplateRead.error, store: true };
 
         return this.handleResourceReadMessage(id, {
+          request: resourceTemplateRead.data,
           ...resourceTemplateRead.data.params,
           waitForResponse: opts.waitForResponse
         });
@@ -716,7 +762,11 @@ export class McpSender {
 
   private async handleResourceReadMessage(
     id: ID,
-    opts: { uri: string; waitForResponse: boolean }
+    opts: {
+      uri: string;
+      waitForResponse: boolean;
+      request: JSONRPCMessage;
+    }
   ) {
     let providers = await this.manager.listProviders();
 
@@ -775,22 +825,28 @@ export class McpSender {
       };
     }
 
-    let result = await this.manager.callTool({
-      toolId: resourceReadTool.key,
-      input: {
-        type: 'mcp',
-        data: {
-          jsonrpc: '2.0',
-          method: 'resources/read',
-          id,
-          params: {
-            uri: match.originalName
-          }
-        } satisfies JSONRPCRequest & ReadResourceRequest
-      },
-      waitForResponse: opts.waitForResponse,
-      transport: 'mcp'
-    });
+    let result = await this.withProgressNotification(
+      opts.request,
+      async () =>
+        await this.manager.callTool({
+          toolId: resourceReadTool.key,
+          input: {
+            type: 'mcp',
+            data: {
+              jsonrpc: '2.0',
+              method: 'resources/read',
+              id,
+              params: {
+                uri: match.originalName,
+                _meta: (opts.request as any)?.params?._meta
+              }
+            } satisfies JSONRPCRequest & ReadResourceRequest
+          },
+          waitForResponse: opts.waitForResponse,
+          transport: 'mcp'
+        }),
+      () => `Still reading resource ${opts.uri}`
+    );
 
     return {
       store: true,
@@ -804,16 +860,21 @@ export class McpSender {
     msg: CallToolRequest & JSONRPCRequest,
     opts: { waitForResponse: boolean }
   ) {
-    let result = await this.manager.callTool({
-      clientMcpId: id,
-      toolId: msg.params.name,
-      input: {
-        type: 'mcp',
-        data: msg
-      },
-      waitForResponse: opts.waitForResponse,
-      transport: 'mcp'
-    });
+    let result = await this.withProgressNotification(
+      msg,
+      async () =>
+        await this.manager.callTool({
+          clientMcpId: id,
+          toolId: msg.params.name,
+          input: {
+            type: 'mcp',
+            data: msg
+          },
+          waitForResponse: opts.waitForResponse,
+          transport: 'mcp'
+        }),
+      () => `Still processing tool ${msg.params.name}`
+    );
 
     if (!opts.waitForResponse) return { message: result.message };
 
@@ -837,16 +898,21 @@ export class McpSender {
     msg: GetPromptRequest & JSONRPCRequest,
     opts: { waitForResponse: boolean }
   ) {
-    let result = await this.manager.callTool({
-      clientMcpId: id,
-      toolId: msg.params.name,
-      input: {
-        type: 'mcp',
-        data: msg
-      },
-      waitForResponse: opts.waitForResponse,
-      transport: 'mcp'
-    });
+    let result = await this.withProgressNotification(
+      msg,
+      async () =>
+        await this.manager.callTool({
+          clientMcpId: id,
+          toolId: msg.params.name,
+          input: {
+            type: 'mcp',
+            data: msg
+          },
+          waitForResponse: opts.waitForResponse,
+          transport: 'mcp'
+        }),
+      () => `Still processing prompt ${msg.params.name}`
+    );
 
     if (!opts.waitForResponse) return { message: result.message };
 

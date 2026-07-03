@@ -53,7 +53,8 @@ describe('registry slate version helpers', () => {
         name: '@demo/weather',
         categories: ['utilities'],
         skills: ['forecast'],
-        logoUrl: 'https://example.com/logo.png'
+        logoUrl: 'https://example.com/logo.png',
+        timeout: 60
       }),
       'docs/guide.md': '# Guide',
       'README.md': '# Readme'
@@ -74,7 +75,8 @@ describe('registry slate version helpers', () => {
       description: 'Weather slate',
       categories: ['utilities'],
       skills: ['forecast'],
-      logoUrl: 'https://example.com/logo.png'
+      logoUrl: 'https://example.com/logo.png',
+      timeout: 60
     });
     expect(slatePackage.npmPackageName).toBe('@npm/weather-package');
     expect(slatePackage.docsFiles.map(file => file.path).sort()).toEqual([

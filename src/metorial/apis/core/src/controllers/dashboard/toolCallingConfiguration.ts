@@ -11,6 +11,12 @@ import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { projectToolCallingConfigurationPresenter } from '../../presenters';
 
+let messageProcessingTimeoutMsValidator = v.optional(
+  v.number({
+    modifiers: [v.positive(), v.integer(), v.minValue(1), v.maxValue(1000 * 60 * 10)]
+  })
+);
+
 export let dashboardToolCallingConfigurationController = Controller.create(
   {
     name: 'Tool calling configuration',
@@ -74,12 +80,16 @@ export let dashboardToolCallingConfigurationController = Controller.create(
       .body(
         'default',
         v.object({
-          collect_operation_description_for_tool_calls: v.optional(v.boolean())
+          collect_operation_description_for_tool_calls: v.optional(v.boolean()),
+          message_processing_timeout_ms: messageProcessingTimeoutMsValidator
         })
       )
       .output(projectToolCallingConfigurationPresenter)
       .do(async ctx => {
-        if (ctx.body.collect_operation_description_for_tool_calls === undefined) {
+        if (
+          ctx.body.collect_operation_description_for_tool_calls === undefined &&
+          ctx.body.message_processing_timeout_ms === undefined
+        ) {
           throw new ServiceError(
             badRequestError({
               message: 'At least one tool calling configuration field must be provided'
@@ -110,7 +120,8 @@ export let dashboardToolCallingConfigurationController = Controller.create(
             context: ctx.context,
             input: {
               collectOperationDescriptionForToolCalls:
-                ctx.body.collect_operation_description_for_tool_calls
+                ctx.body.collect_operation_description_for_tool_calls,
+              messageProcessingTimeoutMs: ctx.body.message_processing_timeout_ms
             }
           });
 

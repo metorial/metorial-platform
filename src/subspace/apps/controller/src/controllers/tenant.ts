@@ -1,7 +1,10 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { tenantService } from '@metorial-subspace/module-tenant';
 import { tenantPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
+
+let MAX_MESSAGE_PROCESSING_TIMEOUT_MS = 1000 * 60 * 10;
 
 export let tenantWithoutEnvironmentApp = app.use(async ctx => {
   let tenantId = ctx.body.tenantId;
@@ -60,6 +63,7 @@ export let tenantController = app.controller({
         onlyAllowTrustedProviders: v.optional(v.boolean()),
         isWhitelabel: v.optional(v.boolean()),
         logRetentionInDays: v.optional(v.number()),
+        messageProcessingTimeoutMs: v.optional(v.number()),
         enforceSessionExpiry: v.optional(v.boolean()),
         allowAuthConfigExport: v.optional(v.boolean()),
         allowAuthConfigImport: v.optional(v.boolean()),
@@ -75,6 +79,32 @@ export let tenantController = app.controller({
       })
     )
     .do(async ctx => {
+      if (ctx.input.messageProcessingTimeoutMs !== undefined) {
+        if (!Number.isInteger(ctx.input.messageProcessingTimeoutMs)) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'messageProcessingTimeoutMs must be an integer'
+            })
+          );
+        }
+
+        if (ctx.input.messageProcessingTimeoutMs <= 0) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'messageProcessingTimeoutMs must be greater than 0'
+            })
+          );
+        }
+
+        if (ctx.input.messageProcessingTimeoutMs > MAX_MESSAGE_PROCESSING_TIMEOUT_MS) {
+          throw new ServiceError(
+            badRequestError({
+              message: `messageProcessingTimeoutMs must be less than or equal to ${MAX_MESSAGE_PROCESSING_TIMEOUT_MS}`
+            })
+          );
+        }
+      }
+
       let tenant = await tenantService.upsertTenant({
         input: {
           name: ctx.input.name,
@@ -83,6 +113,7 @@ export let tenantController = app.controller({
           onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders,
           isWhitelabel: ctx.input.isWhitelabel,
           logRetentionInDays: ctx.input.logRetentionInDays,
+          messageProcessingTimeoutMs: ctx.input.messageProcessingTimeoutMs,
           enforceSessionExpiry: ctx.input.enforceSessionExpiry,
           allowAuthConfigExport: ctx.input.allowAuthConfigExport,
           allowAuthConfigImport: ctx.input.allowAuthConfigImport,

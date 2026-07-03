@@ -9,6 +9,8 @@ import {
 } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { getSentry } from '@lowerdeck/sentry';
+import { serialize } from '@lowerdeck/serialize';
+import { ConduitSendError } from '@metorial-subspace/conduit';
 import type { ConduitInput, ConduitResult } from '@metorial-subspace/connection-utils';
 import {
   type AgentInstance,
@@ -27,7 +29,8 @@ import {
   type SessionParticipant,
   type SessionProvider,
   type Solution,
-  type Tenant
+  type Tenant,
+  withTransaction
 } from '@metorial-subspace/db';
 import { isRecordDeleted } from '@metorial-subspace/list-utils';
 import {
@@ -50,10 +53,11 @@ import {
   sessionProviderNameTemplateService
 } from '@metorial-subspace/module-session';
 import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
-import { addDays, addMinutes } from 'date-fns';
+import { addDays, addMinutes, differenceInMinutes } from 'date-fns';
 import {
   DEFAULT_SESSION_EXPIRATION_DAYS,
   SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT,
+  SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES,
   UNINITIALIZED_SESSION_EXPIRATION_MINUTES
 } from '../const';
 import { env } from '../env';
@@ -64,6 +68,7 @@ import {
   CONNECTION_FAILED_TOOL_KEY,
   type ConnectionFailedProvider
 } from '../lib/connectionFailedTool';
+import { broadcastNats } from '../lib/nats';
 import { isSyntheticTool } from '../lib/syntheticTool';
 import { topics } from '../lib/topic';
 import { completeMessage } from '../shared/completeMessage';
@@ -81,7 +86,15 @@ let instanceLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-let sender = conduit.createSender();
+let connectionTokenLock = createLock({
+  name: 'sub/conn/session/connectionToken/lock',
+  redisUrl: env.service.REDIS_URL
+});
+
+let sender = conduit.createSender({
+  defaultTimeout: 10_000,
+  maxRetries: 2
+});
 
 export interface InitProps {
   client: {
@@ -105,6 +118,11 @@ export interface CallToolProps {
   clientMcpId?: PrismaJson.SessionMessageClientMcpId;
   parentMessage?: SessionMessage;
 }
+
+type CallToolResult = Omit<ConduitResult, 'message'> & {
+  message: SessionMessage;
+  processingPromise?: Promise<void>;
+};
 
 export interface SenderMangerProps {
   sessionId: string;
@@ -152,19 +170,137 @@ export class SenderManager {
 
   private static async resolveSession(d: SenderMangerProps) {
     if (d.connectionToken) {
-      let connection = await db.sessionConnection.findFirst({
-        where: {
-          token: d.connectionToken,
-          tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
-          solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
-        },
-        include: {
-          session: true,
-          participant: true,
-          tenant: true,
-          solution: true
+      let loadConnection = async () =>
+        await db.sessionConnection.findFirst({
+          where: {
+            token: d.connectionToken,
+            tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
+            solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
+          },
+          include: {
+            session: {
+              include: {
+                ephemeralManagedSession: true
+              }
+            },
+            participant: true,
+            tenant: true,
+            solution: true
+          }
+        });
+
+      let connection = await loadConnection();
+
+      if (connection?.session.ephemeralManagedSession) {
+        let currentSession = await ephemeralManagedSessionService.resolveBackingSessionById({
+          sessionId: connection.session.ephemeralManagedSession.id,
+          tenantId: d.tenantId,
+          solutionId: d.solutionId
+        });
+
+        if (currentSession && currentSession.oid !== connection.session.oid) {
+          let resolvedConnection = await connectionTokenLock.usingLock(
+            d.connectionToken,
+            async () => {
+              let lockedConnection = await loadConnection();
+              if (!lockedConnection) return null;
+
+              if (lockedConnection.session.ephemeralManagedSession) {
+                let lockedCurrentSession =
+                  await ephemeralManagedSessionService.resolveBackingSessionById({
+                    sessionId: lockedConnection.session.ephemeralManagedSession.id,
+                    tenantId: d.tenantId,
+                    solutionId: d.solutionId
+                  });
+
+                if (
+                  lockedCurrentSession &&
+                  lockedCurrentSession.oid !== lockedConnection.session.oid
+                ) {
+                  let now = new Date();
+                  let oldToken = lockedConnection.token;
+                  let replacementToken = await ID.generateId('sessionConnection_token');
+
+                  let currentConnection = await withTransaction(async db => {
+                    await db.sessionConnection.update({
+                      where: { oid: lockedConnection.oid },
+                      data: {
+                        token: replacementToken,
+                        isReplaced: true
+                      }
+                    });
+
+                    let newConnection = await db.sessionConnection.create({
+                      data: {
+                        ...getId('sessionConnection'),
+                        token: oldToken,
+                        isEphemeral: lockedCurrentSession.isEphemeral,
+                        status: lockedConnection.status,
+                        transport: lockedConnection.transport,
+                        isParentDeleted: lockedConnection.isParentDeleted,
+                        hasErrors: lockedConnection.hasErrors,
+                        hasWarnings: lockedConnection.hasWarnings,
+                        state: lockedConnection.state,
+                        initState: lockedConnection.initState,
+                        isManuallyDisabled: lockedConnection.isManuallyDisabled,
+                        isReplaced: false,
+                        isForManualToolCalls: lockedConnection.isForManualToolCalls,
+                        sessionOid: lockedCurrentSession.oid,
+                        participantOid: lockedConnection.participantOid,
+                        tenantOid: lockedCurrentSession.tenantOid,
+                        environmentOid: lockedCurrentSession.environmentOid,
+                        solutionOid: lockedCurrentSession.solutionOid,
+                        mcpData: lockedConnection.mcpData,
+                        mcpTransport: lockedConnection.mcpTransport,
+                        mcpProtocolVersion: lockedConnection.mcpProtocolVersion,
+                        privateMetadata: lockedConnection.privateMetadata,
+                        expiresAt:
+                          lockedConnection.initState === 'pending'
+                            ? addMinutes(new Date(), UNINITIALIZED_SESSION_EXPIRATION_MINUTES)
+                            : addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
+                        lastPingAt: now,
+                        lastActiveAt: now,
+                        disconnectedAt:
+                          lockedConnection.state === 'connected'
+                            ? null
+                            : lockedConnection.disconnectedAt
+                      },
+                      include: { participant: true }
+                    });
+
+                    await db.session.updateMany({
+                      where: { oid: lockedCurrentSession.oid },
+                      data: {
+                        connectionState: newConnection.state,
+                        lastConnectionCreatedAt: now,
+                        lastActiveAt: now
+                      }
+                    });
+
+                    return newConnection;
+                  });
+
+                  return {
+                    ...lockedCurrentSession,
+                    connection: currentConnection
+                  };
+                }
+              }
+
+              return {
+                ...lockedConnection.session,
+                tenant: lockedConnection.tenant,
+                solution: lockedConnection.solution,
+                connection: lockedConnection
+              };
+            }
+          );
+
+          if (resolvedConnection) return resolvedConnection;
+
+          connection = await loadConnection();
         }
-      });
+      }
 
       if (connection) {
         return {
@@ -400,26 +536,6 @@ export class SenderManager {
   }
 
   private async ensureProviderInstance(provider: SessionProvider) {
-    let currentInstance = await db.sessionProviderInstance.findFirst({
-      where: {
-        sessionProviderOid: provider.oid,
-        expiresAt: { gt: new Date() }
-      },
-      include: { pairVersion: true }
-    });
-    if (currentInstance) {
-      return {
-        status: 'ok' as const,
-        instance: await db.sessionProviderInstance.update({
-          where: { oid: currentInstance.oid },
-          data: {
-            expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
-          },
-          include: { pairVersion: true }
-        })
-      };
-    }
-
     return instanceLock.usingLock(provider.id, async () => {
       let currentInstance = await db.sessionProviderInstance.findFirst({
         where: {
@@ -429,10 +545,24 @@ export class SenderManager {
         include: { pairVersion: true }
       });
       if (currentInstance) {
-        return {
-          status: 'ok' as const,
-          instance: currentInstance
-        };
+        let ageInMinutes = Math.abs(differenceInMinutes(new Date(), currentInstance.createdAt));
+        if (ageInMinutes <= SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) {
+          return {
+            status: 'ok' as const,
+            instance: await db.sessionProviderInstance.update({
+              where: { oid: currentInstance.oid },
+              data: {
+                expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
+              },
+              include: { pairVersion: true }
+            })
+          };
+        }
+
+        await db.sessionProviderInstance.updateMany({
+          where: { oid: currentInstance.oid },
+          data: { expiresAt: new Date() }
+        });
       }
 
       let fullProvider = await db.sessionProvider.findFirstOrThrow({
@@ -982,7 +1112,7 @@ export class SenderManager {
     } satisfies ConduitResult;
   }
 
-  async callTool(d: CallToolProps) {
+  async callTool(d: CallToolProps): Promise<CallToolResult> {
     let connection = this.connection;
     if (!connection) {
       throw new ServiceError(
@@ -1041,6 +1171,21 @@ export class SenderManager {
       parentMessage: d.parentMessage
     });
 
+    let publishTargetedResult = async (result: ConduitResult) => {
+      await broadcastNats.publish(
+        topics.sessionConnection.encode({
+          session: this.session,
+          connection
+        }),
+        serialize.encode({
+          type: 'message_processed',
+          sessionId: this.session.id,
+          channel: 'targeted_response',
+          result
+        })
+      );
+    };
+
     let processingPromise = (async () => {
       try {
         let res = await sender.send(topics.instance.encode({ instance, connection }), {
@@ -1061,21 +1206,39 @@ export class SenderManager {
             from: { type: 'system' }
           });
 
-          await completeMessage(
+          let failureReason =
+            typeof res.error === 'string' && /timeout/i.test(res.error)
+              ? ('timeout' as const)
+              : ('system_error' as const);
+
+          message = await completeMessage(
             { messageId: message.id },
             {
               status: 'failed',
               completedAt: new Date(),
-              failureReason: 'system_error',
+              failureReason,
               responderParticipant: system,
               output: {
                 type: 'error',
-                data: internalServerError({
-                  message: 'Failed to process tool call'
-                }).toResponse()
+                data:
+                  failureReason === 'timeout'
+                    ? {
+                        code: 'timeout',
+                        message: 'The conduit request timed out before the provider responded.'
+                      }
+                    : internalServerError({
+                        message: 'Failed to process tool call'
+                      }).toResponse()
               }
             }
           );
+
+          await publishTargetedResult({
+            message,
+            output: message.output,
+            status: message.status,
+            completedAt: message.completedAt
+          });
         } else {
           let data = res.result as ConduitResult;
           message = Object.assign(message, {
@@ -1085,9 +1248,48 @@ export class SenderManager {
         }
       } catch (err) {
         Sentry.captureException(err);
-        if (process.env.NODE_ENV !== 'production') {
-          console.error('Error sending tool call message:', err);
-        }
+
+        console.error('Error sending tool call message:', err);
+
+        let system = await upsertParticipant({
+          session: this.session,
+          from: { type: 'system' }
+        });
+
+        let failureReason =
+          err instanceof ConduitSendError && /timeout/i.test(err.message)
+            ? ('timeout' as const)
+            : ('system_error' as const);
+        let errorResponse =
+          failureReason === 'timeout'
+            ? {
+                code: 'timeout',
+                message: err instanceof Error ? err.message : 'The conduit request timed out.'
+              }
+            : internalServerError({
+                message: err instanceof Error ? err.message : 'Failed to process tool call'
+              }).toResponse();
+
+        message = await completeMessage(
+          { messageId: message.id },
+          {
+            status: 'failed',
+            completedAt: new Date(),
+            failureReason,
+            responderParticipant: system,
+            output: {
+              type: 'error',
+              data: errorResponse
+            }
+          }
+        );
+
+        await publishTargetedResult({
+          message,
+          output: message.output,
+          status: message.status,
+          completedAt: message.completedAt
+        });
       }
     })();
 
@@ -1099,8 +1301,9 @@ export class SenderManager {
       message,
       output: message.output,
       status: message.status,
-      completedAt: message.completedAt
-    } satisfies ConduitResult;
+      completedAt: message.completedAt,
+      processingPromise: d.waitForResponse ? undefined : processingPromise
+    } satisfies CallToolResult;
   }
 
   #createConnectionPromise: Promise<SessionConnection> | null = null;

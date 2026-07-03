@@ -8,6 +8,7 @@ import {
   mapDashboardInstancePortalsConsumerProfilesAssignGroupsOutput,
   mapDashboardInstancePortalsConsumerProfilesCreateBody,
   mapDashboardInstancePortalsConsumerProfilesCreateOutput,
+  mapDashboardInstancePortalsConsumerProfilesDeleteOutput,
   mapDashboardInstancePortalsConsumerProfilesGetOutput,
   mapDashboardInstancePortalsConsumerProfilesListOutput,
   mapDashboardInstancePortalsConsumerProfilesListQuery,
@@ -17,6 +18,7 @@ import {
   type DashboardInstancePortalsConsumerProfilesAssignGroupsOutput,
   type DashboardInstancePortalsConsumerProfilesCreateBody,
   type DashboardInstancePortalsConsumerProfilesCreateOutput,
+  type DashboardInstancePortalsConsumerProfilesDeleteOutput,
   type DashboardInstancePortalsConsumerProfilesGetOutput,
   type DashboardInstancePortalsConsumerProfilesListOutput,
   type DashboardInstancePortalsConsumerProfilesListQuery,
@@ -149,6 +151,37 @@ export class MetorialManagementInstancePortalsConsumerProfilesEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstancePortalsConsumerProfilesCreateOutput
+    );
+  }
+
+  /**
+   * @name Delete portal consumer profile
+   * @description Soft-deletes a portal consumer profile.
+   *
+   * @param `instanceId` - string
+   * @param `portalId` - string
+   * @param `consumerProfileId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstancePortalsConsumerProfilesDeleteOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  delete(
+    instanceId: string,
+    portalId: string,
+    consumerProfileId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstancePortalsConsumerProfilesDeleteOutput> {
+    let path = `instances/${instanceId}/portals/${portalId}/consumer-profile/${consumerProfileId}`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._delete(request).transform(
+      mapDashboardInstancePortalsConsumerProfilesDeleteOutput
     );
   }
 

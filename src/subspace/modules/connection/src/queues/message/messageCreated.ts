@@ -4,6 +4,8 @@ import { env } from '../../env';
 import { finalizeMessageQueue } from './finalizeMessage';
 import { messageTimeoutQueue } from './messageTimeout';
 
+let MESSAGE_TIMEOUT_FALLBACK_INITIAL_DELAY_MS = 60_000;
+
 export let messageCreatedQueue = createQueue<{ messageId: string }>({
   name: 'sub/con/msg/created',
   redisUrl: env.service.REDIS_URL,
@@ -63,7 +65,10 @@ export let messageCreatedQueueProcessor = messageCreatedQueue.process(async data
   });
 
   if (message.status == 'waiting_for_response') {
-    await messageTimeoutQueue.add({ messageId: message.id }, { delay: 1000 * 15 });
+    await messageTimeoutQueue.add(
+      { messageId: message.id },
+      { delay: MESSAGE_TIMEOUT_FALLBACK_INITIAL_DELAY_MS }
+    );
   } else {
     await finalizeMessageQueue.add({ messageId: message.id });
   }

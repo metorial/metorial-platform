@@ -268,6 +268,7 @@ export let projectAuthConfigConfigurationType = PresentableType.create<{
 export let projectToolCallingConfigurationType = PresentableType.create<{
   project: Project;
   collectOperationDescriptionForToolCalls: boolean;
+  messageProcessingTimeoutMs: number;
 }>()('project_tool_calling_configuration');
 
 export let projectIntegrationNamingConfigurationType = PresentableType.create<{

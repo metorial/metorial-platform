@@ -21,6 +21,7 @@ import { sessionProviderCreatedQueueProcessor } from './sessionProvider';
 import {
   sessionTemplateArchivedQueueProcessor,
   sessionTemplateArchiveSessionsManyQueueProcessor,
+  sessionTemplateInvalidateRuntimeQueueProcessor,
   sessionTemplateDeletedQueueProcessor
 } from './sessionTemplate';
 import {
@@ -44,6 +45,7 @@ export let lifecycleQueues = combineQueueProcessors([
   archiveIntegrationInstanceGroupSessionTemplateQueueProcessor,
   sessionTemplateArchivedQueueProcessor,
   sessionTemplateArchiveSessionsManyQueueProcessor,
+  sessionTemplateInvalidateRuntimeQueueProcessor,
   sessionTemplateDeletedQueueProcessor,
   sessionTemplateProviderCreatedQueueProcessor,
   sessionTemplateSyncHashQueueProcessor

@@ -63,6 +63,7 @@ export class ConduitReceiver {
       messageCacheTtl: 60000,
       messageCacheSize: 10000,
       timeoutExtensionThreshold: 1000,
+      timeoutExtensionMs: 10000,
       maxProcessingMs: 300000,
       maxInFlight: 2000,
       handlerConcurrency: 256,

@@ -15,13 +15,15 @@ export class ConduitSendError extends Error {
   public readonly topic: string;
   public readonly retryCount: number;
   public readonly originalError?: Error;
+  public readonly retryable: boolean;
 
   constructor(
     message: string,
     messageId: string,
     topic: string,
     retryCount: number,
-    cause?: Error
+    cause?: Error,
+    retryable: boolean = true
   ) {
     super(message);
     this.name = 'ConduitSendError';
@@ -29,6 +31,7 @@ export class ConduitSendError extends Error {
     this.topic = topic;
     this.retryCount = retryCount;
     this.originalError = cause;
+    this.retryable = retryable;
   }
 }
 

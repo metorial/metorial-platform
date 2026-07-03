@@ -5,6 +5,7 @@ import { getRetentionCutoffDate } from '@metorial-subspace/list-utils';
 import { env } from '../../env';
 import { sessionDeletedQueue } from '../lifecycle/session';
 import { getCutoffDate, RETENTION_BATCH_SIZE } from './_config';
+import { deleteProviderRunsBySessionOid } from './providerRunCleanup';
 
 export let sessionRetentionCleanupCron = createCron(
   {
@@ -171,12 +172,7 @@ export let sessionDeleteQueueProcessor = sessionDeleteQueue.process(async data =
   await db.sessionError.deleteMany({
     where: { sessionOid: session.oid }
   });
-  await db.providerRunUsageRecord.deleteMany({
-    where: { providerRun: { sessionOid: session.oid } }
-  });
-  await db.providerRun.deleteMany({
-    where: { sessionOid: session.oid }
-  });
+  await deleteProviderRunsBySessionOid(session.oid);
   await db.sessionProviderInstance.deleteMany({
     where: { sessionOid: session.oid }
   });

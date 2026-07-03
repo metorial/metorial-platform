@@ -97,6 +97,27 @@ export function createFullFeaturedServer(): McpServer {
     }
   );
 
+  mcpServer.registerTool(
+    'slow_operation',
+    {
+      description: 'Perform a slow operation with a configurable delay',
+      inputSchema: {
+        delayMs: z.number().default(12000).describe('Delay in milliseconds before responding')
+      }
+    },
+    async ({ delayMs }) => {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Slow operation completed after ${delayMs}ms`
+          }
+        ]
+      };
+    }
+  );
+
   // ========== RESOURCES ==========
 
   mcpServer.registerResource(

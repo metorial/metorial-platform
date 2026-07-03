@@ -53,17 +53,6 @@ export let completeMessage = async (
         })
       : undefined;
 
-  let error: SessionError | undefined;
-  if (data.status === 'failed') {
-    error = await createError({
-      type: messageFailureReasonToErrorType(data.failureReason ?? 'provider_error'),
-      session: currentMessage!.session,
-      connection: currentMessage!.connection,
-      output: data.output!,
-      providerRun: data.providerRun
-    });
-  }
-
   let toolCallAttachments =
     currentMessage?.toolCall && data.output?.type === 'tool.result'
       ? getRawToolCallAttachmentsFromOutput(data.output)
@@ -87,10 +76,19 @@ export let completeMessage = async (
     );
   }
 
-  let message = await db.$transaction(async tx => {
-    let message = await tx.sessionMessage.update({
+  let messageWhere = 'messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid };
+  let messageInclude = {
+    toolCall: {
+      include: {
+        attachments: true
+      }
+    }
+  };
+
+  let { message, didTransition } = await db.$transaction(async tx => {
+    let result = await tx.sessionMessage.updateMany({
       where: {
-        ...('messageId' in filter ? { id: filter.messageId } : { oid: filter.messageOid }),
+        ...messageWhere,
         status: 'waiting_for_response'
       },
       data: {
@@ -98,19 +96,24 @@ export let completeMessage = async (
         status: data.status,
         completedAt: data.completedAt ?? new Date(),
         failureReason: data.failureReason,
-
-        errorOid: error?.oid,
         providerRunOid: data.providerRun?.oid,
         slateToolCallOid: data.slateToolCall?.oid,
         responderParticipantOid: data.responderParticipant.oid
-      },
-      include: {
-        toolCall: {
-          include: {
-            attachments: true
-          }
-        }
       }
+    });
+    if (result.count === 0) {
+      return {
+        didTransition: false,
+        message: await tx.sessionMessage.findFirstOrThrow({
+          where: messageWhere,
+          include: messageInclude
+        })
+      };
+    }
+
+    let message = await tx.sessionMessage.findFirstOrThrow({
+      where: messageWhere,
+      include: messageInclude
     });
 
     if (message.toolCall) {
@@ -137,8 +140,30 @@ export let completeMessage = async (
       }
     }
 
-    return message;
+    return {
+      didTransition: true,
+      message
+    };
   });
+
+  if (!didTransition) return message;
+
+  let error: SessionError | undefined;
+  if (data.status === 'failed') {
+    error = await createError({
+      type: messageFailureReasonToErrorType(data.failureReason ?? 'provider_error'),
+      session: currentMessage!.session,
+      connection: currentMessage!.connection,
+      output: data.output!,
+      providerRun: data.providerRun
+    });
+
+    message = await db.sessionMessage.update({
+      where: { oid: message.oid },
+      data: { errorOid: error?.oid },
+      include: messageInclude
+    });
+  }
 
   (async () => {
     await db.sessionEvent.updateMany({

@@ -9,7 +9,11 @@ import {
   PING_MESSAGE_ID_PREFIX
 } from '../const';
 import type { SenderMangerProps } from '../sender';
-import { McpControlMessageHandler } from './control';
+import {
+  getMcpProgressToken,
+  isProgressNotificationForToken,
+  McpControlMessageHandler
+} from './control';
 import { McpManager } from './manager';
 import { type HandleResponseOpts, McpSender } from './sender';
 
@@ -84,6 +88,45 @@ export class McpConnection {
 
   handleMessage(msg: JSONRPCMessage, opts: HandleResponseOpts) {
     return this.#sender.handleMessage(msg, opts);
+  }
+
+  async handleMessageWithProgress(
+    msg: JSONRPCMessage,
+    opts: HandleResponseOpts,
+    onProgress: (event: { mcp: JSONRPCMessage; message: null }) => Promise<void>
+  ) {
+    let progressToken = getMcpProgressToken(msg);
+    if (!opts.waitForResponse || progressToken === null) {
+      return await this.handleMessage(msg, opts);
+    }
+
+    let listener = await this.#control.controlListener({ selectedChannels: 'broadcast' });
+    let iterator = listener[Symbol.asyncIterator]();
+    let responsePromise = this.#sender.handleMessage(msg, opts);
+    let nextProgress = iterator.next().then(result => ({ type: 'progress' as const, result }));
+    let responseResult = responsePromise.then(result => ({ type: 'response' as const, result }));
+
+    try {
+      while (true) {
+        let event = await Promise.race([responseResult, nextProgress]);
+        if (event.type === 'response') {
+          return event.result;
+        }
+
+        if (event.result.done) {
+          nextProgress = new Promise(() => {});
+          continue;
+        }
+
+        if (isProgressNotificationForToken(event.result.value.mcp, progressToken)) {
+          await onProgress({ mcp: event.result.value.mcp, message: null });
+        }
+
+        nextProgress = iterator.next().then(result => ({ type: 'progress' as const, result }));
+      }
+    } finally {
+      await listener.close();
+    }
   }
 
   createConnection() {
