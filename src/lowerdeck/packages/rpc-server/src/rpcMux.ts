@@ -40,6 +40,8 @@ let validation = v.object({
 
 let normalizeHandlerName = (name: string) => name.replace(/\./g, ':');
 
+let isBatchRpcBody = (body: unknown) => validation.validate(body).success;
+
 let summarizeRpcTarget = (url: URL, body: any) => {
   let pathParts = url.pathname.split('/').filter(Boolean);
   let lastPart = pathParts[pathParts.length - 1] ?? '';
@@ -67,6 +69,13 @@ let summarizeRpcTarget = (url: URL, body: any) => {
 let getDirectRouteHandlerName = (url: URL, rpcPath: string) => {
   let pathParts = url.pathname.split('/').filter(Boolean);
   let rpcPathParts = new URL(rpcPath, 'https://rpc.local').pathname.split('/').filter(Boolean);
+
+  if (rpcPathParts.length === 0) {
+    let lastPart = pathParts[pathParts.length - 1] ?? '';
+    let rawName = lastPart.startsWith('$') ? lastPart.slice(1) : lastPart;
+    if (!rawName) return null;
+    return normalizeHandlerName(rawName);
+  }
 
   if (pathParts.length != rpcPathParts.length + 1) return null;
   if (rpcPathParts.some((part, i) => pathParts[i] != part)) return null;
@@ -260,7 +269,9 @@ export let rpcMux = (
 
       let incomingParent = trace.getSpanContext(extractedTraceContext);
       let canTrace = isTelemetryEnabled() && (!!incomingParent || !!opts.allowRootSpan);
-      let directRouteHandlerName = getDirectRouteHandlerName(url, opts.path);
+      let directRouteHandlerName = isBatchRpcBody(body)
+        ? null
+        : getDirectRouteHandlerName(url, opts.path);
       let requestSpanTarget = directRouteHandlerName ?? summarizeRpcTarget(url, body);
       let requestSpanName = `rpc request: ${requestSpanTarget}`;
       let requestSpanOp = 'rpc.server.request';
@@ -361,7 +372,9 @@ export let rpcMux = (
                             status: 200
                           };
 
-                          let directHandlerName = getDirectRouteHandlerName(url, opts.path);
+                          let directHandlerName = isBatchRpcBody(body)
+                            ? null
+                            : getDirectRouteHandlerName(url, opts.path);
                           let isSingle = directHandlerName != null;
 
                           if (isSingle) {
