@@ -49,3 +49,67 @@ export let cellTokenRepository = Service.create(
   'cellTokenRepository',
   () => new CellTokenRepository()
 ).build();
+
+class HyperplaneTokenRepository {
+  async findReusableHyperplaneToken(d: { hyperplaneIdentifier: string; expiresAfter?: Date }) {
+    return await globalDB.hyperplaneToken.findFirst({
+      where: {
+        hyperplane: { identifier: d.hyperplaneIdentifier },
+        expiresAt: d.expiresAfter ? { gt: d.expiresAfter } : { gt: new Date() }
+      },
+      include: {
+        hyperplane: true
+      },
+      orderBy: {
+        expiresAt: 'desc'
+      }
+    });
+  }
+
+  async getHyperplaneToken(d: { hyperplaneIdentifier: string; hyperplaneTokenId: string }) {
+    return await globalDB.hyperplaneToken.findFirst({
+      where: {
+        id: d.hyperplaneTokenId,
+        hyperplane: { identifier: d.hyperplaneIdentifier }
+      },
+      include: {
+        hyperplane: true
+      }
+    });
+  }
+
+  async createHyperplaneToken(d: {
+    hyperplaneIdentifier: string;
+    ttlMs: number;
+    cellOid?: number | null;
+  }) {
+    let expiresAt = new Date(Date.now() + d.ttlMs);
+
+    let hyperplane = await globalDB.hyperplane.upsert({
+      where: { identifier: d.hyperplaneIdentifier },
+      create: {
+        identifier: d.hyperplaneIdentifier,
+        cellOid: d.cellOid ?? null
+      },
+      update: {
+        cellOid: d.cellOid ?? undefined
+      }
+    });
+
+    return await globalDB.hyperplaneToken.create({
+      data: {
+        hyperplaneOid: hyperplane.oid,
+        token: crypto.randomUUID(),
+        expiresAt
+      },
+      include: {
+        hyperplane: true
+      }
+    });
+  }
+}
+
+export let hyperplaneTokenRepository = Service.create(
+  'hyperplaneTokenRepository',
+  () => new HyperplaneTokenRepository()
+).build();
