@@ -18,7 +18,7 @@ model AccountDomain {
   status             AccountDomainStatus
   verificationStatus AccountDomainVerificationStatus
 
-  isFixedToVerified Boolean
+  isFixedToVerified Boolean   @default(false)
   lastCheckedAt     DateTime?
   lastManualCheckAt DateTime?
 

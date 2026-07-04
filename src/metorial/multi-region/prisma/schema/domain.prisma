@@ -18,13 +18,13 @@ model AccountDomain {
   status             AccountDomainStatus
   verificationStatus AccountDomainVerificationStatus
 
-  isFixedToVerified Boolean
+  isFixedToVerified Boolean @default(false)
 
   accountId String
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  lastCheckedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+  lastCheckedAt     DateTime?
   lastManualCheckAt DateTime?
 
   verifications AccountDomainVerification[]
