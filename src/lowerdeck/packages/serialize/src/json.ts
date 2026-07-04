@@ -3,6 +3,8 @@ import SuperJSON from 'superjson';
 
 export let serialize = {
   encode: (data: any) => {
+    if (Array.isArray(data)) data = { items: data, $$MODE$$: 'array_envelope' };
+
     let sup = SuperJSON.serialize(data);
 
     if (sup.meta?.referentialEqualities) {
@@ -26,13 +28,24 @@ export let serialize = {
 
     if (typeof data != 'object') return data;
 
-    let { $$TYPES$$, ...rest } = data;
+    let { $$TYPES$$, $$MODE$$, ...rest } = data;
 
     if (typeof $$TYPES$$ != 'object' || !$$TYPES$$.__mode) return data;
 
     let { __mode, ...meta } = $$TYPES$$;
     let json = __mode == 'value' ? rest.data : rest;
 
-    return SuperJSON.deserialize({ json, meta });
+    let res = SuperJSON.deserialize({ json, meta });
+
+    if (
+      $$MODE$$ == 'array_envelope' &&
+      typeof res == 'object' &&
+      res != null &&
+      'items' in res
+    ) {
+      return res.items;
+    }
+
+    return res;
   }
 };
