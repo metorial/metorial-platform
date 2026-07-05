@@ -1,4 +1,4 @@
-import { GetSendQuotaCommand, SendEmailCommand, SESClient } from '@aws-sdk/client-ses';
+import { GetAccountCommand, SendEmailCommand, SESv2Client } from '@aws-sdk/client-sesv2';
 import nodemailer from 'nodemailer';
 import type { EmailIdentity } from '../../prisma/generated/browser';
 import { env } from '../env';
@@ -6,7 +6,7 @@ import { env } from '../env';
 let transport = env.email.EMAIL_SES_REGION
   ? {
       type: 'ses' as const,
-      client: new SESClient(
+      client: new SESv2Client(
         env.email.EMAIL_SES_ACCESS_KEY_ID
           ? {
               region: env.email.EMAIL_SES_REGION!,
@@ -36,7 +36,7 @@ let transport = env.email.EMAIL_SES_REGION
 export let checkSesAccess = async () => {
   if (transport.type !== 'ses') return;
 
-  await transport.client.send(new GetSendQuotaCommand({}));
+  await transport.client.send(new GetAccountCommand({}));
   console.log('SES access verified');
 };
 
@@ -46,6 +46,10 @@ export let send = async (opts: {
   html: string;
   text: string;
   identity: EmailIdentity;
+  headers?: {
+    inReplyTo?: string;
+    references?: string[];
+  };
 }) => {
   if (process.env.METORIAL_ENV == 'staging') {
     opts.subject = `[STAGING] ${opts.subject}`;
@@ -54,28 +58,50 @@ export let send = async (opts: {
   }
 
   if (transport.type == 'ses') {
+    let headers = [
+      ...(opts.headers?.inReplyTo
+        ? [
+            {
+              Name: 'In-Reply-To',
+              Value: opts.headers.inReplyTo
+            }
+          ]
+        : []),
+      ...(opts.headers?.references?.length
+        ? [
+            {
+              Name: 'References',
+              Value: opts.headers.references.join(' ')
+            }
+          ]
+        : [])
+    ];
+
     let result = await transport.client.send(
       new SendEmailCommand({
         Destination: {
           ToAddresses: [opts.to]
         },
-        Message: {
-          Body: {
-            Html: {
+        FromEmailAddress: `${opts.identity.fromName} <${opts.identity.fromEmail}>`,
+        Content: {
+          Simple: {
+            Subject: {
               Charset: 'UTF-8',
-              Data: opts.html
+              Data: `${opts.identity.subjectMarker || ''}${opts.subject}`
             },
-            Text: {
-              Charset: 'UTF-8',
-              Data: opts.text
-            }
-          },
-          Subject: {
-            Charset: 'UTF-8',
-            Data: `${opts.identity.subjectMarker || ''}${opts.subject}`
+            Body: {
+              Html: {
+                Charset: 'UTF-8',
+                Data: opts.html
+              },
+              Text: {
+                Charset: 'UTF-8',
+                Data: opts.text
+              }
+            },
+            Headers: headers.length ? headers : undefined
           }
-        },
-        Source: `${opts.identity.fromName} <${opts.identity.fromEmail}>`
+        }
       })
     );
 
@@ -87,7 +113,9 @@ export let send = async (opts: {
     to: opts.to,
     subject: `${opts.identity.subjectMarker || ''}${opts.subject}`,
     html: opts.html,
-    text: opts.text
+    text: opts.text,
+    inReplyTo: opts.headers?.inReplyTo,
+    references: opts.headers?.references
   });
 
   return {
