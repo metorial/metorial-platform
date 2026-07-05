@@ -27,6 +27,7 @@ model Sender {
   createdAt DateTime @default(now())
 
   emailIdentities EmailIdentity[]
+  inboxes         Inbox[]
 }
 
 enum EmailIdentityType {
@@ -64,6 +65,16 @@ model OutgoingEmail {
 
   identityId Int
   identity   EmailIdentity @relation(fields: [identityId], references: [oid], onDelete: Cascade)
+
+  incomingEmailThreadOid BigInt?
+  incomingEmailThread    IncomingEmailThread? @relation(fields: [incomingEmailThreadOid], references: [oid], onDelete: SetNull)
+
+  replyToOutgoingEmailOid BigInt?
+  replyToOutgoingEmail    OutgoingEmail?  @relation("ReplyTo", fields: [replyToOutgoingEmailOid], references: [oid], onDelete: SetNull)
+  replies                 OutgoingEmail[] @relation("ReplyTo")
+
+  replyToIncomingEmailOid BigInt?
+  replyToIncomingEmail    IncomingEmail? @relation(fields: [replyToIncomingEmailOid], references: [oid], onDelete: SetNull)
 
   values Json
 
@@ -115,7 +126,68 @@ model OutgoingEmailSend {
   destinationId BigInt
   destination   OutgoingEmailDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
 
+  messageId String?
   result Json
 
   createdAt DateTime @default(now())
+
+  @@index([messageId])
+}
+
+model Inbox {
+  oid BigInt @id
+  id  String @unique
+
+  email String @unique
+
+  senderOid Int
+  sender    Sender @relation(fields: [senderOid], references: [oid], onDelete: Cascade)
+
+  createdAt            DateTime              @default(now())
+  incomingEmailThreads IncomingEmailThread[]
+  incomingEmails       IncomingEmail[]
+
+  @@index([senderOid])
+}
+
+model IncomingEmailThread {
+  oid BigInt @id
+  id  String @unique
+
+  inboxOid BigInt
+  inbox    Inbox  @relation(fields: [inboxOid], references: [oid], onDelete: Cascade)
+
+  subject String
+
+  createdAt DateTime @default(now())
+
+  emails         IncomingEmail[]
+  outgoingEmails OutgoingEmail[]
+
+  @@index([inboxOid])
+}
+
+model IncomingEmail {
+  oid BigInt @id
+  id  String @unique
+
+  inboxOid BigInt
+  inbox    Inbox  @relation(fields: [inboxOid], references: [oid], onDelete: Cascade)
+
+  threadOid BigInt
+  thread    IncomingEmailThread @relation(fields: [threadOid], references: [oid], onDelete: Cascade)
+
+  from      String
+  to        String
+  subject   String
+  text      String
+  messageId String?
+  headers   Json
+
+  createdAt      DateTime        @default(now())
+  outgoingEmails OutgoingEmail[]
+
+  @@index([inboxOid])
+  @@index([threadOid])
+  @@index([messageId])
 }
