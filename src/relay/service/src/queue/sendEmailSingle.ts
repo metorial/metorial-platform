@@ -7,9 +7,15 @@ import type {
 import { db } from '../db';
 import { env } from '../env';
 import { snowflake } from '../id';
+import { getReplyHeadersForIncomingEmail } from '../lib/emailHeaders';
 import { send } from '../lib/send';
 
 let Sentry = getSentry();
+
+let getProviderMessageId = (sendRes: any) => {
+  if (!sendRes || typeof sendRes != 'object') return undefined;
+  return sendRes.MessageId ?? sendRes.messageId;
+};
 
 export let sendEmailSingleQueue = createQueue<{ destinationId: bigint }>({
   name: 'fed/email/send_email_single',
@@ -41,7 +47,8 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       email: {
         include: {
           content: true,
-          identity: true
+          identity: true,
+          replyToIncomingEmail: true
         }
       }
     }
@@ -58,7 +65,8 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       subject: email.content.subject,
       html: email.content.html.replaceAll('EMAIL_ID', email.id),
       text: email.content.text.replaceAll('EMAIL_ID', email.id),
-      identity: email.identity
+      identity: email.identity,
+      headers: getReplyHeadersForIncomingEmail(email.replyToIncomingEmail)
     });
   } catch (err) {
     Sentry.captureException(err);
@@ -71,6 +79,7 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       id: snowflake.nextId(),
       destinationId: destination.id,
       status,
+      messageId: getProviderMessageId(sendRes),
       result: sendRes
     }
   });
