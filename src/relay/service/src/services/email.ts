@@ -2,7 +2,7 @@ import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { EmailIdentity } from '../../prisma/generated/browser';
-import type { Sender } from '../../prisma/generated/client';
+import type { IncomingEmail, IncomingEmailThread, Sender } from '../../prisma/generated/client';
 import { db } from '../db';
 import { get4ByteIntId, ID, snowflake } from '../id';
 import { sendEmailQueue } from '../queue/sendEmail';
@@ -89,6 +89,8 @@ class EmailService {
       text: string;
     };
     identity: EmailIdentity;
+    incomingEmailThread?: IncomingEmailThread;
+    replyToIncomingEmail?: IncomingEmail;
   }) {
     let email = await db.outgoingEmail.create({
       data: {
@@ -102,7 +104,9 @@ class EmailService {
 
         subject: d.content.subject,
 
-        identityId: d.identity.oid
+        identityId: d.identity.oid,
+        incomingEmailThreadOid: d.incomingEmailThread?.oid,
+        replyToIncomingEmailOid: d.replyToIncomingEmail?.oid
       }
     });
 
