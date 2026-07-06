@@ -1,6 +1,14 @@
 import * as RadixToggleGroup from '@radix-ui/react-toggle-group';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { styled } from 'styled-components';
 import { theme } from '..';
 import { ButtonSize, getButtonSize } from '../button/constants';
@@ -129,12 +137,14 @@ export let OptionToggle = ({
   let labelId = `${id}-label`;
   let rootRef = useRef<HTMLDivElement | null>(null);
   let itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  let measurementFrameRef = useRef<number | null>(null);
   let [indicator, setIndicator] = useState<{ width: number; left: number } | null>(null);
   let sizeStyles = getButtonSize(size);
   let itemBorderRadius = `calc(${sizeStyles.borderRadius} - 2px)`;
 
   let selectedItem = useMemo(() => items.find(item => item.id == value), [items, value]);
-  let updateIndicator = (nextIndicator: { width: number; left: number } | null) => {
+  let itemIds = useMemo(() => items.map(item => item.id).join('\0'), [items]);
+  let updateIndicator = useCallback((nextIndicator: { width: number; left: number } | null) => {
     setIndicator(current => {
       if (current === null && nextIndicator === null) return current;
       if (current && nextIndicator) {
@@ -145,30 +155,41 @@ export let OptionToggle = ({
 
       return nextIndicator;
     });
-  };
+  }, []);
+
+  let measureIndicator = useCallback(() => {
+    let root = rootRef.current;
+    let item = selectedItem ? itemRefs.current[selectedItem.id] : null;
+    if (!root || !item) {
+      updateIndicator(null);
+      return;
+    }
+
+    updateIndicator({
+      width: item.offsetWidth,
+      left: item.offsetLeft - 4
+    });
+  }, [selectedItem?.id, updateIndicator]);
+
+  let scheduleMeasureIndicator = useCallback(() => {
+    if (measurementFrameRef.current !== null) {
+      cancelAnimationFrame(measurementFrameRef.current);
+    }
+
+    measurementFrameRef.current = requestAnimationFrame(() => {
+      measurementFrameRef.current = null;
+      measureIndicator();
+    });
+  }, [measureIndicator]);
 
   useLayoutEffect(() => {
-    let measure = () => {
-      let root = rootRef.current;
-      let item = selectedItem ? itemRefs.current[selectedItem.id] : null;
-      if (!root || !item) {
-        updateIndicator(null);
-        return;
-      }
-
-      updateIndicator({
-        width: item.offsetWidth,
-        left: item.offsetLeft - 4
-      });
-    };
-
-    measure();
+    measureIndicator();
 
     let resizeObserver =
       typeof ResizeObserver == 'undefined'
         ? null
         : new ResizeObserver(() => {
-            measure();
+            scheduleMeasureIndicator();
           });
 
     if (rootRef.current) resizeObserver?.observe(rootRef.current);
@@ -177,27 +198,19 @@ export let OptionToggle = ({
       if (selectedNode) resizeObserver?.observe(selectedNode);
     }
 
-    return () => resizeObserver?.disconnect();
-  }, [items, selectedItem, value]);
+    return () => {
+      resizeObserver?.disconnect();
+      if (measurementFrameRef.current !== null) {
+        cancelAnimationFrame(measurementFrameRef.current);
+        measurementFrameRef.current = null;
+      }
+    };
+  }, [itemIds, measureIndicator, scheduleMeasureIndicator, selectedItem?.id, value]);
 
   useEffect(() => {
-    let handleResize = () => {
-      let root = rootRef.current;
-      let item = selectedItem ? itemRefs.current[selectedItem.id] : null;
-      if (!root || !item) {
-        updateIndicator(null);
-        return;
-      }
-
-      updateIndicator({
-        width: item.offsetWidth,
-        left: item.offsetLeft - 4
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [selectedItem]);
+    window.addEventListener('resize', scheduleMeasureIndicator);
+    return () => window.removeEventListener('resize', scheduleMeasureIndicator);
+  }, [scheduleMeasureIndicator]);
 
   return (
     <Wrapper>

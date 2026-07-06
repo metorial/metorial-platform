@@ -73,6 +73,11 @@ type AddProviderPanelFormValues = {
 };
 
 type ToolPermissionMode = 'allow' | 'reject' | 'mixed';
+let toolPermissionModeItems: { id: ToolPermissionMode; label: string }[] = [
+  { id: 'allow', label: 'Allow' },
+  { id: 'reject', label: 'Reject' },
+  { id: 'mixed', label: 'Mixed' }
+];
 type InitialToolFilter =
   | {
       type: 'allow_all';
@@ -152,6 +157,7 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   let selectedProviderRequiresConfig = selectedProvider.data?.type.config.status == 'enabled';
   let selectedProviderRequiresAuth = selectedProvider.data?.type.auth.status == 'enabled';
   let [step, setStep] = useState(p.hideProviderStep ? 0 : p.providerId ? 1 : 0);
+  let initialSelectionHydrationKeyRef = useRef<string | null>(null);
   let toolFilterHydrationKeyRef = useRef<string | null>(null);
   let initialSelectedToolKeys =
     p.initialToolFilter?.type === 'filter'
@@ -379,7 +385,21 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
   ]);
 
   useEffect(() => {
-    if (!p.hideProviderStep) return;
+    if (!p.hideProviderStep) {
+      initialSelectionHydrationKeyRef.current = null;
+      return;
+    }
+
+    let hydrationKey = [
+      p.sessionTemplateProviderId ?? '',
+      p.providerId ?? '',
+      p.initialDeploymentId ?? '',
+      p.initialConfigId ?? '',
+      p.initialAuthConfigId ?? '',
+      selectedProviderRequiresConfig ? 'config' : '',
+      selectedProviderRequiresAuth ? 'auth' : ''
+    ].join('::');
+    let shouldHydrateInitialSelections = initialSelectionHydrationKeyRef.current !== hydrationKey;
 
     if (p.providerId && !form.values.selectedProviderId) {
       form.setFieldValue('selectedProviderId', p.providerId);
@@ -398,6 +418,7 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     }
 
     if (
+      shouldHydrateInitialSelections &&
       p.initialConfigId &&
       selectedProviderRequiresConfig &&
       form.values.selectedConfiguration.kind === 'none'
@@ -406,14 +427,18 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     }
 
     if (
+      shouldHydrateInitialSelections &&
       p.initialAuthConfigId &&
       selectedProviderRequiresAuth &&
       !form.values.selectedAuthConfigId
     ) {
       form.setFieldValue('selectedAuthConfigId', p.initialAuthConfigId);
     }
+
+    initialSelectionHydrationKeyRef.current = hydrationKey;
   }, [
     p.hideProviderStep,
+    p.sessionTemplateProviderId,
     p.providerId,
     p.initialDeploymentId,
     p.initialConfigId,
@@ -888,6 +913,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let requiresAuthConfig = showAuthSection && provider.data?.type.auth.status == 'enabled';
   let pendingCreatedAuthConfigIdRef = useRef<string | null>(null);
   let previousProviderAuthMethodIdRef = useRef<string | undefined>(providerAuthMethodId);
+  let isCreatingInlineAuthConfig = !!inlineAuthMethodId;
   let selectedToolKeys = p.selectedToolKeys ?? [];
   let toolFilterMode = p.toolFilterMode ?? 'all';
   let selectedAuthConfigForMethod = useProviderAuthConfigs(
@@ -954,6 +980,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   ]);
 
   useEffect(() => {
+    if (isCreatingInlineAuthConfig) return;
     if (previousProviderAuthMethodIdRef.current === providerAuthMethodId) return;
 
     previousProviderAuthMethodIdRef.current = providerAuthMethodId;
@@ -969,6 +996,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
       p.onSelectedAuthConfigIdChange('');
     }
   }, [
+    isCreatingInlineAuthConfig,
     providerAuthMethodId,
     p.selectedAuthConfigId,
     p.onSelectedAuthConfigIdChange,
@@ -978,6 +1006,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   useEffect(() => {
     if (!requiresAuthConfig) return;
     if (!providerAuthMethodId) return;
+    if (isCreatingInlineAuthConfig) return;
     if (!p.selectedAuthConfigId) return;
     if (selectedAuthConfigForMethod.isLoading) return;
 
@@ -985,8 +1014,10 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
       config => config.id === p.selectedAuthConfigId
     );
     let createdAuthConfigSelected = createdAuthConfigSelection?.id === p.selectedAuthConfigId;
+    let pendingCreatedAuthConfigSelected =
+      pendingCreatedAuthConfigIdRef.current === p.selectedAuthConfigId;
 
-    if (!authConfigMatchesMethod && !createdAuthConfigSelected) {
+    if (!authConfigMatchesMethod && !createdAuthConfigSelected && !pendingCreatedAuthConfigSelected) {
       pendingCreatedAuthConfigIdRef.current = null;
       setCreatedAuthConfigSelection(null);
       p.onSelectedAuthConfigIdChange('');
@@ -994,6 +1025,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   }, [
     requiresAuthConfig,
     providerAuthMethodId,
+    isCreatingInlineAuthConfig,
     p.selectedAuthConfigId,
     p.onSelectedAuthConfigIdChange,
     selectedAuthConfigForMethod.isLoading,
@@ -1393,11 +1425,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                           value
                         );
                       }}
-                      items={[
-                        { id: 'allow', label: 'Allow' },
-                        { id: 'reject', label: 'Reject' },
-                        { id: 'mixed', label: 'Mixed' }
-                      ]}
+                      items={toolPermissionModeItems}
                     />
                   </div>
 

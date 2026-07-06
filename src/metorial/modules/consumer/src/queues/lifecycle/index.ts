@@ -1,6 +1,11 @@
 import { combineQueueProcessors } from '@metorial/queue';
 import { consumerCreatedQueueProcessor, consumerUpdatedQueueProcessor } from './consumer';
 import {
+  consumerAccessDeleteQueueProcessor,
+  consumerAccessListingDeleteQueueProcessor,
+  consumerTargetAccessCleanupManyQueueProcessor
+} from './consumerAccessCleanup';
+import {
   consumerAccessRequestCreatedQueueProcessor,
   consumerAccessRequestUpdatedQueueProcessor
 } from './consumerAccessRequest';
@@ -25,6 +30,7 @@ import {
 } from './consumerSurface';
 
 export * from './consumer';
+export * from './consumerAccessCleanup';
 export * from './consumerAccessRequest';
 export * from './consumerGroup';
 export * from './consumerInvite';
@@ -41,6 +47,9 @@ export let consumerLifecycleQueueProcessor = combineQueueProcessors([
   consumerGroupCreatedQueueProcessor,
   consumerGroupUpdatedQueueProcessor,
   consumerGroupArchivedQueueProcessor,
+  consumerTargetAccessCleanupManyQueueProcessor,
+  consumerAccessListingDeleteQueueProcessor,
+  consumerAccessDeleteQueueProcessor,
   consumerAccessRequestCreatedQueueProcessor,
   consumerAccessRequestUpdatedQueueProcessor,
   consumerSurfaceCreatedQueueProcessor,
