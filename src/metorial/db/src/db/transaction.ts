@@ -65,7 +65,7 @@ export let addAfterTransactionHook = (hook: () => any) =>
             if (ctx) await provideExecutionContext(ctx, hook);
             else await hook();
           }),
-        5000
+        500
       );
     }
   });

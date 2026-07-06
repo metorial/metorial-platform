@@ -1,7 +1,10 @@
 import { FabricEvents } from './types';
 
 export type {
+  FabricBillingAccount,
+  FabricBillingPlan,
   FabricEvents,
+  FabricOrganizationSubscription,
   KeyProviderEventBase,
   KeyProviderEventKeyProvider,
   KeyProviderEventValidation,

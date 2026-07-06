@@ -165,6 +165,21 @@ export type FabricEnterpriseInvite = {
   rejectedAt: Date | null;
 };
 
+export type FabricBillingPlan = {
+  id: string;
+};
+
+export type FabricBillingAccount = {
+  id: string;
+  organizationId: string;
+};
+
+export type FabricOrganizationSubscription = {
+  id: string;
+  organizationId: string;
+  planId: string;
+};
+
 export type KeyProviderEventKeyProvider = {
   object: 'nebula#key_provider';
   id: string;
@@ -311,6 +326,11 @@ export interface FabricEvents {
   'organization.access_policy.assignment.service_account.created:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
   'organization.access_policy.assignment.service_account.deleted:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
   'organization.access_policy.assignment.service_account.deleted:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+
+  'billing.plan.created:after': { plan: FabricBillingPlan };
+  'billing.plan.updated:after': { plan: FabricBillingPlan };
+  'billing.account.created:after': { account: FabricBillingAccount };
+  'billing.subscription.updated:after': { subscription: FabricOrganizationSubscription };
 
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };
