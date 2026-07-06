@@ -14,7 +14,14 @@ import {
   magicMcpServerDeletedQueueProcessor,
   magicMcpServerUpdatedQueueProcessor
 } from './magicMcpServer';
-import { magicMcpBackingCleanupQueueProcessor } from './magicMcpBackingCleanup';
+import {
+  magicMcpBackingCleanupBackingsManyQueueProcessor,
+  magicMcpBackingCleanupIntegrationInstancesManyQueueProcessor,
+  magicMcpBackingCleanupManyQueueProcessor,
+  magicMcpBackingCleanupProviderTemplateQueueProcessor,
+  magicMcpBackingCleanupProviderTemplatesManyQueueProcessor,
+  magicMcpBackingCleanupServerQueueProcessor
+} from './magicMcpBackingCleanup';
 import {
   providerTemplateArchivedQueueProcessor,
   providerTemplateCreatedQueueProcessor,
@@ -37,7 +44,12 @@ export let magicLifecycleQueueProcessor = combineQueueProcessors([
   magicMcpServerCreatedQueueProcessor,
   magicMcpServerUpdatedQueueProcessor,
   magicMcpServerDeletedQueueProcessor,
-  magicMcpBackingCleanupQueueProcessor,
+  magicMcpBackingCleanupManyQueueProcessor,
+  magicMcpBackingCleanupBackingsManyQueueProcessor,
+  magicMcpBackingCleanupIntegrationInstancesManyQueueProcessor,
+  magicMcpBackingCleanupServerQueueProcessor,
+  magicMcpBackingCleanupProviderTemplatesManyQueueProcessor,
+  magicMcpBackingCleanupProviderTemplateQueueProcessor,
   providerTemplateCreatedQueueProcessor,
   providerTemplateUpdatedQueueProcessor,
   providerTemplateArchivedQueueProcessor

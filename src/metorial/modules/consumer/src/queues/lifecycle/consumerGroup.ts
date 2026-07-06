@@ -59,6 +59,7 @@ export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.proc
         skill: true,
         skillTemplate: true,
         skillGroup: true,
+        skillMarketplace: true,
         listing: true,
         surface: { include: { organization: true } }
       }

@@ -11,6 +11,7 @@ import {
   ID,
   MagicMcpServer,
   Organization,
+  Prisma,
   ProviderTemplate,
   Skill,
   SkillGroup,
@@ -65,7 +66,7 @@ type ConsumerAccessWithRelations = ConsumerAccess & {
   skill: Skill | null;
   skillTemplate: SkillTemplate | null;
   skillGroup: SkillGroup | null;
-  skillMarketplace?: SkillMarketplace | null;
+  skillMarketplace: SkillMarketplace | null;
   listing: ConsumerAccessListing | null;
 };
 
@@ -881,12 +882,21 @@ class ConsumerAccessServiceImpl {
     consumerAccess: ConsumerAccessWithRelations;
   }) {
     return await withTransaction(async tx => {
-      let consumerAccess = await tx.consumerAccess.delete({
-        where: {
-          oid: d.consumerAccess.oid
-        },
-        include
-      });
+      let consumerAccess: ConsumerAccessWithRelations;
+      try {
+        consumerAccess = await tx.consumerAccess.delete({
+          where: {
+            oid: d.consumerAccess.oid
+          },
+          include
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+          return d.consumerAccess;
+        }
+
+        throw error;
+      }
 
       if (consumerAccess.type != 'skill_marketplace') {
         await consumerAccessPolicyService.revokeAccessForConsumerAccess({

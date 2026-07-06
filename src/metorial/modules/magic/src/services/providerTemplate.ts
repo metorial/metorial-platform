@@ -23,6 +23,7 @@ import {
   providerTemplateCreatedQueue,
   providerTemplateUpdatedQueue
 } from '../queues/lifecycle/providerTemplate';
+import { enqueueProviderTemplateBackingCleanup } from '../queues/lifecycle/magicMcpBackingCleanup';
 
 export type EnrichedProviderTemplate = ProviderTemplate & {
   subspaceIntegrationId: string | null;
@@ -59,6 +60,37 @@ class ProviderTemplateServiceImpl {
         subspaceIntegrationId: d.integrationId
       }
     });
+  }
+
+  private async resurrectProviderTemplate(d: {
+    providerTemplate: ProviderTemplate;
+    organization: Organization;
+    instance: Instance;
+    input: ProviderTemplateCreateInput;
+    integrationId: string;
+  }) {
+    let providerTemplate = await withTransaction(async db => {
+      return await db.providerTemplate.update({
+        where: {
+          oid: d.providerTemplate.oid
+        },
+        data: {
+          status: 'active',
+          archivedAt: null,
+          deletedAt: null,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata ?? {},
+          organizationOid: d.organization.oid,
+          instanceOid: d.instance.oid,
+          hasSubspaceBacking: true,
+          subspaceIntegrationId: d.integrationId
+        }
+      });
+    });
+
+    await providerTemplateCreatedQueue.add({ providerTemplateId: providerTemplate.id });
+    return providerTemplate;
   }
 
   async getProviderTemplateById(d: {
@@ -111,6 +143,20 @@ class ProviderTemplateServiceImpl {
     });
     if (existing) return existing;
 
+    let inactive = await this.getProviderTemplateByIntegrationId({
+      instance: d.instance,
+      integrationId: backing.integrationId
+    });
+    if (inactive && inactive.status !== 'deleted') {
+      return await this.resurrectProviderTemplate({
+        providerTemplate: inactive,
+        organization: d.organization,
+        instance: d.instance,
+        input: d.input,
+        integrationId: backing.integrationId
+      });
+    }
+
     try {
       let providerTemplate = await withTransaction(async db => {
         return await db.providerTemplate.create({
@@ -136,7 +182,15 @@ class ProviderTemplateServiceImpl {
           instance: d.instance,
           integrationId: backing.integrationId
         });
-        if (providerTemplate) return providerTemplate;
+        if (providerTemplate && providerTemplate.status !== 'deleted') {
+          return await this.resurrectProviderTemplate({
+            providerTemplate,
+            organization: d.organization,
+            instance: d.instance,
+            input: d.input,
+            integrationId: backing.integrationId
+          });
+        }
       }
 
       throw error;
@@ -211,14 +265,12 @@ class ProviderTemplateServiceImpl {
       });
     });
 
-    if (providerTemplate.hasSubspaceBacking) {
-      await subspaceMagicMcpBackingService.archiveProviderTemplate({
-        instance: d.instance,
-        providerTemplateBackingId: providerTemplate.id
-      });
-    }
-
     await providerTemplateArchivedQueue.add({ providerTemplateId: providerTemplate.id });
+    await enqueueProviderTemplateBackingCleanup({
+      instanceId: d.instance.id,
+      integrationId: providerTemplate.subspaceIntegrationId,
+      providerTemplateId: providerTemplate.id
+    });
 
     return providerTemplate;
   }
