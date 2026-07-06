@@ -291,7 +291,12 @@ export let magicMcpBackingController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         integrationId: v.optional(v.nullable(v.string())),
-        integrationInstanceId: v.optional(v.nullable(v.string()))
+        integrationInstanceId: v.optional(v.nullable(v.string())),
+        backingCursor: v.optional(v.nullable(v.string())),
+        integrationInstanceCursor: v.optional(v.nullable(v.string())),
+        limit: v.optional(v.number({ modifiers: [v.integer(), v.positive()] })),
+        includeBackings: v.optional(v.boolean()),
+        includeIntegrationInstances: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -307,6 +312,36 @@ export let magicMcpBackingController = app.controller({
         );
 
       return { magicMcpServerBackingIds };
+    }),
+
+  resolveIntegrationResourceLinks: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        integrationId: v.optional(v.nullable(v.string())),
+        integrationInstanceId: v.optional(v.nullable(v.string())),
+        backingCursor: v.optional(v.nullable(v.string())),
+        integrationInstanceCursor: v.optional(v.nullable(v.string())),
+        limit: v.optional(v.number({ modifiers: [v.integer(), v.positive()] })),
+        includeBackings: v.optional(v.boolean()),
+        includeIntegrationInstances: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      return await magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks({
+        tenant: ctx.tenant,
+        solution: ctx.solution,
+        environment: ctx.environment,
+        integrationId: ctx.input.integrationId,
+        integrationInstanceId: ctx.input.integrationInstanceId,
+        backingCursor: ctx.input.backingCursor,
+        integrationInstanceCursor: ctx.input.integrationInstanceCursor,
+        limit: ctx.input.limit,
+        includeBackings: ctx.input.includeBackings,
+        includeIntegrationInstances: ctx.input.includeIntegrationInstances
+      });
     }),
 
   resolveServerBackingIdsForIntegrationInstanceUsage: tenantApp

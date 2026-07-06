@@ -1,4 +1,4 @@
-import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -415,38 +415,6 @@ class integrationServiceImpl {
           code: 'magic_mcp_backing_integration_delete_blocked'
         })
       );
-    }
-
-    if (!d._canModifyMagicMcpBacking) {
-      let [activeInstanceCount, activeProviderCount] = await Promise.all([
-        db.integrationInstance.count({
-          where: {
-            integrationOid: d.integration.oid,
-            status: { in: ['draft', 'active'] }
-          }
-        }),
-        db.integrationProvider.count({
-          where: {
-            integrationOid: d.integration.oid,
-            status: 'active'
-          }
-        })
-      ]);
-
-      if (activeInstanceCount > 0 || activeProviderCount > 0) {
-        throw new ServiceError(
-          conflictError({
-            message:
-              'Integration still has active instances or providers and cannot be archived directly.',
-            code: 'integration_archive_blocked_by_active_children',
-            data: {
-              integrationId: d.integration.id,
-              activeInstanceCount,
-              activeProviderCount
-            }
-          })
-        );
-      }
     }
 
     return await withTransaction(async db => {

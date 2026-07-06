@@ -48,6 +48,7 @@ export class McpServerInstance {
     for (let ac of authConfigs) McpServerOAuthConfig.assertRegistered(ac);
     for (let co of configs) McpServerConfig.assertRegistered(co);
 
+    // @ts-ignore
     this.#server = getServer(instance);
   }
 

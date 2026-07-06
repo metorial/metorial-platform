@@ -1,4 +1,5 @@
 import { db } from '@metorial/db';
+import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer';
 import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
 import { createQueue } from '@metorial/queue';
 import {
@@ -11,6 +12,31 @@ import { indexMagicMcpServerSearchQueue } from '../search/magicMcpServer';
 
 let queueMagicMcpServerIndex = async (magicMcpServerId: string) => {
   await indexMagicMcpServerSearchQueue.add({ magicMcpServerId });
+};
+
+let cleanupMagicMcpServerConsumerRecords = async (d: { magicMcpServerId: string }) => {
+  let magicMcpServer = await db.magicMcpServer.findUnique({
+    where: { id: d.magicMcpServerId },
+    include: {
+      instance: {
+        include: {
+          organization: true
+        }
+      }
+    }
+  });
+  if (!magicMcpServer) return;
+
+  await db.consumerIntegration.deleteMany({
+    where: {
+      magicMcpServerOid: magicMcpServer.oid
+    }
+  });
+
+  await enqueueConsumerTargetAccessCleanup({
+    organizationId: magicMcpServer.instance.organization.id,
+    magicMcpServerId: magicMcpServer.id
+  });
 };
 
 type MagicMcpServerLifecycleQueueInput = {
@@ -90,6 +116,9 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
     if (!magicMcpServer) return;
 
     await queueMagicMcpServerIndex(data.magicMcpServerId);
+    await cleanupMagicMcpServerConsumerRecords({
+      magicMcpServerId: data.magicMcpServerId
+    });
 
     if (magicMcpServer.hasSubspaceBacking) {
       await subspaceMagicMcpBackingService.archiveServer({

@@ -698,6 +698,7 @@ class ConsumerAccessListingServiceImpl {
         skill: true,
         skillTemplate: true,
         skillGroup: true,
+        skillMarketplace: true,
         listing: true
       }
     });
@@ -721,10 +722,18 @@ class ConsumerAccessListingServiceImpl {
 
       if (!existing) return d.consumerAccessListing;
 
-      return await db.consumerAccessListing.delete({
-        where: { oid: d.consumerAccessListing.oid },
-        include
-      });
+      try {
+        return await db.consumerAccessListing.delete({
+          where: { oid: d.consumerAccessListing.oid },
+          include
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+          return d.consumerAccessListing;
+        }
+
+        throw error;
+      }
     });
   }
 

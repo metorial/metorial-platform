@@ -191,15 +191,6 @@ class providerTemplateBackingServiceImpl {
     environment: Environment;
     providerTemplateBackingId: string;
   }) {
-    let backing = await this.getProviderTemplateBackingById(d);
-    await integrationService.archiveIntegration({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      integration: backing.integration,
-      _canModifyMagicMcpBacking: true
-    });
-
     return await this.getProviderTemplateBackingById(d);
   }
 }

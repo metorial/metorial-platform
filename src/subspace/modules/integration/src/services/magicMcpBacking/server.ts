@@ -405,7 +405,10 @@ class magicMcpServerBackingServiceImpl {
       }
     });
 
-    if (policy.archivesIntegrationInstance) {
+    if (
+      policy.archivesIntegrationInstance &&
+      !['archived', 'deleted'].includes(backing.integrationInstance.status)
+    ) {
       await integrationInstanceService.archiveIntegrationInstance({
         tenant: d.tenant,
         solution: d.solution,
@@ -414,7 +417,11 @@ class magicMcpServerBackingServiceImpl {
         _canModifyMagicMcpBacking: true
       });
     }
-    if (policy.archivesIntegration && backing.integration) {
+    if (
+      policy.archivesIntegration &&
+      backing.integration &&
+      !['archived', 'deleted'].includes(backing.integration.status)
+    ) {
       await integrationService.archiveIntegration({
         tenant: d.tenant,
         solution: d.solution,
@@ -423,25 +430,30 @@ class magicMcpServerBackingServiceImpl {
         _canModifyMagicMcpBacking: true
       });
     }
-    await sessionTemplateService.archiveSessionTemplate({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      sessionTemplate: backing.sessionTemplate,
-      _allowLinked: true
-    });
-    await ephemeralManagedSessionService.archiveEphemeralManagedSession({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      ephemeralManagedSession:
-        await ephemeralManagedSessionService.getEphemeralManagedSessionById({
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment,
-          ephemeralManagedSessionId: backing.ephemeralManagedSession.id
-        })
-    });
+    if (!['archived', 'deleted'].includes(backing.sessionTemplate.status)) {
+      await sessionTemplateService.archiveSessionTemplate({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        sessionTemplate: backing.sessionTemplate,
+        _allowLinked: true
+      });
+    }
+
+    if (!['archived', 'deleted'].includes(backing.ephemeralManagedSession.status)) {
+      await ephemeralManagedSessionService.archiveEphemeralManagedSession({
+        tenant: d.tenant,
+        solution: d.solution,
+        environment: d.environment,
+        ephemeralManagedSession:
+          await ephemeralManagedSessionService.getEphemeralManagedSessionById({
+            tenant: d.tenant,
+            solution: d.solution,
+            environment: d.environment,
+            ephemeralManagedSessionId: backing.ephemeralManagedSession.id
+          })
+      });
+    }
 
     return await this.getMagicMcpServerBackingById(d);
   }
@@ -472,6 +484,133 @@ class magicMcpServerBackingServiceImpl {
     });
 
     return [...new Set(rows.map(row => row.id))].sort();
+  }
+
+  async resolveMagicMcpIntegrationResourceLinks(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    integrationId?: string | null;
+    integrationInstanceId?: string | null;
+    backingCursor?: string | null;
+    integrationInstanceCursor?: string | null;
+    limit?: number | null;
+    includeBackings?: boolean | null;
+    includeIntegrationInstances?: boolean | null;
+  }) {
+    let limit = Math.min(Math.max(d.limit ?? 100, 1), 500);
+    let includeBackings = d.includeBackings !== false;
+    let includeIntegrationInstances = d.includeIntegrationInstances !== false;
+
+    if (!d.integrationId && !d.integrationInstanceId) {
+      return {
+        magicMcpServerBackingIds: [],
+        integrationInstanceIds: [],
+        nextBackingCursor: null,
+        nextIntegrationInstanceCursor: null
+      };
+    }
+
+    let integrationInstances = includeIntegrationInstances
+      ? await db.integrationInstance.findMany({
+          where: {
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            id: d.integrationInstanceId
+              ? d.integrationInstanceId
+              : d.integrationInstanceCursor
+                ? { gt: d.integrationInstanceCursor }
+                : undefined,
+            integration: d.integrationId ? { id: d.integrationId } : undefined
+          },
+          orderBy: { id: 'asc' },
+          take: limit,
+          select: {
+            id: true
+          }
+        })
+      : [];
+
+    let rows = includeBackings
+      ? await db.magicMcpServerBacking.findMany({
+          where: {
+            integrationInstance: {
+              tenantOid: d.tenant.oid,
+              solutionOid: d.solution.oid,
+              environmentOid: d.environment.oid
+            },
+            id: d.backingCursor ? { gt: d.backingCursor } : undefined,
+            OR: [
+              ...(d.integrationInstanceId
+                ? [
+                    {
+                      integrationInstance: {
+                        id: d.integrationInstanceId
+                      }
+                    }
+                  ]
+                : []),
+              ...(d.integrationId
+                ? [
+                    {
+                      integrationInstance: {
+                        integration: {
+                          id: d.integrationId
+                        }
+                      }
+                    },
+                    {
+                      integration: {
+                        id: d.integrationId
+                      }
+                    },
+                    {
+                      ownerIntegration: {
+                        id: d.integrationId
+                      }
+                    },
+                    {
+                      providerTemplateBacking: {
+                        integration: {
+                          id: d.integrationId
+                        }
+                      }
+                    }
+                  ]
+                : [])
+            ]
+          },
+          orderBy: { id: 'asc' },
+          take: limit,
+          select: {
+            id: true,
+            integrationInstance: {
+              select: {
+                id: true
+              }
+            }
+          }
+        })
+      : [];
+
+    let lastBacking = rows[rows.length - 1];
+    let lastIntegrationInstance = integrationInstances[integrationInstances.length - 1];
+
+    return {
+      magicMcpServerBackingIds: [...new Set(rows.map(row => row.id))].sort(),
+      integrationInstanceIds: [
+        ...new Set([
+          ...integrationInstances.map(integrationInstance => integrationInstance.id),
+          ...rows.map(row => row.integrationInstance.id)
+        ])
+      ].sort(),
+      nextBackingCursor: rows.length === limit && lastBacking ? lastBacking.id : null,
+      nextIntegrationInstanceCursor:
+        integrationInstances.length === limit && lastIntegrationInstance
+          ? lastIntegrationInstance.id
+          : null
+    };
   }
 
   async resolveMagicMcpServerBackingIdsForIntegrationInstanceUsage(d: {

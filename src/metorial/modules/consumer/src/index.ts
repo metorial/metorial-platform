@@ -24,6 +24,7 @@ export * from './lib/magicMcpServerAccess';
 export * from './lib/magicMcpTokenAccess';
 export * from './lib/oauth';
 export * from './portalUrlTemplate';
+export * from './queues/lifecycle';
 export * from './queues/materializeMagicMcpSessionOwnership';
 export * from './services';
 
