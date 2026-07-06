@@ -148,6 +148,18 @@ export let magicMcpBackingCleanupProviderTemplatesManyQueueProcessor =
       }))
     );
 
+    await magicMcpBackingCleanupManyQueue.addManyWithOps(
+      providerTemplates.map(providerTemplate => ({
+        data: {
+          instanceId: data.instanceId,
+          providerTemplateId: providerTemplate.id
+        },
+        opts: {
+          id: queueJobId('provider-template-servers', data.instanceId, providerTemplate.id)
+        }
+      }))
+    );
+
     let lastProviderTemplate = providerTemplates[providerTemplates.length - 1];
     if (!lastProviderTemplate) return;
 

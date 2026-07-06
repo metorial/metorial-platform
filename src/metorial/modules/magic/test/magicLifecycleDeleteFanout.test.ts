@@ -325,6 +325,12 @@ describe('magic MCP lifecycle delete fanout', () => {
         opts: { id: 'provider-template-instance-1-provider-template-1' }
       }
     ]);
+    expect(magicMcpBackingCleanupManyQueue.addManyWithOps).toHaveBeenCalledWith([
+      {
+        data: { instanceId: 'instance-1', providerTemplateId: 'provider-template-1' },
+        opts: { id: 'provider-template-servers-instance-1-provider-template-1' }
+      }
+    ]);
   });
 
   it('cleans access for already archived provider templates', async () => {

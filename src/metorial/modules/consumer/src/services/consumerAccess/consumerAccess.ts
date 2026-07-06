@@ -892,6 +892,13 @@ class ConsumerAccessServiceImpl {
         });
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+          if (d.consumerAccess.type != 'skill_marketplace') {
+            await consumerAccessPolicyService.revokeAccessForConsumerAccess({
+              organization: d.organization,
+              consumerAccess: d.consumerAccess
+            });
+          }
+
           return d.consumerAccess;
         }
 
