@@ -171,6 +171,10 @@ export let backendEnv: Env = [
     defaultValue: 'http://localhost:52072'
   },
   {
+    key: 'HYPERPLANE_ENDPOINT',
+    defaultValue: 'http://localhost:4330'
+  },
+  {
     key: 'VOYAGER_URL',
     defaultValue: 'http://localhost:52060/metorial-voyager'
   },
