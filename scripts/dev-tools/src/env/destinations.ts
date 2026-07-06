@@ -52,11 +52,22 @@ export let destinations: Destination[] = [
     path: 'src/metorial-frontend/apps/marketplace'
   },
 
-  ...['core-api', 'worker', 'global-router', 'hyperplane'].map(v => ({
+  ...['core-api', 'worker', 'global-router'].map(v => ({
     type: 'enterprise' as const,
     env: backendEnv,
     path: `src/metorial/services/${v}`
   })),
+
+  {
+    type: 'enterprise' as const,
+    env: backendEnv.filter(
+      e =>
+        !['DATABASE_URL', 'PAYMENT_DATABASE_URL', 'FEDERATION_CORE_DATABASE_URL'].includes(
+          e.key
+        )
+    ),
+    path: `src/metorial/services/hyperplane`
+  },
 
   {
     type: 'oss',

@@ -25,10 +25,7 @@ export let syncAccountDomainToDeploymentQueueProcessor =
           domain: accountDomain.domain,
           status: accountDomain.status,
           verificationStatus: accountDomain.verificationStatus,
-          isFixedToVerified: false,
           accountOid: localAccount.oid,
-          lastCheckedAt: null,
-          lastManualCheckAt: null,
           createdAt: accountDomain.createdAt,
           updatedAt: accountDomain.updatedAt
         },
@@ -38,10 +35,7 @@ export let syncAccountDomainToDeploymentQueueProcessor =
           domain: accountDomain.domain,
           status: accountDomain.status,
           verificationStatus: accountDomain.verificationStatus,
-          isFixedToVerified: false,
           accountOid: localAccount.oid,
-          lastCheckedAt: null,
-          lastManualCheckAt: null,
           createdAt: accountDomain.createdAt,
           updatedAt: accountDomain.updatedAt
         }
