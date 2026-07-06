@@ -321,7 +321,12 @@ export let magicMcpBackingController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         integrationId: v.optional(v.nullable(v.string())),
-        integrationInstanceId: v.optional(v.nullable(v.string()))
+        integrationInstanceId: v.optional(v.nullable(v.string())),
+        backingCursor: v.optional(v.nullable(v.string())),
+        integrationInstanceCursor: v.optional(v.nullable(v.string())),
+        limit: v.optional(v.number({ modifiers: [v.integer(), v.positive()] })),
+        includeBackings: v.optional(v.boolean()),
+        includeIntegrationInstances: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
