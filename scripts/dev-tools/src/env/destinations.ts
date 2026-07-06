@@ -10,13 +10,13 @@ import {
   originCodeBucketEnv,
   originServiceEnv,
   relayServiceEnv,
-  signalServiceEnv,
-  synthesisServiceEnv,
   shuttleServiceEnv,
+  signalServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
   subspaceDbEnv,
   subspaceDevEnv,
+  synthesisServiceEnv,
   voyagerServiceEnv
 } from './services';
 import type { Destination } from './type';
@@ -52,7 +52,7 @@ export let destinations: Destination[] = [
     path: 'src/metorial-frontend/apps/marketplace'
   },
 
-  ...['core-api', 'worker', 'global-router'].map(v => ({
+  ...['core-api', 'worker', 'global-router', 'hyperplane'].map(v => ({
     type: 'enterprise' as const,
     env: backendEnv,
     path: `src/metorial/services/${v}`
