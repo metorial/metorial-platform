@@ -110,6 +110,45 @@ class ConsumerProfileServiceImpl {
     return groups;
   }
 
+  private getSharedGroupVisibilityWhere(consumerGroups: ConsumerGroup[]) {
+    let shareableGroups = consumerGroups.filter(group => group.type !== 'user_access');
+    if (shareableGroups.some(group => group.isDefault)) {
+      return undefined;
+    }
+
+    let groupOids = shareableGroups.map(group => group.oid);
+    let ssoGroupIds = Array.from(
+      new Set(shareableGroups.flatMap(group => group.ssoGroupIds ?? []))
+    );
+    let or: Prisma.ConsumerProfileWhereInput[] = [];
+
+    if (groupOids.length) {
+      or.push({
+        groups: {
+          some: {
+            groupOid: {
+              in: groupOids
+            }
+          }
+        }
+      });
+    }
+
+    if (ssoGroupIds.length) {
+      or.push({
+        ssoGroupIds: {
+          hasSome: ssoGroupIds
+        }
+      });
+    }
+
+    if (!or.length) {
+      return { id: { in: [] } } satisfies Prisma.ConsumerProfileWhereInput;
+    }
+
+    return { OR: or } satisfies Prisma.ConsumerProfileWhereInput;
+  }
+
   async enrichConsumerProfile<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     instanceConsumer?: InstanceConsumer | null;
@@ -227,6 +266,7 @@ class ConsumerProfileServiceImpl {
     emails?: string[];
     consumerGroupId?: string;
     statuses?: Array<'active' | 'invited'>;
+    visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     let search = d.search?.trim();
     let emails = normalizeEmailFilter(d.emails);
@@ -267,6 +307,9 @@ class ConsumerProfileServiceImpl {
 
     let groupMembershipWhere: Prisma.ConsumerProfileWhereInput | undefined;
     let inviteStatusWhere: Prisma.ConsumerProfileWhereInput | undefined;
+    let visibilityWhere = d.visibleToConsumerGroups
+      ? this.getSharedGroupVisibilityWhere(d.visibleToConsumerGroups)
+      : undefined;
 
     if (consumerGroupId) {
       let group = await db.consumerGroup.findFirst({
@@ -316,6 +359,7 @@ class ConsumerProfileServiceImpl {
       { surfaceOid: d.consumerSurface.oid },
       { status: 'active' },
       ...(groupMembershipWhere ? [groupMembershipWhere] : []),
+      ...(visibilityWhere ? [visibilityWhere] : []),
       ...(inviteStatusWhere ? [inviteStatusWhere] : []),
       ...(emails?.length ? [{ email: { in: emails } }] : []),
       ...(search ? [{ consumerOid: { in: searchedConsumerOids ?? [] } }] : [])
@@ -345,6 +389,52 @@ class ConsumerProfileServiceImpl {
         };
       }
     };
+  }
+
+  async listConsumerProfilesVisibleToConsumer(d: {
+    consumerSurface: ConsumerSurface;
+    consumerProfile: ConsumerProfile;
+    consumerGroups: ConsumerGroup[];
+    search?: string;
+    emails?: string[];
+    consumerGroupId?: string;
+    statuses?: Array<'active' | 'invited'>;
+  }) {
+    return await this.listConsumerProfiles({
+      consumerSurface: d.consumerSurface,
+      search: d.search,
+      emails: d.emails,
+      consumerGroupId: d.consumerGroupId,
+      statuses: d.statuses,
+      visibleToConsumerGroups: d.consumerGroups
+    });
+  }
+
+  async getConsumerProfileVisibleToConsumer(d: {
+    consumerSurface: ConsumerSurface;
+    consumerProfile: ConsumerProfile;
+    consumerGroups: ConsumerGroup[];
+    consumerProfileId: string;
+  }) {
+    let visibilityWhere = this.getSharedGroupVisibilityWhere(d.consumerGroups);
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        AND: [
+          {
+            surfaceOid: d.consumerSurface.oid,
+            id: d.consumerProfileId,
+            status: 'active'
+          },
+          ...(visibilityWhere ? [visibilityWhere] : [])
+        ]
+      },
+      include
+    });
+    if (!consumerProfile) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    return await this.enrichConsumerProfile({ consumerProfile });
   }
 
   async getConsumerProfileByIdForConsumer(d: {
@@ -808,7 +898,9 @@ class ConsumerProfileServiceImpl {
             }
           }
         });
-        let existingGroupOids = new Set(existingMemberships.map(membership => membership.groupOid));
+        let existingGroupOids = new Set(
+          existingMemberships.map(membership => membership.groupOid)
+        );
         let groupsToAdd = groups.filter(group => !existingGroupOids.has(group.oid));
 
         for (let group of groupsToAdd) {
