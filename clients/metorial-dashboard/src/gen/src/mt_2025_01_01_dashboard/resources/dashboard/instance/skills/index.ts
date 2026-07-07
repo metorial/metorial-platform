@@ -13,6 +13,7 @@ export * from './marketplaces';
 export * from './participants';
 export * from './plugins';
 export * from './publish-consumer-skill';
+export * from './share';
 export * from './syncs';
 export * from './templates';
 export * from './update';
