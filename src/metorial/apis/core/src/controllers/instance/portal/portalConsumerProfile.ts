@@ -20,10 +20,17 @@ export let consumerProfileGroup = portalGroup.use(async ctx => {
     );
   }
 
-  let consumerProfile = await consumerProfileService.getConsumerProfileById({
-    consumerSurface: ctx.portal.surface,
-    consumerProfileId: ctx.params.consumerProfileId
-  });
+  let consumerProfile = ctx.consumerProfile
+    ? await consumerProfileService.getConsumerProfileVisibleToConsumer({
+        consumerSurface: ctx.portal.surface,
+        consumerProfile: ctx.consumerProfile,
+        consumerGroups: ctx.consumerGroups ?? [],
+        consumerProfileId: ctx.params.consumerProfileId
+      })
+    : await consumerProfileService.getConsumerProfileById({
+        consumerSurface: ctx.portal.surface,
+        consumerProfileId: ctx.params.consumerProfileId
+      });
 
   return { consumerProfile };
 });
@@ -42,7 +49,11 @@ export let portalConsumerProfileController = Controller.create(
           description: 'Returns a paginated list of consumer profiles for a portal.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.portal.consumers:read', 'consumer#instance.profile:read']
+        })
+      )
       .use(hasFlags(['paid-portals', 'portals-access']))
       .outputList(consumerProfilePresenter)
       .query(
@@ -67,13 +78,23 @@ export let portalConsumerProfileController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await consumerProfileService.listConsumerProfiles({
-          consumerSurface: ctx.portal.surface,
-          search: ctx.query.search,
-          emails: normalizeArrayParam(ctx.query.email),
-          consumerGroupId: ctx.query.consumer_group_id,
-          statuses: normalizeArrayParam(ctx.query.status)
-        });
+        let paginator = ctx.consumerProfile
+          ? await consumerProfileService.listConsumerProfilesVisibleToConsumer({
+              consumerSurface: ctx.portal.surface,
+              consumerProfile: ctx.consumerProfile,
+              consumerGroups: ctx.consumerGroups ?? [],
+              search: ctx.query.search,
+              emails: normalizeArrayParam(ctx.query.email),
+              consumerGroupId: ctx.query.consumer_group_id,
+              statuses: normalizeArrayParam(ctx.query.status)
+            })
+          : await consumerProfileService.listConsumerProfiles({
+              consumerSurface: ctx.portal.surface,
+              search: ctx.query.search,
+              emails: normalizeArrayParam(ctx.query.email),
+              consumerGroupId: ctx.query.consumer_group_id,
+              statuses: normalizeArrayParam(ctx.query.status)
+            });
         let list = await paginator.run(ctx.query);
         let assignedConsumerGroupsByProfileId =
           await consumerProfileService.getStoredGroupsForProfiles({
@@ -101,7 +122,11 @@ export let portalConsumerProfileController = Controller.create(
           description: 'Retrieves a portal consumer profile by ID.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.portal.consumers:read', 'consumer#instance.profile:read']
+        })
+      )
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerProfilePresenter)
       .do(async ctx => {

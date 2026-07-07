@@ -335,7 +335,8 @@ export let skillController = app.controller({
         actorId: v.string(),
         skillId: v.string(),
         allowDeleted: v.optional(v.boolean()),
-        permissions: v.array(v.enumOf(['content_read', 'content_write']))
+        permissions: v.array(v.enumOf(['content_read', 'content_write'])),
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -350,7 +351,8 @@ export let skillController = app.controller({
         solution: ctx.solution,
         skill: ctx.skill,
         tenantActor,
-        permissions: ctx.input.permissions
+        permissions: ctx.input.permissions,
+        overridePermissions: ctx.input.overridePermissions
       });
     })
 });

@@ -36,6 +36,11 @@ export let SkillPage = () => {
             storeId={skill.data.storeId}
             title="Skill Files"
             description="Manage the documents and files of this skill. Describe workflows, behaviors, and tasks for agentic workflows."
+            shareContext={{
+              mode: 'dashboard',
+              organizationId: organization.data?.id,
+              skills: [{ id: skill.data.id, name: skill.data.name }]
+            }}
             getDocumentPath={documentId =>
               Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
             }

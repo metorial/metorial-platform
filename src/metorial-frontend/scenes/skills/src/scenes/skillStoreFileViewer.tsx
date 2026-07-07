@@ -15,6 +15,7 @@ import {
   SkillFileTreeCreateKind,
   SkillFileTreeNode
 } from '../components/fileTree';
+import type { SkillSharePanelContext } from '../components/skillSharePanel';
 
 let FileTreeWrap = styled.div`
   display: flex;
@@ -209,6 +210,7 @@ export let StoreFileViewerScene = (p: {
   title?: string;
   description?: string;
   readOnly?: boolean;
+  shareContext?: SkillSharePanelContext | null;
 }) => {
   let storeItems = useAllStoreItems(p.instanceId, p.storeId, {
     order: 'asc',
@@ -459,6 +461,7 @@ export let StoreFileViewerScene = (p: {
           isCreating={isCreating}
           nodes={treeNodes}
           instanceId={p.instanceId}
+          shareContext={p.shareContext}
           canWrite={
             !p.readOnly && !!storePermissions.data?.permissions.includes('content_write')
           }

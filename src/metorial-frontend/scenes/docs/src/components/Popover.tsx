@@ -1,3 +1,4 @@
+import { useZindex } from '@metorial/ui';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
@@ -14,7 +15,6 @@ interface WrapProps {
 
 let Wrap = styled.div<WrapProps>`
   position: fixed;
-  z-index: 1000;
   ${({ $width }) =>
     $width != null ? `width: ${typeof $width === 'number' ? `${$width}px` : $width};` : ''}
   display: flex;
@@ -65,6 +65,7 @@ export function Popover({
   let presence = usePresence(open, EXIT);
   let wrapRef = useRef<HTMLDivElement | null>(null);
   let [position, setPosition] = useState({ left: anchor.left, top: anchor.top });
+  let zIndex = useZindex(open);
 
   useEffect(() => {
     if (!open) return;
@@ -72,6 +73,7 @@ export function Popover({
       let target = e.target as Element | null;
       if (!wrapRef.current) return;
       if (wrapRef.current.contains(target as Node)) return;
+      if (target?.closest('[data-metorial-select-content]')) return;
       if (ignoreClickOnSelector && target?.closest(ignoreClickOnSelector)) return;
       onClose();
     };
@@ -118,10 +120,9 @@ export function Popover({
     <Wrap
       ref={wrapRef}
       data-state={presence.dataState}
-      style={{ left: position.left, top: position.top }}
+      style={{ left: position.left, top: position.top, zIndex }}
       $width={width}
       $alignRight={align === 'right'}
-      onMouseDown={e => e.preventDefault()}
     >
       {children}
     </Wrap>,

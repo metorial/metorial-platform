@@ -204,7 +204,8 @@ export let skillController = app.controller({
         environmentId: v.string(),
         skillId: v.string(),
         actorId: v.string(),
-        permissions: storePermissionsSchema
+        permissions: storePermissionsSchema,
+        overridePermissions: v.optional(v.boolean())
       })
     )
     .do(
@@ -214,7 +215,8 @@ export let skillController = app.controller({
           environment: ctx.environment,
           skill: ctx.skill,
           actorId: ctx.input.actorId,
-          permissions: ctx.input.permissions
+          permissions: ctx.input.permissions,
+          overridePermissions: ctx.input.overridePermissions
         })
     ),
 

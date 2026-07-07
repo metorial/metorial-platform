@@ -412,6 +412,49 @@ export let skillController = Controller.create(
         return skillPresenter.present({ skill });
       }),
 
+    share: skillGroup
+      .post(instancePath('skills/:skillId/shares', 'skills.share'), {
+        name: 'Share skill',
+        description: 'Shares a skill with consumers or organization members.'
+      })
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .body(
+        'default',
+        v.object({
+          consumer_profile_ids: v.optional(v.array(v.string())),
+          organization_member_ids: v.optional(v.array(v.string())),
+          permission: v.enumOf(['none', 'read', 'write'])
+        })
+      )
+      .output(skillPresenter)
+      .do(async ctx => {
+        await consumerSkillService.shareSkill({
+          organization: ctx.organization,
+          instance: ctx.instance,
+          skill: ctx.skill.localSkill,
+          permission: ctx.body.permission,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups,
+          currentOrganizationMember: ctx.member,
+          targets: {
+            consumerProfileIds: ctx.body.consumer_profile_ids,
+            organizationMemberIds: ctx.body.organization_member_ids
+          }
+        });
+
+        let skill = await subspaceSkillService.get({
+          instance: ctx.instance,
+          skillId: ctx.skill.id,
+          allowDeleted: true,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups
+        });
+
+        return skillPresenter.present({ skill });
+      }),
+
     duplicate: skillGroup
       .post(instancePath('skills/:skillId/duplicate', 'skills.duplicate'), {
         name: 'Duplicate skill',

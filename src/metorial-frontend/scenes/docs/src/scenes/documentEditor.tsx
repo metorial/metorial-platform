@@ -1,3 +1,4 @@
+import type { SkillSharePanelContext } from '@metorial/scene-skills';
 import {
   DocumentParticipant,
   DocumentVersion as StateDocumentVersion,
@@ -13,7 +14,7 @@ import {
 import type { Editor as TiptapEditor } from '@tiptap/react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useBlocker, useNavigate } from 'react-router-dom';
+import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import styled, { ThemeProvider } from 'styled-components';
 import { parseDocument } from 'yaml';
 import { Editor } from '../editor/Editor';
@@ -298,6 +299,7 @@ type PendingDocumentSave = { title: string; content: string };
 export type DocumentEditorSceneProps = {
   instanceId: string | null | undefined;
   documentId: string | null | undefined;
+  currentConsumerId?: string | null;
   onBack?: () => void;
   setRestrictHeight?: (enabled: boolean) => void;
 };
@@ -439,6 +441,59 @@ let getErrorMessage = (error: unknown) => {
   return 'Failed to load document.';
 };
 
+let parseJsonObject = (value: string): unknown => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+let getObjectFromUnknown = (value: unknown): Record<string, unknown> | null => {
+  let normalized = typeof value == 'string' ? parseJsonObject(value) : value;
+  if (!normalized || typeof normalized != 'object' || Array.isArray(normalized)) return null;
+  return normalized as Record<string, unknown>;
+};
+
+let getSkillShareContextFromState = (
+  state: unknown,
+  currentConsumerId?: string | null
+): SkillSharePanelContext | null => {
+  let stateObject = getObjectFromUnknown(state);
+  if (!stateObject) return null;
+
+  let context = getObjectFromUnknown(stateObject.metorialSkillShare ?? stateObject);
+  if (!context) return null;
+
+  let candidate = context as Partial<SkillSharePanelContext>;
+  if (candidate.mode != 'portal' && candidate.mode != 'dashboard') return null;
+  if (!Array.isArray(candidate.skills) || candidate.skills.length == 0) return null;
+
+  let skills = candidate.skills
+    .filter(skill => skill && typeof skill == 'object' && typeof skill.id == 'string')
+    .map(skill => ({
+      id: (skill as { id: string }).id,
+      name:
+        typeof (skill as { name?: unknown }).name == 'string'
+          ? ((skill as { name?: string }).name ?? null)
+          : null
+    }));
+
+  if (skills.length == 0) return null;
+
+  return {
+    mode: candidate.mode,
+    portalId: typeof candidate.portalId == 'string' ? candidate.portalId : null,
+    organizationId:
+      typeof candidate.organizationId == 'string' ? candidate.organizationId : null,
+    currentConsumerId:
+      typeof candidate.currentConsumerId == 'string'
+        ? candidate.currentConsumerId
+        : (currentConsumerId ?? null),
+    skills
+  };
+};
+
 let DocumentEditorSkeleton = (p: { onBack?: () => void }) => {
   let theme = useMemo(() => lightTheme, []);
 
@@ -527,6 +582,7 @@ let DocumentEditorLoadError = (p: { onBack?: () => void; message: string }) => {
 let DocumentEditorInner = (p: {
   instanceId: string;
   documentId: string;
+  currentConsumerId?: string | null;
   onBack?: () => void;
 }) => {
   let document = useDocument(p.instanceId, p.documentId);
@@ -571,7 +627,9 @@ let DocumentEditorInner = (p: {
       user={user.data}
       instanceId={p.instanceId}
       documentId={p.documentId}
+      currentConsumerId={p.currentConsumerId}
       onBack={p.onBack}
+      onSharedSkill={() => participants.refetch()}
     />
   );
 
@@ -595,7 +653,9 @@ let DocumentEditorLoaded = (p: {
   participants: DocumentParticipant[];
   versions: StateDocumentVersion[];
   user: NonNullable<ReturnType<typeof useUser>['data']>;
+  currentConsumerId?: string | null;
   onBack?: () => void;
+  onSharedSkill?: () => void | Promise<void>;
 }) => {
   let [viewMode, setViewMode] = useState<ViewMode>('editor');
   let initialDocumentState = useMemo(
@@ -628,6 +688,7 @@ let DocumentEditorLoaded = (p: {
   let uploadFile = useUploadFile();
   let createFileLink = useCreateFileLink();
   let navigate = useNavigate();
+  let location = useLocation();
   let mainRef = useRef<HTMLDivElement | null>(null);
   let toastTimer = useRef<number | null>(null);
   let fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -884,6 +945,10 @@ let DocumentEditorLoaded = (p: {
     if (editors.some(person => person.email === p.user.email)) return editors;
     return [currentAsEditor, ...editors];
   }, [canWrite, lastUpdatedAt, p.user.email, p.user.imageUrl, p.user.name, people]);
+  let skillShareContext = useMemo(
+    () => getSkillShareContextFromState(location.state, p.currentConsumerId),
+    [location.state, p.currentConsumerId]
+  );
   let hasUnsavedChanges =
     canWrite &&
     (title !== lastPersistedRef.current.title ||
@@ -1117,9 +1182,12 @@ let DocumentEditorLoaded = (p: {
                 email={p.user.email}
               />
               <ShareButton
+                instanceId={p.instanceId}
                 documentLink={documentLink}
                 people={people}
                 onCopyLink={handleCopyLink}
+                skillShareContext={skillShareContext}
+                onSharedSkill={p.onSharedSkill}
               />
               <SettingsButton
                 contentWidth={contentWidth}
@@ -1220,6 +1288,7 @@ let DocumentEditorLoaded = (p: {
 export let DocumentEditorScene = ({
   instanceId,
   documentId,
+  currentConsumerId,
   onBack,
   setRestrictHeight
 }: DocumentEditorSceneProps) => {
@@ -1231,6 +1300,11 @@ export let DocumentEditorScene = ({
   if (!instanceId || !documentId) return null;
 
   return (
-    <DocumentEditorInner instanceId={instanceId} documentId={documentId} onBack={onBack} />
+    <DocumentEditorInner
+      instanceId={instanceId}
+      documentId={documentId}
+      currentConsumerId={currentConsumerId}
+      onBack={onBack}
+    />
   );
 };

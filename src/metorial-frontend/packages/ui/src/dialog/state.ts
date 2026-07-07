@@ -21,7 +21,7 @@ export let useDialog = (initialState = false) => {
 };
 
 let currentZIndexRef = { value: 1000 };
-export let useDialogZIndex = (isOpen: boolean) => {
+export let useZindex = (isOpen: boolean) => {
   let [zIndex, setZIndex] = useState(() => currentZIndexRef.value + 5);
 
   useEffect(() => {
@@ -31,6 +31,9 @@ export let useDialogZIndex = (isOpen: boolean) => {
 
   return zIndex;
 };
+
+export let useZIndex = useZindex;
+export let useDialogZIndex = useZindex;
 
 let DialogContext = React.createContext<DialogState | null>(null);
 export let DialogProvider = DialogContext.Provider;
