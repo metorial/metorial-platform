@@ -1,7 +1,7 @@
 import * as RadixPopover from '@radix-ui/react-popover';
 import React, { useEffect, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { useDialogZIndex } from '../dialog/state';
+import { useZindex } from '../dialog/state';
 import { theme } from '../theme';
 
 let fadeInTop = keyframes`
@@ -195,7 +195,7 @@ let Root = ({
     if (typeof openProp === 'boolean') setOpen(openProp);
   }, [openProp]);
 
-  let zIndex = useDialogZIndex(open);
+  let zIndex = useZindex(open);
 
   return (
     <RadixPopover.Root open={open} onOpenChange={setOpen}>
@@ -208,6 +208,10 @@ let Root = ({
           align={align}
           sideOffset={sideOffset}
           alignOffset={alignOffset}
+          onInteractOutside={event => {
+            let target = event.target as Element | null;
+            if (target?.closest('[data-metorial-select-content]')) event.preventDefault();
+          }}
         >
           {children}
 

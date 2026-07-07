@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SkillFilePreviewLightbox } from './filePreviewLightbox';
+import type { SkillSharePanelContext } from './skillSharePanel';
 
 export type SkillFileTreeNode = {
   id: string;
@@ -28,6 +29,9 @@ export type SkillFileTreeNode = {
   isPending?: boolean;
   children: SkillFileTreeNode[];
 };
+
+let getSkillShareNavigationState = (shareContext?: SkillSharePanelContext | null) =>
+  shareContext ? { metorialSkillShare: shareContext } : undefined;
 
 let TreeRoot = styled.div`
   display: flex;
@@ -506,6 +510,7 @@ let SkillFileTreeRow = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string) => string;
+  shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
   onCancelRename: () => void;
@@ -592,8 +597,12 @@ let SkillFileTreeRow = (p: {
         draggable={canDrag}
         onClick={e => {
           if (isNestedTreeActionClick(e)) return;
-          if (documentPath) navigate(documentPath);
-          else if (p.node.kind == 'file' && p.node.fileId) previewTriggerRef.current?.click();
+          if (documentPath) {
+            navigate(documentPath, {
+              state: getSkillShareNavigationState(p.shareContext)
+            });
+          } else if (p.node.kind == 'file' && p.node.fileId)
+            previewTriggerRef.current?.click();
         }}
         onDragStart={e => {
           if (!canDrag || !p.node.itemId || !p.node.parentPath || p.node.kind == 'directory') {
@@ -655,7 +664,7 @@ let SkillFileTreeRow = (p: {
         }}
       >
         {documentPath ? (
-          <TreeRowLink to={documentPath}>
+          <TreeRowLink to={documentPath} state={getSkillShareNavigationState(p.shareContext)}>
             <TreeIndent $depth={p.depth} />
             <ChevronSpacer />
             <TreeIconWrap $kind={p.node.kind}>
@@ -986,6 +995,7 @@ let SkillFileTreeRow = (p: {
                   onFileSelect={p.onFileSelect}
                   onFilesDrop={p.onFilesDrop}
                   getDocumentPath={p.getDocumentPath}
+                  shareContext={p.shareContext}
                   instanceId={p.instanceId}
                   editingItemPath={p.editingItemPath}
                   onCancelRename={p.onCancelRename}
@@ -1026,6 +1036,7 @@ let SkillFileTreeInner = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string) => string;
+  shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
   onCancelRename: () => void;
@@ -1055,6 +1066,7 @@ let SkillFileTreeInner = (p: {
             onFileSelect={p.onFileSelect}
             onFilesDrop={p.onFilesDrop}
             getDocumentPath={p.getDocumentPath}
+            shareContext={p.shareContext}
             instanceId={p.instanceId}
             editingItemPath={p.editingItemPath}
             onCancelRename={p.onCancelRename}
@@ -1090,6 +1102,7 @@ export let SkillFileTree = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string) => string;
+  shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   onRename: (itemId: string, parentPath: string, name: string) => Promise<void>;
   onMove: (itemId: string, parentPath: string, name: string) => Promise<void>;
@@ -1120,6 +1133,7 @@ export let SkillFileTree = (p: {
       onFileSelect={p.onFileSelect}
       onFilesDrop={p.onFilesDrop}
       getDocumentPath={p.getDocumentPath}
+      shareContext={p.shareContext}
       instanceId={p.instanceId}
       onCancelRename={() => setEditingItemPath(null)}
       onDragTargetChange={setDragTargetPath}

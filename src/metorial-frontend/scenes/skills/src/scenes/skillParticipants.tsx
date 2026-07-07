@@ -1,8 +1,9 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useSkillParticipants } from '@metorial/state';
-import { Avatar, Badge, Entity, Flex, RenderDate, Text } from '@metorial/ui';
+import { Avatar, Badge, Button, Entity, Flex, RenderDate, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
+import { SkillSharePopover, type SkillSharePanelContext } from '../components/skillSharePanel';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -32,12 +33,30 @@ let actorTypeLabels: Record<string, string> = {
 export let SkillParticipantsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
+  shareContext?: SkillSharePanelContext | null;
 }) => {
   let participants = useSkillParticipants(p.instanceId, p.skillId, { order: 'asc' });
 
-  return renderWithPagination(participants)(participants => (
-    <Box title="Participants" description="People who have contributed to or used this skill.">
-      {participants.data.items.length === 0 ? (
+  return renderWithPagination(participants)(participantList => (
+    <Box
+      title="Participants"
+      description="People who have contributed to or used this skill."
+      rightActions={
+        p.shareContext ? (
+          <SkillSharePopover
+            instanceId={p.instanceId}
+            context={p.shareContext}
+            onShared={() => participants.refetch()}
+            trigger={
+              <Button size="2" variant="outline">
+                Share
+              </Button>
+            }
+          />
+        ) : null
+      }
+    >
+      {participantList.data.items.length === 0 ? (
         <EmptyState>
           <Text color="gray600" size="2">
             No participants found for this skill yet.
@@ -45,7 +64,7 @@ export let SkillParticipantsScene = (p: {
         </EmptyState>
       ) : (
         <Items>
-          {participants.data.items.map(participant => (
+          {participantList.data.items.map(participant => (
             <Entity.Wrapper key={participant.id} aligned>
               <Entity.Content>
                 <Entity.Field

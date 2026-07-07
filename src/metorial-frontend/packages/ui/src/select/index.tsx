@@ -4,7 +4,7 @@ import { RiArrowDownSLine, RiArrowUpSLine, RiCheckLine } from '@remixicon/react'
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { ButtonSize, getButtonSize } from '../button/constants';
-import { useDialogZIndex } from '../dialog/state';
+import { useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { theme } from '../theme';
@@ -155,7 +155,7 @@ export let Select = ({
   let normalizedValue = value === '' ? undefined : value;
 
   let [isOpen, setIsOpen] = useState(false);
-  let zIndex = useDialogZIndex(isOpen);
+  let zIndex = useZindex(isOpen);
 
   let disabledItems = useMemo(
     () =>
@@ -215,7 +215,7 @@ export let Select = ({
           </RadixSelect.Icon>
         </Trigger>
         <RadixSelect.Portal>
-          <Content style={{ zIndex }}>
+          <Content data-metorial-select-content="true" style={{ zIndex }}>
             <RadixSelect.ScrollUpButton className="SelectScrollButton">
               <RiArrowUpSLine size={14} />
             </RadixSelect.ScrollUpButton>

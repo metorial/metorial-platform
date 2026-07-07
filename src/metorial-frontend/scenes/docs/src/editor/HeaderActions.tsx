@@ -1,3 +1,4 @@
+import { SkillSharePanelContent, type SkillSharePanelContext } from '@metorial/scene-skills';
 import { Button, Input, Tooltip } from '@metorial/ui';
 import { useCallback, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
@@ -8,10 +9,10 @@ import {
   IconCheck,
   IconCloudCheck,
   IconCopy,
-  IconInfo,
   IconDots,
   IconDownload,
   IconHistory,
+  IconInfo,
   IconKeyboard,
   IconShare,
   IconUpload
@@ -497,12 +498,22 @@ export interface SharedPerson {
 }
 
 interface ShareButtonProps {
+  instanceId: string;
   documentLink: string;
   people: SharedPerson[];
   onCopyLink: () => void;
+  skillShareContext?: SkillSharePanelContext | null;
+  onSharedSkill?: () => void | Promise<void>;
 }
 
-export function ShareButton({ documentLink, people, onCopyLink }: ShareButtonProps) {
+export function ShareButton({
+  instanceId,
+  documentLink,
+  people,
+  onCopyLink,
+  skillShareContext,
+  onSharedSkill
+}: ShareButtonProps) {
   let { triggerRef, open, anchor, closeMenu, toggle } = usePopoverAnchor('right');
   let [copied, setCopied] = useState(false);
 
@@ -531,43 +542,51 @@ export function ShareButton({ documentLink, people, onCopyLink }: ShareButtonPro
         open={open}
         anchor={anchor}
         align="right"
-        width={320}
+        width={skillShareContext ? 450 : 320}
         ignoreClickOnSelector={POPOVER_TRIGGER_SELECTOR}
         onClose={closeMenu}
       >
-        <PopoverList>
-          <SectionLabel>Document link</SectionLabel>
-          <RowAction type="button" onClick={handleCopy}>
-            <span className="icon">{copied ? <IconCheck /> : <IconCopy />}</span>
-            <span className="label">
-              <span className="title">{copied ? 'Copied to clipboard' : 'Copy link'}</span>
-              <span className="desc" title={documentLink}>
-                {documentLink}
+        {skillShareContext ? (
+          <SkillSharePanelContent
+            instanceId={instanceId}
+            context={skillShareContext}
+            onShared={onSharedSkill}
+          />
+        ) : (
+          <PopoverList>
+            <SectionLabel>Document link</SectionLabel>
+            <RowAction type="button" onClick={handleCopy}>
+              <span className="icon">{copied ? <IconCheck /> : <IconCopy />}</span>
+              <span className="label">
+                <span className="title">{copied ? 'Copied to clipboard' : 'Copy link'}</span>
+                <span className="desc" title={documentLink}>
+                  {documentLink}
+                </span>
               </span>
-            </span>
-          </RowAction>
-          <RowDivider />
-          <SectionLabel>People with access</SectionLabel>
-          {people.map(p => {
-            let activity = describePersonActivity(p.lastEditedAt, p.lastViewedAt);
-            return (
-              <PersonRow key={p.email}>
-                <Avatar name={p.name} imageUrl={p.imageUrl} email={p.email} size={28} />
-                <PersonInfo>
-                  <PersonName>{p.name}</PersonName>
-                  <PersonEmail>{p.email}</PersonEmail>
-                </PersonInfo>
-                <PersonMeta>
-                  <RoleBadge $role={p.role}>{p.role}</RoleBadge>
-                  <PersonActivity title={activity.fullDate ?? activity.text}>
-                    {activity.text}
-                  </PersonActivity>
-                </PersonMeta>
-              </PersonRow>
-            );
-          })}
-          {people.length === 0 && <FooterText>No collaborators yet.</FooterText>}
-        </PopoverList>
+            </RowAction>
+            <RowDivider />
+            <SectionLabel>People with access</SectionLabel>
+            {people.map(p => {
+              let activity = describePersonActivity(p.lastEditedAt, p.lastViewedAt);
+              return (
+                <PersonRow key={p.email}>
+                  <Avatar name={p.name} imageUrl={p.imageUrl} email={p.email} size={28} />
+                  <PersonInfo>
+                    <PersonName>{p.name}</PersonName>
+                    <PersonEmail>{p.email}</PersonEmail>
+                  </PersonInfo>
+                  <PersonMeta>
+                    <RoleBadge $role={p.role}>{p.role}</RoleBadge>
+                    <PersonActivity title={activity.fullDate ?? activity.text}>
+                      {activity.text}
+                    </PersonActivity>
+                  </PersonMeta>
+                </PersonRow>
+              );
+            })}
+            {people.length === 0 && <FooterText>No collaborators yet.</FooterText>}
+          </PopoverList>
+        )}
       </Popover>
     </>
   );
