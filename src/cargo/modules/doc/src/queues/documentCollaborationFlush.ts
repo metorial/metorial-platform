@@ -14,6 +14,12 @@ let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
 let flushDelayMs = 1500;
 
+let getFrontMatterFromMarkdown = (content: string) => {
+  let input = content.replace(/^\uFEFF/, '');
+  let match = input.match(/^---\r?\n([\s\S]*?)\r?\n(?:---|\.\.\.)\r?\n?/);
+  return match ? (match[1] ?? '').trim() : undefined;
+};
+
 export let documentCollaborationFlushManyQueue = createQueue<{
   documentIds?: string[];
   offset?: number;
@@ -84,8 +90,10 @@ export let flushDocumentCollaborationState = async (d: {
 
   let snapshot = yjsUpdateToDocumentSnapshot(stateUpdate);
   let title = snapshot.title ?? currentDocument.title;
+  let frontMatter =
+    snapshot.frontMatter ?? getFrontMatterFromMarkdown(currentDocument.content.content);
   let content = composeFullMarkdown({
-    frontMatter: snapshot.frontMatter,
+    frontMatter,
     title,
     body: snapshot.body
   });
