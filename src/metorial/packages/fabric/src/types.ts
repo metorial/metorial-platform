@@ -169,6 +169,10 @@ export type FabricBillingPlan = {
   id: string;
 };
 
+export type FabricEnterpriseUser = {
+  id: string;
+};
+
 export type FabricBillingAccount = {
   id: string;
   organizationId: string;
@@ -230,6 +234,10 @@ export interface FabricEvents {
   'user.deleted:after': { user: User, performedBy: User; context?: Context };
 
   'user_tenant.created:after': { userTenant: FabricUserTenant };
+
+  'enterprise.user.created:after': { user: FabricEnterpriseUser };
+  'enterprise.user.updated:after': { user: FabricEnterpriseUser };
+  'enterprise.user.deleted:after': { user: FabricEnterpriseUser };
 
   'user.session.created:before': { user: User, performedBy: User; context?: Context };
   'user.session.created:after': { user: User, session: UserSession, performedBy: User; context?: Context };
