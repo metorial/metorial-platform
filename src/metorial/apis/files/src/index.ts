@@ -245,111 +245,151 @@ let createDocumentsLiveHandler = (
     .options('*', c => c.text(''))
     .get(
       '/documents-live',
-      upgradeWebSocket(async c => {
-        let url = new URL(c.req.url);
-        let documentId = getQueryParam(url, ['documentId', 'document_id']);
-        let instanceId = getQueryParam(url, ['instanceId', 'instance_id']);
-        let organizationId = getQueryParam(url, ['organizationId', 'organization_id']);
+      upgradeWebSocket(async c =>
+        provideExecutionContext(
+          createExecutionContext({
+            contextId: `req_${generatePlainId(20)}`,
+            type: 'request',
+            ip: extractIp(c.req.raw.headers as any) ?? '0.0.0.0',
+            userAgent: c.req.raw.headers.get('user-agent') ?? 'unknown'
+          }),
+          async () => {
+            let url = new URL(c.req.url);
+            let documentId = getQueryParam(url, ['documentId', 'document_id']);
+            let instanceId = getQueryParam(url, ['instanceId', 'instance_id']);
+            let organizationId = getQueryParam(url, ['organizationId', 'organization_id']);
 
-        if (!documentId) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Missing documentId query parameter'
-            })
-          );
-        }
-
-        let { auth } = await authenticateRequest(c.req.raw, url);
-        let target = await resolveUploadTarget({
-          auth,
-          instanceId,
-          organizationId
-        });
-
-        if (!target.cargoAccess?.accessActor) {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'Actor context is required',
-              description:
-                'Live document connections require an organization actor or consumer actor context.'
-            })
-          );
-        }
-
-        await documentService.getDocumentById({
-          owner: target.owner,
-          documentId,
-          ...target.cargoAccess
-        });
-
-        let { actorId } = await resolveCargoAccess({
-          owner: target.owner,
-          ...target.cargoAccess
-        });
-        if (!actorId) {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'Actor context is required'
-            })
-          );
-        }
-
-        let upstreamUrl = getCargoDocumentLiveUrl({
-          actorId,
-          documentId
-        });
-        let upstream: WebSocket | null = null;
-
-        return {
-          onOpen: async (_, ws) => {
-            upstream = new WebSocket(upstreamUrl);
-
-            upstream.onmessage = event => {
-              ws.send(typeof event.data === 'string' ? event.data : event.data.toString());
-            };
-
-            upstream.onerror = () => {
-              try {
-                ws.close(1011, 'upstream_error');
-              } catch {}
-            };
-
-            upstream.onclose = event => {
-              try {
-                ws.close(event.code || 1000, event.reason);
-              } catch {}
-            };
-          },
-
-          onMessage: async event => {
-            if (!upstream || upstream.readyState !== WebSocket.OPEN) {
-              return;
+            if (!documentId) {
+              throw new ServiceError(
+                badRequestError({
+                  message: 'Missing documentId query parameter'
+                })
+              );
             }
 
-            upstream.send(event.data.toString());
-          },
+            let { auth } = await authenticateRequest(c.req.raw, url);
+            let target = await resolveUploadTarget({
+              auth,
+              instanceId,
+              organizationId
+            });
 
-          onClose: async () => {
-            if (!upstream) return;
-            if (
-              upstream.readyState === WebSocket.OPEN ||
-              upstream.readyState === WebSocket.CONNECTING
-            ) {
-              upstream.close();
+            if (!target.cargoAccess?.accessActor) {
+              throw new ServiceError(
+                forbiddenError({
+                  message: 'Actor context is required',
+                  description:
+                    'Live document connections require an organization actor or consumer actor context.'
+                })
+              );
             }
-          },
 
-          onError: async () => {
-            if (!upstream) return;
-            if (
-              upstream.readyState === WebSocket.OPEN ||
-              upstream.readyState === WebSocket.CONNECTING
-            ) {
-              upstream.close();
+            await documentService.getDocumentById({
+              owner: target.owner,
+              documentId,
+              ...target.cargoAccess
+            });
+
+            let { actorId } = await resolveCargoAccess({
+              owner: target.owner,
+              ...target.cargoAccess
+            });
+            if (!actorId) {
+              throw new ServiceError(
+                forbiddenError({
+                  message: 'Actor context is required'
+                })
+              );
             }
+
+            let upstreamUrl = getCargoDocumentLiveUrl({
+              actorId,
+              documentId
+            });
+            let upstream: WebSocket | null = null;
+            let clientWs: any = null;
+            let pendingMessages: string[] = [];
+
+            let flushPendingMessages = () => {
+              if (!upstream || upstream.readyState !== WebSocket.OPEN) return;
+
+              for (let message of pendingMessages) {
+                upstream.send(message);
+              }
+              pendingMessages = [];
+            };
+
+            return {
+              onOpen: async (_, ws) => {
+                clientWs = ws;
+                upstream = new WebSocket(upstreamUrl);
+
+                upstream.onopen = () => {
+                  flushPendingMessages();
+                };
+
+                upstream.onmessage = event => {
+                  ws.send(typeof event.data === 'string' ? event.data : event.data.toString());
+                };
+
+                upstream.onerror = () => {
+                  pendingMessages = [];
+                  try {
+                    ws.close(1011, 'upstream_error');
+                  } catch {}
+                };
+
+                upstream.onclose = event => {
+                  pendingMessages = [];
+                  try {
+                    ws.close(event.code || 1000, event.reason);
+                  } catch {}
+                };
+              },
+
+              onMessage: async event => {
+                let message = event.data.toString();
+
+                if (upstream?.readyState === WebSocket.OPEN) {
+                  upstream.send(message);
+                  return;
+                }
+
+                if (!upstream || upstream.readyState === WebSocket.CONNECTING) {
+                  pendingMessages.push(message);
+                  return;
+                }
+
+                try {
+                  clientWs?.close(1011, 'upstream_unavailable');
+                } catch {}
+              },
+
+              onClose: async () => {
+                pendingMessages = [];
+                if (!upstream) return;
+                if (
+                  upstream.readyState === WebSocket.OPEN ||
+                  upstream.readyState === WebSocket.CONNECTING
+                ) {
+                  upstream.close();
+                }
+              },
+
+              onError: async () => {
+                pendingMessages = [];
+                if (!upstream) return;
+                if (
+                  upstream.readyState === WebSocket.OPEN ||
+                  upstream.readyState === WebSocket.CONNECTING
+                ) {
+                  upstream.close();
+                }
+              }
+            };
           }
-        };
-      })
+        )
+      )
     );
 
 export let createFileUploadApi = (d?: FileApiOptions) => {

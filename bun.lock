@@ -283,7 +283,10 @@
         "@metorial-cargo/list-utils": "^1.0.0",
         "@metorial-cargo/module-file": "^1.0.0",
         "@metorial-cargo/module-store": "^1.0.0",
+        "@metorial/docs-editor-schema": "^1.0.0",
         "hono": "4.12.23",
+        "y-protocols": "^1.0.7",
+        "yjs": "^13.6.31",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -1567,6 +1570,54 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial-frontend/packages/docs-editor-schema": {
+      "name": "@metorial/docs-editor-schema",
+      "version": "1.0.0",
+      "dependencies": {
+        "@tiptap/core": "3.6.1",
+        "@tiptap/extension-blockquote": "3.6.1",
+        "@tiptap/extension-bold": "3.6.1",
+        "@tiptap/extension-bullet-list": "3.6.1",
+        "@tiptap/extension-character-count": "3.6.1",
+        "@tiptap/extension-code": "3.6.1",
+        "@tiptap/extension-code-block-lowlight": "3.6.1",
+        "@tiptap/extension-collaboration": "3.6.1",
+        "@tiptap/extension-heading": "3.6.1",
+        "@tiptap/extension-highlight": "3.6.1",
+        "@tiptap/extension-horizontal-rule": "3.6.1",
+        "@tiptap/extension-image": "3.6.1",
+        "@tiptap/extension-italic": "3.6.1",
+        "@tiptap/extension-link": "3.6.1",
+        "@tiptap/extension-ordered-list": "3.6.1",
+        "@tiptap/extension-paragraph": "3.6.1",
+        "@tiptap/extension-placeholder": "3.6.1",
+        "@tiptap/extension-strike": "3.6.1",
+        "@tiptap/extension-subscript": "3.6.1",
+        "@tiptap/extension-superscript": "3.6.1",
+        "@tiptap/extension-table": "3.6.1",
+        "@tiptap/extension-table-cell": "3.6.1",
+        "@tiptap/extension-table-header": "3.6.1",
+        "@tiptap/extension-table-row": "3.6.1",
+        "@tiptap/extension-task-item": "3.6.1",
+        "@tiptap/extension-task-list": "3.6.1",
+        "@tiptap/extension-text-align": "3.6.1",
+        "@tiptap/extension-typography": "3.6.1",
+        "@tiptap/extension-underline": "3.6.1",
+        "@tiptap/pm": "3.6.1",
+        "@tiptap/starter-kit": "3.6.1",
+        "@tiptap/y-tiptap": "3.0.5",
+        "lowlight": "^3.3.0",
+        "tiptap-markdown": "^0.9.0",
+        "yjs": "^13.6.31",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/jsdom": "^21.1.7",
+        "jsdom": "24.1.3",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/packages/dynamic-component": {
       "name": "@metorial/dynamic-component",
       "version": "1.0.0",
@@ -1669,6 +1720,8 @@
         "@metorial/util-endpoint": "^1.0.0-rc.5",
         "react": "19.1.1",
         "react-router-dom": "^6.26.1",
+        "y-protocols": "^1.0.7",
+        "yjs": "^13.6.31",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -1787,6 +1840,7 @@
       "dependencies": {
         "@metorial/code": "^1.0.0",
         "@metorial/data-hooks": "^1.0.0",
+        "@metorial/docs-editor-schema": "^1.0.0",
         "@metorial/dynamic-component": "^1.0.0",
         "@metorial/frontend-config": "^1.0.0",
         "@metorial/scene-skills": "^1.0.0",
@@ -1838,6 +1892,7 @@
         "@tiptap/react": "3.6.1",
         "@tiptap/starter-kit": "3.6.1",
         "@tiptap/suggestion": "3.6.1",
+        "@tiptap/y-tiptap": "3.0.5",
         "clsx": "^2.1.1",
         "diff": "^9.0.0",
         "dompurify": "^3.4.2",
@@ -1854,7 +1909,9 @@
         "remark-gfm": "^4.0.1",
         "styled-components": "^6.1.13",
         "tiptap-markdown": "^0.9.0",
+        "y-protocols": "^1.0.7",
         "yaml": "^2.9.0",
+        "yjs": "^13.6.31",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -5838,6 +5895,8 @@
 
     "@metorial/debug": ["@metorial/debug@workspace:src/metorial/packages/debug"],
 
+    "@metorial/docs-editor-schema": ["@metorial/docs-editor-schema@workspace:src/metorial-frontend/packages/docs-editor-schema"],
+
     "@metorial/dynamic-component": ["@metorial/dynamic-component@workspace:src/metorial-frontend/packages/dynamic-component"],
 
     "@metorial/event": ["@metorial/event@workspace:src/metorial/packages/event"],
@@ -6766,6 +6825,8 @@
 
     "@types/js-cookie": ["@types/js-cookie@3.0.6", "", {}, "sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ=="],
 
+    "@types/jsdom": ["@types/jsdom@21.1.7", "", { "dependencies": { "@types/node": "*", "@types/tough-cookie": "*", "parse5": "^7.0.0" } }, "sha512-yOriVnggzrnQ3a9OKOCxaVuSug3w3/SbOj5i7VwXWZEyUNl3bLF9V3MfxGbZKuwqJOQyRfqXyROBB1CoZLFWzA=="],
+
     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
 
     "@types/jsonfile": ["@types/jsonfile@6.1.4", "", { "dependencies": { "@types/node": "*" } }, "sha512-D5qGUYwjvnNNextdU59/+fI+spnwtTFmyQP0h+PfIOSkNfpU6AOICUOkm4i0OnSk+NyjdPJrxCDro0sJsWlRpQ=="],
@@ -6827,6 +6888,8 @@
     "@types/serve-static": ["@types/serve-static@2.2.0", "", { "dependencies": { "@types/http-errors": "*", "@types/node": "*" } }, "sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ=="],
 
     "@types/tar-stream": ["@types/tar-stream@3.1.4", "", { "dependencies": { "@types/node": "*" } }, "sha512-921gW0+g29mCJX0fRvqeHzBlE/XclDaAG0Ousy1LCghsOhvaKacDeRGEVzQP9IPfKn8Vysy7FEXAIxycpc/CMg=="],
+
+    "@types/tough-cookie": ["@types/tough-cookie@4.0.5", "", {}, "sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA=="],
 
     "@types/trusted-types": ["@types/trusted-types@2.0.7", "", {}, "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="],
 
@@ -10146,6 +10209,8 @@
 
     "@types/fs-extra/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
+    "@types/jsdom/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
+
     "@types/jsonfile/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
     "@types/node-fetch/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
@@ -11315,6 +11380,8 @@
     "@types/express-serve-static-core/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@types/fs-extra/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@types/jsdom/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@types/jsonfile/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 

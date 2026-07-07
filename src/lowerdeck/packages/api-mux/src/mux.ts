@@ -4,7 +4,7 @@ export let apiMux = (
   services: {
     domains?: string[];
     methods?: string[];
-    endpoint: { path: string | string[]; fetch: (req: any) => Promise<any>; exact?: boolean };
+    endpoint: { path: string | string[]; fetch: (req: any, server?: any) => Promise<any>; exact?: boolean };
   }[],
   fallback?: (req: any, server: any) => Promise<any>
 ) => {
@@ -38,7 +38,7 @@ export let apiMux = (
         (url.pathname == path || (!exact && url.pathname.startsWith(`${path}/`))) &&
         (!methods || methods.includes(req.method))
       ) {
-        return endpoint.fetch(req);
+        return endpoint.fetch(req, server);
       }
     }
 
