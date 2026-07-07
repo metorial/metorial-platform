@@ -2,15 +2,16 @@ import type { SkillSharePanelContext } from '@metorial/scene-skills';
 import {
   DocumentParticipant,
   DocumentVersion as StateDocumentVersion,
-  updateDocument as updateDocumentRequest,
   useCreateFileLink,
   useDocument,
+  useDocumentCollaboration,
   useDocumentParticipants,
   useDocumentPermissions,
   useDocumentVersions,
   useUploadFile,
   useUser
 } from '@metorial/state';
+import { markdownToYjsUpdate } from '@metorial/docs-editor-schema';
 import type { Editor as TiptapEditor } from '@tiptap/react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -39,7 +40,7 @@ import { Preview } from '../preview/Preview';
 import { GlobalStyles } from '../styles/GlobalStyles';
 import { lightTheme } from '../styles/theme';
 
-let AUTOSAVE_DELAY_MS = 5000;
+let AUTOSAVE_DELAY_MS = 1000;
 let MIN_PREVIEW_WIDTH = 360;
 let DEFAULT_PREVIEW_WIDTH = 520;
 let MIN_EDITOR_WIDTH = 420;
@@ -295,6 +296,30 @@ let EditorMessage = styled.div`
 type ViewMode = 'split' | 'editor' | 'preview';
 type SaveStatus = 'saved' | 'pending' | 'saving' | 'error';
 type PendingDocumentSave = { title: string; content: string };
+
+let collaboratorColors = [
+  '#2563eb',
+  '#16a34a',
+  '#9333ea',
+  '#dc2626',
+  '#ea580c',
+  '#0891b2',
+  '#4f46e5',
+  '#be123c'
+];
+
+let getCollaboratorColor = (seed: string) => {
+  let hash = 0;
+
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+
+  return collaboratorColors[hash % collaboratorColors.length]!;
+};
+
+let seedYjsBodyFromMarkdown = (d: { initialMarkdown: string; origin: unknown }) =>
+  markdownToYjsUpdate(d.initialMarkdown, d.origin);
 
 export type DocumentEditorSceneProps = {
   instanceId: string | null | undefined;
@@ -675,6 +700,7 @@ let DocumentEditorLoaded = (p: {
   let [toast, setToast] = useState<string | null>(null);
   let [contentWidth, setContentWidth] = useState('1000px');
   let [editorInstance, setEditorInstance] = useState<TiptapEditor | null>(null);
+  let editorInstanceRef = useRef<TiptapEditor | null>(null);
   let [toolbarDisabled, setToolbarDisabled] = useState(false);
   let [linkPromptToken, setLinkPromptToken] = useState(0);
   let [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
@@ -685,6 +711,8 @@ let DocumentEditorLoaded = (p: {
   let [lastUpdatedAt, setLastUpdatedAt] = useState(p.document.updatedAt);
   let [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   let [allowInitialHashScroll, setAllowInitialHashScroll] = useState(true);
+  let [collaborationFirstRenderedDoc, setCollaborationFirstRenderedDoc] =
+    useState<unknown>(null);
   let uploadFile = useUploadFile();
   let createFileLink = useCreateFileLink();
   let navigate = useNavigate();
@@ -701,6 +729,7 @@ let DocumentEditorLoaded = (p: {
   let saveInFlightRef = useRef<Promise<void> | null>(null);
   let mountedRef = useRef(true);
   let pendingNavigationRef = useRef<string | null>(null);
+  let autosaveHydratedRef = useRef(false);
   let lastPersistedRef = useRef({
     title: p.document.title,
     content: initialDocumentState.persistedContent
@@ -708,6 +737,16 @@ let DocumentEditorLoaded = (p: {
 
   let canWrite = p.permissions.permissions.includes('content_write');
   let readOnly = !canWrite;
+  let collaboration = useDocumentCollaboration(p.instanceId, p.documentId, {
+    enabled: true,
+    initialMarkdown: initialDocumentState.body,
+    seedInitialBody: seedYjsBodyFromMarkdown
+  });
+  let collaborationMeta = useMemo(
+    () => collaboration.ydoc.getMap<string>('meta'),
+    [collaboration.ydoc]
+  );
+  let applyingRemoteCollaborationMetaRef = useRef(false);
 
   let theme = useMemo(
     () => ({
@@ -819,8 +858,11 @@ let DocumentEditorLoaded = (p: {
 
   let markChanged = useCallback(() => {
     setLastUpdatedAt(new Date());
-    if (canWrite) setSaveStatus('pending');
-  }, [canWrite]);
+    if (canWrite) {
+      collaboration.markSnapshotPending();
+      setSaveStatus('pending');
+    }
+  }, [canWrite, collaboration.markSnapshotPending]);
 
   let handleTitleChange = useCallback(
     (next: string) => {
@@ -828,9 +870,12 @@ let DocumentEditorLoaded = (p: {
       if (next === titleRef.current) return;
       titleRef.current = next;
       setTitle(next);
+      if (!applyingRemoteCollaborationMetaRef.current) {
+        collaborationMeta.set('title', next);
+      }
       markChanged();
     },
-    [markChanged, readOnly]
+    [collaborationMeta, markChanged, readOnly]
   );
 
   let handleMarkdownChange = useCallback(
@@ -850,9 +895,12 @@ let DocumentEditorLoaded = (p: {
       if (next === frontMatterRef.current) return;
       frontMatterRef.current = next;
       setFrontMatter(next);
+      if (!applyingRemoteCollaborationMetaRef.current) {
+        collaborationMeta.set('frontMatter', next);
+      }
       markChanged();
     },
-    [markChanged, readOnly]
+    [collaborationMeta, markChanged, readOnly]
   );
 
   let handleFile = useCallback(
@@ -923,6 +971,23 @@ let DocumentEditorLoaded = (p: {
   );
 
   let people = useMemo(() => p.participants.map(mapParticipantToPerson), [p.participants]);
+  let livePeople = useMemo(
+    () => collaboration.participants.map(mapParticipantToPerson),
+    [collaboration.participants]
+  );
+  let sharePeople = useMemo(() => {
+    let byEmail = new Map<string, SharedPerson>();
+
+    for (let person of people) {
+      byEmail.set(person.email, person);
+    }
+
+    for (let person of livePeople) {
+      byEmail.set(person.email, person);
+    }
+
+    return [...byEmail.values()];
+  }, [livePeople, people]);
   let versionHistory = useMemo(() => p.versions.map(mapVersion), [p.versions]);
   let documentLink = getCanonicalDocumentLink();
   let fallbackStats = useMemo(() => countFallbackStats(markdown), [markdown]);
@@ -930,7 +995,7 @@ let DocumentEditorLoaded = (p: {
   let charCount =
     editorInstance?.storage.characterCount?.characters?.() ?? fallbackStats.characters;
   let statusEditors = useMemo(() => {
-    let editors = people.filter(person => person.role === 'editor');
+    let editors = sharePeople.filter(person => person.role === 'editor');
     if (!canWrite) return editors;
 
     let currentAsEditor: SharedPerson = {
@@ -944,7 +1009,20 @@ let DocumentEditorLoaded = (p: {
 
     if (editors.some(person => person.email === p.user.email)) return editors;
     return [currentAsEditor, ...editors];
-  }, [canWrite, lastUpdatedAt, p.user.email, p.user.imageUrl, p.user.name, people]);
+  }, [canWrite, lastUpdatedAt, p.user.email, p.user.imageUrl, p.user.name, sharePeople]);
+  let editorCollaboration = useMemo(
+    () => ({
+      ydoc: collaboration.ydoc,
+      awareness: collaboration.awareness,
+      user: {
+        name: p.user.name,
+        imageUrl: p.user.imageUrl,
+        color: getCollaboratorColor(p.user.email || p.user.name)
+      },
+      onFirstRender: () => setCollaborationFirstRenderedDoc(collaboration.ydoc)
+    }),
+    [collaboration.awareness, collaboration.ydoc, p.user.email, p.user.imageUrl, p.user.name]
+  );
   let skillShareContext = useMemo(
     () => getSkillShareContextFromState(location.state, p.currentConsumerId),
     [location.state, p.currentConsumerId]
@@ -953,8 +1031,74 @@ let DocumentEditorLoaded = (p: {
     canWrite &&
     (title !== lastPersistedRef.current.title ||
       rawDocumentContent !== lastPersistedRef.current.content);
+  let editorReadyForAutosave =
+    collaboration.isReadyForEditor &&
+    (viewMode === 'preview' || collaborationFirstRenderedDoc === collaboration.ydoc);
 
   latestSaveInputRef.current = { title, content: documentContent };
+
+  useEffect(() => {
+    editorInstanceRef.current = editorInstance;
+  }, [editorInstance]);
+
+  useEffect(() => {
+    setSaveStatus(collaboration.snapshotSaveStatus);
+  }, [collaboration.snapshotSaveStatus]);
+
+  useEffect(() => {
+    let applyMeta = () => {
+      let nextTitle = collaborationMeta.get('title');
+      let nextFrontMatter = collaborationMeta.get('frontMatter');
+
+      applyingRemoteCollaborationMetaRef.current = true;
+
+      try {
+        if (typeof nextTitle == 'string' && nextTitle !== titleRef.current) {
+          titleRef.current = nextTitle;
+          setTitle(nextTitle);
+          setLastUpdatedAt(new Date());
+        }
+
+        if (typeof nextFrontMatter == 'string' && nextFrontMatter !== frontMatterRef.current) {
+          frontMatterRef.current = nextFrontMatter;
+          setFrontMatter(nextFrontMatter);
+          setFrontMatterOpen(nextFrontMatter.trim().length > 0);
+          setLastUpdatedAt(new Date());
+        }
+      } finally {
+        applyingRemoteCollaborationMetaRef.current = false;
+      }
+    };
+
+    collaborationMeta.observe(applyMeta);
+    applyMeta();
+
+    return () => {
+      collaborationMeta.unobserve(applyMeta);
+    };
+  }, [collaborationMeta]);
+
+  useEffect(() => {
+    autosaveHydratedRef.current = false;
+  }, [collaboration.ydoc]);
+
+  let getCurrentSaveInput = useCallback((): PendingDocumentSave => {
+    let editorMarkdown = (
+      editorInstanceRef.current?.storage as
+        | { markdown?: { getMarkdown: () => string } }
+        | undefined
+    )?.markdown?.getMarkdown();
+    let body = editorMarkdown ?? markdownRef.current;
+
+    return {
+      title: titleRef.current,
+      content: composeFullMarkdown({
+        frontMatter: frontMatterValidation.isValid ? frontMatterRef.current : '',
+        title: titleRef.current,
+        body
+      })
+    };
+  }, [frontMatterValidation.isValid]);
 
   let flushSave = useCallback(async () => {
     if (saveTimerRef.current) {
@@ -964,17 +1108,13 @@ let DocumentEditorLoaded = (p: {
 
     if (saveInFlightRef.current) await saveInFlightRef.current;
 
-    let next = pendingSaveRef.current;
+    let next = pendingSaveRef.current ? getCurrentSaveInput() : null;
     if (!next) return;
 
     pendingSaveRef.current = null;
     if (mountedRef.current) setSaveStatus('saving');
 
-    let savePromise = updateDocumentRequest({
-      instanceId: p.instanceId,
-      documentId: p.documentId,
-      ...next
-    })
+    let savePromise = Promise.resolve()
       .then(() => {
         lastPersistedRef.current = next;
         if (mountedRef.current) setSaveStatus(pendingSaveRef.current ? 'pending' : 'saved');
@@ -991,10 +1131,10 @@ let DocumentEditorLoaded = (p: {
 
     saveInFlightRef.current = savePromise;
     await savePromise;
-  }, [p.documentId, p.instanceId]);
+  }, [getCurrentSaveInput]);
 
   let enqueueSave = useCallback(() => {
-    let next = latestSaveInputRef.current;
+    let next = getCurrentSaveInput();
     let last = lastPersistedRef.current;
     let changed = next.title !== last.title || next.content !== last.content;
 
@@ -1011,7 +1151,7 @@ let DocumentEditorLoaded = (p: {
     saveTimerRef.current = window.setTimeout(() => {
       void flushSave();
     }, AUTOSAVE_DELAY_MS);
-  }, [flushSave]);
+  }, [flushSave, getCurrentSaveInput]);
 
   useEffect(() => {
     let nextDocumentState = parseStoredDocumentForEditor(p.document);
@@ -1029,14 +1169,27 @@ let DocumentEditorLoaded = (p: {
       content: nextDocumentState.persistedContent
     };
     pendingSaveRef.current = null;
+    autosaveHydratedRef.current = false;
     setEditorKey(k => k + 1);
   }, [p.document.content, p.document.id, p.document.title, p.document.updatedAt]);
 
   useEffect(() => {
+    if (!editorReadyForAutosave) return;
+    if (!autosaveHydratedRef.current) {
+      autosaveHydratedRef.current = true;
+      return;
+    }
     if (!canWrite) return;
     if (!frontMatterValidation.isValid) return;
     enqueueSave();
-  }, [canWrite, documentContent, enqueueSave, frontMatterValidation.isValid, title]);
+  }, [
+    canWrite,
+    documentContent,
+    editorReadyForAutosave,
+    enqueueSave,
+    frontMatterValidation.isValid,
+    title
+  ]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -1184,7 +1337,7 @@ let DocumentEditorLoaded = (p: {
               <ShareButton
                 instanceId={p.instanceId}
                 documentLink={documentLink}
-                people={people}
+                people={sharePeople}
                 onCopyLink={handleCopyLink}
                 skillShareContext={skillShareContext}
                 onSharedSkill={p.onSharedSkill}
@@ -1211,7 +1364,7 @@ let DocumentEditorLoaded = (p: {
           </Header>
 
           <Main ref={mainRef}>
-            {viewMode !== 'preview' && (
+            {viewMode !== 'preview' && collaboration.isReadyForEditor && (
               <Editor
                 key={editorKey}
                 initialMarkdown={markdown}
@@ -1241,6 +1394,7 @@ let DocumentEditorLoaded = (p: {
                 statusCharCount={charCount}
                 allowInitialHashScroll={allowInitialHashScroll}
                 onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
+                collaboration={editorCollaboration}
               />
             )}
             {viewMode === 'split' && (

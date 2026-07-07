@@ -108,4 +108,68 @@ export let GlobalStyles = createGlobalStyle`
     color: #6897bb;
   }
 
+  .docs-remote-selection {
+    border-radius: 2px;
+  }
+
+  .docs-remote-cursor-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 8;
+  }
+
+  .docs-remote-cursor {
+    position: relative;
+    display: inline-block;
+    width: 0;
+    height: 0;
+    line-height: 0;
+    vertical-align: baseline;
+    pointer-events: none;
+    z-index: 8;
+  }
+
+  .docs-remote-cursor--overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+  }
+
+  .docs-remote-cursor-caret {
+    position: absolute;
+    top: 0;
+    left: -1px;
+    width: 2px;
+    height: var(--docs-remote-cursor-height, 1.2em);
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  .docs-remote-cursor-label {
+    position: absolute;
+    top: -1.35em;
+    left: -2px;
+    max-width: 160px;
+    padding: 2px 6px;
+    border-radius: 4px 4px 4px 0;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0;
+    transition: opacity ${({ theme }) => theme.motion.fast};
+  }
+
+  .docs-remote-cursor:hover .docs-remote-cursor-label,
+  .docs-remote-cursor-overlay--focused .docs-remote-cursor-label,
+  .tiptap-editor:focus-within .docs-remote-cursor-label {
+    opacity: 1;
+  }
+
 `;

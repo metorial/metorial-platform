@@ -540,24 +540,28 @@ export let SkillSharePanelContent = (p: {
   return (
     <PanelStack>
       {skills.length > 1 && (
-        <Select
-          label="Skill"
-          size="2"
-          value={selectedSkillId}
-          items={getSkillItems(skills)}
-          onChange={setSelectedSkillId}
-        />
+        <div style={{ padding: 10 }}>
+          <Select
+            label="Skill"
+            size="2"
+            value={selectedSkillId}
+            items={getSkillItems(skills)}
+            onChange={setSelectedSkillId}
+          />
+        </div>
       )}
 
       {showPortalSelect && (
-        <Select
-          label="Portal"
-          size="2"
-          value={selectedPortalId}
-          placeholder="Select a portal"
-          items={getPortalItems(portals.data?.items)}
-          onChange={setSelectedPortalId}
-        />
+        <div style={{ padding: 10 }}>
+          <Select
+            label="Portal"
+            size="2"
+            value={selectedPortalId}
+            placeholder="Select a portal"
+            items={getPortalItems(portals.data?.items)}
+            onChange={setSelectedPortalId}
+          />
+        </div>
       )}
 
       {canManagePortalGroups ? (
