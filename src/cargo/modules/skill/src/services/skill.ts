@@ -423,6 +423,7 @@ class SkillServiceImpl {
       skill: SkillRecord;
       actorId: string;
       permissions: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
     }
   ) {
     let actor = await actorService.getActorById({
@@ -433,7 +434,8 @@ class SkillServiceImpl {
     let participant = await storeAccessService.ensureActorStorePermissions({
       store: d.skill.store,
       actor,
-      permissions: d.permissions
+      permissions: d.permissions,
+      overridePermissions: d.overridePermissions
     });
     if (!participant) {
       throw new ServiceError(notFoundError('store.participant'));

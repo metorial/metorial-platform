@@ -68,6 +68,12 @@ export let skillInclude = {
   ownerTenantActor: true
 };
 
+let withCargoSkillUpsertActorOverride = (
+  input: Parameters<typeof cargo.skill.upsertActor>[0] & {
+    overridePermissions?: boolean;
+  }
+) => input as Parameters<typeof cargo.skill.upsertActor>[0];
+
 let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
 
@@ -741,6 +747,7 @@ class skillServiceImpl {
     skill: Skill;
     tenantActor: TenantActor;
     permissions: Array<'content_read' | 'content_write'>;
+    overridePermissions?: boolean;
   }) {
     checkTenant(d, d.skill);
     checkDeletedRelation(d.skill);
@@ -748,12 +755,15 @@ class skillServiceImpl {
     let cargoScope = await ensureCargoScope(d);
     let cargoActor = await ensureCargoActor(cargoScope, d.tenantActor);
 
-    return await cargo.skill.upsertActor({
-      ...cargoScope,
-      skillId: d.skill.id,
-      actorId: cargoActor.id,
-      permissions: d.permissions
-    });
+    return await cargo.skill.upsertActor(
+      withCargoSkillUpsertActorOverride({
+        ...cargoScope,
+        skillId: d.skill.id,
+        actorId: cargoActor.id,
+        permissions: d.permissions,
+        overridePermissions: d.overridePermissions
+      })
+    );
   }
 
   async getActiveSkillById(d: {
