@@ -180,6 +180,19 @@ export type FabricOrganizationSubscription = {
   planId: string;
 };
 
+export type FabricUserTenant = {
+  oid: bigint;
+  id: string;
+  type: 'account_system_users';
+  accountOid: bigint;
+  canEditName: boolean;
+  canEditEmail: boolean;
+  canEditImage: boolean;
+  canJoinOrganization: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type KeyProviderEventKeyProvider = {
   object: 'nebula#key_provider';
   id: string;
@@ -215,6 +228,8 @@ export interface FabricEvents {
   'user.updated:after': { user: User, performedBy: User; context?: Context };
   'user.deleted:before': { user: User, performedBy: User; context?: Context };
   'user.deleted:after': { user: User, performedBy: User; context?: Context };
+
+  'user_tenant.created:after': { userTenant: FabricUserTenant };
 
   'user.session.created:before': { user: User, performedBy: User; context?: Context };
   'user.session.created:after': { user: User, session: UserSession, performedBy: User; context?: Context };

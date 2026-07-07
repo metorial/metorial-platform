@@ -4,6 +4,7 @@ export type {
   FabricBillingAccount,
   FabricBillingPlan,
   FabricEvents,
+  FabricUserTenant,
   FabricOrganizationSubscription,
   KeyProviderEventBase,
   KeyProviderEventKeyProvider,
