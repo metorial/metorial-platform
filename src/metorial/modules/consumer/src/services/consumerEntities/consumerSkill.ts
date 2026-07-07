@@ -732,11 +732,6 @@ class ConsumerSkillServiceImpl {
     }
 
     if (d.consumerProfile) {
-      await this.assertConsumerCanWriteSkill({
-        skill: d.skill,
-        consumerProfile: d.consumerProfile
-      });
-
       if (consumerProfileIds.includes(d.consumerProfile.id)) {
         throw new ServiceError(
           forbiddenError({
@@ -752,6 +747,11 @@ class ConsumerSkillServiceImpl {
           })
         );
       }
+
+      await this.assertConsumerCanWriteSkill({
+        skill: d.skill,
+        consumerProfile: d.consumerProfile
+      });
     }
 
     if (
