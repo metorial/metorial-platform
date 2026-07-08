@@ -269,11 +269,19 @@ export let useDocumentCollaboration = (
   }, [awareness, ydoc]);
 
   useEffect(() => {
-    if (!enabled || !instanceId || !documentId) {
+    if (!instanceId || !documentId) {
       setConnectionStatus('idle');
       setIsSynced(false);
       setIsReadyForEditor(false);
       setIsFallback(false);
+      return;
+    }
+
+    if (!enabled) {
+      setConnectionStatus('idle');
+      setIsSynced(false);
+      setIsReadyForEditor(true);
+      setIsFallback(true);
       return;
     }
 

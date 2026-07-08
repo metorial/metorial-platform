@@ -5,7 +5,6 @@ import {
   useCreateFileLink,
   useDocument,
   useDocumentCollaboration,
-  useDocumentEditToken,
   getDocumentEditToken,
   useDocumentParticipants,
   useDocumentPermissions,
@@ -625,9 +624,55 @@ let DocumentEditorInner = (p: {
   let user = useUser();
   let canWrite = !!permissions.data?.permissions.includes('content_write');
   let requiresEditToken = !!p.currentConsumerId && canWrite;
-  let documentEditToken = useDocumentEditToken(p.instanceId, p.documentId, requiresEditToken);
+  let [documentEditToken, setDocumentEditToken] = useState<{
+    status: 'idle' | 'loading' | 'ready' | 'error';
+    token: string | null;
+  }>({
+    status: requiresEditToken ? 'loading' : 'idle',
+    token: null
+  });
+  useEffect(() => {
+    if (!requiresEditToken) {
+      setDocumentEditToken({
+        status: 'idle',
+        token: null
+      });
+      return;
+    }
+
+    let cancelled = false;
+    setDocumentEditToken({
+      status: 'loading',
+      token: null
+    });
+
+    void getDocumentEditToken({
+      instanceId: p.instanceId,
+      documentId: p.documentId
+    })
+      .then(token => {
+        if (cancelled) return;
+        setDocumentEditToken({
+          status: 'ready',
+          token: token.token
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDocumentEditToken({
+          status: 'error',
+          token: null
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [p.documentId, p.instanceId, requiresEditToken]);
   let isEditTokenReady =
-    !requiresEditToken || !!documentEditToken.data || !!documentEditToken.error;
+    !requiresEditToken ||
+    documentEditToken.status === 'ready' ||
+    documentEditToken.status === 'error';
   let isReady = !!document.data && !!permissions.data && !!user.data && isEditTokenReady;
   let [showSkeleton, setShowSkeleton] = useState(true);
 
@@ -659,7 +704,7 @@ let DocumentEditorInner = (p: {
       user={user.data}
       instanceId={p.instanceId}
       documentId={p.documentId}
-      editToken={documentEditToken.data?.token ?? null}
+      editToken={documentEditToken.token}
       currentConsumerId={p.currentConsumerId}
       onBack={p.onBack}
       onSharedSkill={() => participants.refetch()}
@@ -668,7 +713,7 @@ let DocumentEditorInner = (p: {
 
   return (
     <FadeHost>
-      {editor}
+      {isReady ? editor : null}
       {showSkeleton && (
         <SkeletonFadeLayer $fading={isReady}>
           <DocumentEditorSkeleton onBack={p.onBack} />
@@ -746,6 +791,7 @@ let DocumentEditorLoaded = (p: {
 
   let canWrite = p.permissions.permissions.includes('content_write');
   let readOnly = !canWrite;
+  let requiresEditToken = !!p.currentConsumerId && canWrite;
   let refreshEditToken = useCallback(async () => {
     if (!p.currentConsumerId || !canWrite) return p.editToken ?? null;
 
@@ -757,7 +803,7 @@ let DocumentEditorLoaded = (p: {
     return refreshed.token;
   }, [canWrite, p.currentConsumerId, p.documentId, p.editToken, p.instanceId]);
   let collaboration = useDocumentCollaboration(p.instanceId, p.documentId, {
-    enabled: true,
+    enabled: !requiresEditToken || !!p.editToken,
     editToken: p.editToken ?? null,
     refreshEditToken,
     initialMarkdown: initialDocumentState.body,
