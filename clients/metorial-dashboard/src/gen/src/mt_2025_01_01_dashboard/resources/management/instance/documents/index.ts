@@ -1,6 +1,7 @@
 export * from './clone';
 export * from './create';
 export * from './delete';
+export * from './edit-token';
 export * from './get';
 export * from './list';
 export * from './participants';

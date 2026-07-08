@@ -25,6 +25,7 @@ import {
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
   MetorialDashboardInstanceDocumentsEndpoint,
+  MetorialDashboardInstanceDocumentsEditTokenEndpoint,
   MetorialDashboardInstanceDocumentsParticipantsEndpoint,
   MetorialDashboardInstanceDocumentsPermissionsEndpoint,
   MetorialDashboardInstanceDocumentsVersionsEndpoint,
@@ -499,6 +500,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   documents: Object.assign(new MetorialDashboardInstanceDocumentsEndpoint(manager), {
+    editToken: new MetorialDashboardInstanceDocumentsEditTokenEndpoint(manager),
     participants: new MetorialDashboardInstanceDocumentsParticipantsEndpoint(manager),
     permissions: new MetorialDashboardInstanceDocumentsPermissionsEndpoint(manager),
     versions: new MetorialDashboardInstanceDocumentsVersionsEndpoint(manager)
