@@ -198,11 +198,13 @@ export let useDocumentCollaboration = (
   let [error, setError] = useState<unknown>(null);
   let [isSynced, setIsSynced] = useState(false);
   let [isReadyForEditor, setIsReadyForEditor] = useState(false);
+  let [isFallback, setIsFallback] = useState(false);
   let [initialBodyStateReceived, setInitialBodyStateReceived] = useState(false);
   let [initialBodySeeded, setInitialBodySeeded] = useState(false);
   let wsRef = useRef<WebSocket | null>(null);
   let sessionIdRef = useRef<string | null>(null);
   let suppressLocalUpdateRef = useRef(false);
+  let isReadyForEditorRef = useRef(false);
   let destroyTimerRef = useRef<{
     ydoc: Y.Doc;
     awareness: Awareness;
@@ -211,6 +213,10 @@ export let useDocumentCollaboration = (
 
   let ydoc = useMemo(() => new Y.Doc(), [instanceId, documentId]);
   let awareness = useMemo(() => new Awareness(ydoc), [ydoc]);
+
+  useEffect(() => {
+    isReadyForEditorRef.current = isReadyForEditor;
+  }, [isReadyForEditor]);
 
   useEffect(() => {
     if (destroyTimerRef.current?.ydoc === ydoc) {
@@ -239,6 +245,7 @@ export let useDocumentCollaboration = (
       setConnectionStatus('idle');
       setIsSynced(false);
       setIsReadyForEditor(false);
+      setIsFallback(false);
       return;
     }
 
@@ -254,6 +261,7 @@ export let useDocumentCollaboration = (
     setError(null);
     setIsSynced(false);
     setIsReadyForEditor(false);
+    setIsFallback(false);
     setInitialBodyStateReceived(false);
     setInitialBodySeeded(false);
 
@@ -404,12 +412,20 @@ export let useDocumentCollaboration = (
       if (closed) return;
       setError(event);
       setConnectionStatus('error');
+      if (!isReadyForEditorRef.current) {
+        setIsFallback(true);
+        setIsReadyForEditor(true);
+      }
     };
 
     ws.onclose = () => {
       if (closed) return;
       setConnectionStatus('idle');
       setIsSynced(false);
+      if (!isReadyForEditorRef.current) {
+        setIsFallback(true);
+        setIsReadyForEditor(true);
+      }
     };
 
     return () => {
@@ -464,6 +480,7 @@ export let useDocumentCollaboration = (
     error,
     isSynced,
     isReadyForEditor,
+    isFallback,
     initialBodyStateReceived,
     initialBodySeeded,
     sessionId: sessionIdRef.current,

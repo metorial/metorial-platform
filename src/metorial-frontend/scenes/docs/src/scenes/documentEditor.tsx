@@ -1033,7 +1033,9 @@ let DocumentEditorLoaded = (p: {
       rawDocumentContent !== lastPersistedRef.current.content);
   let editorReadyForAutosave =
     collaboration.isReadyForEditor &&
-    (viewMode === 'preview' || collaborationFirstRenderedDoc === collaboration.ydoc);
+    (collaboration.isFallback ||
+      viewMode === 'preview' ||
+      collaborationFirstRenderedDoc === collaboration.ydoc);
 
   latestSaveInputRef.current = { title, content: documentContent };
 
@@ -1394,7 +1396,7 @@ let DocumentEditorLoaded = (p: {
                 statusCharCount={charCount}
                 allowInitialHashScroll={allowInitialHashScroll}
                 onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
-                collaboration={editorCollaboration}
+                collaboration={collaboration.isFallback ? undefined : editorCollaboration}
               />
             )}
             {viewMode === 'split' && (
