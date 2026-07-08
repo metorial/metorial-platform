@@ -1,13 +1,18 @@
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { documentService } from '@metorial/module-file';
+import { documentEditTokenService, documentService } from '@metorial/module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { documentPermissionsPresenter, documentPresenter } from '../../../presenters';
+import {
+  documentEditTokenPresenter,
+  documentPermissionsPresenter,
+  documentPresenter
+} from '../../../presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 
 export let documentGroup = instanceGroup.use(async ctx => {
@@ -153,6 +158,51 @@ export let documentController = Controller.create(
         });
 
         return documentPermissionsPresenter.present({ permissions });
+      }),
+
+    editToken: documentGroup
+      .get(instancePath('documents/:documentId/edit-token', 'documents.editToken.get'), {
+        name: 'Get document edit token',
+        description:
+          'Returns a short-lived token for establishing a collaborative document editing session.',
+        confidential: true
+      })
+      .use(
+        checkAccess({
+          possibleScopes: ['instance.file:write', 'consumer#instance.document:write']
+        })
+      )
+      .output(documentEditTokenPresenter)
+      .do(async ctx => {
+        let cargoAccess = getInstanceCargoAccess(ctx);
+        let permissions = await documentService.getDocumentPermissions({
+          documentId: ctx.document.id,
+          owner: {
+            type: 'instance',
+            instance: ctx.instance,
+            organization: ctx.organization
+          },
+          ...cargoAccess
+        });
+
+        if (!permissions.hasFullAccess && !permissions.permissions.includes('content_write')) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'You do not have permission to edit this document'
+            })
+          );
+        }
+
+        let token = await documentEditTokenService.issueDocumentEditToken({
+          documentId: ctx.document.id,
+          instanceId: ctx.instance.id,
+          organizationId: ctx.organization.id,
+          accessActor: cargoAccess.accessActor,
+          defaultPermissions: cargoAccess.defaultPermissions,
+          overridePermissions: cargoAccess.overridePermissions
+        });
+
+        return documentEditTokenPresenter.present({ token });
       }),
 
     update: documentGroup

@@ -1,7 +1,10 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { documentType } from '../../types';
-import { documentParticipantActorSchema, presentDocumentParticipantActor } from './documentParticipant';
+import {
+  documentParticipantActorSchema,
+  presentDocumentParticipantActor
+} from './documentParticipant';
 
 export let v1DocumentPresenter = Presenter.create(documentType)
   .presenter(async ({ document }, opts) => ({

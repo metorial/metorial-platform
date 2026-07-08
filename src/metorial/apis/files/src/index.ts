@@ -2,6 +2,7 @@ import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error'
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
+import { getFileDownloadUrl } from '@metorial-platform-systems/cargo-client';
 import { authenticate } from '@metorial/auth';
 import { generatePlainId } from '@metorial/id';
 import {
@@ -11,7 +12,7 @@ import {
   uploadCargoFile
 } from '@metorial/module-file';
 import { upgradeWebSocket, websocket } from 'hono/bun';
-import { getFileDownloadUrl } from '@metorial-platform-systems/cargo-client';
+import { resolveDocumentsLiveTarget } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
@@ -258,6 +259,7 @@ let createDocumentsLiveHandler = (
             let documentId = getQueryParam(url, ['documentId', 'document_id']);
             let instanceId = getQueryParam(url, ['instanceId', 'instance_id']);
             let organizationId = getQueryParam(url, ['organizationId', 'organization_id']);
+            let editToken = getQueryParam(url, ['editToken', 'edit_token']);
 
             if (!documentId) {
               throw new ServiceError(
@@ -267,11 +269,14 @@ let createDocumentsLiveHandler = (
               );
             }
 
-            let { auth } = await authenticateRequest(c.req.raw, url);
-            let target = await resolveUploadTarget({
-              auth,
+            let target = await resolveDocumentsLiveTarget({
+              req: c.req.raw,
+              url,
+              documentId,
               instanceId,
-              organizationId
+              organizationId,
+              editToken,
+              authenticateRequest
             });
 
             if (!target.cargoAccess?.accessActor) {

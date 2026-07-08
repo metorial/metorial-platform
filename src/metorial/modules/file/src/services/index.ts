@@ -33,6 +33,7 @@ export { uploadCargoFile } from '../cargo';
 
 export * from './access';
 export * from './document';
+export * from './documentEditToken';
 export * from './documentParticipant';
 export * from './documentVersion';
 export * from './file';

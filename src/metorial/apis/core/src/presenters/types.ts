@@ -517,6 +517,14 @@ export let documentType = PresentableType.create<{
   document: EnrichedCargoDocument;
 }>()('document');
 
+export let documentEditTokenType = PresentableType.create<{
+  token: {
+    token: string;
+    expiresAt: Date;
+    documentId: string;
+  };
+}>()('document.edit_token');
+
 export let documentPermissionsType = PresentableType.create<{
   permissions: CargoDocumentPermissions;
 }>()('documentPermissions');
