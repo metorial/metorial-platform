@@ -1,4 +1,3 @@
-import { getConfig } from '@metorial/config';
 import { Context } from '@lowerdeck/hono';
 import { createConnectionHono } from '../hono';
 
@@ -27,7 +26,7 @@ export let buildOAuthClientConfig = (base: string) => ({
   client_id_metadata_document_supported: false,
   code_challenge_methods_supported: ['S256'],
   grant_types_supported: ['authorization_code', 'refresh_token'],
-  issuer: getConfig().urls.apiUrl,
+  issuer: base,
   registration_endpoint: `${base}/oauth/register`,
   response_modes_supported: ['query'],
   response_types_supported: ['code'],
