@@ -6,8 +6,16 @@ import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { internalDocumentSyncService } from '../internal/documentSync';
-import { documentService } from '../services/document';
 import { queueDocumentCollaborationFlush } from '../queues/documentCollaborationFlush';
+import { documentService } from '../services/document';
+import { publishDocumentLiveBusMessage, subscribeToDocumentLiveBus } from './documentLiveBus';
+import { type DocumentLiveBusMessageType } from './documentLiveBusProtocol';
+import {
+  listActiveLiveSessions,
+  removeLiveSession,
+  shouldPublishParticipantPayload,
+  upsertLiveSession
+} from './documentLiveSessionRegistry';
 
 export { websocket };
 
@@ -92,10 +100,12 @@ let getActiveSessionIds = (documentId: string) => {
   });
 };
 
-let getActiveActorIds = (documentId: string) =>
+let getActiveActorIds = async (documentId: string) =>
   [
     ...new Set(
-      getActiveSessionIds(documentId).map(sessionId => liveSessions.get(sessionId)?.actorId)
+      (await listActiveLiveSessions(documentId, participantTimeoutMs)).map(
+        session => session.actorId
+      )
     )
   ].filter((actorId): actorId is string => !!actorId);
 
@@ -135,10 +145,61 @@ let broadcastToDocumentExcept = (
   }
 };
 
-let getAwarenessPayload = (documentId: string) =>
-  getActiveSessionIds(documentId)
-    .map(sessionId => {
-      let session = liveSessions.get(sessionId);
+let broadcastDistributedToDocument = async (
+  documentId: string,
+  type: DocumentLiveBusMessageType,
+  data: any,
+  originSessionId?: string
+) => {
+  broadcastToDocument(documentId, type, data);
+  await publishDocumentLiveBusMessage({
+    originSessionId,
+    documentId,
+    type,
+    data
+  });
+};
+
+let broadcastDistributedToDocumentExcept = async (
+  documentId: string,
+  excludedSessionId: string,
+  type: DocumentLiveBusMessageType,
+  data: any
+) => {
+  broadcastToDocumentExcept(documentId, excludedSessionId, type, data);
+  await publishDocumentLiveBusMessage({
+    originSessionId: excludedSessionId,
+    documentId,
+    type,
+    data
+  });
+};
+
+let handleLiveBusMessage = async (message: {
+  documentId: string;
+  type: DocumentLiveBusMessageType;
+  data: any;
+}) => {
+  broadcastToDocument(message.documentId, message.type, message.data);
+};
+
+let subscribeToLiveBus = () => {
+  subscribeToDocumentLiveBus(handleLiveBusMessage).catch(error => {
+    console.error('Failed to subscribe to Cargo live document events', error);
+    let retryTimer = setTimeout(subscribeToLiveBus, 5000);
+    retryTimer.unref?.();
+  });
+};
+
+subscribeToLiveBus();
+
+let persistLiveSession = async (session: LiveSession) => {
+  await upsertLiveSession(session, participantTimeoutMs);
+};
+
+let getAwarenessPayload = async (documentId: string) =>
+  (await listActiveLiveSessions(documentId, participantTimeoutMs))
+    .map(session => {
       if (
         !session ||
         typeof session.awarenessClientId != 'number' ||
@@ -148,7 +209,7 @@ let getAwarenessPayload = (documentId: string) =>
       }
 
       return {
-        sessionId,
+        sessionId: session.id,
         actorId: session.actorId,
         clientId: session.awarenessClientId,
         update: session.awarenessUpdate
@@ -273,7 +334,7 @@ let buildDocumentPayload = (
 };
 
 let broadcastParticipantList = async (documentId: string) => {
-  let actorIds = getActiveActorIds(documentId);
+  let actorIds = await getActiveActorIds(documentId);
   let payload =
     actorIds.length === 0
       ? []
@@ -317,6 +378,14 @@ let broadcastParticipantList = async (documentId: string) => {
 
   lastParticipantPayloadByDocumentId.set(documentId, serialized);
   broadcastToDocument(documentId, 'participant_list', payload);
+
+  if (await shouldPublishParticipantPayload(documentId, serialized, participantTimeoutMs)) {
+    await publishDocumentLiveBusMessage({
+      documentId,
+      type: 'participant_list',
+      data: payload
+    });
+  }
 };
 
 let removeSession = async (sessionId: string) => {
@@ -325,6 +394,7 @@ let removeSession = async (sessionId: string) => {
 
   liveSessions.delete(sessionId);
   socketsBySessionId.delete(sessionId);
+  await removeLiveSession(session.documentId, sessionId);
 
   let room = sessionIdsByDocumentId.get(session.documentId);
   if (room) {
@@ -336,11 +406,16 @@ let removeSession = async (sessionId: string) => {
   }
 
   if (typeof session.awarenessClientId == 'number') {
-    broadcastToDocument(session.documentId, 'awareness_remove', {
-      sessionId,
-      actorId: session.actorId,
-      clientId: session.awarenessClientId
-    });
+    await broadcastDistributedToDocument(
+      session.documentId,
+      'awareness_remove',
+      {
+        sessionId,
+        actorId: session.actorId,
+        clientId: session.awarenessClientId
+      },
+      sessionId
+    );
   }
 
   await broadcastParticipantList(session.documentId);
@@ -399,21 +474,24 @@ export let documentLiveApi = createHono()
 
       return {
         onOpen: async (_, ws) => {
-          liveSessions.set(sessionId, {
+          let session = {
             id: sessionId,
             documentId,
             actorId,
             lastPingAt: Date.now()
-          });
+          };
+
+          liveSessions.set(sessionId, session);
           socketsBySessionId.set(sessionId, ws);
           getRoomSessionIds(documentId).add(sessionId);
+          await persistLiveSession(session);
 
           send(ws, 'document_snapshot', buildDocumentPayload(scopedDocument.document));
           send(ws, 'collaboration_snapshot', {
             sessionId,
             document: buildDocumentPayload(scopedDocument.document),
             stateUpdate: await internalDocumentCollaborationService.getStateUpdate(documentId),
-            awareness: getAwarenessPayload(documentId)
+            awareness: await getAwarenessPayload(documentId)
           });
           await broadcastParticipantList(documentId);
         },
@@ -426,6 +504,7 @@ export let documentLiveApi = createHono()
 
           try {
             let parsed = JSON.parse(event.data.toString()) as DocumentLiveClientMessage;
+            await persistLiveSession(session);
 
             if (parsed.type === 'ping') {
               let ws = socketsBySessionId.get(sessionId);
@@ -449,11 +528,16 @@ export let documentLiveApi = createHono()
               });
               await queueDocumentCollaborationFlush(session.documentId, merged.revision);
 
-              broadcastToDocumentExcept(session.documentId, sessionId, 'yjs_update', {
+              await broadcastDistributedToDocumentExcept(
+                session.documentId,
                 sessionId,
-                actorId: session.actorId,
-                update: parsed.data.update
-              });
+                'yjs_update',
+                {
+                  sessionId,
+                  actorId: session.actorId,
+                  update: parsed.data.update
+                }
+              );
               return;
             }
 
@@ -483,13 +567,19 @@ export let documentLiveApi = createHono()
 
               session.awarenessClientId = parsed.data.clientId;
               session.awarenessUpdate = parsed.data.update;
+              await persistLiveSession(session);
 
-              broadcastToDocumentExcept(session.documentId, sessionId, 'awareness_update', {
+              await broadcastDistributedToDocumentExcept(
+                session.documentId,
                 sessionId,
-                actorId: session.actorId,
-                clientId: parsed.data.clientId,
-                update: parsed.data.update
-              });
+                'awareness_update',
+                {
+                  sessionId,
+                  actorId: session.actorId,
+                  clientId: parsed.data.clientId,
+                  update: parsed.data.update
+                }
+              );
               return;
             }
 
@@ -548,12 +638,13 @@ export let documentLiveApi = createHono()
               }
             });
 
-            broadcastToDocument(
+            await broadcastDistributedToDocument(
               updatedDocument.id,
               parsed.type === 'document_snapshot_save'
                 ? 'document_snapshot_saved'
                 : 'document_snapshot',
-              buildDocumentPayload(updatedDocument)
+              buildDocumentPayload(updatedDocument),
+              sessionId
             );
 
             let childDocuments =
@@ -565,13 +656,14 @@ export let documentLiveApi = createHono()
             let sharedUpdatedAt = updatedDocument.draftUpdatedAt ?? updatedDocument.updatedAt;
 
             for (let childDocument of childDocuments) {
-              broadcastToDocument(
+              await broadcastDistributedToDocument(
                 childDocument.id,
                 'document_snapshot',
                 buildDocumentPayload(childDocument, {
                   content: sharedContent,
                   updatedAt: sharedUpdatedAt
-                })
+                }),
+                sessionId
               );
             }
 
