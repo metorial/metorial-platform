@@ -55,6 +55,7 @@ type OAuthRoutePathConfig = {
   metadata: string[];
   connect: string[];
   protectedResource: string[];
+  protectedResourceMetadata: string[];
   openIdConfiguration: string[];
   register: string[];
   authorize: string[];
@@ -77,6 +78,7 @@ let portalOAuthPaths: OAuthRoutePathConfig = {
     ':portalId/:magicMcpTargetId/.well-known/oauth-protected-resource',
     ':portalId/.well-known/oauth-protected-resource'
   ],
+  protectedResourceMetadata: [':portalId/:magicMcpTargetId', ':portalId'],
   openIdConfiguration: [
     ':portalId/:magicMcpTargetId/.well-known/openid-configuration',
     ':portalId/.well-known/openid-configuration'
@@ -98,6 +100,7 @@ let pluginOAuthPaths: OAuthRoutePathConfig = {
   ],
   connect: [':skillPluginId'],
   protectedResource: [':skillPluginId/.well-known/oauth-protected-resource'],
+  protectedResourceMetadata: [':skillPluginId'],
   openIdConfiguration: [':skillPluginId/.well-known/openid-configuration'],
   register: [':skillPluginId/oauth/register'],
   authorize: [':skillPluginId/oauth/authorize'],
@@ -132,6 +135,14 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
   let metadataServer = createConnectionHono();
   for (let path of d.paths.metadata) {
     metadataServer = metadataServer.get(path, withResolvedRoute(d.handlers.metadata));
+  }
+
+  let protectedResourceServer = createConnectionHono();
+  for (let path of d.paths.protectedResourceMetadata) {
+    protectedResourceServer = protectedResourceServer.get(
+      path,
+      withResolvedRoute(d.handlers.protectedResource)
+    );
   }
 
   let connectServer = createConnectionHono();
@@ -183,6 +194,7 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
 
   return {
     metadataServer,
+    protectedResourceServer,
     connectServer
   };
 };
@@ -209,6 +221,7 @@ export let createPortalOAuthServers = <TRoute>(
 
   return {
     metadataServer: servers.metadataServer,
+    protectedResourceServer: servers.protectedResourceServer,
     connectPortalServer: servers.connectServer
   };
 };
@@ -224,6 +237,7 @@ export let createPluginOAuthServers = <TRoute>(
 
   return {
     metadataServer: servers.metadataServer,
+    protectedResourceServer: servers.protectedResourceServer,
     connectPluginServer: servers.connectServer
   };
 };

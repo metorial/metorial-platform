@@ -94,6 +94,7 @@ export let createPortalHandler = (d: {
   authenticate: Authenticator<AuthInfo>;
 }): {
   metadataServer: ReturnType<typeof createPortalOAuthServers>['metadataServer'];
+  protectedResourceServer: ReturnType<typeof createPortalOAuthServers>['protectedResourceServer'];
   connectPortalServer: ReturnType<typeof createPortalOAuthServers>['connectPortalServer'];
 } => {
   return createPortalOAuthServers({
@@ -286,6 +287,7 @@ export let createPluginHandler = (d: {
   authenticate: Authenticator<AuthInfo>;
 }): {
   metadataServer: ReturnType<typeof createPluginOAuthServers>['metadataServer'];
+  protectedResourceServer: ReturnType<typeof createPluginOAuthServers>['protectedResourceServer'];
   connectPluginServer: ReturnType<typeof createPluginOAuthServers>['connectPluginServer'];
 } => {
   return createPluginOAuthServers({
