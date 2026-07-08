@@ -145,7 +145,8 @@ let getDocumentLiveUrl = (d: {
   organizationId?: string | null;
 }) => {
   let config = getConfig();
-  let url = new URL('/documents-live', config.apiUrl);
+  let url = new URL(config.apiUrl);
+  url.pathname += '/documents-live';
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.searchParams.set('documentId', d.documentId);
   url.searchParams.set('instanceId', d.instanceId);
