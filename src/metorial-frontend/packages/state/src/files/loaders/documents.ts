@@ -98,6 +98,15 @@ export let updateDocument = (
   }
 ) => withAuth(sdk => sdk.documents.update(body.instanceId, body.documentId, body));
 
+export let getDocumentEditToken = (d: { instanceId: string; documentId: string }) =>
+  withAuth(
+    sdk =>
+      (sdk.documents as any).editToken.get(
+        d.instanceId,
+        d.documentId
+      ) as Promise<DocumentEditToken>
+  );
+
 export let documentPermissionsLoader = createLoader({
   name: 'documentPermissions',
   parents: [documentLoader],
@@ -118,14 +127,7 @@ export let useDocumentPermissions = (
 export let documentEditTokenLoader = createLoader({
   name: 'documentEditToken',
   parents: [documentLoader],
-  fetch: (i: { instanceId: string; documentId: string }) =>
-    withAuth(
-      sdk =>
-        (sdk.documents as any).editToken.get(
-          i.instanceId,
-          i.documentId
-        ) as Promise<DocumentEditToken>
-    ),
+  fetch: (i: { instanceId: string; documentId: string }) => getDocumentEditToken(i),
   mutators: {}
 });
 

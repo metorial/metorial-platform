@@ -116,6 +116,8 @@ type CollaborationClientMessage =
 let remoteOrigin = { source: 'document-collaboration-remote' };
 let seedOrigin = { source: 'document-collaboration-seed' };
 let heartbeatMs = 30 * 1000;
+let reconnectBaseDelayMs = 1_000;
+let reconnectMaxDelayMs = 10_000;
 
 let encodeBase64 = (update: Uint8Array) => {
   let binary = '';
@@ -172,11 +174,15 @@ let getDocumentLiveUrl = (d: {
 let shouldSeedInitialBody = (d: { bodyStateReceived: boolean; initialMarkdown?: string }) =>
   !d.bodyStateReceived && (d.initialMarkdown?.trim().length ?? 0) > 0;
 
+let getReconnectDelayMs = (attempt: number) =>
+  Math.min(reconnectBaseDelayMs * 2 ** Math.max(0, attempt), reconnectMaxDelayMs);
+
 export let __documentCollaborationTestUtils = {
   encodeBase64,
   decodeBase64,
   getDocumentLiveUrl,
-  shouldSeedInitialBody
+  shouldSeedInitialBody,
+  getReconnectDelayMs
 };
 
 let sendJson = (ws: WebSocket | null, message: CollaborationClientMessage) => {
@@ -191,6 +197,7 @@ export let useDocumentCollaboration = (
   opts?: {
     organizationId?: string | null;
     editToken?: string | null;
+    refreshEditToken?: () => Promise<string | null | undefined>;
     enabled?: boolean;
     initialMarkdown?: string;
     seedInitialBody?: (d: { initialMarkdown: string; origin: unknown }) => string | null;
@@ -211,6 +218,9 @@ export let useDocumentCollaboration = (
   let sessionIdRef = useRef<string | null>(null);
   let suppressLocalUpdateRef = useRef(false);
   let isReadyForEditorRef = useRef(false);
+  let hasConnectedRef = useRef(false);
+  let editTokenRef = useRef<string | null | undefined>(opts?.editToken);
+  let refreshEditTokenRef = useRef(opts?.refreshEditToken);
   let destroyTimerRef = useRef<{
     ydoc: Y.Doc;
     awareness: Awareness;
@@ -223,6 +233,18 @@ export let useDocumentCollaboration = (
   useEffect(() => {
     isReadyForEditorRef.current = isReadyForEditor;
   }, [isReadyForEditor]);
+
+  useEffect(() => {
+    editTokenRef.current = opts?.editToken;
+  }, [opts?.editToken]);
+
+  useEffect(() => {
+    refreshEditTokenRef.current = opts?.refreshEditToken;
+  }, [opts?.refreshEditToken]);
+
+  useEffect(() => {
+    hasConnectedRef.current = false;
+  }, [ydoc]);
 
   useEffect(() => {
     if (destroyTimerRef.current?.ydoc === ydoc) {
@@ -256,21 +278,10 @@ export let useDocumentCollaboration = (
     }
 
     let closed = false;
-    let url = getDocumentLiveUrl({
-      instanceId,
-      documentId,
-      organizationId: opts?.organizationId,
-      editToken: opts?.editToken
-    });
-    let ws = new WebSocket(url);
-    wsRef.current = ws;
-    setConnectionStatus('connecting');
-    setError(null);
-    setIsSynced(false);
-    setIsReadyForEditor(false);
-    setIsFallback(false);
-    setInitialBodyStateReceived(false);
-    setInitialBodySeeded(false);
+    let reconnectTimer: number | null = null;
+    let reconnectAttempts = 0;
+    let ws: WebSocket | null = null;
+    let heartbeat: number | null = null;
 
     let handleDocUpdate = (update: Uint8Array, origin: unknown) => {
       if (origin === remoteOrigin) return;
@@ -303,155 +314,226 @@ export let useDocumentCollaboration = (
       });
     };
 
-    ydoc.on('update', handleDocUpdate);
-    awareness.on('update', handleAwarenessUpdate);
-
-    let heartbeat = window.setInterval(() => {
-      sendJson(ws, { type: 'ping' });
-    }, heartbeatMs);
-
-    ws.onopen = () => {
-      if (closed) return;
-      setConnectionStatus('connected');
-      sendJson(ws, { type: 'ping' });
+    let cleanupSocket = () => {
+      if (heartbeat) {
+        window.clearInterval(heartbeat);
+        heartbeat = null;
+      }
+      if (wsRef.current === ws) wsRef.current = null;
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        ws.close();
+      }
+      ws = null;
     };
 
-    ws.onmessage = event => {
-      if (closed || typeof event.data !== 'string') return;
+    let scheduleReconnect = () => {
+      if (closed || reconnectTimer || !hasConnectedRef.current) return;
+      let delay = getReconnectDelayMs(reconnectAttempts++);
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        void connect(true);
+      }, delay);
+    };
 
-      let message = JSON.parse(event.data) as CollaborationServerMessage;
+    let connect = async (isReconnect: boolean) => {
+      if (closed) return;
 
-      if (message.type === 'collaboration_snapshot') {
-        sessionIdRef.current = message.data.sessionId;
-        setSnapshot(message.data.document);
-        let bodyStateReceived = false;
-
-        if (message.data.stateUpdate) {
-          Y.applyUpdate(ydoc, decodeBase64(message.data.stateUpdate), remoteOrigin);
-          bodyStateReceived = ydoc.getXmlFragment('body').length > 0;
-        }
-        setInitialBodyStateReceived(bodyStateReceived);
-
-        let seedUpdate: string | null = null;
-        if (
-          shouldSeedInitialBody({
-            bodyStateReceived,
-            initialMarkdown: opts?.initialMarkdown
-          }) &&
-          opts?.seedInitialBody
-        ) {
-          suppressLocalUpdateRef.current = true;
-          try {
-            seedUpdate = opts.seedInitialBody({
-              initialMarkdown: opts.initialMarkdown ?? '',
-              origin: seedOrigin
-            });
-          } finally {
-            suppressLocalUpdateRef.current = false;
+      if (isReconnect && refreshEditTokenRef.current) {
+        try {
+          let refreshedEditToken = await refreshEditTokenRef.current();
+          if (typeof refreshedEditToken == 'string') {
+            editTokenRef.current = refreshedEditToken;
+          } else if (refreshedEditToken === null) {
+            editTokenRef.current = null;
           }
+        } catch (err) {
+          setError(err);
         }
-        let didSeedInitialBody = !!seedUpdate;
-        setInitialBodySeeded(didSeedInitialBody);
+        if (closed) return;
+      }
 
-        if (didSeedInitialBody) {
-          sendJson(ws, {
-            type: 'yjs_state_initialize',
-            data: {
-              update: seedUpdate!
+      cleanupSocket();
+      setConnectionStatus('connecting');
+      setError(null);
+
+      if (!hasConnectedRef.current) {
+        setIsSynced(false);
+        setIsReadyForEditor(false);
+        setIsFallback(false);
+        setInitialBodyStateReceived(false);
+        setInitialBodySeeded(false);
+      }
+
+      let url = getDocumentLiveUrl({
+        instanceId,
+        documentId,
+        organizationId: opts?.organizationId,
+        editToken: editTokenRef.current
+      });
+      ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      heartbeat = window.setInterval(() => {
+        sendJson(ws, { type: 'ping' });
+      }, heartbeatMs);
+
+      ws.onopen = () => {
+        if (closed) return;
+        reconnectAttempts = 0;
+        setConnectionStatus('connected');
+        sendJson(ws, { type: 'ping' });
+      };
+
+      ws.onmessage = event => {
+        if (closed || typeof event.data !== 'string') return;
+
+        let message = JSON.parse(event.data) as CollaborationServerMessage;
+
+        if (message.type === 'collaboration_snapshot') {
+          sessionIdRef.current = message.data.sessionId;
+          setSnapshot(message.data.document);
+          let bodyStateReceived = false;
+
+          if (message.data.stateUpdate) {
+            Y.applyUpdate(ydoc, decodeBase64(message.data.stateUpdate), remoteOrigin);
+            bodyStateReceived = ydoc.getXmlFragment('body').length > 0;
+          }
+          setInitialBodyStateReceived(bodyStateReceived);
+
+          let seedUpdate: string | null = null;
+          if (
+            shouldSeedInitialBody({
+              bodyStateReceived,
+              initialMarkdown: opts?.initialMarkdown
+            }) &&
+            opts?.seedInitialBody
+          ) {
+            suppressLocalUpdateRef.current = true;
+            try {
+              seedUpdate = opts.seedInitialBody({
+                initialMarkdown: opts.initialMarkdown ?? '',
+                origin: seedOrigin
+              });
+            } finally {
+              suppressLocalUpdateRef.current = false;
             }
-          });
+          }
+          let didSeedInitialBody = !!seedUpdate;
+          setInitialBodySeeded(didSeedInitialBody);
+
+          if (didSeedInitialBody) {
+            sendJson(ws, {
+              type: 'yjs_state_initialize',
+              data: {
+                update: seedUpdate!
+              }
+            });
+          }
+
+          for (let state of message.data.awareness ?? []) {
+            applyAwarenessUpdate(awareness, decodeBase64(state.update), remoteOrigin);
+          }
+
+          if (!didSeedInitialBody) {
+            hasConnectedRef.current = true;
+            setIsFallback(false);
+            setIsReadyForEditor(true);
+            setIsSynced(true);
+          }
+          return;
         }
 
-        for (let state of message.data.awareness ?? []) {
-          applyAwarenessUpdate(awareness, decodeBase64(state.update), remoteOrigin);
-        }
-
-        if (!didSeedInitialBody) {
+        if (message.type === 'yjs_state_initialized') {
+          Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
+          hasConnectedRef.current = true;
+          setIsFallback(false);
+          setInitialBodyStateReceived(ydoc.getXmlFragment('body').length > 0);
           setIsReadyForEditor(true);
           setIsSynced(true);
+          return;
         }
-        return;
-      }
 
-      if (message.type === 'yjs_state_initialized') {
-        Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
-        setInitialBodyStateReceived(ydoc.getXmlFragment('body').length > 0);
-        setIsReadyForEditor(true);
-        setIsSynced(true);
-        return;
-      }
-
-      if (message.type === 'yjs_update') {
-        Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
-        return;
-      }
-
-      if (message.type === 'awareness_update') {
-        applyAwarenessUpdate(awareness, decodeBase64(message.data.update), remoteOrigin);
-        return;
-      }
-
-      if (message.type === 'awareness_remove') {
-        removeAwarenessStates(awareness, [message.data.clientId], remoteOrigin);
-        return;
-      }
-
-      if (message.type === 'document_snapshot' || message.type === 'document_snapshot_saved') {
-        setSnapshot(message.data);
-        if (message.type === 'document_snapshot_saved') {
-          setSnapshotSaveStatus('saved');
+        if (message.type === 'yjs_update') {
+          Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
+          return;
         }
-        return;
-      }
 
-      if (message.type === 'participant_list') {
-        setParticipants(message.data);
-        return;
-      }
+        if (message.type === 'awareness_update') {
+          applyAwarenessUpdate(awareness, decodeBase64(message.data.update), remoteOrigin);
+          return;
+        }
 
-      if (message.type === 'error') {
-        setError(message.data);
-        setSnapshotSaveStatus('error');
-      }
+        if (message.type === 'awareness_remove') {
+          removeAwarenessStates(awareness, [message.data.clientId], remoteOrigin);
+          return;
+        }
+
+        if (
+          message.type === 'document_snapshot' ||
+          message.type === 'document_snapshot_saved'
+        ) {
+          setSnapshot(message.data);
+          if (message.type === 'document_snapshot_saved') {
+            setSnapshotSaveStatus('saved');
+          }
+          return;
+        }
+
+        if (message.type === 'participant_list') {
+          setParticipants(message.data);
+          return;
+        }
+
+        if (message.type === 'error') {
+          setError(message.data);
+          setSnapshotSaveStatus('error');
+        }
+      };
+
+      ws.onerror = event => {
+        if (closed) return;
+        setError(event);
+        setConnectionStatus('error');
+        if (!isReadyForEditorRef.current) {
+          setIsFallback(true);
+          setIsReadyForEditor(true);
+          return;
+        }
+      };
+
+      ws.onclose = () => {
+        if (closed) return;
+        setConnectionStatus('idle');
+        setIsSynced(false);
+        if (!isReadyForEditorRef.current) {
+          setIsFallback(true);
+          setIsReadyForEditor(true);
+          return;
+        }
+        scheduleReconnect();
+      };
     };
 
-    ws.onerror = event => {
-      if (closed) return;
-      setError(event);
-      setConnectionStatus('error');
-      if (!isReadyForEditorRef.current) {
-        setIsFallback(true);
-        setIsReadyForEditor(true);
-      }
-    };
-
-    ws.onclose = () => {
-      if (closed) return;
-      setConnectionStatus('idle');
-      setIsSynced(false);
-      if (!isReadyForEditorRef.current) {
-        setIsFallback(true);
-        setIsReadyForEditor(true);
-      }
-    };
+    ydoc.on('update', handleDocUpdate);
+    awareness.on('update', handleAwarenessUpdate);
+    void connect(false);
 
     return () => {
       closed = true;
-      window.clearInterval(heartbeat);
+      if (reconnectTimer) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       ydoc.off('update', handleDocUpdate);
       awareness.off('update', handleAwarenessUpdate);
       sessionIdRef.current = null;
-      if (wsRef.current === ws) wsRef.current = null;
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close();
-      }
+      cleanupSocket();
     };
   }, [
     awareness,
     documentId,
     enabled,
     instanceId,
-    opts?.editToken,
     opts?.initialMarkdown,
     opts?.organizationId,
     opts?.seedInitialBody,

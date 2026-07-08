@@ -6,6 +6,7 @@ import {
   useDocument,
   useDocumentCollaboration,
   useDocumentEditToken,
+  getDocumentEditToken,
   useDocumentParticipants,
   useDocumentPermissions,
   useDocumentVersions,
@@ -745,9 +746,20 @@ let DocumentEditorLoaded = (p: {
 
   let canWrite = p.permissions.permissions.includes('content_write');
   let readOnly = !canWrite;
+  let refreshEditToken = useCallback(async () => {
+    if (!p.currentConsumerId || !canWrite) return p.editToken ?? null;
+
+    let refreshed = await getDocumentEditToken({
+      instanceId: p.instanceId,
+      documentId: p.documentId
+    });
+
+    return refreshed.token;
+  }, [canWrite, p.currentConsumerId, p.documentId, p.editToken, p.instanceId]);
   let collaboration = useDocumentCollaboration(p.instanceId, p.documentId, {
     enabled: true,
     editToken: p.editToken ?? null,
+    refreshEditToken,
     initialMarkdown: initialDocumentState.body,
     seedInitialBody: seedYjsBodyFromMarkdown
   });

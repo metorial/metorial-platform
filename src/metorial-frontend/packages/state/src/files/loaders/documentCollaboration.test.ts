@@ -56,6 +56,13 @@ describe('document collaboration protocol helpers', () => {
     expect(url.searchParams.get('edit_token')).toBe('edit_token_123');
   });
 
+  it('caps websocket reconnect backoff', () => {
+    expect(__documentCollaborationTestUtils.getReconnectDelayMs(0)).toBe(1000);
+    expect(__documentCollaborationTestUtils.getReconnectDelayMs(1)).toBe(2000);
+    expect(__documentCollaborationTestUtils.getReconnectDelayMs(2)).toBe(4000);
+    expect(__documentCollaborationTestUtils.getReconnectDelayMs(10)).toBe(10000);
+  });
+
   it('seeds saved markdown when no initial Yjs body exists', () => {
     expect(
       __documentCollaborationTestUtils.shouldSeedInitialBody({
