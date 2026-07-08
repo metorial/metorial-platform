@@ -588,7 +588,7 @@ export function Editor({
           <TiptapEditorContent editor={editor} />
         </EditorContent>
       </EditorScroll>
-      {editor && (
+      {/* {editor && (
         <TableOfContents
           editor={editor}
           scrollContainerRef={scrollRef}
@@ -596,7 +596,7 @@ export function Editor({
           allowInitialHashScroll={allowInitialHashScroll}
           onInitialHashScrollComplete={onInitialHashScrollComplete}
         />
-      )}
+      )} */}
       {!readOnly && (
         <>
           <EditorBubbleMenu editor={editor} linkPromptToken={linkPromptToken} />
