@@ -146,7 +146,12 @@ let getDocumentLiveUrl = (d: {
 }) => {
   let config = getConfig();
   let url = new URL(config.apiUrl);
-  url.pathname += '/documents-live';
+
+  let path = url.pathname;
+  while (path.endsWith('/')) path = path.slice(0, -1);
+  path += '/documents-live';
+
+  url.pathname = path;
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.searchParams.set('documentId', d.documentId);
   url.searchParams.set('instanceId', d.instanceId);
