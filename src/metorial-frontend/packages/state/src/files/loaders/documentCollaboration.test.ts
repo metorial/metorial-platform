@@ -34,6 +34,26 @@ describe('document collaboration protocol helpers', () => {
     expect(url.searchParams.get('documentId')).toBe('doc_123');
     expect(url.searchParams.get('organizationId')).toBe('org_123');
     expect(url.searchParams.get('protocol')).toBe('yjs');
+    expect(url.searchParams.get('edit_token')).toBe(null);
+  });
+
+  it('includes edit tokens in websocket URLs when provided', () => {
+    setConfig({
+      apiUrl: 'https://api.example.test',
+      filesUrl: 'https://files.example.test/root',
+      publicApiUrl: 'https://public.example.test',
+      environment: 'development'
+    });
+
+    let url = new URL(
+      __documentCollaborationTestUtils.getDocumentLiveUrl({
+        instanceId: 'inst_123',
+        documentId: 'doc_123',
+        editToken: 'edit_token_123'
+      })
+    );
+
+    expect(url.searchParams.get('edit_token')).toBe('edit_token_123');
   });
 
   it('seeds saved markdown when no initial Yjs body exists', () => {

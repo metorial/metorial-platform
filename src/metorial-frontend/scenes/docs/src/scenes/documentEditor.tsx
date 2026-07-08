@@ -5,6 +5,7 @@ import {
   useCreateFileLink,
   useDocument,
   useDocumentCollaboration,
+  useDocumentEditToken,
   useDocumentParticipants,
   useDocumentPermissions,
   useDocumentVersions,
@@ -621,7 +622,12 @@ let DocumentEditorInner = (p: {
     order: 'desc'
   });
   let user = useUser();
-  let isReady = !!document.data && !!permissions.data && !!user.data;
+  let canWrite = !!permissions.data?.permissions.includes('content_write');
+  let requiresEditToken = !!p.currentConsumerId && canWrite;
+  let documentEditToken = useDocumentEditToken(p.instanceId, p.documentId, requiresEditToken);
+  let isEditTokenReady =
+    !requiresEditToken || !!documentEditToken.data || !!documentEditToken.error;
+  let isReady = !!document.data && !!permissions.data && !!user.data && isEditTokenReady;
   let [showSkeleton, setShowSkeleton] = useState(true);
 
   useEffect(() => {
@@ -652,6 +658,7 @@ let DocumentEditorInner = (p: {
       user={user.data}
       instanceId={p.instanceId}
       documentId={p.documentId}
+      editToken={documentEditToken.data?.token ?? null}
       currentConsumerId={p.currentConsumerId}
       onBack={p.onBack}
       onSharedSkill={() => participants.refetch()}
@@ -678,6 +685,7 @@ let DocumentEditorLoaded = (p: {
   participants: DocumentParticipant[];
   versions: StateDocumentVersion[];
   user: NonNullable<ReturnType<typeof useUser>['data']>;
+  editToken?: string | null;
   currentConsumerId?: string | null;
   onBack?: () => void;
   onSharedSkill?: () => void | Promise<void>;
@@ -739,6 +747,7 @@ let DocumentEditorLoaded = (p: {
   let readOnly = !canWrite;
   let collaboration = useDocumentCollaboration(p.instanceId, p.documentId, {
     enabled: true,
+    editToken: p.editToken ?? null,
     initialMarkdown: initialDocumentState.body,
     seedInitialBody: seedYjsBodyFromMarkdown
   });

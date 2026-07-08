@@ -143,6 +143,7 @@ let getDocumentLiveUrl = (d: {
   instanceId: string;
   documentId: string;
   organizationId?: string | null;
+  editToken?: string | null;
 }) => {
   let config = getConfig();
   let url = new URL(config.apiUrl);
@@ -159,6 +160,10 @@ let getDocumentLiveUrl = (d: {
 
   if (d.organizationId) {
     url.searchParams.set('organizationId', d.organizationId);
+  }
+
+  if (d.editToken) {
+    url.searchParams.set('edit_token', d.editToken);
   }
 
   return url.toString();
@@ -185,6 +190,7 @@ export let useDocumentCollaboration = (
   documentId: string | null | undefined,
   opts?: {
     organizationId?: string | null;
+    editToken?: string | null;
     enabled?: boolean;
     initialMarkdown?: string;
     seedInitialBody?: (d: { initialMarkdown: string; origin: unknown }) => string | null;
@@ -253,7 +259,8 @@ export let useDocumentCollaboration = (
     let url = getDocumentLiveUrl({
       instanceId,
       documentId,
-      organizationId: opts?.organizationId
+      organizationId: opts?.organizationId,
+      editToken: opts?.editToken
     });
     let ws = new WebSocket(url);
     wsRef.current = ws;
@@ -444,6 +451,7 @@ export let useDocumentCollaboration = (
     documentId,
     enabled,
     instanceId,
+    opts?.editToken,
     opts?.initialMarkdown,
     opts?.organizationId,
     opts?.seedInitialBody,
