@@ -159,6 +159,15 @@ let getDocumentLiveUrl = (d: {
   }
 
   let path = url.pathname.replace('/api', '');
+
+  if (path.includes('/dashboard/us1')) {
+    url.hostname = 'api-us1.metorial.com';
+    path = path.replace('/dashboard/us1', '');
+  } else if (path.includes('/dashboard/eu1')) {
+    url.hostname = 'api-eu1.metorial.com';
+    path = path.replace('/dashboard/eu1', '');
+  }
+
   while (path.endsWith('/')) path = path.slice(0, -1);
   path += '/documents-live';
 
