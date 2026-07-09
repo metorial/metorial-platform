@@ -150,7 +150,15 @@ let getDocumentLiveUrl = (d: {
   let config = getConfig();
   let url = new URL(config.apiUrl);
 
-  let path = url.pathname;
+  if (location.hostname === 'portals-us1.metorial-staging.com') {
+    url.hostname = 'api-us1.metorial-staging.com';
+  } else if (location.hostname === 'portals-us1.metorial.com') {
+    url.hostname = 'api-us1.metorial.com';
+  } else if (location.hostname === 'portals-eu1.metorial.com') {
+    url.hostname = 'api-eu1.metorial.com';
+  }
+
+  let path = url.pathname.replace('/api', '');
   while (path.endsWith('/')) path = path.slice(0, -1);
   path += '/documents-live';
 
