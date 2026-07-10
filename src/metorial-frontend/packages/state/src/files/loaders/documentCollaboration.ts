@@ -19,6 +19,7 @@ type CollaborationServerMessage =
         sessionId: string;
         document: Document;
         stateUpdate?: string | null;
+        generation?: number;
         awareness?: {
           sessionId: string;
           actorId: string;
@@ -33,6 +34,15 @@ type CollaborationServerMessage =
         sessionId: string;
         actorId: string;
         update: string;
+        generation?: number;
+      };
+    }
+  | {
+      type: 'collaboration_reset';
+      data: {
+        document: Document;
+        stateUpdate: string | null;
+        generation: number;
       };
     }
   | {
@@ -57,6 +67,7 @@ type CollaborationServerMessage =
       data: {
         initialized: boolean;
         update: string;
+        generation?: number;
       };
     }
   | {
@@ -90,12 +101,14 @@ type CollaborationClientMessage =
       type: 'yjs_update';
       data: {
         update: string;
+        generation: number;
       };
     }
   | {
       type: 'yjs_state_initialize';
       data: {
         update: string;
+        generation: number;
       };
     }
   | {
@@ -191,6 +204,12 @@ let getDocumentLiveUrl = (d: {
 let shouldSeedInitialBody = (d: { bodyStateReceived: boolean; initialMarkdown?: string }) =>
   !d.bodyStateReceived && (d.initialMarkdown?.trim().length ?? 0) > 0;
 
+let resolveInitialMarkdown = (d: {
+  document: Document;
+  initialMarkdown?: string;
+  getInitialMarkdown?: (document: Document) => string;
+}) => d.getInitialMarkdown?.(d.document) ?? d.initialMarkdown;
+
 let getReconnectDelayMs = (attempt: number) =>
   Math.min(reconnectBaseDelayMs * 2 ** Math.max(0, attempt), reconnectMaxDelayMs);
 
@@ -199,6 +218,7 @@ export let __documentCollaborationTestUtils = {
   decodeBase64,
   getDocumentLiveUrl,
   shouldSeedInitialBody,
+  resolveInitialMarkdown,
   getReconnectDelayMs
 };
 
@@ -217,6 +237,7 @@ export let useDocumentCollaboration = (
     refreshEditToken?: () => Promise<string | null | undefined>;
     enabled?: boolean;
     initialMarkdown?: string;
+    getInitialMarkdown?: (document: Document) => string;
     seedInitialBody?: (d: { initialMarkdown: string; origin: unknown }) => string | null;
   }
 ) => {
@@ -231,8 +252,10 @@ export let useDocumentCollaboration = (
   let [isFallback, setIsFallback] = useState(false);
   let [initialBodyStateReceived, setInitialBodyStateReceived] = useState(false);
   let [initialBodySeeded, setInitialBodySeeded] = useState(false);
+  let [collaborationEpoch, setCollaborationEpoch] = useState(0);
   let wsRef = useRef<WebSocket | null>(null);
   let sessionIdRef = useRef<string | null>(null);
+  let generationRef = useRef(0);
   let suppressLocalUpdateRef = useRef(false);
   let isReadyForEditorRef = useRef(false);
   let hasConnectedRef = useRef(false);
@@ -244,7 +267,7 @@ export let useDocumentCollaboration = (
     timer: ReturnType<typeof setTimeout>;
   } | null>(null);
 
-  let ydoc = useMemo(() => new Y.Doc(), [instanceId, documentId]);
+  let ydoc = useMemo(() => new Y.Doc(), [instanceId, documentId, collaborationEpoch]);
   let awareness = useMemo(() => new Awareness(ydoc), [ydoc]);
 
   useEffect(() => {
@@ -316,7 +339,8 @@ export let useDocumentCollaboration = (
       sendJson(ws, {
         type: 'yjs_update',
         data: {
-          update: encodeBase64(update)
+          update: encodeBase64(update),
+          generation: generationRef.current
         }
       });
     };
@@ -416,8 +440,14 @@ export let useDocumentCollaboration = (
 
         if (message.type === 'collaboration_snapshot') {
           sessionIdRef.current = message.data.sessionId;
+          generationRef.current = message.data.generation ?? 0;
           setSnapshot(message.data.document);
           let bodyStateReceived = false;
+          let initialMarkdown = resolveInitialMarkdown({
+            document: message.data.document,
+            initialMarkdown: opts?.initialMarkdown,
+            getInitialMarkdown: opts?.getInitialMarkdown
+          });
 
           if (message.data.stateUpdate) {
             Y.applyUpdate(ydoc, decodeBase64(message.data.stateUpdate), remoteOrigin);
@@ -429,14 +459,14 @@ export let useDocumentCollaboration = (
           if (
             shouldSeedInitialBody({
               bodyStateReceived,
-              initialMarkdown: opts?.initialMarkdown
+              initialMarkdown
             }) &&
             opts?.seedInitialBody
           ) {
             suppressLocalUpdateRef.current = true;
             try {
               seedUpdate = opts.seedInitialBody({
-                initialMarkdown: opts.initialMarkdown ?? '',
+                initialMarkdown: initialMarkdown ?? '',
                 origin: seedOrigin
               });
             } finally {
@@ -450,7 +480,8 @@ export let useDocumentCollaboration = (
             sendJson(ws, {
               type: 'yjs_state_initialize',
               data: {
-                update: seedUpdate!
+                update: seedUpdate!,
+                generation: generationRef.current
               }
             });
           }
@@ -469,6 +500,7 @@ export let useDocumentCollaboration = (
         }
 
         if (message.type === 'yjs_state_initialized') {
+          generationRef.current = message.data.generation ?? 0;
           Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
           hasConnectedRef.current = true;
           setIsFallback(false);
@@ -479,7 +511,23 @@ export let useDocumentCollaboration = (
         }
 
         if (message.type === 'yjs_update') {
+          if (
+            typeof message.data.generation === 'number' &&
+            message.data.generation !== generationRef.current
+          ) {
+            return;
+          }
           Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
+          return;
+        }
+
+        if (message.type === 'collaboration_reset') {
+          generationRef.current = message.data.generation;
+          setSnapshot(message.data.document);
+          setIsSynced(false);
+          setIsReadyForEditor(false);
+          cleanupSocket();
+          setCollaborationEpoch(epoch => epoch + 1);
           return;
         }
 
@@ -559,6 +607,7 @@ export let useDocumentCollaboration = (
     documentId,
     enabled,
     instanceId,
+    opts?.getInitialMarkdown,
     opts?.initialMarkdown,
     opts?.organizationId,
     opts?.seedInitialBody,
