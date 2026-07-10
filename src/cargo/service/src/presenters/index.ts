@@ -17,6 +17,8 @@ export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillMarketplaceRepository';
 export * from './skillParticipant';
+export * from './skillForkSync';
+export * from './skillMergeRequest';
 export * from './skillPlugin';
 export * from './skillPluginRepository';
 export * from './skillPluginSkill';
