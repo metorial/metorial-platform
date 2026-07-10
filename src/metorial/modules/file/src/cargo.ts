@@ -87,6 +87,18 @@ export type CargoSkillExport = Awaited<ReturnType<typeof cargo.skillExport.get>>
 export type CargoSkillExportList = Awaited<ReturnType<typeof cargo.skillExport.list>>;
 export type CargoSkillSync = Awaited<ReturnType<typeof cargo.skillSync.get>>;
 export type CargoSkillSyncList = Awaited<ReturnType<typeof cargo.skillSync.list>>;
+export type CargoSkillForkSync = Awaited<ReturnType<typeof cargo.skillForkSync.get>>;
+export type CargoSkillMergeRequest = Awaited<ReturnType<typeof cargo.skillMergeRequest.get>>;
+export type CargoSkillMergeRequestList = Awaited<
+  ReturnType<typeof cargo.skillMergeRequest.list>
+>;
+export type CargoSkillMergePlan = Awaited<ReturnType<typeof cargo.skillMergeRequest.getPlan>>;
+export type CargoSkillMergeRequestItem = Awaited<
+  ReturnType<typeof cargo.skillMergeRequest.resolveItem>
+>;
+export type CargoSkillMergeRequestComment = Awaited<
+  ReturnType<typeof cargo.skillMergeRequest.comment.list>
+>['items'][number];
 export type CargoSkillVersion = Awaited<ReturnType<typeof cargo.skillVersion.get>>;
 export type CargoSkillVersionList = Awaited<ReturnType<typeof cargo.skillVersion.list>>;
 export type CargoSkillVersionSnapshot = Awaited<
