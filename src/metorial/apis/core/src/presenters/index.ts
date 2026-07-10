@@ -190,12 +190,17 @@ import {
   v1SkillAgentPresenter,
   v1SkillConfigurationPresenter,
   v1SkillExportPresenter,
+  v1SkillForkSyncPresenter,
   v1SkillGroupItemPresenter,
   v1SkillGroupPresenter,
   v1SkillItemPresenter,
   v1SkillMarketplacePluginPresenter,
   v1SkillMarketplacePresenter,
   v1SkillMarketplaceRepositoryPresenter,
+  v1SkillMergePlanPresenter,
+  v1SkillMergeRequestCommentPresenter,
+  v1SkillMergeRequestItemPresenter,
+  v1SkillMergeRequestPresenter,
   v1SkillParticipantPresenter,
   v1SkillPluginPresenter,
   v1SkillPluginRepositoryPresenter,
@@ -388,12 +393,17 @@ import {
   skillAgentType,
   skillConfigurationType,
   skillExportType,
+  skillForkSyncType,
   skillGroupItemType,
   skillGroupType,
   skillItemType,
   skillMarketplacePluginType,
   skillMarketplaceRepositoryType,
   skillMarketplaceType,
+  skillMergePlanType,
+  skillMergeRequestCommentType,
+  skillMergeRequestItemType,
+  skillMergeRequestType,
   skillParticipantType,
   skillPluginRepositoryType,
   skillPluginSkillType,
@@ -689,6 +699,11 @@ export let skillExportPresenter = declarePresenter(skillExportType, {
   mt_2026_01_01_magnetar: v1SkillExportPresenter
 });
 
+export let skillForkSyncPresenter = declarePresenter(skillForkSyncType, {
+  mt_2025_01_01_dashboard: v1SkillForkSyncPresenter,
+  mt_2026_01_01_magnetar: v1SkillForkSyncPresenter
+});
+
 export let skillMarketplacePresenter = declarePresenter(skillMarketplaceType, {
   mt_2025_01_01_dashboard: v1SkillMarketplacePresenter,
   mt_2026_01_01_magnetar: v1SkillMarketplacePresenter
@@ -740,6 +755,26 @@ export let skillVersionPresenter = declarePresenter(skillVersionType, {
 export let skillVersionSnapshotPresenter = declarePresenter(skillVersionSnapshotType, {
   mt_2025_01_01_dashboard: v1SkillVersionSnapshotPresenter,
   mt_2026_01_01_magnetar: v1SkillVersionSnapshotPresenter
+});
+
+export let skillMergeRequestPresenter = declarePresenter(skillMergeRequestType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestPresenter
+});
+
+export let skillMergeRequestItemPresenter = declarePresenter(skillMergeRequestItemType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestItemPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestItemPresenter
+});
+
+export let skillMergeRequestCommentPresenter = declarePresenter(skillMergeRequestCommentType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestCommentPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestCommentPresenter
+});
+
+export let skillMergePlanPresenter = declarePresenter(skillMergePlanType, {
+  mt_2025_01_01_dashboard: v1SkillMergePlanPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergePlanPresenter
 });
 
 export let secretPresenter = declarePresenter(secretType, {

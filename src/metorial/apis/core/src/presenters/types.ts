@@ -91,6 +91,11 @@ import type {
   CargoFileLink,
   CargoSkillAgent,
   CargoSkillConfiguration,
+  CargoSkillForkSync,
+  CargoSkillMergePlan,
+  CargoSkillMergeRequest,
+  CargoSkillMergeRequestComment,
+  CargoSkillMergeRequestItem,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   CargoStore,
@@ -569,6 +574,10 @@ export let skillExportType = PresentableType.create<{
   skillExport: EnrichedCargoSkillExport;
 }>()('skillExport');
 
+export let skillForkSyncType = PresentableType.create<{
+  skillForkSync: CargoSkillForkSync;
+}>()('skillForkSync');
+
 export let skillMarketplaceType = PresentableType.create<{
   skillMarketplace: EnrichedCargoSkillMarketplace;
 }>()('skillMarketplace');
@@ -608,6 +617,22 @@ export let skillVersionType = PresentableType.create<{
 export let skillVersionSnapshotType = PresentableType.create<{
   skillVersionSnapshot: CargoSkillVersionSnapshot;
 }>()('skillVersionSnapshot');
+
+export let skillMergeRequestType = PresentableType.create<{
+  skillMergeRequest: CargoSkillMergeRequest;
+}>()('skillMergeRequest');
+
+export let skillMergeRequestItemType = PresentableType.create<{
+  skillMergeRequestItem: CargoSkillMergeRequestItem;
+}>()('skillMergeRequestItem');
+
+export let skillMergeRequestCommentType = PresentableType.create<{
+  skillMergeRequestComment: CargoSkillMergeRequestComment;
+}>()('skillMergeRequestComment');
+
+export let skillMergePlanType = PresentableType.create<{
+  skillMergePlan: CargoSkillMergePlan;
+}>()('skillMergePlan');
 
 export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };
