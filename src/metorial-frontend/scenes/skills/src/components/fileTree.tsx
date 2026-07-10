@@ -509,7 +509,7 @@ let SkillFileTreeRow = (p: {
   onDelete: (itemId: string) => Promise<void>;
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
@@ -533,8 +533,8 @@ let SkillFileTreeRow = (p: {
     p.node.name != 'SKILL.md' &&
     !!p.node.itemId;
   let documentPath =
-    p.node.kind == 'document' && p.node.documentId
-      ? p.getDocumentPath(p.node.documentId)
+    p.node.kind == 'document' && p.node.documentId && p.node.itemId
+      ? p.getDocumentPath(p.node.documentId, p.node.itemId)
       : null;
   let fileInputRef = useRef<HTMLInputElement | null>(null);
   let previewTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -1035,7 +1035,7 @@ let SkillFileTreeInner = (p: {
   onDelete: (itemId: string) => Promise<void>;
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
@@ -1101,7 +1101,7 @@ export let SkillFileTree = (p: {
   onDelete: (itemId: string) => Promise<void>;
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   onRename: (itemId: string, parentPath: string, name: string) => Promise<void>;

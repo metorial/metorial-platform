@@ -328,6 +328,8 @@ export type DocumentEditorSceneProps = {
   currentConsumerId?: string | null;
   onBack?: () => void;
   setRestrictHeight?: (enabled: boolean) => void;
+  skillShareContext?: SkillSharePanelContext | null;
+  loadError?: unknown;
 };
 
 let getCanonicalDocumentLink = () => {
@@ -402,6 +404,9 @@ let parseStoredDocumentForEditor = (document: { title: string; content: string }
     })
   };
 };
+
+let getInitialMarkdownForCollaboration = (document: { title: string; content: string }) =>
+  parseStoredDocumentForEditor(document).body;
 
 let validateFrontMatter = (frontMatter: string) => {
   let trimmed = frontMatter.trim();
@@ -610,6 +615,7 @@ let DocumentEditorInner = (p: {
   documentId: string;
   currentConsumerId?: string | null;
   onBack?: () => void;
+  skillShareContext?: SkillSharePanelContext | null;
 }) => {
   let document = useDocument(p.instanceId, p.documentId);
   let permissions = useDocumentPermissions(p.instanceId, p.documentId);
@@ -708,6 +714,7 @@ let DocumentEditorInner = (p: {
       currentConsumerId={p.currentConsumerId}
       onBack={p.onBack}
       onSharedSkill={() => participants.refetch()}
+      skillShareContext={p.skillShareContext}
     />
   );
 
@@ -735,6 +742,7 @@ let DocumentEditorLoaded = (p: {
   currentConsumerId?: string | null;
   onBack?: () => void;
   onSharedSkill?: () => void | Promise<void>;
+  skillShareContext?: SkillSharePanelContext | null;
 }) => {
   let [viewMode, setViewMode] = useState<ViewMode>('editor');
   let initialDocumentState = useMemo(
@@ -807,6 +815,7 @@ let DocumentEditorLoaded = (p: {
     editToken: p.editToken ?? null,
     refreshEditToken,
     initialMarkdown: initialDocumentState.body,
+    getInitialMarkdown: getInitialMarkdownForCollaboration,
     seedInitialBody: seedYjsBodyFromMarkdown
   });
   let collaborationMeta = useMemo(
@@ -1091,8 +1100,10 @@ let DocumentEditorLoaded = (p: {
     [collaboration.awareness, collaboration.ydoc, p.user.email, p.user.imageUrl, p.user.name]
   );
   let skillShareContext = useMemo(
-    () => getSkillShareContextFromState(location.state, p.currentConsumerId),
-    [location.state, p.currentConsumerId]
+    () =>
+      p.skillShareContext ??
+      getSkillShareContextFromState(location.state, p.currentConsumerId),
+    [location.state, p.currentConsumerId, p.skillShareContext]
   );
   let hasUnsavedChanges =
     canWrite &&
@@ -1513,14 +1524,20 @@ export let DocumentEditorScene = ({
   documentId,
   currentConsumerId,
   onBack,
-  setRestrictHeight
+  setRestrictHeight,
+  skillShareContext,
+  loadError
 }: DocumentEditorSceneProps) => {
   useEffect(() => {
     setRestrictHeight?.(true);
     return () => setRestrictHeight?.(false);
   }, [setRestrictHeight]);
 
-  if (!instanceId || !documentId) return null;
+  if (!instanceId) return null;
+  if (loadError) {
+    return <DocumentEditorLoadError onBack={onBack} message={getErrorMessage(loadError)} />;
+  }
+  if (!documentId) return <DocumentEditorSkeleton onBack={onBack} />;
 
   return (
     <DocumentEditorInner
@@ -1528,6 +1545,7 @@ export let DocumentEditorScene = ({
       documentId={documentId}
       currentConsumerId={currentConsumerId}
       onBack={onBack}
+      skillShareContext={skillShareContext}
     />
   );
 };

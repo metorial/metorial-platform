@@ -623,8 +623,14 @@ export let SkillSharePanelContent = (p: {
                   <Button
                     size="2"
                     loading={shareSkill.isLoading}
-                    disabled={selectedAccountCount == 0}
-                    onClick={shareWithAccounts}
+                    disabled={isSearching && selectedAccountCount == 0}
+                    onClick={() => {
+                      if (!isSearching) {
+                        setIsSearching(true);
+                        return;
+                      }
+                      shareWithAccounts();
+                    }}
                   >
                     Invite
                   </Button>
