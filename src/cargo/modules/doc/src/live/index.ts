@@ -43,12 +43,14 @@ type DocumentLiveClientMessage =
       type: 'yjs_update';
       data: {
         update: string;
+        generation?: number;
       };
     }
   | {
       type: 'yjs_state_initialize';
       data: {
         update: string;
+        generation?: number;
       };
     }
   | {
@@ -180,6 +182,18 @@ let handleLiveBusMessage = async (message: {
   type: DocumentLiveBusMessageType;
   data: any;
 }) => {
+  if (message.type === 'collaboration_reset') {
+    broadcastToDocument(
+      message.documentId,
+      message.type,
+      await buildCollaborationResetPayload(message.documentId, {
+        stateUpdate: message.data.stateUpdate ?? null,
+        generation: message.data.generation
+      })
+    );
+    return;
+  }
+
   broadcastToDocument(message.documentId, message.type, message.data);
 };
 
@@ -331,6 +345,34 @@ let buildDocumentPayload = (
         }
       : {})
   };
+};
+
+let buildCollaborationResetPayload = async (
+  documentId: string,
+  state?: {
+    stateUpdate: string | null;
+    generation: number;
+  }
+) => {
+  let [scopedDocument, collaboration] = await Promise.all([
+    documentService.getScopedDocumentById({ documentId }),
+    state
+      ? Promise.resolve({
+          update: state.stateUpdate,
+          generation: state.generation
+        })
+      : internalDocumentCollaborationService.getSnapshot(documentId)
+  ]);
+
+  return {
+    document: buildDocumentPayload(scopedDocument.document),
+    stateUpdate: collaboration.update,
+    generation: collaboration.generation
+  };
+};
+
+let sendCollaborationReset = async (ws: WSContext<any>, documentId: string) => {
+  send(ws, 'collaboration_reset', await buildCollaborationResetPayload(documentId));
 };
 
 let broadcastParticipantList = async (documentId: string) => {
@@ -486,11 +528,14 @@ export let documentLiveApi = createHono()
           getRoomSessionIds(documentId).add(sessionId);
           await persistLiveSession(session);
 
+          let collaboration =
+            await internalDocumentCollaborationService.getSnapshot(documentId);
           send(ws, 'document_snapshot', buildDocumentPayload(scopedDocument.document));
           send(ws, 'collaboration_snapshot', {
             sessionId,
             document: buildDocumentPayload(scopedDocument.document),
-            stateUpdate: await internalDocumentCollaborationService.getStateUpdate(documentId),
+            stateUpdate: collaboration.update,
+            generation: collaboration.generation,
             awareness: await getAwarenessPayload(documentId)
           });
           await broadcastParticipantList(documentId);
@@ -524,8 +569,15 @@ export let documentLiveApi = createHono()
               let merged = await internalDocumentCollaborationService.mergeUpdate({
                 documentId: session.documentId,
                 update: parsed.data.update,
-                actorId: session.actorId
+                actorId: session.actorId,
+                generation:
+                  typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
               });
+              if (merged.stale) {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
+              }
               await queueDocumentCollaborationFlush(session.documentId, merged.revision);
 
               await broadcastDistributedToDocumentExcept(
@@ -535,7 +587,8 @@ export let documentLiveApi = createHono()
                 {
                   sessionId,
                   actorId: session.actorId,
-                  update: parsed.data.update
+                  update: parsed.data.update,
+                  generation: merged.generation
                 }
               );
               return;
@@ -548,9 +601,15 @@ export let documentLiveApi = createHono()
 
               let initialized = await internalDocumentCollaborationService.initializeState({
                 documentId: session.documentId,
-                update: parsed.data.update
+                update: parsed.data.update,
+                generation:
+                  typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
               });
               let ws = socketsBySessionId.get(sessionId);
+              if (initialized.stale) {
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
+              }
               if (ws) {
                 send(ws, 'yjs_state_initialized', initialized);
               }

@@ -26,6 +26,7 @@ let getRedis = async () => {
 
 let collaborationKeys = (documentId: string) => ({
   state: `cargo:document:collaboration:${documentId}:state`,
+  generation: `cargo:document:collaboration:${documentId}:generation`,
   lock: `cargo:document:collaboration:${documentId}:lock`
 });
 
@@ -102,15 +103,40 @@ class InternalDocumentCollaborationServiceImpl {
     return typeof raw == 'string' && raw.length > 0 ? raw : null;
   }
 
-  async initializeState(d: { documentId: string; update: string }) {
+  async getGeneration(documentId: string) {
+    let redis = await getRedis();
+    let raw = await redis.get(collaborationKeys(documentId).generation);
+    return raw === null ? 0 : Number(raw);
+  }
+
+  async getSnapshot(documentId: string) {
+    let [update, generation] = await Promise.all([
+      this.getStateUpdate(documentId),
+      this.getGeneration(documentId)
+    ]);
+    return { update, generation };
+  }
+
+  async initializeState(d: { documentId: string; update: string; generation?: number }) {
     return await this.withDocumentLock(d.documentId, async () => {
       let redis = await getRedis();
       let keys = collaborationKeys(d.documentId);
+      let generation = await this.getGeneration(d.documentId);
       let existing = await redis.get(keys.state);
+      if (d.generation !== undefined && d.generation !== generation) {
+        return {
+          initialized: false,
+          stale: true,
+          update: typeof existing == 'string' ? existing : null,
+          generation
+        };
+      }
       if (typeof existing == 'string' && existing.length > 0) {
         return {
           initialized: false,
-          update: existing
+          stale: false,
+          update: existing,
+          generation
         };
       }
 
@@ -127,16 +153,31 @@ class InternalDocumentCollaborationServiceImpl {
       doc.destroy();
       return {
         initialized: true,
-        update: merged
+        stale: false,
+        update: merged,
+        generation
       };
     });
   }
 
-  async mergeUpdate(d: { documentId: string; update: string; actorId?: string }) {
+  async mergeUpdate(d: {
+    documentId: string;
+    update: string;
+    actorId?: string;
+    generation?: number;
+  }) {
     return await this.withDocumentLock(d.documentId, async () => {
       let redis = await getRedis();
       let keys = collaborationKeys(d.documentId);
+      let generation = await this.getGeneration(d.documentId);
       let existing = await redis.get(keys.state);
+      if (d.generation !== undefined && d.generation !== generation) {
+        return {
+          stale: true,
+          update: typeof existing == 'string' ? existing : null,
+          generation
+        };
+      }
       let doc = new Y.Doc();
 
       if (typeof existing == 'string' && existing.length > 0) {
@@ -157,10 +198,34 @@ class InternalDocumentCollaborationServiceImpl {
 
       doc.destroy();
       return {
+        stale: false,
         update: merged,
-        revision: Number(revision)
+        revision: Number(revision),
+        generation
       };
     });
+  }
+
+  async replaceStateWhileLocked(d: { documentId: string; update: string | null }) {
+    let redis = await getRedis();
+    let keys = collaborationKeys(d.documentId);
+
+    if (d.update) {
+      await redis.set(keys.state, d.update, {
+        EX: collaborationTtlSeconds
+      });
+    } else {
+      await redis.del(keys.state);
+    }
+    let generation = Number(await redis.incr(keys.generation));
+    await Promise.all([
+      redis.expire(keys.generation, collaborationTtlSeconds),
+      redis.hDel(dirtyDocumentsHash, d.documentId),
+      redis.hDel(queuedDocumentsHash, d.documentId),
+      redis.hDel(actorDocumentsHash, d.documentId)
+    ]);
+
+    return { update: d.update, generation };
   }
 
   async listDirtyDocumentIds() {
@@ -202,7 +267,6 @@ class InternalDocumentCollaborationServiceImpl {
     let redis = await getRedis();
     await Promise.all([
       redis.del(collaborationKeys(documentId).state),
-      redis.del(collaborationKeys(documentId).lock),
       redis.hDel(dirtyDocumentsHash, documentId),
       redis.hDel(queuedDocumentsHash, documentId),
       redis.hDel(actorDocumentsHash, documentId)

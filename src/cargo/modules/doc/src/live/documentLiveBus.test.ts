@@ -24,6 +24,19 @@ describe('document live bus helpers', () => {
     expect(shouldDeliverBusMessage(message, 'cargo-b')).toBe(true);
   });
 
+  it('delivers authoritative resets back to the originating instance', () => {
+    expect(
+      shouldDeliverBusMessage(
+        {
+          ...message,
+          type: 'collaboration_reset',
+          deliverToOriginInstance: true
+        },
+        'cargo-a'
+      )
+    ).toBe(true);
+  });
+
   it('validates the expected live bus envelope shape', () => {
     expect(isDocumentLiveBusMessage(message)).toBe(true);
     expect(
