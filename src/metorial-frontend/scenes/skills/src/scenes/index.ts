@@ -18,6 +18,11 @@ import type {
   SkillPluginSettingsScene as _SkillPluginSettingsScene
 } from './skillMarketplaceSettings';
 import type { SkillParticipantsScene as _SkillParticipantsScene } from './skillParticipants';
+import type {
+  SkillMergeRequestScene as _SkillMergeRequestScene,
+  SkillMergeRequestsScene as _SkillMergeRequestsScene
+} from './skillMergeRequests';
+export { showCreateSkillMergeRequestModal } from './skillMergeRequests';
 import type { SkillPluginSkillsScene as _SkillPluginSkillsScene } from './skillPluginSkills';
 import type {
   SkillGroupSettingsScene as _SkillGroupSettingsScene,
@@ -69,6 +74,14 @@ export let SkillParticipantsScene = dynamicComponent<
 export let SkillVersionsScene = dynamicComponent<Parameters<typeof _SkillVersionsScene>>(() =>
   import('./skillVersions').then(m => m.SkillVersionsScene)
 );
+
+export let SkillMergeRequestsScene = dynamicComponent<
+  Parameters<typeof _SkillMergeRequestsScene>
+>(() => import('./skillMergeRequests').then(m => m.SkillMergeRequestsScene));
+
+export let SkillMergeRequestScene = dynamicComponent<
+  Parameters<typeof _SkillMergeRequestScene>
+>(() => import('./skillMergeRequests').then(m => m.SkillMergeRequestScene));
 
 export let SkillTemplateLinkProvidersScene = dynamicComponent<
   Parameters<typeof _SkillTemplateLinkProvidersScene>

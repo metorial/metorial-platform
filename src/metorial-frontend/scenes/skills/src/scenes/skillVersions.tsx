@@ -1,18 +1,12 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useSkillVersions } from '@metorial/state';
-import { Entity, RenderDate, Text } from '@metorial/ui';
-import { Box, ID } from '@metorial/ui-product';
+import { RenderDate, Text } from '@metorial/ui';
+import { Box, ID, Table } from '@metorial/ui-product';
 import styled from 'styled-components';
 
 let EmptyState = styled.div`
   line-height: 1.6;
   padding: 8px 0;
-`;
-
-let Items = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 `;
 
 export let SkillVersionsScene = (p: {
@@ -30,20 +24,14 @@ export let SkillVersionsScene = (p: {
           </Text>
         </EmptyState>
       ) : (
-        <Items>
-          {versions.data.items.map(version => (
-            <Entity.Wrapper key={version.id} aligned>
-              <Entity.Content>
-                <Entity.Field title={`Version ${version.versionNumber}`} />
-                <Entity.Field
-                  title="Created"
-                  value={<RenderDate date={version.createdAt} />}
-                />
-                <Entity.Field title="ID" value={<ID id={version.id} />} />
-              </Entity.Content>
-            </Entity.Wrapper>
-          ))}
-        </Items>
+        <Table
+          headers={['Version', 'Created', 'ID']}
+          data={versions.data.items.map(version => [
+            `Version ${version.versionNumber}`,
+            <RenderDate date={version.createdAt} />,
+            <ID id={version.id} />
+          ])}
+        />
       )}
     </Box>
   ));

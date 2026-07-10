@@ -206,7 +206,7 @@ export let useCurrentStoreHash = () => useAtom(currentStoreHash);
 export let StoreFileViewerScene = (p: {
   instanceId: string | null | undefined;
   storeId: string | null | undefined;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   title?: string;
   description?: string;
   readOnly?: boolean;

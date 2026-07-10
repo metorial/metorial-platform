@@ -1,7 +1,7 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { useSkillParticipants } from '@metorial/state';
-import { Avatar, Badge, Button, Entity, Flex, RenderDate, Text } from '@metorial/ui';
-import { Box } from '@metorial/ui-product';
+import { Avatar, Badge, Button, Flex, RenderDate, Text } from '@metorial/ui';
+import { Box, Table } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { SkillSharePopover, type SkillSharePanelContext } from '../components/skillSharePanel';
 
@@ -10,24 +10,12 @@ let EmptyState = styled.div`
   padding: 8px 0;
 `;
 
-let Items = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
 let roleLabels: Record<string, string> = {
   creator: 'Creator',
   editor: 'Editor',
   viewer: 'Viewer',
   user: 'User',
   forker: 'Forker'
-};
-
-let actorTypeLabels: Record<string, string> = {
-  organization_actor: 'Organization Actor',
-  consumer: 'Consumer',
-  unknown: 'Unknown'
 };
 
 export let SkillParticipantsScene = (p: {
@@ -63,54 +51,38 @@ export let SkillParticipantsScene = (p: {
           </Text>
         </EmptyState>
       ) : (
-        <Items>
-          {participantList.data.items.map(participant => (
-            <Entity.Wrapper key={participant.id} aligned>
-              <Entity.Content>
-                <Entity.Field
-                  prefix={
-                    <Avatar
-                      entity={{
-                        name: participant.actor.name,
-                        imageUrl: participant.actor.imageUrl ?? undefined
-                      }}
-                      size={32}
-                    />
-                  }
-                  title={participant.actor.name}
-                  description={participant.actor.email ?? undefined}
-                />
-
-                {/* <Entity.Field
-                  title="Type"
-                  value={
-                    <Badge color="gray" size="1">
-                      {actorTypeLabels[participant.actor.type] ?? participant.actor.type}
-                    </Badge>
-                  }
-                /> */}
-
-                <Entity.Field
-                  title="Roles"
-                  value={
-                    <Flex gap={6} style={{ flexWrap: 'wrap' }}>
-                      {participant.roles.map(role => (
-                        <Badge key={role} color="blue" size="1">
-                          {roleLabels[role] ?? role}
-                        </Badge>
-                      ))}
-                    </Flex>
-                  }
-                />
-
-                <Entity.Field
-                  title="Created"
-                  value={<RenderDate date={participant.createdAt} />}
-                />
-              </Entity.Content>
-            </Entity.Wrapper>
-          ))}
-        </Items>
+        <Table
+          headers={['Participant', 'Roles', 'Created']}
+          data={participantList.data.items.map(participant => [
+            <Flex gap="10px" align="center">
+              <Avatar
+                entity={{
+                  name: participant.actor.name,
+                  imageUrl: participant.actor.imageUrl ?? undefined
+                }}
+                size={32}
+              />
+              <div>
+                <Text size="2" weight="strong">
+                  {participant.actor.name}
+                </Text>
+                {participant.actor.email && (
+                  <Text size="1" color="gray600">
+                    {participant.actor.email}
+                  </Text>
+                )}
+              </div>
+            </Flex>,
+            <Flex gap={6} style={{ flexWrap: 'wrap' }}>
+              {participant.roles.map(role => (
+                <Badge key={role} color="blue" size="1">
+                  {roleLabels[role] ?? role}
+                </Badge>
+              ))}
+            </Flex>,
+            <RenderDate date={participant.createdAt} />
+          ])}
+        />
       )}
     </Box>
   ));
