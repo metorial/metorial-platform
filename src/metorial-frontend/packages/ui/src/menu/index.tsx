@@ -44,7 +44,7 @@ let fadeOutRight = keyframes`
   to { opacity: 0; transform: translateX(10px); }
 `;
 
-let Content = styled(RadixMenu.Content)`
+let Content = styled(RadixMenu.Content)<{ $matchTriggerWidth?: boolean }>`
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
@@ -54,6 +54,8 @@ let Content = styled(RadixMenu.Content)`
   background: ${theme.colors.foreground};
   border-radius: 10px;
   min-width: 200px;
+  width: ${({ $matchTriggerWidth }) =>
+    $matchTriggerWidth ? 'var(--radix-dropdown-menu-trigger-width)' : undefined};
   gap: 5px;
   &[data-state='open'][data-side='top'] {
     animation: ${fadeInTop} 0.2s ease forwards;
@@ -155,7 +157,8 @@ export let Menu = ({
   onItemClick,
   items,
   title,
-  setIsOpen
+  setIsOpen,
+  matchTriggerWidth
 }: {
   label?: string;
   children: React.ReactNode;
@@ -173,6 +176,7 @@ export let Menu = ({
   )[];
   title?: string;
   setIsOpen?: (isOpen: boolean) => void;
+  matchTriggerWidth?: boolean;
 }) => {
   let [open, setOpen] = useState(false);
   let zIndex = useDialogZIndex(open);
@@ -185,7 +189,7 @@ export let Menu = ({
         {children}
       </RadixMenu.Trigger>
       <RadixMenu.Portal>
-        <Content sideOffset={5} style={{ zIndex }}>
+        <Content $matchTriggerWidth={matchTriggerWidth} sideOffset={5} style={{ zIndex }}>
           {title && (
             <>
               <Title>{title}</Title>
