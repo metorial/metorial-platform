@@ -1,0 +1,213 @@
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { db, getId } from '@metorial-cargo/db';
+import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import {
+  skillMergeRequestCommentInclude,
+  skillMergeRequestInternalService,
+  type SkillMergeRequestCommentRecord,
+  type SkillMergeRequestRecord
+} from './skillMergeRequestInternal';
+
+class SkillMergeRequestCommentServiceImpl {
+  async getSkillMergeRequestCommentById(d: {
+    mergeRequest: Pick<SkillMergeRequestRecord, 'oid'>;
+    commentId: string;
+    includeDeleted?: boolean;
+  }) {
+    let comment = await db.skillMergeRequestComment.findFirst({
+      where: {
+        id: d.commentId,
+        skillMergeRequestOid: d.mergeRequest.oid,
+        deletedAt: d.includeDeleted ? undefined : null
+      },
+      include: skillMergeRequestCommentInclude
+    });
+
+    if (!comment) {
+      throw new ServiceError(notFoundError('skill.mergeRequest.comment', d.commentId));
+    }
+
+    return comment;
+  }
+
+  async listComments(
+    d: CargoTenantEnvironment & {
+      mergeRequest: SkillMergeRequestRecord;
+      itemId?: string;
+    }
+  ) {
+    let item = d.itemId
+      ? await skillMergeRequestInternalService.getSkillMergeRequestItemById({
+          mergeRequest: d.mergeRequest,
+          itemId: d.itemId
+        })
+      : undefined;
+
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts =>
+        db.skillMergeRequestComment.findMany({
+          ...opts,
+          where: {
+            skillMergeRequestOid: d.mergeRequest.oid,
+            skillMergeRequestItemOid: item?.oid,
+            deletedAt: null
+          },
+          include: skillMergeRequestCommentInclude,
+          orderBy: {
+            createdAt: 'asc'
+          }
+        })
+      )
+    );
+  }
+
+  async createComment(
+    d: CargoTenantEnvironment & {
+      mergeRequest: SkillMergeRequestRecord;
+      itemId?: string;
+      inReplyToCommentId?: string;
+      actorId: string;
+      body: string;
+      path?: string | null;
+    }
+  ) {
+    if (!d.body.trim()) {
+      throw new ServiceError(badRequestError({ message: 'Comment body cannot be empty' }));
+    }
+
+    let actor = await actorService.getActorById({
+      tenant: d.tenant,
+      actorId: d.actorId
+    });
+    let item = d.itemId
+      ? await skillMergeRequestInternalService.getSkillMergeRequestItemById({
+          mergeRequest: d.mergeRequest,
+          itemId: d.itemId
+        })
+      : undefined;
+    let reply = d.inReplyToCommentId
+      ? await this.getSkillMergeRequestCommentById({
+          mergeRequest: d.mergeRequest,
+          commentId: d.inReplyToCommentId
+        })
+      : undefined;
+    let path = d.path ?? item?.path;
+
+    if (reply?.skillMergeRequestItemOid !== item?.oid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Replies must belong to the same merge request item' })
+      );
+    }
+    if (reply && reply.path !== path) {
+      throw new ServiceError(
+        badRequestError({ message: 'Replies must use the same path as the parent comment' })
+      );
+    }
+    if (item && path !== item.path) {
+      throw new ServiceError(
+        badRequestError({ message: 'Comment path must match the selected merge request item' })
+      );
+    }
+    if (!item && path) {
+      let matchingItem = await db.skillMergeRequestItem.findFirst({
+        where: {
+          skillMergeRequestOid: d.mergeRequest.oid,
+          path
+        },
+        select: { oid: true }
+      });
+      if (!matchingItem) {
+        throw new ServiceError(
+          badRequestError({ message: 'Comment path must match a merge request item' })
+        );
+      }
+    }
+
+    let ids = getId('skillMergeRequestComment');
+
+    return await db.skillMergeRequestComment.create({
+      data: {
+        oid: ids.oid,
+        id: ids.id,
+        skillMergeRequestOid: d.mergeRequest.oid,
+        skillMergeRequestItemOid: item?.oid,
+        inReplyToCommentOid: reply?.oid,
+        tenantActorOid: actor.oid,
+        body: d.body,
+        path
+      },
+      include: skillMergeRequestCommentInclude
+    });
+  }
+
+  async updateComment(
+    d: CargoTenantEnvironment & {
+      mergeRequest: SkillMergeRequestRecord;
+      comment: SkillMergeRequestCommentRecord;
+      actorId: string;
+      body: string;
+    }
+  ) {
+    if (!d.body.trim()) {
+      throw new ServiceError(badRequestError({ message: 'Comment body cannot be empty' }));
+    }
+
+    let actor = await actorService.getActorById({
+      tenant: d.tenant,
+      actorId: d.actorId
+    });
+    if (d.comment.tenantActorOid !== actor.oid) {
+      throw new ServiceError(forbiddenError({ message: 'Cannot edit another actor comment' }));
+    }
+
+    return await db.skillMergeRequestComment.update({
+      where: {
+        id: d.comment.id
+      },
+      data: {
+        body: d.body
+      },
+      include: skillMergeRequestCommentInclude
+    });
+  }
+
+  async deleteComment(
+    d: CargoTenantEnvironment & {
+      mergeRequest: SkillMergeRequestRecord;
+      comment: SkillMergeRequestCommentRecord;
+      actorId: string;
+    }
+  ) {
+    let actor = await actorService.getActorById({
+      tenant: d.tenant,
+      actorId: d.actorId
+    });
+    if (d.comment.tenantActorOid !== actor.oid) {
+      throw new ServiceError(
+        forbiddenError({ message: 'Cannot delete another actor comment' })
+      );
+    }
+
+    return await db.skillMergeRequestComment.update({
+      where: {
+        id: d.comment.id
+      },
+      data: {
+        deletedAt: new Date()
+      },
+      include: skillMergeRequestCommentInclude
+    });
+  }
+}
+
+export let skillMergeRequestCommentService = Service.create(
+  'cargoSkillMergeRequestCommentService',
+  () => new SkillMergeRequestCommentServiceImpl()
+).build();
