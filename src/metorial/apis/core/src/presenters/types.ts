@@ -83,6 +83,8 @@ import {
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
+  ConsumerActivityAgent,
+  ConsumerActivitySessionConnection,
   ConsumerProviderCatalogEntry,
   EnrichedConsumerSurface
 } from '@metorial/module-consumer';
@@ -934,6 +936,15 @@ export let consumerSessionType = PresentableType.create<{
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
 }>()('consumer.provider');
+
+export let consumerActivityAgentType = PresentableType.create<ConsumerActivityAgent>()(
+  'consumer.activity_agent'
+);
+
+export let consumerActivitySessionConnectionType =
+  PresentableType.create<ConsumerActivitySessionConnection>()(
+    'consumer.activity_session_connection'
+  );
 
 export let portalOAuthClientType = PresentableType.create<{
   portalAuthClient: ConsumerAuthClient & {

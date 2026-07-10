@@ -44,6 +44,8 @@ import {
   v1ConsumerAccessListingPresenter,
   v1ConsumerAccessPresenter,
   v1ConsumerAccessRequestPresenter,
+  v1ConsumerActivityAgentPresenter,
+  v1ConsumerActivitySessionConnectionPresenter,
   v1ConsumerAndProfilePresenter,
   v1ConsumerGroupPresenter,
   v1ConsumerInvitePresenter,
@@ -249,6 +251,8 @@ import {
   consumerAccessListingType,
   consumerAccessRequestType,
   consumerAccessType,
+  consumerActivityAgentType,
+  consumerActivitySessionConnectionType,
   consumerAndProfileType,
   consumerGroupType,
   consumerInviteType,
@@ -921,6 +925,21 @@ export let consumerProviderPresenter = declarePresenter(consumerProviderType, {
   mt_2026_04_01_consumer: v1ConsumerProviderPresenter
 });
 
+export let consumerActivityAgentPresenter = declarePresenter(consumerActivityAgentType, {
+  mt_2025_01_01_dashboard: v1ConsumerActivityAgentPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerActivityAgentPresenter,
+  mt_2026_04_01_consumer: v1ConsumerActivityAgentPresenter
+});
+
+export let consumerActivitySessionConnectionPresenter = declarePresenter(
+  consumerActivitySessionConnectionType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerActivitySessionConnectionPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerActivitySessionConnectionPresenter,
+    mt_2026_04_01_consumer: v1ConsumerActivitySessionConnectionPresenter
+  }
+);
+
 export let portalOAuthClientPresenter = declarePresenter(portalOAuthClientType, {
   mt_2025_01_01_dashboard: v1PortalOAuthClientPresenter,
   mt_2026_01_01_magnetar: v1PortalOAuthClientPresenter,
@@ -1001,7 +1020,8 @@ export let publisherPresenter = declarePresenter(publisherType, {
 
 export let agentPresenter = declarePresenter(agentType, {
   mt_2025_01_01_dashboard: v1AgentPresenter,
-  mt_2026_01_01_magnetar: v1AgentPresenter
+  mt_2026_01_01_magnetar: v1AgentPresenter,
+  mt_2026_04_01_consumer: v1AgentPresenter
 });
 
 export let agentInstancePresenter = declarePresenter(agentInstanceType, {
@@ -1033,7 +1053,8 @@ export let identityActorPresenter = declarePresenter(identityActorType, {
 
 export let identityCredentialPresenter = declarePresenter(identityCredentialType, {
   mt_2025_01_01_dashboard: v1IdentityCredentialPresenter,
-  mt_2026_01_01_magnetar: v1IdentityCredentialPresenter
+  mt_2026_01_01_magnetar: v1IdentityCredentialPresenter,
+  mt_2026_04_01_consumer: v1IdentityCredentialPresenter
 });
 
 export let identityDelegationPresenter = declarePresenter(identityDelegationType, {
@@ -1364,7 +1385,8 @@ export let subspaceSessionMessagePresenter = declarePresenter(sessionMessageType
 
 export let subspaceSessionConnectionPresenter = declarePresenter(sessionConnectionType, {
   mt_2025_01_01_dashboard: v1SessionConnectionPresenter,
-  mt_2026_01_01_magnetar: v1SessionConnectionPresenter
+  mt_2026_01_01_magnetar: v1SessionConnectionPresenter,
+  mt_2026_04_01_consumer: v1SessionConnectionPresenter
 });
 
 export let subspaceSessionEventPresenter = declarePresenter(sessionEventType, {
@@ -1456,7 +1478,8 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
 
 export let toolCallPresenter = declarePresenter(toolCallType, {
   mt_2025_01_01_dashboard: v1ProviderToolCallPresenter,
-  mt_2026_01_01_magnetar: v1ProviderToolCallPresenter
+  mt_2026_01_01_magnetar: v1ProviderToolCallPresenter,
+  mt_2026_04_01_consumer: v1ProviderToolCallPresenter
 });
 
 export let scmConnectionPresenter = declarePresenter(scmConnectionType, {

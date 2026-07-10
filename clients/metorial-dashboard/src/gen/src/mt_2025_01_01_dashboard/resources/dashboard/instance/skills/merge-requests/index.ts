@@ -1,6 +1,7 @@
 export * from './close';
 export * from './comments';
 export * from './create';
+export * from './events';
 export * from './get';
 export * from './items';
 export * from './list';

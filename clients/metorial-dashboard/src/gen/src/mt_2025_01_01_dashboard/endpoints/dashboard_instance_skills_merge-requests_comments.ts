@@ -23,8 +23,8 @@ import {
 } from '../resources';
 
 /**
- * @name Skill Merge Requests controller
- * @description Review, resolve, and apply changes between skills.
+ * @name Skill Merge Request Comments controller
+ * @description Discuss skill merge requests and individual proposed changes.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs

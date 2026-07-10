@@ -14,7 +14,11 @@ import {
   sessionDocsCategory,
   skillDocsCategory
 } from './_categories';
-import { consumerProviderController, consumerSessionController } from './consumer';
+import {
+  consumerActivityController,
+  consumerProviderController,
+  consumerSessionController
+} from './consumer';
 import {
   dashboardAssistantController,
   dashboardAuthConfigConfigurationController,
@@ -511,6 +515,7 @@ export let magnetarController = Controller.create<any>(
 
     consumerSessionController,
     consumerProviderController,
+    consumerActivityController,
 
     managementApiKeyController,
     dashboardAssistantController,
@@ -555,6 +560,7 @@ export let consumerApiController = Controller.create<any>(
 
     consumerSessionController,
     consumerProviderController,
+    consumerActivityController,
     dashboardAssistantController
   }
 );

@@ -127,6 +127,7 @@ import {
   MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint,
   MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint,
   MetorialDashboardInstanceSkillsMergeRequestsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsEventsEndpoint,
   MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint,
   MetorialDashboardInstanceSkillsMergeRequestsPlanEndpoint,
   MetorialDashboardInstanceSkillsParticipantsEndpoint,
@@ -527,7 +528,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       {
         plan: new MetorialDashboardInstanceSkillsMergeRequestsPlanEndpoint(manager),
         items: new MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint(manager),
-        comments: new MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint(manager)
+        comments: new MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint(manager),
+        events: new MetorialDashboardInstanceSkillsMergeRequestsEventsEndpoint(manager)
       }
     ),
     participants: new MetorialDashboardInstanceSkillsParticipantsEndpoint(manager),

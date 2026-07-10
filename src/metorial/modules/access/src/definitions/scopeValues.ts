@@ -146,6 +146,9 @@ export let consumerScopes = [
   'consumer#instance.magic_mcp:connect' as const,
   'consumer#instance.magic_mcp:write' as const,
 
+  'consumer#instance.operations:read' as const,
+  'consumer#instance.identity:read' as const,
+
   'consumer#instance.provider_template:read' as const,
 
   'consumer#instance.oauth_session:read' as const,

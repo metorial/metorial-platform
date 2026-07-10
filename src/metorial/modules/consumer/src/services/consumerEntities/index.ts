@@ -1,3 +1,5 @@
+export * from './consumerActivity';
+export * from './consumerActivityScope';
 export * from './consumerIntegration';
 export * from './consumerProviderCatalog';
 export * from './consumerProviderDeployment';
