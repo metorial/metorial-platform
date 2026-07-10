@@ -246,6 +246,40 @@ describe('cargo skill.e2e', () => {
     await cleanDatabase();
   });
 
+  it('uses a safe custom error for merge verification failures', async () => {
+    let verificationError = await skillMergeRequestApplyInternalService
+      .verifyResolvedItems({
+        items: [],
+        before: {
+          itemsByPath: new Map([
+            [
+              '/private/skill.md',
+              { kind: 'document', path: '/private/skill.md', content: 'before' }
+            ]
+          ])
+        } as any,
+        target: {
+          itemsByPath: new Map([
+            [
+              '/private/skill.md',
+              { kind: 'document', path: '/private/skill.md', content: 'after' }
+            ]
+          ])
+        } as any
+      })
+      .then(
+        () => null,
+        error => error
+      );
+
+    expect(verificationError).toMatchObject({
+      name: 'SkillMergeRequestMergeError',
+      code: 'verification_failed',
+      message: 'The proposed result could not be verified. Review the request and try again.'
+    });
+    expect(verificationError.message).not.toContain('/private/skill.md');
+  });
+
   it('lists and gets skill syncs by plugin and marketplace', async () => {
     let { tenant, environment } = await createScope();
     let scope = await getCargoScopeRecords({
@@ -1662,7 +1696,9 @@ describe('cargo skill.e2e', () => {
       processSkillMergeRequestPerformJob({
         skillMergeRequestId: mergeRequest.id
       })
-    ).rejects.toThrow('Resolve all merge request items before merging');
+    ).rejects.toThrow(
+      'The target skill changed while merging. Review the outstanding choices and try again.'
+    );
     let invalidatedResolution = await cargoClient.skillMergeRequest.get({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -1678,7 +1714,9 @@ describe('cargo skill.e2e', () => {
 
     expect(invalidatedResolution).toMatchObject({
       status: 'open',
-      mergeErrorCode: 'unresolved_after_refresh'
+      mergeErrorCode: 'unresolved_after_refresh',
+      mergeError:
+        'The target skill changed while merging. Review the outstanding choices and try again.'
     });
     expect(invalidatedPlan.items.find(item => item.id === skillItem.id)).toMatchObject({
       status: 'unresolved',
@@ -1773,7 +1811,7 @@ describe('cargo skill.e2e', () => {
       processSkillMergeRequestPerformJob({
         skillMergeRequestId: mergeRequest.id
       })
-    ).rejects.toThrow('Injected partial merge failure');
+    ).rejects.toThrow('The merge could not be applied. Review the request and try again.');
     let recoveredPartialMerge = await cargoClient.skillMergeRequest.get({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -1783,8 +1821,10 @@ describe('cargo skill.e2e', () => {
 
     expect(recoveredPartialMerge).toMatchObject({
       status: 'open',
-      mergeErrorCode: 'apply_failed'
+      mergeErrorCode: 'apply_failed',
+      mergeError: 'The merge could not be applied. Review the request and try again.'
     });
+    expect(recoveredPartialMerge.mergeError).not.toContain('Injected partial merge failure');
     await cargoClient.skillMergeRequest.perform({
       tenantId: tenant.id,
       environmentId: environment.id,

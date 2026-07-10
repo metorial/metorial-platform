@@ -1,7 +1,10 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db, env, withTransaction } from '@metorial-cargo/db';
+import {
+  createSkillMergeRequestMergeError,
+  toSkillMergeRequestMergeError
+} from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { skillMergeRequestApplyInternalService } from '../services/skillMergeRequestApplyInternal';
 import {
@@ -82,11 +85,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
       });
 
       if (unresolvedCount > 0) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Resolve all merge request items before merging'
-          })
-        );
+        throw createSkillMergeRequestMergeError('unresolved_after_refresh');
       }
 
       let mergeActorId = mergeRequest.mergeStartedByTenantActor?.id;
@@ -175,13 +174,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         return merged;
       });
     } catch (err) {
-      let message = err instanceof Error ? err.message : 'Merge failed';
-      let mergeErrorCode: 'verification_failed' | 'unresolved_after_refresh' | 'apply_failed' =
-        message.startsWith('Merge verification failed')
-          ? 'verification_failed'
-          : message.includes('Resolve all merge request items before merging')
-            ? 'unresolved_after_refresh'
-            : 'apply_failed';
+      let mergeError = toSkillMergeRequestMergeError(err, 'apply_failed');
       let resumedTargetVersion;
 
       try {
@@ -203,8 +196,8 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         },
         data: {
           status: 'open',
-          mergeError: message,
-          mergeErrorCode,
+          mergeError: mergeError.message,
+          mergeErrorCode: mergeError.code,
           mergeStartedAt: null,
           requestedTargetSkillVersionOid: resumedTargetVersion?.oid
         }
@@ -218,12 +211,12 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         },
         data: {
           status: 'action_required',
-          error: message,
+          error: mergeError.message,
           actionRequiredAt: new Date()
         }
       });
 
-      throw err;
+      throw mergeError;
     }
   });
 };
@@ -259,6 +252,7 @@ export let recoverStaleSkillMergeRequests = async () => {
 
   for (let mergeRequest of staleRequests) {
     await skillMergeTargetLock.usingLock(mergeRequest.targetSkill.store.id, async () => {
+      let mergeError = createSkillMergeRequestMergeError('stale_merge_recovered');
       await db.skillMergeRequest.updateMany({
         where: {
           id: mergeRequest.id,
@@ -270,8 +264,8 @@ export let recoverStaleSkillMergeRequests = async () => {
         data: {
           status: 'open',
           mergeStartedAt: null,
-          mergeErrorCode: 'stale_merge_recovered',
-          mergeError: 'The merge worker did not finish. Review the request and try again.'
+          mergeErrorCode: mergeError.code,
+          mergeError: mergeError.message
         }
       });
       await db.skillForkSync.updateMany({
@@ -283,7 +277,7 @@ export let recoverStaleSkillMergeRequests = async () => {
         },
         data: {
           status: 'action_required',
-          error: 'The merge worker did not finish. Review the request and try again.',
+          error: mergeError.message,
           actionRequiredAt: new Date()
         }
       });

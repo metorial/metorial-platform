@@ -8,6 +8,7 @@ import { db, Prisma, withTransaction } from '@metorial-cargo/db';
 import type { DateFilter } from '@metorial-cargo/list-utils';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { actorService } from '@metorial-cargo/module-file';
+import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { enqueueSkillMergeRequestPerform } from '../queues/mergeRequest';
 import { skillMergeRequestApplyInternalService } from './skillMergeRequestApplyInternal';
@@ -280,7 +281,7 @@ class SkillMergeRequestServiceImpl {
         }
       });
     } catch (err) {
-      let message = err instanceof Error ? err.message : 'Failed to enqueue merge';
+      let mergeError = createSkillMergeRequestMergeError('enqueue_failed', err);
       await db.skillMergeRequest.updateMany({
         where: {
           oid: updated.oid,
@@ -289,11 +290,11 @@ class SkillMergeRequestServiceImpl {
         data: {
           status: 'open',
           mergeStartedAt: null,
-          mergeErrorCode: 'enqueue_failed',
-          mergeError: message
+          mergeErrorCode: mergeError.code,
+          mergeError: mergeError.message
         }
       });
-      throw err;
+      throw mergeError;
     }
 
     return updated;

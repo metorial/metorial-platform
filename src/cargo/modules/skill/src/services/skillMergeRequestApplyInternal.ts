@@ -8,6 +8,7 @@ import {
 } from '@metorial-cargo/module-doc';
 import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import { storeItemMutationService } from '@metorial-cargo/module-store';
+import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { sameSnapshotItem, type Snapshot, type SnapshotItem } from '../lib/mergeSnapshot';
 import {
@@ -62,9 +63,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         : d.item.sourceDocumentVersion?.content.content;
 
     if (content === undefined) {
-      throw new ServiceError(
-        badRequestError({ message: `Missing document content for ${d.item.path}` })
-      );
+      throw createSkillMergeRequestMergeError('apply_failed');
     }
 
     return { title, content };
@@ -193,9 +192,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     if (resolutionType === 'replace_file' || d.item.kind === 'file') {
       let fileId = resolution.fileId ?? d.item.sourceFile?.id;
       if (!fileId) {
-        throw new ServiceError(
-          badRequestError({ message: `Missing file for ${d.item.path}` })
-        );
+        throw createSkillMergeRequestMergeError('apply_failed');
       }
 
       if (resolutionType === 'replace_file') {
@@ -317,7 +314,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     for (let path of allPaths) {
       if (resolvedPaths.has(path)) continue;
       if (!sameSnapshotItem(d.before.itemsByPath.get(path), d.target.itemsByPath.get(path))) {
-        throw new Error(`Merge verification failed for ${path}: unrelated item changed`);
+        throw createSkillMergeRequestMergeError('verification_failed');
       }
     }
 
@@ -327,24 +324,24 @@ class SkillMergeRequestApplyInternalServiceImpl {
 
       if (item.status === 'skipped') {
         if (sameSnapshotItem(d.before.itemsByPath.get(item.path), actual)) continue;
-        throw new Error(`Merge verification failed for ${item.path}: skipped item changed`);
+        throw createSkillMergeRequestMergeError('verification_failed');
       }
 
       if (item.resolutionType === 'remove') {
         if (!actual) continue;
-        throw new Error(`Merge verification failed for ${item.path}: item still exists`);
+        throw createSkillMergeRequestMergeError('verification_failed');
       }
 
       if (item.kind === 'directory') {
         if (actual?.kind === 'directory') continue;
-        throw new Error(`Merge verification failed for ${item.path}: directory is missing`);
+        throw createSkillMergeRequestMergeError('verification_failed');
       }
 
       if (item.kind === 'file') {
         let expectedFileOid: bigint | null | undefined = item.sourceFileOid;
         if (item.resolutionType === 'replace_file') {
           if (!resolution.fileId) {
-            throw new Error(`Merge verification failed for ${item.path}: file is missing`);
+            throw createSkillMergeRequestMergeError('verification_failed');
           }
           expectedFileOid = (
             await db.file.findUnique({
@@ -356,7 +353,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         if (expectedFileOid && actual?.kind === 'file' && actual.fileOid === expectedFileOid) {
           continue;
         }
-        throw new Error(`Merge verification failed for ${item.path}: file does not match`);
+        throw createSkillMergeRequestMergeError('verification_failed');
       }
 
       let expected = this.getDocumentResolution({ item });
@@ -368,7 +365,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         continue;
       }
 
-      throw new Error(`Merge verification failed for ${item.path}: document does not match`);
+      throw createSkillMergeRequestMergeError('verification_failed');
     }
   }
 
