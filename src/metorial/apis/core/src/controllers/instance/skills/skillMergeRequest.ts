@@ -11,14 +11,18 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   skillMergePlanPresenter,
-  skillMergeRequestCommentPresenter,
   skillMergeRequestItemPresenter,
   skillMergeRequestPresenter
 } from '../../../presenters';
 
-let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
-let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
-let commentManagementScopes = ['instance.skill:write'] as const;
+export let skillMergeRequestReadScopes = [
+  'instance.skill:read',
+  'consumer#instance.skill:read'
+] as const;
+export let skillMergeRequestWriteScopes = [
+  'instance.skill:write',
+  'consumer#instance.skill:write'
+] as const;
 let statusValidator = v.enumOf(['open', 'closed', 'merging', 'merged']);
 let resolutionTypeValidator = v.enumOf([
   'accept_source',
@@ -38,7 +42,7 @@ let resolutionValidator = v.optional(
   )
 );
 
-let getAccess = (ctx: any) => ({
+export let getSkillMergeRequestAccess = (ctx: any) => ({
   owner: {
     type: 'instance' as const,
     instance: ctx.instance,
@@ -60,7 +64,7 @@ export let skillMergeRequestGroup = instanceGroup
     }
 
     let skillMergeRequest = await skillMergeRequestService.getSkillMergeRequestById({
-      ...getAccess(ctx),
+      ...getSkillMergeRequestAccess(ctx),
       skillMergeRequestId: ctx.params.skillMergeRequestId
     });
 
@@ -79,7 +83,7 @@ export let skillMergeRequestController = Controller.create(
         description: 'Returns a paginated list of skill merge requests.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestReadScopes] }))
       .outputList(skillMergeRequestPresenter)
       .query(
         'default',
@@ -96,7 +100,7 @@ export let skillMergeRequestController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await skillMergeRequestService.listSkillMergeRequests({
-          ...getAccess(ctx),
+          ...getSkillMergeRequestAccess(ctx),
           ids: normalizeArrayParam(ctx.query.id),
           sourceSkillIds: normalizeArrayParam(ctx.query.source_skill_id),
           targetSkillIds: normalizeArrayParam(ctx.query.target_skill_id),
@@ -117,7 +121,7 @@ export let skillMergeRequestController = Controller.create(
         description: 'Creates a merge request from one skill into another.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .body(
         'default',
         v.object({
@@ -130,7 +134,7 @@ export let skillMergeRequestController = Controller.create(
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.createSkillMergeRequest({
-          ...getAccess(ctx),
+          ...getSkillMergeRequestAccess(ctx),
           sourceSkillId: ctx.body.source_skill_id,
           targetSkillId: ctx.body.target_skill_id,
           title: ctx.body.title,
@@ -148,7 +152,7 @@ export let skillMergeRequestController = Controller.create(
           description: 'Retrieves a skill merge request.'
         }
       )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestReadScopes] }))
       .output(skillMergeRequestPresenter)
       .do(async ctx =>
         skillMergeRequestPresenter.present({ skillMergeRequest: ctx.skillMergeRequest })
@@ -165,11 +169,11 @@ export let skillMergeRequestController = Controller.create(
           description: 'Returns the proposed changes and conflicts for a skill merge request.'
         }
       )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestReadScopes] }))
       .output(skillMergePlanPresenter)
       .do(async ctx => {
         let skillMergePlan = await skillMergeRequestService.getSkillMergePlan({
-          ...getAccess(ctx),
+          ...getSkillMergeRequestAccess(ctx),
           skillMergeRequestId: ctx.skillMergeRequest.id
         });
 
@@ -187,7 +191,7 @@ export let skillMergeRequestController = Controller.create(
           description: 'Saves a resolution for one proposed skill change.'
         }
       )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .body(
         'default',
         v.object({
@@ -199,7 +203,7 @@ export let skillMergeRequestController = Controller.create(
       .do(async ctx => {
         let skillMergeRequestItem =
           await skillMergeRequestService.resolveSkillMergeRequestItem({
-            ...getAccess(ctx),
+            ...getSkillMergeRequestAccess(ctx),
             skillMergeRequestId: ctx.skillMergeRequest.id,
             itemId: ctx.params.itemId,
             resolutionType: ctx.body.resolution_type,
@@ -220,7 +224,7 @@ export let skillMergeRequestController = Controller.create(
           description: 'Saves resolutions for multiple proposed skill changes.'
         }
       )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .body(
         'default',
         v.object({
@@ -236,7 +240,7 @@ export let skillMergeRequestController = Controller.create(
       .outputList(skillMergeRequestItemPresenter)
       .do(async ctx => {
         let items = await skillMergeRequestService.bulkResolveSkillMergeRequestItems({
-          ...getAccess(ctx),
+          ...getSkillMergeRequestAccess(ctx),
           skillMergeRequestId: ctx.skillMergeRequest.id,
           items: ctx.body.items.map(item => ({
             itemId: item.item_id,
@@ -269,11 +273,11 @@ export let skillMergeRequestController = Controller.create(
           description: 'Queues application of a resolved skill merge request.'
         }
       )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.performSkillMergeRequest({
-          ...getAccess(ctx),
+          ...getSkillMergeRequestAccess(ctx),
           skillMergeRequestId: ctx.skillMergeRequest.id
         });
 
@@ -291,11 +295,11 @@ export let skillMergeRequestController = Controller.create(
           description: 'Closes an open skill merge request without applying it.'
         }
       )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.closeSkillMergeRequest({
-          ...getAccess(ctx),
+          ...getSkillMergeRequestAccess(ctx),
           skillMergeRequestId: ctx.skillMergeRequest.id
         });
 
@@ -313,152 +317,15 @@ export let skillMergeRequestController = Controller.create(
           description: 'Restores the target skill to its state before a completed merge.'
         }
       )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.rollbackSkillMergeRequest({
-          ...getAccess(ctx),
+          ...getSkillMergeRequestAccess(ctx),
           skillMergeRequestId: ctx.skillMergeRequest.id
         });
 
         return skillMergeRequestPresenter.present({ skillMergeRequest });
-      }),
-
-    listComments: skillMergeRequestGroup
-      .get(
-        instancePath(
-          'skill-merge-requests/:skillMergeRequestId/comments',
-          'skills.mergeRequests.comments.list'
-        ),
-        {
-          name: 'List skill merge request comments',
-          description: 'Lists comments on a skill merge request or one of its items.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
-      .outputList(skillMergeRequestCommentPresenter)
-      .query('default', Paginator.validate(v.object({ item_id: v.optional(v.string()) })))
-      .do(async ctx => {
-        let paginator = await skillMergeRequestService.listSkillMergeRequestComments({
-          ...getAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id,
-          skillMergeRequestItemId: ctx.query.item_id
-        });
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, skillMergeRequestComment =>
-          skillMergeRequestCommentPresenter.present({ skillMergeRequestComment })
-        );
-      }),
-
-    createComment: skillMergeRequestGroup
-      .post(
-        instancePath(
-          'skill-merge-requests/:skillMergeRequestId/comments',
-          'skills.mergeRequests.comments.create'
-        ),
-        {
-          name: 'Create skill merge request comment',
-          description: 'Adds a comment to a skill merge request or one of its items.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body(
-        'default',
-        v.object({
-          item_id: v.optional(v.string()),
-          in_reply_to_comment_id: v.optional(v.string()),
-          body: v.string(),
-          path: v.optional(v.nullable(v.string()))
-        })
-      )
-      .output(skillMergeRequestCommentPresenter)
-      .do(async ctx => {
-        let skillMergeRequestComment =
-          await skillMergeRequestService.createSkillMergeRequestComment({
-            ...getAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
-            skillMergeRequestItemId: ctx.body.item_id,
-            inReplyToCommentId: ctx.body.in_reply_to_comment_id,
-            body: ctx.body.body,
-            path: ctx.body.path
-          });
-
-        return skillMergeRequestCommentPresenter.present({ skillMergeRequestComment });
-      }),
-
-    getComment: skillMergeRequestGroup
-      .get(
-        instancePath(
-          'skill-merge-requests/:skillMergeRequestId/comments/:commentId',
-          'skills.mergeRequests.comments.get'
-        ),
-        {
-          name: 'Get skill merge request comment',
-          description: 'Retrieves a comment on a skill merge request.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...readScopes] }))
-      .output(skillMergeRequestCommentPresenter)
-      .do(async ctx => {
-        let skillMergeRequestComment =
-          await skillMergeRequestService.getSkillMergeRequestCommentById({
-            ...getAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
-            commentId: ctx.params.commentId
-          });
-
-        return skillMergeRequestCommentPresenter.present({ skillMergeRequestComment });
-      }),
-
-    updateComment: skillMergeRequestGroup
-      .patch(
-        instancePath(
-          'skill-merge-requests/:skillMergeRequestId/comments/:commentId',
-          'skills.mergeRequests.comments.update'
-        ),
-        {
-          name: 'Update skill merge request comment',
-          description: 'Updates a comment authored by the current actor.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...commentManagementScopes] }))
-      .body('default', v.object({ body: v.string() }))
-      .output(skillMergeRequestCommentPresenter)
-      .do(async ctx => {
-        let skillMergeRequestComment =
-          await skillMergeRequestService.updateSkillMergeRequestComment({
-            ...getAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
-            commentId: ctx.params.commentId,
-            body: ctx.body.body
-          });
-
-        return skillMergeRequestCommentPresenter.present({ skillMergeRequestComment });
-      }),
-
-    deleteComment: skillMergeRequestGroup
-      .delete(
-        instancePath(
-          'skill-merge-requests/:skillMergeRequestId/comments/:commentId',
-          'skills.mergeRequests.comments.delete'
-        ),
-        {
-          name: 'Delete skill merge request comment',
-          description: 'Deletes a comment authored by the current actor.'
-        }
-      )
-      .use(checkAccess({ possibleScopes: [...commentManagementScopes] }))
-      .output(skillMergeRequestCommentPresenter)
-      .do(async ctx => {
-        let skillMergeRequestComment =
-          await skillMergeRequestService.deleteSkillMergeRequestComment({
-            ...getAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
-            commentId: ctx.params.commentId
-          });
-
-        return skillMergeRequestCommentPresenter.present({ skillMergeRequestComment });
       })
   }
 );

@@ -94,10 +94,6 @@ import type {
   CargoSkillAgent,
   CargoSkillConfiguration,
   CargoSkillForkSync,
-  CargoSkillMergePlan,
-  CargoSkillMergeRequest,
-  CargoSkillMergeRequestComment,
-  CargoSkillMergeRequestItem,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   CargoStore,
@@ -110,6 +106,11 @@ import type {
   EnrichedCargoSkillMarketplace,
   EnrichedCargoSkillMarketplacePlugin,
   EnrichedCargoSkillMarketplaceRepository,
+  EnrichedCargoSkillMergePlan,
+  EnrichedCargoSkillMergeRequest,
+  EnrichedCargoSkillMergeRequestComment,
+  EnrichedCargoSkillMergeRequestEvent,
+  EnrichedCargoSkillMergeRequestItem,
   EnrichedCargoSkillParticipant,
   EnrichedCargoSkillPlugin,
   EnrichedCargoSkillPluginRepository,
@@ -621,19 +622,23 @@ export let skillVersionSnapshotType = PresentableType.create<{
 }>()('skillVersionSnapshot');
 
 export let skillMergeRequestType = PresentableType.create<{
-  skillMergeRequest: CargoSkillMergeRequest;
+  skillMergeRequest: EnrichedCargoSkillMergeRequest;
 }>()('skillMergeRequest');
 
 export let skillMergeRequestItemType = PresentableType.create<{
-  skillMergeRequestItem: CargoSkillMergeRequestItem;
+  skillMergeRequestItem: EnrichedCargoSkillMergeRequestItem;
 }>()('skillMergeRequestItem');
 
 export let skillMergeRequestCommentType = PresentableType.create<{
-  skillMergeRequestComment: CargoSkillMergeRequestComment;
+  skillMergeRequestComment: EnrichedCargoSkillMergeRequestComment;
 }>()('skillMergeRequestComment');
 
+export let skillMergeRequestEventType = PresentableType.create<{
+  skillMergeRequestEvent: EnrichedCargoSkillMergeRequestEvent;
+}>()('skillMergeRequestEvent');
+
 export let skillMergePlanType = PresentableType.create<{
-  skillMergePlan: CargoSkillMergePlan;
+  skillMergePlan: EnrichedCargoSkillMergePlan;
 }>()('skillMergePlan');
 
 export let secretType = PresentableType.create<{

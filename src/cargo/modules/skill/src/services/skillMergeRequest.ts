@@ -12,6 +12,7 @@ import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { enqueueSkillMergeRequestPerform } from '../queues/mergeRequest';
 import { skillMergeRequestApplyInternalService } from './skillMergeRequestApplyInternal';
+import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
   skillMergeRequestInclude,
   skillMergeRequestInternalService,
@@ -113,18 +114,41 @@ class SkillMergeRequestServiceImpl {
           resolution: d.resolution
         });
 
-        return await db.skillMergeRequestItem.update({
-          where: {
-            id: item.id
-          },
-          data: {
-            status: skillMergeRequestInternalService.getResolutionStatus(d.resolutionType),
-            resolutionType: d.resolutionType,
-            resolution: d.resolution ?? Prisma.JsonNull,
-            resolvedByTenantActorOid: access.actor?.oid,
-            resolvedAt: new Date()
-          },
-          include: skillMergeRequestItemInclude
+        return await withTransaction(async tx => {
+          let unresolvedBefore = await tx.skillMergeRequestItem.count({
+            where: {
+              skillMergeRequestOid: mergeRequest.oid,
+              status: 'unresolved'
+            }
+          });
+          let updated = await tx.skillMergeRequestItem.update({
+            where: {
+              id: item.id
+            },
+            data: {
+              status: skillMergeRequestInternalService.getResolutionStatus(d.resolutionType),
+              resolutionType: d.resolutionType,
+              resolution: d.resolution ?? Prisma.JsonNull,
+              resolvedByTenantActorOid: access.actor?.oid,
+              resolvedAt: new Date()
+            },
+            include: skillMergeRequestItemInclude
+          });
+          let unresolvedAfter = await tx.skillMergeRequestItem.count({
+            where: {
+              skillMergeRequestOid: mergeRequest.oid,
+              status: 'unresolved'
+            }
+          });
+          if (unresolvedBefore > 0 && unresolvedAfter === 0) {
+            await skillMergeRequestEventService.createEvent({
+              database: tx,
+              mergeRequestOid: mergeRequest.oid,
+              type: 'all_conflicts_resolved',
+              actorOid: access.actor?.oid
+            });
+          }
+          return updated;
         });
       }
     );
@@ -191,6 +215,12 @@ class SkillMergeRequestServiceImpl {
         );
 
         return await withTransaction(async tx => {
+          let unresolvedBefore = await tx.skillMergeRequestItem.count({
+            where: {
+              skillMergeRequestOid: mergeRequest.oid,
+              status: 'unresolved'
+            }
+          });
           for (let { item, input } of items) {
             await tx.skillMergeRequestItem.update({
               where: { id: item.id },
@@ -203,6 +233,21 @@ class SkillMergeRequestServiceImpl {
                 resolvedByTenantActorOid: access.actor?.oid,
                 resolvedAt: new Date()
               }
+            });
+          }
+
+          let unresolvedAfter = await tx.skillMergeRequestItem.count({
+            where: {
+              skillMergeRequestOid: mergeRequest.oid,
+              status: 'unresolved'
+            }
+          });
+          if (unresolvedBefore > 0 && unresolvedAfter === 0) {
+            await skillMergeRequestEventService.createEvent({
+              database: tx,
+              mergeRequestOid: mergeRequest.oid,
+              type: 'all_conflicts_resolved',
+              actorOid: access.actor?.oid
             });
           }
 
@@ -258,6 +303,13 @@ class SkillMergeRequestServiceImpl {
             );
           }
 
+          await skillMergeRequestEventService.createEvent({
+            database: tx,
+            mergeRequestOid: d.mergeRequest.oid,
+            type: 'merge_started',
+            actorOid: access.actor?.oid
+          });
+
           return (await tx.skillMergeRequest.findUnique({
             where: {
               id: d.mergeRequest.id
@@ -282,16 +334,28 @@ class SkillMergeRequestServiceImpl {
       });
     } catch (err) {
       let mergeError = createSkillMergeRequestMergeError('enqueue_failed', err);
-      await db.skillMergeRequest.updateMany({
-        where: {
-          oid: updated.oid,
-          status: 'merging'
-        },
-        data: {
-          status: 'open',
-          mergeStartedAt: null,
-          mergeErrorCode: mergeError.code,
-          mergeError: mergeError.message
+      await withTransaction(async tx => {
+        let reset = await tx.skillMergeRequest.updateMany({
+          where: {
+            oid: updated.oid,
+            status: 'merging'
+          },
+          data: {
+            status: 'open',
+            mergeStartedAt: null,
+            mergeErrorCode: mergeError.code,
+            mergeError: mergeError.message
+          }
+        });
+        if (reset.count === 1) {
+          await skillMergeRequestEventService.createEvent({
+            database: tx,
+            mergeRequestOid: updated.oid,
+            type: 'merge_failed',
+            actorOid: access.actor?.oid,
+            errorCode: mergeError.code,
+            errorMessage: mergeError.message
+          });
         }
       });
       throw mergeError;
@@ -341,32 +405,40 @@ class SkillMergeRequestServiceImpl {
           });
         }
 
-        let closed = await db.skillMergeRequest.update({
-          where: {
-            id: mergeRequest.id
-          },
-          data: {
-            status: 'closed',
-            activePairKey: null,
-            closedAt: new Date(),
-            closedByTenantActorOid: actor?.oid
-          },
-          include: skillMergeRequestInclude
-        });
-        await db.skillForkSync.updateMany({
-          where: {
-            generatedMergeRequestOid: closed.oid,
-            status: {
-              in: ['pending', 'processing', 'action_required']
+        return await withTransaction(async tx => {
+          let closed = await tx.skillMergeRequest.update({
+            where: {
+              id: mergeRequest.id
+            },
+            data: {
+              status: 'closed',
+              activePairKey: null,
+              closedAt: new Date(),
+              closedByTenantActorOid: actor?.oid
+            },
+            include: skillMergeRequestInclude
+          });
+          await tx.skillForkSync.updateMany({
+            where: {
+              generatedMergeRequestOid: closed.oid,
+              status: {
+                in: ['pending', 'processing', 'action_required']
+              }
+            },
+            data: {
+              status: 'cancelled',
+              activePairKey: null,
+              cancelledAt: new Date()
             }
-          },
-          data: {
-            status: 'cancelled',
-            activePairKey: null,
-            cancelledAt: new Date()
-          }
+          });
+          await skillMergeRequestEventService.createEvent({
+            database: tx,
+            mergeRequestOid: closed.oid,
+            type: 'closed',
+            actorOid: actor?.oid
+          });
+          return closed;
         });
-        return closed;
       }
     );
   }

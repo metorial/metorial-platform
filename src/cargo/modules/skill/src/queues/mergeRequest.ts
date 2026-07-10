@@ -1,5 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
+import type { SkillVersion } from '@metorial-cargo/db';
 import { db, env, withTransaction } from '@metorial-cargo/db';
 import {
   createSkillMergeRequestMergeError,
@@ -7,6 +8,7 @@ import {
 } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { skillMergeRequestApplyInternalService } from '../services/skillMergeRequestApplyInternal';
+import { skillMergeRequestEventService } from '../services/skillMergeRequestEvent';
 import {
   skillMergeRequestInclude,
   skillMergeRequestInternalService,
@@ -171,11 +173,17 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
             completedAt: new Date()
           }
         });
+        await skillMergeRequestEventService.createEvent({
+          database: tx,
+          mergeRequestOid: activeMergeRequest.oid,
+          type: 'merge_completed',
+          actorOid: activeMergeRequest.mergeStartedByTenantActorOid
+        });
         return merged;
       });
     } catch (err) {
       let mergeError = toSkillMergeRequestMergeError(err, 'apply_failed');
-      let resumedTargetVersion;
+      let resumedTargetVersion: SkillVersion | undefined;
 
       try {
         resumedTargetVersion =
@@ -190,30 +198,39 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         // Preserve the original merge error. Recovery can be retried by the stale-merge processor.
       }
 
-      await db.skillMergeRequest.update({
-        where: {
-          id: activeMergeRequest.id
-        },
-        data: {
-          status: 'open',
-          mergeError: mergeError.message,
-          mergeErrorCode: mergeError.code,
-          mergeStartedAt: null,
-          requestedTargetSkillVersionOid: resumedTargetVersion?.oid
-        }
-      });
-      await db.skillForkSync.updateMany({
-        where: {
-          generatedMergeRequestOid: activeMergeRequest.oid,
-          status: {
-            in: ['pending', 'processing', 'action_required']
+      await withTransaction(async tx => {
+        await tx.skillMergeRequest.update({
+          where: {
+            id: activeMergeRequest.id
+          },
+          data: {
+            status: 'open',
+            mergeError: mergeError.message,
+            mergeErrorCode: mergeError.code,
+            mergeStartedAt: null,
+            requestedTargetSkillVersionOid: resumedTargetVersion?.oid
           }
-        },
-        data: {
-          status: 'action_required',
-          error: mergeError.message,
-          actionRequiredAt: new Date()
-        }
+        });
+        await tx.skillForkSync.updateMany({
+          where: {
+            generatedMergeRequestOid: activeMergeRequest.oid,
+            status: {
+              in: ['pending', 'processing', 'action_required']
+            }
+          },
+          data: {
+            status: 'action_required',
+            error: mergeError.message,
+            actionRequiredAt: new Date()
+          }
+        });
+        await skillMergeRequestEventService.createEvent({
+          database: tx,
+          mergeRequestOid: activeMergeRequest.oid,
+          type: 'merge_failed',
+          errorCode: mergeError.code,
+          errorMessage: mergeError.message
+        });
       });
 
       throw mergeError;
@@ -238,6 +255,7 @@ export let recoverStaleSkillMergeRequests = async () => {
     },
     select: {
       id: true,
+      oid: true,
       targetSkill: {
         select: {
           store: {
@@ -253,33 +271,44 @@ export let recoverStaleSkillMergeRequests = async () => {
   for (let mergeRequest of staleRequests) {
     await skillMergeTargetLock.usingLock(mergeRequest.targetSkill.store.id, async () => {
       let mergeError = createSkillMergeRequestMergeError('stale_merge_recovered');
-      await db.skillMergeRequest.updateMany({
-        where: {
-          id: mergeRequest.id,
-          status: 'merging',
-          mergeStartedAt: {
-            lt: staleBefore
-          }
-        },
-        data: {
-          status: 'open',
-          mergeStartedAt: null,
-          mergeErrorCode: mergeError.code,
-          mergeError: mergeError.message
-        }
-      });
-      await db.skillForkSync.updateMany({
-        where: {
-          generatedMergeRequest: {
-            id: mergeRequest.id
+      await withTransaction(async tx => {
+        let recovered = await tx.skillMergeRequest.updateMany({
+          where: {
+            id: mergeRequest.id,
+            status: 'merging',
+            mergeStartedAt: {
+              lt: staleBefore
+            }
           },
-          status: 'processing'
-        },
-        data: {
-          status: 'action_required',
-          error: mergeError.message,
-          actionRequiredAt: new Date()
-        }
+          data: {
+            status: 'open',
+            mergeStartedAt: null,
+            mergeErrorCode: mergeError.code,
+            mergeError: mergeError.message
+          }
+        });
+        if (recovered.count !== 1) return;
+
+        await tx.skillForkSync.updateMany({
+          where: {
+            generatedMergeRequest: {
+              id: mergeRequest.id
+            },
+            status: 'processing'
+          },
+          data: {
+            status: 'action_required',
+            error: mergeError.message,
+            actionRequiredAt: new Date()
+          }
+        });
+        await skillMergeRequestEventService.createEvent({
+          database: tx,
+          mergeRequestOid: mergeRequest.oid,
+          type: 'merge_failed',
+          errorCode: mergeError.code,
+          errorMessage: mergeError.message
+        });
       });
     });
   }

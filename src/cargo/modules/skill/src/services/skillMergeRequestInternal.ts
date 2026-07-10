@@ -37,6 +37,7 @@ import {
   skillVersionSnapshotInclude,
   type Snapshot
 } from '../lib/mergeSnapshot';
+import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 
 export let skillMergeRequestInclude = {
   sourceSkill: {
@@ -357,6 +358,38 @@ class SkillMergeRequestInternalServiceImpl {
     });
 
     if (previousMergeRequest?.mergedTargetSkillVersion) {
+      let rollbackInvalidatingPreviousMerge =
+        d.direction === 'fork_to_upstream' && previousMergeRequest.mergedAt
+          ? await db.skillMergeRequest.findFirst({
+              where: {
+                targetSkillOid: d.targetSkill.oid,
+                direction: 'fork_to_upstream',
+                status: 'merged',
+                mergedAt: {
+                  lte: previousMergeRequest.mergedAt
+                },
+                rolledBackAt: {
+                  gte: previousMergeRequest.mergedAt
+                },
+                rollbackTargetSkillVersionOid: {
+                  not: null
+                }
+              },
+              include: {
+                rollbackTargetSkillVersion: true
+              },
+              orderBy: [{ rolledBackAt: 'desc' }, { oid: 'desc' }]
+            })
+          : null;
+
+      if (rollbackInvalidatingPreviousMerge?.rollbackTargetSkillVersion) {
+        return {
+          sourceBaseVersion: rollbackInvalidatingPreviousMerge.rollbackTargetSkillVersion,
+          targetBaseVersion: rollbackInvalidatingPreviousMerge.rollbackTargetSkillVersion,
+          baseStrategy: 'inferred_current' as const
+        };
+      }
+
       let sameOrientation =
         previousMergeRequest.sourceSkillOid === d.sourceSkill.oid &&
         previousMergeRequest.targetSkillOid === d.targetSkill.oid;
@@ -762,29 +795,6 @@ class SkillMergeRequestInternalServiceImpl {
             }
           });
 
-          if (existingActive.length > 0) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'An active merge request already exists for this fork'
-              })
-            );
-          }
-          let existingSync = await db.skillForkSync.findFirst({
-            where: {
-              activePairKey,
-              status: {
-                in: ['pending', 'processing', 'action_required']
-              }
-            }
-          });
-          if (existingSync && existingSync.id !== d.skillForkSyncId) {
-            throw new ServiceError(
-              badRequestError({
-                message: 'An active fork synchronization already exists for this fork'
-              })
-            );
-          }
-
           let requestedSourceVersion = await this.flushSkillForMergeSnapshot({
             skill: sourceSkill
           });
@@ -820,6 +830,68 @@ class SkillMergeRequestInternalServiceImpl {
           }
 
           return await withTransaction(async tx => {
+            if (existingActive.length > 0) {
+              let closedAt = new Date();
+              for (let existingMergeRequest of existingActive) {
+                let closed = await tx.skillMergeRequest.updateMany({
+                  where: {
+                    oid: existingMergeRequest.oid,
+                    status: {
+                      in: statusesForOpenWork
+                    }
+                  },
+                  data: {
+                    status: 'closed',
+                    activePairKey: null,
+                    closedAt,
+                    closedByTenantActorOid: actor?.oid
+                  }
+                });
+
+                if (closed.count !== 1) {
+                  throw new ServiceError(
+                    badRequestError({ message: 'Active merge request is no longer replaceable' })
+                  );
+                }
+
+                await tx.skillForkSync.updateMany({
+                  where: {
+                    generatedMergeRequestOid: existingMergeRequest.oid,
+                    status: {
+                      in: ['pending', 'processing', 'action_required']
+                    }
+                  },
+                  data: {
+                    status: 'cancelled',
+                    activePairKey: null,
+                    cancelledAt: closedAt
+                  }
+                });
+                await skillMergeRequestEventService.createEvent({
+                  database: tx,
+                  mergeRequestOid: existingMergeRequest.oid,
+                  type: 'closed',
+                  actorOid: actor?.oid
+                });
+              }
+            }
+
+            let existingSync = await tx.skillForkSync.findFirst({
+              where: {
+                activePairKey,
+                status: {
+                  in: ['pending', 'processing', 'action_required']
+                }
+              }
+            });
+            if (existingSync && existingSync.id !== d.skillForkSyncId) {
+              throw new ServiceError(
+                badRequestError({
+                  message: 'An active fork synchronization already exists for this fork'
+                })
+              );
+            }
+
             let ids = getId('skillMergeRequest');
             let mergeRequest = await tx.skillMergeRequest.create({
               data: {
@@ -845,6 +917,12 @@ class SkillMergeRequestInternalServiceImpl {
 
             await tx.skillMergeRequestItem.createMany({
               data: items.map(item => ({ ...item, skillMergeRequestOid: mergeRequest.oid }))
+            });
+            await skillMergeRequestEventService.createEvent({
+              database: tx,
+              mergeRequestOid: mergeRequest.oid,
+              type: 'created',
+              actorOid: actor?.oid
             });
             if (d.skillForkSyncId) {
               await tx.skillForkSync.update({

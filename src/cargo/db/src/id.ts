@@ -28,6 +28,7 @@ export let ID = createIdGenerator({
   skillMergeRequest: idType.sorted('skmrq_'),
   skillMergeRequestItem: idType.sorted('skmri_'),
   skillMergeRequestComment: idType.sorted('skmrc_'),
+  skillMergeRequestEvent: idType.sorted('skmre_'),
   skillForkSync: idType.sorted('skfs_'),
   skillDestination: idType.sorted('skd_'),
   skillDestinationSync: idType.sorted('skds_'),

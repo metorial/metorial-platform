@@ -99,6 +99,12 @@ export type CargoSkillMergeRequestItem = Awaited<
 export type CargoSkillMergeRequestComment = Awaited<
   ReturnType<typeof cargo.skillMergeRequest.comment.list>
 >['items'][number];
+export type CargoSkillMergeRequestEvent = Awaited<
+  ReturnType<typeof cargo.skillMergeRequest.event.get>
+>;
+export type CargoSkillMergeRequestEventList = Awaited<
+  ReturnType<typeof cargo.skillMergeRequest.event.list>
+>;
 export type CargoSkillVersion = Awaited<ReturnType<typeof cargo.skillVersion.get>>;
 export type CargoSkillVersionList = Awaited<ReturnType<typeof cargo.skillVersion.list>>;
 export type CargoSkillVersionSnapshot = Awaited<

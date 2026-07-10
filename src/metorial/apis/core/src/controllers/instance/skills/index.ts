@@ -7,6 +7,8 @@ export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillMarketplaceRepository';
 export * from './skillMergeRequest';
+export * from './skillMergeRequestComment';
+export * from './skillMergeRequestEvent';
 export * from './skillParticipant';
 export * from './skillPlugin';
 export * from './skillPluginRepository';

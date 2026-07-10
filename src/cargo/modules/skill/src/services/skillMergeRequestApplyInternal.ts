@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Store } from '@metorial-cargo/db';
-import { db } from '@metorial-cargo/db';
+import { db, withTransaction } from '@metorial-cargo/db';
 import {
   documentAuthoritativeWriteService,
   documentService
@@ -17,6 +17,7 @@ import {
   type SkillMergeRequestItemRecord,
   type SkillMergeRequestRecord
 } from './skillMergeRequestInternal';
+import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 
 class SkillMergeRequestApplyInternalServiceImpl {
   private async getTargetItemByPath(d: { store: Pick<Store, 'oid'>; path: string }) {
@@ -494,16 +495,25 @@ class SkillMergeRequestApplyInternalServiceImpl {
       skill: d.mergeRequest.targetSkill
     });
 
-    return await db.skillMergeRequest.update({
-      where: {
-        id: d.mergeRequest.id
-      },
-      data: {
-        rollbackTargetSkillVersionOid: rollbackVersion.oid,
-        rolledBackByTenantActorOid: access.actor?.oid,
-        rolledBackAt: new Date()
-      },
-      include: skillMergeRequestInclude
+    return await withTransaction(async tx => {
+      let rolledBack = await tx.skillMergeRequest.update({
+        where: {
+          id: d.mergeRequest.id
+        },
+        data: {
+          rollbackTargetSkillVersionOid: rollbackVersion.oid,
+          rolledBackByTenantActorOid: access.actor?.oid,
+          rolledBackAt: new Date()
+        },
+        include: skillMergeRequestInclude
+      });
+      await skillMergeRequestEventService.createEvent({
+        database: tx,
+        mergeRequestOid: d.mergeRequest.oid,
+        type: 'rolled_back',
+        actorOid: access.actor?.oid
+      });
+      return rolledBack;
     });
   }
 

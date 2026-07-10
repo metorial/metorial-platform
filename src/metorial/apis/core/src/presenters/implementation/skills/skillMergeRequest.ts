@@ -3,9 +3,14 @@ import { Presenter } from '@metorial/presenter';
 import {
   skillMergePlanType,
   skillMergeRequestCommentType,
+  skillMergeRequestEventType,
   skillMergeRequestItemType,
   skillMergeRequestType
 } from '../../types';
+import {
+  documentParticipantActorSchema,
+  presentDocumentParticipantActor
+} from '../files/documentParticipant';
 
 let statusSchema = v.enumOf(['open', 'closed', 'merging', 'merged']);
 let directionSchema = v.enumOf(['fork_to_upstream', 'upstream_to_fork']);
@@ -32,6 +37,16 @@ let itemStatusSchema = v.enumOf(['unresolved', 'resolved', 'skipped', 'applied']
 let resolutionTypeSchema = v.nullable(
   v.enumOf(['accept_source', 'keep_target', 'remove', 'edit_document', 'replace_file', 'skip'])
 );
+let eventTypeSchema = v.enumOf([
+  'created',
+  'commented',
+  'all_conflicts_resolved',
+  'merge_started',
+  'merge_completed',
+  'merge_failed',
+  'closed',
+  'rolled_back'
+]);
 let snapshotItemSchema = v.object({
   kind: itemKindSchema,
   path: v.string(),
@@ -67,7 +82,7 @@ let presentSnapshotItem = (item: {
 });
 
 export let v1SkillMergeRequestPresenter = Presenter.create(skillMergeRequestType)
-  .presenter(async ({ skillMergeRequest }) => ({
+  .presenter(async ({ skillMergeRequest }, opts) => ({
     object: 'skill.merge_request' as const,
     id: skillMergeRequest.id,
     status: skillMergeRequest.status,
@@ -85,7 +100,9 @@ export let v1SkillMergeRequestPresenter = Presenter.create(skillMergeRequestType
     pre_merge_target_skill_version_id: skillMergeRequest.preMergeTargetSkillVersionId ?? null,
     merged_target_skill_version_id: skillMergeRequest.mergedTargetSkillVersionId ?? null,
     rollback_target_skill_version_id: skillMergeRequest.rollbackTargetSkillVersionId ?? null,
-    created_by_actor_id: skillMergeRequest.createdByActorId ?? null,
+    created_by: skillMergeRequest.createdByActor
+      ? await presentDocumentParticipantActor(skillMergeRequest.createdByActor, opts)
+      : null,
     item_count: skillMergeRequest.itemCount,
     comment_count: skillMergeRequest.commentCount,
     merge_started_at: skillMergeRequest.mergeStartedAt ?? null,
@@ -114,7 +131,7 @@ export let v1SkillMergeRequestPresenter = Presenter.create(skillMergeRequestType
       pre_merge_target_skill_version_id: v.nullable(v.string()),
       merged_target_skill_version_id: v.nullable(v.string()),
       rollback_target_skill_version_id: v.nullable(v.string()),
-      created_by_actor_id: v.nullable(v.string()),
+      created_by: v.nullable(documentParticipantActorSchema),
       item_count: v.number(),
       comment_count: v.number(),
       merge_started_at: v.nullable(v.date()),
@@ -128,7 +145,7 @@ export let v1SkillMergeRequestPresenter = Presenter.create(skillMergeRequestType
   .build();
 
 export let v1SkillMergeRequestItemPresenter = Presenter.create(skillMergeRequestItemType)
-  .presenter(async ({ skillMergeRequestItem }) => ({
+  .presenter(async ({ skillMergeRequestItem }, opts) => ({
     object: 'skill.merge_request.item' as const,
     id: skillMergeRequestItem.id,
     skill_merge_request_id: skillMergeRequestItem.skillMergeRequestId,
@@ -139,7 +156,9 @@ export let v1SkillMergeRequestItemPresenter = Presenter.create(skillMergeRequest
     resolution_type: skillMergeRequestItem.resolutionType ?? null,
     conflict_reason: skillMergeRequestItem.conflictReason ?? null,
     resolution: skillMergeRequestItem.resolution ?? null,
-    resolved_by_actor_id: skillMergeRequestItem.resolvedByActorId ?? null,
+    resolved_by: skillMergeRequestItem.resolvedByActor
+      ? await presentDocumentParticipantActor(skillMergeRequestItem.resolvedByActor, opts)
+      : null,
     resolved_at: skillMergeRequestItem.resolvedAt ?? null,
     applied_at: skillMergeRequestItem.appliedAt ?? null,
     created_at: skillMergeRequestItem.createdAt,
@@ -157,7 +176,7 @@ export let v1SkillMergeRequestItemPresenter = Presenter.create(skillMergeRequest
       resolution_type: resolutionTypeSchema,
       conflict_reason: v.nullable(v.string()),
       resolution: v.nullable(v.record(v.any())),
-      resolved_by_actor_id: v.nullable(v.string()),
+      resolved_by: v.nullable(documentParticipantActorSchema),
       resolved_at: v.nullable(v.date()),
       applied_at: v.nullable(v.date()),
       created_at: v.date(),
@@ -167,11 +186,11 @@ export let v1SkillMergeRequestItemPresenter = Presenter.create(skillMergeRequest
   .build();
 
 export let v1SkillMergeRequestCommentPresenter = Presenter.create(skillMergeRequestCommentType)
-  .presenter(async ({ skillMergeRequestComment }) => ({
+  .presenter(async ({ skillMergeRequestComment }, opts) => ({
     object: 'skill.merge_request.comment' as const,
     id: skillMergeRequestComment.id,
     skill_merge_request_item_id: skillMergeRequestComment.skillMergeRequestItemId ?? null,
-    actor_id: skillMergeRequestComment.actorId,
+    actor: await presentDocumentParticipantActor(skillMergeRequestComment.actor, opts),
     body: skillMergeRequestComment.body,
     path: skillMergeRequestComment.path ?? null,
     in_reply_to_comment_id: skillMergeRequestComment.inReplyToCommentId ?? null,
@@ -184,13 +203,44 @@ export let v1SkillMergeRequestCommentPresenter = Presenter.create(skillMergeRequ
       object: v.literal('skill.merge_request.comment'),
       id: v.string(),
       skill_merge_request_item_id: v.nullable(v.string()),
-      actor_id: v.string(),
+      actor: documentParticipantActorSchema,
       body: v.string(),
       path: v.nullable(v.string()),
       in_reply_to_comment_id: v.nullable(v.string()),
       deleted_at: v.nullable(v.date()),
       created_at: v.date(),
       updated_at: v.date()
+    })
+  )
+  .build();
+
+export let v1SkillMergeRequestEventPresenter = Presenter.create(skillMergeRequestEventType)
+  .presenter(async ({ skillMergeRequestEvent }, opts) => ({
+    object: 'skill.merge_request.event' as const,
+    id: skillMergeRequestEvent.id,
+    type: skillMergeRequestEvent.type,
+    actor: skillMergeRequestEvent.actor
+      ? await presentDocumentParticipantActor(skillMergeRequestEvent.actor, opts)
+      : null,
+    comment: skillMergeRequestEvent.comment
+      ? await v1SkillMergeRequestCommentPresenter
+          .present({ skillMergeRequestComment: skillMergeRequestEvent.comment }, opts)
+          .run()
+      : null,
+    error_code: skillMergeRequestEvent.errorCode ?? null,
+    error_message: skillMergeRequestEvent.errorMessage ?? null,
+    created_at: skillMergeRequestEvent.createdAt
+  }))
+  .schema(
+    v.object({
+      object: v.literal('skill.merge_request.event'),
+      id: v.string(),
+      type: eventTypeSchema,
+      actor: v.nullable(documentParticipantActorSchema),
+      comment: v.nullable(v1SkillMergeRequestCommentPresenter.schema),
+      error_code: errorCodeSchema,
+      error_message: v.nullable(v.string()),
+      created_at: v.date()
     })
   )
   .build();

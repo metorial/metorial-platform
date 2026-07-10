@@ -6,8 +6,9 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, getId } from '@metorial-cargo/db';
+import { db, getId, withTransaction } from '@metorial-cargo/db';
 import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
   skillMergeRequestCommentInclude,
   skillMergeRequestInternalService,
@@ -132,18 +133,28 @@ class SkillMergeRequestCommentServiceImpl {
 
     let ids = getId('skillMergeRequestComment');
 
-    return await db.skillMergeRequestComment.create({
-      data: {
-        oid: ids.oid,
-        id: ids.id,
-        skillMergeRequestOid: d.mergeRequest.oid,
-        skillMergeRequestItemOid: item?.oid,
-        inReplyToCommentOid: reply?.oid,
-        tenantActorOid: actor.oid,
-        body: d.body,
-        path
-      },
-      include: skillMergeRequestCommentInclude
+    return await withTransaction(async tx => {
+      let comment = await tx.skillMergeRequestComment.create({
+        data: {
+          oid: ids.oid,
+          id: ids.id,
+          skillMergeRequestOid: d.mergeRequest.oid,
+          skillMergeRequestItemOid: item?.oid,
+          inReplyToCommentOid: reply?.oid,
+          tenantActorOid: actor.oid,
+          body: d.body,
+          path
+        },
+        include: skillMergeRequestCommentInclude
+      });
+      await skillMergeRequestEventService.createEvent({
+        database: tx,
+        mergeRequestOid: d.mergeRequest.oid,
+        type: 'commented',
+        actorOid: actor.oid,
+        commentOid: comment.oid
+      });
+      return comment;
     });
   }
 
@@ -153,6 +164,7 @@ class SkillMergeRequestCommentServiceImpl {
       comment: SkillMergeRequestCommentRecord;
       actorId: string;
       body: string;
+      canManageComments?: boolean;
     }
   ) {
     if (!d.body.trim()) {
@@ -163,7 +175,10 @@ class SkillMergeRequestCommentServiceImpl {
       tenant: d.tenant,
       actorId: d.actorId
     });
-    if (d.comment.tenantActorOid !== actor.oid) {
+    let canManageComment =
+      d.comment.tenantActorOid === actor.oid ||
+      (d.canManageComments === true && actor.organizationActorId != null);
+    if (!canManageComment) {
       throw new ServiceError(forbiddenError({ message: 'Cannot edit another actor comment' }));
     }
 
@@ -183,13 +198,17 @@ class SkillMergeRequestCommentServiceImpl {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
       actorId: string;
+      canManageComments?: boolean;
     }
   ) {
     let actor = await actorService.getActorById({
       tenant: d.tenant,
       actorId: d.actorId
     });
-    if (d.comment.tenantActorOid !== actor.oid) {
+    let canManageComment =
+      d.comment.tenantActorOid === actor.oid ||
+      (d.canManageComments === true && actor.organizationActorId != null);
+    if (!canManageComment) {
       throw new ServiceError(
         forbiddenError({ message: 'Cannot delete another actor comment' })
       );

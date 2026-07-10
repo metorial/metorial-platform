@@ -10,6 +10,7 @@ export * from './skillParticipant';
 export * from './skillForkSync';
 export * from './skillMergeRequest';
 export * from './skillMergeRequestComment';
+export * from './skillMergeRequestEvent';
 export * from './skillPlugin';
 export * from './skillPluginRepository';
 export * from './skillPluginSkill';

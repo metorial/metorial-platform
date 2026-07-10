@@ -201,6 +201,7 @@ import {
   v1SkillMarketplaceRepositoryPresenter,
   v1SkillMergePlanPresenter,
   v1SkillMergeRequestCommentPresenter,
+  v1SkillMergeRequestEventPresenter,
   v1SkillMergeRequestItemPresenter,
   v1SkillMergeRequestPresenter,
   v1SkillParticipantPresenter,
@@ -406,6 +407,7 @@ import {
   skillMarketplaceType,
   skillMergePlanType,
   skillMergeRequestCommentType,
+  skillMergeRequestEventType,
   skillMergeRequestItemType,
   skillMergeRequestType,
   skillParticipantType,
@@ -774,6 +776,11 @@ export let skillMergeRequestItemPresenter = declarePresenter(skillMergeRequestIt
 export let skillMergeRequestCommentPresenter = declarePresenter(skillMergeRequestCommentType, {
   mt_2025_01_01_dashboard: v1SkillMergeRequestCommentPresenter,
   mt_2026_01_01_magnetar: v1SkillMergeRequestCommentPresenter
+});
+
+export let skillMergeRequestEventPresenter = declarePresenter(skillMergeRequestEventType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestEventPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestEventPresenter
 });
 
 export let skillMergePlanPresenter = declarePresenter(skillMergePlanType, {
