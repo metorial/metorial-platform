@@ -41,8 +41,16 @@ export let SkillPage = () => {
               organizationId: organization.data?.id,
               skills: [{ id: skill.data.id, name: skill.data.name }]
             }}
-            getDocumentPath={documentId =>
-              Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
+            getDocumentPath={(_, itemId) =>
+              Paths.instance(
+                organization.data,
+                project.data,
+                instance.data,
+                'skill',
+                skill.data.id,
+                'item',
+                itemId
+              )
             }
           />
 

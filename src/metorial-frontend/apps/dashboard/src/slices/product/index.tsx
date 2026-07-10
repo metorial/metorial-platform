@@ -269,6 +269,12 @@ let SkillParticipantsPage = dynamicPage(() =>
 let SkillVersionsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
 );
+let SkillMergeRequestsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/merge-requests').then(c => c.SkillMergeRequestsPage)
+);
+let SkillMergeRequestPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/merge-request').then(c => c.SkillMergeRequestPage)
+);
 let SkillSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
 );
@@ -714,6 +720,9 @@ let AssistantContextPage = dynamicPage(() =>
   import('./pages/assistant/context').then(c => c.AssistantContextPage)
 );
 let DocumentPage = dynamicPage(() => import('./pages/doc').then(c => c.DocumentPage));
+let SkillItemDocumentPage = dynamicPage(() =>
+  import('./pages/skill-item-document').then(c => c.SkillItemDocumentPage)
+);
 let InfrastructureOverviewPage = dynamicPage(() =>
   import('./pages/(infrastructure)/overview').then(c => c.InfrastructureOverviewPage)
 );
@@ -1070,6 +1079,10 @@ export let productDocumentSlice = createSlice([
     element: <ProductWrapper />,
 
     children: [
+      {
+        path: 'skill/:skillId/item/:itemId',
+        element: <SkillItemDocumentPage />
+      },
       {
         path: 'doc/:id',
         element: <DocumentPage />
@@ -1601,6 +1614,14 @@ export let productHomeSlice = createSlice([
               {
                 path: 'versions',
                 element: <SkillVersionsPage />
+              },
+              {
+                path: 'merge-requests',
+                element: <SkillMergeRequestsPage />
+              },
+              {
+                path: 'merge-requests/:mergeRequestId',
+                element: <SkillMergeRequestPage />
               },
               {
                 path: 'settings',
