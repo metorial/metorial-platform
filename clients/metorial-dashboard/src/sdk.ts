@@ -118,12 +118,17 @@ import {
   MetorialDashboardInstanceSkillsConfigurationsEndpoint,
   MetorialDashboardInstanceSkillsEndpoint,
   MetorialDashboardInstanceSkillsExportsEndpoint,
+  MetorialDashboardInstanceSkillsForkSyncsEndpoint,
   MetorialDashboardInstanceSkillsGroupsEndpoint,
   MetorialDashboardInstanceSkillsGroupsItemsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsPlanEndpoint,
   MetorialDashboardInstanceSkillsParticipantsEndpoint,
   MetorialDashboardInstanceSkillsPluginsEndpoint,
   MetorialDashboardInstanceSkillsPluginsRepositoriesEndpoint,
@@ -515,7 +520,16 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   skills: Object.assign(new MetorialDashboardInstanceSkillsEndpoint(manager), {
     agents: new MetorialDashboardInstanceSkillsAgentsEndpoint(manager),
     configurations: new MetorialDashboardInstanceSkillsConfigurationsEndpoint(manager),
+    forkSyncs: new MetorialDashboardInstanceSkillsForkSyncsEndpoint(manager),
     items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
+    mergeRequests: Object.assign(
+      new MetorialDashboardInstanceSkillsMergeRequestsEndpoint(manager),
+      {
+        plan: new MetorialDashboardInstanceSkillsMergeRequestsPlanEndpoint(manager),
+        items: new MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint(manager),
+        comments: new MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint(manager)
+      }
+    ),
     participants: new MetorialDashboardInstanceSkillsParticipantsEndpoint(manager),
     versions: Object.assign(new MetorialDashboardInstanceSkillsVersionsEndpoint(manager), {
       snapshot: new MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint(manager)
