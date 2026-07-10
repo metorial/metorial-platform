@@ -10,13 +10,13 @@ import {
   originCodeBucketEnv,
   originServiceEnv,
   relayServiceEnv,
-  signalServiceEnv,
-  synthesisServiceEnv,
   shuttleServiceEnv,
+  signalServiceEnv,
   slatesHubEnv,
   slatesRegistryEnv,
   subspaceDbEnv,
   subspaceDevEnv,
+  synthesisServiceEnv,
   voyagerServiceEnv
 } from './services';
 import type { Destination } from './type';
@@ -32,6 +32,12 @@ export let destinations: Destination[] = [
     type: 'oss',
     env: backendEnv,
     path: 'src/metorial/services/api'
+  },
+
+  {
+    type: 'oss',
+    env: backendEnv,
+    path: 'src/metorial/db'
   },
 
   // {
