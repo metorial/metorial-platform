@@ -20,6 +20,7 @@ let currentStoreVersionItemInclude = {
   document: {
     select: {
       id: true,
+      title: true,
       currentVersion: {
         select: {
           oid: true,
@@ -351,6 +352,19 @@ class StoreVersionServiceImpl {
         };
       }
 
+      await db.document.updateMany({
+        where: {
+          storeItems: {
+            some: {
+              storeOid: store.oid
+            }
+          }
+        },
+        data: {
+          draftVersionExpiresAt: snapshotStartedAt
+        }
+      });
+
       let currentItems = await db.storeItem.findMany({
         where: {
           storeOid: store.oid
@@ -408,6 +422,7 @@ class StoreVersionServiceImpl {
               path: item.path,
               fileOid: item.fileOid ?? null,
               documentOid: item.documentOid,
+              documentTitle: item.document?.title ?? null,
               documentVersionOid: item.document?.currentVersion?.oid ?? null
             };
           })
@@ -445,6 +460,141 @@ class StoreVersionServiceImpl {
       return {
         version: toResolvedStoreVersion(createdVersion!),
         didClearDirtyAt,
+        alreadyExisted: false
+      };
+    });
+  }
+
+  async createStoreVersionSnapshotNow(d: { storeId: string }) {
+    let snapshotStartedAt = new Date();
+
+    return await withTransaction(async db => {
+      let store = await db.store.findUnique({
+        where: {
+          id: d.storeId
+        },
+        select: {
+          oid: true,
+          id: true,
+          name: true,
+          itemCount: true,
+          dirtyAt: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      if (!store) throw new ServiceError(notFoundError('store', d.storeId));
+
+      // A store version is an immutable snapshot boundary. Document writes normally coalesce
+      // into an active version for a few hours, so seal those active versions before recording
+      // their OIDs. The next write will then create a new document version instead of mutating
+      // content referenced by this store version.
+      await db.document.updateMany({
+        where: {
+          storeItems: {
+            some: {
+              storeOid: store.oid
+            }
+          }
+        },
+        data: {
+          draftVersionExpiresAt: snapshotStartedAt
+        }
+      });
+
+      let currentItems = await db.storeItem.findMany({
+        where: {
+          storeOid: store.oid
+        },
+        include: currentStoreVersionItemInclude,
+        orderBy: [
+          {
+            path: 'asc'
+          },
+          {
+            id: 'asc'
+          }
+        ]
+      });
+
+      let latestVersion = await db.storeVersion.findFirst({
+        where: {
+          storeOid: store.oid
+        },
+        orderBy: {
+          versionNumber: 'desc'
+        },
+        select: {
+          versionNumber: true
+        }
+      });
+
+      let versionIds = getId('storeVersion');
+      let sourceDirtyAt = snapshotStartedAt;
+      let version = await db.storeVersion.create({
+        data: {
+          oid: versionIds.oid,
+          id: versionIds.id,
+          storeOid: store.oid,
+          versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
+          sourceDirtyAt
+        }
+      });
+
+      await this.ensureSkillVersionForStoreVersion(db, {
+        storeOid: store.oid,
+        storeVersionOid: version.oid,
+        versionNumber: version.versionNumber
+      });
+
+      if (currentItems.length > 0) {
+        await db.storeVersionItem.createMany({
+          data: currentItems.map(item => {
+            let itemIds = getId('storeVersionItem');
+
+            return {
+              oid: itemIds.oid,
+              id: itemIds.id,
+              storeVersionOid: version.oid,
+              kind: item.kind,
+              path: item.path,
+              fileOid: item.fileOid ?? null,
+              documentOid: item.documentOid,
+              documentTitle: item.document?.title ?? null,
+              documentVersionOid: item.document?.currentVersion?.oid ?? null
+            };
+          })
+        });
+      }
+
+      let shouldKeepDirty = await this.hasStoreLiveChangesSince({
+        storeOid: store.oid,
+        since: snapshotStartedAt
+      });
+
+      if (store.dirtyAt && !shouldKeepDirty) {
+        await db.store.updateMany({
+          where: {
+            oid: store.oid,
+            dirtyAt: store.dirtyAt
+          },
+          data: {
+            dirtyAt: null
+          }
+        });
+      }
+
+      let createdVersion = await db.storeVersion.findUnique({
+        where: {
+          id: version.id
+        },
+        include: storeVersionInclude
+      });
+
+      return {
+        version: toResolvedStoreVersion(createdVersion!),
+        didClearDirtyAt: !!store.dirtyAt && !shouldKeepDirty,
         alreadyExisted: false
       };
     });

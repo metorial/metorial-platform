@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/slugify": "workspace:2.0.0",
