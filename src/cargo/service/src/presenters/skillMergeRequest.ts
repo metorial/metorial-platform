@@ -1,9 +1,11 @@
 import type {
   SkillMergePlan,
   SkillMergeRequestCommentRecord,
+  SkillMergeRequestEventRecord,
   SkillMergeRequestItemRecord,
   SkillMergeRequestRecord
 } from '@metorial-cargo/module-skill';
+import { actorPresenter } from './actor';
 
 let mergeRequestSkillPresenter = (skill: SkillMergeRequestRecord['sourceSkill']) => ({
   object: 'cargo#skill',
@@ -63,11 +65,21 @@ export let skillMergeRequestPresenter = (mergeRequest: SkillMergeRequestRecord) 
   rollbackTargetSkillVersion: mergeRequestVersionPresenter(
     mergeRequest.rollbackTargetSkillVersion
   ),
-  createdByActorId: mergeRequest.createdByTenantActor?.id,
-  mergeStartedByActorId: mergeRequest.mergeStartedByTenantActor?.id,
-  mergedByActorId: mergeRequest.mergedByTenantActor?.id,
-  closedByActorId: mergeRequest.closedByTenantActor?.id,
-  rolledBackByActorId: mergeRequest.rolledBackByTenantActor?.id,
+  createdByActor: mergeRequest.createdByTenantActor
+    ? actorPresenter(mergeRequest.createdByTenantActor)
+    : undefined,
+  mergeStartedByActor: mergeRequest.mergeStartedByTenantActor
+    ? actorPresenter(mergeRequest.mergeStartedByTenantActor)
+    : undefined,
+  mergedByActor: mergeRequest.mergedByTenantActor
+    ? actorPresenter(mergeRequest.mergedByTenantActor)
+    : undefined,
+  closedByActor: mergeRequest.closedByTenantActor
+    ? actorPresenter(mergeRequest.closedByTenantActor)
+    : undefined,
+  rolledBackByActor: mergeRequest.rolledBackByTenantActor
+    ? actorPresenter(mergeRequest.rolledBackByTenantActor)
+    : undefined,
   itemCount: mergeRequest._count.items,
   commentCount: mergeRequest._count.comments,
   mergeStartedAt: mergeRequest.mergeStartedAt,
@@ -98,7 +110,9 @@ export let skillMergeRequestItemPresenter = (item: SkillMergeRequestItemRecord) 
   baseDocumentVersionId: item.baseDocumentVersion?.id,
   sourceDocumentVersionId: item.sourceDocumentVersion?.id,
   targetDocumentVersionId: item.targetDocumentVersion?.id,
-  resolvedByActorId: item.resolvedByTenantActor?.id,
+  resolvedByActor: item.resolvedByTenantActor
+    ? actorPresenter(item.resolvedByTenantActor)
+    : undefined,
   resolvedAt: item.resolvedAt,
   appliedAt: item.appliedAt,
   createdAt: item.createdAt,
@@ -109,13 +123,24 @@ export let skillMergeRequestCommentPresenter = (comment: SkillMergeRequestCommen
   object: 'cargo#skillMergeRequestComment',
   id: comment.id,
   skillMergeRequestItemId: comment.skillMergeRequestItem?.id,
-  actorId: comment.tenantActor.id,
+  actor: actorPresenter(comment.tenantActor),
   body: comment.body,
   path: comment.path,
   inReplyToCommentId: comment.inReplyToComment?.id,
   deletedAt: comment.deletedAt,
   createdAt: comment.createdAt,
   updatedAt: comment.updatedAt
+});
+
+export let skillMergeRequestEventPresenter = (event: SkillMergeRequestEventRecord) => ({
+  object: 'cargo#skillMergeRequestEvent',
+  id: event.id,
+  type: event.type,
+  actor: event.tenantActor ? actorPresenter(event.tenantActor) : undefined,
+  comment: event.comment ? skillMergeRequestCommentPresenter(event.comment) : undefined,
+  errorCode: event.errorCode,
+  errorMessage: event.errorMessage,
+  createdAt: event.createdAt
 });
 
 export let skillMergePlanPresenter = (plan: SkillMergePlan) => ({

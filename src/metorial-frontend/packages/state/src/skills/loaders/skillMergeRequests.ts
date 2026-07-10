@@ -4,6 +4,8 @@ import type {
   DashboardInstanceSkillsMergeRequestsCommentsListQuery,
   DashboardInstanceSkillsMergeRequestsCommentsUpdateBody,
   DashboardInstanceSkillsMergeRequestsCreateBody,
+  DashboardInstanceSkillsMergeRequestsEventsGetOutput,
+  DashboardInstanceSkillsMergeRequestsEventsListQuery,
   DashboardInstanceSkillsMergeRequestsGetOutput,
   DashboardInstanceSkillsMergeRequestsItemsBulkResolveBody,
   DashboardInstanceSkillsMergeRequestsItemsResolveBody,
@@ -17,6 +19,7 @@ import { withAuth } from '../../user';
 export type SkillMergeRequest = DashboardInstanceSkillsMergeRequestsGetOutput;
 export type SkillMergeRequestPlan = DashboardInstanceSkillsMergeRequestsPlanGetOutput;
 export type SkillMergeRequestComment = DashboardInstanceSkillsMergeRequestsCommentsGetOutput;
+export type SkillMergeRequestEvent = DashboardInstanceSkillsMergeRequestsEventsGetOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
   typeof value === 'string' ? [value] : value;
@@ -132,9 +135,73 @@ export let useBulkResolveSkillMergeRequestItems =
       )
   );
 
+export let skillMergeRequestEventsLoader = createLoader({
+  name: 'skillMergeRequestEvents',
+  parents: [skillMergeRequestLoader, skillMergeRequestPlanLoader],
+  fetch: (
+    i: {
+      instanceId: string;
+      skillMergeRequestId: string;
+    } & DashboardInstanceSkillsMergeRequestsEventsListQuery
+  ) =>
+    withAuth(sdk =>
+      sdk.skills.mergeRequests.events.list(i.instanceId, i.skillMergeRequestId, i)
+    ),
+  mutators: {}
+});
+
+export let useSkillMergeRequestEvents = (
+  instanceId: string | null | undefined,
+  skillMergeRequestId: string | null | undefined,
+  query?: DashboardInstanceSkillsMergeRequestsEventsListQuery | null
+) =>
+  usePaginator(
+    pagination =>
+      skillMergeRequestEventsLoader.use(
+        instanceId && skillMergeRequestId && query !== null
+          ? {
+              instanceId,
+              skillMergeRequestId,
+              ...pagination,
+              ...(query ?? {})
+            }
+          : null
+      ),
+    instanceId && skillMergeRequestId
+      ? `${instanceId}:${skillMergeRequestId}:skillMergeRequestEvents:${JSON.stringify(
+          query ?? {}
+        )}`
+      : null
+  );
+
+export let skillMergeRequestEventLoader = createLoader({
+  name: 'skillMergeRequestEvent',
+  parents: [skillMergeRequestEventsLoader],
+  fetch: (i: { instanceId: string; skillMergeRequestId: string; eventId: string }) =>
+    withAuth(sdk =>
+      sdk.skills.mergeRequests.events.get(i.instanceId, i.skillMergeRequestId, i.eventId)
+    ),
+  mutators: {}
+});
+
+export let useSkillMergeRequestEvent = (
+  instanceId: string | null | undefined,
+  skillMergeRequestId: string | null | undefined,
+  eventId: string | null | undefined
+) =>
+  skillMergeRequestEventLoader.use(
+    instanceId && skillMergeRequestId && eventId
+      ? { instanceId, skillMergeRequestId, eventId }
+      : null
+  );
+
 export let skillMergeRequestCommentsLoader = createLoader({
   name: 'skillMergeRequestComments',
-  parents: [skillMergeRequestLoader, skillMergeRequestPlanLoader],
+  parents: [
+    skillMergeRequestLoader,
+    skillMergeRequestPlanLoader,
+    skillMergeRequestEventsLoader
+  ],
   fetch: (
     i: {
       instanceId: string;

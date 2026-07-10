@@ -2,11 +2,13 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   skillMergeRequestCommentService,
+  skillMergeRequestEventService,
   skillMergeRequestService
 } from '@metorial-cargo/module-skill';
 import {
   skillMergePlanPresenter,
   skillMergeRequestCommentPresenter,
+  skillMergeRequestEventPresenter,
   skillMergeRequestItemPresenter,
   skillMergeRequestPresenter
 } from '../presenters';
@@ -22,6 +24,16 @@ let mergeRequestResolutionTypeSchema = v.enumOf([
   'edit_document',
   'replace_file',
   'skip'
+]);
+let mergeRequestEventTypeSchema = v.enumOf([
+  'created',
+  'commented',
+  'all_conflicts_resolved',
+  'merge_started',
+  'merge_completed',
+  'merge_failed',
+  'closed',
+  'rolled_back'
 ]);
 let resolutionSchema = v.optional(
   v.nullable(
@@ -136,7 +148,8 @@ let commentController = app.controller({
         skillMergeRequestId: v.string(),
         commentId: v.string(),
         actorId: v.string(),
-        body: v.string()
+        body: v.string(),
+        canManageComments: v.optional(v.boolean())
       })
     )
     .do(async ctx =>
@@ -147,7 +160,8 @@ let commentController = app.controller({
           mergeRequest: ctx.skillMergeRequest,
           comment: ctx.comment,
           actorId: ctx.input.actorId,
-          body: ctx.input.body
+          body: ctx.input.body,
+          canManageComments: ctx.input.canManageComments
         })
       )
     ),
@@ -160,7 +174,8 @@ let commentController = app.controller({
         environmentId: v.string(),
         skillMergeRequestId: v.string(),
         commentId: v.string(),
-        actorId: v.string()
+        actorId: v.string(),
+        canManageComments: v.optional(v.boolean())
       })
     )
     .do(async ctx =>
@@ -170,6 +185,60 @@ let commentController = app.controller({
           environment: ctx.environment,
           mergeRequest: ctx.skillMergeRequest,
           comment: ctx.comment,
+          actorId: ctx.input.actorId,
+          canManageComments: ctx.input.canManageComments
+        })
+      )
+    )
+});
+
+let eventController = app.controller({
+  list: skillMergeRequestApp
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          tenantId: v.string(),
+          environmentId: v.string(),
+          skillMergeRequestId: v.string(),
+          actorId: v.optional(v.string()),
+          types: v.optional(v.array(mergeRequestEventTypeSchema)),
+          createdAt: dateFilterSchema
+        })
+      )
+    )
+    .do(async ctx => {
+      let paginator = await skillMergeRequestEventService.listEvents({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        mergeRequest: ctx.skillMergeRequest,
+        actorId: ctx.input.actorId,
+        types: ctx.input.types,
+        createdAt: ctx.input.createdAt
+      });
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, skillMergeRequestEventPresenter);
+    }),
+
+  get: skillMergeRequestApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillMergeRequestId: v.string(),
+        eventId: v.string(),
+        actorId: v.optional(v.string())
+      })
+    )
+    .do(async ctx =>
+      skillMergeRequestEventPresenter(
+        await skillMergeRequestEventService.getEventById({
+          tenant: ctx.tenant,
+          environment: ctx.environment,
+          mergeRequest: ctx.skillMergeRequest,
+          eventId: ctx.input.eventId,
           actorId: ctx.input.actorId
         })
       )
@@ -409,5 +478,6 @@ export let skillMergeRequestController = app.controller({
       )
     ),
 
-  comment: commentController
+  comment: commentController,
+  event: eventController
 });

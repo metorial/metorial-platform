@@ -173,6 +173,17 @@ enum SkillMergeRequestErrorCode {
   stale_merge_recovered
 }
 
+enum SkillMergeRequestEventType {
+  created
+  commented
+  all_conflicts_resolved
+  merge_started
+  merge_completed
+  merge_failed
+  closed
+  rolled_back
+}
+
 enum SkillMergeRequestItemStatus {
   unresolved
   resolved
@@ -274,6 +285,7 @@ model SkillMergeRequest {
 
   items             SkillMergeRequestItem[]
   comments          SkillMergeRequestComment[]
+  events            SkillMergeRequestEvent[]
   generatedForkSync SkillForkSync?             @relation("SkillForkSyncMergeRequest")
 
   @@index([tenantOid, environmentOid, status, createdAt])
@@ -425,11 +437,36 @@ model SkillMergeRequestComment {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
+  event SkillMergeRequestEvent?
+
   @@index([skillMergeRequestOid, createdAt])
   @@index([skillMergeRequestItemOid, createdAt])
   @@index([tenantActorOid, createdAt])
   @@index([inReplyToCommentOid])
   @@index([deletedAt])
+}
+
+model SkillMergeRequestEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type         SkillMergeRequestEventType
+  errorCode    SkillMergeRequestErrorCode?
+  errorMessage String?
+
+  skillMergeRequestOid BigInt
+  skillMergeRequest    SkillMergeRequest @relation(fields: [skillMergeRequestOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt?
+  tenantActor    TenantActor? @relation(fields: [tenantActorOid], references: [oid], onDelete: SetNull)
+
+  commentOid BigInt?                   @unique
+  comment    SkillMergeRequestComment? @relation(fields: [commentOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([skillMergeRequestOid, createdAt, oid])
+  @@index([tenantActorOid, createdAt])
 }
 
 enum SkillParticipantRole {

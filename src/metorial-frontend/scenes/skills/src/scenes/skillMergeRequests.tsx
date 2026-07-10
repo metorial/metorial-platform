@@ -11,13 +11,16 @@ import {
   useRollbackSkillMergeRequest,
   useSkill,
   useSkillMergeRequest,
-  useSkillMergeRequestComments,
+  useSkillMergeRequestEvents,
   useSkillMergeRequestPlan,
   useSkillMergeRequests,
   useStorePermissions,
-  useUpdateSkillMergeRequestComment
+  useUpdateSkillMergeRequestComment,
+  useCurrentOrganization,
+  type SkillMergeRequestEvent
 } from '@metorial/state';
 import {
+  Avatar,
   Badge,
   Button,
   Callout,
@@ -34,9 +37,21 @@ import {
   toast
 } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
-import { RiArrowLeftLine, RiArrowRightLine } from '@remixicon/react';
-import { useEffect, useRef, useState } from 'react';
+import {
+  RiArrowGoBackLine,
+  RiArrowLeftLine,
+  RiArrowRightLine,
+  RiChat3Line,
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+  RiErrorWarningLine,
+  RiGitMergeLine,
+  RiGitPullRequestLine
+} from '@remixicon/react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import ReactMarkdown from 'react-markdown';
 import styled from 'styled-components';
+import remarkGfm from 'remark-gfm';
 import {
   getSkillMergeChangeLabel,
   getSkillMergeErrorMessage,
@@ -162,23 +177,117 @@ let DiffPreview = styled.div`
   }
 `;
 
-let Comments = styled.div`
+let Discussion = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 `;
 
-let Comment = styled.div`
-  padding: 12px 14px;
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: 9px;
+let Timeline = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+let TimelineRow = styled.div`
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  position: relative;
+  padding-bottom: 18px;
+
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    bottom: 0;
+    left: 16px;
+    width: 2px;
+    background: ${theme.colors.gray300};
+  }
+`;
+
+let TimelineIcon = styled.div<{ $color?: string }>`
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid ${theme.colors.gray400};
+  color: ${p => p.$color ?? theme.colors.gray700};
+  background: ${theme.colors.gray100};
+`;
+
+let LifecycleContent = styled.div`
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+`;
+
+let CommentCard = styled.div`
+  border: 1px solid ${theme.colors.gray400};
+  border-radius: 10px;
+  overflow: hidden;
+  background: ${theme.colors.gray100};
+`;
+
+let CommentHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray200};
 `;
 
 let CommentBody = styled.div`
-  margin-top: 7px;
-  white-space: pre-wrap;
+  padding: 12px 14px;
   font-size: 13px;
   line-height: 1.55;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  pre {
+    overflow: auto;
+    padding: 10px;
+    border-radius: 7px;
+    background: ${theme.colors.gray200};
+  }
+
+  code {
+    overflow-wrap: anywhere;
+  }
+`;
+
+let DeletedComment = styled.div`
+  padding: 12px 14px;
+  color: ${theme.colors.gray600};
+  font-size: 13px;
+  font-style: italic;
+`;
+
+let EventError = styled.div`
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid ${theme.colors.red400};
+  border-radius: 7px;
+  color: ${theme.colors.red900};
+  background: ${theme.colors.red100};
+  font-size: 12px;
+  white-space: pre-wrap;
+`;
+
+let Composer = styled.div`
+  padding-top: 2px;
 `;
 
 let statusColor = (status: string): 'gray' | 'blue' | 'green' | 'orange' | 'red' => {
@@ -196,6 +305,64 @@ let statusDotColor = (status: string) => {
   if (status == 'merging') return theme.colors.blue900;
   if (status == 'open') return theme.colors.orange900;
   return theme.colors.gray600;
+};
+
+type EventActor = NonNullable<SkillMergeRequestEvent['actor']>;
+
+let actorName = (actor: EventActor | null | undefined) => actor?.name || 'Metorial';
+
+let EventActor = ({ actor, size = 24 }: { actor: EventActor | null; size?: number }) => (
+  <Flex align="center" gap="7px">
+    <Avatar
+      entity={actor ? { name: actorName(actor), imageUrl: actor.imageUrl } : null}
+      size={size}
+      noTooltip
+      withInitials
+    />
+    <Text size="2" weight="strong">
+      {actorName(actor)}
+    </Text>
+  </Flex>
+);
+
+let eventCopy = (event: SkillMergeRequestEvent) => {
+  switch (event.type) {
+    case 'created':
+      return 'opened this merge request';
+    case 'commented':
+      return 'commented';
+    case 'all_conflicts_resolved':
+      return 'resolved all conflicts';
+    case 'merge_started':
+      return 'started merging these changes';
+    case 'merge_completed':
+      return 'merged these changes';
+    case 'merge_failed':
+      return 'could not merge these changes';
+    case 'closed':
+      return 'closed this merge request';
+    case 'rolled_back':
+      return 'rolled back this merge';
+  }
+};
+
+let EventTypeIcon = ({ type }: { type: SkillMergeRequestEvent['type'] }) => {
+  if (type == 'commented') return <RiChat3Line size="16px" />;
+  if (type == 'created') return <RiGitPullRequestLine size="16px" />;
+  if (type == 'all_conflicts_resolved') return <RiCheckboxCircleLine size="16px" />;
+  if (type == 'merge_started' || type == 'merge_completed')
+    return <RiGitMergeLine size="16px" />;
+  if (type == 'merge_failed') return <RiErrorWarningLine size="16px" />;
+  if (type == 'rolled_back') return <RiArrowGoBackLine size="16px" />;
+  return <RiCloseCircleLine size="16px" />;
+};
+
+let eventColor = (type: SkillMergeRequestEvent['type']) => {
+  if (type == 'merge_completed' || type == 'all_conflicts_resolved')
+    return theme.colors.green900;
+  if (type == 'merge_failed') return theme.colors.red900;
+  if (type == 'merge_started') return theme.colors.blue900;
+  return theme.colors.gray700;
 };
 
 let CreateMergeRequestDialog = ({
@@ -273,6 +440,73 @@ export let showCreateSkillMergeRequestModal = (p: {
     <CreateMergeRequestDialog {...p} close={close} dialogProps={dialogProps} />
   ));
 
+let SkillMergeRequestsIncoming = (p: {
+  loader: ReturnType<typeof useSkillMergeRequests>;
+  outgoing: any;
+  href: (mergeRequestId: string) => string;
+  skillId: string | null | undefined;
+}) =>
+  renderWithPagination(p.loader)(incomingList => {
+    let requests = [...p.outgoing.data.items, ...incomingList.data.items]
+      .filter((request, index, all) => all.findIndex(i => i.id == request.id) == index)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    if (!requests.length) {
+      return (
+        <Empty>
+          <Text color="gray600" size="2">
+            No merge requests yet.
+          </Text>
+        </Empty>
+      );
+    }
+
+    return (
+      <Table
+        headers={['Title', 'Status', 'Created']}
+        data={requests.map(request => ({
+          href: p.href(request.id),
+          data: [
+            <Flex gap="8px" align="center">
+              {request.sourceSkillId == p.skillId ? (
+                <RiArrowRightLine size="14px" aria-label="Outgoing merge request" />
+              ) : (
+                <RiArrowLeftLine size="14px" aria-label="Incoming merge request" />
+              )}
+              <Text size="2" weight="strong">
+                {request.title}
+              </Text>
+            </Flex>,
+            <Status>
+              <StatusDot
+                $color={statusDotColor(request.status)}
+                aria-label={statusLabel(request.status)}
+                title={statusLabel(request.status)}
+              />
+              <Text size="2">{statusLabel(request.status)}</Text>
+            </Status>,
+            <RenderDate date={request.createdAt} />
+          ]
+        }))}
+      />
+    );
+  });
+
+let SkillMergeRequestsPagination = (p: {
+  outgoing: ReturnType<typeof useSkillMergeRequests>;
+  incoming: ReturnType<typeof useSkillMergeRequests>;
+  href: (mergeRequestId: string) => string;
+  skillId: string | null | undefined;
+}) =>
+  renderWithPagination(p.outgoing)(outgoingList => (
+    <SkillMergeRequestsIncoming
+      loader={p.incoming}
+      outgoing={outgoingList}
+      href={p.href}
+      skillId={p.skillId}
+    />
+  ));
+
 export let SkillMergeRequestsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
@@ -311,53 +545,12 @@ export let SkillMergeRequestsScene = (p: {
         />
       }
     >
-      {renderWithPagination(outgoing)(outgoingList =>
-        renderWithPagination(incoming)(incomingList => {
-          let requests = [...outgoingList.data.items, ...incomingList.data.items]
-            .filter((request, index, all) => all.findIndex(i => i.id == request.id) == index)
-            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-          if (!requests.length) {
-            return (
-              <Empty>
-                <Text color="gray600" size="2">
-                  No merge requests yet.
-                </Text>
-              </Empty>
-            );
-          }
-
-          return (
-            <Table
-              headers={['Title', 'Status', 'Created']}
-              data={requests.map(request => ({
-                href: p.href(request.id),
-                data: [
-                  <Flex gap="8px" align="center">
-                    {request.sourceSkillId == p.skillId ? (
-                      <RiArrowRightLine size="14px" aria-label="Outgoing merge request" />
-                    ) : (
-                      <RiArrowLeftLine size="14px" aria-label="Incoming merge request" />
-                    )}
-                    <Text size="2" weight="strong">
-                      {request.title}
-                    </Text>
-                  </Flex>,
-                  <Status>
-                    <StatusDot
-                      $color={statusDotColor(request.status)}
-                      aria-label={statusLabel(request.status)}
-                      title={statusLabel(request.status)}
-                    />
-                    <Text size="2">{statusLabel(request.status)}</Text>
-                  </Status>,
-                  <RenderDate date={request.createdAt} />
-                ]
-              }))}
-            />
-          );
-        })
-      )}
+      <SkillMergeRequestsPagination
+        outgoing={outgoing}
+        incoming={incoming}
+        href={p.href}
+        skillId={p.skillId}
+      />
     </Box>
   );
 };
@@ -390,6 +583,29 @@ let DocumentPreview = ({
     </DiffPreview>
   );
 };
+
+let ReplacementFileSelect = (p: {
+  files: ReturnType<typeof useFiles>;
+  value: string;
+  onChange: (value: string) => void;
+}) =>
+  renderWithPagination(p.files)(fileList => (
+    <Select
+      label="Replacement file"
+      placeholder="Choose a readable file"
+      value={p.value || undefined}
+      items={fileList.data.items.map(file => ({
+        id: file.id,
+        label: file.title
+      }))}
+      onChange={p.onChange}
+    />
+  ));
+
+let PaginatedSkillMergeRequestEvents = (p: {
+  events: ReturnType<typeof useSkillMergeRequestEvents>;
+  render: (eventList: any) => ReactNode;
+}) => renderWithPagination(p.events)(p.render);
 
 let MergeReviewDialog = ({
   instanceId,
@@ -546,24 +762,18 @@ let MergeReviewDialog = ({
                           }
                         />
                       )}
-                      {choice == 'replace_file' &&
-                        renderWithPagination(files)(fileList => (
-                          <Select
-                            label="Replacement file"
-                            placeholder="Choose a readable file"
-                            value={replacementFiles[item.id] || undefined}
-                            items={fileList.data.items.map(file => ({
-                              id: file.id,
-                              label: file.title
-                            }))}
-                            onChange={value =>
-                              setReplacementFiles(current => ({
-                                ...current,
-                                [item.id]: value
-                              }))
-                            }
-                          />
-                        ))}
+                      {choice == 'replace_file' && (
+                        <ReplacementFileSelect
+                          files={files}
+                          value={replacementFiles[item.id] ?? ''}
+                          onChange={value =>
+                            setReplacementFiles(current => ({
+                              ...current,
+                              [item.id]: value
+                            }))
+                          }
+                        />
+                      )}
                     </ChangeBody>
                   )}
                 </ChangeCard>
@@ -605,12 +815,18 @@ export let SkillMergeRequestScene = (p: {
   let plan = useSkillMergeRequestPlan(p.instanceId, p.mergeRequestId);
   let targetSkill = useSkill(p.instanceId, mergeRequest.data?.targetSkillId);
   let targetPermissions = useStorePermissions(p.instanceId, targetSkill.data?.storeId);
-  let comments = useSkillMergeRequestComments(p.instanceId, p.mergeRequestId);
+  let events = useSkillMergeRequestEvents(p.instanceId, p.mergeRequestId, {
+    order: 'desc',
+    limit: 50
+  });
   let createComment = useCreateSkillMergeRequestComment();
   let updateComment = useUpdateSkillMergeRequestComment();
   let deleteComment = useDeleteSkillMergeRequestComment();
   let closeRequest = useCloseSkillMergeRequest();
   let rollback = useRollbackSkillMergeRequest();
+  let currentOrganization = useCurrentOrganization();
+  let currentActorId = currentOrganization.data?.member?.actor.id;
+  let isOrganizationMember = !!currentOrganization.data?.member;
   let previousStatus = useRef<string | undefined>(undefined);
   let [commentBody, setCommentBody] = useState('');
   let [editingComment, setEditingComment] = useState<{
@@ -628,6 +844,7 @@ export let SkillMergeRequestScene = (p: {
     let timer = window.setInterval(() => {
       mergeRequest.refetch();
       plan.refetch();
+      events.refetch();
     }, 1800);
     return () => window.clearInterval(timer);
   }, [mergeRequest.data?.status]);
@@ -658,229 +875,188 @@ export let SkillMergeRequestScene = (p: {
     if (!error) {
       setCommentBody('');
       setCommentTarget(null);
-      comments.refetch();
+      events.refetch();
     }
   };
 
-  return renderWithLoader({ mergeRequest, plan, comments })(
-    ({ mergeRequest, plan, comments }) => {
-      let request = mergeRequest.data;
-      let direction = request.direction;
-      let targetLabel = direction == 'upstream_to_fork' ? 'fork' : 'upstream';
-      let sourceLabel = direction == 'upstream_to_fork' ? 'upstream' : 'fork';
-      let canWriteTarget =
-        targetPermissions.data?.hasFullAccess ||
-        targetPermissions.data?.permissions.includes('content_write');
-      let unresolved = plan.data.items.filter(
-        entry => entry.item.status == 'unresolved'
-      ).length;
-      let openReview = () => {
-        if (!p.instanceId) return;
-        showModal(({ close, dialogProps }) => (
-          <MergeReviewDialog
-            instanceId={p.instanceId!}
-            plan={plan.data}
-            readableStoreIds={targetPermissions.data?.readableStoreIds ?? []}
-            close={close}
-            dialogProps={dialogProps}
-            onSubmitted={() => {
-              mergeRequest.refetch();
-              plan.refetch();
-              toast('Merge started');
-            }}
-          />
-        ));
-      };
+  return renderWithLoader({ mergeRequest, plan })(({ mergeRequest, plan }) => {
+    let request = mergeRequest.data;
+    let direction = request.direction;
+    let targetLabel = direction == 'upstream_to_fork' ? 'fork' : 'upstream';
+    let sourceLabel = direction == 'upstream_to_fork' ? 'upstream' : 'fork';
+    let canWriteTarget =
+      targetPermissions.data?.hasFullAccess ||
+      targetPermissions.data?.permissions.includes('content_write');
+    let unresolved = plan.data.items.filter(entry => entry.item.status == 'unresolved').length;
+    let openReview = () => {
+      if (!p.instanceId) return;
+      showModal(({ close, dialogProps }) => (
+        <MergeReviewDialog
+          instanceId={p.instanceId!}
+          plan={plan.data}
+          readableStoreIds={targetPermissions.data?.readableStoreIds ?? []}
+          close={close}
+          dialogProps={dialogProps}
+          onSubmitted={() => {
+            mergeRequest.refetch();
+            plan.refetch();
+            events.refetch();
+            toast('Merge started');
+          }}
+        />
+      ));
+    };
 
-      return (
-        <Stack>
-          {request.mergeError && (
-            <Callout color="orange">
-              {getSkillMergeErrorMessage(request.mergeErrorCode, direction)}
-            </Callout>
-          )}
-          <Box
-            title={request.title}
-            description={request.description ?? undefined}
-            rightActions={
-              <Flex gap="8px">
-                <Badge color={statusColor(request.status)}>
-                  {statusLabel(request.status)}
-                </Badge>
-                {request.status == 'open' && (
-                  <>
-                    <Button
-                      size="2"
-                      variant="outline"
-                      color="gray"
-                      onClick={() =>
-                        confirm({
-                          title: 'Close merge request?',
-                          description: 'The proposed changes will not be applied.',
-                          confirmText: 'Close request',
-                          onConfirm: async () => {
-                            if (!p.instanceId || !p.mergeRequestId) return;
-                            let [, error] = await closeRequest.mutate({
-                              instanceId: p.instanceId,
-                              skillMergeRequestId: p.mergeRequestId
-                            });
-                            if (!error) mergeRequest.refetch();
-                          }
-                        })
-                      }
-                    >
-                      Close
-                    </Button>
-                    {canWriteTarget && (
-                      <Button size="2" color="green" onClick={openReview}>
-                        {unresolved ? 'Resolve and merge' : 'Merge'}
-                      </Button>
-                    )}
-                  </>
-                )}
-                {request.status == 'merged' && !request.rolledBackAt && canWriteTarget && (
+    return (
+      <Stack>
+        {request.mergeError && (
+          <Callout color="orange">
+            {getSkillMergeErrorMessage(request.mergeErrorCode, direction)}
+          </Callout>
+        )}
+        <Box
+          title={request.title}
+          description={request.description ?? undefined}
+          rightActions={
+            <Flex gap="8px">
+              <Badge color={statusColor(request.status)}>{statusLabel(request.status)}</Badge>
+              {request.status == 'open' && (
+                <>
                   <Button
                     size="2"
                     variant="outline"
-                    color="orange"
-                    loading={rollback.isLoading}
+                    color="gray"
                     onClick={() =>
                       confirm({
-                        title: 'Roll back this merge?',
-                        description: `The ${targetLabel} skill will return to its state before this merge.`,
-                        confirmText: 'Roll back',
+                        title: 'Close merge request?',
+                        description: 'The proposed changes will not be applied.',
+                        confirmText: 'Close request',
                         onConfirm: async () => {
                           if (!p.instanceId || !p.mergeRequestId) return;
-                          let [, error] = await rollback.mutate({
+                          let [, error] = await closeRequest.mutate({
                             instanceId: p.instanceId,
                             skillMergeRequestId: p.mergeRequestId
                           });
                           if (!error) {
                             mergeRequest.refetch();
-                            plan.refetch();
+                            events.refetch();
                           }
                         }
                       })
                     }
                   >
-                    Roll back
+                    Close
                   </Button>
-                )}
-              </Flex>
-            }
-          >
-            <MutedRow>
-              <span>{request.itemCount} changes</span>
-              <span>·</span>
-              <span>{request.commentCount} comments</span>
-              <span>·</span>
-              <RenderDate date={request.createdAt} />
-            </MutedRow>
-            {request.status == 'merging' && (
-              <div style={{ marginTop: 12 }}>
-                <Callout color="blue">Applying changes…</Callout>
-              </div>
-            )}
-            {request.rolledBackAt && (
-              <div style={{ marginTop: 12 }}>
-                <Callout color="gray">This merge was rolled back.</Callout>
-              </div>
-            )}
-            <closeRequest.RenderError />
-            <rollback.RenderError />
-          </Box>
-
-          <Box
-            title="Changes"
-            description={`Request snapshot: ${targetLabel} compared with the ${sourceLabel} at creation time.`}
-          >
-            <Stack>
-              {plan.data.items.map(entry => (
-                <ChangeCard key={entry.item.id}>
-                  <ChangeHeader>
-                    <Flex gap="8px" align="center">
-                      <Badge color={entry.item.changeType == 'conflicted' ? 'red' : 'gray'}>
-                        {getSkillMergeChangeLabel(entry.item.changeType, direction)}
-                      </Badge>
-                      <Path>{entry.item.path}</Path>
-                    </Flex>
-                    <Flex gap="6px" align="center">
-                      <Badge
-                        color={
-                          entry.item.status == 'unresolved'
-                            ? 'orange'
-                            : entry.item.status == 'applied'
-                              ? 'green'
-                              : 'gray'
-                        }
-                      >
-                        {getSkillMergeItemStatusLabel(entry.item, direction)}
-                      </Badge>
-                      <Button
-                        size="1"
-                        variant="ghost"
-                        color="gray"
-                        onClick={() => {
-                          setCommentTarget({
-                            itemId: entry.item.id,
-                            path: entry.item.path
-                          });
-                          window.setTimeout(
-                            () => document.getElementById('skill-merge-comment')?.focus(),
-                            0
-                          );
-                        }}
-                      >
-                        Comment
-                      </Button>
-                    </Flex>
-                  </ChangeHeader>
-                  {entry.documentMerge && (
-                    <ChangeBody>
-                      <DocumentPreview entry={entry} direction={direction} />
-                    </ChangeBody>
+                  {canWriteTarget && (
+                    <Button size="2" color="green" onClick={openReview}>
+                      {unresolved ? 'Resolve and merge' : 'Merge'}
+                    </Button>
                   )}
-                </ChangeCard>
-              ))}
-            </Stack>
-          </Box>
-
-          <Box title="Discussion">
-            <Comments>
-              {comments.data.items.map(comment => (
-                <Comment
-                  key={comment.id}
-                  style={comment.inReplyToCommentId ? { marginLeft: 24 } : undefined}
+                </>
+              )}
+              {request.status == 'merged' && !request.rolledBackAt && canWriteTarget && (
+                <Button
+                  size="2"
+                  variant="outline"
+                  color="orange"
+                  loading={rollback.isLoading}
+                  onClick={() =>
+                    confirm({
+                      title: 'Roll back this merge?',
+                      description: `The ${targetLabel} skill will return to its state before this merge.`,
+                      confirmText: 'Roll back',
+                      onConfirm: async () => {
+                        if (!p.instanceId || !p.mergeRequestId) return;
+                        let [, error] = await rollback.mutate({
+                          instanceId: p.instanceId,
+                          skillMergeRequestId: p.mergeRequestId
+                        });
+                        if (!error) {
+                          mergeRequest.refetch();
+                          plan.refetch();
+                          events.refetch();
+                        }
+                      }
+                    })
+                  }
                 >
-                  <Flex justify="space-between" align="center" gap="10px">
-                    <MutedRow>
-                      <span>Contributor</span>
-                      <span>·</span>
-                      <RenderDate date={comment.createdAt} />
-                      {comment.path && <Path>{comment.path}</Path>}
-                    </MutedRow>
-                    <Button
-                      size="1"
-                      variant="ghost"
-                      color="gray"
-                      onClick={() =>
-                        setEditingComment({
-                          id: comment.id,
-                          body: comment.body
-                        })
+                  Roll back
+                </Button>
+              )}
+            </Flex>
+          }
+        >
+          <MutedRow>
+            {request.createdBy && (
+              <>
+                <span>Opened by {actorName(request.createdBy)}</span>
+                <span>·</span>
+              </>
+            )}
+            <span>{request.itemCount} changes</span>
+            <span>·</span>
+            <span>{request.commentCount} comments</span>
+            <span>·</span>
+            <RenderDate date={request.createdAt} />
+          </MutedRow>
+          {request.status == 'merging' && (
+            <div style={{ marginTop: 12 }}>
+              <Callout color="blue">Applying changes…</Callout>
+            </div>
+          )}
+          {request.rolledBackAt && (
+            <div style={{ marginTop: 12 }}>
+              <Callout color="gray">This merge was rolled back.</Callout>
+            </div>
+          )}
+          <closeRequest.RenderError />
+          <rollback.RenderError />
+        </Box>
+
+        <Box
+          title="Changes"
+          description={`Request snapshot: ${targetLabel} compared with the ${sourceLabel} at creation time.`}
+        >
+          <Stack>
+            {plan.data.items.map(entry => (
+              <ChangeCard key={entry.item.id}>
+                <ChangeHeader>
+                  <Flex gap="8px" align="center">
+                    <Badge color={entry.item.changeType == 'conflicted' ? 'red' : 'gray'}>
+                      {getSkillMergeChangeLabel(entry.item.changeType, direction)}
+                    </Badge>
+                    <Path>{entry.item.path}</Path>
+                  </Flex>
+                  <Flex gap="6px" align="center">
+                    <Badge
+                      color={
+                        entry.item.status == 'unresolved'
+                          ? 'orange'
+                          : entry.item.status == 'applied'
+                            ? 'green'
+                            : 'gray'
                       }
                     >
-                      Edit
-                    </Button>
+                      {getSkillMergeItemStatusLabel(entry.item, direction)}
+                    </Badge>
+                    {entry.item.resolvedBy && (
+                      <Avatar
+                        entity={{
+                          name: actorName(entry.item.resolvedBy),
+                          imageUrl: entry.item.resolvedBy.imageUrl
+                        }}
+                        size={20}
+                        withInitials
+                      />
+                    )}
                     <Button
                       size="1"
                       variant="ghost"
                       color="gray"
                       onClick={() => {
                         setCommentTarget({
-                          itemId: comment.skillMergeRequestItemId ?? undefined,
-                          path: comment.path,
-                          replyToCommentId: comment.id
+                          itemId: entry.item.id,
+                          path: entry.item.path
                         });
                         window.setTimeout(
                           () => document.getElementById('skill-merge-comment')?.focus(),
@@ -888,86 +1064,234 @@ export let SkillMergeRequestScene = (p: {
                         );
                       }}
                     >
-                      Reply
-                    </Button>
-                    <Button
-                      size="1"
-                      variant="ghost"
-                      color="gray"
-                      onClick={() =>
-                        confirm({
-                          title: 'Delete comment?',
-                          description: 'This comment will be removed from the discussion.',
-                          confirmText: 'Delete',
-                          onConfirm: async () => {
-                            if (!p.instanceId || !p.mergeRequestId) return;
-                            let [, error] = await deleteComment.mutate({
-                              instanceId: p.instanceId,
-                              skillMergeRequestId: p.mergeRequestId,
-                              commentId: comment.id
-                            });
-                            if (!error) comments.refetch();
-                          }
-                        })
-                      }
-                    >
-                      Delete
+                      Comment
                     </Button>
                   </Flex>
-                  {editingComment?.id == comment.id ? (
-                    <div style={{ marginTop: 8 }}>
-                      <Input
-                        as="textarea"
-                        minRows={2}
-                        label="Edit comment"
-                        hideLabel
-                        value={editingComment.body}
-                        onInput={body =>
-                          setEditingComment(current =>
-                            current ? { ...current, body } : current
-                          )
-                        }
-                      />
-                      <Flex justify="end" gap="6px" style={{ marginTop: 7 }}>
-                        <Button
-                          size="1"
-                          variant="ghost"
-                          color="gray"
-                          onClick={() => setEditingComment(null)}
+                </ChangeHeader>
+                {entry.documentMerge && (
+                  <ChangeBody>
+                    <DocumentPreview entry={entry} direction={direction} />
+                  </ChangeBody>
+                )}
+              </ChangeCard>
+            ))}
+          </Stack>
+        </Box>
+
+        <Box title="Discussion">
+          <Discussion>
+            <PaginatedSkillMergeRequestEvents
+              events={events}
+              render={eventList => (
+                <>
+                  <Timeline>
+                    {!eventList.data.items.length && (
+                      <Empty>
+                        <Text color="gray600" size="2">
+                          No activity yet.
+                        </Text>
+                      </Empty>
+                    )}
+                    {[...eventList.data.items].reverse().map(event => {
+                      let comment = event.comment;
+                      let eventActor = comment?.actor ?? event.actor;
+                      let ownsComment =
+                        comment?.actor.organizationActor?.id === currentActorId;
+                      let canManageComment = isOrganizationMember || ownsComment;
+                      return (
+                        <TimelineRow
+                          key={event.id}
+                          style={comment?.inReplyToCommentId ? { paddingLeft: 20 } : undefined}
                         >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="1"
-                          loading={updateComment.isLoading}
-                          onClick={async () => {
-                            if (!p.instanceId || !p.mergeRequestId) return;
-                            let [, error] = await updateComment.mutate({
-                              instanceId: p.instanceId,
-                              skillMergeRequestId: p.mergeRequestId,
-                              commentId: comment.id,
-                              body: editingComment.body.trim()
-                            });
-                            if (!error) {
-                              setEditingComment(null);
-                              comments.refetch();
-                            }
-                          }}
-                        >
-                          Save
-                        </Button>
-                      </Flex>
-                    </div>
-                  ) : (
-                    <CommentBody>{comment.body}</CommentBody>
-                  )}
-                </Comment>
-              ))}
-              {!comments.data?.items.length && (
-                <Text color="gray600" size="2">
-                  No comments yet.
-                </Text>
+                          <TimelineIcon $color={eventColor(event.type)}>
+                            <EventTypeIcon type={event.type} />
+                          </TimelineIcon>
+                          {event.type == 'commented' && comment ? (
+                            <CommentCard>
+                              <CommentHeader>
+                                <Flex align="center" gap="8px" wrap="wrap">
+                                  <EventActor actor={comment.actor} />
+                                  <Text size="1" color="gray600">
+                                    commented <RenderDate date={event.createdAt} />
+                                  </Text>
+                                  {comment.inReplyToCommentId && (
+                                    <Badge color="gray">Reply</Badge>
+                                  )}
+                                  {comment.path && <Path>{comment.path}</Path>}
+                                </Flex>
+                                {!comment.deletedAt && (
+                                  <Flex gap="2px">
+                                    {canManageComment && (
+                                      <Button
+                                        size="1"
+                                        variant="ghost"
+                                        color="gray"
+                                        onClick={() =>
+                                          setEditingComment({
+                                            id: comment.id,
+                                            body: comment.body
+                                          })
+                                        }
+                                      >
+                                        Edit
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="1"
+                                      variant="ghost"
+                                      color="gray"
+                                      onClick={() => {
+                                        setCommentTarget({
+                                          itemId: comment.skillMergeRequestItemId ?? undefined,
+                                          path: comment.path,
+                                          replyToCommentId: comment.id
+                                        });
+                                        window.setTimeout(
+                                          () =>
+                                            document
+                                              .getElementById('skill-merge-comment')
+                                              ?.focus(),
+                                          0
+                                        );
+                                      }}
+                                    >
+                                      Reply
+                                    </Button>
+                                    {canManageComment && (
+                                      <Button
+                                        size="1"
+                                        variant="ghost"
+                                        color="gray"
+                                        onClick={() =>
+                                          confirm({
+                                            title: 'Delete comment?',
+                                            description:
+                                              'The timeline entry will remain, but its content will be hidden.',
+                                            confirmText: 'Delete',
+                                            onConfirm: async () => {
+                                              if (!p.instanceId || !p.mergeRequestId) return;
+                                              let [, error] = await deleteComment.mutate({
+                                                instanceId: p.instanceId,
+                                                skillMergeRequestId: p.mergeRequestId,
+                                                commentId: comment.id
+                                              });
+                                              if (!error) events.refetch();
+                                            }
+                                          })
+                                        }
+                                      >
+                                        Delete
+                                      </Button>
+                                    )}
+                                  </Flex>
+                                )}
+                              </CommentHeader>
+                              {comment.deletedAt ? (
+                                <DeletedComment>This comment was deleted.</DeletedComment>
+                              ) : editingComment?.id == comment.id ? (
+                                <CommentBody>
+                                  <Input
+                                    as="textarea"
+                                    minRows={3}
+                                    label="Edit comment"
+                                    hideLabel
+                                    value={editingComment?.body ?? ''}
+                                    onInput={body =>
+                                      setEditingComment(current =>
+                                        current ? { ...current, body } : current
+                                      )
+                                    }
+                                  />
+                                  <Flex justify="end" gap="6px" style={{ marginTop: 8 }}>
+                                    <Button
+                                      size="1"
+                                      variant="ghost"
+                                      color="gray"
+                                      onClick={() => setEditingComment(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      size="1"
+                                      loading={updateComment.isLoading}
+                                      disabled={!editingComment?.body.trim()}
+                                      onClick={async () => {
+                                        if (!p.instanceId || !p.mergeRequestId) return;
+                                        let [, error] = await updateComment.mutate({
+                                          instanceId: p.instanceId,
+                                          skillMergeRequestId: p.mergeRequestId,
+                                          commentId: comment.id,
+                                          body: editingComment?.body.trim() ?? ''
+                                        });
+                                        if (!error) {
+                                          setEditingComment(null);
+                                          events.refetch();
+                                        }
+                                      }}
+                                    >
+                                      Save
+                                    </Button>
+                                  </Flex>
+                                </CommentBody>
+                              ) : (
+                                <CommentBody>
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {comment.body}
+                                  </ReactMarkdown>
+                                </CommentBody>
+                              )}
+                            </CommentCard>
+                          ) : (
+                            <LifecycleContent>
+                              <div>
+                                <Flex align="center" gap="6px" wrap="wrap">
+                                  <EventActor actor={eventActor} />
+                                  <Text size="2">{eventCopy(event)}</Text>
+                                  <Text size="1" color="gray600">
+                                    <RenderDate date={event.createdAt} />
+                                  </Text>
+                                </Flex>
+                                {event.type == 'merge_failed' &&
+                                  (event.errorMessage || event.errorCode) && (
+                                    <EventError>
+                                      {event.errorMessage ??
+                                        getSkillMergeErrorMessage(event.errorCode, direction)}
+                                      {event.errorCode && (
+                                        <div>Error code: {event.errorCode}</div>
+                                      )}
+                                    </EventError>
+                                  )}
+                              </div>
+                            </LifecycleContent>
+                          )}
+                        </TimelineRow>
+                      );
+                    })}
+                  </Timeline>
+                  <Flex justify="space-between" align="center">
+                    <Button
+                      size="2"
+                      variant="outline"
+                      color="gray"
+                      disabled={!eventList.data.pagination.hasMoreBefore}
+                      onClick={events.previous}
+                    >
+                      Newer activity
+                    </Button>
+                    <Button
+                      size="2"
+                      variant="outline"
+                      color="gray"
+                      disabled={!eventList.data.pagination.hasMoreAfter}
+                      onClick={events.next}
+                    >
+                      Older activity
+                    </Button>
+                  </Flex>
+                </>
               )}
+            />
+            <Composer>
               <Input
                 id="skill-merge-comment"
                 as="textarea"
@@ -1006,10 +1330,10 @@ export let SkillMergeRequestScene = (p: {
               <createComment.RenderError />
               <updateComment.RenderError />
               <deleteComment.RenderError />
-            </Comments>
-          </Box>
-        </Stack>
-      );
-    }
-  );
+            </Composer>
+          </Discussion>
+        </Box>
+      </Stack>
+    );
+  });
 };

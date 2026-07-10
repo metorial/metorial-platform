@@ -226,7 +226,7 @@ export let SkillLayout = () => {
             to: `${Paths.instance.skill(...skillPathParams)}/versions`
           },
           {
-            label: 'Merge requests',
+            label: 'Merge Requests',
             to: `${Paths.instance.skill(...skillPathParams)}/merge-requests`
           },
           {

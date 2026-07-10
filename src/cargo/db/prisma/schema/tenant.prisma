@@ -114,6 +114,7 @@ model TenantActor {
   skillParticipants         SkillParticipant[]
   resolvedMergeRequestItems SkillMergeRequestItem[]    @relation("SkillMergeRequestItemResolver")
   skillMergeRequestComments SkillMergeRequestComment[]
+  skillMergeRequestEvents   SkillMergeRequestEvent[]
   storeItems                StoreItem[]
 
   @@unique([tenantOid, identifier])
