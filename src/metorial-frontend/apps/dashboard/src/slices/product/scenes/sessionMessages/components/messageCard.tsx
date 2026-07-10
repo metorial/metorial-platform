@@ -1,8 +1,8 @@
 import { CodeBlock } from '@metorial/code';
+import { JsonViewer } from '@metorial/json-viewer';
 import { Button, Datalist, Menu, Text } from '@metorial/ui';
 import { RiArrowDownSLine, RiErrorWarningLine } from '@remixicon/react';
 import { type ReactNode, useState } from 'react';
-import { JsonViewer } from '../../../../../components/jsonViewer';
 import {
   EmptyState,
   Header,
