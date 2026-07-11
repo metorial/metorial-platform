@@ -88,6 +88,7 @@ class toolCallServiceImpl {
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
     toolIds?: string[];
+    connectionIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -191,6 +192,14 @@ class toolCallServiceImpl {
               tools
                 ? {
                     OR: [{ tool: { oid: tools.in } }, { toolKey: { in: d.toolIds ?? [] } }]
+                  }
+                : undefined!,
+
+              d.connectionIds
+                ? {
+                    message: {
+                      connection: { id: { in: d.connectionIds } }
+                    }
                   }
                 : undefined!,
 

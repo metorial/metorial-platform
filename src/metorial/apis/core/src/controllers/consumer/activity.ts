@@ -147,6 +147,8 @@ export let consumerActivityController = Controller.create(
           v.object({
             agent_id: v.optional(v.string()),
             tool_id: v.optional(v.string()),
+            provider_ids: v.optional(v.union([v.string(), v.array(v.string())])),
+            connection_id: v.optional(v.string()),
             created_at: dateFilterValidator('tool call creation time')
           })
         )
@@ -158,6 +160,8 @@ export let consumerActivityController = Controller.create(
           pagination: ctx.query,
           agentId: ctx.query.agent_id,
           toolId: ctx.query.tool_id,
+          providerIds: normalizeArrayParam(ctx.query.provider_ids),
+          sessionConnectionId: ctx.query.connection_id,
           createdAt: ctx.query.created_at
         });
 

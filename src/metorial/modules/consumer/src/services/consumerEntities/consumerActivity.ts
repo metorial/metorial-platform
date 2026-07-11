@@ -232,6 +232,8 @@ class ConsumerActivityServiceImpl {
       pagination: PaginatorInputStrict;
       agentId?: string;
       toolId?: string;
+      providerIds?: string[];
+      sessionConnectionId?: string;
       createdAt?: ToolCallListInput['createdAt'];
     }
   ) {
@@ -239,15 +241,24 @@ class ConsumerActivityServiceImpl {
     if (d.agentId && !this.getObservedAgentIds(observed.connections).includes(d.agentId)) {
       throw new ServiceError(notFoundError('agent'));
     }
+    if (
+      d.sessionConnectionId &&
+      !observed.connections.some(connection => connection.id === d.sessionConnectionId)
+    ) {
+      throw new ServiceError(notFoundError('session.connection'));
+    }
 
-    let paginator = await subspaceToolCallService.list({
+    let toolCallQuery: ToolCallListInput & { connectionIds?: string[] } = {
       instance: d.instance,
       allowDeleted: false,
       actorIds: [observed.scope.consumerActor.id],
       agentIds: d.agentId ? [d.agentId] : undefined,
       toolIds: d.toolId ? [d.toolId] : undefined,
+      providerIds: d.providerIds,
+      connectionIds: d.sessionConnectionId ? [d.sessionConnectionId] : undefined,
       createdAt: d.createdAt
-    });
+    };
+    let paginator = await subspaceToolCallService.list(toolCallQuery);
 
     return await paginator.run(d.pagination);
   }
