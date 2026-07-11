@@ -4,6 +4,7 @@ import { CargoSkillLimitError } from '../../lib/limits';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin } from '../../serializers/plugin';
 import { applySkill } from '../../serializers/skill';
+import { getSyncItemKey, getSyncTaskItemKey } from './_lib/item';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { createTaskManager, type SyncTask } from './_lib/task';
 import { syncFinishQueue } from './finish';
@@ -43,27 +44,6 @@ let getSyncTaskLabel = (
   return `${action} skill ${names.skills.get(task.skillId) ?? task.skillId} in plugin ${
     names.plugins.get(task.skillPluginId) ?? task.skillPluginId
   }`;
-};
-
-let getSyncTaskItemKey = (task: SyncTask) => {
-  if (task.type === 'skill') return `skill:${task.skillId}:${task.skillPluginId}`;
-  if (task.type === 'plugin') return `plugin:${task.skillPluginId}`;
-  return `marketplace:${task.skillMarketplaceId}`;
-};
-
-let getSyncTaskItemKeyFromItem = (item: {
-  skill?: { id: string } | null;
-  skillPlugin?: { id: string } | null;
-  skillMarketplace?: { id: string } | null;
-}) => {
-  if (item.skill) {
-    if (!item.skillPlugin) throw new Error('Skill item must have skillPlugin');
-    return `skill:${item.skill.id}:${item.skillPlugin.id}`;
-  }
-
-  if (item.skillPlugin) return `plugin:${item.skillPlugin.id}`;
-  if (item.skillMarketplace) return `marketplace:${item.skillMarketplace.id}`;
-  throw new Error('Invalid item');
 };
 
 let getSyncPrMetadata = (d: {
@@ -188,7 +168,8 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   });
 
   let taskManager = createTaskManager(currentItems);
-  let existingItemKeys = new Set(currentItems.map(item => getSyncTaskItemKeyFromItem(item)));
+  let currentItemsByKey = new Map(currentItems.map(item => [getSyncItemKey(item), item]));
+  let existingItemKeys = new Set(currentItemsByKey.keys());
 
   let getSerializerHash = async <Input, InitResult>(
     serializer: {
@@ -210,15 +191,13 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   };
 
   let getCurrentMarketplaceItem = (marketplaceId: string) =>
-    currentItems.find(item => item.skillMarketplace?.id === marketplaceId);
+    currentItemsByKey.get(`marketplace:${marketplaceId}`);
 
   let getCurrentPluginItem = (pluginId: string) =>
-    currentItems.find(item => !item.skill && item.skillPlugin?.id === pluginId);
+    currentItemsByKey.get(`plugin:${pluginId}`);
 
   let getCurrentSkillItem = (d: { skillId: string; skillPluginId: string }) =>
-    currentItems.find(
-      item => item.skill?.id === d.skillId && item.skillPlugin?.id === d.skillPluginId
-    );
+    currentItemsByKey.get(`skill:${d.skillId}:${d.skillPluginId}`);
 
   if (sync.destination.skillMarketplace) {
     let marketplace = await db.skillMarketplace.findFirst({
@@ -412,7 +391,8 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
       'No content updates were needed.'
     );
     await syncFinishQueue.add({
-      skillDestinationSyncId: data.skillDestinationSyncId
+      skillDestinationSyncId: data.skillDestinationSyncId,
+      status: 'canceled'
     });
     return;
   }
@@ -424,6 +404,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
 
   await syncProcessQueue.add({
     skillDestinationSyncId: data.skillDestinationSyncId,
-    tasks
+    tasks,
+    hasChanges: false
   });
 });

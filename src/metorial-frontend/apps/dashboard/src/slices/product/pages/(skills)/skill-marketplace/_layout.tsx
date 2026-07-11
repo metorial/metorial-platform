@@ -8,7 +8,7 @@ import {
   useCurrentProject,
   useSkillMarketplace
 } from '@metorial/state';
-import { Button, Callout, Flex, LinkTabs, Spacer, toast } from '@metorial/ui';
+import { Button, Flex, LinkTabs, toast } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useInterval } from 'react-use';
 
@@ -132,7 +132,7 @@ export let SkillMarketplaceLayout = () => {
               ]}
             />
 
-            {marketplace.data?.syncStatus !== 'synced' && (
+            {/* {marketplace.data?.syncStatus !== 'synced' && (
               <>
                 <Callout color="blue">
                   <span>
@@ -154,7 +154,7 @@ export let SkillMarketplaceLayout = () => {
 
                 <Spacer height={20} />
               </>
-            )}
+            )} */}
 
             <Outlet />
           </>

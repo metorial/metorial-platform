@@ -8,8 +8,10 @@ import type { SerializerContext } from '../../serializers/_lib/types';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin, getPluginPath } from '../../serializers/plugin';
 import { applySkill, getSkillPath } from '../../serializers/skill';
+import { getSyncTaskItemWhere } from './_lib/item';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { type SyncTask } from './_lib/task';
+import { syncFinishQueue } from './finish';
 import { syncPropagateStartQueue } from './propagate';
 
 let codeBucketClient = createCodeBucketClient({
@@ -56,6 +58,7 @@ let failSyncForLimitError = async (d: { skillDestinationSyncId: string; error: u
 export let syncProcessQueue = createQueue<{
   skillDestinationSyncId: string;
   tasks: SyncTask[];
+  hasChanges?: boolean;
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/process',
@@ -80,32 +83,31 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
   let task = data.tasks[0];
   if (!task) {
-    await appendSkillDestinationSyncLog(
-      data.skillDestinationSyncId,
-      'Content updates are ready.'
-    );
-    await syncPropagateStartQueue.add({
-      skillDestinationSyncId: data.skillDestinationSyncId
-    });
+    if (data.hasChanges) {
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        'Content updates are ready.'
+      );
+      await syncPropagateStartQueue.add({
+        skillDestinationSyncId: data.skillDestinationSyncId
+      });
+    } else {
+      await appendSkillDestinationSyncLog(
+        data.skillDestinationSyncId,
+        'Content updates were no longer needed.'
+      );
+      await syncFinishQueue.add({
+        skillDestinationSyncId: data.skillDestinationSyncId,
+        status: 'canceled'
+      });
+    }
     return;
   }
 
   let item = await db.skillDestinationItem.findFirst({
     where: {
       destinationOid: sync.destinationOid,
-
-      ...(task?.type === 'marketplace'
-        ? { skillMarketplace: { id: task.skillMarketplaceId } }
-        : {}),
-
-      ...(task?.type === 'plugin' ? { skillPlugin: { id: task.skillPluginId } } : {}),
-
-      ...(task?.type === 'skill'
-        ? {
-            skill: { id: task.skillId },
-            skillPlugin: { id: task.skillPluginId }
-          }
-        : {})
+      ...getSyncTaskItemWhere(task)
     }
   });
 
@@ -176,11 +178,11 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       throw error;
     }
 
-    if (item?.hash === hash) return true;
+    if (item?.hash === hash) return 'skipped' as const;
 
     try {
       await serializer.apply(input, context, initResult);
-      return true;
+      return 'applied' as const;
     } catch (error) {
       if (await failSyncForLimitError({ skillDestinationSyncId: data.skillDestinationSyncId, error })) {
         return false;
@@ -189,6 +191,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       throw error;
     }
   };
+  let taskChanged = false;
 
   let loadSkillPlugin = async (skillPluginId: string) => {
     let skillPlugin = await db.skillPlugin.findUnique({
@@ -310,6 +313,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
           skillPluginOid: skillPlugin.oid
         }
       });
+      taskChanged = true;
     } else {
       await appendSkillDestinationSyncLog(
         data.skillDestinationSyncId,
@@ -323,6 +327,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         skillMarketplacePlugin
       });
       if (!applied) return;
+      taskChanged = applied === 'applied';
       await fileProcessor.flush();
 
       if (hashRef.current) {
@@ -360,6 +365,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
           skillPluginOid: skillPlugin.oid
         }
       });
+      taskChanged = true;
     } else {
       await appendSkillDestinationSyncLog(
         data.skillDestinationSyncId,
@@ -371,6 +377,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         skillMarketplacePlugin
       });
       if (!applied) return;
+      taskChanged = applied === 'applied';
       await fileProcessor.flush();
 
       if (hashRef.current) {
@@ -389,6 +396,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     );
     let applied = await applySerializer(applyMarketplace, { skillMarketplace });
     if (!applied) return;
+    taskChanged = applied === 'applied';
     await fileProcessor.flush();
 
     if (hashRef.current) {
@@ -404,7 +412,17 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
   if (tasks.length > 0) {
     await syncProcessQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
-      tasks
+      tasks,
+      hasChanges: data.hasChanges || taskChanged
+    });
+  } else if (!data.hasChanges && !taskChanged) {
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'Content updates were no longer needed.'
+    );
+    await syncFinishQueue.add({
+      skillDestinationSyncId: data.skillDestinationSyncId,
+      status: 'canceled'
     });
   } else {
     await appendSkillDestinationSyncLog(

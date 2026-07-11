@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
 import type { Prisma } from '@metorial-cargo/db';
@@ -148,17 +149,26 @@ export let applySkill = createApplicator(
   {
     getHash: async (input, { skillStore, config, effectiveAllowedFileExtensions }) => {
       return await Hash.sha256(
-        [
-          3,
-          input.skill.oid,
-          input.skillPlugin.oid,
-          input.skill.updatedAt.getTime(),
-          skillStore.lastEditedAt.getTime(),
-          config.allowScripts,
-          config.allowNonStandardDirectories,
-          effectiveAllowedFileExtensions.shouldFilter,
-          [...effectiveAllowedFileExtensions.extensions].sort().join(',')
-        ].join(':')
+        canonicalize({
+          serializerVersion: 4,
+          path: getSkillPath(input),
+          skill: {
+            name: input.skill.name,
+            clientName: input.skill.clientName,
+            description: input.skill.description,
+            clientDescription: input.skill.clientDescription,
+            license: input.skill.license,
+            compatibility: input.skill.compatibility,
+            clientMetadata: input.skill.clientMetadata
+          },
+          storeLastEditedAt: skillStore.lastEditedAt,
+          config: {
+            allowScripts: config.allowScripts,
+            allowNonStandardDirectories: config.allowNonStandardDirectories,
+            shouldFilterExtensions: effectiveAllowedFileExtensions.shouldFilter,
+            allowedFileExtensions: [...effectiveAllowedFileExtensions.extensions].sort()
+          }
+        })
       );
     },
 

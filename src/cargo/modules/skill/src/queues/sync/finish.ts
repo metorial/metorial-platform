@@ -4,6 +4,7 @@ import { appendSkillDestinationSyncLog } from './_lib/logs';
 
 export let syncFinishQueue = createQueue<{
   skillDestinationSyncId: string;
+  status?: 'completed' | 'canceled';
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/finish',
@@ -18,9 +19,15 @@ export let syncFinishQueueProcessor = syncFinishQueue.process(async data => {
   });
   if (!sync || sync.status !== 'processing') return;
 
-  await db.skillDestinationSync.updateMany({
-    where: { id: data.skillDestinationSyncId },
-    data: { status: 'completed', completedAt: new Date() }
+  let status = data.status ?? 'completed';
+  let updated = await db.skillDestinationSync.updateMany({
+    where: { id: data.skillDestinationSyncId, status: 'processing' },
+    data: { status, completedAt: new Date() }
   });
-  await appendSkillDestinationSyncLog(data.skillDestinationSyncId, 'Sync completed.');
+  if (updated.count === 0) return;
+
+  await appendSkillDestinationSyncLog(
+    data.skillDestinationSyncId,
+    status === 'canceled' ? 'Sync canceled.' : 'Sync completed.'
+  );
 });
