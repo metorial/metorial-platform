@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { getSentry } from '@lowerdeck/sentry';
 import {
   getOffloadedSessionMessage,
   getProviderTelemetryErrorGroupsStorageTarget
@@ -9,18 +11,46 @@ import { sessionMessageService } from '../services/sessionMessage';
 export let PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY =
   'provider-telemetry/error-groups/failed-messages/state.json';
 
+// Downstream ingestion only picks up `.json` keys; quarantine objects use
+// `.jsonl` so they are ignored.
+export let PROVIDER_TELEMETRY_QUARANTINE_KEY_PREFIX =
+  'provider-telemetry/failed-messages/quarantine/';
+
 let DEFAULT_EXPORT_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 let EXPORT_PAGE_SIZE = 100;
+
+// Must cover the grouping queue's ~4h retry horizon; quarantining earlier
+// would drop errors that would still group.
+export let PROVIDER_TELEMETRY_EXPORT_READINESS_GRACE_MS = 4 * 60 * 60 * 1000;
+
+// Keeps the createdAt cursor behind in-flight writes so no row is missed.
+export let PROVIDER_TELEMETRY_EXPORT_VISIBILITY_LAG_MS = 2 * 60 * 1000;
+
+// A terminally failed job must be removed or it blocks later enqueues of the
+// static job id.
+export let PROVIDER_TELEMETRY_EXPORT_QUEUE_JOB_OPTIONS = {
+  attempts: 3,
+  removeOnFail: true
+};
 
 export type ProviderTelemetryFailedMessagesExportWatermark = {
   occurred_at: string;
   id: string;
 };
 
+export type ProviderTelemetryFailedMessagesExportRunSummary = {
+  status: 'running' | 'completed' | 'deferred';
+  exported_count: number;
+  quarantined_count: number;
+  deferred_count: number;
+};
+
 export type ProviderTelemetryFailedMessagesExportState = {
   version: 2;
   last_exported: ProviderTelemetryFailedMessagesExportWatermark | null;
   last_checked_at: string;
+  last_processed?: ProviderTelemetryFailedMessagesExportWatermark | null;
+  last_run?: ProviderTelemetryFailedMessagesExportRunSummary | null;
 };
 
 export type ProviderTelemetryErrorGroupsExportState =
@@ -54,11 +84,58 @@ export type ProviderTelemetryFailedMessageExportCandidate = {
   } | null;
 };
 
+export type ProviderTelemetryFailedMessagesExportPageError = {
+  error: any;
+  occurredAt: Date;
+  isReady: boolean;
+  candidates: ProviderTelemetryFailedMessageExportCandidate[];
+};
+
+export type ProviderTelemetryFailedMessagesExportList = {
+  errors: ProviderTelemetryFailedMessagesExportPageError[];
+  hasMore: boolean;
+};
+
 export type ProviderTelemetryFailedMessagesExportListInput = {
   range: { from: Date; to: Date };
   limit?: number;
   after?: ProviderTelemetryFailedMessagesExportWatermark | null;
 };
+
+export type ProviderTelemetryFailedMessageQuarantineRecord = {
+  object: 'provider_telemetry.failed_message_export_quarantine';
+  version: 1;
+  stage: 'readiness' | 'present' | 'redact';
+  reason: string;
+  error_id: string;
+  message_id: string | null;
+  message_ids?: string[];
+  occurred_at: string;
+  fingerprint: string;
+  quarantined_at: string;
+};
+
+export class ProviderTelemetryExportInfraError extends Error {
+  causedBy?: unknown;
+
+  constructor(message: string, causedBy?: unknown) {
+    super(message);
+    this.name = 'ProviderTelemetryExportInfraError';
+    this.causedBy = causedBy;
+  }
+}
+
+class ProviderTelemetryExportItemError extends Error {
+  stage: 'present' | 'redact';
+  causedBy: unknown;
+
+  constructor(stage: 'present' | 'redact', causedBy: unknown) {
+    super(`Provider telemetry export item preparation failed during ${stage}`);
+    this.name = 'ProviderTelemetryExportItemError';
+    this.stage = stage;
+    this.causedBy = causedBy;
+  }
+}
 
 let objectDataToString = (data: Buffer | Uint8Array | string) =>
   typeof data === 'string' ? data : Buffer.from(data).toString('utf8');
@@ -93,20 +170,25 @@ let getExportRange = (
   state: ProviderTelemetryFailedMessagesExportState | null | undefined,
   now: Date
 ) => {
-  let from = state?.last_exported
-    ? new Date(state.last_exported.occurred_at)
-    : state?.last_checked_at
-      ? new Date(state.last_checked_at)
-      : new Date(now.getTime() - DEFAULT_EXPORT_LOOKBACK_MS);
+  // Never use `last_checked_at` here: it advances on empty runs and would
+  // skip errors that become ready afterwards.
+  let watermark = state?.last_processed ?? state?.last_exported ?? null;
+  let from = watermark
+    ? new Date(watermark.occurred_at)
+    : new Date(now.getTime() - DEFAULT_EXPORT_LOOKBACK_MS);
 
-  return { from, to: now };
+  return {
+    from,
+    to: new Date(now.getTime() - PROVIDER_TELEMETRY_EXPORT_VISIBILITY_LAG_MS)
+  };
 };
 
-let watermarkFromProviderTelemetryFailedMessage = (
-  item: Pick<ProviderTelemetryFailedMessageExportCandidate, 'error' | 'occurredAt'>
+let watermarkFor = (
+  errorId: string,
+  occurredAt: Date
 ): ProviderTelemetryFailedMessagesExportWatermark => ({
-  occurred_at: item.occurredAt.toISOString(),
-  id: item.error.id
+  occurred_at: occurredAt.toISOString(),
+  id: errorId
 });
 
 let providerFromCandidate = (error: any, message: any) => {
@@ -137,14 +219,15 @@ let toolFromMessage = (message: any) => {
 
 export let listProviderTelemetryFailedMessagesForExport = async (
   input: ProviderTelemetryFailedMessagesExportListInput
-) => {
+): Promise<ProviderTelemetryFailedMessagesExportList> => {
   let limit = Math.max(1, Math.min(input.limit ?? EXPORT_PAGE_SIZE, EXPORT_PAGE_SIZE));
   let afterDate = input.after ? new Date(input.after.occurred_at) : null;
 
   let errors = await db.sessionError.findMany({
     where: {
       AND: [
-        { groupOid: { not: null } },
+        // Ungrouped errors are included so the cursor cannot advance past an
+        // error that is not ready yet.
         { createdAt: { gte: input.range.from, lte: input.range.to } },
         { sessionMessages: { some: { status: 'failed' as const } } },
         input.after && afterDate
@@ -193,41 +276,40 @@ export let listProviderTelemetryFailedMessagesForExport = async (
   });
 
   let pageErrors = errors.slice(0, limit);
-  let rawMessages = pageErrors.flatMap(error => error.sessionMessages);
-  let enrichedMessages = await sessionMessageService.enrichMessages(rawMessages as any);
+  let isReady = (error: any) => error.groupOid != null || !!error.group;
+
+  let readyMessages = pageErrors.filter(isReady).flatMap(error => error.sessionMessages);
+  let enrichedMessages = await sessionMessageService.enrichMessages(readyMessages as any);
   let enrichedMessageMap = new Map(enrichedMessages.map(message => [message.oid, message]));
 
-  let items = pageErrors.flatMap(error =>
-    error.sessionMessages.map(rawMessage => {
-      let message = enrichedMessageMap.get(rawMessage.oid) ?? rawMessage;
+  let pageEntries = pageErrors.map(error => {
+    let ready = isReady(error);
 
-      return {
-        error,
-        message,
-        occurredAt: error.createdAt,
-        provider: providerFromCandidate(error, message),
-        tool: toolFromMessage(message)
-      };
-    })
-  );
+    return {
+      error,
+      occurredAt: error.createdAt,
+      isReady: ready,
+      candidates: error.sessionMessages.map(rawMessage => {
+        let message = ready
+          ? (enrichedMessageMap.get(rawMessage.oid) ?? rawMessage)
+          : rawMessage;
 
-  let lastError = pageErrors[pageErrors.length - 1];
+        return {
+          error,
+          message,
+          occurredAt: error.createdAt,
+          provider: providerFromCandidate(error, message),
+          tool: toolFromMessage(message)
+        };
+      })
+    };
+  });
 
   return {
-    items,
-    nextWatermark: lastError
-      ? {
-          occurred_at: lastError.createdAt.toISOString(),
-          id: lastError.id
-        }
-      : null,
+    errors: pageEntries,
     hasMore: errors.length > limit
   };
 };
-
-export type ProviderTelemetryFailedMessagesExportList = Awaited<
-  ReturnType<typeof listProviderTelemetryFailedMessagesForExport>
->;
 
 export type ProviderTelemetryErrorGroupsExportDeps = {
   now?: Date;
@@ -253,6 +335,20 @@ let writeJsonObject = async (d: {
     'application/json',
     d.metadata
   );
+};
+
+let objectExists = async (d: {
+  storage: ProviderTelemetryErrorGroupsExportStorage;
+  bucketName: string;
+  key: string;
+}) => {
+  try {
+    await d.storage.getObject(d.bucketName, d.key);
+    return true;
+  } catch (error) {
+    if (isNotFoundError(error)) return false;
+    throw error;
+  }
 };
 
 let providerTelemetryExportRedactor = new OpenRedaction({
@@ -292,6 +388,12 @@ let normalizeS3KeyComponent = (value: string | null | undefined) => {
   return normalized || 'unknown';
 };
 
+let fingerprintOf = (parts: Array<string | null | undefined>) =>
+  createHash('sha256')
+    .update(parts.map(part => part ?? '').join('\n'))
+    .digest('hex')
+    .slice(0, 16);
+
 export let getProviderTelemetryFailedMessagesExportChunkKey = (
   candidates: ProviderTelemetryFailedMessageExportCandidate[]
 ) => {
@@ -301,17 +403,44 @@ export let getProviderTelemetryFailedMessagesExportChunkKey = (
     throw new Error('Cannot create a provider telemetry export chunk key without items');
   }
 
+  // The key encodes the member identity (count + id hash): identical sets map
+  // to the same key, different sets never collide.
+  let memberHash = createHash('sha256')
+    .update(JSON.stringify(candidates.map(item => [item.error.id, item.message.id])))
+    .digest('hex')
+    .slice(0, 12);
+
   let filename = [
     'failed-messages',
     String(Math.floor(first.occurredAt.getTime() / 1000)),
     String(Math.floor(last.occurredAt.getTime() / 1000)),
     first.error.id,
-    last.error.id
+    last.error.id,
+    String(candidates.length),
+    memberHash
   ]
     .map(normalizeS3KeyComponent)
     .join('-');
 
   return ['provider-telemetry', `${filename}.json`].join('/');
+};
+
+export let getProviderTelemetryFailedMessageQuarantineKey = (
+  record: Pick<
+    ProviderTelemetryFailedMessageQuarantineRecord,
+    'occurred_at' | 'error_id' | 'message_id' | 'stage'
+  >
+) => {
+  let filename = [
+    String(Math.floor(new Date(record.occurred_at).getTime() / 1000)),
+    record.error_id,
+    record.message_id ?? 'error',
+    record.stage
+  ]
+    .map(normalizeS3KeyComponent)
+    .join('-');
+
+  return `${PROVIDER_TELEMETRY_QUARANTINE_KEY_PREFIX}${filename}.jsonl`;
 };
 
 let createExportPayload = async (message: any) => {
@@ -372,24 +501,36 @@ let createExportItem = async (d: {
   candidate: ProviderTelemetryFailedMessageExportCandidate;
   presentMessage: (message: any) => Promise<unknown>;
 }) => {
-  let payload = await d.presentMessage(d.candidate.message);
+  let payload: unknown;
+  try {
+    payload = await d.presentMessage(d.candidate.message);
+  } catch (error) {
+    if (error instanceof ProviderTelemetryExportInfraError) throw error;
+    throw new ProviderTelemetryExportItemError('present', error);
+  }
+
+  let redactedPayload: unknown;
+  try {
+    redactedPayload = await redactProviderTelemetryExportPayload(payload);
+  } catch (error) {
+    throw new ProviderTelemetryExportItemError('redact', error);
+  }
 
   return {
     occurred_at: d.candidate.occurredAt.toISOString(),
-    error_group_id: d.candidate.error.group.id,
+    error_group_id: d.candidate.error.group?.id ?? null,
     error_id: d.candidate.error.id,
     message_id: d.candidate.message.id,
     provider: d.candidate.provider,
     tool: d.candidate.tool,
-    payload: await redactProviderTelemetryExportPayload(payload)
+    payload: redactedPayload
   };
 };
 
-let createExportChunk = async (d: {
-  candidates: ProviderTelemetryFailedMessageExportCandidate[];
+let createExportChunk = (d: {
+  items: unknown[];
   range: { from: Date; to: Date };
   now: Date;
-  presentMessage: (message: any) => Promise<unknown>;
 }) => ({
   object: 'admin.provider_error_group.failed_message_export_chunk',
   version: 1,
@@ -398,16 +539,32 @@ let createExportChunk = async (d: {
     from: d.range.from.toISOString(),
     to: d.range.to.toISOString()
   },
-  item_count: d.candidates.length,
-  items: await Promise.all(
-    d.candidates.map(candidate =>
-      createExportItem({
-        candidate,
-        presentMessage: d.presentMessage
-      })
-    )
-  )
+  item_count: d.items.length,
+  items: d.items
 });
+
+let captureQuarantineDiagnostics = (
+  record: ProviderTelemetryFailedMessageQuarantineRecord,
+  objectKey: string
+) => {
+  try {
+    getSentry().captureMessage('Provider telemetry export quarantined a record', {
+      level: 'warning' as const,
+      extra: {
+        stage: record.stage,
+        reason: record.reason,
+        errorId: record.error_id,
+        messageId: record.message_id,
+        messageIds: record.message_ids,
+        occurredAt: record.occurred_at,
+        fingerprint: record.fingerprint,
+        objectKey
+      }
+    });
+  } catch {
+    // Diagnostics must never fail the export run.
+  }
+};
 
 export let runProviderTelemetryErrorGroupsExport = async (
   deps: ProviderTelemetryErrorGroupsExportDeps = {}
@@ -424,95 +581,237 @@ export let runProviderTelemetryErrorGroupsExport = async (
   let listFailedMessages =
     deps.listFailedMessages ?? listProviderTelemetryFailedMessagesForExport;
 
-  if (!storage || !bucketName) {
-    return {
-      exportedKeys: [],
-      state: null,
-      exportedCount: 0
-    };
-  }
+  let emptyResult = {
+    exportedKeys: [] as string[],
+    quarantinedKeys: [] as string[],
+    state: null as ProviderTelemetryFailedMessagesExportState | null,
+    exportedCount: 0,
+    quarantinedCount: 0,
+    deferredCount: 0
+  };
+
+  if (!storage || !bucketName) return emptyResult;
+
+  let store = storage;
+  let bucket = bucketName;
 
   try {
-    await storage.upsertBucket(bucketName);
+    await store.upsertBucket(bucket);
   } catch (error) {
-    if (isNotFoundError(error)) {
-      return {
-        exportedKeys: [],
-        state: null,
-        exportedCount: 0
-      };
-    }
-
+    if (isNotFoundError(error)) return emptyResult;
     throw error;
   }
 
-  let state = await readProviderTelemetryErrorGroupsExportState({ storage, bucketName });
-  let watermarkBefore = state?.last_exported ?? null;
+  let state = await readProviderTelemetryErrorGroupsExportState({
+    storage: store,
+    bucketName: bucket
+  });
   let range = getExportRange(state, now);
+
   let exportedKeys: string[] = [];
+  let quarantinedKeys: string[] = [];
   let exportedCount = 0;
-  let lastExportedItem: ProviderTelemetryFailedMessageExportCandidate | null = null;
-  let after: ProviderTelemetryFailedMessagesExportWatermark | null = watermarkBefore;
+  let quarantinedCount = 0;
+  let deferredCount = 0;
+  let deferred = false;
+
+  // `last_processed` covers exported and quarantined errors, never deferred
+  // ones; `last_exported` keeps its legacy meaning so rollbacks resume safely.
+  let lastProcessed = state?.last_processed ?? state?.last_exported ?? null;
+  let lastExported = state?.last_exported ?? null;
+
+  let writeState = async (status: 'running' | 'completed' | 'deferred') => {
+    let nextState: ProviderTelemetryFailedMessagesExportState = {
+      version: 2,
+      last_exported: lastExported,
+      last_checked_at: now.toISOString(),
+      last_processed: lastProcessed,
+      last_run: {
+        status,
+        exported_count: exportedCount,
+        quarantined_count: quarantinedCount,
+        deferred_count: deferredCount
+      }
+    };
+
+    await writeJsonObject({
+      storage: store,
+      bucketName: bucket,
+      key: PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY,
+      value: nextState,
+      metadata: {
+        type: 'provider-telemetry-failed-messages-state'
+      }
+    });
+
+    return nextState;
+  };
 
   while (true) {
     let page = await listFailedMessages({
       range,
       limit: EXPORT_PAGE_SIZE,
-      after
+      after: lastProcessed
     });
 
-    if (page.items.length) {
-      let exportKey = getProviderTelemetryFailedMessagesExportChunkKey(page.items);
-      let exportChunk = await createExportChunk({
-        candidates: page.items,
-        range,
-        now,
-        presentMessage
-      });
+    if (!page.errors.length) break;
 
-      await writeJsonObject({
-        storage,
-        bucketName,
-        key: exportKey,
-        value: exportChunk,
-        metadata: {
-          type: 'provider-telemetry-failed-message-export-chunk',
-          itemCount: String(page.items.length)
+    let exportCandidates: ProviderTelemetryFailedMessageExportCandidate[] = [];
+    let quarantineRecords: ProviderTelemetryFailedMessageQuarantineRecord[] = [];
+    let processedThrough: ProviderTelemetryFailedMessagesExportWatermark | null = null;
+
+    for (let index = 0; index < page.errors.length; index++) {
+      let entry = page.errors[index]!;
+
+      if (!entry.isReady) {
+        let ageMs = now.getTime() - entry.occurredAt.getTime();
+
+        if (ageMs < PROVIDER_TELEMETRY_EXPORT_READINESS_GRACE_MS) {
+          // Grouping still pending: stop so the cursor never passes this error.
+          deferred = true;
+          deferredCount += page.errors.length - index;
+          break;
         }
+
+        quarantineRecords.push({
+          object: 'provider_telemetry.failed_message_export_quarantine',
+          version: 1,
+          stage: 'readiness',
+          reason: 'not_grouped_within_grace_period',
+          error_id: entry.error.id,
+          message_id: null,
+          message_ids: entry.candidates.map(candidate => candidate.message.id),
+          occurred_at: entry.occurredAt.toISOString(),
+          fingerprint: fingerprintOf(['readiness', entry.error.type, entry.error.code]),
+          quarantined_at: now.toISOString()
+        });
+        processedThrough = watermarkFor(entry.error.id, entry.occurredAt);
+        continue;
+      }
+
+      exportCandidates.push(...entry.candidates);
+      processedThrough = watermarkFor(entry.error.id, entry.occurredAt);
+    }
+
+    let prepared = await Promise.allSettled(
+      exportCandidates.map(candidate => createExportItem({ candidate, presentMessage }))
+    );
+
+    let chunkCandidates: ProviderTelemetryFailedMessageExportCandidate[] = [];
+    let chunkItems: unknown[] = [];
+
+    for (let index = 0; index < prepared.length; index++) {
+      let result = prepared[index]!;
+      let candidate = exportCandidates[index]!;
+
+      if (result.status === 'fulfilled') {
+        chunkCandidates.push(candidate);
+        chunkItems.push(result.value);
+        continue;
+      }
+
+      // Only data-shaped failures are quarantined; anything else aborts the
+      // run so state never advances.
+      if (!(result.reason instanceof ProviderTelemetryExportItemError)) {
+        throw result.reason;
+      }
+
+      let cause = result.reason.causedBy;
+      quarantineRecords.push({
+        object: 'provider_telemetry.failed_message_export_quarantine',
+        version: 1,
+        stage: result.reason.stage,
+        reason: result.reason.stage === 'redact' ? 'redaction_failed' : 'presentation_failed',
+        error_id: candidate.error.id,
+        message_id: candidate.message.id,
+        occurred_at: candidate.occurredAt.toISOString(),
+        fingerprint: fingerprintOf([
+          result.reason.stage,
+          cause instanceof Error ? cause.name : typeof cause,
+          cause instanceof Error ? cause.message : String(cause)
+        ]),
+        quarantined_at: now.toISOString()
       });
+    }
+
+    if (chunkItems.length) {
+      let exportKey = getProviderTelemetryFailedMessagesExportChunkKey(chunkCandidates);
+
+      // Rewriting an existing key changes its ETag and re-triggers downstream
+      // ingestion; identical member sets reuse the object.
+      let exists = await objectExists({ storage: store, bucketName: bucket, key: exportKey });
+      if (!exists) {
+        await writeJsonObject({
+          storage: store,
+          bucketName: bucket,
+          key: exportKey,
+          value: createExportChunk({ items: chunkItems, range, now }),
+          metadata: {
+            type: 'provider-telemetry-failed-message-export-chunk',
+            itemCount: String(chunkItems.length)
+          }
+        });
+      }
 
       exportedKeys.push(exportKey);
-      exportedCount += page.items.length;
-      lastExportedItem = page.items[page.items.length - 1]!;
+      exportedCount += chunkItems.length;
+
+      let lastChunkCandidate = chunkCandidates[chunkCandidates.length - 1]!;
+      lastExported = watermarkFor(lastChunkCandidate.error.id, lastChunkCandidate.occurredAt);
     }
 
-    if (!page.hasMore || !page.nextWatermark) break;
+    for (let record of quarantineRecords) {
+      let quarantineKey = getProviderTelemetryFailedMessageQuarantineKey(record);
 
-    after = page.nextWatermark;
+      let exists = await objectExists({
+        storage: store,
+        bucketName: bucket,
+        key: quarantineKey
+      });
+      if (!exists) {
+        await store.putObject(
+          bucket,
+          quarantineKey,
+          `${JSON.stringify(record)}\n`,
+          'application/x-ndjson',
+          {
+            type: 'provider-telemetry-failed-message-export-quarantine'
+          }
+        );
+      }
+
+      quarantinedKeys.push(quarantineKey);
+      quarantinedCount += 1;
+      captureQuarantineDiagnostics(record, quarantineKey);
+    }
+
+    if (processedThrough) lastProcessed = processedThrough;
+
+    if (deferred || !page.hasMore) break;
+
+    // Checkpoint so a crash cannot roll the cursor back to the run start.
+    await writeState('running');
   }
 
-  let watermarkAfter = lastExportedItem
-    ? watermarkFromProviderTelemetryFailedMessage(lastExportedItem)
-    : watermarkBefore;
-  let nextState: ProviderTelemetryFailedMessagesExportState = {
-    version: 2,
-    last_exported: watermarkAfter,
-    last_checked_at: now.toISOString()
-  };
+  let nextState = await writeState(deferred ? 'deferred' : 'completed');
 
-  await writeJsonObject({
-    storage,
-    bucketName,
-    key: PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY,
-    value: nextState,
-    metadata: {
-      type: 'provider-telemetry-failed-messages-state'
-    }
-  });
+  console.log(
+    '[PROVIDER TELEMETRY EXPORT]:',
+    JSON.stringify({
+      exportedCount,
+      quarantinedCount,
+      deferredCount,
+      lastProcessed,
+      lastExported
+    })
+  );
 
   return {
     exportedKeys,
+    quarantinedKeys,
     state: nextState,
-    exportedCount
+    exportedCount,
+    quarantinedCount,
+    deferredCount
   };
 };
