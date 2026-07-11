@@ -2,6 +2,7 @@ import { Gitlab } from '@gitbeaker/rest';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
 import { db } from '../db';
+import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
 
 type GitLabClient = InstanceType<typeof Gitlab>;
 
@@ -54,25 +55,27 @@ export let exchangeGitLabOAuthCode = async (i: {
   let clientId = i.backend.clientId;
   let clientSecret = i.backend.clientSecret;
 
-  let response = await fetch(`${webUrl}/oauth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code: i.code,
-      grant_type: 'authorization_code',
-      redirect_uri: i.redirectUri
+  let response = await withScmProviderError('gitlab', 'exchange the OAuth token', () =>
+    fetch(`${webUrl}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code: i.code,
+        grant_type: 'authorization_code',
+        redirect_uri: i.redirectUri
+      })
     })
-  });
+  );
 
   if (!response.ok) {
-    throw new ServiceError(
-      badRequestError({
-        message: `GitLab OAuth token exchange failed: ${response.statusText}`
-      })
+    throw wrapScmProviderError(
+      'gitlab',
+      { response: { status: response.status } },
+      'exchange the OAuth token'
     );
   }
 
@@ -100,24 +103,26 @@ export let refreshGitLabAccessToken = async (i: {
   let clientId = i.backend.clientId;
   let clientSecret = i.backend.clientSecret;
 
-  let response = await fetch(`${webUrl}/oauth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: i.refreshToken,
-      grant_type: 'refresh_token'
+  let response = await withScmProviderError('gitlab', 'refresh the OAuth token', () =>
+    fetch(`${webUrl}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: i.refreshToken,
+        grant_type: 'refresh_token'
+      })
     })
-  });
+  );
 
   if (!response.ok) {
-    throw new ServiceError(
-      badRequestError({
-        message: `GitLab token refresh failed: ${response.statusText}`
-      })
+    throw wrapScmProviderError(
+      'gitlab',
+      { response: { status: response.status } },
+      'refresh the OAuth token'
     );
   }
 

@@ -10,6 +10,7 @@ import {
   exchangeGitLabOAuthCode,
   getGitLabOAuthUrl
 } from '../lib/gitlab';
+import { withScmProviderError } from '../lib/scmProviderError';
 
 class scmAuthServiceImpl {
   async getAuthorizationUrl(i: {
@@ -106,9 +107,14 @@ class scmAuthServiceImpl {
       }
 
       let octokit = createGitHubAppClient(existingInstallation.backend);
-      let installationRes = await octokit.request('GET /app/installations/{installation_id}', {
-        installation_id: parseInt(i.installationId)
-      });
+      let installationRes = await withScmProviderError(
+        'github',
+        'load the app installation',
+        () =>
+          octokit.request('GET /app/installations/{installation_id}', {
+            installation_id: parseInt(i.installationId)
+          })
+      );
 
       let installation = installationRes.data;
       let account = installation.account;
@@ -178,9 +184,14 @@ class scmAuthServiceImpl {
       // Get installation details using GitHub App authentication
       let octokit = createGitHubAppClient(backend);
 
-      let installationRes = await octokit.request('GET /app/installations/{installation_id}', {
-        installation_id: parseInt(i.installationId)
-      });
+      let installationRes = await withScmProviderError(
+        'github',
+        'load the app installation',
+        () =>
+          octokit.request('GET /app/installations/{installation_id}', {
+            installation_id: parseInt(i.installationId)
+          })
+      );
 
       let installation = installationRes.data;
       let account = installation.account;
@@ -288,7 +299,9 @@ class scmAuthServiceImpl {
 
       // Get user info
       let gitlab = createGitLabClientWithToken(accessToken, backend);
-      let user = await gitlab.Users.showCurrentUser();
+      let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
+        gitlab.Users.showCurrentUser()
+      );
 
       let data = {
         provider: i.provider,

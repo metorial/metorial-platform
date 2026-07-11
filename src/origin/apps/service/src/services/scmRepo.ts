@@ -12,9 +12,22 @@ import { db } from '../db';
 import { getId } from '../id';
 import { createGitHubInstallationClient } from '../lib/githubApp';
 import { createGitLabClientWithToken } from '../lib/gitlab';
+import {
+  getGitLabNamespaceId,
+  getGitLabPersonalNamespaceId,
+  isGitLabNamespaceError
+} from '../lib/gitlabNamespace';
+import { withScmProviderError, wrapScmProviderError } from '../lib/scmProviderError';
 import { createRepoWebhookQueue } from '../queues/scm/createRepoWebhook';
 import { createHandleRepoPushQueue } from '../queues/scm/handleRepoPush';
 import type { ScmAccountPreview, ScmRepoPreview } from '../types';
+
+let getGitLabPersonalNamespaceIdForUser = async (gitlab: any, user: any) => {
+  let namespaces = await withScmProviderError<any[]>('gitlab', 'list personal namespaces', () =>
+    gitlab.Namespaces.all({ ownedOnly: true, perPage: 100 })
+  );
+  return getGitLabPersonalNamespaceId(user, namespaces);
+};
 
 class scmRepoServiceImpl {
   async listAccountPreviews(i: { installation: ScmInstallation & { backend: ScmBackend } }) {
@@ -40,14 +53,19 @@ class scmRepoServiceImpl {
         i.installation.backend
       );
 
-      // Get user's groups/namespaces
-      let groups = await gitlab.Groups.all({ minAccessLevel: 10, perPage: 100 });
-      let user = await gitlab.Users.showCurrentUser();
+      // Only show group namespaces where the token can normally create projects.
+      let groups = await withScmProviderError('gitlab', 'list groups', () =>
+        gitlab.Groups.all({ minAccessLevel: 30, perPage: 100 })
+      );
+      let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
+        gitlab.Users.showCurrentUser()
+      );
+      let personalNamespaceId = await getGitLabPersonalNamespaceIdForUser(gitlab, user);
 
       return [
         {
           provider: i.installation.provider,
-          externalId: user.id.toString(),
+          externalId: personalNamespaceId.toString(),
           name: user.username,
           identifier: `${new URL(i.installation.backend.webUrl).hostname}/${user.username}`
         } satisfies ScmAccountPreview,
@@ -85,10 +103,12 @@ class scmRepoServiceImpl {
       let page = 1;
 
       while (true) {
-        let response = await octokit.request('GET /installation/repositories', {
-          per_page: 100,
-          page
-        });
+        let response = await withScmProviderError('github', 'list installation repositories', () =>
+          octokit.request('GET /installation/repositories', {
+            per_page: 100,
+            page
+          })
+        );
 
         allRepos.push(...response.data.repositories);
 
@@ -131,14 +151,29 @@ class scmRepoServiceImpl {
       );
 
       let allProjects: any[] = [];
+      let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
+        gitlab.Users.showCurrentUser()
+      );
+      let personalNamespaceId = (
+        await getGitLabPersonalNamespaceIdForUser(gitlab, user)
+      ).toString();
 
-      // If external account ID matches user ID, list user's projects; otherwise list group projects
-      if (i.externalAccountId == i.installation.externalAccountId) {
-        allProjects = await gitlab.Projects.all({ membership: true, perPage: 100 });
+      // Existing clients can still supply the installation's user ID. New account previews
+      // supply the actual personal namespace ID required by GitLab's project APIs.
+      if (
+        !i.externalAccountId ||
+        i.externalAccountId == personalNamespaceId ||
+        i.externalAccountId == i.installation.externalAccountId
+      ) {
+        allProjects = await withScmProviderError('gitlab', 'list user projects', () =>
+          gitlab.Users.allProjects(user.id, { perPage: 100 })
+        );
       } else {
         // List projects for a specific group
-        let groupId = parseInt(i.externalAccountId!);
-        allProjects = await gitlab.Groups.allProjects(groupId, { perPage: 100 });
+        let groupId = getGitLabNamespaceId(i.externalAccountId);
+        allProjects = await withScmProviderError('gitlab', 'list group projects', () =>
+          gitlab.Groups.allProjects(groupId, { perPage: 100 })
+        );
       }
 
       let hostname = new URL(i.installation.backend.webUrl).hostname;
@@ -199,7 +234,7 @@ class scmRepoServiceImpl {
             })
           );
         }
-        throw error;
+        throw wrapScmProviderError('github', error, 'load the repository');
       }
     }
 
@@ -231,7 +266,7 @@ class scmRepoServiceImpl {
             })
           );
         }
-        throw error;
+        throw wrapScmProviderError('gitlab', error, 'load the repository');
       }
     }
 
@@ -265,9 +300,11 @@ class scmRepoServiceImpl {
         i.installation.backend
       );
 
-      let repoRes = await octokit.request('GET /repositories/{repository_id}', {
-        repository_id: parseInt(i.externalId)
-      });
+      let repoRes = await withScmProviderError('github', 'load the repository', () =>
+        octokit.request('GET /repositories/{repository_id}', {
+          repository_id: parseInt(i.externalId)
+        })
+      );
 
       let accountData = {
         name: repoRes.data.owner.login,
@@ -345,7 +382,9 @@ class scmRepoServiceImpl {
         i.installation.backend
       );
 
-      let project = await gitlab.Projects.show(parseInt(i.externalId));
+      let project = await withScmProviderError('gitlab', 'load the repository', () =>
+        gitlab.Projects.show(parseInt(i.externalId))
+      );
 
       let hostname = new URL(i.installation.backend.webUrl).hostname;
 
@@ -466,7 +505,7 @@ class scmRepoServiceImpl {
             );
           }
         }
-        throw error;
+        throw wrapScmProviderError('github', error, 'create the repository');
       }
 
       return await this.linkRepository({
@@ -484,13 +523,36 @@ class scmRepoServiceImpl {
         i.installation.backend
       );
 
-      // Always pass namespaceId to create in the correct namespace (user or group)
-      let projectRes = await gitlab.Projects.create({
-        name: i.name,
-        description: i.description,
-        visibility: i.isPrivate ? 'private' : 'public',
-        namespaceId: parseInt(i.externalAccountId)
-      });
+      let namespaceId = getGitLabNamespaceId(i.externalAccountId);
+
+      // Older clients use the installation's GitLab user ID. Resolve it to the
+      // personal namespace ID, which is the value required by Projects.create.
+      if (i.externalAccountId == i.installation.externalAccountId) {
+        let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
+          gitlab.Users.showCurrentUser()
+        );
+        namespaceId = await getGitLabPersonalNamespaceIdForUser(gitlab, user);
+      }
+
+      let projectRes;
+      try {
+        projectRes = await gitlab.Projects.create({
+          name: i.name,
+          description: i.description,
+          visibility: i.isPrivate ? 'private' : 'public',
+          namespaceId
+        });
+      } catch (error: any) {
+        if (isGitLabNamespaceError(error)) {
+          throw new ServiceError(
+            badRequestError({
+              message:
+                'The selected GitLab namespace is invalid or you do not have permission to create projects in it'
+            })
+          );
+        }
+        throw wrapScmProviderError('gitlab', error, 'create the repository');
+      }
 
       return await this.linkRepository({
         installation: i.installation,
@@ -832,7 +894,7 @@ class scmRepoServiceImpl {
           return null;
         }
 
-        throw e;
+        throw wrapScmProviderError('github', e, 'load the latest repository commit');
       }
     }
 
@@ -885,7 +947,7 @@ class scmRepoServiceImpl {
           return null;
         }
 
-        throw e;
+        throw wrapScmProviderError('gitlab', e, 'load the latest repository commit');
       }
     }
 

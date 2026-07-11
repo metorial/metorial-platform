@@ -7,6 +7,7 @@ import type {
 } from '../../prisma/generated/client';
 import { createGitHubInstallationClient } from './githubApp';
 import { createGitLabClientWithToken } from './gitlab';
+import { getScmProviderErrorStatus } from './scmProviderError';
 
 type SyncWithRepo = ScmRepositorySync & {
   repo: ScmRepository & {
@@ -381,7 +382,8 @@ export let createRepositorySyncBranch = async (sync: SyncWithRepo) => {
         sync.baseBranch
       );
     } catch (e: any) {
-      if (e.response?.status !== 400 && e.response?.status !== 409) throw e;
+      let status = getScmProviderErrorStatus(e);
+      if (status !== 400 && status !== 409) throw e;
 
       await gitlab.Branches.show(parseInt(sync.repo.externalId), sync.branchName);
     }
@@ -794,11 +796,17 @@ export let getRepositorySyncCiState = async (
     });
 
     let pipelines;
+    let mergeRequest;
     try {
-      pipelines = await gitlab.Pipelines.all(parseInt(sync.repo.externalId), {
-        ref: sync.branchName,
-        perPage: 1
-      });
+      [pipelines, mergeRequest] = await Promise.all([
+        gitlab.Pipelines.all(parseInt(sync.repo.externalId), {
+          ref: sync.branchName,
+          perPage: 1
+        }),
+        gitlab.MergeRequests.show(parseInt(sync.repo.externalId), parseInt(sync.providerPrId!), {
+          withMergeStatusRecheck: true
+        })
+      ]);
     } catch (e: any) {
       logGitLabSyncError('failed to load CI state', e, {
         syncId: sync.id,
@@ -811,25 +819,42 @@ export let getRepositorySyncCiState = async (
 
     let pipeline = pipelines[0];
     if (!pipeline) {
-      logGitLabSyncDebug('no pipeline found; treating CI as success', {
+      logGitLabSyncDebug('no pipeline found; checking merge request status', {
         syncId: sync.id,
         repoId: sync.repo.id,
         branchName: sync.branchName
       });
-      return 'success';
+    } else {
+      logGitLabSyncDebug('loaded CI state', {
+        syncId: sync.id,
+        repoId: sync.repo.id,
+        branchName: sync.branchName,
+        pipelineId: pipeline.id,
+        pipelineStatus: pipeline.status
+      });
+
+      if (['failed', 'canceled'].includes(pipeline.status)) return 'failed';
+      if (!['success', 'skipped', 'manual'].includes(pipeline.status)) return 'pending';
     }
 
-    logGitLabSyncDebug('loaded CI state', {
-      syncId: sync.id,
-      repoId: sync.repo.id,
-      branchName: sync.branchName,
-      pipelineId: pipeline.id,
-      pipelineStatus: pipeline.status
-    });
+    if (mergeRequest.state === 'merged') return 'success';
 
-    if (['success', 'skipped', 'manual'].includes(pipeline.status)) return 'success';
-    if (['failed', 'canceled'].includes(pipeline.status)) return 'failed';
-    return 'pending';
+    let mergeStatus = mergeRequest.detailed_merge_status ?? mergeRequest.detailedMergeStatus;
+    if (mergeStatus === 'mergeable') return 'success';
+    if (
+      [
+        'unchecked',
+        'checking',
+        'preparing',
+        'approvals_syncing',
+        'ci_still_running',
+        'status_checks_must_pass'
+      ].includes(mergeStatus)
+    ) {
+      return 'pending';
+    }
+
+    return 'failed';
   }
 
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
@@ -955,6 +980,17 @@ export let mergeRepositorySyncPullRequest = async (
         projectId: sync.repo.externalId,
         providerPrId: sync.providerPrId
       });
+
+      if (getScmProviderErrorStatus(e) === 405) {
+        let mergeRequest = await gitlab.MergeRequests.show(
+          parseInt(sync.repo.externalId),
+          parseInt(sync.providerPrId)
+        );
+        if (mergeRequest.state === 'merged') {
+          return { mergeSha: mergeRequest.merge_commit_sha ?? mergeRequest.squash_commit_sha };
+        }
+      }
+
       throw e;
     }
 
@@ -964,48 +1000,6 @@ export let mergeRepositorySyncPullRequest = async (
       providerPrId: sync.providerPrId,
       mergeSha: merge.merge_commit_sha ?? merge.sha
     });
-
-    if (sync.branchName !== sync.baseBranch) {
-      try {
-        await gitlab.Branches.remove(parseInt(sync.repo.externalId), sync.branchName);
-
-        logGitLabSyncDebug('deleted merged sync branch', {
-          syncId: sync.id,
-          repoId: sync.repo.id,
-          projectId: sync.repo.externalId,
-          branchName: sync.branchName
-        });
-      } catch (e: any) {
-        let status = e?.response?.status ?? e?.cause?.response?.statusCode;
-        if (status !== 404) {
-          logGitLabSyncError('failed to delete merged sync branch', e, {
-            syncId: sync.id,
-            repoId: sync.repo.id,
-            projectId: sync.repo.externalId,
-            branchName: sync.branchName
-          });
-          throw e;
-        }
-
-        logGitLabSyncDebug('merged sync branch was already deleted', {
-          syncId: sync.id,
-          repoId: sync.repo.id,
-          projectId: sync.repo.externalId,
-          branchName: sync.branchName
-        });
-      }
-    } else {
-      logGitLabSyncDebug(
-        'skipped deleting merged sync branch because it matches base branch',
-        {
-          syncId: sync.id,
-          repoId: sync.repo.id,
-          projectId: sync.repo.externalId,
-          baseBranch: sync.baseBranch,
-          branchName: sync.branchName
-        }
-      );
-    }
 
     return { mergeSha: merge.merge_commit_sha ?? merge.sha };
   }
