@@ -8,7 +8,7 @@ import {
   useCurrentProject,
   useSkillPlugin
 } from '@metorial/state';
-import { Button, Flex, LinkTabs, toast } from '@metorial/ui';
+import { Button, Callout, Flex, LinkTabs, Spacer, toast } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useInterval } from 'react-use';
 
@@ -128,15 +128,15 @@ export let SkillPluginLayout = () => {
               ]}
             />
 
-            {/* {plugin.data?.syncStatus !== 'synced' && (
+            {plugin.data?.syncStatus !== 'synced' && (
               <>
                 <Callout color="blue">
                   <span>
                     <strong>Upcoming changes:</strong> Skills or configurations linked to this
                     plugin have changed. Metorial is processing these changes and updating the
-                    plugin.
+                    plugin. This can take a few minutes.
                   </span>
-                  {plugin.data?.syncStatus === 'pending' && (
+                  {/* {plugin.data?.syncStatus === 'pending' && (
                     <Button
                       size="2"
                       loading={syncPlugin.isLoading}
@@ -145,12 +145,12 @@ export let SkillPluginLayout = () => {
                     >
                       Sync Now
                     </Button>
-                  )}
+                  )} */}
                 </Callout>
 
                 <Spacer height={20} />
               </>
-            )} */}
+            )}
 
             <Outlet />
           </>
