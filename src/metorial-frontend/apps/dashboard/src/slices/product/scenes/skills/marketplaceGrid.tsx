@@ -46,7 +46,7 @@ export let SkillMarketplacesGrid = (
   let navigate = useNavigate();
   let marketplaces = useSkillMarketplaces(instanceId, {
     order: 'desc',
-    status: ['active', 'archived'],
+    status: ['active'],
     ...query
   });
   let hasActiveFilters = !!(
