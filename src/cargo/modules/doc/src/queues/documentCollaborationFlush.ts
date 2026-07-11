@@ -7,6 +7,7 @@ import {
   yjsUpdateToDocumentSnapshot
 } from '@metorial/docs-editor-schema';
 import { internalDocumentCollaborationService } from '../internal';
+import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
 import { documentInclude, documentService } from '../services/document';
 import { flushDocumentDraft } from './documentFlush';
 
@@ -86,6 +87,29 @@ export let flushDocumentCollaborationState = async (d: {
   });
   if (!currentDocument) {
     throw new ServiceError(notFoundError('document', d.documentId));
+  }
+
+  if (currentDocument.isReadOnly) {
+    let collaboration = await internalDocumentCollaborationService.withDocumentLock(
+      d.documentId,
+      async () =>
+        await internalDocumentCollaborationService.replaceStateWhileLocked({
+          documentId: d.documentId,
+          update: null
+        })
+    );
+
+    await publishDocumentLiveBusMessage({
+      deliverToOriginInstance: true,
+      documentId: d.documentId,
+      type: 'collaboration_reset',
+      data: {
+        stateUpdate: collaboration.update,
+        generation: collaboration.generation
+      }
+    });
+
+    return null;
   }
 
   let snapshot = yjsUpdateToDocumentSnapshot(stateUpdate);

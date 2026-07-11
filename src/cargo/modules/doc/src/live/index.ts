@@ -566,6 +566,12 @@ export let documentLiveApi = createHono()
                 throw new Error('Invalid live document Yjs update payload');
               }
 
+              if (scopedDocument.document.isReadOnly) {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
+              }
+
               let merged = await internalDocumentCollaborationService.mergeUpdate({
                 documentId: session.documentId,
                 update: parsed.data.update,
@@ -597,6 +603,12 @@ export let documentLiveApi = createHono()
             if (parsed.type === 'yjs_state_initialize') {
               if (typeof parsed.data?.update !== 'string') {
                 throw new Error('Invalid live document Yjs state initialize payload');
+              }
+
+              if (scopedDocument.document.isReadOnly) {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
               }
 
               let initialized = await internalDocumentCollaborationService.initializeState({
