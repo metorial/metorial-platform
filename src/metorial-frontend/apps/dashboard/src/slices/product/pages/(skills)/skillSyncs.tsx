@@ -24,6 +24,7 @@ import {
 import { ID, Table } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useInterval } from 'react-use';
 import styled from 'styled-components';
 import { RouterPanel } from '../../scenes/routerPanel';
 
@@ -112,6 +113,10 @@ export let SkillSyncsTable = ({
       : null
   );
   let [_, setSearchParams] = useSearchParams();
+
+  useInterval(() => {
+    syncs.refetch();
+  }, 10_000);
 
   return (
     <>

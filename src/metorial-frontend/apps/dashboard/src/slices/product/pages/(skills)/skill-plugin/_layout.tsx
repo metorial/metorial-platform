@@ -64,6 +64,10 @@ export let SkillPluginLayout = () => {
     );
   };
 
+  useInterval(() => {
+    plugin.refetch();
+  }, 10_000);
+
   useInterval(
     () => {
       if (plugin.data?.syncStatus !== 'synced' && !syncPlugin.isLoading) {

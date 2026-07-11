@@ -64,6 +64,10 @@ export let SkillMarketplaceLayout = () => {
     );
   };
 
+  useInterval(() => {
+    marketplace.refetch();
+  }, 10_000);
+
   useInterval(
     () => {
       if (marketplace.data?.syncStatus !== 'synced' && !syncMarketplace.isLoading) {
