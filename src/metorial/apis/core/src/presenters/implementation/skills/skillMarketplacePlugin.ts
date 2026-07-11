@@ -27,7 +27,6 @@ export let v1SkillMarketplacePluginPresenter = Presenter.create(skillMarketplace
       identifier: v.string(),
       skill_configuration_id: v.nullable(v.string()),
       skill_marketplace_id: v.nullable(v.string()),
-      skill_plugin_id: v.nullable(v.string()),
       skill_plugin: v.nullable(v1SkillPluginPresenter.schema),
       created_at: v.date(),
       updated_at: v.date()
