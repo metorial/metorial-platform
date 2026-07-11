@@ -14,6 +14,7 @@
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@lowerdeck/cron": "workspace:2.0.0",
