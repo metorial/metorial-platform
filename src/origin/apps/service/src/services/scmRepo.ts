@@ -11,7 +11,7 @@ import type {
 import { db } from '../db';
 import { getId } from '../id';
 import { createGitHubInstallationClient } from '../lib/githubApp';
-import { createGitLabClientWithToken } from '../lib/gitlab';
+import { createGitLabClientWithInstallation } from '../lib/gitlab';
 import {
   getGitLabNamespaceId,
   getGitLabPersonalNamespaceId,
@@ -45,13 +45,7 @@ class scmRepoServiceImpl {
     }
 
     if (i.installation.provider == 'gitlab') {
-      if (!i.installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
-      let gitlab = createGitLabClientWithToken(
-        i.installation.accessToken,
-        i.installation.backend
-      );
+      let gitlab = await createGitLabClientWithInstallation(i.installation);
 
       // Only show group namespaces where the token can normally create projects.
       let groups = await withScmProviderError('gitlab', 'list groups', () =>
@@ -142,13 +136,7 @@ class scmRepoServiceImpl {
     }
 
     if (i.installation.provider == 'gitlab') {
-      if (!i.installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
-      let gitlab = createGitLabClientWithToken(
-        i.installation.accessToken,
-        i.installation.backend
-      );
+      let gitlab = await createGitLabClientWithInstallation(i.installation);
 
       let allProjects: any[] = [];
       let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
@@ -239,13 +227,7 @@ class scmRepoServiceImpl {
     }
 
     if (i.installation.provider == 'gitlab') {
-      if (!i.installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
-      let gitlab = createGitLabClientWithToken(
-        i.installation.accessToken,
-        i.installation.backend
-      );
+      let gitlab = await createGitLabClientWithInstallation(i.installation);
 
       let hostname = new URL(i.installation.backend.webUrl).hostname;
       let projectPath = `${i.owner}/${i.repo}`;
@@ -374,13 +356,7 @@ class scmRepoServiceImpl {
     }
 
     if (i.installation.provider == 'gitlab') {
-      if (!i.installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
-      let gitlab = createGitLabClientWithToken(
-        i.installation.accessToken,
-        i.installation.backend
-      );
+      let gitlab = await createGitLabClientWithInstallation(i.installation);
 
       let project = await withScmProviderError('gitlab', 'load the repository', () =>
         gitlab.Projects.show(parseInt(i.externalId))
@@ -515,13 +491,7 @@ class scmRepoServiceImpl {
     }
 
     if (i.installation.provider == 'gitlab') {
-      if (!i.installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
-      let gitlab = createGitLabClientWithToken(
-        i.installation.accessToken,
-        i.installation.backend
-      );
+      let gitlab = await createGitLabClientWithInstallation(i.installation);
 
       let namespaceId = getGitLabNamespaceId(i.externalAccountId);
 
@@ -903,10 +873,7 @@ class scmRepoServiceImpl {
         where: { oid: i.repo.installationOid },
         include: { backend: true }
       });
-      if (!installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
-      let gitlab = createGitLabClientWithToken(installation.accessToken, installation.backend);
+      let gitlab = await createGitLabClientWithInstallation(installation);
 
       try {
         let commits = await gitlab.Commits.all(parseInt(i.repo.externalId), {

@@ -10,11 +10,17 @@ import {
   tooManyRequestsError,
   unauthorizedError
 } from '@lowerdeck/error';
+import { getSentry } from '@lowerdeck/sentry';
+
+let Sentry = getSentry();
 
 type ScmProvider = 'github' | 'gitlab';
 
 export let getScmProviderErrorStatus = (error: any): number | undefined =>
-  error?.status ?? error?.response?.status ?? error?.cause?.response?.statusCode;
+  error?.status ??
+  error?.response?.status ??
+  error?.cause?.response?.status ??
+  error?.cause?.response?.statusCode;
 
 let providerName = (provider: ScmProvider) => (provider === 'github' ? 'GitHub' : 'GitLab');
 
@@ -24,6 +30,9 @@ export let wrapScmProviderError = (
   operation: string
 ): ServiceError<any> => {
   if (isServiceError(error)) return error;
+
+  console.error(`SCM provider error (${provider}):`, error);
+  Sentry.captureException(error);
 
   let status = getScmProviderErrorStatus(error);
   let prefix = `${providerName(provider)} could not ${operation}`;
@@ -35,14 +44,25 @@ export let wrapScmProviderError = (
         : status === 403
           ? forbiddenError({ message: `${prefix} because the integration lacks permission.` })
           : status === 404
-            ? notFoundError({ entity: 'SCM provider resource', message: `${prefix}: resource not found.` })
+            ? notFoundError({
+                entity: 'SCM provider resource',
+                message: `${prefix}: resource not found.`
+              })
             : status === 409
-              ? conflictError({ message: `${prefix} because the resource already exists or changed.` })
+              ? conflictError({
+                  message: `${prefix} because the resource already exists or changed.`
+                })
               : status === 429
-                ? tooManyRequestsError({ message: `${prefix} because the provider rate limit was reached.` })
+                ? tooManyRequestsError({
+                    message: `${prefix} because the provider rate limit was reached.`
+                  })
                 : status === 408 || status === 504
-                  ? timeoutError({ message: `${prefix} because the provider request timed out.` })
-                  : internalServerError({ message: `${prefix} due to an upstream provider error.` });
+                  ? timeoutError({
+                      message: `${prefix} because the provider request timed out.`
+                    })
+                  : internalServerError({
+                      message: `${prefix} due to an upstream provider error.`
+                    });
 
   let serviceError = new ServiceError(mapped);
   if (error instanceof Error) serviceError.setParent(error);

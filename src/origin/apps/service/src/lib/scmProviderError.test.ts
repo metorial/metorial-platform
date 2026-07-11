@@ -5,6 +5,7 @@ import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
 describe('SCM provider errors', () => {
   it.each([
     [{ status: 401 }, 401, 'unauthorized'],
+    [{ cause: { response: { status: 401 } } }, 401, 'unauthorized'],
     [{ response: { status: 403 } }, 403, 'forbidden'],
     [{ cause: { response: { statusCode: 404 } } }, 404, 'not_found'],
     [{ status: 409 }, 409, 'conflict'],

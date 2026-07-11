@@ -6,7 +6,7 @@ import type {
   ScmRepositorySync
 } from '../../prisma/generated/client';
 import { createGitHubInstallationClient } from './githubApp';
-import { createGitLabClientWithToken } from './gitlab';
+import { createGitLabClientWithInstallation } from './gitlab';
 import { getScmProviderErrorStatus } from './scmProviderError';
 
 type SyncWithRepo = ScmRepositorySync & {
@@ -30,16 +30,8 @@ let getGitHubClient = async (repo: SyncWithRepo['repo']) => {
   );
 };
 
-let getGitLabClient = (repo: SyncWithRepo['repo']) => {
-  if (!repo.installation.accessToken) {
-    throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-  }
-
-  return createGitLabClientWithToken(
-    repo.installation.accessToken,
-    repo.installation.backend
-  ) as any;
-};
+let getGitLabClient = async (repo: SyncWithRepo['repo']) =>
+  (await createGitLabClientWithInstallation(repo.installation)) as any;
 
 let isGitHubEmptyRepositoryError = (e: any) =>
   e.status === 409 &&
@@ -373,7 +365,7 @@ export let createRepositorySyncBranch = async (sync: SyncWithRepo) => {
   }
 
   if (sync.repo.provider === 'gitlab') {
-    let gitlab = getGitLabClient(sync.repo);
+    let gitlab = await getGitLabClient(sync.repo);
 
     try {
       await gitlab.Branches.create(
@@ -470,7 +462,7 @@ export let cleanupRepositorySyncBranchIfNoChanges = async (
   }
 
   if (sync.repo.provider === 'gitlab') {
-    let gitlab = getGitLabClient(sync.repo);
+    let gitlab = await getGitLabClient(sync.repo);
 
     logGitLabSyncDebug('checking sync branch for changes', {
       syncId: sync.id,
@@ -638,7 +630,7 @@ export let createRepositorySyncPullRequest = async (
   }
 
   if (sync.repo.provider === 'gitlab') {
-    let gitlab = getGitLabClient(sync.repo);
+    let gitlab = await getGitLabClient(sync.repo);
 
     try {
       logGitLabSyncDebug('creating merge request', {
@@ -787,7 +779,7 @@ export let getRepositorySyncCiState = async (
   }
 
   if (sync.repo.provider === 'gitlab') {
-    let gitlab = getGitLabClient(sync.repo);
+    let gitlab = await getGitLabClient(sync.repo);
     logGitLabSyncDebug('loading CI state', {
       syncId: sync.id,
       repoId: sync.repo.id,
@@ -803,9 +795,13 @@ export let getRepositorySyncCiState = async (
           ref: sync.branchName,
           perPage: 1
         }),
-        gitlab.MergeRequests.show(parseInt(sync.repo.externalId), parseInt(sync.providerPrId!), {
-          withMergeStatusRecheck: true
-        })
+        gitlab.MergeRequests.show(
+          parseInt(sync.repo.externalId),
+          parseInt(sync.providerPrId!),
+          {
+            withMergeStatusRecheck: true
+          }
+        )
       ]);
     } catch (e: any) {
       logGitLabSyncError('failed to load CI state', e, {
@@ -958,7 +954,7 @@ export let mergeRepositorySyncPullRequest = async (
   }
 
   if (sync.repo.provider === 'gitlab') {
-    let gitlab = getGitLabClient(sync.repo);
+    let gitlab = await getGitLabClient(sync.repo);
     logGitLabSyncDebug('merging merge request', {
       syncId: sync.id,
       repoId: sync.repo.id,

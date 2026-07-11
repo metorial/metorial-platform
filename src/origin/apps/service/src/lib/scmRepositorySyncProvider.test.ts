@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createGitLabClientWithToken } from './gitlab';
+import { createGitLabClientWithInstallation } from './gitlab';
 import {
   createRepositorySyncBranch,
   getRepositorySyncCiState,
@@ -7,14 +7,14 @@ import {
 } from './scmRepositorySyncProvider';
 
 vi.mock('./gitlab', () => ({
-  createGitLabClientWithToken: vi.fn()
+  createGitLabClientWithInstallation: vi.fn()
 }));
 
 vi.mock('./githubApp', () => ({
   createGitHubInstallationClient: vi.fn()
 }));
 
-let createGitLabClient = vi.mocked(createGitLabClientWithToken);
+let createGitLabClient = vi.mocked(createGitLabClientWithInstallation);
 
 let createSync = () =>
   ({
@@ -52,7 +52,7 @@ describe('GitLab repository sync', () => {
       }
     };
     createGitLabClient.mockReset();
-    createGitLabClient.mockReturnValue(gitlab);
+    createGitLabClient.mockResolvedValue(gitlab);
   });
 
   it.each([{ response: { status: 400 } }, { cause: { response: { statusCode: 409 } } }])(

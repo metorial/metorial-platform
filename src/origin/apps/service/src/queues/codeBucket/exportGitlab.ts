@@ -3,6 +3,7 @@ import Long from 'long';
 import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
+import { getGitLabAccessTokenWithInstallation } from '../../lib/gitlab';
 import { codeBucketService } from '../../services/codeBucket';
 
 export let exportGitlabQueue = createQueue<{
@@ -22,14 +23,9 @@ export let exportGitlabQueueProcessor = exportGitlabQueue.process(async data => 
     include: { installation: { include: { backend: true } } }
   });
 
-  if (!repo.installation.accessToken) {
-    throw new Error('Access token not found');
-  }
-
   await codeBucketService.waitForCodeBucketReady({ codeBucketId: data.bucketId });
 
-  // Use GitLab access token
-  let token = repo.installation.accessToken;
+  let token = await getGitLabAccessTokenWithInstallation(repo.installation);
   let apiUrl = repo.installation.backend.apiUrl;
 
   await codeBucketClient.exportBucketToGitlab({

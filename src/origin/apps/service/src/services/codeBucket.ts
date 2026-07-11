@@ -8,6 +8,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { codeBucketClient } from '../lib/codeWorkspace';
 import { getInstallationAccessToken } from '../lib/githubApp';
+import { getGitLabAccessTokenWithInstallation } from '../lib/gitlab';
 import { normalizePath } from '../lib/normalizePath';
 import { cloneBucketQueue } from '../queues/codeBucket/cloneBucket';
 import { copyFromToBucketQueue } from '../queues/codeBucket/copyFromToBucket';
@@ -305,15 +306,13 @@ class codeBucketServiceImpl {
     }
 
     if (repo.provider === 'gitlab') {
-      if (!repo.installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
+      let token = await getGitLabAccessTokenWithInstallation(repo.installation);
 
       await codeBucketClient.exportBucketToGitlab({
         bucketId: d.codeBucket.id,
         projectId: Long.fromString(repo.externalId),
         path: d.path,
-        token: repo.installation.accessToken,
+        token,
         gitlabApiUrl: repo.installation.backend.apiUrl,
         branch,
         commitMessage

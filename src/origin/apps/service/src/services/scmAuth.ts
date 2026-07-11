@@ -11,6 +11,7 @@ import {
   getGitLabOAuthUrl
 } from '../lib/gitlab';
 import { withScmProviderError } from '../lib/scmProviderError';
+import { scmInstallationSessionService } from './scmInstallationSession';
 
 class scmAuthServiceImpl {
   async getAuthorizationUrl(i: {
@@ -240,10 +241,9 @@ class scmAuthServiceImpl {
         }
       });
 
-      // Complete the installation session
-      await db.scmInstallationSession.update({
-        where: { id: session.id },
-        data: { installationOid: createdInstallation.oid }
+      await scmInstallationSessionService.completeInstallationSession({
+        sessionId: session.id,
+        installationOid: createdInstallation.oid
       });
 
       return createdInstallation;
@@ -337,10 +337,9 @@ class scmAuthServiceImpl {
         }
       });
 
-      // Complete the installation session
-      await db.scmInstallationSession.update({
-        where: { id: session.id },
-        data: { installationOid: createdInstallation.oid }
+      await scmInstallationSessionService.completeInstallationSession({
+        sessionId: session.id,
+        installationOid: createdInstallation.oid
       });
 
       return createdInstallation;

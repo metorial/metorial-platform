@@ -10,7 +10,7 @@ import {
 } from './_lib';
 import { mergeRepositorySyncQueue } from './merge';
 
-export let waitForCiRepositorySyncQueue = createQueue<{ syncId: string }>({
+export let waitForCiRepositorySyncQueue = createQueue<{ syncId: string; index?: number }>({
   name: 'ori/rep-sync/wait-ci',
   redisUrl: env.service.REDIS_URL
 });
@@ -22,6 +22,8 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         syncId: data.syncId,
         expectedStatus: 'waiting_for_ci'
       });
+
+      let index = data.index ?? 0;
 
       let sync = await db.scmRepositorySync.findFirst({
         where: {
@@ -70,7 +72,8 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
       });
 
       if (ciState === 'pending') {
-        let nextPollAt = new Date(now.getTime() + 60_000);
+        let delay = index < 10 ? 20_000 : index < 100 ? 60_000 : 1000_000;
+        let nextPollAt = new Date(now.getTime() + delay);
 
         await db.scmRepositorySync.update({
           where: { oid: sync.oid },
@@ -82,7 +85,10 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         });
         await appendRepositorySyncLog(sync.id, 'Checks are still running.');
 
-        await waitForCiRepositorySyncQueue.add({ syncId: data.syncId }, { delay: 60_000 });
+        await waitForCiRepositorySyncQueue.add(
+          { syncId: data.syncId, index: index + 1 },
+          { delay }
+        );
         logRepositorySyncQueueEvent('waitForCi', 'CI still pending; requeued poll', {
           syncId: sync.id,
           nextPollAt: nextPollAt.toISOString()
