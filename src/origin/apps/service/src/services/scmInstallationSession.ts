@@ -11,6 +11,11 @@ import type {
 import { db } from '../db';
 import { getId } from '../id';
 
+type ScmSessionTransaction = Pick<
+  typeof db,
+  'scmInstallationSession' | 'scmBackendSetupSession'
+>;
+
 class ScmInstallationSessionServiceImpl {
   async createInstallationSession(d: { tenant: Tenant; actor: Actor; redirectUrl?: string }) {
     let state = randomBytes(32).toString('hex');
@@ -81,10 +86,27 @@ class ScmInstallationSessionServiceImpl {
   }
 
   async completeInstallationSession(d: { sessionId: string; installationOid: bigint }) {
-    await db.scmInstallationSession.update({
-      where: { id: d.sessionId },
-      data: { installationOid: d.installationOid },
-      include: { installation: true }
+    return await this.completeSessionWithRetry(async tx => {
+      let session = await tx.scmInstallationSession.findUniqueOrThrow({
+        where: { id: d.sessionId },
+        include: { installation: true }
+      });
+
+      if (session.installationOid === d.installationOid) return session;
+
+      await tx.scmInstallationSession.updateMany({
+        where: {
+          installationOid: d.installationOid,
+          id: { not: d.sessionId }
+        },
+        data: { installationOid: null }
+      });
+
+      return await tx.scmInstallationSession.update({
+        where: { id: d.sessionId },
+        data: { installationOid: d.installationOid },
+        include: { installation: true }
+      });
     });
   }
 
@@ -146,11 +168,46 @@ class ScmInstallationSessionServiceImpl {
   }
 
   async completeBackendSetupSession(d: { sessionId: string; backend: ScmBackend }) {
-    await db.scmBackendSetupSession.update({
-      where: { id: d.sessionId },
-      data: { backendOid: d.backend.oid },
-      include: { backend: true }
+    return await this.completeSessionWithRetry(async tx => {
+      let session = await tx.scmBackendSetupSession.findUniqueOrThrow({
+        where: { id: d.sessionId },
+        include: { backend: true }
+      });
+
+      if (session.backendOid === d.backend.oid) return session;
+
+      await tx.scmBackendSetupSession.updateMany({
+        where: {
+          backendOid: d.backend.oid,
+          id: { not: d.sessionId }
+        },
+        data: { backendOid: null }
+      });
+
+      return await tx.scmBackendSetupSession.update({
+        where: { id: d.sessionId },
+        data: { backendOid: d.backend.oid },
+        include: { backend: true }
+      });
     });
+  }
+
+  private async completeSessionWithRetry<T>(
+    complete: (tx: ScmSessionTransaction) => Promise<T>
+  ): Promise<T> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await db.$transaction(complete);
+      } catch (error) {
+        if (attempt === 1 || !this.isUniqueConstraintError(error)) throw error;
+      }
+    }
+
+    throw new Error('Unreachable');
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
   }
 
   async getAvailableBackends(d: { tenant: Tenant }): Promise<ScmBackend[]> {
