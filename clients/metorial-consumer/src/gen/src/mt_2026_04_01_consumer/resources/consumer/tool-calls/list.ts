@@ -311,6 +311,8 @@ export type ConsumerToolCallsListQuery = {
 } & {
   agentId?: string | undefined;
   toolId?: string | undefined;
+  providerIds?: string | string[] | undefined;
+  connectionId?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
@@ -325,6 +327,17 @@ export let mapConsumerToolCallsListQuery = mtMap.union([
       order: mtMap.objectField('order', mtMap.passthrough()),
       agentId: mtMap.objectField('agent_id', mtMap.passthrough()),
       toolId: mtMap.objectField('tool_id', mtMap.passthrough()),
+      providerIds: mtMap.objectField(
+        'provider_ids',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      connectionId: mtMap.objectField('connection_id', mtMap.passthrough()),
       createdAt: mtMap.objectField(
         'created_at',
         mtMap.object({
@@ -335,4 +348,3 @@ export let mapConsumerToolCallsListQuery = mtMap.union([
     })
   )
 ]);
-
