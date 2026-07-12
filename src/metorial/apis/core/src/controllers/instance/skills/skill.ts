@@ -1,7 +1,6 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
 import {
   subspaceSkillGroupItemService,
@@ -62,36 +61,6 @@ export let skillGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(asyn
 
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
-
-let assertConsumerCanAddToSkillGroup = async (ctx: {
-  consumerProfile?: unknown;
-  consumerGroups?: { oid: bigint }[];
-  skillGroupId: string;
-}) => {
-  if (!ctx.consumerProfile) return;
-
-  let allowed = await db.skillGroup.findFirst({
-    where: {
-      id: ctx.skillGroupId,
-      consumerAccesses: {
-        some: {
-          consumerGroupOid: {
-            in: ctx.consumerGroups?.map(group => group.oid) ?? []
-          }
-        }
-      }
-    },
-    select: { oid: true }
-  });
-
-  if (!allowed) {
-    throw new ServiceError(
-      forbiddenError({
-        message: 'Consumer does not have permission to add skills to this group.'
-      })
-    );
-  }
-};
 
 export let skillController = Controller.create(
   {
@@ -198,11 +167,6 @@ export let skillController = Controller.create(
             allowDeleted: true,
             consumerProfile: ctx.consumerProfile,
             consumerGroups: ctx.consumerGroups
-          });
-          await assertConsumerCanAddToSkillGroup({
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups,
-            skillGroupId
           });
         }
 

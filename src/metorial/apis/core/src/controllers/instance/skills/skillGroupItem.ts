@@ -1,12 +1,9 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '@metorial/db';
-import { consumerSkillService } from '@metorial/module-consumer';
 import {
   subspaceSkillGroupItemService,
-  subspaceSkillGroupService,
-  subspaceSkillService
+  subspaceSkillGroupService
 } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -17,38 +14,9 @@ import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillGroupItemPresenter } from '../../../presenters';
 import { skillGroupGroup } from './skillGroup';
+import { assertConsumerCanWriteSkillGroupItem } from './skillGroupItemAccess';
 
 let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
-
-let assertConsumerCanAddToSkillGroup = async (ctx: {
-  consumerProfile?: unknown;
-  consumerGroups?: { oid: bigint }[];
-  skillGroup: { id: string };
-}) => {
-  if (!ctx.consumerProfile) return;
-
-  let allowed = await db.skillGroup.findFirst({
-    where: {
-      id: ctx.skillGroup.id,
-      consumerAccesses: {
-        some: {
-          consumerGroupOid: {
-            in: ctx.consumerGroups?.map(group => group.oid) ?? []
-          }
-        }
-      }
-    },
-    select: { oid: true }
-  });
-
-  if (!allowed) {
-    throw new ServiceError(
-      forbiddenError({
-        message: 'Consumer does not have permission to add skills to this group.'
-      })
-    );
-  }
-};
 
 export let skillGroupItemGroup = skillGroupGroup.use(async ctx => {
   if (!ctx.params.skillGroupItemId) {
@@ -203,22 +171,12 @@ export let skillGroupItemController = Controller.create(
       )
       .output(skillGroupItemPresenter)
       .do(async ctx => {
-        if (ctx.consumerProfile) {
-          await assertConsumerCanAddToSkillGroup(ctx);
-
-          let skill = await subspaceSkillService.get({
-            instance: ctx.instance,
-            skillId: ctx.body.skill_id,
-            allowDeleted: true,
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups!
-          });
-
-          await consumerSkillService.assertConsumerCanWriteSkill({
-            skill: skill.localSkill,
-            consumerProfile: ctx.consumerProfile
-          });
-        }
+        await assertConsumerCanWriteSkillGroupItem({
+          instance: ctx.instance,
+          skillId: ctx.body.skill_id,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups
+        });
 
         let skillGroupItem = await subspaceSkillGroupItemService.create({
           instance: ctx.instance,
@@ -245,22 +203,12 @@ export let skillGroupItemController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(skillGroupItemPresenter)
       .do(async ctx => {
-        if (ctx.consumerProfile) {
-          await assertConsumerCanAddToSkillGroup(ctx);
-
-          let skill = await subspaceSkillService.get({
-            instance: ctx.instance,
-            skillId: ctx.skillGroupItem.skill.id,
-            allowDeleted: true,
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups!
-          });
-
-          await consumerSkillService.assertConsumerCanWriteSkill({
-            skill: skill.localSkill,
-            consumerProfile: ctx.consumerProfile
-          });
-        }
+        await assertConsumerCanWriteSkillGroupItem({
+          instance: ctx.instance,
+          skillId: ctx.skillGroupItem.skill.id,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups
+        });
 
         let skillGroupItem = await subspaceSkillGroupItemService.delete({
           instance: ctx.instance,
