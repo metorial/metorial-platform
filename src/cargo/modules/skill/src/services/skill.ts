@@ -124,7 +124,10 @@ class SkillServiceImpl {
               templateId: d.parentSkillTemplate.storeTemplate.id,
               name: d.input.name,
               actor,
-              access: 'private'
+              access: 'private',
+              documentTitleOverrides: {
+                '/SKILL.md': d.input.name
+              }
             }
           })
         : d.parentSkill

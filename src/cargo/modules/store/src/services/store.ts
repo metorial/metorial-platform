@@ -11,7 +11,11 @@ import {
   resolveTenantActors,
   type DateFilter
 } from '@metorial-cargo/list-utils';
-import { documentInclude, documentService } from '@metorial-cargo/module-doc';
+import {
+  documentInclude,
+  documentService,
+  rewriteDocumentMarkdownTitle
+} from '@metorial-cargo/module-doc';
 import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
 import {
   filePurposeService,
@@ -148,6 +152,7 @@ class StoreServiceImpl {
       store: Store;
       storeTemplate: StoreTemplateRecord;
       actor?: TenantActor;
+      documentTitleOverrides?: Record<string, string>;
     }
   ) {
     let filePurpose = await filePurposeService.ensureGenericFilePurpose();
@@ -184,13 +189,22 @@ class StoreServiceImpl {
 
       if (item.kind === 'document') {
         let documentContent = content.toString('utf8');
+        let normalizedItemPath = normalizeStorePath({
+          path: item.path,
+          kind: 'file'
+        });
+        let titleOverride = d.documentTitleOverrides?.[normalizedItemPath.path];
+        let title =
+          titleOverride ?? item.title ?? this.inferMarkdownTitle(documentContent) ?? name;
 
         await documentService.createDocument({
           tenant: d.tenant,
           environment: d.environment,
           input: {
-            title: item.title ?? this.inferMarkdownTitle(documentContent) ?? name,
-            content: documentContent,
+            title,
+            content: titleOverride
+              ? rewriteDocumentMarkdownTitle(documentContent, titleOverride)
+              : documentContent,
             actorId: d.actor?.id,
             store: {
               id: d.store.id,
@@ -309,6 +323,7 @@ class StoreServiceImpl {
         name: string;
         actor?: TenantActor;
         access?: StoreAccess;
+        documentTitleOverrides?: Record<string, string>;
       };
     }
   ) {
@@ -339,7 +354,8 @@ class StoreServiceImpl {
           name: d.input.name,
           access: d.input.access,
           cloneType: 'duplicate',
-          parentStoreTemplate: storeTemplate
+          parentStoreTemplate: storeTemplate,
+          documentTitleOverrides: d.input.documentTitleOverrides
         },
         defaultPermissions: [storeReadPermission],
         overridePermissions: true
@@ -363,7 +379,8 @@ class StoreServiceImpl {
       environment: d.environment,
       store: createdStore,
       storeTemplate,
-      actor: d.input.actor
+      actor: d.input.actor,
+      documentTitleOverrides: d.input.documentTitleOverrides
     });
 
     return createdStore;
@@ -538,6 +555,7 @@ class StoreServiceImpl {
           access?: StoreAccess;
           cloneType?: StoreCloneType;
           parentStoreTemplate?: Pick<StoreTemplateRecord, 'oid'>;
+          documentTitleOverrides?: Record<string, string>;
         };
       }
   ) {
@@ -586,7 +604,8 @@ class StoreServiceImpl {
           actor: d.actor,
           defaultPermissions: d.defaultPermissions,
           overridePermissions: d.overridePermissions,
-          cloneType
+          cloneType,
+          documentTitleOverrides: d.input.documentTitleOverrides
         });
       }
 
@@ -739,6 +758,7 @@ class StoreServiceImpl {
         targetStore: Store;
         item: StoreItemRecord;
         cloneType: StoreCloneType;
+        documentTitleOverrides?: Record<string, string>;
       }
   ) {
     return await withTransaction(async db => {
@@ -778,6 +798,7 @@ class StoreServiceImpl {
       }
 
       if (d.item.document) {
+        let titleOverride = d.documentTitleOverrides?.[normalizedItemPath.path];
         let sourceDocument = await db.document.findFirst({
           where: {
             tenantOid: d.tenant.oid,
@@ -796,7 +817,9 @@ class StoreServiceImpl {
           environment: d.environment,
           document: sourceDocument,
           input: {
+            title: titleOverride,
             cloneType: d.cloneType,
+            rewriteContentTitle: titleOverride !== undefined,
             actorId: d.actor?.id,
             creatorActorId: d.actor?.id
           }

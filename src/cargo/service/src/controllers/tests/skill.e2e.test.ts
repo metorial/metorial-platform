@@ -3027,8 +3027,20 @@ describe('cargo skill.e2e', () => {
       tenantId: tenant.id,
       environmentId: environment.id,
       documentId: 'cdoc_skill_template_source_document',
+      title: 'Template Skill',
+      content:
+        '---\ndescription: Template metadata\n---\n\n# Template Skill\n\nTemplate-backed content',
+      store: {
+        id: sourceStore.id,
+        path: '/SKILL.md'
+      }
+    });
+    await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: 'cdoc_skill_template_source_readme',
       title: 'Readme',
-      content: 'template-backed content',
+      content: '# Readme\n\nSupplemental content',
       store: {
         id: sourceStore.id,
         path: '/docs/readme.md'
@@ -3076,6 +3088,11 @@ describe('cargo skill.e2e', () => {
     let createdDocument = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
+      documentId: createdItems.items.find(item => item.path === '/SKILL.md')!.documentId!
+    });
+    let createdReadmeDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
       documentId: createdItems.items.find(item => item.path === '/docs/readme.md')!.documentId!
     });
     let createdDocumentRecord = await db.document.findUnique({
@@ -3109,8 +3126,15 @@ describe('cargo skill.e2e', () => {
       skillTemplateRecord?.storeTemplateOid
     );
     expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(createdItems.items.map(item => item.path)).toContain('/SKILL.md');
     expect(createdItems.items.map(item => item.path)).toContain('/docs/readme.md');
-    expect(createdDocument.content).toBe('template-backed content');
+    expect(createdDocument.title).toBe(skill.name);
+    expect(createdDocument.content).toBe(
+      '---\ndescription: Template metadata\n---\n\n# Skill From Template Parent\n\nTemplate-backed content'
+    );
+    expect(createdDocument.content).not.toContain('# Template Skill');
+    expect(createdReadmeDocument.title).toBe('Readme');
+    expect(createdReadmeDocument.content).toBe('# Readme\n\nSupplemental content');
     expect(createdDocumentRecord?.parentDocumentOid).toBeNull();
     expect(createdDocumentRecord?.isContentOwner).toBe(true);
     expect(createdDocumentRecord?.createdByTenantActorOid).toBeTruthy();
@@ -3229,6 +3253,13 @@ describe('cargo skill.e2e', () => {
           content: 'template file content',
           encoding: 'utf-8',
           mimeType: 'text/plain'
+        },
+        {
+          path: '/SKILL.md',
+          type: 'document',
+          content:
+            '---\ndescription: Standalone template\n---\n\n# Template Skill\n\nStandalone body',
+          encoding: 'utf-8'
         }
       ]
     });
@@ -3263,9 +3294,25 @@ describe('cargo skill.e2e', () => {
         file: true
       }
     });
+    let createdItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: instantiatedSkill.storeId,
+      limit: 20
+    });
+    let createdSkillDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: createdItems.items.find(item => item.path === '/SKILL.md')!.documentId!
+    });
 
     expect(templateItemRecord?.mimeType).toBe('text/plain');
     expect(createdFileItem?.file?.fileType).toBe('text/plain');
+    expect(createdSkillDocument.title).toBe(instantiatedSkill.name);
+    expect(createdSkillDocument.content).toBe(
+      '---\ndescription: Standalone template\n---\n\n# From Standalone File Template\n\nStandalone body'
+    );
+    expect(createdSkillDocument.content).not.toContain('# Template Skill');
   });
 
   it('rejects skill template creation when more than one source input is provided', async () => {
