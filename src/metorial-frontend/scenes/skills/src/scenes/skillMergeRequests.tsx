@@ -19,6 +19,7 @@ import {
   useSkillMergeRequests,
   useStorePermissions,
   useUpdateSkillMergeRequestComment,
+  skillMergeRequestLoader,
   type SkillMergeRequestEvent
 } from '@metorial/state';
 import {
@@ -1010,7 +1011,7 @@ let MergeReviewDialog = ({
   readableStoreIds: string[];
   close: () => void;
   dialogProps: any;
-  onSubmitted: () => void;
+  onSubmitted: () => Promise<void> | void;
 }) => {
   let bulkResolve = useBulkResolveSkillMergeRequestItems();
   let perform = usePerformSkillMergeRequest();
@@ -1085,12 +1086,12 @@ let MergeReviewDialog = ({
         if (performError) throw performError;
 
         close();
-        onSubmitted();
+        await onSubmitted();
       },
       {
         loading: 'Merging changes...',
-        success: 'Merge started',
-        error: 'Failed to start merge'
+        success: 'Changes merged successfully',
+        error: 'Failed to merge changes'
       }
     );
   };
@@ -1225,6 +1226,7 @@ export let SkillMergeRequestScene = (p: {
   conversationHref?: string;
   changesHref?: string;
   onMerged?: (targetSkillId: string) => void;
+  readOnly?: boolean;
 }) => {
   let mergeRequest = useSkillMergeRequest(p.instanceId, p.mergeRequestId);
   let plan = useSkillMergeRequestPlan(p.instanceId, p.mergeRequestId);
@@ -1299,8 +1301,9 @@ export let SkillMergeRequestScene = (p: {
     let targetLabel = direction == 'upstream_to_fork' ? 'fork' : 'upstream';
     let sourceLabel = direction == 'upstream_to_fork' ? 'upstream' : 'fork';
     let canWriteTarget =
-      targetPermissions.data?.hasFullAccess ||
-      targetPermissions.data?.permissions.includes('content_write');
+      !p.readOnly &&
+      (targetPermissions.data?.hasFullAccess ||
+        targetPermissions.data?.permissions.includes('content_write'));
     let unresolved = plan.data.items.filter(entry => entry.item.status == 'unresolved').length;
     let visibleChangeItems = plan.data.items.filter(entry => entry.item.kind != 'directory');
     let totalStats = visibleChangeItems.reduce(
@@ -1322,7 +1325,24 @@ export let SkillMergeRequestScene = (p: {
           readableStoreIds={targetPermissions.data?.readableStoreIds ?? []}
           close={close}
           dialogProps={dialogProps}
-          onSubmitted={() => {
+          onSubmitted={async () => {
+            while (true) {
+              let updatedRequest = await skillMergeRequestLoader.fetchAndReturn(
+                {
+                  instanceId: p.instanceId!,
+                  skillMergeRequestId: p.mergeRequestId!
+                },
+                { force: true }
+              );
+
+              if (updatedRequest.status == 'merged') break;
+              if (updatedRequest.mergeError || updatedRequest.status == 'closed') {
+                throw new Error('The merge could not be completed');
+              }
+
+              await new Promise(resolve => window.setTimeout(resolve, 1800));
+            }
+
             mergeRequest.refetch();
             plan.refetch();
             events.refetch();
@@ -1453,7 +1473,9 @@ export let SkillMergeRequestScene = (p: {
           size="6"
           title={request.title}
           description={request.description}
-          actions={<Badge color={statusColor(request.status)}>{statusLabel(request.status)}</Badge>}
+          actions={
+            <Badge color={statusColor(request.status)}>{statusLabel(request.status)}</Badge>
+          }
         />
 
         {p.conversationHref && p.changesHref && (
@@ -1563,7 +1585,7 @@ export let SkillMergeRequestScene = (p: {
                                   </Text>
                                 </CommentMeta>
                                 <CommentCard>
-                                  {!comment.deletedAt && (
+                                  {!p.readOnly && !comment.deletedAt && (
                                     <CommentActions data-comment-actions>
                                       <Button
                                         size="1"
@@ -1713,58 +1735,60 @@ export let SkillMergeRequestScene = (p: {
                     </Timeline>
                   </>
                 ))}
-                <Composer>
-                  <Input
-                    id="skill-merge-comment"
-                    as="textarea"
-                    minRows={3}
-                    hideLabel
-                    label={
-                      commentTarget?.replyToCommentId
-                        ? 'Reply'
-                        : commentTarget?.path
-                          ? `Comment on ${commentTarget.path}`
-                          : 'Add a comment'
-                    }
-                    value={commentBody}
-                    onInput={setCommentBody}
-                    onKeyDown={event => {
-                      if (
-                        event.key == 'Enter' &&
-                        (event.metaKey || event.ctrlKey) &&
-                        commentBody.trim() &&
-                        !createComment.isLoading
-                      ) {
-                        event.preventDefault();
-                        void addComment();
+                {!p.readOnly && (
+                  <Composer>
+                    <Input
+                      id="skill-merge-comment"
+                      as="textarea"
+                      minRows={3}
+                      hideLabel
+                      label={
+                        commentTarget?.replyToCommentId
+                          ? 'Reply'
+                          : commentTarget?.path
+                            ? `Comment on ${commentTarget.path}`
+                            : 'Add a comment'
                       }
-                    }}
-                    placeholder="Leave a comment"
-                  />
-                  <Flex justify="end">
-                    {commentTarget && (
+                      value={commentBody}
+                      onInput={setCommentBody}
+                      onKeyDown={event => {
+                        if (
+                          event.key == 'Enter' &&
+                          (event.metaKey || event.ctrlKey) &&
+                          commentBody.trim() &&
+                          !createComment.isLoading
+                        ) {
+                          event.preventDefault();
+                          void addComment();
+                        }
+                      }}
+                      placeholder="Leave a comment"
+                    />
+                    <Flex justify="end">
+                      {commentTarget && (
+                        <Button
+                          size="2"
+                          variant="soft"
+                          color="gray"
+                          onClick={() => setCommentTarget(null)}
+                        >
+                          Cancel
+                        </Button>
+                      )}
                       <Button
                         size="2"
-                        variant="soft"
-                        color="gray"
-                        onClick={() => setCommentTarget(null)}
+                        disabled={!commentBody.trim()}
+                        loading={createComment.isLoading}
+                        onClick={addComment}
                       >
-                        Cancel
+                        Comment
                       </Button>
-                    )}
-                    <Button
-                      size="2"
-                      disabled={!commentBody.trim()}
-                      loading={createComment.isLoading}
-                      onClick={addComment}
-                    >
-                      Comment
-                    </Button>
-                  </Flex>
-                  <createComment.RenderError />
-                  <updateComment.RenderError />
-                  <deleteComment.RenderError />
-                </Composer>
+                    </Flex>
+                    <createComment.RenderError />
+                    <updateComment.RenderError />
+                    <deleteComment.RenderError />
+                  </Composer>
+                )}
               </Discussion>
             </Section>
           )}

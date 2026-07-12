@@ -161,30 +161,38 @@ let getSkillAgentTableRow = (p: {
   agent: SkillAgent;
   isDeleting: boolean;
   getDocumentPath: (documentId: string) => string;
-  onEdit: (agent: SkillAgent) => void;
-  onDelete: (agent: SkillAgent) => void;
+  onEdit?: (agent: SkillAgent) => void;
+  onDelete?: (agent: SkillAgent) => void;
 }) => {
   let documentPath = p.getDocumentPath(p.agent.documentId);
+
+  let row = [
+    <AgentName>
+      <Text size="2" weight="strong">
+        {p.agent.name}
+      </Text>
+      {p.agent.description && (
+        <Text color="gray600" size="1">
+          {p.agent.description}
+        </Text>
+      )}
+    </AgentName>,
+    <Badge color={p.agent.status === 'active' ? 'green' : 'gray'} size="1">
+      {p.agent.status}
+    </Badge>,
+    <Text color={p.agent.path ? 'gray800' : 'gray500'} size="2">
+      {p.agent.path ?? p.agent.documentId}
+    </Text>
+  ];
+
+  if (!p.onEdit || !p.onDelete) {
+    return { href: documentPath, data: row };
+  }
 
   return {
     href: documentPath,
     data: [
-      <AgentName>
-        <Text size="2" weight="strong">
-          {p.agent.name}
-        </Text>
-        {p.agent.description && (
-          <Text color="gray600" size="1">
-            {p.agent.description}
-          </Text>
-        )}
-      </AgentName>,
-      <Badge color={p.agent.status === 'active' ? 'green' : 'gray'} size="1">
-        {p.agent.status}
-      </Badge>,
-      <Text color={p.agent.path ? 'gray800' : 'gray500'} size="2">
-        {p.agent.path ?? p.agent.documentId}
-      </Text>,
+      ...row,
       <Actions onClick={e => e.stopPropagation()}>
         <Menu
           items={[
@@ -192,14 +200,14 @@ let getSkillAgentTableRow = (p: {
             { id: 'delete', label: 'Delete' }
           ]}
           onItemClick={item => {
-            if (item === 'edit') p.onEdit(p.agent);
+            if (item === 'edit') p.onEdit?.(p.agent);
             if (item === 'delete') {
               confirm({
                 title: `Delete ${p.agent.name}?`,
                 description:
                   'This will archive the skill agent and remove its linked store item.',
                 confirmText: 'Delete',
-                onConfirm: async () => p.onDelete(p.agent)
+                onConfirm: async () => p.onDelete?.(p.agent)
               });
             }
           }}
@@ -221,6 +229,7 @@ export let SkillAgentsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
   getDocumentPath: (documentId: string) => string;
+  readOnly?: boolean;
 }) => {
   let skillAgents = useSkillAgents(p.instanceId, p.skillId, { order: 'asc' });
   let deleteSkillAgent = useDeleteSkillAgent();
@@ -273,15 +282,17 @@ export let SkillAgentsScene = (p: {
         title="Skill Agents"
         description="Create and manage sub-agents attached to this skill."
         actions={
-        <Button
-          size="2"
-          variant="outline"
-          iconLeft={<RiAddLine />}
-          disabled={!p.instanceId || !p.skillId}
-          onClick={openCreateModal}
-        >
-          Create Agent
-        </Button>
+          !p.readOnly ? (
+            <Button
+              size="2"
+              variant="outline"
+              iconLeft={<RiAddLine />}
+              disabled={!p.instanceId || !p.skillId}
+              onClick={openCreateModal}
+            >
+              Create Agent
+            </Button>
+          ) : null
         }
       />
       {renderWithPagination(skillAgents)(skillAgents => (
@@ -294,14 +305,18 @@ export let SkillAgentsScene = (p: {
             </EmptyState>
           ) : (
             <Table
-              headers={['Name', 'Status', 'Document', '']}
+              headers={
+                p.readOnly
+                  ? ['Name', 'Status', 'Document']
+                  : ['Name', 'Status', 'Document', '']
+              }
               data={skillAgents.data.items.map(agent =>
                 getSkillAgentTableRow({
                   agent,
                   isDeleting: deleteSkillAgent.isLoading,
                   getDocumentPath: p.getDocumentPath,
-                  onEdit: openEditModal,
-                  onDelete: deleteAgent
+                  onEdit: p.readOnly ? undefined : openEditModal,
+                  onDelete: p.readOnly ? undefined : deleteAgent
                 })
               )}
             />

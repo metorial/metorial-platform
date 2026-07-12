@@ -23,6 +23,7 @@ export let SkillParticipantsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
   shareContext?: SkillSharePanelContext | null;
+  readOnly?: boolean;
 }) => {
   let participants = useSkillParticipants(p.instanceId, p.skillId, { order: 'asc' });
 
@@ -33,7 +34,7 @@ export let SkillParticipantsScene = (p: {
         title="Participants"
         description="People who have contributed to or used this skill."
         actions={
-          p.shareContext ? (
+          p.shareContext && !p.readOnly ? (
             <SkillSharePopover
               instanceId={p.instanceId}
               context={p.shareContext}

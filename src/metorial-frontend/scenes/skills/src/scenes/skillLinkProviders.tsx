@@ -691,6 +691,7 @@ let AddSkillItemMenu = (p: {
 export let SkillLinkProvidersScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
+  readOnly?: boolean;
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
 }) => {
@@ -807,7 +808,12 @@ export let SkillLinkProvidersScene = (p: {
             title="Providers"
             description="Link providers and integrations to be used with this skill."
             actions={
-              <AddSkillItemMenu disabled={!p.instanceId || !p.skillId} onSelect={openPicker} />
+              !p.readOnly ? (
+                <AddSkillItemMenu
+                  disabled={!p.instanceId || !p.skillId}
+                  onSelect={openPicker}
+                />
+              ) : null
             }
           />
           {skillItems.data.length === 0 ? (
@@ -819,14 +825,14 @@ export let SkillLinkProvidersScene = (p: {
           ) : (
             <>
               <Table
-                headers={['Name', 'Type', '']}
+                headers={p.readOnly ? ['Name', 'Type'] : ['Name', 'Type', '']}
                 data={skillItems.data.map(item =>
                   getSkillItemTableRow({
                     item,
                     providerListings: providerListingLookup,
                     integrationLookup,
                     isDeleting: deleteSkillItem.isLoading,
-                    onDelete: item => deleteItem(item as SkillItem)
+                    onDelete: p.readOnly ? undefined : item => deleteItem(item as SkillItem)
                   })
                 )}
               />

@@ -265,7 +265,7 @@ export let createLoader = <
   let fetchManual = async (input: I, opts?: { force?: boolean }) => {
     let inst = getInstance(input);
 
-    inst.fetch(opts);
+    await inst.fetch(opts);
 
     return inst.state;
   };

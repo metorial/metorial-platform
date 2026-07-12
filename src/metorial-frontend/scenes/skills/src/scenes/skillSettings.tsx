@@ -41,6 +41,7 @@ export let SkillSettingsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
   onDeleteSuccess?: () => void;
+  readOnly?: boolean;
 }) => {
   let skill = useSkill(p.instanceId, p.skillId);
   let imageUpdateMutator = skill.updateMutator();
@@ -102,7 +103,7 @@ export let SkillSettingsScene = (p: {
           inline
         />
       </div>
-      {p.instanceId && (
+      {p.instanceId && !p.readOnly && (
         <SettingsSection>
           <SectionHeader>
             <Text size="3" weight="strong">
@@ -132,33 +133,48 @@ export let SkillSettingsScene = (p: {
         </SectionHeader>
         <form onSubmit={discoveryForm.handleSubmit}>
           <FormStack>
-            <Input label="Client name" {...discoveryForm.getFieldProps('clientName')} />
+            <Input
+              label="Client name"
+              disabled={p.readOnly}
+              {...discoveryForm.getFieldProps('clientName')}
+            />
             <discoveryForm.RenderError field="clientName" />
 
             <Input
               as="textarea"
               label="Client description"
               minRows={4}
+              disabled={p.readOnly}
               {...discoveryForm.getFieldProps('clientDescription')}
             />
             <discoveryForm.RenderError field="clientDescription" />
 
-            <Input label="License" {...discoveryForm.getFieldProps('license')} />
+            <Input
+              label="License"
+              disabled={p.readOnly}
+              {...discoveryForm.getFieldProps('license')}
+            />
             <discoveryForm.RenderError field="license" />
 
-            <Input label="Compatibility" {...discoveryForm.getFieldProps('compatibility')} />
+            <Input
+              label="Compatibility"
+              disabled={p.readOnly}
+              {...discoveryForm.getFieldProps('compatibility')}
+            />
             <discoveryForm.RenderError field="compatibility" />
 
-            <ActionsRow>
-              <Button
-                loading={discoveryUpdateMutator.isLoading}
-                size="2"
-                success={discoveryUpdateMutator.isSuccess}
-                type="submit"
-              >
-                Save
-              </Button>
-            </ActionsRow>
+            {!p.readOnly && (
+              <ActionsRow>
+                <Button
+                  loading={discoveryUpdateMutator.isLoading}
+                  size="2"
+                  success={discoveryUpdateMutator.isSuccess}
+                  type="submit"
+                >
+                  Save
+                </Button>
+              </ActionsRow>
+            )}
 
             <discoveryUpdateMutator.RenderError />
           </FormStack>
@@ -177,68 +193,73 @@ export let SkillSettingsScene = (p: {
         </SectionHeader>
         <form onSubmit={generalForm.handleSubmit}>
           <FormStack>
-            <Input label="Name" {...generalForm.getFieldProps('name')} />
+            <Input label="Name" disabled={p.readOnly} {...generalForm.getFieldProps('name')} />
             <generalForm.RenderError field="name" />
 
             <Input
               as="textarea"
               label="Description"
               minRows={4}
+              disabled={p.readOnly}
               {...generalForm.getFieldProps('description')}
             />
             <generalForm.RenderError field="description" />
 
-            <ActionsRow>
-              <Button
-                loading={generalUpdateMutator.isLoading}
-                size="2"
-                success={generalUpdateMutator.isSuccess}
-                type="submit"
-              >
-                Save
-              </Button>
-            </ActionsRow>
+            {!p.readOnly && (
+              <ActionsRow>
+                <Button
+                  loading={generalUpdateMutator.isLoading}
+                  size="2"
+                  success={generalUpdateMutator.isSuccess}
+                  type="submit"
+                >
+                  Save
+                </Button>
+              </ActionsRow>
+            )}
 
             <generalUpdateMutator.RenderError />
           </FormStack>
         </form>
       </SettingsSection>
 
-      <SettingsSection>
-        <SectionHeader>
-          <Text size="3" weight="strong">
-            Danger Zone
-          </Text>
-          <Text size="2" color="gray700">
-            Delete this skill and remove its current configuration from the instance.
-          </Text>
-        </SectionHeader>
-        <div>
-          <Button
-            color="red"
-            loading={deleteMutator.isLoading}
-            onClick={() =>
-              confirm({
-                title: `Delete ${skill.data.name}?`,
-                description: 'Are you sure you want to delete this skill?',
-                confirmText: 'Delete',
-                onConfirm: async () => {
-                  let [result] = await deleteMutator.mutate(undefined as never);
-                  if (result) {
-                    await p.onDeleteSuccess?.();
+      {!p.readOnly && (
+        <SettingsSection>
+          <SectionHeader>
+            <Text size="3" weight="strong">
+              Danger Zone
+            </Text>
+            <Text size="2" color="gray700">
+              Delete this skill and remove its current configuration from the instance.
+            </Text>
+          </SectionHeader>
+          <div>
+            <Button
+              color="red"
+              loading={deleteMutator.isLoading}
+              onClick={() =>
+                confirm({
+                  title: `Delete ${skill.data.name}?`,
+                  description: 'Are you sure you want to delete this skill?',
+                  confirmText: 'Delete',
+                  onConfirm: async () => {
+                    let [result] = await deleteMutator.mutate(undefined as never);
+                    if (result) {
+                      await p.onDeleteSuccess?.();
+                    }
                   }
-                }
-              })
-            }
-            size="2"
-            success={deleteMutator.isSuccess}
-            type="button"
-          >
-            Delete Skill
-          </Button>
-        </div>
-        <deleteMutator.RenderError />
-      </SettingsSection>
+                })
+              }
+              size="2"
+              success={deleteMutator.isSuccess}
+              type="button"
+            >
+              Delete Skill
+            </Button>
+          </div>
+          <deleteMutator.RenderError />
+        </SettingsSection>
+      )}
     </PageStack>
   ));
 };

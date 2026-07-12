@@ -14,8 +14,8 @@ import {
   useSkill,
   useStorePermissions
 } from '@metorial/state';
-import { Button, Flex, toast } from '@metorial/ui';
-import { RiDownloadLine, RiFileCopyLine, RiUploadLine } from '@remixicon/react';
+import { Button, Flex, toast, Tooltip } from '@metorial/ui';
+import { RiDownloadLine, RiFileCopyLine } from '@remixicon/react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
@@ -217,42 +217,44 @@ export let SkillLayout = () => {
                         navigate(`${skillPath}/merge-requests/${mergeRequestId}/conversation`)
                     })
                   }
+                  menu={
+                    skill.data.hierarchy.type == 'fork' && instance.data && canWriteStore
+                      ? [
+                          {
+                            label: 'Sync with upstream',
+                            onClick: syncWithUpstream
+                          }
+                        ]
+                      : []
+                  }
                 >
                   Request Merge
                 </Button>
               )}
-              {skill.data.hierarchy.type == 'fork' && instance.data && canWriteStore && (
+
+              <Tooltip content="Duplicate Skill">
                 <Button
-                  aria-label="Sync with upstream"
-                  iconRight={<RiUploadLine size={16} />}
+                  aria-label="Duplicate Skill"
+                  disabled={!instance.data}
+                  iconRight={<RiFileCopyLine size={16} />}
+                  onClick={duplicate}
                   size="2"
-                  loading={createSkillForkSync.isLoading}
-                  onClick={syncWithUpstream}
-                  title="Sync with upstream"
                   variant="soft"
                 />
-              )}
-              <Button
-                aria-label="Duplicate Skill"
-                disabled={!instance.data}
-                iconRight={<RiFileCopyLine size={16} />}
-                onClick={duplicate}
-                size="2"
-                title="Duplicate Skill"
-                variant="soft"
-              />
+              </Tooltip>
 
-              <Button
-                aria-label="Export Skill"
-                size="2"
-                disabled={!instance.data}
-                iconRight={<RiDownloadLine size={16} />}
-                loading={createSkillExport.isLoading}
-                success={createSkillExport.isSuccess}
-                onClick={exportSkill}
-                title="Export Skill"
-                variant="soft"
-              />
+              <Tooltip content="Export Skill">
+                <Button
+                  aria-label="Export Skill"
+                  size="2"
+                  disabled={!instance.data}
+                  iconRight={<RiDownloadLine size={16} />}
+                  loading={createSkillExport.isLoading}
+                  success={createSkillExport.isSuccess}
+                  onClick={exportSkill}
+                  variant="soft"
+                />
+              </Tooltip>
             </Flex>
           }
         >

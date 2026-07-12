@@ -1,12 +1,12 @@
 import {
-  useAllSkillItems,
   useAllProviderListings,
+  useAllSkillItems,
   useSkillAgents,
   useSkillMergeRequests,
   useSkillParticipants,
   type SkillItem
 } from '@metorial/state';
-import { Avatar, Button, Input, Menu, Popover, Text, theme } from '@metorial/ui';
+import { Avatar, Button, Input, Menu, Popover, Text, theme, Tooltip } from '@metorial/ui';
 import {
   RiAddLine,
   RiArrowLeftLine,
@@ -572,15 +572,16 @@ export let SkillWorkspaceLayout = (p: SkillWorkspaceLayoutProps) => {
 
         <NavActions>
           {p.actions ? <HostActions>{p.actions}</HostActions> : null}
-          <Button
-            aria-label="Skill settings"
-            iconRight={<RiSettings3Line size={17} />}
-            onClick={() => navigate(p.routes.settings)}
-            size="2"
-            title="Skill settings"
-            variant="soft"
-          />
-          {p.shareContext ? (
+          <Tooltip content="Skill settings">
+            <Button
+              aria-label="Skill settings"
+              iconRight={<RiSettings3Line size={17} />}
+              onClick={() => navigate(p.routes.settings)}
+              size="2"
+              variant="soft"
+            />
+          </Tooltip>
+          {p.shareContext && !p.readOnly ? (
             <>
               <SkillSharePopover
                 instanceId={p.instanceId}
