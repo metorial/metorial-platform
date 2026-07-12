@@ -1,4 +1,5 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import {
   type IntegrationPreview,
   type SkillItem,
@@ -99,7 +100,7 @@ let truncate = (value: string | null | undefined, length = 100) => {
   return `${value.slice(0, length)}...`;
 };
 
-type SkillItemPickerKind = 'provider' | 'integration';
+export type SkillItemPickerKind = 'provider' | 'integration';
 type LinkedProviderItem = SkillItem | SkillTemplateItem;
 
 let getSkillItemEntity = (
@@ -550,7 +551,7 @@ let SkillItemPickerPanel = (p: {
   );
 };
 
-let showSkillItemPickerPanel = (p: {
+export let showSkillItemPickerPanel = (p: {
   kind: SkillItemPickerKind;
   instanceId: string;
   skillId: string;
@@ -800,13 +801,15 @@ export let SkillLinkProvidersScene = (p: {
       }
 
       return (
-        <Box
-          title="Providers"
-          description="Link providers and integrations to be used with this skill."
-          rightActions={
-            <AddSkillItemMenu disabled={!p.instanceId || !p.skillId} onSelect={openPicker} />
-          }
-        >
+        <>
+          <PageHeader
+            size="6"
+            title="Providers"
+            description="Link providers and integrations to be used with this skill."
+            actions={
+              <AddSkillItemMenu disabled={!p.instanceId || !p.skillId} onSelect={openPicker} />
+            }
+          />
           {skillItems.data.length === 0 ? (
             <EmptyState>
               <Text color="gray600" size="2">
@@ -830,7 +833,7 @@ export let SkillLinkProvidersScene = (p: {
               <deleteSkillItem.RenderError />
             </>
           )}
-        </Box>
+        </>
       );
     }
   );

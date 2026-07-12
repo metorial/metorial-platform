@@ -438,7 +438,7 @@ let showRepositoryPickerModal = (p: {
       <Spacer size={15} />
 
       <Dialog.Actions>
-        <Button variant="outline" onClick={close} size="2">
+        <Button variant="soft" onClick={close} size="2">
           Close
         </Button>
       </Dialog.Actions>

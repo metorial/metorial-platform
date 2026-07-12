@@ -11,18 +11,27 @@ import styled from 'styled-components';
 import 'react-medium-image-zoom/dist/styles.css';
 import './readme.css';
 
-let Wrapper = styled.div`
+let Wrapper = styled.div<{ $fontSize?: string }>`
   display: flex;
   flex-direction: column;
+  font-size: ${p => p.$fontSize};
 `;
 
-export let Readme = ({ readme, imageRoot }: { readme: string; imageRoot?: string }) => {
+export let Readme = ({
+  readme,
+  imageRoot,
+  fontSize
+}: {
+  readme: string;
+  imageRoot?: string;
+  fontSize?: string;
+}) => {
   readme = useMemo(() => striptags(readme), [readme]);
 
   let isServer = useIsSSR();
 
   return (
-    <Wrapper className="markdown-body">
+    <Wrapper className="markdown-body" $fontSize={fontSize}>
       <Markdown
         remarkPlugins={[remarkGfm]}
         components={{

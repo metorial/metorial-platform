@@ -13,6 +13,7 @@ import type {
   DashboardInstanceSkillsMergeRequestsPlanGetOutput
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -142,10 +143,20 @@ export let skillMergeRequestEventsLoader = createLoader({
     i: {
       instanceId: string;
       skillMergeRequestId: string;
-    } & DashboardInstanceSkillsMergeRequestsEventsListQuery
+    } & Omit<
+      DashboardInstanceSkillsMergeRequestsEventsListQuery,
+      'after' | 'before' | 'cursor'
+    >
   ) =>
     withAuth(sdk =>
-      sdk.skills.mergeRequests.events.list(i.instanceId, i.skillMergeRequestId, i)
+      autoPaginate(cursor =>
+        sdk.skills.mergeRequests.events.list(i.instanceId, i.skillMergeRequestId, {
+          ...i,
+          ...cursor,
+          limit: i.limit ?? 100,
+          order: i.order ?? 'asc'
+        })
+      )
     ),
   mutators: {}
 });
@@ -153,24 +164,14 @@ export let skillMergeRequestEventsLoader = createLoader({
 export let useSkillMergeRequestEvents = (
   instanceId: string | null | undefined,
   skillMergeRequestId: string | null | undefined,
-  query?: DashboardInstanceSkillsMergeRequestsEventsListQuery | null
+  query?: Omit<
+    DashboardInstanceSkillsMergeRequestsEventsListQuery,
+    'after' | 'before' | 'cursor'
+  > | null
 ) =>
-  usePaginator(
-    pagination =>
-      skillMergeRequestEventsLoader.use(
-        instanceId && skillMergeRequestId && query !== null
-          ? {
-              instanceId,
-              skillMergeRequestId,
-              ...pagination,
-              ...(query ?? {})
-            }
-          : null
-      ),
-    instanceId && skillMergeRequestId
-      ? `${instanceId}:${skillMergeRequestId}:skillMergeRequestEvents:${JSON.stringify(
-          query ?? {}
-        )}`
+  skillMergeRequestEventsLoader.use(
+    instanceId && skillMergeRequestId && query !== null
+      ? { instanceId, skillMergeRequestId, ...(query ?? {}) }
       : null
   );
 

@@ -1,7 +1,8 @@
 import { renderWithPagination } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import { useSkillParticipants } from '@metorial/state';
 import { Avatar, Badge, Button, Flex, RenderDate, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Table } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { SkillSharePopover, type SkillSharePanelContext } from '../components/skillSharePanel';
 
@@ -26,24 +27,22 @@ export let SkillParticipantsScene = (p: {
   let participants = useSkillParticipants(p.instanceId, p.skillId, { order: 'asc' });
 
   return renderWithPagination(participants)(participantList => (
-    <Box
-      title="Participants"
-      description="People who have contributed to or used this skill."
-      rightActions={
-        p.shareContext ? (
-          <SkillSharePopover
-            instanceId={p.instanceId}
-            context={p.shareContext}
-            onShared={() => participants.refetch()}
-            trigger={
-              <Button size="2" variant="outline">
-                Share
-              </Button>
-            }
-          />
-        ) : null
-      }
-    >
+    <>
+      <PageHeader
+        size="6"
+        title="Participants"
+        description="People who have contributed to or used this skill."
+        actions={
+          p.shareContext ? (
+            <SkillSharePopover
+              instanceId={p.instanceId}
+              context={p.shareContext}
+              onShared={() => participants.refetch()}
+              trigger={<Button size="2">Share</Button>}
+            />
+          ) : null
+        }
+      />
       {participantList.data.items.length === 0 ? (
         <EmptyState>
           <Text color="gray600" size="2">
@@ -84,6 +83,6 @@ export let SkillParticipantsScene = (p: {
           ])}
         />
       )}
-    </Box>
+    </>
   ));
 };

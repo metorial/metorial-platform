@@ -1,7 +1,8 @@
 import { renderWithPagination } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import { useSkillVersions } from '@metorial/state';
 import { RenderDate, Text } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
+import { ID, Table } from '@metorial/ui-product';
 import styled from 'styled-components';
 
 let EmptyState = styled.div`
@@ -16,7 +17,12 @@ export let SkillVersionsScene = (p: {
   let versions = useSkillVersions(p.instanceId, p.skillId, { order: 'desc' });
 
   return renderWithPagination(versions)(versions => (
-    <Box title="Versions" description="Version history captured from this skill's files.">
+    <>
+      <PageHeader
+        size="6"
+        title="Versions"
+        description="Version history captured from this skill's files."
+      />
       {versions.data.items.length === 0 ? (
         <EmptyState>
           <Text color="gray600" size="2">
@@ -33,6 +39,6 @@ export let SkillVersionsScene = (p: {
           ])}
         />
       )}
-    </Box>
+    </>
   ));
 };

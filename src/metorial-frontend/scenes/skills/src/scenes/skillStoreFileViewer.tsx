@@ -203,12 +203,10 @@ let useRefetchOnAtomChange = (cb: () => void) => {
 let currentStoreHash = atom<string>('0');
 export let useCurrentStoreHash = () => useAtom(currentStoreHash);
 
-export let StoreFileViewerScene = (p: {
+export let SkillStoreFileTree = (p: {
   instanceId: string | null | undefined;
   storeId: string | null | undefined;
   getDocumentPath: (documentId: string, itemId: string) => string;
-  title?: string;
-  description?: string;
   readOnly?: boolean;
   shareContext?: SkillSharePanelContext | null;
 }) => {
@@ -447,46 +445,58 @@ export let StoreFileViewerScene = (p: {
   }, [optimisticItems.length]);
 
   return renderWithLoader({ storeItems, storePermissions })(() => (
-    <Box
-      title={p.title ?? 'Files'}
-      description={
-        p.description ??
-        'Manage the documents and files in this store. Describe workflows, behaviors, and tasks for agentic workflows.'
-      }
-    >
-      <FileTreeWrap>
-        <SkillFileTree
-          emptyLabel="This store does not contain any files or documents yet."
-          expandedPaths={expandedPaths}
-          isCreating={isCreating}
-          nodes={treeNodes}
-          instanceId={p.instanceId}
-          shareContext={p.shareContext}
-          canWrite={
-            !p.readOnly && !!storePermissions.data?.permissions.includes('content_write')
-          }
-          onCreate={createStoreItem}
-          onDelete={deleteStoreItem}
-          onFileSelect={createStoreFile}
-          onFilesDrop={createStoreFiles}
-          getDocumentPath={p.getDocumentPath}
-          onMove={renameStoreItem}
-          onRename={renameStoreItem}
-          onToggle={path =>
-            setExpandedPaths(current => {
-              let next = new Set(current);
-              if (next.has(path)) next.delete(path);
-              else next.add(path);
-              return next;
-            })
-          }
-        />
-        <createDocument.RenderError />
-        <uploadFile.RenderError />
-        <modifyStoreItems.RenderError />
-      </FileTreeWrap>
-    </Box>
+    <FileTreeWrap>
+      <SkillFileTree
+        emptyLabel="This store does not contain any files or documents yet."
+        expandedPaths={expandedPaths}
+        isCreating={isCreating}
+        nodes={treeNodes}
+        instanceId={p.instanceId}
+        shareContext={p.shareContext}
+        canWrite={
+          !p.readOnly && !!storePermissions.data?.permissions.includes('content_write')
+        }
+        onCreate={createStoreItem}
+        onDelete={deleteStoreItem}
+        onFileSelect={createStoreFile}
+        onFilesDrop={createStoreFiles}
+        getDocumentPath={p.getDocumentPath}
+        onMove={renameStoreItem}
+        onRename={renameStoreItem}
+        onToggle={path =>
+          setExpandedPaths(current => {
+            let next = new Set(current);
+            if (next.has(path)) next.delete(path);
+            else next.add(path);
+            return next;
+          })
+        }
+      />
+      <createDocument.RenderError />
+      <uploadFile.RenderError />
+      <modifyStoreItems.RenderError />
+    </FileTreeWrap>
   ));
 };
+
+export let StoreFileViewerScene = (p: {
+  instanceId: string | null | undefined;
+  storeId: string | null | undefined;
+  getDocumentPath: (documentId: string, itemId: string) => string;
+  title?: string;
+  description?: string;
+  readOnly?: boolean;
+  shareContext?: SkillSharePanelContext | null;
+}) => (
+  <Box
+    title={p.title ?? 'Files'}
+    description={
+      p.description ??
+      'Manage the documents and files in this store. Describe workflows, behaviors, and tasks for agentic workflows.'
+    }
+  >
+    <SkillStoreFileTree {...p} />
+  </Box>
+);
 
 export let SkillStoreFileViewerScene = StoreFileViewerScene;

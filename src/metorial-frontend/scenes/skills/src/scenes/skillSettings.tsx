@@ -1,6 +1,7 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import { useSkill, useSkillGroup, useSkillTemplate } from '@metorial/state';
-import { Button, Input, Spacer, confirm } from '@metorial/ui';
+import { Button, Input, Spacer, Text, confirm, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { SkillImageUploader } from '../components/skillImageUploader';
@@ -9,6 +10,20 @@ let PageStack = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+`;
+
+let SettingsSection = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid ${theme.colors.gray300};
+`;
+
+let SectionHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
 let FormStack = styled.div`
@@ -79,26 +94,42 @@ export let SkillSettingsScene = (p: {
 
   return renderWithLoader({ skill })(({ skill }) => (
     <PageStack>
+      <div>
+        <PageHeader
+          size="6"
+          title="Settings"
+          description="Manage this skill's details and discovery metadata."
+          inline
+        />
+      </div>
       {p.instanceId && (
-        <Box
-          title="Skill Image"
-          description="Upload the image shown for this skill in discovery flows."
-        >
+        <SettingsSection>
+          <SectionHeader>
+            <Text size="3" weight="strong">
+              Skill Image
+            </Text>
+            <Text size="2" color="gray700">
+              Upload the image shown for this skill in discovery flows.
+            </Text>
+          </SectionHeader>
           <SkillImageUploader
             instanceId={p.instanceId}
             skill={skill.data}
             updateSkill={imageUpdateMutator}
           />
-
-          <Spacer size={10} />
           <imageUpdateMutator.RenderError />
-        </Box>
+        </SettingsSection>
       )}
 
-      <Box
-        title="Discovery Settings"
-        description="Manage the values exposed to clients and discovery flows for this skill."
-      >
+      <SettingsSection>
+        <SectionHeader>
+          <Text size="3" weight="strong">
+            Discovery Settings
+          </Text>
+          <Text size="2" color="gray700">
+            Manage the values exposed to clients and discovery flows for this skill.
+          </Text>
+        </SectionHeader>
         <form onSubmit={discoveryForm.handleSubmit}>
           <FormStack>
             <Input label="Client name" {...discoveryForm.getFieldProps('clientName')} />
@@ -132,12 +163,18 @@ export let SkillSettingsScene = (p: {
             <discoveryUpdateMutator.RenderError />
           </FormStack>
         </form>
-      </Box>
+      </SettingsSection>
 
-      <Box
-        title="General Settings"
-        description="Manage the name and description of this skill. This information is used in Metorial, but not passed to agents or clients."
-      >
+      <SettingsSection>
+        <SectionHeader>
+          <Text size="3" weight="strong">
+            General Settings
+          </Text>
+          <Text size="2" color="gray700">
+            Manage the name and description of this skill. This information is used in
+            Metorial, but not passed to agents or clients.
+          </Text>
+        </SectionHeader>
         <form onSubmit={generalForm.handleSubmit}>
           <FormStack>
             <Input label="Name" {...generalForm.getFieldProps('name')} />
@@ -165,38 +202,43 @@ export let SkillSettingsScene = (p: {
             <generalUpdateMutator.RenderError />
           </FormStack>
         </form>
-      </Box>
+      </SettingsSection>
 
-      <Box
-        title="Danger Zone"
-        description="Delete this skill and remove its current configuration from the instance."
-      >
-        <Button
-          color="red"
-          loading={deleteMutator.isLoading}
-          onClick={() =>
-            confirm({
-              title: `Delete ${skill.data.name}?`,
-              description: 'Are you sure you want to delete this skill?',
-              confirmText: 'Delete',
-              onConfirm: async () => {
-                let [result] = await deleteMutator.mutate(undefined as never);
-                if (result) {
-                  await p.onDeleteSuccess?.();
+      <SettingsSection>
+        <SectionHeader>
+          <Text size="3" weight="strong">
+            Danger Zone
+          </Text>
+          <Text size="2" color="gray700">
+            Delete this skill and remove its current configuration from the instance.
+          </Text>
+        </SectionHeader>
+        <div>
+          <Button
+            color="red"
+            loading={deleteMutator.isLoading}
+            onClick={() =>
+              confirm({
+                title: `Delete ${skill.data.name}?`,
+                description: 'Are you sure you want to delete this skill?',
+                confirmText: 'Delete',
+                onConfirm: async () => {
+                  let [result] = await deleteMutator.mutate(undefined as never);
+                  if (result) {
+                    await p.onDeleteSuccess?.();
+                  }
                 }
-              }
-            })
-          }
-          size="2"
-          success={deleteMutator.isSuccess}
-          type="button"
-        >
-          Delete Skill
-        </Button>
-
-        <Spacer size={10} />
+              })
+            }
+            size="2"
+            success={deleteMutator.isSuccess}
+            type="button"
+          >
+            Delete Skill
+          </Button>
+        </div>
         <deleteMutator.RenderError />
-      </Box>
+      </SettingsSection>
     </PageStack>
   ));
 };

@@ -48,7 +48,7 @@ let normalizeOptionalString = (value: string | undefined | null) => {
   return trimmed ? trimmed : undefined;
 };
 
-let showSkillAgentFormModal = (p: {
+export let showSkillAgentFormModal = (p: {
   mode: 'create' | 'edit';
   instanceId: string;
   skillId: string;
@@ -136,7 +136,7 @@ let showSkillAgentFormModal = (p: {
           <Spacer height={20} />
 
           <Dialog.Actions>
-            <Button variant="outline" type="button" onClick={close} size="2">
+            <Button variant="soft" type="button" onClick={close} size="2">
               Cancel
             </Button>
             <Button
