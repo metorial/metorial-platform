@@ -21,7 +21,7 @@ let Wrapper = styled('button')`
   flex-shrink: 0;
   position: relative;
   cursor: pointer;
-  color: ${buttonTheme.passive_color};
+  color: ${buttonTheme.passive_color} !important;
   background: ${buttonTheme.passive_background};
   border: solid 1px ${buttonTheme.passive_border};
   box-shadow: ${buttonTheme.passive_shadow};
@@ -36,7 +36,7 @@ let Wrapper = styled('button')`
 
   &:not(:disabled):hover,
   &:not(:disabled):focus {
-    color: ${buttonTheme.active_color};
+    color: ${buttonTheme.active_color} !important;
     background: ${buttonTheme.active_background};
     border: solid 1px ${buttonTheme.active_border};
     box-shadow: ${buttonTheme.active_shadow};

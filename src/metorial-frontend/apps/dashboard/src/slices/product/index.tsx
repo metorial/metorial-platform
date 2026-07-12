@@ -275,6 +275,9 @@ let SkillAgentDocumentPage = dynamicPage(() =>
 let SkillParticipantsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
 );
+let SkillGroupsForSkillPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/groups').then(c => c.SkillGroupsPage)
+);
 let SkillVersionsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
 );
@@ -1631,6 +1634,10 @@ export let productHomeSlice = createSlice([
               {
                 path: 'participants',
                 element: <SkillParticipantsPage />
+              },
+              {
+                path: 'groups',
+                element: <SkillGroupsForSkillPage />
               },
               {
                 path: 'versions',

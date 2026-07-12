@@ -11,6 +11,7 @@ import {
   RiAddLine,
   RiArrowLeftLine,
   RiFileTextLine,
+  RiFolderLine,
   RiGitPullRequestLine,
   RiGroupLine,
   RiHistoryLine,
@@ -36,6 +37,7 @@ export type SkillWorkspaceRoutes = {
   providers: string;
   agents: string;
   settings: string;
+  groups: string;
   versions: string;
   participants: string;
 };
@@ -784,6 +786,13 @@ export let SkillWorkspaceLayout = (p: SkillWorkspaceLayoutProps) => {
             >
               <RiSettings3Line size={16} />
               <LinkLabel>Settings</LinkLabel>
+            </SidebarLink>
+            <SidebarLink
+              $active={isRouteActive(location.pathname, p.routes.groups, true)}
+              to={p.routes.groups}
+            >
+              <RiFolderLine size={16} />
+              <LinkLabel>Groups</LinkLabel>
             </SidebarLink>
             <SidebarLink
               $active={isRouteActive(location.pathname, p.routes.versions, true)}

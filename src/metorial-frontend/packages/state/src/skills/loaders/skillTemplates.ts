@@ -49,26 +49,17 @@ export let useCreateSkillFromTemplate = skillTemplatesLoader.createExternalMutat
       let skill = await sdk.skills.create(i.instanceId, {
         name: i.name ?? skillTemplate.name,
         description: i.description ?? skillTemplate.description ?? undefined,
-        metadata: skillTemplate.metadata ?? undefined
+        metadata: skillTemplate.metadata ?? undefined,
+        templateId: i.skillTemplateId
       });
 
-      let [skillTemplateItems, storeItems] = await Promise.all([
-        autoPaginate(cursor =>
-          sdk.skillTemplates.items.list(i.instanceId, i.skillTemplateId, {
-            ...cursor,
-            limit: 100,
-            order: 'asc'
-          })
-        ),
-        autoPaginate(cursor =>
-          sdk.stores.items.list(i.instanceId, skillTemplate.storeId, {
-            ...cursor,
-            limit: 100,
-            order: 'asc',
-            type: ['directory', 'document', 'file']
-          })
-        )
-      ]);
+      let skillTemplateItems = await autoPaginate(cursor =>
+        sdk.skillTemplates.items.list(i.instanceId, i.skillTemplateId, {
+          ...cursor,
+          limit: 100,
+          order: 'asc'
+        })
+      );
 
       await Promise.all(
         skillTemplateItems.map(item =>
@@ -85,29 +76,6 @@ export let useCreateSkillFromTemplate = skillTemplatesLoader.createExternalMutat
               : Promise.resolve(null)
         )
       );
-
-      let operations = storeItems
-        .map(item => {
-          if (!item.path) return null;
-          if (item.kind === 'directory') return { type: 'add' as const, path: item.path };
-          if (item.kind === 'document' && item.document?.id) {
-            return {
-              type: 'add' as const,
-              path: item.path,
-              documentId: item.document.id
-            };
-          }
-          if (item.kind === 'file' && item.file?.id) {
-            return { type: 'add' as const, path: item.path, fileId: item.file.id };
-          }
-
-          return null;
-        })
-        .filter((operation): operation is NonNullable<typeof operation> => !!operation);
-
-      if (operations.length > 0) {
-        await sdk.stores.items.modify(i.instanceId, skill.storeId, { operations });
-      }
 
       return skill;
     }) as Promise<DashboardInstanceSkillsCreateOutput>

@@ -1,4 +1,5 @@
 import { renderWithPagination, useForm } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import {
   type SkillAgent,
   useCreateSkillAgent,
@@ -17,7 +18,7 @@ import {
   confirm,
   showModal
 } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useEffect } from 'react';
 import styled from 'styled-components';
@@ -266,10 +267,12 @@ export let SkillAgentsScene = (p: {
   };
 
   return (
-    <Box
-      title="Skill Agents"
-      description="Create and manage sub-agents attached to this skill."
-      rightActions={
+    <>
+      <PageHeader
+        size="6"
+        title="Skill Agents"
+        description="Create and manage sub-agents attached to this skill."
+        actions={
         <Button
           size="2"
           variant="outline"
@@ -279,8 +282,8 @@ export let SkillAgentsScene = (p: {
         >
           Create Agent
         </Button>
-      }
-    >
+        }
+      />
       {renderWithPagination(skillAgents)(skillAgents => (
         <>
           {skillAgents.data.items.length === 0 ? (
@@ -307,6 +310,6 @@ export let SkillAgentsScene = (p: {
           <deleteSkillAgent.RenderError />
         </>
       ))}
-    </Box>
+    </>
   );
 };

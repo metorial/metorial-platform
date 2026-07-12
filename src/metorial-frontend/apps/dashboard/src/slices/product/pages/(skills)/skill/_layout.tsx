@@ -1,4 +1,4 @@
-import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   showCreateSkillMergeRequestModal,
@@ -166,8 +166,13 @@ export let SkillLayout = () => {
   };
 
   return (
-    <InitialLoadBoundary>
-      {renderWithLoader({ skill })(({ skill }) => (
+    <>
+      {renderWithLoader(
+        { skill },
+        {
+          spaceTop: 50
+        }
+      )(({ skill }) => (
         <SkillWorkspaceLayout
           instanceId={instance.data?.id}
           skill={skill.data}
@@ -183,6 +188,7 @@ export let SkillLayout = () => {
             providers: `${skillPath}/providers`,
             agents: `${skillPath}/agents`,
             settings: `${skillPath}/settings`,
+            groups: `${skillPath}/groups`,
             versions: `${skillPath}/versions`,
             participants: `${skillPath}/participants`
           }}
@@ -255,6 +261,6 @@ export let SkillLayout = () => {
           </WorkspacePage>
         </SkillWorkspaceLayout>
       ))}
-    </InitialLoadBoundary>
+    </>
   );
 };

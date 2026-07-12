@@ -74,39 +74,6 @@ let Stack = styled.div`
   gap: 12px;
 `;
 
-let DetailShell = styled.div`
-  width: min(100%, 1100px);
-  margin: 0 auto;
-  padding: 8px 4px 40px;
-`;
-
-let DetailHeader = styled.header`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 12px 0 20px;
-`;
-
-let DetailTitle = styled.div`
-  min-width: 0;
-
-  h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-
-  p {
-    max-width: 760px;
-    margin: 7px 0 0;
-    color: ${theme.colors.gray700};
-    font-size: 14px;
-    line-height: 1.55;
-  }
-`;
-
 let MergePanel = styled.section<{ $tone: 'green' | 'blue' | 'orange' | 'gray' | 'red' }>`
   display: grid;
   grid-template-columns: 25px minmax(0, 1fr) auto;
@@ -165,14 +132,7 @@ let Section = styled.section`
   gap: 14px;
 `;
 
-let SectionHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
 let Empty = styled.div`
-  padding: 24px 8px;
   text-align: center;
 `;
 
@@ -1488,14 +1448,13 @@ export let SkillMergeRequestScene = (p: {
     );
 
     return (
-      <DetailShell>
-        <DetailHeader>
-          <DetailTitle>
-            <h1>{request.title}</h1>
-            {request.description && <p>{request.description}</p>}
-          </DetailTitle>
-          <Badge color={statusColor(request.status)}>{statusLabel(request.status)}</Badge>
-        </DetailHeader>
+      <>
+        <PageHeader
+          size="6"
+          title={request.title}
+          description={request.description}
+          actions={<Badge color={statusColor(request.status)}>{statusLabel(request.status)}</Badge>}
+        />
 
         {p.conversationHref && p.changesHref && (
           <LinkTabs
@@ -1810,7 +1769,7 @@ export let SkillMergeRequestScene = (p: {
             </Section>
           )}
         </Stack>
-      </DetailShell>
+      </>
     );
   });
 };
