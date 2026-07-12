@@ -875,6 +875,7 @@ export let SkillSharePopover = (p: {
     align="end"
     sideOffset={8}
     operationKey={p.context?.skills.map(skill => skill.id).join(':')}
+    onOpenAutoFocus={event => event.preventDefault()}
   >
     <Popover.Content
       style={{
