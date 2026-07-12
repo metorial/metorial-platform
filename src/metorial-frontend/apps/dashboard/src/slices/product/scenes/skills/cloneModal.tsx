@@ -60,7 +60,7 @@ let SkillCloneForm = (p: {
       <Spacer size={15} />
 
       <Dialog.Actions>
-        <Button type="button" variant="outline" onClick={p.close}>
+        <Button type="button" variant="soft" onClick={p.close}>
           Cancel
         </Button>
         <Button type="submit" loading={isSubmitting}>

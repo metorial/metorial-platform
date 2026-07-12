@@ -91,7 +91,7 @@ export let SkillTemplatesGrid = (
   let createSkillFromTemplate = useCreateSkillFromTemplate();
   let skillTemplates = useSkillTemplates(instanceId, {
     order: 'desc',
-    status: ['active', 'archived'],
+    status: ['active'],
     ...query
   });
   let hasActiveFilters = !!(

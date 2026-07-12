@@ -1,5 +1,5 @@
 import { Paths } from '@metorial/frontend-config';
-import { SkillMergeRequestsScene } from '@metorial/scene-skills';
+import { SkillAgentsScene } from '@metorial/scene-skills';
 import {
   useCurrentInstance,
   useCurrentOrganization,
@@ -7,24 +7,23 @@ import {
 } from '@metorial/state';
 import { useParams } from 'react-router-dom';
 
-export let SkillMergeRequestsPage = () => {
-  let { skillId } = useParams();
+export let SkillAgentsPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let { skillId } = useParams();
+  let skillPath = Paths.instance.skill(
+    organization.data,
+    project.data,
+    instance.data,
+    skillId
+  );
 
   return (
-    <SkillMergeRequestsScene
+    <SkillAgentsScene
       instanceId={instance.data?.id}
       skillId={skillId}
-      href={mergeRequestId =>
-        `${Paths.instance.skill(
-          organization.data,
-          project.data,
-          instance.data,
-          skillId
-        )}/merge-requests/${mergeRequestId}/conversation`
-      }
+      getDocumentPath={documentId => `${skillPath}/agent/${documentId}`}
     />
   );
 };

@@ -71,7 +71,7 @@ export let SkillPluginForm = ({
       <Spacer size={15} />
 
       <Dialog.Actions>
-        <Button type="button" variant="outline" onClick={close}>
+        <Button type="button" variant="soft" onClick={close}>
           Cancel
         </Button>
         <Button type="submit" loading={createMutation.isPending}>

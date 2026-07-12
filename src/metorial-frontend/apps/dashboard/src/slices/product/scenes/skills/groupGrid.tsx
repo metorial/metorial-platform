@@ -85,7 +85,7 @@ export let SkillGroupsGrid = (
   let navigate = useNavigate();
   let skillGroups = useSkillGroups(instanceId, {
     order: 'desc',
-    status: ['active', 'archived'],
+    status: ['active'],
     ...query
   });
   let hasActiveFilters = !!(

@@ -46,7 +46,7 @@ export let SkillPluginsGrid = (
   let navigate = useNavigate();
   let plugins = useSkillPlugins(instanceId, {
     order: 'desc',
-    status: ['active', 'archived'],
+    status: ['active'],
     ...query
   });
   let hasActiveFilters = !!(

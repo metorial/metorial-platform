@@ -263,6 +263,15 @@ let SkillLayout = dynamicPage(() =>
   import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
 );
 let SkillPage = dynamicPage(() => import('./pages/(skills)/skill').then(c => c.SkillPage));
+let SkillProvidersPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/providers').then(c => c.SkillProvidersPage)
+);
+let SkillAgentsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/agents').then(c => c.SkillAgentsPage)
+);
+let SkillAgentDocumentPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/agent').then(c => c.SkillAgentDocumentPage)
+);
 let SkillParticipantsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
 );
@@ -1080,10 +1089,6 @@ export let productDocumentSlice = createSlice([
 
     children: [
       {
-        path: 'skill/:skillId/item/:itemId',
-        element: <SkillItemDocumentPage />
-      },
-      {
         path: 'doc/:id',
         element: <DocumentPage />
       }
@@ -1608,6 +1613,22 @@ export let productHomeSlice = createSlice([
                 element: <SkillPage />
               },
               {
+                path: 'item/:itemId',
+                element: <SkillItemDocumentPage />
+              },
+              {
+                path: 'providers',
+                element: <SkillProvidersPage />
+              },
+              {
+                path: 'agents',
+                element: <SkillAgentsPage />
+              },
+              {
+                path: 'agent/:documentId',
+                element: <SkillAgentDocumentPage />
+              },
+              {
                 path: 'participants',
                 element: <SkillParticipantsPage />
               },
@@ -1620,7 +1641,7 @@ export let productHomeSlice = createSlice([
                 element: <SkillMergeRequestsPage />
               },
               {
-                path: 'merge-requests/:mergeRequestId',
+                path: 'merge-requests/:mergeRequestId/:mergeRequestTab?',
                 element: <SkillMergeRequestPage />
               },
               {
