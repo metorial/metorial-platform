@@ -1,6 +1,6 @@
+import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { MergeView } from '@codemirror/merge';
-import { theme } from '@metorial/ui';
 import { useEffect, useRef } from 'react';
 import { sparkTheme } from './theme';
 
@@ -8,7 +8,7 @@ export let MergeEditor = ({
   original,
   value,
   onChange,
-  height = '440px',
+  height,
   readOnly = false
 }: {
   original: string;
@@ -27,12 +27,13 @@ export let MergeEditor = ({
     let mergeView = new MergeView({
       a: {
         doc: original,
-        extensions: [sparkTheme, EditorView.editable.of(false)]
+        extensions: [sparkTheme, EditorState.readOnly.of(true), EditorView.editable.of(false)]
       },
       b: {
         doc: value,
         extensions: [
           sparkTheme,
+          EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
           EditorView.updateListener.of(update => {
             if (update.docChanged) onChangeRef.current?.(update.state.doc.toString());
@@ -53,10 +54,7 @@ export let MergeEditor = ({
     <div
       ref={parentRef}
       style={{
-        height,
-        overflow: 'auto',
-        border: `1px solid ${theme.colors.gray400}`,
-        borderRadius: 8
+        ...(height ? { height, overflow: 'auto' } : {})
       }}
     />
   );
