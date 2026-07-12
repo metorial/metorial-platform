@@ -1,8 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { PaginatorInputStrict } from '@lowerdeck/pagination';
+import type { PaginatorInputStrict } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { ConsumerProfile, Instance } from '@metorial/db';
-import { AnyAccessTagSelector } from '@metorial/module-access';
+import type { ConsumerProfile, Instance } from '@metorial/db';
+import type { AnyAccessTagSelector } from '@metorial/module-access';
 import { magicMcpEndpointService } from '@metorial/module-magic';
 import {
   subspaceAgentService,
@@ -24,24 +24,25 @@ type IdentityCredentialListInput = Parameters<
   typeof subspaceIdentityCredentialService.list
 >[0];
 
-let getConnectionAgentId = (
-  connection: Awaited<ReturnType<typeof subspaceSessionConnectionService.get>>
-) => connection.participant?.agentId;
-
 class ConsumerActivityServiceImpl {
   private async resolve(d: ActivityInput) {
     return await consumerActivityScopeService.resolve(d);
   }
 
-  private async getObservedConnections(d: ActivityInput) {
-    let scope = await this.resolve(d);
+  private async getSessionIdsByAgent(
+    d: ActivityInput,
+    scope: Awaited<ReturnType<typeof consumerActivityScopeService.resolve>>,
+    agentIds: string[]
+  ) {
+    let sessionIdsByAgent = new Map<string, Set<string>>();
+    if (agentIds.length === 0) return sessionIdsByAgent;
+
     let paginator = await subspaceSessionConnectionService.list({
       instance: d.instance,
       allowDeleted: false,
-      sessionIds: scope.subspaceSessionIds,
-      accessTagSessionIds: scope.subspaceSessionIds
+      actorIds: [scope.consumerActor.id],
+      agentIds
     });
-    let connections: Awaited<ReturnType<typeof paginator.run>>['items'] = [];
     let after: string | undefined;
 
     while (true) {
@@ -49,26 +50,74 @@ class ConsumerActivityServiceImpl {
         limit: 100,
         after
       });
-      connections.push(...list.items);
+      for (let connection of list.items) {
+        let agentId = connection.participant?.agentId;
+        if (!agentId) continue;
+
+        let sessionIds = sessionIdsByAgent.get(agentId) ?? new Set<string>();
+        sessionIds.add(connection.sessionId);
+        sessionIdsByAgent.set(agentId, sessionIds);
+      }
 
       if (!list.pagination.hasNextPage || list.items.length === 0) break;
       after = list.items[list.items.length - 1]!.id;
     }
 
-    return {
-      scope,
-      connections
-    };
+    return sessionIdsByAgent;
   }
 
-  private getObservedAgentIds(
-    connections: Awaited<ReturnType<typeof this.getObservedConnections>>['connections']
+  private async getScopedAgent(
+    d: ActivityInput,
+    scope: Awaited<ReturnType<typeof consumerActivityScopeService.resolve>>,
+    agentId: string
   ) {
-    return Array.from(
-      new Set(
-        connections.map(getConnectionAgentId).filter((agentId): agentId is string => !!agentId)
-      )
-    );
+    let paginator = await subspaceAgentService.list({
+      instance: d.instance,
+      allowDeleted: false,
+      ids: [agentId],
+      actorIds: [scope.consumerActor.id],
+      types: ['mcp_client']
+    });
+    let list = await paginator.run({ limit: 1 });
+    let agent = list.items[0];
+    if (!agent) throw new ServiceError(notFoundError('agent'));
+
+    return agent;
+  }
+
+  private async ensureScopedSession(
+    d: ActivityInput,
+    scope: Awaited<ReturnType<typeof consumerActivityScopeService.resolve>>,
+    sessionId: string
+  ) {
+    let paginator = await subspaceSessionConnectionService.list({
+      instance: d.instance,
+      allowDeleted: false,
+      actorIds: [scope.consumerActor.id],
+      sessionIds: [sessionId]
+    });
+    let list = await paginator.run({ limit: 1 });
+    if (!list.items[0]) throw new ServiceError(notFoundError('session'));
+  }
+
+  private async getScopedConnection(
+    d: ActivityInput,
+    scope: Awaited<ReturnType<typeof consumerActivityScopeService.resolve>>,
+    sessionConnectionId: string
+  ) {
+    let paginator = await subspaceSessionConnectionService.list({
+      instance: d.instance,
+      allowDeleted: false,
+      ids: [sessionConnectionId],
+      actorIds: [scope.consumerActor.id]
+    });
+    let list = await paginator.run({ limit: 1 });
+    let sessionConnection = list.items[0];
+    if (!sessionConnection) {
+      throw new ServiceError(notFoundError('session.connection'));
+    }
+
+    return sessionConnection;
   }
 
   private async getEndpointsForSessions(
@@ -110,31 +159,31 @@ class ConsumerActivityServiceImpl {
       search?: string;
     }
   ) {
-    let observed = await this.getObservedConnections(d);
-    let observedAgentIds = this.getObservedAgentIds(observed.connections);
+    let scope = await this.resolve(d);
     let paginator = await subspaceAgentService.list({
       instance: d.instance,
       allowDeleted: false,
-      ids: observedAgentIds,
+      actorIds: [scope.consumerActor.id],
       types: ['mcp_client'],
       search: d.search
     });
     let list = await paginator.run(d.pagination);
+    let sessionIdsByAgent = await this.getSessionIdsByAgent(
+      d,
+      scope,
+      list.items.map(agent => agent.id)
+    );
 
     return {
       ...list,
       items: await Promise.all(
         list.items.map(async agent => {
-          let sessionIds = observed.connections
-            .filter(connection => getConnectionAgentId(connection) === agent.id)
-            .map(connection => connection.sessionId);
-
           return {
             agent,
             magicMcpEndpoints: await this.getEndpointsForSessions(
               d,
-              observed.scope,
-              sessionIds
+              scope,
+              Array.from(sessionIdsByAgent.get(agent.id) ?? [])
             )
           };
         })
@@ -143,27 +192,17 @@ class ConsumerActivityServiceImpl {
   }
 
   async getAgent(d: ActivityInput & { agentId: string }) {
-    let observed = await this.getObservedConnections(d);
-    if (!this.getObservedAgentIds(observed.connections).includes(d.agentId)) {
-      throw new ServiceError(notFoundError('agent'));
-    }
-
-    let agent = await subspaceAgentService.get({
-      instance: d.instance,
-      agentId: d.agentId,
-      allowDeleted: false
-    });
-    if (agent.type !== 'mcp_client') {
-      throw new ServiceError(notFoundError('agent'));
-    }
-
-    let sessionIds = observed.connections
-      .filter(connection => getConnectionAgentId(connection) === agent.id)
-      .map(connection => connection.sessionId);
+    let scope = await this.resolve(d);
+    let agent = await this.getScopedAgent(d, scope, d.agentId);
+    let sessionIdsByAgent = await this.getSessionIdsByAgent(d, scope, [agent.id]);
 
     return {
       agent,
-      magicMcpEndpoints: await this.getEndpointsForSessions(d, observed.scope, sessionIds)
+      magicMcpEndpoints: await this.getEndpointsForSessions(
+        d,
+        scope,
+        Array.from(sessionIdsByAgent.get(agent.id) ?? [])
+      )
     };
   }
 
@@ -176,26 +215,22 @@ class ConsumerActivityServiceImpl {
       createdAt?: SessionConnectionListInput['createdAt'];
     }
   ) {
-    let observed = await this.getObservedConnections(d);
-    if (d.agentId && !this.getObservedAgentIds(observed.connections).includes(d.agentId)) {
-      throw new ServiceError(notFoundError('agent'));
-    }
-    if (d.sessionId && !observed.scope.subspaceSessionIds.includes(d.sessionId)) {
-      throw new ServiceError(notFoundError('session'));
-    }
+    let scope = await this.resolve(d);
+    if (d.agentId) await this.getScopedAgent(d, scope, d.agentId);
+    if (d.sessionId) await this.ensureScopedSession(d, scope, d.sessionId);
 
     let paginator = await subspaceSessionConnectionService.list({
       instance: d.instance,
       allowDeleted: false,
-      accessTagSessionIds: observed.scope.subspaceSessionIds,
-      sessionIds: d.sessionId ? [d.sessionId] : observed.scope.subspaceSessionIds,
+      actorIds: [scope.consumerActor.id],
+      sessionIds: d.sessionId ? [d.sessionId] : undefined,
       agentIds: d.agentId ? [d.agentId] : undefined,
       connectionState: d.connectionState,
       createdAt: d.createdAt
     });
     let list = await paginator.run(d.pagination);
     let magicSessionBySubspaceSessionId = new Map(
-      observed.scope.magicMcpSessions.map(session => [session.subspaceSessionId, session])
+      scope.magicMcpSessions.map(session => [session.subspaceSessionId, session])
     );
 
     return {
@@ -210,13 +245,7 @@ class ConsumerActivityServiceImpl {
 
   async getSessionConnection(d: ActivityInput & { sessionConnectionId: string }) {
     let scope = await this.resolve(d);
-    let sessionConnection = await subspaceSessionConnectionService.get({
-      instance: d.instance,
-      sessionConnectionId: d.sessionConnectionId
-    });
-    if (!scope.subspaceSessionIds.includes(sessionConnection.sessionId)) {
-      throw new ServiceError(notFoundError('session.connection'));
-    }
+    let sessionConnection = await this.getScopedConnection(d, scope, d.sessionConnectionId);
 
     return {
       sessionConnection,
@@ -237,21 +266,16 @@ class ConsumerActivityServiceImpl {
       createdAt?: ToolCallListInput['createdAt'];
     }
   ) {
-    let observed = await this.getObservedConnections(d);
-    if (d.agentId && !this.getObservedAgentIds(observed.connections).includes(d.agentId)) {
-      throw new ServiceError(notFoundError('agent'));
-    }
-    if (
-      d.sessionConnectionId &&
-      !observed.connections.some(connection => connection.id === d.sessionConnectionId)
-    ) {
-      throw new ServiceError(notFoundError('session.connection'));
+    let scope = await this.resolve(d);
+    if (d.agentId) await this.getScopedAgent(d, scope, d.agentId);
+    if (d.sessionConnectionId) {
+      await this.getScopedConnection(d, scope, d.sessionConnectionId);
     }
 
     let toolCallQuery: ToolCallListInput & { connectionIds?: string[] } = {
       instance: d.instance,
       allowDeleted: false,
-      actorIds: [observed.scope.consumerActor.id],
+      actorIds: [scope.consumerActor.id],
       agentIds: d.agentId ? [d.agentId] : undefined,
       toolIds: d.toolId ? [d.toolId] : undefined,
       providerIds: d.providerIds,

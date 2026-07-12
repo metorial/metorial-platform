@@ -79,9 +79,7 @@ class sessionConnectionServiceImpl {
                 agents
                   ? { participant: { agentInstance: { agentOid: agents.in } } }
                   : undefined!,
-                actors
-                  ? { participant: { agentInstance: { agent: { actorOid: actors.in } } } }
-                  : undefined!,
+                actors ? { session: { identityActorOid: actors.in } } : undefined!,
 
                 sessions ? { sessionOid: sessions.in } : undefined!,
                 sessionProviders

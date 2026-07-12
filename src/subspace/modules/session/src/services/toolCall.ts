@@ -154,20 +154,7 @@ class toolCallServiceImpl {
                 : undefined!,
               actors
                 ? {
-                    message: {
-                      OR: [
-                        {
-                          senderParticipant: {
-                            identityActorOid: actors.in
-                          }
-                        },
-                        {
-                          responderParticipant: {
-                            identityActorOid: actors.in
-                          }
-                        }
-                      ]
-                    }
+                    session: { identityActorOid: actors.in }
                   }
                 : undefined!,
               identities
