@@ -39,3 +39,11 @@ let DialogContext = React.createContext<DialogState | null>(null);
 export let DialogProvider = DialogContext.Provider;
 export let useDialogContext = () => useContext(DialogContext);
 export let useIsInDialog = () => !!useContext(DialogContext);
+
+export let preventDialogDismissWhenSelectOpen = (event: { preventDefault: () => void }) => {
+  let openSelect = document.querySelector(
+    '[data-metorial-select-content][data-state="open"]'
+  );
+
+  if (openSelect) event.preventDefault();
+};

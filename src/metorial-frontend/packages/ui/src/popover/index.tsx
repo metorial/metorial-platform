@@ -161,6 +161,7 @@ let Root = ({
   arrow,
   operationKey,
   onOpenChange,
+  onOpenAutoFocus,
   side,
   align,
   sideOffset,
@@ -171,6 +172,7 @@ let Root = ({
   children: React.ReactNode;
   arrow?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onOpenAutoFocus?: React.ComponentProps<typeof RadixPopover.Content>['onOpenAutoFocus'];
   open?: boolean;
 
   side?: React.ComponentProps<typeof RadixPopover.Content>['side'];
@@ -208,6 +210,7 @@ let Root = ({
           align={align}
           sideOffset={sideOffset}
           alignOffset={alignOffset}
+          onOpenAutoFocus={onOpenAutoFocus}
           onInteractOutside={event => {
             let target = event.target as Element | null;
             if (target?.closest('[data-metorial-select-content]')) event.preventDefault();

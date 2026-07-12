@@ -4,7 +4,11 @@ import React, { useRef } from 'react';
 import { styled } from 'styled-components';
 import { Button } from '../button';
 import { theme } from '../theme';
-import { DialogProvider, useDialogZIndex } from './state';
+import {
+  DialogProvider,
+  preventDialogDismissWhenSelectOpen,
+  useDialogZIndex
+} from './state';
 import { ContentSide, Overlay } from './styles';
 
 let Wrapper = styled(ContentSide)`
@@ -83,6 +87,7 @@ export let Panel = {
 
             <Wrapper
               ref={contentRef}
+              onPointerDownOutside={preventDialogDismissWhenSelectOpen}
               style={{
                 ...style,
 

@@ -3,7 +3,11 @@ import { RiCloseLine } from '@remixicon/react';
 import React, { useRef } from 'react';
 import { styled } from 'styled-components';
 import { theme } from '../theme';
-import { DialogProvider, useDialogZIndex } from './state';
+import {
+  DialogProvider,
+  preventDialogDismissWhenSelectOpen,
+  useDialogZIndex
+} from './state';
 import { Close, Content, Overlay } from './styles';
 
 export { useDialog, useDialogContext, useIsInDialog } from './state';
@@ -87,6 +91,7 @@ export let Dialog = {
 
             <Wrapper
               ref={contentRef}
+              onPointerDownOutside={preventDialogDismissWhenSelectOpen}
               style={{
                 zIndex: zIndex + 1,
                 maxWidth: width ? width : variant == 'padded' ? 480 : 400,

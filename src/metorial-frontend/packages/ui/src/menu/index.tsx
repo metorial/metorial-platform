@@ -163,6 +163,36 @@ let Title = styled(RadixMenu.Label)<{ $lightMode?: boolean }>`
   gap: 5px;
 `;
 
+export type MenuItem =
+  | {
+      id: string;
+      disabled?: boolean;
+      description?: React.ReactNode;
+      label: React.ReactNode;
+      onClick?: () => void;
+    }
+  | {
+      id?: string;
+      disabled?: boolean;
+      description?: React.ReactNode;
+      label: React.ReactNode;
+      onClick: () => void;
+    }
+  | {
+      type: 'separator';
+    };
+
+export type MenuProps = {
+  label?: string;
+  children: React.ReactNode;
+  onItemClick?: (id: string) => void;
+  items: MenuItem[];
+  title?: string;
+  setIsOpen?: (isOpen: boolean) => void;
+  matchTriggerWidth?: boolean;
+  lightMode?: boolean;
+};
+
 export let Menu = ({
   children,
   label,
@@ -172,26 +202,7 @@ export let Menu = ({
   setIsOpen,
   matchTriggerWidth,
   lightMode
-}: {
-  label?: string;
-  children: React.ReactNode;
-  onItemClick?: (id: string) => void;
-  items: (
-    | {
-        id: string;
-        disabled?: boolean;
-        description?: React.ReactNode;
-        label: React.ReactNode;
-      }
-    | {
-        type: 'separator';
-      }
-  )[];
-  title?: string;
-  setIsOpen?: (isOpen: boolean) => void;
-  matchTriggerWidth?: boolean;
-  lightMode?: boolean;
-}) => {
+}: MenuProps) => {
   let [open, setOpen] = useState(false);
   let zIndex = useDialogZIndex(open);
 
@@ -224,7 +235,10 @@ export let Menu = ({
                 key={i}
                 $lightMode={lightMode}
                 $matchTriggerWidth={matchTriggerWidth}
-                onClick={() => onItemClick?.(item.id)}
+                onClick={() => {
+                  item.onClick?.();
+                  if (item.id != null) onItemClick?.(item.id);
+                }}
                 disabled={item.disabled}
                 asChild
               >
