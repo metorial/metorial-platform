@@ -814,7 +814,7 @@ export let EditorContent = styled.div<{ $readOnly?: boolean }>`
   position: relative;
   max-width: ${({ theme }) => theme.size.contentWidth};
   margin: 0 auto;
-  padding: 112px 64px 30vh;
+  padding: 48px 64px;
 
   ${({ $readOnly }) =>
     $readOnly &&
@@ -869,7 +869,7 @@ export let EditorContent = styled.div<{ $readOnly?: boolean }>`
   }
 
   @media (max-width: 720px) {
-    padding: 64px 20px 20vh;
+    padding: 32px 20px;
 
     .drag-handle {
       display: none;
@@ -878,7 +878,6 @@ export let EditorContent = styled.div<{ $readOnly?: boolean }>`
 
   .ProseMirror {
     outline: none;
-    min-height: 60vh;
     ${proseStyles}
 
     p.is-editor-empty:first-child::before,

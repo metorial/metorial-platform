@@ -1,18 +1,19 @@
+import { markdownToYjsUpdate } from '@metorial/docs-editor-schema';
 import type { SkillSharePanelContext } from '@metorial/scene-skills';
 import {
   DocumentParticipant,
+  getDocumentEditToken,
   DocumentVersion as StateDocumentVersion,
   useCreateFileLink,
   useDocument,
   useDocumentCollaboration,
-  getDocumentEditToken,
   useDocumentParticipants,
   useDocumentPermissions,
   useDocumentVersions,
   useUploadFile,
   useUser
 } from '@metorial/state';
-import { markdownToYjsUpdate } from '@metorial/docs-editor-schema';
+import { theme } from '@metorial/ui';
 import type { Editor as TiptapEditor } from '@tiptap/react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -38,7 +39,7 @@ import { PageInfoDialog } from '../editor/PageInfoDialog';
 import { Toolbar } from '../editor/Toolbar';
 import { VersionHistoryPanel, type DocumentVersion } from '../editor/VersionHistoryPanel';
 import { Preview } from '../preview/Preview';
-import { GlobalStyles } from '../styles/GlobalStyles';
+import { DocsStyles } from '../styles/GlobalStyles';
 import { lightTheme } from '../styles/theme';
 
 let AUTOSAVE_DELAY_MS = 1000;
@@ -52,6 +53,9 @@ let Shell = styled.div`
   height: 100%;
   min-height: 0;
   background: ${({ theme }) => theme.color.bg};
+  color: ${({ theme }) => theme.color.text};
+  font-family: ${({ theme }) => theme.font.sans};
+  line-height: 1.6;
 `;
 
 let Header = styled.header`
@@ -60,7 +64,7 @@ let Header = styled.header`
   gap: 8px;
   height: 56px;
   padding: 0 14px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.border};
+  border-bottom: 1px solid ${theme.colors.gray300};
   background: ${({ theme }) => theme.color.bg};
   flex-shrink: 0;
 `;
@@ -232,7 +236,7 @@ let SkeletonEditorScroll = styled.div`
 let SkeletonEditorContent = styled.div`
   max-width: 1000px;
   margin: 0 auto;
-  padding: 112px 64px 30vh;
+  padding: 48px 64px;
 `;
 
 let SkeletonTitle = styled(SkeletonBlock)`
@@ -328,6 +332,7 @@ export type DocumentEditorSceneProps = {
   currentConsumerId?: string | null;
   onBack?: () => void;
   setRestrictHeight?: (enabled: boolean) => void;
+  hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
   loadError?: unknown;
 };
@@ -530,56 +535,57 @@ let DocumentEditorSkeleton = (p: { onBack?: () => void }) => {
 
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles />
-      <ImageUploadProvider>
-        <Shell>
-          <Header>
-            <HeaderLeft>
-              {p.onBack && <BackButton onClick={p.onBack} />}
-              <SkeletonBlock $width="180px" $height="18px" />
-              <CloudStatus status="pending" />
-            </HeaderLeft>
+      <DocsStyles>
+        <ImageUploadProvider>
+          <Shell>
+            <Header>
+              <HeaderLeft>
+                {p.onBack && <BackButton onClick={p.onBack} />}
+                <SkeletonBlock $width="180px" $height="18px" />
+                <CloudStatus status="pending" />
+              </HeaderLeft>
 
-            <HeaderCenter>
-              <SkeletonHeaderButton $width="320px" $height="32px" $radius="8px" />
-            </HeaderCenter>
+              <HeaderCenter>
+                <SkeletonHeaderButton $width="320px" $height="32px" $radius="8px" />
+              </HeaderCenter>
 
-            <HeaderRight>
-              <SkeletonHeaderButton $width="80px" $height="28px" $radius="6px" />
-              <SkeletonHeaderButton $width="92px" $height="28px" $radius="6px" />
-              <SkeletonHeaderButton $width="32px" $height="32px" $radius="8px" />
-            </HeaderRight>
-          </Header>
+              <HeaderRight>
+                <SkeletonHeaderButton $width="80px" $height="28px" $radius="6px" />
+                <SkeletonHeaderButton $width="92px" $height="28px" $radius="6px" />
+                <SkeletonHeaderButton $width="32px" $height="32px" $radius="8px" />
+              </HeaderRight>
+            </Header>
 
-          <Main>
-            <SkeletonEditorScroll>
-              <SkeletonEditorContent>
-                <SkeletonTitle $width="52%" $height="44px" $radius="10px" />
-                <SkeletonStatusBar>
-                  <SkeletonBlock $width="92px" $height="24px" $radius="8px" />
-                  <SkeletonBlock $width="128px" $height="24px" $radius="8px" />
-                  <SkeletonBlock $width="112px" $height="24px" $radius="8px" />
-                  <SkeletonBlock $width="138px" $height="24px" $radius="8px" />
-                </SkeletonStatusBar>
+            <Main>
+              <SkeletonEditorScroll>
+                <SkeletonEditorContent>
+                  <SkeletonTitle $width="52%" $height="44px" $radius="10px" />
+                  <SkeletonStatusBar>
+                    <SkeletonBlock $width="92px" $height="24px" $radius="8px" />
+                    <SkeletonBlock $width="128px" $height="24px" $radius="8px" />
+                    <SkeletonBlock $width="112px" $height="24px" $radius="8px" />
+                    <SkeletonBlock $width="138px" $height="24px" $radius="8px" />
+                  </SkeletonStatusBar>
 
-                <SkeletonParagraph>
-                  <SkeletonBlock $width="94%" $height="16px" $radius="5px" />
-                  <SkeletonBlock $width="89%" $height="16px" $radius="5px" />
-                  <SkeletonBlock $width="96%" $height="16px" $radius="5px" />
-                  <SkeletonBlock $width="72%" $height="16px" $radius="5px" />
-                </SkeletonParagraph>
+                  <SkeletonParagraph>
+                    <SkeletonBlock $width="94%" $height="16px" $radius="5px" />
+                    <SkeletonBlock $width="89%" $height="16px" $radius="5px" />
+                    <SkeletonBlock $width="96%" $height="16px" $radius="5px" />
+                    <SkeletonBlock $width="72%" $height="16px" $radius="5px" />
+                  </SkeletonParagraph>
 
-                <SkeletonHeading $width="34%" $height="26px" $radius="7px" />
-                <SkeletonParagraph>
-                  <SkeletonBlock $width="91%" $height="16px" $radius="5px" />
-                  <SkeletonBlock $width="84%" $height="16px" $radius="5px" />
-                  <SkeletonBlock $width="62%" $height="16px" $radius="5px" />
-                </SkeletonParagraph>
-              </SkeletonEditorContent>
-            </SkeletonEditorScroll>
-          </Main>
-        </Shell>
-      </ImageUploadProvider>
+                  <SkeletonHeading $width="34%" $height="26px" $radius="7px" />
+                  <SkeletonParagraph>
+                    <SkeletonBlock $width="91%" $height="16px" $radius="5px" />
+                    <SkeletonBlock $width="84%" $height="16px" $radius="5px" />
+                    <SkeletonBlock $width="62%" $height="16px" $radius="5px" />
+                  </SkeletonParagraph>
+                </SkeletonEditorContent>
+              </SkeletonEditorScroll>
+            </Main>
+          </Shell>
+        </ImageUploadProvider>
+      </DocsStyles>
     </ThemeProvider>
   );
 };
@@ -589,23 +595,24 @@ let DocumentEditorLoadError = (p: { onBack?: () => void; message: string }) => {
 
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles />
-      <Shell>
-        <Header>
-          <HeaderLeft>{p.onBack && <BackButton onClick={p.onBack} />}</HeaderLeft>
-          <HeaderCenter />
-          <HeaderRight />
-        </Header>
+      <DocsStyles>
+        <Shell>
+          <Header>
+            <HeaderLeft>{p.onBack && <BackButton onClick={p.onBack} />}</HeaderLeft>
+            <HeaderCenter />
+            <HeaderRight />
+          </Header>
 
-        <Main>
-          <SkeletonEditorScroll>
-            <EditorMessage>
-              <strong>Could not load document</strong>
-              <span>{p.message}</span>
-            </EditorMessage>
-          </SkeletonEditorScroll>
-        </Main>
-      </Shell>
+          <Main>
+            <SkeletonEditorScroll>
+              <EditorMessage>
+                <strong>Could not load document</strong>
+                <span>{p.message}</span>
+              </EditorMessage>
+            </SkeletonEditorScroll>
+          </Main>
+        </Shell>
+      </DocsStyles>
     </ThemeProvider>
   );
 };
@@ -615,6 +622,7 @@ let DocumentEditorInner = (p: {
   documentId: string;
   currentConsumerId?: string | null;
   onBack?: () => void;
+  hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
 }) => {
   let document = useDocument(p.instanceId, p.documentId);
@@ -714,6 +722,7 @@ let DocumentEditorInner = (p: {
       currentConsumerId={p.currentConsumerId}
       onBack={p.onBack}
       onSharedSkill={() => participants.refetch()}
+      hideSharingControls={p.hideSharingControls}
       skillShareContext={p.skillShareContext}
     />
   );
@@ -742,6 +751,7 @@ let DocumentEditorLoaded = (p: {
   currentConsumerId?: string | null;
   onBack?: () => void;
   onSharedSkill?: () => void | Promise<void>;
+  hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
 }) => {
   let [viewMode, setViewMode] = useState<ViewMode>('editor');
@@ -1345,176 +1355,180 @@ let DocumentEditorLoaded = (p: {
 
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles />
-      <ImageUploadProvider upload={uploadImage}>
-        <Shell>
-          <Header>
-            <HeaderLeft>
-              {p.onBack && <BackButton onClick={p.onBack} />}
-              <TitleButton
-                title={title}
-                readOnly={readOnly}
-                onTitleChange={handleTitleChange}
-              />
-              <CloudStatus status={saveStatus} />
-            </HeaderLeft>
+      <DocsStyles>
+        <ImageUploadProvider upload={uploadImage}>
+          <Shell>
+            <Header>
+              <HeaderLeft>
+                {p.onBack && <BackButton onClick={p.onBack} />}
+                <TitleButton
+                  title={title}
+                  readOnly={readOnly}
+                  onTitleChange={handleTitleChange}
+                />
+                <CloudStatus status={saveStatus} />
+              </HeaderLeft>
 
-            <HeaderCenter>
-              {!readOnly && (
-                <Toolbar
-                  editor={editorInstance}
-                  disabled={toolbarDisabled}
+              <HeaderCenter>
+                {!readOnly && (
+                  <Toolbar
+                    editor={editorInstance}
+                    disabled={toolbarDisabled}
+                    onRequestLinkEdit={handleRequestLinkEdit}
+                  />
+                )}
+              </HeaderCenter>
+
+              <HeaderRight>
+                {readOnly && (
+                  <ReadOnlyBadge $active>
+                    <IconEye />
+                    Read-only
+                  </ReadOnlyBadge>
+                )}
+
+                <Segmented role="tablist" aria-label="Layout">
+                  <SegBtn
+                    type="button"
+                    $active={viewMode === 'editor'}
+                    onClick={() => setViewMode('editor')}
+                    title="Editor only"
+                    aria-label="Editor only"
+                  >
+                    <IconEdit />
+                  </SegBtn>
+                  <SegBtn
+                    type="button"
+                    $active={viewMode === 'split'}
+                    onClick={() => setViewMode('split')}
+                    title="Split view"
+                    aria-label="Split view"
+                  >
+                    <IconSplit />
+                  </SegBtn>
+                  <SegBtn
+                    type="button"
+                    $active={viewMode === 'preview'}
+                    onClick={() => setViewMode('preview')}
+                    title="Preview only"
+                    aria-label="Preview only"
+                  >
+                    <IconEye />
+                  </SegBtn>
+                </Segmented>
+
+                {!p.hideSharingControls && (
+                  <>
+                    <HeaderDivider />
+                    <CurrentUserDisplay
+                      name={p.user.name}
+                      imageUrl={p.user.imageUrl}
+                      email={p.user.email}
+                    />
+                    <ShareButton
+                      instanceId={p.instanceId}
+                      documentLink={documentLink}
+                      people={sharePeople}
+                      onCopyLink={handleCopyLink}
+                      skillShareContext={skillShareContext}
+                      onSharedSkill={p.onSharedSkill}
+                    />
+                  </>
+                )}
+                <SettingsButton
+                  contentWidth={contentWidth}
+                  readOnly={readOnly}
+                  onContentWidthChange={setContentWidth}
+                  onImport={handleImport}
+                  onExport={handleDownload}
+                  onPageInfo={() => setPageInfoOpen(true)}
+                  onVersionHistory={() => setVersionHistoryOpen(true)}
+                  onKeyboardShortcuts={() => setShortcutsOpen(true)}
+                />
+              </HeaderRight>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".md,text/markdown,text/plain"
+                style={{ display: 'none' }}
+                onChange={handleFile}
+              />
+            </Header>
+
+            <Main ref={mainRef}>
+              {viewMode !== 'preview' && collaboration.isReadyForEditor && (
+                <Editor
+                  key={editorKey}
+                  initialMarkdown={markdown}
+                  readOnly={readOnly}
+                  title={title}
+                  frontMatter={frontMatter}
+                  frontMatterOpen={frontMatterOpen}
+                  frontMatterError={frontMatterValidation.error}
+                  onTitleChange={handleTitleChange}
+                  onMarkdownChange={handleMarkdownChange}
+                  onFrontMatterChange={handleFrontMatterChange}
+                  onToggleFrontMatter={() => setFrontMatterOpen(current => !current)}
+                  onEditorReady={setEditorInstance}
+                  onTitleFocusChange={setToolbarDisabled}
+                  linkPromptToken={linkPromptToken}
                   onRequestLinkEdit={handleRequestLinkEdit}
+                  onOpenPageInfo={() => setPageInfoOpen(true)}
+                  statusCurrentUser={{
+                    name: p.user.name,
+                    email: p.user.email,
+                    imageUrl: p.user.imageUrl,
+                    role: canWrite ? 'editor' : 'viewer'
+                  }}
+                  statusEditors={statusEditors}
+                  statusUpdatedAt={lastUpdatedAt}
+                  statusWordCount={wordCount}
+                  statusCharCount={charCount}
+                  allowInitialHashScroll={allowInitialHashScroll}
+                  onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
+                  collaboration={collaboration.isFallback ? undefined : editorCollaboration}
                 />
               )}
-            </HeaderCenter>
-
-            <HeaderRight>
-              {readOnly && (
-                <ReadOnlyBadge $active>
-                  <IconEye />
-                  Read-only
-                </ReadOnlyBadge>
+              {viewMode === 'split' && (
+                <PreviewResizeHandle
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize markdown preview"
+                  $active={resizingPreview}
+                  onPointerDown={handlePreviewResizeStart}
+                />
               )}
+              {viewMode !== 'editor' && (
+                <Preview
+                  markdown={fullMarkdown}
+                  width={viewMode === 'split' ? previewWidth : undefined}
+                  onCopy={handleCopy}
+                  onDownload={handleDownload}
+                />
+              )}
+            </Main>
 
-              <Segmented role="tablist" aria-label="Layout">
-                <SegBtn
-                  type="button"
-                  $active={viewMode === 'editor'}
-                  onClick={() => setViewMode('editor')}
-                  title="Editor only"
-                  aria-label="Editor only"
-                >
-                  <IconEdit />
-                </SegBtn>
-                <SegBtn
-                  type="button"
-                  $active={viewMode === 'split'}
-                  onClick={() => setViewMode('split')}
-                  title="Split view"
-                  aria-label="Split view"
-                >
-                  <IconSplit />
-                </SegBtn>
-                <SegBtn
-                  type="button"
-                  $active={viewMode === 'preview'}
-                  onClick={() => setViewMode('preview')}
-                  title="Preview only"
-                  aria-label="Preview only"
-                >
-                  <IconEye />
-                </SegBtn>
-              </Segmented>
+            <Toast $visible={!!toast}>{toast}</Toast>
 
-              <HeaderDivider />
-
-              <CurrentUserDisplay
-                name={p.user.name}
-                imageUrl={p.user.imageUrl}
-                email={p.user.email}
-              />
-              <ShareButton
-                instanceId={p.instanceId}
-                documentLink={documentLink}
-                people={sharePeople}
-                onCopyLink={handleCopyLink}
-                skillShareContext={skillShareContext}
-                onSharedSkill={p.onSharedSkill}
-              />
-              <SettingsButton
-                contentWidth={contentWidth}
-                readOnly={readOnly}
-                onContentWidthChange={setContentWidth}
-                onImport={handleImport}
-                onExport={handleDownload}
-                onPageInfo={() => setPageInfoOpen(true)}
-                onVersionHistory={() => setVersionHistoryOpen(true)}
-                onKeyboardShortcuts={() => setShortcutsOpen(true)}
-              />
-            </HeaderRight>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".md,text/markdown,text/plain"
-              style={{ display: 'none' }}
-              onChange={handleFile}
+            <VersionHistoryPanel
+              open={versionHistoryOpen}
+              onOpenChange={setVersionHistoryOpen}
+              versions={versionHistory}
             />
-          </Header>
 
-          <Main ref={mainRef}>
-            {viewMode !== 'preview' && collaboration.isReadyForEditor && (
-              <Editor
-                key={editorKey}
-                initialMarkdown={markdown}
-                readOnly={readOnly}
-                title={title}
-                frontMatter={frontMatter}
-                frontMatterOpen={frontMatterOpen}
-                frontMatterError={frontMatterValidation.error}
-                onTitleChange={handleTitleChange}
-                onMarkdownChange={handleMarkdownChange}
-                onFrontMatterChange={handleFrontMatterChange}
-                onToggleFrontMatter={() => setFrontMatterOpen(current => !current)}
-                onEditorReady={setEditorInstance}
-                onTitleFocusChange={setToolbarDisabled}
-                linkPromptToken={linkPromptToken}
-                onRequestLinkEdit={handleRequestLinkEdit}
-                onOpenPageInfo={() => setPageInfoOpen(true)}
-                statusCurrentUser={{
-                  name: p.user.name,
-                  email: p.user.email,
-                  imageUrl: p.user.imageUrl,
-                  role: canWrite ? 'editor' : 'viewer'
-                }}
-                statusEditors={statusEditors}
-                statusUpdatedAt={lastUpdatedAt}
-                statusWordCount={wordCount}
-                statusCharCount={charCount}
-                allowInitialHashScroll={allowInitialHashScroll}
-                onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
-                collaboration={collaboration.isFallback ? undefined : editorCollaboration}
-              />
-            )}
-            {viewMode === 'split' && (
-              <PreviewResizeHandle
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Resize markdown preview"
-                $active={resizingPreview}
-                onPointerDown={handlePreviewResizeStart}
-              />
-            )}
-            {viewMode !== 'editor' && (
-              <Preview
-                markdown={fullMarkdown}
-                width={viewMode === 'split' ? previewWidth : undefined}
-                onCopy={handleCopy}
-                onDownload={handleDownload}
-              />
-            )}
-          </Main>
+            <KeyboardShortcutsPanel open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
-          <Toast $visible={!!toast}>{toast}</Toast>
-
-          <VersionHistoryPanel
-            open={versionHistoryOpen}
-            onOpenChange={setVersionHistoryOpen}
-            versions={versionHistory}
-          />
-
-          <KeyboardShortcutsPanel open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-
-          <PageInfoDialog
-            open={pageInfoOpen}
-            onOpenChange={setPageInfoOpen}
-            people={people}
-            wordCount={wordCount}
-            charCount={charCount}
-          />
-        </Shell>
-      </ImageUploadProvider>
+            <PageInfoDialog
+              open={pageInfoOpen}
+              onOpenChange={setPageInfoOpen}
+              people={people}
+              wordCount={wordCount}
+              charCount={charCount}
+            />
+          </Shell>
+        </ImageUploadProvider>
+      </DocsStyles>
     </ThemeProvider>
   );
 };
@@ -1525,6 +1539,7 @@ export let DocumentEditorScene = ({
   currentConsumerId,
   onBack,
   setRestrictHeight,
+  hideSharingControls,
   skillShareContext,
   loadError
 }: DocumentEditorSceneProps) => {
@@ -1545,6 +1560,7 @@ export let DocumentEditorScene = ({
       documentId={documentId}
       currentConsumerId={currentConsumerId}
       onBack={onBack}
+      hideSharingControls={hideSharingControls}
       skillShareContext={skillShareContext}
     />
   );
