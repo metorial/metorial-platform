@@ -2,16 +2,16 @@ import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
 import {
   refetchSkillGroupMembershipLoaders,
-  type Skill,
-  type SkillGroup,
-  type SkillGroupItem,
   useAllSkillGroupItems,
   useCreateSkillGroupItem,
   useCreateSkillGroupItemQuiet,
   useDeleteSkillGroupItem,
   useRemoveSkillFromSkillGroupQuiet,
   useSkillGroups,
-  useSkills
+  useSkills,
+  type Skill,
+  type SkillGroup,
+  type SkillGroupItem
 } from '@metorial/state';
 import {
   Avatar,
@@ -27,7 +27,7 @@ import {
   showModal,
   theme
 } from '@metorial/ui';
-import { ItemGrid, Table, Box } from '@metorial/ui-product';
+import { Box, ItemGrid, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line, RiSettings3Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
@@ -495,7 +495,7 @@ export let SkillGroupSkillsScene = (p: {
       <Box
         title="Skills"
         description="Choose which skills belong to this group."
-        actions={
+        rightActions={
           <Button
             size="2"
             iconLeft={<RiAddLine />}

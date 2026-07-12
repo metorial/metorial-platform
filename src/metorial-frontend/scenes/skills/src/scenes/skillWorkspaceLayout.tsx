@@ -58,6 +58,7 @@ export type SkillWorkspaceLayoutProps = {
   shareContext?: SkillSharePanelContext | null;
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  allowProviders?: boolean;
   readOnly?: boolean;
   onNameChange?: (name: string) => Promise<void>;
 };
@@ -679,23 +680,34 @@ export let SkillWorkspaceLayout = (p: SkillWorkspaceLayoutProps) => {
             <SectionHeader>
               Providers
               {!p.readOnly ? (
-                <Menu
-                  items={[
-                    { id: 'provider', label: 'Provider' },
-                    { id: 'integration', label: 'Integration' }
-                  ]}
-                  onItemClick={item => {
-                    if (item == 'provider' || item == 'integration') addProvider(item);
-                  }}
-                >
+                p.allowProviders === false ? (
                   <SectionAction
-                    aria-label="Add provider"
+                    aria-label="Add integration"
                     disabled={!p.instanceId}
+                    onClick={() => addProvider('integration')}
                     type="button"
                   >
                     <RiAddLine size={12} strokeWidth={2.4} />
                   </SectionAction>
-                </Menu>
+                ) : (
+                  <Menu
+                    items={[
+                      { id: 'provider', label: 'Provider' },
+                      { id: 'integration', label: 'Integration' }
+                    ]}
+                    onItemClick={item => {
+                      if (item == 'provider' || item == 'integration') addProvider(item);
+                    }}
+                  >
+                    <SectionAction
+                      aria-label="Add provider"
+                      disabled={!p.instanceId}
+                      type="button"
+                    >
+                      <RiAddLine size={12} strokeWidth={2.4} />
+                    </SectionAction>
+                  </Menu>
+                )
               ) : null}
             </SectionHeader>
             {linkedItems.length ? (
