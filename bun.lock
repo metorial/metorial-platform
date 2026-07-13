@@ -365,6 +365,7 @@
         "@metorial-cargo/module-store": "^1.0.0",
         "@metorial-platform-systems/origin-client": "^1.0.0",
         "@metorial/code-bucket-service-generated": "^1.0.0",
+        "jszip": "^3.10.1",
         "yaml": "^2.9.0",
       },
       "devDependencies": {
@@ -1414,6 +1415,7 @@
         "@metorial/pages": "^1.0.0",
         "@metorial/scene-assistant": "^1.0.0",
         "@metorial/scene-docs": "^1.0.0",
+        "@metorial/scene-scm": "^1.0.0",
         "@metorial/state": "^1.0.0",
         "@metorial/storage": "^1.0.0",
         "@metorial/ui": "^1.0.0",
@@ -1937,6 +1939,24 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial-frontend/scenes/scm": {
+      "name": "@metorial/scene-scm",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/dashboard-sdk": "1.0.0-internal",
+        "@metorial/data-hooks": "^1.0.0",
+        "@metorial/state": "^1.0.0",
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/scenes/skills": {
       "name": "@metorial/scene-skills",
       "version": "1.0.0",
@@ -1948,6 +1968,8 @@
         "@metorial/frontend-config": "^1.0.0",
         "@metorial/layout": "^1.0.0",
         "@metorial/markdown": "^1.0.0",
+        "@metorial/microfrontend": "^1.0.0",
+        "@metorial/scene-scm": "^1.0.0",
         "@metorial/state": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
@@ -6067,6 +6089,8 @@
     "@metorial/scene-assistant": ["@metorial/scene-assistant@workspace:src/metorial-frontend/scenes/assistant"],
 
     "@metorial/scene-docs": ["@metorial/scene-docs@workspace:src/metorial-frontend/scenes/docs"],
+
+    "@metorial/scene-scm": ["@metorial/scene-scm@workspace:src/metorial-frontend/scenes/scm"],
 
     "@metorial/scene-skills": ["@metorial/scene-skills@workspace:src/metorial-frontend/scenes/skills"],
 
