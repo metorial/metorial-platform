@@ -28,6 +28,7 @@ import {
 } from '@metorial-cargo/module-store';
 import {
   getCanonicalSkillPairKey,
+  getSkillMergeRequestActivePairKey,
   skillMergePairLock,
   skillMergeTargetLock
 } from '../lib/mergeLock';
@@ -150,8 +151,6 @@ export type SkillMergePlan = {
   mergeRequest: SkillMergeRequestRecord;
   items: SkillMergePlanItem[];
 };
-
-export let statusesForOpenWork: SkillMergeRequestStatus[] = ['open', 'merging'];
 
 let getResolutionStatus = (
   resolutionType: SkillMergeRequestResolutionType
@@ -772,9 +771,14 @@ class SkillMergeRequestInternalServiceImpl {
       requiredPermission: storeReadPermission
     });
 
-    let activePairKey = getCanonicalSkillPairKey(sourceSkill.oid, targetSkill.oid);
+    let pairKey = getCanonicalSkillPairKey(sourceSkill.oid, targetSkill.oid);
+    let activePairKey = getSkillMergeRequestActivePairKey(
+      sourceSkill.oid,
+      targetSkill.oid,
+      d.direction
+    );
     return await skillMergePairLock.usingLock(
-      activePairKey,
+      pairKey,
       async () => {
         while (true) {
           let mergingMergeRequest = await db.skillMergeRequest.findFirst({
@@ -804,6 +808,7 @@ class SkillMergeRequestInternalServiceImpl {
           let existingActive = await db.skillMergeRequest.findMany({
             where: {
               status: 'open',
+              direction: d.direction,
               OR: [
                 {
                   sourceSkillOid: sourceSkill.oid,
@@ -904,7 +909,11 @@ class SkillMergeRequestInternalServiceImpl {
                 }
               }
             });
-            if (existingSync && existingSync.id !== d.skillForkSyncId) {
+            if (
+              d.direction === 'upstream_to_fork' &&
+              existingSync &&
+              existingSync.id !== d.skillForkSyncId
+            ) {
               throw new ServiceError(
                 badRequestError({
                   message: 'An active fork synchronization already exists for this fork'

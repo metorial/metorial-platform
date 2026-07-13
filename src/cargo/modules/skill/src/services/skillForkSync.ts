@@ -14,7 +14,6 @@ import {
   skillMergeTargetLock
 } from '../lib/mergeLock';
 import { enqueueSkillForkSync } from '../queues/forkSync';
-import { statusesForOpenWork } from './skillMergeRequestInternal';
 
 export let skillForkSyncInclude = {
   forkSkill: {
@@ -93,23 +92,6 @@ class SkillForkSyncServiceImpl {
       activePairKey,
       async () =>
         await skillMergeTargetLock.usingLock(forkSkill.store.id, async () => {
-          let activeRequest = await db.skillMergeRequest.findFirst({
-            where: {
-              status: {
-                in: statusesForOpenWork
-              },
-              OR: [
-                {
-                  sourceSkillOid: forkSkill.oid,
-                  targetSkillOid: upstreamSkill.oid
-                },
-                {
-                  sourceSkillOid: upstreamSkill.oid,
-                  targetSkillOid: forkSkill.oid
-                }
-              ]
-            }
-          });
           let activeSync = await db.skillForkSync.findFirst({
             where: {
               activePairKey,
@@ -118,10 +100,10 @@ class SkillForkSyncServiceImpl {
               }
             }
           });
-          if (activeRequest || activeSync) {
+          if (activeSync) {
             throw new ServiceError(
               badRequestError({
-                message: 'An active merge request or fork synchronization already exists'
+                message: 'An active fork synchronization already exists for this fork'
               })
             );
           }

@@ -2104,6 +2104,237 @@ describe('cargo skill.e2e', () => {
     ).rejects.toThrow('The source skill has no changes to merge');
   });
 
+  it('keeps opposite-direction merge requests active during fork synchronization', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'skill-concurrent-sync-editor',
+      name: 'Skill Concurrent Sync Editor'
+    });
+    let upstream = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_concurrent_sync_upstream',
+      actorId: actor.id,
+      name: 'Concurrent Sync Upstream'
+    });
+    let baseDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Base',
+      content: 'base content',
+      actorId: actor.id,
+      store: {
+        id: upstream.storeId,
+        path: '/base.md'
+      }
+    });
+    await flushDocumentDraft({
+      documentId: baseDocument.id,
+      force: true
+    });
+
+    let manualFirstFork = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_concurrent_sync_manual_first',
+      actorId: actor.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Concurrent Sync Manual First'
+    });
+    let syncFirstFork = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_concurrent_sync_sync_first',
+      actorId: actor.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Concurrent Sync Sync First'
+    });
+
+    let upstreamChange = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Upstream change',
+      content: 'upstream change',
+      actorId: actor.id,
+      store: {
+        id: upstream.storeId,
+        path: '/upstream.md'
+      }
+    });
+    let manualFirstChange = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Manual first change',
+      content: 'manual first change',
+      actorId: actor.id,
+      store: {
+        id: manualFirstFork.storeId,
+        path: '/manual-first.md'
+      }
+    });
+    let syncFirstChange = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Sync first change',
+      content: 'sync first change',
+      actorId: actor.id,
+      store: {
+        id: syncFirstFork.storeId,
+        path: '/sync-first.md'
+      }
+    });
+    await Promise.all(
+      [upstreamChange, manualFirstChange, syncFirstChange].map(document =>
+        flushDocumentDraft({
+          documentId: document.id,
+          force: true
+        })
+      )
+    );
+
+    let manualFirstMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: manualFirstFork.id,
+      actorId: actor.id,
+      title: 'Manual request before sync'
+    });
+    let manualFirstSync = await cargoClient.skillForkSync.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      forkSkillId: manualFirstFork.id,
+      actorId: actor.id
+    });
+    await processSkillForkSyncJob({
+      skillForkSyncId: manualFirstSync.id
+    });
+
+    let processingManualFirstSync = await cargoClient.skillForkSync.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillForkSyncId: manualFirstSync.id,
+      actorId: actor.id
+    });
+    let activeManualFirstMergeRequest = await db.skillMergeRequest.findUniqueOrThrow({
+      where: { id: manualFirstMergeRequest.id }
+    });
+    let generatedManualFirstMergeRequest = await db.skillMergeRequest.findUniqueOrThrow({
+      where: { id: processingManualFirstSync.generatedMergeRequestId! }
+    });
+
+    expect(activeManualFirstMergeRequest).toMatchObject({
+      status: 'open',
+      direction: 'fork_to_upstream'
+    });
+    expect(generatedManualFirstMergeRequest).toMatchObject({
+      status: 'merging',
+      direction: 'upstream_to_fork'
+    });
+    expect(activeManualFirstMergeRequest.activePairKey).not.toBe(
+      generatedManualFirstMergeRequest.activePairKey
+    );
+
+    await processSkillMergeRequestPerformJob({
+      skillMergeRequestId: generatedManualFirstMergeRequest.id
+    });
+
+    let completedManualFirstSync = await cargoClient.skillForkSync.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillForkSyncId: manualFirstSync.id,
+      actorId: actor.id
+    });
+    let preservedManualFirstMergeRequest = await db.skillMergeRequest.findUniqueOrThrow({
+      where: { id: manualFirstMergeRequest.id }
+    });
+
+    expect(completedManualFirstSync.status).toBe('completed');
+    expect(preservedManualFirstMergeRequest.status).toBe('open');
+
+    let syncFirstSync = await cargoClient.skillForkSync.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      forkSkillId: syncFirstFork.id,
+      actorId: actor.id
+    });
+    let replacedSyncFirstMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: syncFirstFork.id,
+      actorId: actor.id,
+      title: 'First manual request after sync'
+    });
+    let activeSyncFirstMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: syncFirstFork.id,
+      actorId: actor.id,
+      title: 'Replacement manual request after sync'
+    });
+
+    await expect(
+      cargoClient.skillForkSync.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        forkSkillId: syncFirstFork.id,
+        actorId: actor.id
+      })
+    ).rejects.toThrow('An active fork synchronization already exists for this fork');
+
+    await processSkillForkSyncJob({
+      skillForkSyncId: syncFirstSync.id
+    });
+
+    let replacedSyncFirstRecord = await db.skillMergeRequest.findUniqueOrThrow({
+      where: { id: replacedSyncFirstMergeRequest.id }
+    });
+    let activeSyncFirstRecord = await db.skillMergeRequest.findUniqueOrThrow({
+      where: { id: activeSyncFirstMergeRequest.id }
+    });
+    let processingSyncFirstSync = await cargoClient.skillForkSync.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillForkSyncId: syncFirstSync.id,
+      actorId: actor.id
+    });
+    let generatedSyncFirstRecord = await db.skillMergeRequest.findUniqueOrThrow({
+      where: { id: processingSyncFirstSync.generatedMergeRequestId! }
+    });
+
+    expect(replacedSyncFirstRecord.status).toBe('closed');
+    expect(activeSyncFirstRecord).toMatchObject({
+      status: 'open',
+      direction: 'fork_to_upstream'
+    });
+    expect(generatedSyncFirstRecord).toMatchObject({
+      status: 'merging',
+      direction: 'upstream_to_fork'
+    });
+
+    await processSkillMergeRequestPerformJob({
+      skillMergeRequestId: generatedSyncFirstRecord.id
+    });
+
+    let completedSyncFirstSync = await cargoClient.skillForkSync.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillForkSyncId: syncFirstSync.id,
+      actorId: actor.id
+    });
+    let preservedSyncFirstRecord = await db.skillMergeRequest.findUniqueOrThrow({
+      where: { id: activeSyncFirstMergeRequest.id }
+    });
+
+    expect(completedSyncFirstSync.status).toBe('completed');
+    expect(preservedSyncFirstRecord.status).toBe('open');
+  });
+
   it('creates, comments on, asynchronously merges, and rolls back skill merge requests', async () => {
     let { tenant, environment } = await createScope();
     let upstreamEditor = await createActor(tenant.id, {

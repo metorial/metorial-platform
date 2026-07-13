@@ -1,4 +1,5 @@
 import { createLock } from '@lowerdeck/lock';
+import type { SkillMergeRequestDirection } from '@metorial-cargo/db';
 import { env } from '@metorial-cargo/db';
 
 export let skillMergeTargetLock = createLock({
@@ -15,3 +16,9 @@ export let getCanonicalSkillPairKey = (firstSkillOid: bigint, secondSkillOid: bi
   firstSkillOid < secondSkillOid
     ? `${firstSkillOid}:${secondSkillOid}`
     : `${secondSkillOid}:${firstSkillOid}`;
+
+export let getSkillMergeRequestActivePairKey = (
+  firstSkillOid: bigint,
+  secondSkillOid: bigint,
+  direction: SkillMergeRequestDirection
+) => `${getCanonicalSkillPairKey(firstSkillOid, secondSkillOid)}:${direction}`;
