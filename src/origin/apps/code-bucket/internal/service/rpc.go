@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
+	"github.com/metorial/metorial/services/code-bucket/pkg/bitbucket"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/github"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlab"
@@ -272,6 +273,125 @@ func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportB
 	}
 
 	return &rpc.ExportBucketToGitlabResponse{}, nil
+}
+
+func (rs *RcpService) CreateBucketFromBitbucketCloud(ctx context.Context, req *rpc.CreateBucketFromBitbucketCloudRequest) (*rpc.CreateBucketResponse, error) {
+	iter, cleanup, err := bitbucket.PrepareCloudRepo(
+		ctx,
+		req.Workspace,
+		req.Repo,
+		req.Path,
+		req.Ref,
+		req.Token,
+		req.BitbucketWebUrl,
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to prepare Bitbucket Cloud repository: %v", err)
+	}
+	defer cleanup()
+
+	if err := rs.clearBucket(ctx, req.NewBucketId); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to clear Bitbucket Cloud bucket: %v", err)
+	}
+	if err := iter(func(file bitbucket.FileToUpload) error {
+		return rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, file.Content, "application/octet-stream")
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to import Bitbucket Cloud repository: %v", err)
+	}
+	return &rpc.CreateBucketResponse{}, nil
+}
+
+func (rs *RcpService) ExportBucketToBitbucketCloud(ctx context.Context, req *rpc.ExportBucketToBitbucketCloudRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	err := bitbucket.UploadToCloudRepo(
+		req.Workspace,
+		req.Repo,
+		req.Path,
+		req.Branch,
+		req.CommitMessage,
+		req.Token,
+		req.BitbucketApiUrl,
+		req.BitbucketWebUrl,
+		func(yield func(bitbucket.FileToUpload) error) error {
+			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
+				for _, file := range batch {
+					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+		},
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload to Bitbucket Cloud: %v", err)
+	}
+	return &rpc.ExportBucketToBitbucketResponse{}, nil
+}
+
+func (rs *RcpService) CreateBucketFromBitbucketDataCenter(ctx context.Context, req *rpc.CreateBucketFromBitbucketDataCenterRequest) (*rpc.CreateBucketResponse, error) {
+	iter, cleanup, err := bitbucket.PrepareDataCenterRepo(
+		ctx,
+		req.CloneUrl,
+		req.Path,
+		req.Ref,
+		req.Username,
+		req.Token,
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to prepare Bitbucket Data Center repository: %v", err)
+	}
+	defer cleanup()
+	if err := rs.clearBucket(ctx, req.NewBucketId); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to clear Bitbucket Data Center bucket: %v", err)
+	}
+	if err := iter(func(file bitbucket.FileToUpload) error {
+		return rs.fsm.PutBucketFile(ctx, req.NewBucketId, file.Path, file.Content, "application/octet-stream")
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to import Bitbucket Data Center repository: %v", err)
+	}
+	return &rpc.CreateBucketResponse{}, nil
+}
+
+func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req *rpc.ExportBucketToBitbucketDataCenterRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	err := bitbucket.UploadToDataCenterRepo(
+		ctx,
+		req.CloneUrl,
+		req.Path,
+		req.Branch,
+		req.CommitMessage,
+		req.Username,
+		req.Token,
+		func(yield func(bitbucket.FileToUpload) error) error {
+			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
+				for _, file := range batch {
+					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+		},
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload to Bitbucket Data Center: %v", err)
+	}
+	return &rpc.ExportBucketToBitbucketResponse{}, nil
+}
+
+func (rs *RcpService) clearBucket(ctx context.Context, bucketID string) error {
+	paths := make([]string, 0)
+	if err := rs.fsm.WalkBucketFiles(ctx, bucketID, "", func(file fs.FileInfo) error {
+		paths = append(paths, file.Path)
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, filePath := range paths {
+		if err := rs.fsm.DeleteBucketFile(ctx, bucketID, filePath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (rs *RcpService) SetBucketFiles(ctx context.Context, req *rpc.SetBucketFilesRequest) (*rpc.SetBucketFilesResponse, error) {
