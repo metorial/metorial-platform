@@ -21,6 +21,7 @@ export let ID = createIdGenerator({
   storeVersion: idType.sorted('stv_'),
   storeVersionItem: idType.sorted('stvi_'),
   storeParticipant: idType.sorted('stp_'),
+  skill: idType.sorted('csk_'),
   skillConfiguration: idType.sorted('skc_'),
   skillAgent: idType.sorted('ska_'),
   skillVersion: idType.sorted('skv_'),
@@ -42,6 +43,8 @@ export let ID = createIdGenerator({
   skillPluginSkill: idType.sorted('skps_'),
   managedSkillPlugin: idType.sorted('mskp_'),
   skillExport: idType.sorted('ske_'),
+  skillImport: idType.sorted('ski_'),
+  skillImportItem: idType.sorted('skii_'),
 
   document: idType.sorted('doc_'),
   documentContent: idType.sorted('docn_'),

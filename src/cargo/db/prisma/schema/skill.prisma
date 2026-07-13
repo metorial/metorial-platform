@@ -60,6 +60,7 @@ model Skill {
   targetMergeRequests   SkillMergeRequest[]    @relation("SkillMergeRequestTarget")
   forkSyncs             SkillForkSync[]        @relation("SkillForkSyncFork")
   upstreamForkSyncs     SkillForkSync[]        @relation("SkillForkSyncUpstream")
+  skillImportItems      SkillImportItem[]
 
   @@index([forkedFromSkillVersionOid])
 }
@@ -343,6 +344,88 @@ model SkillForkSync {
   @@index([forkSkillOid, status, createdAt])
   @@index([upstreamSkillOid, status, createdAt])
   @@index([createdByTenantActorOid, createdAt])
+}
+
+enum SkillImportSourceType {
+  public_repository
+  origin_repository
+}
+
+enum SkillImportStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum SkillImportItemStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model SkillImport {
+  oid BigInt @id
+  id  String @unique
+
+  sourceType SkillImportSourceType
+  status     SkillImportStatus     @default(pending)
+
+  repositoryUrl  String?
+  repositoryId   String?
+  repositoryName String?
+  ref            String?
+  path           String?
+  codeBucketId   String?
+  error          String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  creatorTenantActorOid BigInt?
+  creatorTenantActor    TenantActor? @relation("SkillImportCreator", fields: [creatorTenantActorOid], references: [oid], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  items SkillImportItem[]
+
+  @@index([tenantOid, environmentOid, createdAt])
+  @@index([creatorTenantActorOid, createdAt])
+  @@index([status, updatedAt])
+}
+
+model SkillImportItem {
+  oid BigInt @id
+  id  String @unique
+
+  status        SkillImportItemStatus @default(pending)
+  path          String
+  error         String?
+  targetSkillId String                @unique
+
+  skillImportOid BigInt
+  skillImport    SkillImport @relation(fields: [skillImportOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: SetNull)
+
+  createdAt          DateTime  @default(now())
+  startedAt          DateTime?
+  heartbeatAt        DateTime?
+  completedAt        DateTime?
+  cleanupCompletedAt DateTime?
+  updatedAt          DateTime  @default(now()) @updatedAt
+
+  @@unique([skillImportOid, path])
+  @@index([skillImportOid, status])
+  @@index([skillOid])
 }
 
 model SkillMergeRequestItem {

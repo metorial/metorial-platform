@@ -34,6 +34,7 @@ model Tenant {
   skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
   skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
   skillMergeRequests    SkillMergeRequest[]
   skillForkSyncs        SkillForkSync[]
 }
@@ -68,6 +69,7 @@ model Environment {
   skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
   skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
   skillMergeRequests    SkillMergeRequest[]
   skillForkSyncs        SkillForkSync[]
 
@@ -103,6 +105,7 @@ model TenantActor {
   createdFiles              File[]                     @relation("FileCreator")
   createdFileLinks          FileLink[]                 @relation("FileLinkCreator")
   createdSkillExports       SkillExport[]              @relation("SkillExportCreator")
+  createdSkillImports       SkillImport[]              @relation("SkillImportCreator")
   createdMergeRequests      SkillMergeRequest[]        @relation("SkillMergeRequestCreator")
   createdSkillForkSyncs     SkillForkSync[]            @relation("SkillForkSyncCreator")
   startedMergeRequests      SkillMergeRequest[]        @relation("SkillMergeRequestMergeStarter")
