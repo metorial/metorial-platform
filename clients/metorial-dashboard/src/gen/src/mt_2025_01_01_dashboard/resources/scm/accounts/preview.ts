@@ -4,7 +4,7 @@ export type ScmAccountsPreviewOutput = {
   object: 'scm.account.list#preview';
   accounts: {
     object: 'scm.account.item#preview';
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'gitlab' | 'bitbucket';
     externalId: string;
     name: string;
     identifier: string;

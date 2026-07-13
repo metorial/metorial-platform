@@ -4,7 +4,7 @@ export type ScmReposPreviewOutput = {
   object: 'scm.repository.list#preview';
   repos: {
     object: 'scm.repository.item#preview';
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'gitlab' | 'bitbucket';
     externalId: string;
     name: string;
     identifier: string;
