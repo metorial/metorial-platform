@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
+import { Explainer } from '../../../../../components/explainer';
 import { createMagicMcpGroupModal } from '../../../scenes/magicMcp/groupsTable';
 import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
 import { showMagicMcpServerCreateFlow } from '../../../scenes/providerDeployments/magicMcpForm';
@@ -85,6 +86,13 @@ export let MagicMcpListLayout = () => {
           <Outlet />
         </PaginationSearchParamsProvider>
       </InitialLoadBoundary>
+
+      <Explainer
+        title="Get started with Magic MCP"
+        description="Instantly deploy and configure MCP servers. Connect them to Codex, Claude Cowork and more."
+        videoUrl="https://dashboard-assets.metorial-cdn.com/videos/metorial-dashboard-onboarding/2026-07-13/magic-mcp-servers.mp4"
+        id="magic-mcp-home"
+      />
     </ContentLayout>
   );
 };

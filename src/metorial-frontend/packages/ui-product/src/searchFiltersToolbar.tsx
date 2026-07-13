@@ -1,5 +1,5 @@
 import { Input } from '@metorial/ui';
-import { type Dispatch, type SetStateAction } from 'react';
+import React, { type Dispatch, type SetStateAction } from 'react';
 import { styled } from 'styled-components';
 import { TableFilter, TableFilterState } from './tableFilter';
 import { TableFilters } from './tableFilters';

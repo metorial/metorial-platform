@@ -1,6 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
-import { Explainer } from '../../../../components/explainer';
 import { ApiKeysScene } from '../../scenes/apiKeys';
 
 export let ProjectDeveloperPage = () => {
@@ -19,13 +18,6 @@ export let ProjectDeveloperPage = () => {
               type: 'instance_access_token',
               instanceId: instance.data?.id
             }}
-          />
-
-          <Explainer
-            title="Integrating Metorial"
-            description="Learn how to use the Metorial SDKs to give your AI agents access to the MCP tools."
-            youtubeId="otdHro6fpK0"
-            id="integration"
           />
         </>
       ))}

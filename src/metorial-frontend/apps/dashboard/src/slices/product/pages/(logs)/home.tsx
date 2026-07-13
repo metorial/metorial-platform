@@ -1,6 +1,5 @@
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import { styled } from 'styled-components';
-import { Explainer } from '../../../../components/explainer';
 import { UsageScene } from '../../scenes/usage/usage';
 
 let Stack = styled.div`
@@ -78,13 +77,6 @@ export let LogsHomePage = () => {
           />
         </Grid>
       </Stack>
-
-      <Explainer
-        title="Understanding your Metorial logs"
-        description="Learn how to read the activity charts and drill down into sessions, runs, and errors."
-        youtubeId="utz9yBfQ88k"
-        id="logs-home"
-      />
     </ContentLayout>
   );
 };

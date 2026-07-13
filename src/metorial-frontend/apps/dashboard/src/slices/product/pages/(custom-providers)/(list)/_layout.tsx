@@ -10,6 +10,7 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs, Menu } from '@metorial/ui';
 import { Outlet, useLocation } from 'react-router-dom';
+import { Explainer } from '../../../../../components/explainer';
 import { showCustomProviderRemoteFormModal } from '../../../scenes/customProvider/modal';
 
 export let CustomProvidersListLayout = () => {
@@ -131,6 +132,13 @@ export let CustomProvidersListLayout = () => {
       <PaginationSearchParamsProvider enabled={true}>
         <Outlet />
       </PaginationSearchParamsProvider>
+
+      <Explainer
+        title="Set up a custom MCP server"
+        description="Deploy your own MCP server on Metorial's infrastructure."
+        videoUrl="https://dashboard-assets.metorial-cdn.com/videos/metorial-dashboard-onboarding/2026-07-13/adding-custom-providers.mp4"
+        id="custom-providers-home"
+      />
     </ContentLayout>
   );
 };

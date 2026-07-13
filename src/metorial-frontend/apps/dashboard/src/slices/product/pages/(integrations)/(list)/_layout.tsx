@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { Explainer } from '../../../../../components/explainer';
 import { showCreateIntegrationProviderFirstFlow } from '../../../scenes/integrations/providerPanelFlow';
 
 export let IntegrationsListLayout = () => {
@@ -48,6 +49,13 @@ export let IntegrationsListLayout = () => {
       <PaginationSearchParamsProvider enabled={true}>
         <Outlet />
       </PaginationSearchParamsProvider>
+
+      <Explainer
+        title="Get started with Integrations"
+        description="Create reusable integration contracts and create Magic MCP servers from them or connect them to Metorial Portals."
+        videoUrl="https://dashboard-assets.metorial-cdn.com/videos/metorial-dashboard-onboarding/2026-07-13/integrations.mp4"
+        id="integrations-home"
+      />
     </ContentLayout>
   );
 };

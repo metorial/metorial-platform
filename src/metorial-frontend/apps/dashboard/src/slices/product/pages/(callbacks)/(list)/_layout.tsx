@@ -9,6 +9,7 @@ import {
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { Explainer } from '../../../../../components/explainer';
 import { showCallbackFormModal } from '../../../scenes/callbacks/modal';
 
 export let CallbacksListLayout = () => {
@@ -57,6 +58,13 @@ export let CallbacksListLayout = () => {
       <PaginationSearchParamsProvider enabled={true}>
         <Outlet />
       </PaginationSearchParamsProvider>
+
+      <Explainer
+        title="Understanding Callbacks"
+        description="Learn how to use callbacks to receive notifications for events that occur within providers."
+        videoUrl="https://dashboard-assets.metorial-cdn.com/videos/metorial-dashboard-onboarding/2026-07-13/callbacks.mp4"
+        id="callbacks-home"
+      />
     </ContentLayout>
   );
 };
