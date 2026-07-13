@@ -1791,6 +1791,7 @@ describe('cargo skill.e2e', () => {
     });
     expect(recoveredEvents.items.at(-1)?.actor).toBeUndefined();
 
+    vi.spyOn(skillMergeRequestPerformQueue, 'add').mockResolvedValueOnce(undefined as never);
     await cargoClient.skillMergeRequest.perform({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -1843,6 +1844,7 @@ describe('cargo skill.e2e', () => {
         skillMergeRequestId: mergeRequest.id
       })
     ).rejects.toThrow('The merge could not be applied. Review the request and try again.');
+    vi.restoreAllMocks();
     let recoveredPartialMerge = await cargoClient.skillMergeRequest.get({
       tenantId: tenant.id,
       environmentId: environment.id,

@@ -775,13 +775,35 @@ class SkillMergeRequestInternalServiceImpl {
     let activePairKey = getCanonicalSkillPairKey(sourceSkill.oid, targetSkill.oid);
     return await skillMergePairLock.usingLock(
       activePairKey,
-      async () =>
-        await skillMergeTargetLock.usingLock(targetSkill.store.id, async () => {
+      async () => {
+        while (true) {
+          let mergingMergeRequest = await db.skillMergeRequest.findFirst({
+            where: {
+              status: 'merging',
+              OR: [
+                {
+                  sourceSkillOid: sourceSkill.oid,
+                  targetSkillOid: targetSkill.oid
+                },
+                {
+                  sourceSkillOid: targetSkill.oid,
+                  targetSkillOid: sourceSkill.oid
+                }
+              ]
+            },
+            select: {
+              id: true
+            }
+          });
+          if (!mergingMergeRequest) break;
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        return await skillMergeTargetLock.usingLock(targetSkill.store.id, async () => {
           let existingActive = await db.skillMergeRequest.findMany({
             where: {
-              status: {
-                in: statusesForOpenWork
-              },
+              status: 'open',
               OR: [
                 {
                   sourceSkillOid: sourceSkill.oid,
@@ -836,9 +858,7 @@ class SkillMergeRequestInternalServiceImpl {
                 let closed = await tx.skillMergeRequest.updateMany({
                   where: {
                     oid: existingMergeRequest.oid,
-                    status: {
-                      in: statusesForOpenWork
-                    }
+                    status: 'open'
                   },
                   data: {
                     status: 'closed',
@@ -942,7 +962,8 @@ class SkillMergeRequestInternalServiceImpl {
               include: skillMergeRequestInclude
             }))!;
           });
-        })
+        });
+      }
     );
   }
 

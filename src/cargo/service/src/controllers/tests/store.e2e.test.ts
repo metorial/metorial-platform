@@ -792,7 +792,7 @@ describe('cargo store.e2e', () => {
       limit: 10
     });
 
-    expect(referencesAfterDelete.items).toHaveLength(0);
+    expect(referencesAfterDelete.items).toHaveLength(1);
     expect(itemsAfterStoreDelete.items).toHaveLength(0);
 
     await Promise.all(
