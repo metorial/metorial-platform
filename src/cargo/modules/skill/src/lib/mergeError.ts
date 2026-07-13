@@ -8,7 +8,7 @@ let mergeErrorMessages: Record<SkillMergeRequestErrorCode, string> = {
   apply_failed: 'The merge could not be applied. Review the request and try again.',
   verification_failed:
     'The proposed result could not be verified. Review the request and try again.',
-  enqueue_failed: 'The merge worker could not be started. Review the request and try again.',
+  enqueue_failed: 'The merge could not be started. Review the request and try again.',
   stale_merge_recovered: 'The merge worker did not finish. Review the request and try again.'
 };
 

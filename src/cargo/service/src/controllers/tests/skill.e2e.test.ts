@@ -8,19 +8,20 @@ import {
   recoverStaleSkillMergeRequests,
   skillMarketplacePluginService,
   skillMarketplaceService,
+  skillMergeRequestPerformQueue,
   skillPluginService,
   skillPluginSkillService
 } from '@metorial-cargo/module-skill';
+import { storeVersionService } from '@metorial-cargo/module-store';
 import { Buffer } from 'node:buffer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
-import { db, getId, snowflake } from '../../db';
-import { storeVersionService } from '@metorial-cargo/module-store';
-import { cargoClient } from '../../test/client';
-import { cleanDatabase } from '../../test/setup';
 import { applyMarketplace } from '../../../../modules/skill/src/serializers/marketplace';
 import { applyPlugin } from '../../../../modules/skill/src/serializers/plugin';
 import { skillMergeRequestApplyInternalService } from '../../../../modules/skill/src/services/skillMergeRequestApplyInternal';
+import { db, getId, snowflake } from '../../db';
+import { cargoClient } from '../../test/client';
+import { cleanDatabase } from '../../test/setup';
 
 let createTestYjsUpdate = (content: string) => {
   let document = new Y.Doc();
@@ -3474,6 +3475,39 @@ describe('cargo skill.e2e', () => {
       itemId: conflict.id,
       actorId: forkActor.id,
       resolutionType: 'accept_source'
+    });
+    vi.spyOn(skillMergeRequestPerformQueue, 'add').mockRejectedValueOnce(
+      new Error('Injected enqueue failure')
+    );
+    await expect(
+      cargoClient.skillMergeRequest.perform({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: actionRequired.generatedMergeRequestId!,
+        actorId: forkActor.id
+      })
+    ).rejects.toThrow('The merge could not be started. Review the request and try again.');
+    expect(
+      await cargoClient.skillMergeRequest.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: actionRequired.generatedMergeRequestId!,
+        actorId: forkActor.id
+      })
+    ).toMatchObject({
+      status: 'open',
+      mergeErrorCode: 'enqueue_failed'
+    });
+    expect(
+      await cargoClient.skillForkSync.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillForkSyncId: conflictedSync.id,
+        actorId: forkActor.id
+      })
+    ).toMatchObject({
+      status: 'action_required',
+      error: 'The merge could not be started. Review the request and try again.'
     });
     await cargoClient.skillMergeRequest.perform({
       tenantId: tenant.id,

@@ -101,7 +101,7 @@ class SkillMergeRequestCommentServiceImpl {
       : undefined;
     let path = d.path ?? item?.path;
 
-    if (reply?.skillMergeRequestItemOid !== item?.oid) {
+    if (reply && reply.skillMergeRequestItemOid !== item?.oid) {
       throw new ServiceError(
         badRequestError({ message: 'Replies must belong to the same merge request item' })
       );

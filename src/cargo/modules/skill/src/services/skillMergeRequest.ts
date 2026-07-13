@@ -348,6 +348,19 @@ class SkillMergeRequestServiceImpl {
           }
         });
         if (reset.count === 1) {
+          await tx.skillForkSync.updateMany({
+            where: {
+              generatedMergeRequestOid: updated.oid,
+              status: {
+                in: ['pending', 'processing', 'action_required']
+              }
+            },
+            data: {
+              status: 'action_required',
+              error: mergeError.message,
+              actionRequiredAt: new Date()
+            }
+          });
           await skillMergeRequestEventService.createEvent({
             database: tx,
             mergeRequestOid: updated.oid,
