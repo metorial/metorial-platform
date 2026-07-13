@@ -24,8 +24,8 @@ import {
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
-  MetorialDashboardInstanceDocumentsEndpoint,
   MetorialDashboardInstanceDocumentsEditTokenEndpoint,
+  MetorialDashboardInstanceDocumentsEndpoint,
   MetorialDashboardInstanceDocumentsParticipantsEndpoint,
   MetorialDashboardInstanceDocumentsPermissionsEndpoint,
   MetorialDashboardInstanceDocumentsVersionsEndpoint,
@@ -71,6 +71,8 @@ import {
   MetorialDashboardInstancePortalsEndpoint,
   MetorialDashboardInstancePortalsListingsEndpoint,
   MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint,
+  MetorialDashboardInstanceProtoGuardAlertsEndpoint,
+  MetorialDashboardInstanceProtoGuardConfigEndpoint,
   MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigEventsEndpoint,
@@ -95,10 +97,7 @@ import {
   MetorialDashboardInstanceProvidersTriggersEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstanceProviderTemplatesEndpoint,
-  MetorialDashboardInstanceProtoGuardAlertsEndpoint,
-  MetorialDashboardInstanceProtoGuardConfigEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
-  MetorialDashboardInstancesResourceCountsEndpoint,
   MetorialDashboardInstanceScmAccountsEndpoint,
   MetorialDashboardInstanceScmConnectionsEndpoint,
   MetorialDashboardInstanceScmInstallationEndpoint,
@@ -139,6 +138,7 @@ import {
   MetorialDashboardInstanceSkillsTemplatesItemsEndpoint,
   MetorialDashboardInstanceSkillsVersionsEndpoint,
   MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint,
+  MetorialDashboardInstancesResourceCountsEndpoint,
   MetorialDashboardInstanceStoresEndpoint,
   MetorialDashboardInstanceStoresItemsEndpoint,
   MetorialDashboardInstanceStoresParticipantsEndpoint,
@@ -496,12 +496,53 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         body.append('path', input.store.path);
       }
 
-      return await manager
-        ._post({
-          path: ['files'],
-          body
-        })
-        .transform(mapDashboardInstanceFilesGetOutput);
+      console.log('Uploading file with body:', Object.fromEntries(body.entries()));
+
+      try {
+        let res = await fetch(`${manager.apiHost}files`, {
+          method: 'POST',
+          body,
+          headers: manager.getHeaders(manager.config),
+          credentials: 'include',
+          redirect: 'follow',
+          referrerPolicy: 'no-referrer-when-downgrade',
+          cache: 'no-cache',
+          mode: 'cors'
+        });
+
+        let json = await res.json();
+
+        if (!res.ok) {
+          let errorData: {
+            status: number;
+            code: string;
+            message: string;
+          };
+          try {
+            errorData = json;
+          } catch {
+            errorData = {
+              status: res.status,
+              code: 'file_upload_failed',
+              message: `File upload failed with status ${res.status}`
+            };
+          }
+
+          throw new MetorialSDKError(errorData);
+        }
+
+        let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
+
+        return mapped;
+      } catch (error) {
+        console.error('File upload failed:', error);
+
+        throw new MetorialSDKError({
+          status: 500,
+          code: 'file_upload_failed',
+          message: 'File upload failed due to an unexpected error'
+        });
+      }
     }
   }),
 

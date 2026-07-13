@@ -359,6 +359,12 @@ class SkillMarketplaceServiceImpl {
         }
       });
 
+      await db.skillMarketplaceRepository.deleteMany({
+        where: {
+          skillMarketplaceOid: d.skillMarketplace.oid
+        }
+      });
+
       await db.skillMarketplace.update({
         where: {
           id: d.skillMarketplace.id

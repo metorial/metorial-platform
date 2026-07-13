@@ -28,10 +28,12 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
   if (!sync) throw new QueueRetryError();
   if (sync.status !== 'pending') return;
 
-  await db.skillDestinationSync.updateMany({
+  let claimedSync = await db.skillDestinationSync.updateMany({
     where: { oid: sync.oid, status: 'pending' },
     data: { status: 'processing', startedAt: new Date() }
   });
+  if (claimedSync.count === 0) return;
+
   await appendSkillDestinationSyncLog(data.skillDestinationSyncId, 'Starting sync.');
 
   // Cancel other syncs for the same destination

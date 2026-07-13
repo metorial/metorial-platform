@@ -4,7 +4,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { ID } from '../../id';
 import { createGitHubInstallationClient } from '../../lib/githubApp';
-import { createGitLabClientWithToken } from '../../lib/gitlab';
+import { createGitLabClientWithInstallation } from '../../lib/gitlab';
 
 export let createRepoWebhookQueue = createQueue<{ repoId: string }>({
   name: 'ori/rep/wh-cr',
@@ -146,14 +146,7 @@ export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(asyn
   }
 
   if (repo.provider === 'gitlab') {
-    if (!repo.installation.accessToken) {
-      throw new Error('Access token not found');
-    }
-
-    let gitlab = createGitLabClientWithToken(
-      repo.installation.accessToken,
-      repo.installation.backend
-    );
+    let gitlab = await createGitLabClientWithInstallation(repo.installation);
 
     try {
       let hook = await gitlab.ProjectHooks.add(

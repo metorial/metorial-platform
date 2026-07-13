@@ -188,7 +188,7 @@ let ConnectGitHubButton = (p: { instanceId: string; onConnected: () => void }) =
       fullWidth
       type="button"
     >
-      Connect GitHub
+      Connect GitHub or GitLab
     </Button>
   );
 };
@@ -269,7 +269,7 @@ let RepositoryPickerContent = (p: {
           <FormStack>
             {installations.data.items.length > 1 && (
               <Select
-                label="GitHub Installation"
+                label="Installation"
                 items={installations.data.items.map(i => ({
                   label:
                     i.externalAccount.name ??
@@ -287,7 +287,7 @@ let RepositoryPickerContent = (p: {
 
             {accountItems.length > 0 && (
               <Select
-                label="GitHub Account"
+                label="Account"
                 items={accountItems.map(i => ({
                   label: i.name,
                   id: i.externalId
@@ -350,7 +350,7 @@ let RepositoryPickerContent = (p: {
                           )
                         }
                       >
-                        Import
+                        Connect
                       </Button>
                     </RepoItem>
                   ))}

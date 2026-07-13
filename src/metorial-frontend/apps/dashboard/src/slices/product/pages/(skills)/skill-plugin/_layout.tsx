@@ -64,6 +64,10 @@ export let SkillPluginLayout = () => {
     );
   };
 
+  useInterval(() => {
+    plugin.refetch();
+  }, 10_000);
+
   useInterval(
     () => {
       if (plugin.data?.syncStatus !== 'synced' && !syncPlugin.isLoading) {
@@ -134,9 +138,9 @@ export let SkillPluginLayout = () => {
                   <span>
                     <strong>Upcoming changes:</strong> Skills or configurations linked to this
                     plugin have changed. Metorial is processing these changes and updating the
-                    plugin.
+                    plugin. This can take a few minutes.
                   </span>
-                  {plugin.data?.syncStatus === 'pending' && (
+                  {/* {plugin.data?.syncStatus === 'pending' && (
                     <Button
                       size="2"
                       loading={syncPlugin.isLoading}
@@ -145,7 +149,7 @@ export let SkillPluginLayout = () => {
                     >
                       Sync Now
                     </Button>
-                  )}
+                  )} */}
                 </Callout>
 
                 <Spacer height={20} />

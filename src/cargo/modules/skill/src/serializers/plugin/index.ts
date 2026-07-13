@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
 import { db, env } from '@metorial-cargo/db';
@@ -34,37 +35,96 @@ export let applyPlugin = createApplicator(
       skillPluginOid: input.skillPlugin.oid
     });
 
-    let skillHashes = skills
-      .map(s =>
+    let tenant = await db.tenant.findFirstOrThrow({
+      where: { oid: input.skillPlugin.tenantOid }
+    });
+    let agents = await db.skillAgent.findMany({
+      where: {
+        skillOid: { in: skills.map(skill => skill.skill.oid) },
+        status: 'active'
+      },
+      include: { document: { include: { content: true } } },
+      orderBy: { id: 'asc' }
+    });
+    let image = input.skillPlugin.image;
+    if (image?.type !== 'file') {
+      for (let skill of skills) {
+        if (skill.skill.image?.type === 'file') image = skill.skill.image;
+      }
+    }
+    if (image?.type !== 'file' && tenant.image?.type === 'file') {
+      image = tenant.image;
+    }
+    let legacySkillHashes = skills
+      .map(skill =>
         [
           1,
-          s.oid,
-          s.skill.oid,
-          s.updatedAt.getTime(),
-          s.skill.updatedAt.getTime(),
-          s.skill.store.lastEditedAt.getTime()
+          skill.oid,
+          skill.skill.oid,
+          skill.updatedAt.getTime(),
+          skill.skill.updatedAt.getTime(),
+          skill.skill.store.lastEditedAt.getTime()
         ].join(':')
       )
       .join('|');
+    let legacyHash = await Hash.sha256(
+      [1, input.skillPlugin.oid, input.skillPlugin.updatedAt.getTime(), legacySkillHashes].join(
+        ':'
+      )
+    );
 
+    // Hash only values that affect generated files. In particular, exclude
+    // updatedAt and the generated version to make repository round-trips
+    // idempotent.
     let hash = await Hash.sha256(
-      [1, input.skillPlugin.oid, input.skillPlugin.updatedAt.getTime(), skillHashes].join(':')
+      canonicalize({
+        serializerVersion: 2,
+        plugin: {
+          slug: input.skillPlugin.slug,
+          name: input.skillPlugin.name,
+          description: input.skillPlugin.description,
+          longDescription: input.skillPlugin.longDescription,
+          category: input.skillPlugin.category,
+          image
+        },
+        marketplacePluginSlug: input.skillMarketplacePlugin?.pluginSlug,
+        standaloneMarketplace: input.skillMarketplace
+          ? null
+          : {
+              ownerName: tenant.organizationName ?? tenant.name
+            },
+        agents: agents.map(agent => ({
+          slug: agent.slug,
+          content: agent.document.content.content
+        })),
+        mcpUrl: `${env.service.API_URL}/connect/plugin/${input.skillPlugin.slug}`
+      })
     );
 
     return {
       skills,
-      hash
+      tenant,
+      agents,
+      image,
+      hash,
+      legacyHash
     };
   },
   {
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { skills, hash }) => {
+    apply: async (input, context, { tenant, agents, image, hash, legacyHash }) => {
       if (input.skillPlugin.versionHash !== hash) {
-        let nextVersion = semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
+        let isHashMigration = input.skillPlugin.versionHash === legacyHash;
+        let nextVersion = isHashMigration
+          ? input.skillPlugin.version
+          : semver.inc(input.skillPlugin.version ?? '0.0.0', 'patch')!;
 
-        await db.skillPlugin.updateMany({
-          where: { oid: input.skillPlugin.oid },
+        let updated = await db.skillPlugin.updateMany({
+          where: {
+            oid: input.skillPlugin.oid,
+            versionHash: input.skillPlugin.versionHash
+          },
           data: {
             versionHash: hash,
             version: nextVersion,
@@ -74,7 +134,20 @@ export let applyPlugin = createApplicator(
           }
         });
 
-        input.skillPlugin.version = nextVersion;
+        if (updated.count > 0) {
+          input.skillPlugin.version = nextVersion;
+          input.skillPlugin.versionHash = hash;
+        } else {
+          let current = await db.skillPlugin.findUniqueOrThrow({
+            where: { oid: input.skillPlugin.oid }
+          });
+          if (current.versionHash !== hash) {
+            throw new Error('Plugin changed while its sync was being processed');
+          }
+
+          input.skillPlugin.version = current.version;
+          input.skillPlugin.versionHash = current.versionHash;
+        }
       }
 
       context.setBasePath(getPluginPath(input));
@@ -88,23 +161,6 @@ export let applyPlugin = createApplicator(
       let mcpJson = json(mcpServers);
       await context.setFile('mcp.json', mcpJson);
       await context.setFile('.mcp.json', mcpJson);
-
-      let image = input.skillPlugin.image;
-      if (image?.type !== 'file') {
-        for (let skill of skills) {
-          if (skill.skill.image?.type === 'file') {
-            image = skill.skill.image;
-          }
-        }
-      }
-      if (image?.type !== 'file') {
-        let tenant = await db.tenant.findFirstOrThrow({
-          where: { oid: input.skillPlugin.tenantOid }
-        });
-        if (tenant.image?.type === 'file') {
-          image = tenant.image;
-        }
-      }
 
       let downloadImage = await internalImageService.downloadImage({
         id: input.skillPlugin.id,
@@ -163,10 +219,6 @@ export let applyPlugin = createApplicator(
       // Standalone plugins are a single-plugin marketplace, so we still need to
       // create the marketplace files for them.
       if (!input.skillMarketplace) {
-        let tenant = await db.tenant.findFirstOrThrow({
-          where: { oid: input.skillPlugin.tenantOid }
-        });
-
         let codexMarketplace = json({
           name: baseInfo.name,
           interface: {
@@ -212,26 +264,8 @@ export let applyPlugin = createApplicator(
         await context.setFile('.github/plugin/marketplace.json', cursorAndClaudeMarketplace);
       }
 
-      let cursor: string | null = null;
-      let limit = 25;
-
-      while (true) {
-        let agents = await db.skillAgent.findMany({
-          where: {
-            skillOid: { in: skills.map(s => s.skill.oid) },
-            status: 'active',
-            id: cursor ? { gt: cursor } : undefined
-          },
-          include: { document: { include: { content: true } } },
-          take: limit
-        });
-
-        for (let agent of agents) {
-          await context.setFile(`agents/${agent.slug}.md`, agent.document.content.content);
-        }
-
-        if (agents.length < limit) break;
-        cursor = agents[agents.length - 1]!.id as string;
+      for (let agent of agents) {
+        await context.setFile(`agents/${agent.slug}.md`, agent.document.content.content);
       }
     }
   }

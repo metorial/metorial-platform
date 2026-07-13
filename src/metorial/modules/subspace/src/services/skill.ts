@@ -180,6 +180,18 @@ export let syncSkillFromSubspace = async (d: {
     }
   });
 
+  if (skill.status === 'archived') {
+    await db.skillGroupItem.updateMany({
+      where: {
+        skillOid: skill.oid,
+        status: 'active'
+      },
+      data: {
+        status: 'archived'
+      }
+    });
+  }
+
   if (!existingSkill && skill.status == 'active') {
     await Fabric.fire('skill.created:after', {
       instance: d.instance,

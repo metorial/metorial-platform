@@ -1,3 +1,4 @@
+import { generatePlainId } from '@lowerdeck/id';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, env, getId, withTransaction } from '@metorial-cargo/db';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
@@ -138,7 +139,7 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
           status: 'pending',
           skillDestinationSyncOid: sync.oid,
           skillRepositoryOid: link.skillRepository.oid,
-          branchName: `metorial/sync-${target}-${repository.syncCounter}`,
+          branchName: `metorial/sync-${target}-${repository.syncCounter}-${generatePlainId(4).toLowerCase()}`,
           prName: sync.prName ?? `Sync ${target}`,
           prDescription: sync.prDescription,
           commitMessage: sync.commitMessage ?? sync.prName ?? `Sync ${target}`

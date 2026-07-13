@@ -668,25 +668,27 @@ let showSkillTemplateItemPickerPanel = (p: {
 let AddSkillItemMenu = (p: {
   disabled?: boolean;
   onSelect: (kind: SkillItemPickerKind) => void;
-}) => (
-  <Menu
-    items={[
-      { id: 'provider', label: 'Provider', description: 'Link an individual provider.' },
-      {
-        id: 'integration',
-        label: 'Integration',
-        description: 'Link an integration with multiple providers.'
-      }
-    ]}
-    onItemClick={item => {
-      if (item === 'provider' || item === 'integration') p.onSelect(item);
-    }}
-  >
-    <Button size="2" iconLeft={<RiAddLine />} disabled={p.disabled} variant="outline">
-      Add Provider
-    </Button>
-  </Menu>
-);
+}) => {
+  return (
+    <Menu
+      items={[
+        { id: 'provider', label: 'Provider', description: 'Link an individual provider.' },
+        {
+          id: 'integration',
+          label: 'Integration',
+          description: 'Link an integration with multiple providers.'
+        }
+      ]}
+      onItemClick={item => {
+        if (item === 'provider' || item === 'integration') p.onSelect(item);
+      }}
+    >
+      <Button size="2" iconLeft={<RiAddLine />} disabled={p.disabled} variant="outline">
+        Add Provider
+      </Button>
+    </Menu>
+  );
+};
 
 export let SkillLinkProvidersScene = (p: {
   instanceId: string | null | undefined;

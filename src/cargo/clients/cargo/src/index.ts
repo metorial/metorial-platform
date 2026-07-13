@@ -211,7 +211,14 @@ export let uploadFile = async (
   });
 
   if (!response.ok) {
-    throw new Error(`Cargo upload failed with status ${response.status}`);
+    let text: string;
+    try {
+      text = await response.text();
+    } catch {
+      text = '';
+    }
+
+    throw new Error(`Cargo upload failed with status ${response.status} - ${text}`);
   }
 
   return (await response.json()) as CargoUploadResult;
