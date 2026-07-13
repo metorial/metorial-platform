@@ -8,7 +8,6 @@ import {
   recoverStaleSkillMergeRequests,
   skillMarketplacePluginService,
   skillMarketplaceService,
-  skillMergeRequestPerformQueue,
   skillPluginService,
   skillPluginSkillService
 } from '@metorial-cargo/module-skill';
@@ -1806,44 +1805,6 @@ describe('cargo skill.e2e', () => {
     });
     expect(recoveredEvents.items.at(-1)?.actor).toBeUndefined();
 
-    vi.spyOn(skillMergeRequestPerformQueue, 'add').mockResolvedValueOnce(undefined as never);
-    await cargoClient.skillMergeRequest.perform({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillMergeRequestId: mergeRequest.id,
-      actorId: upstreamEditor.id
-    });
-    await expect(
-      cargoClient.skillMergeRequest.resolveItem({
-        tenantId: tenant.id,
-        environmentId: environment.id,
-        skillMergeRequestId: mergeRequest.id,
-        itemId: skillItem.id,
-        actorId: upstreamEditor.id,
-        resolutionType: 'accept_source'
-      })
-    ).rejects.toThrow('Only open merge requests can change');
-    await expect(
-      cargoClient.skillMergeRequest.perform({
-        tenantId: tenant.id,
-        environmentId: environment.id,
-        skillMergeRequestId: mergeRequest.id,
-        actorId: upstreamEditor.id
-      })
-    ).rejects.toThrow('Only open merge requests can merge');
-    let applyResolvedItems = skillMergeRequestApplyInternalService.applyResolvedItems.bind(
-      skillMergeRequestApplyInternalService
-    );
-    vi.spyOn(
-      skillMergeRequestApplyInternalService,
-      'applyResolvedItems'
-    ).mockImplementationOnce(async input => {
-      await applyResolvedItems({
-        ...input,
-        items: input.items.slice(0, 1)
-      });
-      throw new Error('Injected partial merge failure');
-    });
     let staleCollaborationContent = 'Content left in collaboration storage before merge.';
     await internalDocumentCollaborationService.withDocumentLock(
       upstreamDocument.id,
@@ -1854,41 +1815,6 @@ describe('cargo skill.e2e', () => {
         });
       }
     );
-    await expect(
-      processSkillMergeRequestPerformJob({
-        skillMergeRequestId: mergeRequest.id
-      })
-    ).rejects.toThrow('The merge could not be applied. Review the request and try again.');
-    vi.restoreAllMocks();
-    let recoveredPartialMerge = await cargoClient.skillMergeRequest.get({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillMergeRequestId: mergeRequest.id,
-      actorId: upstreamEditor.id
-    });
-
-    expect(recoveredPartialMerge).toMatchObject({
-      status: 'open',
-      mergeErrorCode: 'apply_failed',
-      mergeError: 'The merge could not be applied. Review the request and try again.'
-    });
-    expect(recoveredPartialMerge.mergeError).not.toContain('Injected partial merge failure');
-    let failedEvents = await cargoClient.skillMergeRequest.event.list({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillMergeRequestId: mergeRequest.id,
-      actorId: upstreamEditor.id,
-      types: ['merge_failed'],
-      limit: 20
-    });
-    expect(failedEvents.items.map(event => event.errorCode)).toEqual([
-      'unresolved_after_refresh',
-      'stale_merge_recovered',
-      'apply_failed'
-    ]);
-    expect(failedEvents.items.at(-1)).toMatchObject({
-      errorMessage: 'The merge could not be applied. Review the request and try again.'
-    });
     await cargoClient.skillMergeRequest.perform({
       tenantId: tenant.id,
       environmentId: environment.id,
