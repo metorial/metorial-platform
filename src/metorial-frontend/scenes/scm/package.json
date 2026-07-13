@@ -1,0 +1,25 @@
+{
+  "name": "@metorial/scene-scm",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.{ts,tsx} --check"
+  },
+  "dependencies": {
+    "@metorial/dashboard-sdk": "1.0.0-internal",
+    "@metorial/data-hooks": "^1.0.0",
+    "@metorial/state": "^1.0.0",
+    "@metorial/ui": "^1.0.0",
+    "@remixicon/react": "^4.6.0",
+    "react": "19.1.1",
+    "styled-components": "^6.1.13"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}

@@ -1,9 +1,13 @@
 import { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { getConfig, Paths } from '@metorial/frontend-config';
+import { useGetPathWithPrefix } from '@metorial/microfrontend';
+import { formatScmProvider, showScmRepositoryPicker } from '@metorial/scene-scm';
 import {
   useCreateCustomProviderVersion,
   useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
   useCustomProvider,
   useCustomProviderCodeEditorToken,
   useCustomProviderEnv
@@ -25,7 +29,6 @@ import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { SelectRepo } from '../../../scenes/customProvider/selectRepo';
 import {
   getCustomProviderLinkedRepo,
   getFunctionProviderVersionFrom,
@@ -75,6 +78,9 @@ let Iframe = styled.iframe`
 
 export let CustomProviderCodePage = () => {
   let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let getPath = useGetPathWithPrefix();
 
   let { customProviderId } = useParams();
   let customProvider = useCustomProvider(instance.data?.id, customProviderId);
@@ -209,10 +215,42 @@ export let CustomProviderCodePage = () => {
                         Select a repository from your connected Git accounts to link it to this
                         provider.
                       </Dialog.Description>
-                      <SelectRepo
-                        onSelect={repo => setRepo(repo)}
-                        selectedExternalRepoId={repo?.provider.id}
-                      />
+                      <Spacer height={15} />
+
+                      <Flex align="center" justify="space-between" gap={10}>
+                        <div>
+                          <Text size="2" weight="strong">
+                            {repo
+                              ? `${repo.provider.owner}/${repo.provider.name}`
+                              : 'No repository selected'}
+                          </Text>
+                          <Text size="1" color="gray600">
+                            {repo
+                              ? `${formatScmProvider(repo.provider.type)} · ${repo.url}`
+                              : 'Choose an existing repository or create a new one.'}
+                          </Text>
+                        </div>
+
+                        <Button
+                          size="2"
+                          variant={repo ? 'outline' : 'solid'}
+                          onClick={() => {
+                            if (!instance.data) return;
+                            showScmRepositoryPicker({
+                              instanceId: instance.data.id,
+                              selectedExternalRepoId: repo?.provider.id,
+                              allowCreate: true,
+                              onManageSourceControl: () => {
+                                if (!organization.data || !project.data) return;
+                                window.location.href = `/o/${organization.data.slug}/project/${project.data.slug}/scm`;
+                              },
+                              onSelect: setRepo
+                            });
+                          }}
+                        >
+                          {repo ? 'Change' : 'Select repository'}
+                        </Button>
+                      </Flex>
 
                       <Spacer height={15} />
 
