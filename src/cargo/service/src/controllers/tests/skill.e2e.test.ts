@@ -490,6 +490,118 @@ describe('cargo skill.e2e', () => {
     ).rejects.toThrow();
   });
 
+  it('presents partial skill imports and scopes them to their creator', async () => {
+    let { tenant, environment } = await createScope();
+    let firstActor = await createActor(tenant.id, {
+      identifier: 'skill-import-first',
+      name: 'Skill Import First'
+    });
+    let secondActor = await createActor(tenant.id, {
+      identifier: 'skill-import-second',
+      name: 'Skill Import Second'
+    });
+    let { tenant: tenantRecord, environment: environmentRecord } = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let firstActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: { id: firstActor.id }
+    });
+    let secondActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: { id: secondActor.id }
+    });
+    let firstImportIds = getId('skillImport');
+    let secondImportIds = getId('skillImport');
+    let firstImport = await db.skillImport.create({
+      data: {
+        ...firstImportIds,
+        sourceType: 'public_repository',
+        status: 'completed',
+        repositoryUrl: 'https://github.com/metorial/example',
+        repositoryName: 'example',
+        ref: 'main',
+        creatorTenantActorOid: firstActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid,
+        completedAt: new Date(),
+        items: {
+          create: [
+            {
+              ...getId('skillImportItem'),
+              status: 'completed',
+              path: '/skills/one',
+              targetSkillId: 'csk_imported_one',
+              completedAt: new Date()
+            },
+            {
+              ...getId('skillImportItem'),
+              status: 'failed',
+              path: '/skills/two',
+              targetSkillId: 'csk_imported_two',
+              error: 'Invalid skill metadata',
+              completedAt: new Date(),
+              cleanupCompletedAt: new Date()
+            }
+          ]
+        }
+      }
+    });
+    let secondImport = await db.skillImport.create({
+      data: {
+        ...secondImportIds,
+        sourceType: 'origin_repository',
+        status: 'processing',
+        repositoryId: 'repo_private',
+        repositoryName: 'private',
+        creatorTenantActorOid: secondActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+
+    let listed = await cargoClient.skillImport.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: firstActor.id,
+      limit: 10
+    });
+    expect(listed.items.map(item => item.id)).toEqual([firstImport.id]);
+    expect(listed.items[0]).toMatchObject({
+      status: 'completed',
+      results: {
+        total: 2,
+        completed: 1,
+        failed: 1,
+        pending: 0
+      }
+    });
+    expect(
+      await cargoClient.skillImport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillImportId: firstImport.id
+      })
+    ).toMatchObject({
+      source: {
+        type: 'public',
+        repositoryUrl: 'https://github.com/metorial/example',
+        ref: 'main'
+      },
+      createdBy: {
+        id: firstActor.id
+      }
+    });
+    await expect(
+      cargoClient.skillImport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillImportId: secondImport.id
+      })
+    ).rejects.toThrow();
+  });
+
   it('creates, lists, gets, and updates skills with linked stores', async () => {
     let { tenant, environment } = await createScope();
     let actor = await createActor(tenant.id, {

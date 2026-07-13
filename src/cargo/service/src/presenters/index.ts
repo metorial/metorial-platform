@@ -13,6 +13,7 @@ export * from './skillAgent';
 export * from './skillConfiguration';
 export * from './skillDestination';
 export * from './skillExport';
+export * from './skillImport';
 export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillMarketplaceRepository';

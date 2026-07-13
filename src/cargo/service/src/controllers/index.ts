@@ -14,6 +14,7 @@ import { skillController } from './skill';
 import { skillAgentController } from './skillAgent';
 import { skillConfigurationController } from './skillConfiguration';
 import { skillExportController } from './skillExport';
+import { skillImportController } from './skillImport';
 import { skillMarketplaceController } from './skillMarketplace';
 import { skillMarketplacePluginController } from './skillMarketplacePlugin';
 import { skillMarketplaceRepositoryController } from './skillMarketplaceRepository';
@@ -64,6 +65,7 @@ let skillControllers = {
   skillAgent: skillAgentController,
   skillConfiguration: skillConfigurationController,
   skillExport: skillExportController,
+  skillImport: skillImportController,
   skillMarketplace: skillMarketplaceController,
   skillMarketplacePlugin: skillMarketplacePluginController,
   skillMarketplaceRepository: skillMarketplaceRepositoryController,
