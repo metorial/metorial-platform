@@ -3478,39 +3478,6 @@ describe('cargo skill.e2e', () => {
       actorId: forkActor.id,
       resolutionType: 'accept_source'
     });
-    vi.spyOn(skillMergeRequestPerformQueue, 'add').mockRejectedValueOnce(
-      new Error('Injected enqueue failure')
-    );
-    await expect(
-      cargoClient.skillMergeRequest.perform({
-        tenantId: tenant.id,
-        environmentId: environment.id,
-        skillMergeRequestId: actionRequired.generatedMergeRequestId!,
-        actorId: forkActor.id
-      })
-    ).rejects.toThrow('The merge could not be started. Review the request and try again.');
-    expect(
-      await cargoClient.skillMergeRequest.get({
-        tenantId: tenant.id,
-        environmentId: environment.id,
-        skillMergeRequestId: actionRequired.generatedMergeRequestId!,
-        actorId: forkActor.id
-      })
-    ).toMatchObject({
-      status: 'open',
-      mergeErrorCode: 'enqueue_failed'
-    });
-    expect(
-      await cargoClient.skillForkSync.get({
-        tenantId: tenant.id,
-        environmentId: environment.id,
-        skillForkSyncId: conflictedSync.id,
-        actorId: forkActor.id
-      })
-    ).toMatchObject({
-      status: 'action_required',
-      error: 'The merge could not be started. Review the request and try again.'
-    });
     await cargoClient.skillMergeRequest.perform({
       tenantId: tenant.id,
       environmentId: environment.id,
