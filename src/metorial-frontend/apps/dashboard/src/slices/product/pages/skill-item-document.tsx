@@ -22,6 +22,7 @@ export let SkillItemDocumentPage = () => {
       loadError={skill.error ?? item.error}
       onBack={() => navigate(-1)}
       setRestrictHeight={enabled => (window as any).metorial_setRestrictHeight?.(enabled)}
+      hideSharingControls
       skillShareContext={
         skillId
           ? {
