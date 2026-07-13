@@ -30,6 +30,11 @@ export let env = createValidatedEnv({
   gl: {
     SCM_GITLAB_CLIENT_ID: v.optional(v.string()),
     SCM_GITLAB_CLIENT_SECRET: v.optional(v.string())
+  },
+
+  bb: {
+    SCM_BITBUCKET_CLIENT_ID: v.optional(v.string()),
+    SCM_BITBUCKET_CLIENT_SECRET: v.optional(v.string())
   }
 });
 

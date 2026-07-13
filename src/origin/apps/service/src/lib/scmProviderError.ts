@@ -14,7 +14,7 @@ import { getSentry } from '@lowerdeck/sentry';
 
 let Sentry = getSentry();
 
-type ScmProvider = 'github' | 'gitlab';
+type ScmProvider = 'github' | 'gitlab' | 'bitbucket';
 
 export let getScmProviderErrorStatus = (error: any): number | undefined =>
   error?.status ??
@@ -22,7 +22,8 @@ export let getScmProviderErrorStatus = (error: any): number | undefined =>
   error?.cause?.response?.status ??
   error?.cause?.response?.statusCode;
 
-let providerName = (provider: ScmProvider) => (provider === 'github' ? 'GitHub' : 'GitLab');
+let providerName = (provider: ScmProvider) =>
+  provider === 'github' ? 'GitHub' : provider === 'gitlab' ? 'GitLab' : 'Bitbucket';
 
 export let wrapScmProviderError = (
   provider: ScmProvider,

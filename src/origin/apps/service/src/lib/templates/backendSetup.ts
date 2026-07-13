@@ -1,4 +1,7 @@
-export let backendSetupHtml = (d: { sessionId: string; installationSessionId?: string }) => `<!DOCTYPE html>
+export let backendSetupHtml = (d: {
+  sessionId: string;
+  installationSessionId?: string;
+}) => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -177,7 +180,7 @@ export let backendSetupHtml = (d: { sessionId: string; installationSessionId?: s
     <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" class="logo" />
 
     <h1>Setup Custom Provider</h1>
-    <p class="subtitle">Configure your GitHub Enterprise or GitLab instance</p>
+    <p class="subtitle">Configure your GitHub Enterprise, GitLab, or Bitbucket instance</p>
 
     <div class="info-box">
       <div class="info-box-title">OAuth Callback URL</div>
@@ -193,6 +196,7 @@ export let backendSetupHtml = (d: { sessionId: string; installationSessionId?: s
           <option value="">Select provider type...</option>
           <option value="github_enterprise">GitHub Enterprise</option>
           <option value="gitlab_selfhosted">GitLab Self-Hosted</option>
+          <option value="bitbucket_data_center">Bitbucket Data Center</option>
         </select>
       </div>
 
@@ -205,7 +209,7 @@ export let backendSetupHtml = (d: { sessionId: string; installationSessionId?: s
       <div class="form-group">
         <label for="apiUrl">Base URL</label>
         <input type="url" id="apiUrl" name="apiUrl" placeholder="https://github.company.com" required />
-        <div class="help-text">The base URL of your instance (e.g., https://github.company.com or https://gitlab.company.com)</div>
+        <div class="help-text">The base URL of your instance (for example, https://github.company.com, https://gitlab.company.com, or https://company.com/bitbucket)</div>
       </div>
 
       <div class="form-group" id="githubFields" style="display: none;">
@@ -262,6 +266,12 @@ export let backendSetupHtml = (d: { sessionId: string; installationSessionId?: s
         document.getElementById('appSlug').required = false;
         document.getElementById('appPrivateKey').required = false;
         callbackUrlDiv.textContent = window.location.origin + '/origin/oauth/gitlab/callback';
+      } else if (type === 'bitbucket_data_center') {
+        githubFields.style.display = 'none';
+        document.getElementById('appId').required = false;
+        document.getElementById('appSlug').required = false;
+        document.getElementById('appPrivateKey').required = false;
+        callbackUrlDiv.textContent = window.location.origin + '/origin/oauth/bitbucket/callback';
       }
     });
 

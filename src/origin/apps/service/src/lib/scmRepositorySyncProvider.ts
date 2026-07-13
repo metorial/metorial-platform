@@ -5,6 +5,7 @@ import type {
   ScmRepository,
   ScmRepositorySync
 } from '../../prisma/generated/client';
+import { createBitbucketClientWithInstallation } from './bitbucket';
 import { createGitHubInstallationClient } from './githubApp';
 import { createGitLabClientWithInstallation } from './gitlab';
 import { getScmProviderErrorStatus } from './scmProviderError';
@@ -32,6 +33,9 @@ let getGitHubClient = async (repo: SyncWithRepo['repo']) => {
 
 let getGitLabClient = async (repo: SyncWithRepo['repo']) =>
   (await createGitLabClientWithInstallation(repo.installation)) as any;
+
+let getBitbucketClient = async (repo: SyncWithRepo['repo']) =>
+  createBitbucketClientWithInstallation(repo.installation);
 
 let isGitHubEmptyRepositoryError = (e: any) =>
   e.status === 409 &&
@@ -383,6 +387,23 @@ export let createRepositorySyncBranch = async (sync: SyncWithRepo) => {
     return;
   }
 
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    try {
+      await client.getBranch(sync.repo.externalId, sync.baseBranch);
+    } catch (error) {
+      if (getScmProviderErrorStatus(error) !== 404) throw error;
+      await client.initializeRepository(sync.repo.externalId, sync.baseBranch);
+    }
+    try {
+      await client.createBranch(sync.repo.externalId, sync.branchName, sync.baseBranch);
+    } catch (error) {
+      if (![400, 409].includes(getScmProviderErrorStatus(error) ?? 0)) throw error;
+      await client.getBranch(sync.repo.externalId, sync.branchName);
+    }
+    return;
+  }
+
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
 };
 
@@ -514,6 +535,23 @@ export let cleanupRepositorySyncBranchIfNoChanges = async (
       );
     }
 
+    return { hasChanges, baseSha, branchSha };
+  }
+
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    let [baseSha, branchSha] = await Promise.all([
+      client.getBranch(sync.repo.externalId, sync.baseBranch),
+      client.getBranch(sync.repo.externalId, sync.branchName)
+    ]);
+    let hasChanges = baseSha !== branchSha;
+    if (!hasChanges && sync.branchName !== sync.baseBranch) {
+      try {
+        await client.deleteBranch(sync.repo.externalId, sync.branchName);
+      } catch (error) {
+        if (getScmProviderErrorStatus(error) !== 404) throw error;
+      }
+    }
     return { hasChanges, baseSha, branchSha };
   }
 
@@ -695,6 +733,29 @@ export let createRepositorySyncPullRequest = async (
     }
   }
 
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    try {
+      let pr = await client.createPullRequest({
+        repositoryId: sync.repo.externalId,
+        source: sync.branchName,
+        destination: sync.baseBranch,
+        title: sync.title,
+        description: sync.description ?? undefined
+      });
+      return { providerPrId: pr.id, providerPrUrl: pr.url };
+    } catch (error) {
+      if (![400, 409].includes(getScmProviderErrorStatus(error) ?? 0)) throw error;
+      let existing = await client.findOpenPullRequest(
+        sync.repo.externalId,
+        sync.branchName,
+        sync.baseBranch
+      );
+      if (!existing) throw error;
+      return { providerPrId: existing.id, providerPrUrl: existing.url };
+    }
+  }
+
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
 };
 
@@ -853,6 +914,22 @@ export let getRepositorySyncCiState = async (
     return 'failed';
   }
 
+  if (sync.repo.provider === 'bitbucket') {
+    if (!sync.providerPrId) {
+      throw new ServiceError(
+        badRequestError({ message: 'Pull request has not been created' })
+      );
+    }
+    let client = await getBitbucketClient(sync.repo);
+    let [branchSha, pr] = await Promise.all([
+      client.getBranch(sync.repo.externalId, sync.branchName),
+      client.getPullRequest(sync.repo.externalId, sync.providerPrId)
+    ]);
+    if (['MERGED', 'FULFILLED'].includes(pr.state.toUpperCase())) return 'success';
+    if (['DECLINED', 'SUPERSEDED'].includes(pr.state.toUpperCase())) return 'failed';
+    return client.getCiState(sync.repo.externalId, branchSha);
+  }
+
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
 };
 
@@ -998,6 +1075,19 @@ export let mergeRepositorySyncPullRequest = async (
     });
 
     return { mergeSha: merge.merge_commit_sha ?? merge.sha };
+  }
+
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    let merge = await client.mergePullRequest(sync.repo.externalId, sync.providerPrId);
+    if (sync.branchName !== sync.baseBranch) {
+      try {
+        await client.deleteBranch(sync.repo.externalId, sync.branchName);
+      } catch (error) {
+        if (getScmProviderErrorStatus(error) !== 404) throw error;
+      }
+    }
+    return { mergeSha: merge.mergeSha };
   }
 
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
