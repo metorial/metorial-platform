@@ -21,4 +21,5 @@ export interface ScmAccountPreview {
   externalId: string;
   name: string;
   identifier: string;
+  imageUrl: string | null;
 }

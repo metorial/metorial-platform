@@ -16,6 +16,7 @@ export type BitbucketAccount = {
   name: string;
   slug: string;
   type: 'user' | 'organization';
+  imageUrl: string | null;
 };
 
 export type BitbucketRepository = {
@@ -146,12 +147,14 @@ export class BitbucketClient {
         username?: string;
         nickname?: string;
         display_name: string;
+        links?: { avatar?: { href?: string } };
       }>('user');
       return {
         id: user.uuid,
         name: user.display_name,
         slug: user.username ?? user.nickname ?? user.uuid,
-        type: 'user'
+        type: 'user',
+        imageUrl: user.links?.avatar?.href ?? null
       };
     }
 
@@ -175,7 +178,13 @@ export class BitbucketClient {
       );
     }
 
-    let user: { id: number; name: string; displayName: string; slug?: string };
+    let user: {
+      id: number;
+      name: string;
+      displayName: string;
+      slug?: string;
+      avatarUrl?: string;
+    };
     try {
       user = await this.request(`users/${encodeURIComponent(username)}`);
     } catch {
@@ -185,7 +194,8 @@ export class BitbucketClient {
       id: user.id ? user.id.toString() : username,
       name: user.displayName,
       slug: user.slug ?? user.name,
-      type: 'user'
+      type: 'user',
+      imageUrl: user.avatarUrl ?? null
     };
   }
 
@@ -196,27 +206,33 @@ export class BitbucketClient {
           uuid: string;
           name?: string;
           slug: string;
+          links?: { avatar?: { href?: string } };
         };
       }>('user/workspaces');
       return workspaces.map(workspace => ({
         id: workspace.workspace.uuid,
         name: workspace.workspace.name ?? workspace.workspace.slug,
         slug: workspace.workspace.slug,
-        type: 'organization' as const
+        type: 'organization' as const,
+        imageUrl: workspace.workspace.links?.avatar?.href ?? null
       }));
     }
 
     let user = await this.getCurrentUser();
-    let projects = await this.allDataCenter<{ id: number; key: string; name: string }>(
-      'projects'
-    );
+    let projects = await this.allDataCenter<{
+      id: number;
+      key: string;
+      name: string;
+      avatarUrl?: string;
+    }>('projects');
     return [
       { ...user, slug: `~${user.slug}` },
       ...projects.map(project => ({
         id: project.id.toString(),
         name: project.name,
         slug: project.key,
-        type: 'organization' as const
+        type: 'organization' as const,
+        imageUrl: project.avatarUrl ?? null
       }))
     ];
   }
@@ -632,7 +648,8 @@ export class BitbucketClient {
         id: repo.workspace.uuid,
         name: repo.workspace.name ?? repo.workspace.slug,
         slug: repo.workspace.slug,
-        type: 'organization'
+        type: 'organization',
+        imageUrl: repo.workspace.links?.avatar?.href ?? null
       },
       isPrivate: repo.is_private,
       defaultBranch: repo.mainbranch?.name ?? 'main',
@@ -652,7 +669,8 @@ export class BitbucketClient {
         id: project.id.toString(),
         name: project.name,
         slug: project.key,
-        type: 'organization'
+        type: 'organization',
+        imageUrl: project.avatarUrl ?? null
       },
       isPrivate: !repo.public,
       defaultBranch:

@@ -26,14 +26,20 @@ describe('SCM repository GitLab authentication', () => {
     let gitlab = {
       Groups: {
         all: vi.fn().mockResolvedValue([
-          { id: 8, path: 'metorial', full_path: 'metorial' }
+          {
+            id: 8,
+            path: 'metorial',
+            full_path: 'metorial',
+            avatar_url: 'https://gitlab.com/uploads/group.png'
+          }
         ])
       },
       Users: {
         showCurrentUser: vi.fn().mockResolvedValue({
           id: 6,
           namespaceId: 7,
-          username: 'tobias'
+          username: 'tobias',
+          avatar_url: 'https://gitlab.com/uploads/user.png'
         })
       },
       Namespaces: {
@@ -46,12 +52,16 @@ describe('SCM repository GitLab authentication', () => {
       backend: { webUrl: 'https://gitlab.com' }
     } as any;
 
-    await scmRepoService.listAccountPreviews({ installation });
+    let accounts = await scmRepoService.listAccountPreviews({ installation });
 
     expect(createGitLabClient).toHaveBeenCalledWith(installation);
     expect(gitlab.Groups.all).toHaveBeenCalledWith({
       minAccessLevel: 30,
       perPage: 100
     });
+    expect(accounts).toEqual([
+      expect.objectContaining({ imageUrl: 'https://gitlab.com/uploads/user.png' }),
+      expect.objectContaining({ imageUrl: 'https://gitlab.com/uploads/group.png' })
+    ]);
   });
 });

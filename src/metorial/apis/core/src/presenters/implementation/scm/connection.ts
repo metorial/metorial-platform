@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { scmConnectionSetupType, scmConnectionType } from '../../types';
 
@@ -18,6 +19,12 @@ export let v1ScmConnectionPresenter = Presenter.create(scmConnectionType)
       name: scmConnection.externalAccountName,
       email: scmConnection.externalAccountEmail,
       image_url: scmConnection.externalAccountImageUrl
+        ? await getImageUrl({
+            id: scmConnection.externalAccountId,
+            name: scmConnection.externalAccountName,
+            image: { type: 'url', url: scmConnection.externalAccountImageUrl }
+          })
+        : null
     },
 
     created_at: scmConnection.createdAt,

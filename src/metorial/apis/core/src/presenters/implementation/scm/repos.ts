@@ -6,7 +6,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   .presenter(async ({ repoPreviews }) => ({
     object: 'scm.repository.list#preview' as const,
 
-    repos: repoPreviews.map((r: any) => ({
+    repos: repoPreviews.map(r => ({
       object: 'scm.repository.item#preview' as const,
 
       provider: r.provider,

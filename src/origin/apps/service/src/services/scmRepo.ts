@@ -54,7 +54,8 @@ class scmRepoServiceImpl {
           provider: i.installation.provider,
           externalId: i.installation.externalAccountId,
           name: i.installation.externalAccountLogin,
-          identifier: `github.com/${i.installation.externalAccountLogin}`
+          identifier: `github.com/${i.installation.externalAccountLogin}`,
+          imageUrl: i.installation.externalAccountImageUrl
         } satisfies ScmAccountPreview
       ];
     }
@@ -76,7 +77,8 @@ class scmRepoServiceImpl {
           provider: i.installation.provider,
           externalId: personalNamespaceId.toString(),
           name: user.username,
-          identifier: `${new URL(i.installation.backend.webUrl).hostname}/${user.username}`
+          identifier: `${new URL(i.installation.backend.webUrl).hostname}/${user.username}`,
+          imageUrl: user.avatar_url != null ? String(user.avatar_url) : null
         } satisfies ScmAccountPreview,
         ...groups.map(
           g =>
@@ -84,7 +86,8 @@ class scmRepoServiceImpl {
               provider: i.installation.provider,
               externalId: g.id.toString(),
               name: g.path,
-              identifier: `${new URL(i.installation.backend.webUrl).hostname}/${g.full_path}`
+              identifier: `${new URL(i.installation.backend.webUrl).hostname}/${g.full_path}`,
+              imageUrl: g.avatar_url != null ? String(g.avatar_url) : null
             }) satisfies ScmAccountPreview
         )
       ];
@@ -102,7 +105,8 @@ class scmRepoServiceImpl {
             provider: i.installation.provider,
             externalId: account.id,
             name: account.name,
-            identifier: `${hostname}/${account.slug}`
+            identifier: `${hostname}/${account.slug}`,
+            imageUrl: account.imageUrl
           }) satisfies ScmAccountPreview
       );
     }

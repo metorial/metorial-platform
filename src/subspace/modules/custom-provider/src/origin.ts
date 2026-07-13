@@ -123,6 +123,7 @@ export type ScmAccountPreview = {
   externalId: string;
   name: string;
   identifier: string;
+  imageUrl: string | null;
 };
 
 export type ScmRepositoryPreview = {
