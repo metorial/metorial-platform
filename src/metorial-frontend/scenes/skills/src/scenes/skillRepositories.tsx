@@ -136,9 +136,10 @@ let FormStack = styled.div`
   gap: 12px;
 `;
 
-let formatRepoProvider = (provider: 'github' | 'gitlab' | undefined) => {
+let formatRepoProvider = (provider: 'github' | 'gitlab' | 'bitbucket' | undefined) => {
   if (provider === 'github') return 'GitHub';
   if (provider === 'gitlab') return 'GitLab';
+  if (provider === 'bitbucket') return 'Bitbucket';
   return 'Repository';
 };
 
@@ -153,7 +154,7 @@ let getRepositoryLabel = (url: string | null | undefined, fallback: string) => {
   }
 };
 
-let ConnectGitHubButton = (p: { instanceId: string; onConnected: () => void }) => {
+let ConnectScmButton = (p: { instanceId: string; onConnected: () => void }) => {
   let createInstallation = useCreateScmInstallation();
 
   return (
@@ -173,7 +174,7 @@ let ConnectGitHubButton = (p: { instanceId: string; onConnected: () => void }) =
           p.onConnected();
 
           if (!toastShownRef.current) {
-            toast.success('GitHub connected successfully');
+            toast.success('Source control connected successfully');
             toastShownRef.current = true;
           }
 
@@ -188,7 +189,7 @@ let ConnectGitHubButton = (p: { instanceId: string; onConnected: () => void }) =
       fullWidth
       type="button"
     >
-      Connect GitHub or GitLab
+      Connect GitHub, GitLab, or Bitbucket
     </Button>
   );
 };
@@ -258,7 +259,7 @@ let RepositoryPickerContent = (p: {
   return renderWithLoader({ installations })(({ installations }) => (
     <>
       {!installations.data.items.length ? (
-        <ConnectGitHubButton
+        <ConnectScmButton
           instanceId={p.instanceId}
           onConnected={() => {
             installationsOuter.refetch();
@@ -424,8 +425,6 @@ let showRepositoryPickerModal = (p: {
       <Dialog.Description>
         Select or create a Git repository, then link it to this skill resource.
       </Dialog.Description>
-
-      <Spacer size={15} />
 
       <RepositoryPickerContent
         {...p}

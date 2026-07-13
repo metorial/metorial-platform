@@ -822,6 +822,7 @@ let DocumentEditorLoaded = (p: {
   }, [canWrite, p.currentConsumerId, p.documentId, p.editToken, p.instanceId]);
   let collaboration = useDocumentCollaboration(p.instanceId, p.documentId, {
     enabled: !requiresEditToken || !!p.editToken,
+    canWrite,
     editToken: p.editToken ?? null,
     refreshEditToken,
     initialMarkdown: initialDocumentState.body,
@@ -1262,6 +1263,26 @@ let DocumentEditorLoaded = (p: {
     autosaveHydratedRef.current = false;
     setEditorKey(k => k + 1);
   }, [p.document.content, p.document.id, p.document.title, p.document.updatedAt]);
+
+  useEffect(() => {
+    if (!readOnly || !collaboration.isFallback || !collaboration.snapshot) return;
+
+    let nextDocumentState = parseStoredDocumentForEditor(collaboration.snapshot);
+    titleRef.current = collaboration.snapshot.title;
+    frontMatterRef.current = nextDocumentState.frontMatter;
+    markdownRef.current = nextDocumentState.body;
+    setTitle(collaboration.snapshot.title);
+    setFrontMatter(nextDocumentState.frontMatter);
+    setFrontMatterOpen(nextDocumentState.frontMatter.trim().length > 0);
+    setMarkdown(nextDocumentState.body);
+    setLastUpdatedAt(
+      collaboration.snapshot.updatedAt instanceof Date
+        ? collaboration.snapshot.updatedAt
+        : new Date(collaboration.snapshot.updatedAt)
+    );
+    setSaveStatus('saved');
+    setEditorKey(k => k + 1);
+  }, [collaboration.isFallback, collaboration.snapshot, readOnly]);
 
   useEffect(() => {
     if (!editorReadyForAutosave) return;

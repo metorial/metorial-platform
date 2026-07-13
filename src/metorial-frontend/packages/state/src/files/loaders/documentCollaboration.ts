@@ -131,6 +131,9 @@ let seedOrigin = { source: 'document-collaboration-seed' };
 let heartbeatMs = 30 * 1000;
 let reconnectBaseDelayMs = 1_000;
 let reconnectMaxDelayMs = 10_000;
+let reconnectMaxAttempts = 6;
+let reconnectJitterRatio = 0.25;
+let reconnectStabilityMs = 30_000;
 
 let encodeBase64 = (update: Uint8Array) => {
   let binary = '';
@@ -204,22 +207,39 @@ let getDocumentLiveUrl = (d: {
 let shouldSeedInitialBody = (d: { bodyStateReceived: boolean; initialMarkdown?: string }) =>
   !d.bodyStateReceived && (d.initialMarkdown?.trim().length ?? 0) > 0;
 
+let shouldInitializeCollaboration = (d: {
+  canWrite: boolean;
+  bodyStateReceived: boolean;
+  initialMarkdown?: string;
+}) => d.canWrite && shouldSeedInitialBody(d);
+
 let resolveInitialMarkdown = (d: {
   document: Document;
   initialMarkdown?: string;
   getInitialMarkdown?: (document: Document) => string;
 }) => d.getInitialMarkdown?.(d.document) ?? d.initialMarkdown;
 
-let getReconnectDelayMs = (attempt: number) =>
-  Math.min(reconnectBaseDelayMs * 2 ** Math.max(0, attempt), reconnectMaxDelayMs);
+let getReconnectDelayMs = (attempt: number, random = Math.random) => {
+  let baseDelay = Math.min(
+    reconnectBaseDelayMs * 2 ** Math.max(0, attempt),
+    reconnectMaxDelayMs
+  );
+  let jitter = Math.floor(baseDelay * reconnectJitterRatio * random());
+  return Math.min(baseDelay + jitter, reconnectMaxDelayMs);
+};
+
+let canRetryConnection = (attempt: number) => attempt < reconnectMaxAttempts;
 
 export let __documentCollaborationTestUtils = {
   encodeBase64,
   decodeBase64,
   getDocumentLiveUrl,
   shouldSeedInitialBody,
+  shouldInitializeCollaboration,
   resolveInitialMarkdown,
-  getReconnectDelayMs
+  getReconnectDelayMs,
+  canRetryConnection,
+  reconnectMaxAttempts
 };
 
 let sendJson = (ws: WebSocket | null, message: CollaborationClientMessage) => {
@@ -236,12 +256,14 @@ export let useDocumentCollaboration = (
     editToken?: string | null;
     refreshEditToken?: () => Promise<string | null | undefined>;
     enabled?: boolean;
+    canWrite?: boolean;
     initialMarkdown?: string;
     getInitialMarkdown?: (document: Document) => string;
     seedInitialBody?: (d: { initialMarkdown: string; origin: unknown }) => string | null;
   }
 ) => {
   let enabled = opts?.enabled ?? true;
+  let canWrite = opts?.canWrite ?? true;
   let [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   let [snapshotSaveStatus, setSnapshotSaveStatus] = useState<SnapshotSaveStatus>('saved');
   let [snapshot, setSnapshot] = useState<Document | null>(null);
@@ -261,6 +283,11 @@ export let useDocumentCollaboration = (
   let hasConnectedRef = useRef(false);
   let editTokenRef = useRef<string | null | undefined>(opts?.editToken);
   let refreshEditTokenRef = useRef(opts?.refreshEditToken);
+  let initialMarkdownRef = useRef(opts?.initialMarkdown);
+  let getInitialMarkdownRef = useRef(opts?.getInitialMarkdown);
+  let seedInitialBodyRef = useRef(opts?.seedInitialBody);
+  let reconnectAttemptsRef = useRef(0);
+  let delayNextConnectionRef = useRef(false);
   let destroyTimerRef = useRef<{
     ydoc: Y.Doc;
     awareness: Awareness;
@@ -269,6 +296,10 @@ export let useDocumentCollaboration = (
 
   let ydoc = useMemo(() => new Y.Doc(), [instanceId, documentId, collaborationEpoch]);
   let awareness = useMemo(() => new Awareness(ydoc), [ydoc]);
+
+  initialMarkdownRef.current = opts?.initialMarkdown;
+  getInitialMarkdownRef.current = opts?.getInitialMarkdown;
+  seedInitialBodyRef.current = opts?.seedInitialBody;
 
   useEffect(() => {
     isReadyForEditorRef.current = isReadyForEditor;
@@ -285,6 +316,11 @@ export let useDocumentCollaboration = (
   useEffect(() => {
     hasConnectedRef.current = false;
   }, [ydoc]);
+
+  useEffect(() => {
+    reconnectAttemptsRef.current = 0;
+    delayNextConnectionRef.current = false;
+  }, [documentId, instanceId]);
 
   useEffect(() => {
     if (destroyTimerRef.current?.ydoc === ydoc) {
@@ -327,11 +363,13 @@ export let useDocumentCollaboration = (
 
     let closed = false;
     let reconnectTimer: number | null = null;
-    let reconnectAttempts = 0;
     let ws: WebSocket | null = null;
     let heartbeat: number | null = null;
+    let stabilityTimer: number | null = null;
+    let intentionalReconnect = false;
 
     let handleDocUpdate = (update: Uint8Array, origin: unknown) => {
+      if (!canWrite) return;
       if (origin === remoteOrigin) return;
       if (origin === seedOrigin) return;
       if (suppressLocalUpdateRef.current) return;
@@ -364,6 +402,10 @@ export let useDocumentCollaboration = (
     };
 
     let cleanupSocket = () => {
+      if (stabilityTimer) {
+        window.clearTimeout(stabilityTimer);
+        stabilityTimer = null;
+      }
       if (heartbeat) {
         window.clearInterval(heartbeat);
         heartbeat = null;
@@ -375,9 +417,26 @@ export let useDocumentCollaboration = (
       ws = null;
     };
 
+    let markConnectionUsable = () => {
+      hasConnectedRef.current = true;
+      if (stabilityTimer) return;
+      stabilityTimer = window.setTimeout(() => {
+        stabilityTimer = null;
+        reconnectAttemptsRef.current = 0;
+      }, reconnectStabilityMs);
+    };
+
     let scheduleReconnect = () => {
-      if (closed || reconnectTimer || !hasConnectedRef.current) return;
-      let delay = getReconnectDelayMs(reconnectAttempts++);
+      if (closed || reconnectTimer) return;
+      if (!canRetryConnection(reconnectAttemptsRef.current)) {
+        setConnectionStatus('idle');
+        setIsSynced(false);
+        setIsFallback(true);
+        setIsReadyForEditor(true);
+        return;
+      }
+
+      let delay = getReconnectDelayMs(reconnectAttemptsRef.current++);
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = null;
         void connect(true);
@@ -428,7 +487,6 @@ export let useDocumentCollaboration = (
 
       ws.onopen = () => {
         if (closed) return;
-        reconnectAttempts = 0;
         setConnectionStatus('connected');
         sendJson(ws, { type: 'ping' });
       };
@@ -445,8 +503,8 @@ export let useDocumentCollaboration = (
           let bodyStateReceived = false;
           let initialMarkdown = resolveInitialMarkdown({
             document: message.data.document,
-            initialMarkdown: opts?.initialMarkdown,
-            getInitialMarkdown: opts?.getInitialMarkdown
+            initialMarkdown: initialMarkdownRef.current,
+            getInitialMarkdown: getInitialMarkdownRef.current
           });
 
           if (message.data.stateUpdate) {
@@ -457,15 +515,16 @@ export let useDocumentCollaboration = (
 
           let seedUpdate: string | null = null;
           if (
-            shouldSeedInitialBody({
+            shouldInitializeCollaboration({
+              canWrite,
               bodyStateReceived,
               initialMarkdown
             }) &&
-            opts?.seedInitialBody
+            seedInitialBodyRef.current
           ) {
             suppressLocalUpdateRef.current = true;
             try {
-              seedUpdate = opts.seedInitialBody({
+              seedUpdate = seedInitialBodyRef.current({
                 initialMarkdown: initialMarkdown ?? '',
                 origin: seedOrigin
               });
@@ -491,8 +550,8 @@ export let useDocumentCollaboration = (
           }
 
           if (!didSeedInitialBody) {
-            hasConnectedRef.current = true;
-            setIsFallback(false);
+            markConnectionUsable();
+            setIsFallback(!canWrite && !bodyStateReceived);
             setIsReadyForEditor(true);
             setIsSynced(true);
           }
@@ -502,7 +561,7 @@ export let useDocumentCollaboration = (
         if (message.type === 'yjs_state_initialized') {
           generationRef.current = message.data.generation ?? 0;
           Y.applyUpdate(ydoc, decodeBase64(message.data.update), remoteOrigin);
-          hasConnectedRef.current = true;
+          markConnectionUsable();
           setIsFallback(false);
           setInitialBodyStateReceived(ydoc.getXmlFragment('body').length > 0);
           setIsReadyForEditor(true);
@@ -525,8 +584,18 @@ export let useDocumentCollaboration = (
           generationRef.current = message.data.generation;
           setSnapshot(message.data.document);
           setIsSynced(false);
+
+          if (!canWrite) {
+            markConnectionUsable();
+            setIsFallback(true);
+            setIsReadyForEditor(true);
+            return;
+          }
+
           setIsReadyForEditor(false);
+          intentionalReconnect = true;
           cleanupSocket();
+          delayNextConnectionRef.current = true;
           setCollaborationEpoch(epoch => epoch + 1);
           return;
         }
@@ -570,7 +639,6 @@ export let useDocumentCollaboration = (
         if (!isReadyForEditorRef.current) {
           setIsFallback(true);
           setIsReadyForEditor(true);
-          return;
         }
       };
 
@@ -578,10 +646,10 @@ export let useDocumentCollaboration = (
         if (closed) return;
         setConnectionStatus('idle');
         setIsSynced(false);
+        if (intentionalReconnect) return;
         if (!isReadyForEditorRef.current) {
           setIsFallback(true);
           setIsReadyForEditor(true);
-          return;
         }
         scheduleReconnect();
       };
@@ -589,7 +657,12 @@ export let useDocumentCollaboration = (
 
     ydoc.on('update', handleDocUpdate);
     awareness.on('update', handleAwarenessUpdate);
-    void connect(false);
+    if (delayNextConnectionRef.current) {
+      delayNextConnectionRef.current = false;
+      scheduleReconnect();
+    } else {
+      void connect(false);
+    }
 
     return () => {
       closed = true;
@@ -602,17 +675,7 @@ export let useDocumentCollaboration = (
       sessionIdRef.current = null;
       cleanupSocket();
     };
-  }, [
-    awareness,
-    documentId,
-    enabled,
-    instanceId,
-    opts?.getInitialMarkdown,
-    opts?.initialMarkdown,
-    opts?.organizationId,
-    opts?.seedInitialBody,
-    ydoc
-  ]);
+  }, [awareness, canWrite, documentId, enabled, instanceId, opts?.organizationId, ydoc]);
 
   let saveSnapshot = useCallback((input: { title: string; content: string }) => {
     setSnapshotSaveStatus('saving');

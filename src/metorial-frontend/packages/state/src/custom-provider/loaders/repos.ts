@@ -131,7 +131,7 @@ export let useScmProviders = (instanceId: string | null | undefined) => {
 export let useCreateScmProvider = scmProvidersLoader.createExternalMutator(
   (i: {
     instanceId: string;
-    type: 'github_enterprise' | 'gitlab_selfhosted';
+    type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
   }) =>
     withAuth(sdk =>
       sdk.scm.providers.create(i.instanceId, {
