@@ -2325,7 +2325,7 @@ describe('cargo skill.e2e', () => {
       comment: {
         id: comment.id,
         actor: { id: forkReader.id },
-        body: 'Please take the fork version with an edit.',
+        body: '[DELETED]',
         deletedAt: expect.any(Date)
       }
     });
