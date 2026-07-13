@@ -22,7 +22,7 @@ export type SkillRepositoryRecord = Prisma.SkillRepositoryGetPayload<{
   include: typeof skillRepositoryInclude;
 }>;
 
-export type OriginScmProvider = 'github' | 'gitlab';
+export type OriginScmProvider = 'github' | 'gitlab' | 'bitbucket';
 
 export type OriginScmAccountRecord = {
   object: 'origin#scmAccount';

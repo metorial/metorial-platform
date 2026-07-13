@@ -1,4 +1,4 @@
-import type { SkillDestination, Tenant } from '@metorial-cargo/db';
+import type { SkillDestination, SkillRepository, Tenant } from '@metorial-cargo/db';
 import { db, env, getId, withTransaction } from '@metorial-cargo/db';
 import { createOriginClient } from '@metorial-platform-systems/origin-client';
 import { syncStartQueue } from '../queues/sync/start';
@@ -66,6 +66,7 @@ export let getSkillDestinationEditorUrl = async (d: {
 
 export let forceSkillDestinationSync = async (d: {
   destination: Pick<SkillDestination, 'oid'>;
+  repository?: Pick<SkillRepository, 'id'>;
 }) => {
   let sync = await withTransaction(async db => {
     await db.skillDestination.update({
@@ -91,7 +92,8 @@ export let forceSkillDestinationSync = async (d: {
   });
 
   await syncStartQueue.add({
-    skillDestinationSyncId: sync.id
+    skillDestinationSyncId: sync.id,
+    skillRepositoryId: d.repository?.id
   });
 
   return sync;
