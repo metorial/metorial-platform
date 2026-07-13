@@ -8,6 +8,7 @@ export type ManagementInstanceScmAccountsPreviewOutput = {
     externalId: string;
     name: string;
     identifier: string;
+    imageUrl: string | null;
   }[];
 };
 
@@ -22,7 +23,8 @@ export let mapManagementInstanceScmAccountsPreviewOutput =
           provider: mtMap.objectField('provider', mtMap.passthrough()),
           externalId: mtMap.objectField('external_id', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
-          identifier: mtMap.objectField('identifier', mtMap.passthrough())
+          identifier: mtMap.objectField('identifier', mtMap.passthrough()),
+          imageUrl: mtMap.objectField('image_url', mtMap.passthrough())
         })
       )
     )
