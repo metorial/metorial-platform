@@ -8,6 +8,7 @@ import { internalDocumentCollaborationService } from '../internal/documentCollab
 import { internalDocumentSyncService } from '../internal/documentSync';
 import { queueDocumentCollaborationFlush } from '../queues/documentCollaborationFlush';
 import { documentService } from '../services/document';
+import { canSendDocumentLiveMessage } from './documentLiveAccess';
 import { publishDocumentLiveBusMessage, subscribeToDocumentLiveBus } from './documentLiveBus';
 import { type DocumentLiveBusMessageType } from './documentLiveBusProtocol';
 import {
@@ -72,6 +73,7 @@ type LiveSession = {
   id: string;
   documentId: string;
   actorId: string;
+  canWrite: boolean;
   lastPingAt: number;
   awarenessClientId?: number;
   awarenessUpdate?: string;
@@ -496,6 +498,7 @@ export let documentLiveApi = createHono()
       let url = new URL(c.req.url);
       let documentId = url.searchParams.get('documentId');
       let actorId = url.searchParams.get('actorId');
+      let canWrite = url.searchParams.get('canWrite') === 'true';
 
       if (!documentId || !actorId) {
         throw new Error('documentId and actorId query params are required');
@@ -520,6 +523,7 @@ export let documentLiveApi = createHono()
             id: sessionId,
             documentId,
             actorId,
+            canWrite,
             lastPingAt: Date.now()
           };
 
@@ -556,6 +560,22 @@ export let documentLiveApi = createHono()
               if (ws) {
                 send(ws, 'pong', {
                   documentId: session.documentId
+                });
+              }
+              return;
+            }
+
+            if (
+              !canSendDocumentLiveMessage({
+                canWrite: session.canWrite,
+                type: parsed.type
+              })
+            ) {
+              let ws = socketsBySessionId.get(sessionId);
+              if (ws) {
+                send(ws, 'error', {
+                  code: 'document_read_only',
+                  message: 'This live document connection is read-only'
                 });
               }
               return;

@@ -1756,6 +1756,70 @@ describe('cargo store.e2e', () => {
     );
   });
 
+  it('serves managed template documents from the tenant backing store', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'managed-template-reader',
+      name: 'Managed Template Reader'
+    });
+    let created = await cargoClient.storeTemplate.create({
+      name: 'Managed Skill Template',
+      items: [
+        {
+          path: '/SKILL.md',
+          type: 'document',
+          title: 'Managed Skill',
+          content: '# Managed Skill\n\nRead-only managed content.',
+          encoding: 'utf-8'
+        }
+      ]
+    });
+
+    await syncStandaloneTemplate(created.id);
+
+    let scopedTemplate = await cargoClient.storeTemplate.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeTemplateId: created.id
+    });
+    let items = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: scopedTemplate.storeId!,
+      actorId: actor.id,
+      defaultPermissions: ['content_read'],
+      limit: 10
+    });
+    let documentId = items.items.find(item => item.path === '/SKILL.md')!.documentId!;
+    let document = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId,
+      actorId: actor.id,
+      defaultPermissions: ['content_read']
+    });
+    let documentRecord = await db.document.findUniqueOrThrow({
+      where: {
+        id: documentId
+      },
+      include: {
+        file: true
+      }
+    });
+
+    expect(document.content).toBe('# Managed Skill\n\nRead-only managed content.');
+    expect(documentRecord).toMatchObject({
+      tenantOid: tenant.oid,
+      environmentOid: environment.oid,
+      isReadOnly: true,
+      isTemplateBacking: true,
+      file: {
+        isReadOnly: true,
+        isTemplateBacking: true
+      }
+    });
+  });
+
   it('updates and deletes scoped store templates only from the matching tenant and environment', async () => {
     let { tenant, environment } = await createScope();
     let otherTenant = await cargoClient.tenant.upsert({

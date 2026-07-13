@@ -2,6 +2,7 @@ export type DocumentLiveSessionState = {
   id: string;
   documentId: string;
   actorId: string;
+  canWrite: boolean;
   instanceId: string;
   lastPingAt: number;
   awarenessClientId?: number;
@@ -18,6 +19,7 @@ export let parseSessionState = (raw: string | undefined | null) => {
       typeof parsed.id != 'string' ||
       typeof parsed.documentId != 'string' ||
       typeof parsed.actorId != 'string' ||
+      typeof parsed.canWrite != 'boolean' ||
       typeof parsed.instanceId != 'string' ||
       typeof parsed.lastPingAt != 'number'
     ) {

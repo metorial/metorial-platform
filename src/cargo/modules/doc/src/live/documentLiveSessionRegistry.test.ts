@@ -10,6 +10,7 @@ describe('document live session registry helpers', () => {
     id: 'session-active',
     documentId: 'doc_123',
     actorId: 'actor_123',
+    canWrite: true,
     instanceId: 'cargo-a',
     lastPingAt: 10_000,
     awarenessClientId: 1,
@@ -20,6 +21,7 @@ describe('document live session registry helpers', () => {
     id: 'session-stale',
     documentId: 'doc_123',
     actorId: 'actor_456',
+    canWrite: false,
     instanceId: 'cargo-b',
     lastPingAt: 1_000
   };
@@ -41,6 +43,9 @@ describe('document live session registry helpers', () => {
   it('ignores invalid session state payloads', () => {
     expect(
       parseSessionState(JSON.stringify({ ...activeSession, actorId: undefined }))
+    ).toBeNull();
+    expect(
+      parseSessionState(JSON.stringify({ ...activeSession, canWrite: undefined }))
     ).toBeNull();
     expect(parseSessionState('not-json')).toBeNull();
   });
