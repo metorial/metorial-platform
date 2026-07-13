@@ -160,7 +160,7 @@ export let SkillLayout = () => {
           skillForkSync.status === 'completed'
             ? 'Skill synced with upstream'
             : 'Review required to finish syncing',
-        error: error => (error instanceof Error ? error.message : 'Failed to sync skill')
+        error: error => error?.error?.data?.message ?? error?.message ?? 'Failed to sync skill'
       }
     );
   };
@@ -223,6 +223,18 @@ export let SkillLayout = () => {
                           {
                             label: 'Sync with upstream',
                             onClick: syncWithUpstream
+                          },
+                          {
+                            label: 'Open parent skill',
+                            onClick: () =>
+                              navigate(
+                                Paths.instance.skill(
+                                  organization.data,
+                                  project.data,
+                                  instance.data,
+                                  skill.data.hierarchy.parentSkillId!
+                                )
+                              )
                           }
                         ]
                       : []
