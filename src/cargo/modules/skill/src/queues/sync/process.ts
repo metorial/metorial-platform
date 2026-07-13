@@ -59,6 +59,7 @@ export let syncProcessQueue = createQueue<{
   skillDestinationSyncId: string;
   tasks: SyncTask[];
   hasChanges?: boolean;
+  skillRepositoryId?: string;
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/process',
@@ -89,7 +90,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
         'Content updates are ready.'
       );
       await syncPropagateStartQueue.add({
-        skillDestinationSyncId: data.skillDestinationSyncId
+        skillDestinationSyncId: data.skillDestinationSyncId,
+        skillRepositoryId: data.skillRepositoryId
       });
     } else {
       await appendSkillDestinationSyncLog(
@@ -413,7 +415,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
     await syncProcessQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
       tasks,
-      hasChanges: data.hasChanges || taskChanged
+      hasChanges: data.hasChanges || taskChanged,
+      skillRepositoryId: data.skillRepositoryId
     });
   } else if (!data.hasChanges && !taskChanged) {
     await appendSkillDestinationSyncLog(
@@ -430,7 +433,8 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       'Content updates are ready.'
     );
     await syncPropagateStartQueue.add({
-      skillDestinationSyncId: data.skillDestinationSyncId
+      skillDestinationSyncId: data.skillDestinationSyncId,
+      skillRepositoryId: data.skillRepositoryId
     });
   }
 });

@@ -7,11 +7,12 @@ import { applySkill } from '../../serializers/skill';
 import { getSyncItemKey, getSyncTaskItemKey } from './_lib/item';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { createTaskManager, type SyncTask } from './_lib/task';
-import { syncFinishQueue } from './finish';
 import { syncProcessQueue } from './process';
+import { syncPropagateStartQueue } from './propagate';
 
 export let syncCollectQueue = createQueue<{
   skillDestinationSyncId: string;
+  skillRepositoryId?: string;
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/collect',
@@ -390,11 +391,11 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   if (tasks.length === 0) {
     await appendSkillDestinationSyncLog(
       data.skillDestinationSyncId,
-      'No content updates were needed.'
+      'No content updates were needed; continuing with repository updates.'
     );
-    await syncFinishQueue.add({
+    await syncPropagateStartQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
-      status: 'canceled'
+      skillRepositoryId: data.skillRepositoryId
     });
     return;
   }
@@ -407,6 +408,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   await syncProcessQueue.add({
     skillDestinationSyncId: data.skillDestinationSyncId,
     tasks,
-    hasChanges: false
+    hasChanges: false,
+    skillRepositoryId: data.skillRepositoryId
   });
 });

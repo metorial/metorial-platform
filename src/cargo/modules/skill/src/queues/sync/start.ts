@@ -5,6 +5,7 @@ import { syncCollectQueue } from './collect';
 
 export let syncStartQueue = createQueue<{
   skillDestinationSyncId: string;
+  skillRepositoryId?: string;
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/start',
@@ -64,6 +65,7 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
   });
 
   await syncCollectQueue.add({
-    skillDestinationSyncId: data.skillDestinationSyncId
+    skillDestinationSyncId: data.skillDestinationSyncId,
+    skillRepositoryId: data.skillRepositoryId
   });
 });

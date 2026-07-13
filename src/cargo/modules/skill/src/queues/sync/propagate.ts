@@ -50,6 +50,7 @@ let normalizeOriginLogs = (logs: unknown, prefix: string): SkillDestinationSyncL
 
 export let syncPropagateStartQueue = createQueue<{
   skillDestinationSyncId: string;
+  skillRepositoryId?: string;
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/propagate/start',
@@ -88,10 +89,13 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
   });
   if (!sync || sync.status !== 'processing') return;
 
-  let repositoryLinks =
+  let allRepositoryLinks =
     sync.destination.skillMarketplace?.repositories ??
     sync.destination.skillPlugin?.repositories ??
     [];
+  let repositoryLinks = data.skillRepositoryId
+    ? allRepositoryLinks.filter(link => link.skillRepository.id === data.skillRepositoryId)
+    : allRepositoryLinks;
 
   await db.skillDestinationSync.update({
     where: { oid: sync.oid },
