@@ -3,6 +3,7 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { ID } from '../../id';
+import { createBitbucketClientWithInstallation } from '../../lib/bitbucket';
 import { createGitHubInstallationClient } from '../../lib/githubApp';
 import { createGitLabClientWithInstallation } from '../../lib/gitlab';
 
@@ -13,10 +14,7 @@ export let createRepoWebhookQueue = createQueue<{ repoId: string }>({
 
 let isPrivateIpv4 = (hostname: string) => {
   let parts = hostname.split('.').map(part => parseInt(part, 10));
-  if (
-    parts.length !== 4 ||
-    parts.some(part => Number.isNaN(part) || part < 0 || part > 255)
-  ) {
+  if (parts.length !== 4 || parts.some(part => Number.isNaN(part) || part < 0 || part > 255)) {
     return false;
   }
 
@@ -182,5 +180,31 @@ export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(asyn
       }
       throw error;
     }
+  }
+
+  if (repo.provider === 'bitbucket') {
+    let client = await createBitbucketClientWithInstallation(repo.installation);
+    let externalRepo = await client.getRepositoryById(repo.externalId);
+    let webhookPrefix = `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/bb/`;
+    let existingHooks = await client.listWebhooks(repo.externalId);
+    for (let hook of existingHooks.filter(hook => hook.url.startsWith(webhookPrefix))) {
+      await client.deleteWebhook(repo.externalId, hook.id);
+    }
+    let externalId = await client.createWebhook({
+      repository: externalRepo,
+      url: `${webhookPrefix}${webhookId}`,
+      secret
+    });
+    await db.scmRepositoryWebhook.upsert({
+      where: { repoOid: repo.oid },
+      create: {
+        id: webhookId,
+        repoOid: repo.oid,
+        externalId,
+        signingSecret: secret,
+        type: 'push'
+      },
+      update: {}
+    });
   }
 });
