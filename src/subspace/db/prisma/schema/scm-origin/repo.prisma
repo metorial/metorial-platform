@@ -1,6 +1,7 @@
 enum ScmProvider {
   github
   gitlab
+  bitbucket
 }
 
 model ScmRepo {

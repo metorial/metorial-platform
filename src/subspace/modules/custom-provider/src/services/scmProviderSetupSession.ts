@@ -21,7 +21,7 @@ class scmProviderSetupSessionServiceImpl {
 
   async createScmProviderSetupSession(d: {
     tenant: Tenant;
-    type: 'github_enterprise' | 'gitlab_selfhosted';
+    type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
   }): Promise<ScmProviderSetupSession> {
     let tenant = await getTenantForOrigin(d.tenant);
     return normalizeScmProviderSetupSession(await origin.scmBackendSetupSession.create({

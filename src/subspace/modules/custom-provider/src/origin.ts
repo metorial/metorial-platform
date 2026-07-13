@@ -56,12 +56,14 @@ export type OriginList<T> = {
   };
 };
 
-export type ScmProviderName = 'github' | 'gitlab';
+export type ScmProviderName = 'github' | 'gitlab' | 'bitbucket';
 export type ScmProviderType =
   | 'github'
   | 'github_enterprise'
   | 'gitlab'
-  | 'gitlab_selfhosted';
+  | 'gitlab_selfhosted'
+  | 'bitbucket'
+  | 'bitbucket_data_center';
 export type ScmSetupSessionStatus = 'completed' | 'expired' | 'pending';
 
 export type ScmConnection = {
