@@ -124,7 +124,7 @@ export let skillMergeRequestCommentPresenter = (comment: SkillMergeRequestCommen
   id: comment.id,
   skillMergeRequestItemId: comment.skillMergeRequestItem?.id,
   actor: actorPresenter(comment.tenantActor),
-  body: comment.body,
+  body: comment.deletedAt ? '[DELETED]' : comment.body,
   path: comment.path,
   inReplyToCommentId: comment.inReplyToComment?.id,
   deletedAt: comment.deletedAt,

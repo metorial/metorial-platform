@@ -99,9 +99,10 @@ class SkillMergeRequestCommentServiceImpl {
           commentId: d.inReplyToCommentId
         })
       : undefined;
-    let path = d.path ?? item?.path;
+    let skillMergeRequestItemOid = item?.oid ?? reply?.skillMergeRequestItemOid ?? null;
+    let path = d.path ?? item?.path ?? reply?.path ?? null;
 
-    if (reply && reply.skillMergeRequestItemOid !== item?.oid) {
+    if (reply && reply.skillMergeRequestItemOid !== skillMergeRequestItemOid) {
       throw new ServiceError(
         badRequestError({ message: 'Replies must belong to the same merge request item' })
       );
@@ -139,7 +140,7 @@ class SkillMergeRequestCommentServiceImpl {
           oid: ids.oid,
           id: ids.id,
           skillMergeRequestOid: d.mergeRequest.oid,
-          skillMergeRequestItemOid: item?.oid,
+          skillMergeRequestItemOid,
           inReplyToCommentOid: reply?.oid,
           tenantActorOid: actor.oid,
           body: d.body,

@@ -14,7 +14,7 @@ import './readme.css';
 let Wrapper = styled.div<{ $fontSize?: string }>`
   display: flex;
   flex-direction: column;
-  font-size: ${p => p.$fontSize};
+  ${p => p.$fontSize && `--markdown-font-size: ${p.$fontSize};`}
 `;
 
 export let Readme = ({

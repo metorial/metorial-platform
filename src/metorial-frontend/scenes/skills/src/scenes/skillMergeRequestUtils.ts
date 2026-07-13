@@ -34,8 +34,7 @@ export let getSkillMergeResolutionOptions = (
   if (noSource) {
     return [
       { id: 'remove', label: 'Apply removal' },
-      { id: 'keep_target', label: `Keep ${sides.target}` },
-      { id: 'skip', label: 'Skip' }
+      { id: 'keep_target', label: `Keep ${sides.target}` }
     ];
   }
 
@@ -43,8 +42,7 @@ export let getSkillMergeResolutionOptions = (
     return [
       { id: 'accept_source', label: `Use ${sides.source} version` },
       { id: 'edit_document', label: 'Edit result' },
-      { id: 'keep_target', label: `Keep ${sides.target}` },
-      { id: 'skip', label: 'Skip' }
+      { id: 'keep_target', label: `Keep ${sides.target}` }
     ];
   }
 
@@ -52,16 +50,14 @@ export let getSkillMergeResolutionOptions = (
     return [
       { id: 'accept_source', label: `Use ${sides.source} file` },
       { id: 'replace_file', label: 'Choose another file' },
-      { id: 'keep_target', label: `Keep ${sides.target}` },
-      { id: 'skip', label: 'Skip' }
+      { id: 'keep_target', label: `Keep ${sides.target}` }
     ];
   }
 
   return [
     { id: 'accept_source', label: `Use ${sides.source} directory` },
     { id: 'remove', label: 'Remove directory' },
-    { id: 'keep_target', label: `Keep ${sides.target}` },
-    { id: 'skip', label: 'Skip' }
+    { id: 'keep_target', label: `Keep ${sides.target}` }
   ];
 };
 

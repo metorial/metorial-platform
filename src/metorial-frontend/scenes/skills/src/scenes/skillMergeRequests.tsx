@@ -3,6 +3,7 @@ import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-
 import { PageHeader } from '@metorial/layout';
 import { Readme } from '@metorial/markdown';
 import {
+  skillMergeRequestLoader,
   useBulkResolveSkillMergeRequestItems,
   useCloseSkillMergeRequest,
   useCreateSkillMergeRequest,
@@ -19,7 +20,6 @@ import {
   useSkillMergeRequests,
   useStorePermissions,
   useUpdateSkillMergeRequestComment,
-  skillMergeRequestLoader,
   type SkillMergeRequestEvent
 } from '@metorial/state';
 import {
@@ -427,16 +427,45 @@ let CommentMeta = styled(TimelineMeta)`
 `;
 
 let CommentCard = styled.div`
-  position: relative;
   border: 1px solid ${theme.colors.gray400};
   border-radius: 10px;
   background: ${theme.colors.background};
+  overflow: hidden;
+`;
+
+let CommentEntry = styled.div`
+  position: relative;
 
   &:hover [data-comment-actions],
   &:focus-within [data-comment-actions] {
     opacity: 1;
     pointer-events: auto;
   }
+`;
+
+let ReplyList = styled.div`
+  border-top: 1px solid ${theme.colors.gray300};
+  background: ${theme.colors.gray100};
+`;
+
+let ReplyEntry = styled(CommentEntry)`
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 16px;
+
+  & + & {
+    border-top: 1px solid ${theme.colors.gray300};
+  }
+`;
+
+let ReplyContent = styled.div`
+  min-width: 0;
+`;
+
+let ReplyMeta = styled(TimelineMeta)`
+  min-height: 24px;
+  margin-bottom: 5px;
 `;
 
 let CommentActions = styled.div`
@@ -473,8 +502,15 @@ let CommentBody = styled.div`
   }
 `;
 
+let ReplyBody = styled(CommentBody)`
+  padding: 2px 0 0;
+
+  > .markdown-body {
+    background-color: transparent;
+  }
+`;
+
 let DeletedComment = styled.div`
-  padding: 14px;
   color: ${theme.colors.gray600};
   font-size: 13px;
   font-style: italic;
@@ -1232,6 +1268,8 @@ export let SkillMergeRequestScene = (p: {
   let plan = useSkillMergeRequestPlan(p.instanceId, p.mergeRequestId);
   let targetSkill = useSkill(p.instanceId, mergeRequest.data?.targetSkillId);
   let targetPermissions = useStorePermissions(p.instanceId, targetSkill.data?.storeId);
+  let sourceSkill = useSkill(p.instanceId, mergeRequest.data?.sourceSkillId);
+  let sourcePermissions = useStorePermissions(p.instanceId, sourceSkill.data?.storeId);
   let events = useSkillMergeRequestEvents(p.instanceId, p.mergeRequestId, {
     order: 'asc'
   });
@@ -1304,6 +1342,10 @@ export let SkillMergeRequestScene = (p: {
       !p.readOnly &&
       (targetPermissions.data?.hasFullAccess ||
         targetPermissions.data?.permissions.includes('content_write'));
+    let canWriteSource =
+      sourcePermissions.data?.hasFullAccess ||
+      sourcePermissions.data?.permissions.includes('content_write');
+    let canComment = !p.readOnly || canWriteSource;
     let unresolved = plan.data.items.filter(entry => entry.item.status == 'unresolved').length;
     let visibleChangeItems = plan.data.items.filter(entry => entry.item.kind != 'directory');
     let totalStats = visibleChangeItems.reduce(
@@ -1527,8 +1569,166 @@ export let SkillMergeRequestScene = (p: {
           {p.tab != 'changes' && (
             <Section>
               <Discussion>
-                {renderWithLoader({ events })(({ events }) => (
-                  <>
+                {renderWithLoader({ events })(({ events }) => {
+                  let commentEvents = events.data.filter(event => event.comment);
+                  let commentEventById = new Map(
+                    commentEvents.map(event => [event.comment!.id, event])
+                  );
+                  let getRootCommentId = (
+                    comment: NonNullable<SkillMergeRequestEvent['comment']>
+                  ) => {
+                    let current = comment;
+                    let visited = new Set([comment.id]);
+                    while (current.inReplyToCommentId) {
+                      let parent = commentEventById.get(current.inReplyToCommentId)?.comment;
+                      if (!parent || visited.has(parent.id)) break;
+                      visited.add(parent.id);
+                      current = parent;
+                    }
+                    return current.id;
+                  };
+                  let repliesByRootId = new Map<string, typeof commentEvents>();
+                  for (let event of commentEvents) {
+                    if (
+                      !event.comment!.inReplyToCommentId ||
+                      !commentEventById.has(event.comment!.inReplyToCommentId)
+                    ) {
+                      continue;
+                    }
+                    let rootId = getRootCommentId(event.comment!);
+                    let replies = repliesByRootId.get(rootId) ?? [];
+                    replies.push(event);
+                    repliesByRootId.set(rootId, replies);
+                  }
+
+                  let beginReply = (
+                    comment: NonNullable<SkillMergeRequestEvent['comment']>
+                  ) => {
+                    setCommentTarget({
+                      itemId: comment.skillMergeRequestItemId ?? undefined,
+                      path: comment.path,
+                      replyToCommentId: comment.id
+                    });
+                    window.setTimeout(
+                      () => document.getElementById('skill-merge-comment')?.focus(),
+                      0
+                    );
+                  };
+                  let renderCommentActions = (
+                    comment: NonNullable<SkillMergeRequestEvent['comment']>
+                  ) => {
+                    if (!canComment || comment.deletedAt) return null;
+                    let ownsComment = comment.actor.organizationActor?.id === currentActorId;
+                    let canManageComment = isOrganizationMember || ownsComment;
+                    return (
+                      <CommentActions data-comment-actions>
+                        <Button
+                          size="1"
+                          variant="soft"
+                          color="gray"
+                          onClick={() => beginReply(comment)}
+                          menu={
+                            canManageComment
+                              ? [
+                                  {
+                                    label: 'Edit comment',
+                                    onClick: () =>
+                                      setEditingComment({
+                                        id: comment.id,
+                                        body: comment.body
+                                      })
+                                  },
+                                  {
+                                    label: 'Delete comment',
+                                    onClick: () =>
+                                      confirm({
+                                        title: 'Delete comment?',
+                                        description: 'The comment content will be hidden.',
+                                        confirmText: 'Delete',
+                                        onConfirm: async () => {
+                                          if (!p.instanceId || !p.mergeRequestId) return;
+                                          let [, error] = await deleteComment.mutate({
+                                            instanceId: p.instanceId,
+                                            skillMergeRequestId: p.mergeRequestId,
+                                            commentId: comment.id
+                                          });
+                                          if (!error) events.refetch();
+                                        }
+                                      })
+                                  }
+                                ]
+                              : undefined
+                          }
+                        >
+                          Reply
+                        </Button>
+                      </CommentActions>
+                    );
+                  };
+                  let renderCommentBody = (
+                    comment: NonNullable<SkillMergeRequestEvent['comment']>,
+                    reply = false
+                  ) => {
+                    let Body = reply ? ReplyBody : CommentBody;
+                    if (comment.deletedAt) {
+                      return <DeletedComment>This comment was deleted.</DeletedComment>;
+                    }
+                    if (editingComment?.id != comment.id) {
+                      return (
+                        <Body>
+                          <Readme readme={comment.body} fontSize="13px" />
+                        </Body>
+                      );
+                    }
+                    return (
+                      <Body>
+                        <Input
+                          as="textarea"
+                          minRows={3}
+                          label="Edit comment"
+                          hideLabel
+                          value={editingComment.body}
+                          onInput={body =>
+                            setEditingComment(current =>
+                              current ? { ...current, body } : current
+                            )
+                          }
+                        />
+                        <Flex justify="end" gap="6px" style={{ marginTop: 8 }}>
+                          <Button
+                            size="1"
+                            variant="soft"
+                            color="gray"
+                            onClick={() => setEditingComment(null)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="1"
+                            loading={updateComment.isLoading}
+                            disabled={!editingComment.body.trim()}
+                            onClick={async () => {
+                              if (!p.instanceId || !p.mergeRequestId) return;
+                              let [, error] = await updateComment.mutate({
+                                instanceId: p.instanceId,
+                                skillMergeRequestId: p.mergeRequestId,
+                                commentId: comment.id,
+                                body: editingComment.body.trim()
+                              });
+                              if (!error) {
+                                setEditingComment(null);
+                                events.refetch();
+                              }
+                            }}
+                          >
+                            Save
+                          </Button>
+                        </Flex>
+                      </Body>
+                    );
+                  };
+
+                  return (
                     <Timeline>
                       {!events.data.length && (
                         <Empty>
@@ -1539,17 +1739,16 @@ export let SkillMergeRequestScene = (p: {
                       )}
                       {events.data.map(event => {
                         let comment = event.comment;
+                        if (
+                          comment?.inReplyToCommentId &&
+                          commentEventById.has(comment.inReplyToCommentId)
+                        ) {
+                          return null;
+                        }
                         let eventActor = comment?.actor ?? event.actor;
-                        let ownsComment =
-                          comment?.actor.organizationActor?.id === currentActorId;
-                        let canManageComment = isOrganizationMember || ownsComment;
+                        let replies = comment ? (repliesByRootId.get(comment.id) ?? []) : [];
                         return (
-                          <TimelineRow
-                            key={event.id}
-                            style={
-                              comment?.inReplyToCommentId ? { paddingLeft: 20 } : undefined
-                            }
-                          >
+                          <TimelineRow key={event.id}>
                             <TimelineIcon $color={eventColor(event.type)}>
                               {event.type == 'commented' && comment ? (
                                 <Avatar
@@ -1575,9 +1774,6 @@ export let SkillMergeRequestScene = (p: {
                                     <Text size="2" weight="strong">
                                       {actorName(comment.actor)}
                                     </Text>
-                                    {comment.inReplyToCommentId && (
-                                      <Badge color="gray">Reply</Badge>
-                                    )}
                                     {comment.path && <Path>{comment.path}</Path>}
                                   </Flex>
                                   <Text size="1" color="gray600">
@@ -1585,119 +1781,44 @@ export let SkillMergeRequestScene = (p: {
                                   </Text>
                                 </CommentMeta>
                                 <CommentCard>
-                                  {!p.readOnly && !comment.deletedAt && (
-                                    <CommentActions data-comment-actions>
-                                      <Button
-                                        size="1"
-                                        variant="soft"
-                                        color="gray"
-                                        onClick={() => {
-                                          setCommentTarget({
-                                            itemId:
-                                              comment.skillMergeRequestItemId ?? undefined,
-                                            path: comment.path,
-                                            replyToCommentId: comment.id
-                                          });
-                                          window.setTimeout(
-                                            () =>
-                                              document
-                                                .getElementById('skill-merge-comment')
-                                                ?.focus(),
-                                            0
-                                          );
-                                        }}
-                                        menu={
-                                          canManageComment
-                                            ? [
-                                                {
-                                                  label: 'Edit comment',
-                                                  onClick: () =>
-                                                    setEditingComment({
-                                                      id: comment.id,
-                                                      body: comment.body
-                                                    })
-                                                },
-                                                {
-                                                  label: 'Delete comment',
-                                                  onClick: () =>
-                                                    confirm({
-                                                      title: 'Delete comment?',
-                                                      description:
-                                                        'The timeline entry will remain, but its content will be hidden.',
-                                                      confirmText: 'Delete',
-                                                      onConfirm: async () => {
-                                                        if (!p.instanceId || !p.mergeRequestId)
-                                                          return;
-                                                        let [, error] =
-                                                          await deleteComment.mutate({
-                                                            instanceId: p.instanceId,
-                                                            skillMergeRequestId:
-                                                              p.mergeRequestId,
-                                                            commentId: comment.id
-                                                          });
-                                                        if (!error) events.refetch();
-                                                      }
-                                                    })
-                                                }
-                                              ]
-                                            : undefined
-                                        }
-                                      >
-                                        Reply
-                                      </Button>
-                                    </CommentActions>
-                                  )}
-                                  {comment.deletedAt ? (
-                                    <DeletedComment>This comment was deleted.</DeletedComment>
-                                  ) : editingComment?.id == comment.id ? (
-                                    <CommentBody>
-                                      <Input
-                                        as="textarea"
-                                        minRows={3}
-                                        label="Edit comment"
-                                        hideLabel
-                                        value={editingComment?.body ?? ''}
-                                        onInput={body =>
-                                          setEditingComment(current =>
-                                            current ? { ...current, body } : current
-                                          )
-                                        }
-                                      />
-                                      <Flex justify="end" gap="6px" style={{ marginTop: 8 }}>
-                                        <Button
-                                          size="1"
-                                          variant="soft"
-                                          color="gray"
-                                          onClick={() => setEditingComment(null)}
-                                        >
-                                          Cancel
-                                        </Button>
-                                        <Button
-                                          size="1"
-                                          loading={updateComment.isLoading}
-                                          disabled={!editingComment?.body.trim()}
-                                          onClick={async () => {
-                                            if (!p.instanceId || !p.mergeRequestId) return;
-                                            let [, error] = await updateComment.mutate({
-                                              instanceId: p.instanceId,
-                                              skillMergeRequestId: p.mergeRequestId,
-                                              commentId: comment.id,
-                                              body: editingComment?.body.trim() ?? ''
-                                            });
-                                            if (!error) {
-                                              setEditingComment(null);
-                                              events.refetch();
-                                            }
-                                          }}
-                                        >
-                                          Save
-                                        </Button>
-                                      </Flex>
-                                    </CommentBody>
-                                  ) : (
-                                    <CommentBody>
-                                      <Readme readme={comment.body} fontSize="14px" />
-                                    </CommentBody>
+                                  <CommentEntry>
+                                    {renderCommentActions(comment)}
+                                    {renderCommentBody(comment)}
+                                  </CommentEntry>
+                                  {!!replies.length && (
+                                    <ReplyList>
+                                      {replies.map(replyEvent => {
+                                        let reply = replyEvent.comment!;
+                                        return (
+                                          <ReplyEntry key={replyEvent.id}>
+                                            <Avatar
+                                              entity={
+                                                reply.actor
+                                                  ? {
+                                                      name: actorName(reply.actor),
+                                                      imageUrl: reply.actor.imageUrl
+                                                    }
+                                                  : null
+                                              }
+                                              size={26}
+                                              noTooltip
+                                            />
+                                            <ReplyContent>
+                                              <ReplyMeta>
+                                                <Text size="2" weight="strong">
+                                                  {actorName(reply.actor)}
+                                                </Text>
+                                                <Text size="1" color="gray600">
+                                                  <RenderDate date={replyEvent.createdAt} />
+                                                </Text>
+                                              </ReplyMeta>
+                                              {renderCommentActions(reply)}
+                                              {renderCommentBody(reply, true)}
+                                            </ReplyContent>
+                                          </ReplyEntry>
+                                        );
+                                      })}
+                                    </ReplyList>
                                   )}
                                 </CommentCard>
                               </div>
@@ -1733,9 +1854,9 @@ export let SkillMergeRequestScene = (p: {
                         );
                       })}
                     </Timeline>
-                  </>
-                ))}
-                {!p.readOnly && (
+                  );
+                })}
+                {canComment && (
                   <Composer>
                     <Input
                       id="skill-merge-comment"
