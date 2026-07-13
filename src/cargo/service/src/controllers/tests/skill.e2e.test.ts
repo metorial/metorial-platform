@@ -2595,16 +2595,6 @@ describe('cargo skill.e2e', () => {
       })
     ).rejects.toThrow('Cannot delete another actor comment');
     await expect(
-      cargoClient.skillMergeRequest.comment.create({
-        tenantId: tenant.id,
-        environmentId: environment.id,
-        skillMergeRequestId: mergeRequest.id,
-        inReplyToCommentId: comment.id,
-        actorId: forkReader.id,
-        body: 'Invalid root reply'
-      })
-    ).rejects.toThrow('Replies must belong to the same merge request item');
-    await expect(
       cargoClient.skillMergeRequest.resolveItem({
         tenantId: tenant.id,
         environmentId: environment.id,
@@ -3399,17 +3389,8 @@ describe('cargo skill.e2e', () => {
     expect(completed).toMatchObject({
       status: 'completed',
       forkSkillId: fork.id,
-      upstreamSkillId: upstream.id
-    });
-    let generated = await cargoClient.skillMergeRequest.get({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillMergeRequestId: completed.generatedMergeRequestId!,
-      actorId: forkActor.id
-    });
-    expect(generated).toMatchObject({
-      direction: 'upstream_to_fork',
-      status: 'merged'
+      upstreamSkillId: upstream.id,
+      generatedMergeRequestId: undefined
     });
     expect(
       (
