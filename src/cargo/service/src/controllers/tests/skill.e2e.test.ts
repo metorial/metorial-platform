@@ -3478,11 +3478,17 @@ describe('cargo skill.e2e', () => {
       actorId: forkActor.id,
       resolutionType: 'accept_source'
     });
-    await cargoClient.skillMergeRequest.perform({
-      tenantId: tenant.id,
-      environmentId: environment.id,
-      skillMergeRequestId: actionRequired.generatedMergeRequestId!,
-      actorId: forkActor.id
+    await db.skillMergeRequest.update({
+      where: {
+        id: actionRequired.generatedMergeRequestId!
+      },
+      data: {
+        mergeErrorCode: 'stale_merge_recovered',
+        mergeError: 'A previous merge attempt was interrupted.'
+      }
+    });
+    await processSkillForkSyncJob({
+      skillForkSyncId: conflictedSync.id
     });
     await processSkillMergeRequestPerformJob({
       skillMergeRequestId: actionRequired.generatedMergeRequestId!

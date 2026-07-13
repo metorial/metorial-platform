@@ -53,14 +53,20 @@ export let processSkillForkSyncJob = async (d: { skillForkSyncId: string }) => {
 
   let activePairKey = getCanonicalSkillPairKey(sync.forkSkillOid, sync.upstreamSkillOid);
   try {
-    await db.skillForkSync.update({
-      where: { id: sync.id },
+    let claimed = await db.skillForkSync.updateMany({
+      where: {
+        id: sync.id,
+        status: {
+          in: ['pending', 'action_required']
+        }
+      },
       data: {
         status: 'processing',
         error: null,
         processingStartedAt: sync.processingStartedAt ?? new Date()
       }
     });
+    if (claimed.count !== 1) return null;
 
     let mergeRequest = sync.generatedMergeRequest;
     if (!mergeRequest) {
@@ -96,7 +102,7 @@ export let processSkillForkSyncJob = async (d: { skillForkSyncId: string }) => {
         status: 'unresolved'
       }
     });
-    if (unresolvedCount > 0 || (mergeRequest.status === 'open' && mergeRequest.mergeError)) {
+    if (unresolvedCount > 0) {
       return await db.skillForkSync.update({
         where: { id: sync.id },
         data: {
