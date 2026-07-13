@@ -1895,9 +1895,13 @@ describe('cargo skill.e2e', () => {
       skillMergeRequestId: mergeRequest.id,
       actorId: upstreamEditor.id
     });
-    let merged = await processSkillMergeRequestPerformJob({
-      skillMergeRequestId: mergeRequest.id
-    });
+    let merged =
+      (await processSkillMergeRequestPerformJob({
+        skillMergeRequestId: mergeRequest.id
+      })) ??
+      (await db.skillMergeRequest.findUniqueOrThrow({
+        where: { id: mergeRequest.id }
+      }));
     let mergedDocument = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
@@ -2668,9 +2672,13 @@ describe('cargo skill.e2e', () => {
 
     expect(merging.status).toBe('merging');
 
-    let merged = await processSkillMergeRequestPerformJob({
-      skillMergeRequestId: mergeRequest.id
-    });
+    let merged =
+      (await processSkillMergeRequestPerformJob({
+        skillMergeRequestId: mergeRequest.id
+      })) ??
+      (await db.skillMergeRequest.findUniqueOrThrow({
+        where: { id: mergeRequest.id }
+      }));
     let mergedDocument = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
