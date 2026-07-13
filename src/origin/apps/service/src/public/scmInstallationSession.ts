@@ -41,6 +41,10 @@ export let scmInstallationSessionPublicController = createHono()
       backendId,
       tenant
     });
+    await db.scmInstallationSession.update({
+      where: { oid: session.oid },
+      data: { selectedBackendOid: backend.oid }
+    });
 
     let authUrl = await scmAuthService.getAuthorizationUrl({
       tenant,
@@ -48,7 +52,9 @@ export let scmInstallationSessionPublicController = createHono()
       provider:
         backend.type === 'github' || backend.type === 'github_enterprise'
           ? 'github'
-          : 'gitlab',
+          : backend.type === 'gitlab' || backend.type === 'gitlab_selfhosted'
+            ? 'gitlab'
+            : 'bitbucket',
       backendId: backend.id,
       redirectUrl: '',
       state: session.state

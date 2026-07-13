@@ -45,6 +45,21 @@ export let scmController = createHono()
 
     return c.html(completeDashboardHtml());
   })
+  .get('/origin/oauth/bitbucket/callback', async c => {
+    let query = await useValidatedQuery(
+      c,
+      v.object({
+        code: v.string(),
+        state: v.string()
+      })
+    );
+    await scmAuthService.handleBitbucketOAuthCallback({
+      code: query.code,
+      state: query.state,
+      provider: 'bitbucket'
+    });
+    return c.html(completeDashboardHtml());
+  })
   .post('/origin/webhook-ingest/gh/:webhookId', async c => {
     let webhookId = c.req.param('webhookId');
 
@@ -85,5 +100,23 @@ export let scmController = createHono()
       payload: await c.req.text()
     });
 
+    return c.text('OK');
+  })
+  .post('/origin/webhook-ingest/bb/:webhookId', async c => {
+    let webhookId = c.req.param('webhookId');
+    let eventType = c.req.header('X-Event-Key');
+    let signature = c.req.header('X-Hub-Signature');
+    let idempotencyKey =
+      c.req.header('X-Request-UUID') ?? c.req.header('X-Request-ID') ?? signature;
+    if (!eventType || !signature || !idempotencyKey) {
+      return c.text('Missing params', 400);
+    }
+    await scmRepoService.receiveBitbucketWebhookEvent({
+      webhookId,
+      eventType,
+      signature,
+      idempotencyKey,
+      payload: await c.req.text()
+    });
     return c.text('OK');
   });
