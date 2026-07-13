@@ -2832,9 +2832,13 @@ describe('cargo skill.e2e', () => {
       skillMergeRequestId: rebasedMergeRequest.id,
       actorId: upstreamEditor.id
     });
-    let rebasedMerge = await processSkillMergeRequestPerformJob({
-      skillMergeRequestId: rebasedMergeRequest.id
-    });
+    let rebasedMerge =
+      (await processSkillMergeRequestPerformJob({
+        skillMergeRequestId: rebasedMergeRequest.id
+      })) ??
+      (await db.skillMergeRequest.findUniqueOrThrow({
+        where: { id: rebasedMergeRequest.id }
+      }));
 
     expect(rebasedMerge?.status).toBe('merged');
     let upstreamItemsAfterRebase = await cargoClient.storeItem.list({
@@ -3434,6 +3438,13 @@ describe('cargo skill.e2e', () => {
       environmentId: environment.id,
       forkSkillId: fork.id,
       actorId: forkActor.id
+    });
+    await db.skillForkSync.update({
+      where: { id: noOp.id },
+      data: {
+        status: 'processing',
+        processingStartedAt: new Date()
+      }
     });
     await processSkillForkSyncJob({ skillForkSyncId: noOp.id });
     expect(

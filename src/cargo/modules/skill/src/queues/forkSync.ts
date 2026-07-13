@@ -57,7 +57,7 @@ export let processSkillForkSyncJob = async (d: { skillForkSyncId: string }) => {
       where: {
         id: sync.id,
         status: {
-          in: ['pending', 'action_required']
+          in: ['pending', 'processing', 'action_required']
         }
       },
       data: {
