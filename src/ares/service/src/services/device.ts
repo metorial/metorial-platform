@@ -1,5 +1,5 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
+import { generateCustomId, generatePlainId } from '@lowerdeck/id';
 import { addMinutes, addWeeks } from 'date-fns';
 import type {
   App,
@@ -237,7 +237,7 @@ class DeviceService {
     return await db.authDevice.create({
       data: {
         ...getId('authDevice'),
-        clientSecret: getId('authDevice').id,
+        clientSecret: generateCustomId('adv_sec_'),
 
         ip: d.context.ip,
         ua: d.context.ua,
