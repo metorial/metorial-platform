@@ -66,6 +66,21 @@ let createActor = async (
     name: d.name
   });
 
+let waitForSkillForkSync = async (d: {
+  tenantId: string;
+  environmentId: string;
+  skillForkSyncId: string;
+  actorId: string;
+}) => {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    let sync = await cargoClient.skillForkSync.get(d);
+    if (!['pending', 'processing'].includes(sync.status)) return sync;
+    await Bun.sleep(20);
+  }
+
+  return await cargoClient.skillForkSync.get(d);
+};
+
 let getCargoScopeRecords = async (d: { tenantId: string; environmentId: string }) => ({
   tenant: await db.tenant.findUniqueOrThrow({
     where: {
@@ -3383,7 +3398,7 @@ describe('cargo skill.e2e', () => {
     expect(pending.status).toBe('pending');
 
     await processSkillForkSyncJob({ skillForkSyncId: pending.id });
-    let completed = await cargoClient.skillForkSync.get({
+    let completed = await waitForSkillForkSync({
       tenantId: tenant.id,
       environmentId: environment.id,
       skillForkSyncId: pending.id,
@@ -3414,7 +3429,7 @@ describe('cargo skill.e2e', () => {
     });
     await processSkillForkSyncJob({ skillForkSyncId: noOp.id });
     expect(
-      await cargoClient.skillForkSync.get({
+      await waitForSkillForkSync({
         tenantId: tenant.id,
         environmentId: environment.id,
         skillForkSyncId: noOp.id,
@@ -3456,7 +3471,7 @@ describe('cargo skill.e2e', () => {
       actorId: forkActor.id
     });
     await processSkillForkSyncJob({ skillForkSyncId: conflictedSync.id });
-    let actionRequired = await cargoClient.skillForkSync.get({
+    let actionRequired = await waitForSkillForkSync({
       tenantId: tenant.id,
       environmentId: environment.id,
       skillForkSyncId: conflictedSync.id,
