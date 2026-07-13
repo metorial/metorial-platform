@@ -27,7 +27,7 @@ export let v1ScmConnectionPresenter = Presenter.create(scmConnectionType)
     v.object({
       object: v.literal('scm.connection'),
       id: v.string({ description: 'Unique SCM connection identifier' }),
-      provider: v.enumOf(['github', 'gitlab'], {
+      provider: v.enumOf(['github', 'gitlab', 'bitbucket'], {
         description: 'SCM provider type'
       }),
       external_installation_id: v.nullable(

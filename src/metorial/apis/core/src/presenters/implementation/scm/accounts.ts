@@ -22,7 +22,7 @@ export let v1ScmAccountPreviewPresenter = Presenter.create(scmAccountPreviewType
           object: v.literal('scm.account.item#preview', {
             description: "String representing the account preview item's type"
           }),
-          provider: v.enumOf(['github', 'gitlab'], {
+          provider: v.enumOf(['github', 'gitlab', 'bitbucket'], {
             description: 'SCM provider type'
           }),
           external_id: v.string({ description: 'External account identifier' }),

@@ -1,6 +1,14 @@
 import { documentEditTokenService } from '@metorial/module-file';
 import { resolveUploadTarget } from './uploadAccess';
 
+let documentReadScopes = [
+  'instance.file:read',
+  'instance.file:write',
+  'consumer#instance.document:read',
+  'consumer#instance.document:write'
+] as const;
+let documentWriteScopes = ['instance.file:write', 'consumer#instance.document:write'] as const;
+
 type AuthenticateRequest = (
   req: Request,
   url: URL
@@ -27,6 +35,7 @@ export let resolveDocumentsLiveTarget = async (d: {
 
     return {
       owner,
+      canWrite: true,
       cargoAccess: {
         accessActor,
         defaultPermissions,
@@ -39,6 +48,8 @@ export let resolveDocumentsLiveTarget = async (d: {
   return await resolveUploadTarget({
     auth,
     instanceId: d.instanceId,
-    organizationId: d.organizationId
+    organizationId: d.organizationId,
+    possibleScopes: [...documentReadScopes],
+    writeScopes: [...documentWriteScopes]
   });
 };

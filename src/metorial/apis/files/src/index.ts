@@ -12,6 +12,7 @@ import {
   uploadCargoFile
 } from '@metorial/module-file';
 import { upgradeWebSocket, websocket } from 'hono/bun';
+import { isDocumentLiveMutation } from './documentLiveMessages';
 import { resolveDocumentsLiveTarget } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
 
@@ -211,7 +212,11 @@ let getQueryParam = (url: URL, keys: string[]) => {
   return null;
 };
 
-let getCargoDocumentLiveUrl = (d: { actorId: string; documentId: string }) => {
+let getCargoDocumentLiveUrl = (d: {
+  actorId: string;
+  documentId: string;
+  canWrite: boolean;
+}) => {
   let url = getCargoHttpBaseUrl();
 
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -219,6 +224,7 @@ let getCargoDocumentLiveUrl = (d: { actorId: string; documentId: string }) => {
   url.search = '';
   url.searchParams.set('actorId', d.actorId);
   url.searchParams.set('documentId', d.documentId);
+  url.searchParams.set('canWrite', d.canWrite ? 'true' : 'false');
 
   return url.toString();
 };
@@ -289,11 +295,20 @@ let createDocumentsLiveHandler = (
               );
             }
 
-            await documentService.getDocumentById({
+            let document = await documentService.getDocumentById({
               owner: target.owner,
               documentId,
               ...target.cargoAccess
             });
+            let permissions = await documentService.getDocumentPermissions({
+              owner: target.owner,
+              documentId,
+              ...target.cargoAccess
+            });
+            let canWrite =
+              target.canWrite &&
+              !document.isReadOnly &&
+              (permissions.hasFullAccess || permissions.permissions.includes('content_write'));
 
             let { actorId } = await resolveCargoAccess({
               owner: target.owner,
@@ -309,7 +324,8 @@ let createDocumentsLiveHandler = (
 
             let upstreamUrl = getCargoDocumentLiveUrl({
               actorId,
-              documentId
+              documentId,
+              canWrite
             });
             let upstream: WebSocket | null = null;
             let clientWs: any = null;
@@ -354,6 +370,21 @@ let createDocumentsLiveHandler = (
 
               onMessage: async event => {
                 let message = event.data.toString();
+
+                if (!canWrite && isDocumentLiveMutation(message)) {
+                  try {
+                    clientWs?.send(
+                      JSON.stringify({
+                        type: 'error',
+                        data: {
+                          code: 'document_read_only',
+                          message: 'This live document connection is read-only'
+                        }
+                      })
+                    );
+                  } catch {}
+                  return;
+                }
 
                 if (upstream?.readyState === WebSocket.OPEN) {
                   upstream.send(message);
