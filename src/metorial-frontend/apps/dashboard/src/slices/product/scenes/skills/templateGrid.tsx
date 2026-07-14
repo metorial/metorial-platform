@@ -92,6 +92,7 @@ export let SkillTemplatesGrid = (
   let skillTemplates = useSkillTemplates(instanceId, {
     order: 'desc',
     status: ['active'],
+    limit: 21,
     ...query
   });
   let hasActiveFilters = !!(

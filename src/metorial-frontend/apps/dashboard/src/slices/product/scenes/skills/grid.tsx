@@ -154,6 +154,7 @@ export let SkillsGrid = (
   let skills = useSkills(instanceId, {
     order: 'desc',
     status: ['active'],
+    limit: 21,
     ...query
   });
   let providerIds = useMemo(

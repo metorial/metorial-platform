@@ -23,6 +23,29 @@ class FilePurposeServiceImpl {
       canHaveLinks: boolean;
     };
   }) {
+    if (!d.input.id) {
+      let generated = getId('filePurpose');
+
+      return await db.filePurpose.upsert({
+        where: {
+          slug: d.input.slug
+        },
+        create: {
+          oid: generated.oid,
+          id: generated.id,
+          slug: d.input.slug,
+          name: d.input.name,
+          ownerType: d.input.ownerType,
+          canHaveLinks: d.input.canHaveLinks
+        },
+        update: {
+          name: d.input.name,
+          ownerType: d.input.ownerType,
+          canHaveLinks: d.input.canHaveLinks
+        }
+      });
+    }
+
     let existing = d.input.id
       ? await db.filePurpose.findFirst({
           where: {
@@ -54,7 +77,7 @@ class FilePurposeServiceImpl {
     return await db.filePurpose.create({
       data: {
         oid: generated.oid,
-        id: d.input.id ?? generated.id,
+        id: d.input.id,
         slug: d.input.slug,
         name: d.input.name,
         ownerType: d.input.ownerType,

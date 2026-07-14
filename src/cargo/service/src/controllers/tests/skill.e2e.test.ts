@@ -2253,7 +2253,7 @@ describe('cargo skill.e2e', () => {
       direction: 'fork_to_upstream'
     });
     expect(generatedManualFirstMergeRequest).toMatchObject({
-      status: 'merging',
+      status: 'merged',
       direction: 'upstream_to_fork'
     });
     expect(activeManualFirstMergeRequest.activePairKey).not.toBe(
@@ -2333,7 +2333,7 @@ describe('cargo skill.e2e', () => {
       direction: 'fork_to_upstream'
     });
     expect(generatedSyncFirstRecord).toMatchObject({
-      status: 'merging',
+      status: 'merged',
       direction: 'upstream_to_fork'
     });
 
