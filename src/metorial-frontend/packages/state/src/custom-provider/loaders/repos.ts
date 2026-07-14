@@ -3,6 +3,7 @@ import {
   DashboardInstanceScmInstallationCreateBody,
   DashboardInstanceScmInstallationListQuery,
   DashboardInstanceScmReposCreateBody,
+  DashboardInstanceScmReposCreateOutput,
   DashboardInstanceScmReposPreviewBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -38,6 +39,120 @@ export let useCreateScmInstallation = scmInstallationsLoader.createExternalMutat
 export let useCreateScmRepo = scmInstallationsLoader.createExternalMutator(
   (i: DashboardInstanceScmReposCreateBody & { instanceId: string }) =>
     withAuth(sdk => sdk.scm.repos.create(i.instanceId, i))
+);
+
+export type ResolveScmRepositoryInput = {
+  instanceId: string;
+  provider: 'github' | 'gitlab' | 'bitbucket';
+  identifier: string;
+};
+
+export type ResolvedScmRepository =
+  | {
+      type: 'linked';
+      repository: DashboardInstanceScmReposCreateOutput;
+    }
+  | {
+      type: 'available';
+      installationId: string;
+      externalRepoId: string;
+    }
+  | {
+      type: 'public';
+    };
+
+let normalizeRepositoryIdentifier = (identifier: string) =>
+  identifier
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^(github\.com|gitlab\.com|bitbucket\.org)\//, '')
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\.git$/, '');
+
+let identifiersMatch = (a: string, b: string) =>
+  normalizeRepositoryIdentifier(a) == normalizeRepositoryIdentifier(b);
+
+export let useResolveScmRepository = scmInstallationsLoader.createExternalMutator(
+  (i: ResolveScmRepositoryInput): Promise<ResolvedScmRepository> =>
+    withAuth(async sdk => {
+      let after: string | undefined;
+
+      while (true) {
+        let repositories = await sdk.scm.repos.list(i.instanceId, {
+          limit: 100,
+          order: 'asc',
+          after
+        });
+        let repository = repositories.items.find(
+          item =>
+            item.provider.type == i.provider &&
+            identifiersMatch(`${item.provider.owner}/${item.provider.name}`, i.identifier)
+        );
+        if (repository) return { type: 'linked', repository };
+        if (!repositories.pagination.hasMoreAfter) break;
+
+        after = repositories.items.at(-1)?.id;
+        if (!after) break;
+      }
+
+      after = undefined;
+      while (true) {
+        let installations = await sdk.scm.installation.list(i.instanceId, {
+          limit: 100,
+          order: 'asc',
+          after
+        });
+        let installationAccounts = await Promise.all(
+          installations.items
+            .filter(installation => installation.provider == i.provider)
+            .map(async installation => ({
+              installation,
+              accounts: (
+                await sdk.scm.accounts.preview(i.instanceId, {
+                  installationId: installation.id
+                })
+              ).accounts
+            }))
+        );
+        let accountRepositories = await Promise.all(
+          installationAccounts.flatMap(({ installation, accounts }) =>
+            accounts.map(async account => ({
+              installation,
+              repositories: (
+                await sdk.scm.repos.preview(i.instanceId, {
+                  installationId: installation.id,
+                  externalAccountId: account.externalId
+                })
+              ).repos
+            }))
+          )
+        );
+        let availableRepository = accountRepositories
+          .flatMap(({ installation, repositories }) =>
+            repositories.map(repository => ({ installation, repository }))
+          )
+          .find(
+            ({ repository }) =>
+              repository.provider == i.provider &&
+              identifiersMatch(repository.identifier, i.identifier)
+          );
+
+        if (availableRepository) {
+          return {
+            type: 'available',
+            installationId: availableRepository.installation.id,
+            externalRepoId: availableRepository.repository.externalId
+          };
+        }
+
+        if (!installations.pagination.hasMoreAfter) break;
+        after = installations.items.at(-1)?.id;
+        if (!after) break;
+      }
+
+      return { type: 'public' };
+    })
 );
 
 export let scmReposLoader = createLoader({

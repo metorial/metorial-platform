@@ -22,6 +22,54 @@ export type ScmAccountSelection = {
   installationImageUrl?: string | null;
 };
 
+export type PublicScmRepositoryUrl = {
+  provider: ScmProvider;
+  identifier: string;
+  url: string;
+};
+
+let publicScmProviders: Record<string, ScmProvider> = {
+  'github.com': 'github',
+  'gitlab.com': 'gitlab',
+  'bitbucket.org': 'bitbucket'
+};
+
+export let parsePublicScmRepositoryUrl = (value: string): PublicScmRepositoryUrl | null => {
+  try {
+    let input = value.trim();
+    let url = new URL(input.includes('://') ? input : `https://${input}`);
+    let hostname = url.hostname.toLowerCase();
+    let provider = publicScmProviders[hostname];
+    if (
+      !provider ||
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.port
+    ) {
+      return null;
+    }
+
+    let parts = url.pathname
+      .replace(/^\/+|\/+$/g, '')
+      .replace(/\.git$/i, '')
+      .split('/')
+      .filter(Boolean);
+    if (parts.length < 2) return null;
+    if (provider != 'gitlab' && parts.length != 2) return null;
+    if (provider == 'gitlab' && parts.includes('-')) return null;
+
+    let identifier = parts.join('/');
+    return {
+      provider,
+      identifier,
+      url: `https://${hostname}/${identifier}`
+    };
+  } catch {
+    return null;
+  }
+};
+
 export let formatScmProvider = (provider: string) =>
   ({
     github: 'GitHub',

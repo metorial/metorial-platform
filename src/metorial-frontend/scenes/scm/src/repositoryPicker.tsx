@@ -4,6 +4,7 @@ import {
   useCreateScmInstallation,
   useCreateScmProvider,
   useCreateScmRepo,
+  useResolveScmRepository,
   useScmAccounts,
   useScmInstallations,
   useScmRepos
@@ -28,10 +29,11 @@ import {
   RiArrowDownSLine,
   RiArrowLeftLine,
   RiCheckLine,
+  RiExternalLinkLine,
   RiGitRepositoryLine,
   RiSettings3Line
 } from '@remixicon/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
   type ScmAccountSelection,
@@ -39,7 +41,8 @@ import {
   filterScmRepositories,
   formatScmProvider,
   getInstallationName,
-  makeScmAccountSelection
+  makeScmAccountSelection,
+  parsePublicScmRepositoryUrl
 } from './utils';
 
 let PickerContent = styled.div`
@@ -184,10 +187,15 @@ let AccountMenuActions = styled.div`
 `;
 
 let SearchRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  align-items: end;
   gap: 8px;
   margin-top: 18px;
+
+  > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
 `;
 
 let ResultMeta = styled.div`
@@ -236,7 +244,7 @@ let RepoIcon = styled.div`
   place-items: center;
   border-radius: 7px;
   color: ${theme.colors.gray700};
-  background: ${theme.colors.gray200};
+  background: rgba(0, 0, 0, 0.03);
 `;
 
 let RepoTitle = styled.div`
@@ -257,10 +265,22 @@ let RepoMeta = styled.div`
 `;
 
 let EmptyState = styled.div`
-  padding: 42px 20px;
+  padding: 15px 20px;
   border: 1px dashed ${theme.colors.gray400};
   border-radius: 9px;
   text-align: center;
+`;
+
+let PublicRepositoryItem = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 11px;
+  margin-top: 12px;
+  border: 1px solid ${theme.colors.blue500};
+  border-radius: 9px;
+  background: ${theme.colors.blue100};
 `;
 
 let ConnectState = styled.div`
@@ -445,7 +465,12 @@ export type ScmRepositoryPickerProps = {
   excludedRepositoryIdentifiers?: string[];
   selectedExternalRepoId?: string;
   allowCreate?: boolean;
-  onSelect: (repository: DashboardInstanceScmReposCreateOutput) => Promise<void> | void;
+  allowPublicUrl?: boolean;
+  onSelect: (
+    repository: DashboardInstanceScmReposCreateOutput
+  ) => Promise<boolean | void> | boolean | void;
+  onSelectPublicUrl?: (url: string) => Promise<boolean | void> | boolean | void;
+  selectionError?: ReactNode;
   onManageSourceControl?: () => void;
   close: () => void;
 };
@@ -456,6 +481,7 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
   let createInstallation = useCreateScmInstallation();
   let createProvider = useCreateScmProvider();
   let createRepo = useCreateScmRepo();
+  let resolveRepo = useResolveScmRepository();
   let [selectedAccount, setSelectedAccount] = useState<ScmAccountSelection | null>(null);
   let [accountMenuKey, setAccountMenuKey] = useState('initial');
   let [search, setSearch] = useState('');
@@ -497,6 +523,11 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
       ),
     [repos.data?.repos, search, p.excludedExternalRepoIds, p.excludedRepositoryIdentifiers]
   );
+  let publicRepository = useMemo(
+    () =>
+      p.allowPublicUrl && p.onSelectPublicUrl ? parsePublicScmRepositoryUrl(search) : null,
+    [p.allowPublicUrl, p.onSelectPublicUrl, search]
+  );
 
   let connect = async () => {
     let [result] = await createInstallation.mutate({
@@ -534,8 +565,8 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
       externalRepoId
     });
     if (!repository) return;
-    await p.onSelect(repository);
-    p.close();
+    let shouldClose = await p.onSelect(repository);
+    if (shouldClose !== false) p.close();
   };
 
   let createRepository = async () => {
@@ -548,14 +579,66 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
       isPrivate: createVisibility == 'private'
     });
     if (!repository) return;
-    await p.onSelect(repository);
-    p.close();
+    let shouldClose = await p.onSelect(repository);
+    if (shouldClose !== false) p.close();
   };
+
+  let selectPublicRepository = async () => {
+    if (!publicRepository || !p.onSelectPublicUrl) return;
+
+    let [resolved] = await resolveRepo.mutate({
+      instanceId: p.instanceId,
+      provider: publicRepository.provider,
+      identifier: publicRepository.identifier
+    });
+    if (!resolved) return;
+
+    if (resolved.type == 'linked') {
+      let shouldClose = await p.onSelect(resolved.repository);
+      if (shouldClose !== false) p.close();
+      return;
+    }
+
+    if (resolved.type == 'available') {
+      let [repository] = await createRepo.mutate({
+        instanceId: p.instanceId,
+        installationId: resolved.installationId,
+        externalRepoId: resolved.externalRepoId
+      });
+      if (!repository) return;
+
+      let shouldClose = await p.onSelect(repository);
+      if (shouldClose !== false) p.close();
+      return;
+    }
+
+    let shouldClose = await p.onSelectPublicUrl(publicRepository.url);
+    if (shouldClose !== false) p.close();
+  };
+
+  let publicRepositoryOption = publicRepository ? (
+    <PublicRepositoryItem>
+      <RepoIcon>
+        <RiExternalLinkLine size={18} />
+      </RepoIcon>
+      <div style={{ minWidth: 0 }}>
+        <RepoTitle>{publicRepository.identifier}</RepoTitle>
+        <RepoMeta>Public {formatScmProvider(publicRepository.provider)} repository</RepoMeta>
+      </div>
+      <Button
+        size="2"
+        onClick={selectPublicRepository}
+        loading={resolveRepo.isLoading || createRepo.isLoading}
+      >
+        Import
+      </Button>
+    </PublicRepositoryItem>
+  ) : null;
 
   return renderWithLoader({ installations })(({ installations }) => (
     <Panel.Content>
       <PickerContent>
-        {!installations.data.items.length ? (
+        {!installations.data.items.length && !p.allowPublicUrl ? (
           <ConnectState>
             <ConnectIcon>
               <RiGitRepositoryLine size={22} />
@@ -669,121 +752,137 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
               />
             )}
 
-            <SectionLabel>Repository account</SectionLabel>
-            <Popover.Root
-              operationKey={accountMenuKey}
-              align="start"
-              sideOffset={6}
-              trigger={
-                <AccountTrigger type="button">
-                  <AccountAvatar
-                    name={selectedAccount?.name ?? 'Source control account'}
-                    imageUrl={selectedAccount?.imageUrl}
-                    installationName={selectedAccount?.installationName}
-                    installationImageUrl={selectedAccount?.installationImageUrl}
-                    provider={selectedAccount?.provider ?? 'github'}
-                    showInstallation
-                  />
-
-                  <div style={{ minWidth: 0 }}>
-                    <AccountName>{selectedAccount?.name ?? 'Select an account'}</AccountName>
-                    <AccountMeta>
-                      {selectedAccount ? (
-                        <>
-                          <span>{formatScmProvider(selectedAccount.provider)}</span>
-                          <span>·</span>
-                          <span>{selectedAccount.installationName}</span>
-                        </>
-                      ) : (
-                        'Loading available accounts…'
-                      )}
-                    </AccountMeta>
-                  </div>
-
-                  <RiArrowDownSLine size={18} />
-                </AccountTrigger>
-              }
-            >
-              <Popover.Content>
-                <AccountMenu>
-                  <AccountMenuTitle>Available accounts</AccountMenuTitle>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {installations.data.items.map((installation, index) => (
-                      <InstallationAccounts
-                        key={installation.id}
-                        instanceId={p.instanceId}
-                        installation={installation}
-                        selected={selectedAccount}
-                        autoSelect={index == 0}
-                        onSelect={account => {
-                          setSelectedAccount(account);
-                          setSearch('');
-                          setAccountMenuKey(
-                            `${account.installationId}:${account.externalAccountId}`
-                          );
-                        }}
+            {!!installations.data.items.length && (
+              <>
+                <SectionLabel>Repository account</SectionLabel>
+                <Popover.Root
+                  operationKey={accountMenuKey}
+                  align="start"
+                  sideOffset={6}
+                  trigger={
+                    <AccountTrigger type="button">
+                      <AccountAvatar
+                        name={selectedAccount?.name ?? 'Source control account'}
+                        imageUrl={selectedAccount?.imageUrl}
+                        installationName={selectedAccount?.installationName}
+                        installationImageUrl={selectedAccount?.installationImageUrl}
+                        provider={selectedAccount?.provider ?? 'github'}
+                        showInstallation
                       />
-                    ))}
-                  </div>
 
-                  <AccountMenuActions>
-                    <Button
-                      size="2"
-                      variant="outline"
-                      onClick={connect}
-                      loading={createInstallation.isLoading}
-                      iconLeft={<RiAddLine />}
-                    >
-                      Add connection
-                    </Button>
-                    <Menu
-                      matchTriggerWidth
-                      lightMode
-                      items={[
-                        {
-                          id: 'github_enterprise',
-                          label: 'GitHub Enterprise'
-                        },
-                        {
-                          id: 'gitlab_selfhosted',
-                          label: 'GitLab Self-Managed'
-                        },
-                        {
-                          id: 'bitbucket_data_center',
-                          label: 'Bitbucket Data Center'
-                        }
-                      ]}
-                      onItemClick={id =>
-                        setupProvider(
-                          id as
-                            | 'github_enterprise'
-                            | 'gitlab_selfhosted'
-                            | 'bitbucket_data_center'
-                        )
-                      }
-                    >
-                      <Button
-                        size="2"
-                        variant="outline"
-                        loading={createProvider.isLoading}
-                        iconLeft={<RiSettings3Line />}
-                      >
-                        Set up provider
-                      </Button>
-                    </Menu>
-                  </AccountMenuActions>
-                </AccountMenu>
-              </Popover.Content>
-            </Popover.Root>
+                      <div style={{ minWidth: 0 }}>
+                        <AccountName>
+                          {selectedAccount?.name ?? 'Select an account'}
+                        </AccountName>
+                        <AccountMeta>
+                          {selectedAccount ? (
+                            <>
+                              <span>{formatScmProvider(selectedAccount.provider)}</span>
+                              <span>·</span>
+                              <span>{selectedAccount.installationName}</span>
+                            </>
+                          ) : (
+                            'Loading available accounts…'
+                          )}
+                        </AccountMeta>
+                      </div>
+
+                      <RiArrowDownSLine size={18} />
+                    </AccountTrigger>
+                  }
+                >
+                  <Popover.Content>
+                    <AccountMenu>
+                      <AccountMenuTitle>Available accounts</AccountMenuTitle>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {installations.data.items.map((installation, index) => (
+                          <InstallationAccounts
+                            key={installation.id}
+                            instanceId={p.instanceId}
+                            installation={installation}
+                            selected={selectedAccount}
+                            autoSelect={index == 0}
+                            onSelect={account => {
+                              setSelectedAccount(account);
+                              setSearch('');
+                              setAccountMenuKey(
+                                `${account.installationId}:${account.externalAccountId}`
+                              );
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      <AccountMenuActions>
+                        <Button
+                          size="2"
+                          variant="outline"
+                          onClick={connect}
+                          loading={createInstallation.isLoading}
+                          iconLeft={<RiAddLine />}
+                        >
+                          Add connection
+                        </Button>
+                        <Menu
+                          matchTriggerWidth
+                          lightMode
+                          items={[
+                            {
+                              id: 'github_enterprise',
+                              label: 'GitHub Enterprise'
+                            },
+                            {
+                              id: 'gitlab_selfhosted',
+                              label: 'GitLab Self-Managed'
+                            },
+                            {
+                              id: 'bitbucket_data_center',
+                              label: 'Bitbucket Data Center'
+                            }
+                          ]}
+                          onItemClick={id =>
+                            setupProvider(
+                              id as
+                                | 'github_enterprise'
+                                | 'gitlab_selfhosted'
+                                | 'bitbucket_data_center'
+                            )
+                          }
+                        >
+                          <Button
+                            size="2"
+                            variant="outline"
+                            loading={createProvider.isLoading}
+                            iconLeft={<RiSettings3Line />}
+                          >
+                            Set up provider
+                          </Button>
+                        </Menu>
+                      </AccountMenuActions>
+                    </AccountMenu>
+                  </Popover.Content>
+                </Popover.Root>
+              </>
+            )}
 
             <SearchRow>
               <Input
                 label="Search repositories"
                 hideLabel
-                placeholder="Search repositories…"
+                placeholder={
+                  p.allowPublicUrl
+                    ? 'Search repositories or enter a public repository URL…'
+                    : 'Search repositories…'
+                }
                 value={search}
                 onChange={event => setSearch(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key == 'Enter' && publicRepository) {
+                    event.preventDefault();
+                    selectPublicRepository();
+                  }
+                }}
               />
               {p.allowCreate && (
                 <Button
@@ -797,76 +896,105 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
               )}
             </SearchRow>
 
+            {publicRepositoryOption}
+
+            {!installations.data.items.length && !publicRepository && (
+              <EmptyState>
+                <Text size="2" weight="strong">
+                  Select a public repository or add a connection
+                </Text>
+                <Spacer size={4} />
+                <Text size="2" color="gray600">
+                  Paste a public GitHub, GitLab, or Bitbucket repository URL above.
+                </Text>
+                <Spacer size={12} />
+                <Button
+                  size="2"
+                  variant="outline"
+                  onClick={connect}
+                  loading={createInstallation.isLoading}
+                  iconLeft={<RiAddLine />}
+                >
+                  Add connection
+                </Button>
+              </EmptyState>
+            )}
+
             {selectedAccount
               ? renderWithLoader(
                   { repos },
                   { spaceTop: 30 }
                 )(({ repos }) => (
                   <>
-                    <ResultMeta>
-                      <Text size="1" color="gray600">
-                        {filteredRepos.length}{' '}
-                        {filteredRepos.length == 1 ? 'repository' : 'repositories'}
-                      </Text>
-                      <Text size="1" color="gray600">
-                        {formatScmProvider(selectedAccount.provider)}
-                      </Text>
-                    </ResultMeta>
-
-                    <RepoList>
-                      {filteredRepos.map(repository => {
-                        let selected = repository.externalId == p.selectedExternalRepoId;
-                        return (
-                          <RepoItem
-                            key={repository.externalId}
-                            type="button"
-                            $selected={selected}
-                            disabled={createRepo.isLoading}
-                            onClick={() => selectRepository(repository.externalId)}
-                          >
-                            <RepoIcon>
-                              <RiGitRepositoryLine size={18} />
-                            </RepoIcon>
-                            <div style={{ minWidth: 0 }}>
-                              <RepoTitle>{repository.identifier}</RepoTitle>
-                              <RepoMeta>
-                                {formatScmProvider(repository.provider)} · {repository.name}
-                              </RepoMeta>
-                            </div>
-                            <Button
-                              as="div"
-                              size="2"
-                              variant={selected ? 'solid' : 'outline'}
-                              success={selected}
-                              loading={
-                                !!(
-                                  createRepo.isLoading &&
-                                  createRepo.input &&
-                                  'externalRepoId' in createRepo.input &&
-                                  createRepo.input.externalRepoId == repository.externalId
-                                )
-                              }
-                            >
-                              {selected ? 'Selected' : 'Select'}
-                            </Button>
-                          </RepoItem>
-                        );
-                      })}
-
-                      {!filteredRepos.length && (
-                        <EmptyState>
-                          <Text size="2" weight="strong">
-                            No repositories found
+                    {(!publicRepository || filteredRepos.length > 0) && (
+                      <>
+                        <ResultMeta>
+                          <Text size="1" color="gray600">
+                            {filteredRepos.length}{' '}
+                            {filteredRepos.length == 1 ? 'repository' : 'repositories'}
                           </Text>
-                          <Spacer size={4} />
-                          <Text size="2" color="gray600">
-                            {search
-                              ? 'Try another search or switch to a different account.'
-                              : 'This account has no available repositories.'}
+                          <Text size="1" color="gray600">
+                            {formatScmProvider(selectedAccount.provider)}
                           </Text>
-                        </EmptyState>
-                      )}
-                    </RepoList>
+                        </ResultMeta>
+
+                        <RepoList>
+                          {filteredRepos.map(repository => {
+                            let selected = repository.externalId == p.selectedExternalRepoId;
+                            return (
+                              <RepoItem
+                                key={repository.externalId}
+                                type="button"
+                                $selected={selected}
+                                disabled={createRepo.isLoading}
+                                onClick={() => selectRepository(repository.externalId)}
+                              >
+                                <RepoIcon>
+                                  <RiGitRepositoryLine size={18} />
+                                </RepoIcon>
+                                <div style={{ minWidth: 0 }}>
+                                  <RepoTitle>{repository.identifier}</RepoTitle>
+                                  <RepoMeta>
+                                    {formatScmProvider(repository.provider)} ·{' '}
+                                    {repository.name}
+                                  </RepoMeta>
+                                </div>
+                                <Button
+                                  as="div"
+                                  size="2"
+                                  variant={selected ? 'solid' : 'outline'}
+                                  success={selected}
+                                  loading={
+                                    !!(
+                                      createRepo.isLoading &&
+                                      createRepo.input &&
+                                      'externalRepoId' in createRepo.input &&
+                                      createRepo.input.externalRepoId == repository.externalId
+                                    )
+                                  }
+                                >
+                                  {selected ? 'Selected' : 'Select'}
+                                </Button>
+                              </RepoItem>
+                            );
+                          })}
+
+                          {!filteredRepos.length && (
+                            <EmptyState>
+                              <Text size="2" weight="strong">
+                                No repositories found
+                              </Text>
+                              <Spacer size={4} />
+                              <Text size="2" color="gray600">
+                                {search
+                                  ? 'Try another search or switch to a different account.'
+                                  : 'This account has no available repositories.'}
+                              </Text>
+                            </EmptyState>
+                          )}
+                        </RepoList>
+                      </>
+                    )}
                   </>
                 ))
               : null}
@@ -874,6 +1002,8 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
             <createInstallation.RenderError />
             <createProvider.RenderError />
             <createRepo.RenderError />
+            <resolveRepo.RenderError />
+            {p.selectionError}
 
             <Footer>
               <Text size="1" color="gray600">
