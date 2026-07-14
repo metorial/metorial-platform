@@ -120,6 +120,7 @@ import {
   MetorialDashboardInstanceSkillsForkSyncsEndpoint,
   MetorialDashboardInstanceSkillsGroupsEndpoint,
   MetorialDashboardInstanceSkillsGroupsItemsEndpoint,
+  MetorialDashboardInstanceSkillsImportsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint,
@@ -606,6 +607,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   skillExports: new MetorialDashboardInstanceSkillsExportsEndpoint(manager),
+  skillImports: new MetorialDashboardInstanceSkillsImportsEndpoint(manager),
 
   skillSyncs: new MetorialDashboardInstanceSkillsSyncsEndpoint(manager),
 
