@@ -100,6 +100,34 @@ export let skillController = app.controller({
       return skills.map(skillPresenter);
     }),
 
+  registerCargo: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        actorId: v.optional(v.string()),
+        skillId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let actor = ctx.input.actorId
+        ? await actorService.getActorById({
+            tenant: ctx.tenant,
+            id: ctx.input.actorId
+          })
+        : undefined;
+      let skill = await skillService.registerCargoSkill({
+        tenant: ctx.tenant,
+        environment: ctx.environment,
+        solution: ctx.solution,
+        skillId: ctx.input.skillId,
+        tenantActor: actor
+      });
+
+      return skillPresenter(skill);
+    }),
+
   create: tenantApp
     .handler()
     .input(

@@ -36,6 +36,7 @@ import {
   skillCreatedQueue,
   skillUpdatedQueue
 } from '../queues/lifecycle/skill';
+import { skillItemCreatedQueue } from '../queues/lifecycle/skillItem';
 import { skillTemplateService } from './skillTemplate';
 
 export let skillInclude = {
@@ -159,7 +160,7 @@ class skillServiceImpl {
       license: clientFields.license,
       compatibility: clientFields.compatibility,
       clientMetadata: clientFields.clientMetadata,
-      metadata: d.input.metadata,
+      metadata: d.input.metadata === undefined ? d.template?.metadata : d.input.metadata,
       privateMetadata: d.input.privateMetadata,
       tenantOid: d.tenant.oid,
       solutionOid: d.solution.oid,
@@ -358,6 +359,104 @@ class skillServiceImpl {
       .filter((skill): skill is NonNullable<typeof skill> => !!skill);
   }
 
+  async registerCargoSkill(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    skillId: string;
+    tenantActor?: TenantActor;
+  }) {
+    let getExisting = async () =>
+      await db.skill.findFirst({
+        where: {
+          id: d.skillId,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        include: skillInclude
+      });
+    let existing = await getExisting();
+    if (existing) return existing;
+
+    let cargoScope = await ensureCargoScope(d);
+    let cargoSkill = await cargo.skill.get({
+      ...cargoScope,
+      skillId: d.skillId
+    });
+    let name = cargoSkill.name?.trim() || 'Imported skill';
+    let skillIds = getId('skill');
+    let skillEntityIds = getId('skillEntity');
+    let slug = getSlug({ name });
+
+    try {
+      return await withTransaction(async db => {
+        let existing = await db.skill.findFirst({
+          where: {
+            id: d.skillId,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          include: skillInclude
+        });
+        if (existing) return existing;
+
+        let skillEntity = await db.skillEntity.create({
+          data: {
+            ...skillEntityIds,
+            slug,
+            name,
+            description: cargoSkill.description,
+            image: (cargoSkill.image ?? undefined) as any,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          }
+        });
+        let skill = await db.skill.create({
+          data: {
+            ...skillIds,
+            id: cargoSkill.id,
+            status: 'active',
+            slug,
+            name,
+            description: cargoSkill.description,
+            metadata: (cargoSkill.metadata ?? undefined) as any,
+            image: (cargoSkill.image ?? undefined) as any,
+            clientName: cargoSkill.clientName?.trim() || name,
+            clientDescription: cargoSkill.clientDescription,
+            clientMetadata: (cargoSkill.clientMetadata ?? undefined) as any,
+            license: cargoSkill.license,
+            compatibility: cargoSkill.compatibility,
+            storeId: cargoSkill.storeId,
+            skillEntityOid: skillEntity.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid,
+            ownerTenantActorOid: d.tenantActor?.oid
+          },
+          include: skillInclude
+        });
+
+        await db.skillEntity.update({
+          where: { oid: skillEntity.oid },
+          data: { ownerSkillOid: skill.oid }
+        });
+        await addAfterTransactionHook(async () =>
+          skillCreatedQueue.add({ skillId: skill.id })
+        );
+
+        return skill;
+      });
+    } catch (error) {
+      // Concurrent import status requests may attempt the same registration.
+      let existing = await getExisting();
+      if (existing) return existing;
+      throw error;
+    }
+  }
+
   async createSkill(d: {
     tenant: Tenant;
     solution: Solution;
@@ -510,6 +609,87 @@ class skillServiceImpl {
         },
         include: skillInclude
       });
+
+      let templateItems = template
+        ? await db.skillTemplateItem.findMany({
+            where: {
+              skillTemplateOid: template.oid,
+              OR: [{ integration: { status: 'active' } }, { provider: { status: 'active' } }]
+            },
+            select: {
+              integrationOid: true,
+              providerOid: true
+            }
+          })
+        : [];
+
+      if (templateItems.length) {
+        let integrationItems = templateItems.flatMap(templateItem => {
+          if (!templateItem.integrationOid) return [];
+
+          let item = {
+            ...getId('skillItem'),
+            status: 'active' as const,
+            type: 'integration' as const,
+            skillOid: skill.oid
+          };
+
+          return [
+            {
+              item,
+              link: {
+                ...getId('skillIntegration'),
+                status: 'active' as const,
+                skillOid: skill.oid,
+                integrationOid: templateItem.integrationOid,
+                itemOid: item.oid
+              }
+            }
+          ];
+        });
+
+        let providerItems = templateItems.flatMap(templateItem => {
+          if (!templateItem.providerOid) return [];
+
+          let item = {
+            ...getId('skillItem'),
+            status: 'active' as const,
+            type: 'provider' as const,
+            skillOid: skill.oid
+          };
+
+          return [
+            {
+              item,
+              link: {
+                ...getId('skillProvider'),
+                status: 'active' as const,
+                skillOid: skill.oid,
+                providerOid: templateItem.providerOid,
+                itemOid: item.oid
+              }
+            }
+          ];
+        });
+
+        await db.skillItem.createMany({
+          data: [...integrationItems, ...providerItems].map(({ item }) => item)
+        });
+        await db.skillIntegration.createMany({
+          data: integrationItems.map(({ link }) => link)
+        });
+        await db.skillProvider.createMany({
+          data: providerItems.map(({ link }) => link)
+        });
+
+        await addAfterTransactionHook(async () =>
+          Promise.all(
+            [...integrationItems, ...providerItems].map(({ item }) =>
+              skillItemCreatedQueue.add({ skillItemId: item.id })
+            )
+          )
+        );
+      }
 
       if (isNewSkillEntity) {
         skillEntity = await db.skillEntity.update({

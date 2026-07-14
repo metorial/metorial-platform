@@ -565,7 +565,15 @@ describe('cargo skill.e2e', () => {
       actorId: firstActor.id,
       limit: 10
     });
+    let listedForTenant = await cargoClient.skillImport.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
     expect(listed.items.map(item => item.id)).toEqual([firstImport.id]);
+    expect(listedForTenant.items.map(item => item.id).sort()).toEqual(
+      [firstImport.id, secondImport.id].sort()
+    );
     expect(listed.items[0]).toMatchObject({
       status: 'completed',
       results: {
@@ -600,6 +608,18 @@ describe('cargo skill.e2e', () => {
         skillImportId: secondImport.id
       })
     ).rejects.toThrow();
+    expect(
+      await cargoClient.skillImport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillImportId: secondImport.id
+      })
+    ).toMatchObject({
+      id: secondImport.id,
+      createdBy: {
+        id: secondActor.id
+      }
+    });
   });
 
   it('creates, lists, gets, and updates skills with linked stores', async () => {

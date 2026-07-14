@@ -24,7 +24,7 @@ export let skillImportDiscoverQueueProcessor = skillImportDiscoverQueue.process(
   try {
     let files = await listCodeBucketFiles({ codeBucketId: skillImport.codeBucketId });
     let roots = discoverSkillPaths(files.map(file => file.path));
-    if (roots.length === 0) throw new Error('No SKILL.md files were found in the repository');
+    if (roots.length === 0) throw new Error('No skills were found in the repository');
 
     let items = await withTransaction(async db => {
       let existing = await db.skillImportItem.findMany({

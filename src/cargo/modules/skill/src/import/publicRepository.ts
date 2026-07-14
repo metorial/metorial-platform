@@ -1,8 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import JSZip from 'jszip';
 
-let maxArchiveBytes = 50 * 1024 * 1024;
-let maxExtractedBytes = 100 * 1024 * 1024;
+let maxArchiveBytes = 10 * 1024 * 1024;
+let maxExtractedBytes = 30 * 1024 * 1024;
 let maxExtractedFiles = 5000;
 let maxRedirects = 5;
 
@@ -120,7 +120,7 @@ export let fetchRepositoryArchive = async (archiveUrl: string) => {
       continue;
     }
     if (!response.ok) {
-      throw new Error(`Repository archive request failed with status ${response.status}`);
+      throw new Error(`Repository download failed with status ${response.status}`);
     }
 
     let contentLength = Number(response.headers.get('content-length') ?? 0);
