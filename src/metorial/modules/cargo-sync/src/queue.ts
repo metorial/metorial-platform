@@ -2,7 +2,7 @@ import { createCron } from '@metorial/cron';
 import { createQueue } from '@metorial/queue';
 import { runCargoSync } from './sync';
 
-let cargoSyncRunId = (date = new Date()) => `cargo-sync-${date.toISOString().slice(0, 10)}`;
+let cargoSyncRunId = (date = new Date()) => `cargo-sync-${date.toISOString().slice(0, 10)}-v1`;
 
 export let cargoSyncQueue = createQueue<{ runId: string }>({
   name: 'cargo/sync/full',
@@ -18,7 +18,7 @@ export let cargoSyncQueueProcessor = cargoSyncQueue.process(async data => {
 export let cargoSyncCron = createCron(
   {
     name: 'cargo/sync/cron',
-    cron: '30 14 * * *'
+    cron: '0 16 * * *'
   },
   async () => {
     let runId = cargoSyncRunId();

@@ -18,7 +18,7 @@ model CargoSyncRecord {
 
   model         String
   recordId      String
-  targetId      String
+  targetId      String?
   lastSeenRunId String
 
   conflict     Json?

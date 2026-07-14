@@ -364,6 +364,66 @@ let repairDocumentContent = async (sourceOid: bigint | number) => {
   return target.oid as bigint;
 };
 
+let resourceGroupScopeCache = new Map<string, any>();
+
+let resolveResourceGroupScope = async (
+  resourceGroupOid: bigint,
+  environmentOid?: bigint | null
+) => {
+  let key = resourceGroupOid.toString();
+  let cached = resourceGroupScopeCache.get(key);
+  if (cached) return cached;
+
+  let resourceGroup = await db.resourceGroup.findUnique({
+    where: { oid: resourceGroupOid },
+    select: {
+      instance: { select: { oid: true, organizationOid: true } },
+      project: { select: { oid: true, organizationOid: true } },
+      organization: { select: { oid: true } },
+      user: { select: { oid: true } }
+    }
+  });
+
+  let scope = {
+    instance: resourceGroup?.instance ?? null,
+    project: resourceGroup?.project ?? null,
+    organization: resourceGroup?.organization ?? null,
+    user: resourceGroup?.user ?? null
+  };
+
+  if (
+    !scope.instance &&
+    !scope.project &&
+    !scope.organization &&
+    !scope.user &&
+    environmentOid != null
+  ) {
+    let environment = await sourceDelegate('Environment').findUnique({
+      where: { oid: environmentOid },
+      select: { id: true }
+    });
+    if (environment) {
+      [scope.instance, scope.organization, scope.user] = await Promise.all([
+        db.instance.findFirst({
+          where: { cargoEnvironmentId: environment.id },
+          select: { oid: true, organizationOid: true }
+        }),
+        db.organization.findFirst({
+          where: { cargoEnvironmentId: environment.id },
+          select: { oid: true }
+        }),
+        db.user.findFirst({
+          where: { cargoEnvironmentId: environment.id },
+          select: { oid: true }
+        })
+      ]);
+    }
+  }
+
+  resourceGroupScopeCache.set(key, scope);
+  return scope;
+};
+
 let mapRow = async (spec: CargoSyncModelSpec, row: any) => {
   let relations = modelRelations[spec.source] ?? [];
   let relationScalarFields = new Set(relations.map(relation => relation.field));
@@ -427,19 +487,61 @@ let mapRow = async (spec: CargoSyncModelSpec, row: any) => {
     }
   }
 
+  let resourceGroupScope =
+    data.resourceGroupOid != null
+      ? await resolveResourceGroupScope(data.resourceGroupOid, row.environmentOid)
+      : null;
+  if (
+    resourceGroupScope &&
+    !resourceGroupScope.instance &&
+    !resourceGroupScope.project &&
+    !resourceGroupScope.organization &&
+    !resourceGroupScope.user
+  ) {
+    return {
+      data,
+      conflict: true,
+      conflicts: [
+        ...conflicts,
+        {
+          type: 'unlinked_resource_group',
+          resourceGroupOid: data.resourceGroupOid.toString(),
+          cargoEnvironmentOid: row.environmentOid?.toString() ?? null
+        }
+      ],
+      skip: true
+    };
+  }
+
   let scopedLegacyModels = ['Skill', 'SkillTemplate', 'SkillMarketplace', 'SkillPlugin'];
-  if (scopedLegacyModels.includes(spec.source) && data.resourceGroupOid != null) {
-    let instance = await db.instance.findFirst({
-      where: { resourceGroupOid: data.resourceGroupOid },
-      select: { oid: true, organizationOid: true }
-    });
+  if (scopedLegacyModels.includes(spec.source) && resourceGroupScope) {
+    let instance = resourceGroupScope.instance;
     if (instance) {
       data.instanceOid = instance.oid;
       data.organizationOid = instance.organizationOid;
     } else if (spec.source !== 'SkillTemplate') {
-      throw new Error(
-        `No Metorial instance is linked to Cargo environment ${row.environmentOid?.toString()} for ${spec.source}:${recordIdFor(spec.source, row)}`
-      );
+      return {
+        data,
+        conflict: true,
+        conflicts: [
+          ...conflicts,
+          {
+            type: 'invalid_resource_group_scope',
+            resourceGroupOid: data.resourceGroupOid.toString(),
+            cargoEnvironmentOid: row.environmentOid?.toString() ?? null,
+            linkedProjectOid: resourceGroupScope.project?.oid.toString() ?? null,
+            linkedOrganizationOid: resourceGroupScope.organization?.oid.toString() ?? null,
+            linkedUserOid: resourceGroupScope.user?.oid.toString() ?? null,
+            requiredOwner: 'instance'
+          }
+        ],
+        skip: true
+      };
+    } else {
+      data.organizationOid =
+        resourceGroupScope.project?.organizationOid ??
+        resourceGroupScope.organization?.oid ??
+        null;
     }
   }
 
@@ -466,7 +568,7 @@ let mapRow = async (spec: CargoSyncModelSpec, row: any) => {
     data.storeTemplateId = storeTemplate.id;
   }
 
-  return { data, conflict, conflicts };
+  return { data, conflict, conflicts, skip: false };
 };
 
 let attachResourceScope = async (
@@ -517,7 +619,7 @@ let trackRecord = async (d: {
   runId: string;
   model: string;
   recordId: string;
-  targetId: string;
+  targetId: string | null;
   conflict?: Record<string, unknown> | null;
 }) => {
   await db.cargoSyncRecord.upsert({
@@ -571,6 +673,21 @@ let upsertRow = async (runId: string, spec: CargoSyncModelSpec, row: any) => {
   let existing = await targetDelegate(targetName).findUnique({
     where: identity
   });
+
+  if (mapped.skip) {
+    if (existing) oidCache.set(cacheKey(spec.source, row.oid), existing.oid);
+    await trackRecord({
+      runId,
+      model: spec.source,
+      recordId,
+      targetId: existing?.id ?? existing?.oid?.toString() ?? null,
+      conflict: {
+        type: 'record_skipped',
+        details: mapped.conflicts
+      }
+    });
+    return { skipped: 1, upserted: 0, conflicts: 1 };
+  }
 
   if (
     existing &&
@@ -685,6 +802,10 @@ let reconcileRemovedRecords = async (runId: string) => {
       if (await isCargoSyncRecordOwned(spec.source, record.recordId)) continue;
 
       let hasPublicId = modelHasPublicId(spec.source);
+      if (record.targetId == null) {
+        await db.cargoSyncRecord.delete({ where: { id: record.id } });
+        continue;
+      }
       if (spec.source === 'FilePurpose' && record.targetId !== record.recordId) {
         // This target predated the sync and was adopted by its canonical slug.
         // Removing it would cascade into native Metorial files.
@@ -746,6 +867,9 @@ export let getCargoSyncDryRunReport = async () => {
 };
 
 export let runCargoSync = async (runId: string) => {
+  oidCache.clear();
+  resourceGroupScopeCache.clear();
+
   let run = await db.cargoSyncRun.upsert({
     where: { id: runId },
     create: {
