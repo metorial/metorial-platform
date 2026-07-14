@@ -9,6 +9,7 @@ import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoAuthService } from '../../../services/sso/auth';
+import { ssoLoginService } from '../../../services/sso/login';
 import { ssoTenantService } from '../../../services/sso/tenant';
 import { resolveApp } from '../lib/resolveApp';
 import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
@@ -213,26 +214,14 @@ export let authHooksApp = createHono()
       .trim();
     let ua = ctx.req.header('user-agent') ?? '';
 
-    let authAttempt = await authService.authWithSso({
-      ssoUser: {
-        email: userProfile.email,
-        firstName: userProfile.firstName,
-        lastName: userProfile.lastName
-      },
-      ssoConnectionId: connection.id,
-      ssoUid: userProfile.uid,
-      ssoTenant: tenant,
-      ssoUserProfile: userProfile,
-      context: { ip, ua },
-      redirectUrl: stateData.redirectUrl,
+    let { authAttempt, session } = await ssoLoginService.completeLogin({
+      tenant,
+      connection,
+      userProfile,
+      app,
       device,
-      app
-    });
-
-    validateRedirectUrl(authAttempt.redirectUrl, app.redirectDomains);
-
-    let session = await deviceService.exchangeAuthAttemptForSession({
-      authAttempt
+      context: { ip, ua },
+      redirectUrl: stateData.redirectUrl
     });
 
     ctx.res.headers.append(

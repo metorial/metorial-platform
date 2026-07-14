@@ -383,11 +383,38 @@ class ConsumerAuthServiceImpl {
     context: Context;
     surface: ConsumerSurface;
     code: string;
-    state: string;
+    state?: string;
   }) {
     let consumerAuthTenant = await this.getConsumerAuthTenantOrThrow({
       surface: d.surface
     });
+
+    if (d.state === undefined) {
+      let { user, session: aresSession } = await consumerAresService.exchangeOAuthCode({
+        clientId: consumerAuthTenant.aresClientId,
+        code: d.code
+      });
+      let email = user.email;
+      let name = this.getAresUserName({ user });
+
+      await this.assertEmailCanAccessSurface({
+        surface: d.surface,
+        email
+      });
+
+      let { session } = await this.materializeAresConsumerSession({
+        context: d.context,
+        surface: d.surface,
+        consumerAuthTenant,
+        aresSessionId: aresSession.id,
+        aresUserId: user.id,
+        email,
+        name
+      });
+
+      return { session };
+    }
+
     let authExchange = await this.getAuthExchangeOrThrow({
       surface: d.surface,
       state: d.state
@@ -436,6 +463,10 @@ class ConsumerAuthServiceImpl {
       name = this.getAresUserName({
         user
       });
+    }
+
+    if (!aresSessionId || !aresUserId || !email || !name) {
+      throw new Error('Invalid Ares auth exchange');
     }
 
     await this.assertEmailCanAccessSurface({

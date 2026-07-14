@@ -9,11 +9,11 @@ import {
 } from '../lib/cookies';
 import { portalPresenter, sessionPresenter } from '../presenters';
 import {
-  assertPortalAuthState,
   getPortalSsoAuthorizationCodeOrThrow,
   getPortalSessionFromCookie,
   issuePortalTokens
 } from '../lib/portal';
+import { assertPortalAuthStateOrAllowIdpInitiated } from '../lib/portalAuthState';
 
 export let authController = portalFromIdApp.controller({
   boot: portalFromIdApp
@@ -108,9 +108,9 @@ export let authController = portalFromIdApp.controller({
         code: ctx.input.code
       });
 
-      assertPortalAuthState({
+      assertPortalAuthStateOrAllowIdpInitiated({
         ctx,
-        portal: ctx.portal,
+        surfaceId: ctx.portal.surface.id,
         state: ctx.input.state
       });
 
@@ -118,7 +118,7 @@ export let authController = portalFromIdApp.controller({
         context: ctx.context,
         surface: ctx.portal.surface,
         code,
-        state: ctx.input.state!
+        state: ctx.input.state
       });
       clearPortalAuthStateCookie({
         ctx,

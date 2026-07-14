@@ -14,7 +14,6 @@ import {
 } from '@metorial/module-consumer';
 import {
   clearPortalSessionCookie,
-  getAuthStateCookieName,
   getSessionCookieName,
   setPortalSessionCookie
 } from './cookies';
@@ -117,29 +116,6 @@ export let getPortalSessionFromCookie = async (d: {
     }
 
     throw err;
-  }
-};
-
-export let getPortalAuthStateFromCookie = (d: {
-  ctx: Pick<ServiceRequest, 'getCookie'>;
-  portal: PortalWithSurface;
-}) => {
-  return d.ctx.getCookie(getAuthStateCookieName(d.portal.surface.id));
-};
-
-export let assertPortalAuthState = (d: {
-  ctx: Pick<ServiceRequest, 'getCookie'>;
-  portal: PortalWithSurface;
-  state?: string | null;
-}) => {
-  let expectedState = getPortalAuthStateFromCookie(d);
-
-  if (!d.state || !expectedState || d.state != expectedState) {
-    throw new ServiceError(
-      unauthorizedError({
-        message: 'Portal SSO state is invalid or has expired.'
-      })
-    );
   }
 };
 
