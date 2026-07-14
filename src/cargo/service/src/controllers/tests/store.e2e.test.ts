@@ -28,6 +28,19 @@ let createScope = async () => {
   };
 };
 
+let getCargoScopeRecords = async (d: { tenantId: string; environmentId: string }) => ({
+  tenant: await db.tenant.findUniqueOrThrow({
+    where: {
+      id: d.tenantId
+    }
+  }),
+  environment: await db.environment.findUniqueOrThrow({
+    where: {
+      id: d.environmentId
+    }
+  })
+});
+
 let createPurpose = async () =>
   await cargoClient.filePurpose.upsert({
     slug: 'organization_image_store',
@@ -1758,6 +1771,10 @@ describe('cargo store.e2e', () => {
 
   it('serves managed template documents from the tenant backing store', async () => {
     let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
     let actor = await createActor(tenant.id, {
       identifier: 'managed-template-reader',
       name: 'Managed Template Reader'
@@ -1809,8 +1826,8 @@ describe('cargo store.e2e', () => {
 
     expect(document.content).toBe('# Managed Skill\n\nRead-only managed content.');
     expect(documentRecord).toMatchObject({
-      tenantOid: tenant.oid,
-      environmentOid: environment.oid,
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
       isReadOnly: true,
       isTemplateBacking: true,
       file: {
