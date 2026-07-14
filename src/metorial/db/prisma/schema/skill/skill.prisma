@@ -40,14 +40,14 @@ model Skill {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  resourceTenantOid BigInt
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
-  resourceGroupOid BigInt
-  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
 
-  storeOid BigInt @unique
-  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+  storeOid BigInt? @unique
+  store    Store?  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
 
   parentSkillOid BigInt?
   parentSkill    Skill?  @relation("SkillHierarchy", fields: [parentSkillOid], references: [oid], onDelete: Cascade)
