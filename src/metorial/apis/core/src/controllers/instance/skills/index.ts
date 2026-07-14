@@ -3,6 +3,7 @@ export * from './skillAgent';
 export * from './skillConfiguration';
 export * from './skillExport';
 export * from './skillForkSync';
+export * from './skillImport';
 export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillMarketplaceRepository';

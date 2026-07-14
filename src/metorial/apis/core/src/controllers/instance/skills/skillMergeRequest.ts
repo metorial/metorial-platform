@@ -74,7 +74,8 @@ export let skillMergeRequestGroup = instanceGroup
 export let skillMergeRequestController = Controller.create(
   {
     name: 'Skill Merge Requests',
-    description: 'Review, resolve, and apply changes between skills.'
+    description: 'Review, resolve, and apply changes between skills.',
+    hideInDocs: true
   },
   {
     list: instanceGroup

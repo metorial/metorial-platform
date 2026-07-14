@@ -43,7 +43,8 @@ export let skillForkSyncGroup = instanceGroup
 export let skillForkSyncController = Controller.create(
   {
     name: 'Skill Fork Syncs',
-    description: 'Synchronize changes from an upstream skill into a fork.'
+    description: 'Synchronize changes from an upstream skill into a fork.',
+    hideInDocs: true
   },
   {
     create: instanceGroup

@@ -94,6 +94,7 @@ import type {
   CargoSkillAgent,
   CargoSkillConfiguration,
   CargoSkillForkSync,
+  CargoSkillImport,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   CargoStore,
@@ -576,6 +577,10 @@ export let skillConfigurationType = PresentableType.create<{
 export let skillExportType = PresentableType.create<{
   skillExport: EnrichedCargoSkillExport;
 }>()('skillExport');
+
+export let skillImportType = PresentableType.create<{
+  skillImport: CargoSkillImport;
+}>()('skillImport');
 
 export let skillForkSyncType = PresentableType.create<{
   skillForkSync: CargoSkillForkSync;

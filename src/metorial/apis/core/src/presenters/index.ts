@@ -193,6 +193,7 @@ import {
   v1SkillConfigurationPresenter,
   v1SkillExportPresenter,
   v1SkillForkSyncPresenter,
+  v1SkillImportPresenter,
   v1SkillGroupItemPresenter,
   v1SkillGroupPresenter,
   v1SkillItemPresenter,
@@ -399,6 +400,7 @@ import {
   skillConfigurationType,
   skillExportType,
   skillForkSyncType,
+  skillImportType,
   skillGroupItemType,
   skillGroupType,
   skillItemType,
@@ -703,6 +705,11 @@ export let skillConfigurationPresenter = declarePresenter(skillConfigurationType
 export let skillExportPresenter = declarePresenter(skillExportType, {
   mt_2025_01_01_dashboard: v1SkillExportPresenter,
   mt_2026_01_01_magnetar: v1SkillExportPresenter
+});
+
+export let skillImportPresenter = declarePresenter(skillImportType, {
+  mt_2025_01_01_dashboard: v1SkillImportPresenter,
+  mt_2026_01_01_magnetar: v1SkillImportPresenter
 });
 
 export let skillForkSyncPresenter = declarePresenter(skillForkSyncType, {

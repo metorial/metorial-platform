@@ -27,7 +27,8 @@ let eventTypeValidator = v.enumOf([
 export let skillMergeRequestEventController = Controller.create(
   {
     name: 'Skill Merge Request Events',
-    description: 'Inspect the activity history of skill merge requests.'
+    description: 'Inspect the activity history of skill merge requests.',
+    hideInDocs: true
   },
   {
     list: skillMergeRequestGroup

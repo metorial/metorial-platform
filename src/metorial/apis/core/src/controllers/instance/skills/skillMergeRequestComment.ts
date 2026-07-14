@@ -15,7 +15,8 @@ import {
 export let skillMergeRequestCommentController = Controller.create(
   {
     name: 'Skill Merge Request Comments',
-    description: 'Discuss skill merge requests and individual proposed changes.'
+    description: 'Discuss skill merge requests and individual proposed changes.',
+    hideInDocs: true
   },
   {
     list: skillMergeRequestGroup
