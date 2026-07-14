@@ -28,7 +28,7 @@ model File {
   id     String     @unique
   status FileStatus @default(active)
 
-  storeId String @unique
+  storeId String
 
   fileName String
   fileSize Int
