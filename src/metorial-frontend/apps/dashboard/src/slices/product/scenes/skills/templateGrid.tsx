@@ -2,7 +2,7 @@ import type { DashboardInstanceSkillsTemplatesListQuery } from '@metorial/dashbo
 import { renderWithPagination } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  useCreateSkillFromTemplate,
+  useCreateSkill,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -88,7 +88,7 @@ export let SkillTemplatesGrid = (
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let navigate = useNavigate();
-  let createSkillFromTemplate = useCreateSkillFromTemplate();
+  let createSkill = useCreateSkill();
   let skillTemplates = useSkillTemplates(instanceId, {
     order: 'desc',
     status: ['active'],
@@ -136,9 +136,9 @@ export let SkillTemplatesGrid = (
       initialName: skillTemplate.name,
       initialDescription: skillTemplate.description,
       onSubmit: async values => {
-        let [skill] = await createSkillFromTemplate.mutate({
+        let [skill] = await createSkill.mutate({
           instanceId: instance.data!.id,
-          skillTemplateId: skillTemplate.id,
+          templateId: skillTemplate.id,
           name: values.name,
           description: values.description
         });
