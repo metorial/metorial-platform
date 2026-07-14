@@ -4,7 +4,7 @@ import {
   notFoundError,
   ServiceError
 } from '@lowerdeck/error';
-import { generateCode } from '@lowerdeck/id';
+import { generateCode, generateCustomId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { addMinutes, subMinutes } from 'date-fns';
 import type {
@@ -155,7 +155,7 @@ class AuthServiceImpl {
       let authIntent = await tdb.authIntent.create({
         data: {
           ...getId('authIntent'),
-          clientSecret: getId('authIntent').id,
+          clientSecret: generateCustomId('ait_sec_'),
 
           type: 'email_code',
 
@@ -340,7 +340,7 @@ class AuthServiceImpl {
     let authIntent = await db.authIntent.create({
       data: {
         ...getId('authIntent'),
-        clientSecret: getId('authIntent').id,
+        clientSecret: generateCustomId('ait_sec_'),
 
         type: 'oauth',
         userIdentityOid: userIdentity.oid,
@@ -761,7 +761,7 @@ class AuthServiceImpl {
       return await tdb.authAttempt.create({
         data: {
           ...getId('authAttempt'),
-          clientSecret: getId('authAttempt').id,
+          clientSecret: generateCustomId('aat_sec_'),
 
           status: 'pending',
 

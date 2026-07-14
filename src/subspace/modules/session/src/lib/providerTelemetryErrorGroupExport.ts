@@ -11,23 +11,26 @@ import { sessionMessageService } from '../services/sessionMessage';
 export let PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY =
   'provider-telemetry/error-groups/failed-messages/state.json';
 
-// Downstream ingestion only picks up `.json` keys; quarantine objects use
-// `.jsonl` so they are ignored.
+// Downstream ingestion only reads `.json` keys, so quarantine objects use `.jsonl`.
 export let PROVIDER_TELEMETRY_QUARANTINE_KEY_PREFIX =
   'provider-telemetry/failed-messages/quarantine/';
 
 let DEFAULT_EXPORT_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 let EXPORT_PAGE_SIZE = 100;
 
-// Must cover the grouping queue's ~4h retry horizon; quarantining earlier
-// would drop errors that would still group.
+// Covers the grouping queue's ~4h retry horizon.
 export let PROVIDER_TELEMETRY_EXPORT_READINESS_GRACE_MS = 4 * 60 * 60 * 1000;
 
 // Keeps the createdAt cursor behind in-flight writes so no row is missed.
 export let PROVIDER_TELEMETRY_EXPORT_VISIBILITY_LAG_MS = 2 * 60 * 1000;
 
-// A terminally failed job must be removed or it blocks later enqueues of the
-// static job id.
+// Multi-MB payloads can stall the job inside redaction.
+export let PROVIDER_TELEMETRY_EXPORT_MAX_PAYLOAD_BYTES = 1024 * 1024;
+
+// Bounds memory during preparation: offloaded payloads are loaded per item.
+let EXPORT_PREPARE_CONCURRENCY = 8;
+
+// A lingering failed job blocks enqueues under the static job id.
 export let PROVIDER_TELEMETRY_EXPORT_QUEUE_JOB_OPTIONS = {
   attempts: 3,
   removeOnFail: true
@@ -127,12 +130,14 @@ export class ProviderTelemetryExportInfraError extends Error {
 
 class ProviderTelemetryExportItemError extends Error {
   stage: 'present' | 'redact';
+  reason: string;
   causedBy: unknown;
 
-  constructor(stage: 'present' | 'redact', causedBy: unknown) {
+  constructor(stage: 'present' | 'redact', causedBy: unknown, reason?: string) {
     super(`Provider telemetry export item preparation failed during ${stage}`);
     this.name = 'ProviderTelemetryExportItemError';
     this.stage = stage;
+    this.reason = reason ?? (stage === 'redact' ? 'redaction_failed' : 'presentation_failed');
     this.causedBy = causedBy;
   }
 }
@@ -170,8 +175,7 @@ let getExportRange = (
   state: ProviderTelemetryFailedMessagesExportState | null | undefined,
   now: Date
 ) => {
-  // Never use `last_checked_at` here: it advances on empty runs and would
-  // skip errors that become ready afterwards.
+  // `last_checked_at` advances on empty runs and would cause skips.
   let watermark = state?.last_processed ?? state?.last_exported ?? null;
   let from = watermark
     ? new Date(watermark.occurred_at)
@@ -226,8 +230,7 @@ export let listProviderTelemetryFailedMessagesForExport = async (
   let errors = await db.sessionError.findMany({
     where: {
       AND: [
-        // Ungrouped errors are included so the cursor cannot advance past an
-        // error that is not ready yet.
+        // Ungrouped errors are included: the cursor must not advance past them.
         { createdAt: { gte: input.range.from, lte: input.range.to } },
         { sessionMessages: { some: { status: 'failed' as const } } },
         input.after && afterDate
@@ -403,8 +406,7 @@ export let getProviderTelemetryFailedMessagesExportChunkKey = (
     throw new Error('Cannot create a provider telemetry export chunk key without items');
   }
 
-  // The key encodes the member identity (count + id hash): identical sets map
-  // to the same key, different sets never collide.
+  // Same member set -> same key; different sets never collide.
   let memberHash = createHash('sha256')
     .update(JSON.stringify(candidates.map(item => [item.error.id, item.message.id])))
     .digest('hex')
@@ -497,6 +499,100 @@ let createExportPayload = async (message: any) => {
   };
 };
 
+let byteSizeOfJson = (value: unknown) => {
+  let json = JSON.stringify(value);
+  return json === undefined ? 0 : Buffer.byteLength(json);
+};
+
+type ExportPayloadTruncationPlaceholder = { truncated: true; original_bytes: number };
+
+type ExportPayloadTruncations = {
+  input?: ExportPayloadTruncationPlaceholder;
+  output?: ExportPayloadTruncationPlaceholder;
+  errorData?: ExportPayloadTruncationPlaceholder;
+};
+
+let truncatedFieldPlaceholder = (
+  originalBytes: number
+): ExportPayloadTruncationPlaceholder => ({
+  truncated: true,
+  original_bytes: originalBytes
+});
+
+let payloadTooLargeError = () =>
+  new ProviderTelemetryExportItemError(
+    'redact',
+    new Error('payload exceeds the export size limit'),
+    'payload_too_large'
+  );
+
+// Heavy bodies become placeholders; still-oversized records are quarantined.
+let truncateOversizedExportPayload = (
+  payload: unknown
+): { value: unknown; truncations: ExportPayloadTruncations | null } => {
+  if (byteSizeOfJson(payload) <= PROVIDER_TELEMETRY_EXPORT_MAX_PAYLOAD_BYTES) {
+    return { value: payload, truncations: null };
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw payloadTooLargeError();
+  }
+
+  let capped: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+  let truncations: ExportPayloadTruncations = {};
+  let fieldThreshold = PROVIDER_TELEMETRY_EXPORT_MAX_PAYLOAD_BYTES / 4;
+
+  for (let field of ['input', 'output'] as const) {
+    let size = byteSizeOfJson(capped[field]);
+    if (size > fieldThreshold) {
+      truncations[field] = truncatedFieldPlaceholder(size);
+      capped[field] = truncations[field];
+    }
+  }
+
+  let error = capped.error;
+  if (error && typeof error === 'object' && !Array.isArray(error)) {
+    let dataSize = byteSizeOfJson((error as Record<string, unknown>).data);
+    if (dataSize > fieldThreshold) {
+      truncations.errorData = truncatedFieldPlaceholder(dataSize);
+      capped.error = {
+        ...(error as Record<string, unknown>),
+        data: truncations.errorData
+      };
+    }
+  }
+
+  if (byteSizeOfJson(capped) > PROVIDER_TELEMETRY_EXPORT_MAX_PAYLOAD_BYTES) {
+    throw payloadTooLargeError();
+  }
+
+  return { value: capped, truncations };
+};
+
+// PII detection mangles the byte counts, so placeholders are restored after redaction.
+let restoreTruncationPlaceholders = (
+  redacted: unknown,
+  truncations: ExportPayloadTruncations
+) => {
+  if (!redacted || typeof redacted !== 'object' || Array.isArray(redacted)) return redacted;
+
+  let restored: Record<string, unknown> = { ...(redacted as Record<string, unknown>) };
+  if (truncations.input) restored.input = truncations.input;
+  if (truncations.output) restored.output = truncations.output;
+  if (
+    truncations.errorData &&
+    restored.error &&
+    typeof restored.error === 'object' &&
+    !Array.isArray(restored.error)
+  ) {
+    restored.error = {
+      ...(restored.error as Record<string, unknown>),
+      data: truncations.errorData
+    };
+  }
+
+  return restored;
+};
+
 let createExportItem = async (d: {
   candidate: ProviderTelemetryFailedMessageExportCandidate;
   presentMessage: (message: any) => Promise<unknown>;
@@ -511,8 +607,13 @@ let createExportItem = async (d: {
 
   let redactedPayload: unknown;
   try {
-    redactedPayload = await redactProviderTelemetryExportPayload(payload);
+    let { value, truncations } = truncateOversizedExportPayload(payload);
+    redactedPayload = await redactProviderTelemetryExportPayload(value);
+    if (truncations) {
+      redactedPayload = restoreTruncationPlaceholders(redactedPayload, truncations);
+    }
   } catch (error) {
+    if (error instanceof ProviderTelemetryExportItemError) throw error;
     throw new ProviderTelemetryExportItemError('redact', error);
   }
 
@@ -615,8 +716,7 @@ export let runProviderTelemetryErrorGroupsExport = async (
   let deferredCount = 0;
   let deferred = false;
 
-  // `last_processed` covers exported and quarantined errors, never deferred
-  // ones; `last_exported` keeps its legacy meaning so rollbacks resume safely.
+  // `last_processed` also covers quarantined errors, never deferred ones.
   let lastProcessed = state?.last_processed ?? state?.last_exported ?? null;
   let lastExported = state?.last_exported ?? null;
 
@@ -693,9 +793,15 @@ export let runProviderTelemetryErrorGroupsExport = async (
       processedThrough = watermarkFor(entry.error.id, entry.occurredAt);
     }
 
-    let prepared = await Promise.allSettled(
-      exportCandidates.map(candidate => createExportItem({ candidate, presentMessage }))
-    );
+    let prepared: PromiseSettledResult<Awaited<ReturnType<typeof createExportItem>>>[] = [];
+    for (let start = 0; start < exportCandidates.length; start += EXPORT_PREPARE_CONCURRENCY) {
+      let batch = exportCandidates.slice(start, start + EXPORT_PREPARE_CONCURRENCY);
+      prepared.push(
+        ...(await Promise.allSettled(
+          batch.map(candidate => createExportItem({ candidate, presentMessage }))
+        ))
+      );
+    }
 
     let chunkCandidates: ProviderTelemetryFailedMessageExportCandidate[] = [];
     let chunkItems: unknown[] = [];
@@ -710,8 +816,7 @@ export let runProviderTelemetryErrorGroupsExport = async (
         continue;
       }
 
-      // Only data-shaped failures are quarantined; anything else aborts the
-      // run so state never advances.
+      // Anything not data-shaped aborts the run so state never advances.
       if (!(result.reason instanceof ProviderTelemetryExportItemError)) {
         throw result.reason;
       }
@@ -721,7 +826,7 @@ export let runProviderTelemetryErrorGroupsExport = async (
         object: 'provider_telemetry.failed_message_export_quarantine',
         version: 1,
         stage: result.reason.stage,
-        reason: result.reason.stage === 'redact' ? 'redaction_failed' : 'presentation_failed',
+        reason: result.reason.reason,
         error_id: candidate.error.id,
         message_id: candidate.message.id,
         occurred_at: candidate.occurredAt.toISOString(),
@@ -737,8 +842,7 @@ export let runProviderTelemetryErrorGroupsExport = async (
     if (chunkItems.length) {
       let exportKey = getProviderTelemetryFailedMessagesExportChunkKey(chunkCandidates);
 
-      // Rewriting an existing key changes its ETag and re-triggers downstream
-      // ingestion; identical member sets reuse the object.
+      // A rewrite would change the ETag and re-trigger downstream ingestion.
       let exists = await objectExists({ storage: store, bucketName: bucket, key: exportKey });
       if (!exists) {
         await writeJsonObject({

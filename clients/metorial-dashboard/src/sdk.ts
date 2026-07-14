@@ -499,8 +499,11 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
       console.log('Uploading file with body:', Object.fromEntries(body.entries()));
 
+      let base = manager.apiHost;
+      if (!base.endsWith('/')) base += '/';
+
       try {
-        let res = await fetch(`${manager.apiHost}files`, {
+        let res = await fetch(`${base}files`, {
           method: 'POST',
           body,
           headers: manager.getHeaders(manager.config),

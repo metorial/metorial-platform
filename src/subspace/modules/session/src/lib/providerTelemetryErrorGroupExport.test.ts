@@ -900,6 +900,90 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     expect(result.state?.last_exported).toBeNull();
   });
 
+  it('exports oversized payloads with heavy bodies replaced by placeholders', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let huge = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+    let hugeOutput = { body: 'x'.repeat(2 * 1024 * 1024) };
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([huge])]),
+      presentMessage: async () => ({
+        object: 'session.message',
+        id: huge.message.id,
+        status: 'failed',
+        input: { params: { name: 'get_pipeline_logs' } },
+        output: hugeOutput,
+        error: {
+          id: huge.error.id,
+          code: 'invocation_error',
+          groupId: huge.error.group.id
+        },
+        createdAt: huge.occurredAt
+      })
+    });
+
+    expect(result.exportedCount).toBe(1);
+    expect(result.quarantinedCount).toBe(0);
+
+    let exportChunk = JSON.parse(storage.objects.get(result.exportedKeys[0]!)!);
+    let payload = exportChunk.items[0].payload;
+    expect(payload.output).toEqual({
+      truncated: true,
+      original_bytes: JSON.stringify(hugeOutput).length
+    });
+    // the small fields survive intact
+    expect(payload.input).toEqual({ params: { name: 'get_pipeline_logs' } });
+    expect(payload.error.code).toBe('invocation_error');
+    expect(payload.id).toBe('msg_1');
+  });
+
+  it('quarantines payloads that stay oversized after truncation', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let huge = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+    let normal = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([huge]), pageError([normal])]),
+      presentMessage: async message =>
+        message.id === 'msg_1'
+          ? { blob: 'x'.repeat(1024 * 1024 + 1) }
+          : createPresentedMessage(normal)
+    });
+
+    expect(result.exportedCount).toBe(1);
+    expect(result.quarantinedCount).toBe(1);
+
+    let record = JSON.parse(storage.objects.get(result.quarantinedKeys[0]!)!);
+    expect(record.stage).toBe('redact');
+    expect(record.reason).toBe('payload_too_large');
+    expect(record.error_id).toBe('serr_1');
+    expect(storage.objects.get(result.quarantinedKeys[0]!)!.length).toBeLessThan(1024);
+    expect(result.state?.last_processed).toEqual({
+      occurred_at: '2026-06-18T00:11:00.000Z',
+      id: 'serr_2'
+    });
+  });
+
   it('fails the run without touching state when preparation hits an infrastructure error', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
     let storage = createStorage();
