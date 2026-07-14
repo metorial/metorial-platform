@@ -1,0 +1,26 @@
+enum SkillParticipantRole {
+  creator
+  editor
+  viewer
+  user
+  forker
+}
+
+model SkillParticipant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  roles SkillParticipantRole[]
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillOid, resourceActorOid])
+  @@index([resourceActorOid])
+}

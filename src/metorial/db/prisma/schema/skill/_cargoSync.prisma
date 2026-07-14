@@ -1,0 +1,61 @@
+model CargoSyncMetorialOwnedRecord {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  model    String
+  recordId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([model, recordId])
+  @@index([model])
+}
+
+model CargoSyncRecord {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  model         String
+  recordId      String
+  targetId      String
+  lastSeenRunId String
+
+  conflict     Json?
+  conflictedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([model, recordId])
+  @@index([model, lastSeenRunId])
+}
+
+enum CargoSyncRunStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model CargoSyncRun {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status CargoSyncRunStatus @default(pending)
+  phase  String?
+  model  String?
+  cursor String?
+
+  scannedCount  Int @default(0)
+  upsertedCount Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+
+  error String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+}

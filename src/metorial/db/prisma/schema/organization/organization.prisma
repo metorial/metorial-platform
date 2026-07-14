@@ -38,6 +38,12 @@ model Organization {
   cargoTenantId      String?
   cargoEnvironmentId String?
 
+  resourceTenantOid BigInt?         @unique
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
+
+  resourceGroupOid BigInt?        @unique
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: SetNull)
+
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
@@ -87,7 +93,6 @@ model Organization {
   workspace                      Workspace?
   accounts                       Account[]                       @relation("AccountOwnerOrganization")
   sites                          Site[]
-
   @@index([authVersion])
   @@index([previousSlugs])
 }

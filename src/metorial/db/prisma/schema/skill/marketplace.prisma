@@ -10,6 +10,31 @@ model SkillMarketplace {
 
   status SkillMarketplaceStatus @default(active)
 
+  /// [EntityImage]
+  image Json?
+
+  /// [SkillMarketplaceClientOverrides]
+  providerOverrides Json?
+
+  version     String?
+  versionHash String?
+
+  name        String?
+  description String?
+  slug        String? @unique
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  destinationOid BigInt?           @unique
+  destination    SkillDestination? @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
@@ -19,8 +44,29 @@ model SkillMarketplace {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessSkillMarketplace")
+  consumerAccesses       ConsumerAccess[]             @relation("ConsumerAccessSkillMarketplace")
   consumerAccessListings ConsumerAccessListing[]
+  plugins                SkillMarketplacePlugin[]
+  skillDestinationItems  SkillDestinationItem[]
+  repositories           SkillMarketplaceRepository[]
+  skillExportRefs        SkillExportRef[]
 
   @@index([instanceOid, status])
+}
+
+model SkillMarketplaceRepository {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  skillMarketplaceOid BigInt
+  skillMarketplace    SkillMarketplace @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  skillRepositoryOid BigInt          @unique
+  skillRepository    SkillRepository @relation(fields: [skillRepositoryOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([skillMarketplaceOid, skillRepositoryOid])
+  @@index([skillMarketplaceOid])
 }
