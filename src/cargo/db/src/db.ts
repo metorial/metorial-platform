@@ -14,9 +14,11 @@ let mainAdapter = new PrismaPg({
   connectionString: process.env.CARGO_DATABASE_URL ?? process.env.DATABASE_URL
 });
 
-let replicaAdapter = process.env.DATABASE_URL_READER
+let cargoReaderUrl = process.env.CARGO_DATABASE_URL_READER ?? process.env.DATABASE_URL_READER;
+
+let replicaAdapter = cargoReaderUrl
   ? new PrismaPg({
-      connectionString: process.env.DATABASE_URL_READER
+      connectionString: cargoReaderUrl
     })
   : undefined;
 

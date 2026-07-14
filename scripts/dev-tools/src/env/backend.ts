@@ -34,6 +34,14 @@ export let backendEnv: Env = [
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}`
   },
   {
+    key: 'CARGO_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/cargo'
+  },
+  {
+    key: 'CARGO_SYNC_CLAIM_METORIAL_OWNERSHIP',
+    defaultValue: 'false'
+  },
+  {
     key: 'PAYMENT_DATABASE_URL',
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}-payment`,
     isEnterprise: true
@@ -74,7 +82,7 @@ export let backendEnv: Env = [
   { key: 'ENCRYPTION_SECRET', defaultValue: `encryption-secret` },
 
   { key: 'OBJECT_STORAGE_URL', defaultValue: 'http://services:52010' },
-  { key: 'FILES_BUCKET_NAME', defaultValue: 'metorial-oss-files-dev' },
+  { key: 'FILES_BUCKET_NAME', defaultValue: 'mte-files' },
 
   {
     key: 'USAGE_MONGO_URI',
