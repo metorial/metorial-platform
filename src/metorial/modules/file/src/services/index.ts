@@ -15,6 +15,7 @@ export type {
   CargoSkillConfiguration,
   CargoSkillExport,
   CargoSkillForkSync,
+  CargoSkillImport,
   CargoSkillMarketplace,
   CargoSkillMarketplacePlugin,
   CargoSkillMergePlan,
@@ -48,6 +49,7 @@ export * from './skillAgent';
 export * from './skillConfiguration';
 export * from './skillExport';
 export * from './skillForkSync';
+export * from './skillImport';
 export * from './skillMarketplace';
 export * from './skillMarketplaceRepository';
 export * from './skillMergeRequest';

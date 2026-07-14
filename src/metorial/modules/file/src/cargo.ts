@@ -85,6 +85,8 @@ export type CargoSkillConfigurationList = Awaited<
 >;
 export type CargoSkillExport = Awaited<ReturnType<typeof cargo.skillExport.get>>;
 export type CargoSkillExportList = Awaited<ReturnType<typeof cargo.skillExport.list>>;
+export type CargoSkillImport = Awaited<ReturnType<typeof cargo.skillImport.get>>;
+export type CargoSkillImportList = Awaited<ReturnType<typeof cargo.skillImport.list>>;
 export type CargoSkillSync = Awaited<ReturnType<typeof cargo.skillSync.get>>;
 export type CargoSkillSyncList = Awaited<ReturnType<typeof cargo.skillSync.list>>;
 export type CargoSkillForkSync = Awaited<ReturnType<typeof cargo.skillForkSync.get>>;
