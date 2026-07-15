@@ -17,6 +17,7 @@ import { getId, ID } from '../../id';
 import {
   createDelegationCodeChallenge,
   hashDelegationSecret,
+  normalizeDelegationRedirectUri,
   normalizeDelegationAuthorizationEndpoint
 } from '../../lib/ssoDelegationProtocol';
 
@@ -231,13 +232,20 @@ class SsoDelegationServiceImpl {
     redirectUri: string;
     codeVerifier: string;
   }) {
+    let redirectUri: string;
+    try {
+      redirectUri = normalizeDelegationRedirectUri(d.redirectUri);
+    } catch {
+      throw new ServiceError(badRequestError({ message: 'Invalid authorization code' }));
+    }
+
     let code = await db.ssoDelegationAuthorizationCode.findUnique({
       where: { codeHash: hashDelegationSecret(d.code) }
     });
     if (
       !code ||
       code.exportedDelegationOid !== d.delegation.oid ||
-      code.redirectUri !== d.redirectUri ||
+      code.redirectUri !== redirectUri ||
       code.expiresAt <= new Date() ||
       code.consumedAt
     ) {
@@ -642,7 +650,9 @@ class SsoDelegationServiceImpl {
     identifier?: string;
     statuses?: ('active' | 'disabled')[];
   }) {
-    let includeImported = !d.directions?.length || d.directions.includes('imported');
+    let includeImported =
+      (!d.directions?.length || d.directions.includes('imported')) &&
+      !d.identifier;
     let includeExported =
       (!d.directions?.length || d.directions.includes('exported')) &&
       (!d.statuses?.length || d.statuses.includes('active'));

@@ -50,3 +50,6 @@ export let validateDelegationRedirectUri = (d: {
   }
   return url.toString();
 };
+
+export let normalizeDelegationRedirectUri = (redirectUri: string) =>
+  new URL(redirectUri).toString();

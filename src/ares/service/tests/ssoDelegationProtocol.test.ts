@@ -4,6 +4,7 @@ import {
   getEffectiveDelegationTokenUrl,
   hashDelegationSecret,
   normalizeDelegationAuthorizationEndpoint,
+  normalizeDelegationRedirectUri,
   validateDelegationRedirectUri
 } from '../src/lib/ssoDelegationProtocol';
 import { aresPorts } from '../src/ports';
@@ -65,5 +66,11 @@ describe('SSO delegation protocol', () => {
         allowHttpLocalhost: true
       })
     ).toBe('http://localhost:52120/callback');
+  });
+
+  it('canonicalizes redirect URIs before binding authorization codes', () => {
+    expect(
+      normalizeDelegationRedirectUri('https://GLOBAL.example:443/callback')
+    ).toBe('https://global.example/callback');
   });
 });
