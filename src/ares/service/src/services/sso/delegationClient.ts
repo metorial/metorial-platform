@@ -23,7 +23,7 @@ let localSsoUrl = `http://localhost:${aresPorts.sso}`;
 let isRecord = (value: unknown): value is Record<string, any> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
 
-let assertSnapshot = (value: unknown): DelegationSnapshot => {
+export let assertDelegationSnapshot = (value: unknown): DelegationSnapshot => {
   if (
     !isRecord(value) ||
     value.active !== true ||
@@ -58,6 +58,7 @@ let assertSnapshot = (value: unknown): DelegationSnapshot => {
   if (value.type === 'identity') {
     if (
       !isRecord(value.connection) ||
+      typeof value.connection.id !== 'string' ||
       !isRecord(value.userProfile) ||
       typeof value.userProfile.email !== 'string' ||
       typeof value.userProfile.uid !== 'string' ||
@@ -97,7 +98,7 @@ let requestToken = async (d: {
     body: d.body,
     signal: AbortSignal.timeout(15_000)
   });
-  if (response.status === 404 || response.status === 401) {
+  if (response.status === 410) {
     throw new DelegationNotFoundError('Delegation no longer exists');
   }
   if (!response.ok) {
@@ -127,7 +128,7 @@ let introspect = async (d: {
   if (!result?.active) {
     throw new DelegationNotFoundError('Delegation token is inactive');
   }
-  return assertSnapshot(result);
+  return assertDelegationSnapshot(result);
 };
 
 let getAccessToken = (result: any) => {

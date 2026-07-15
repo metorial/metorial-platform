@@ -4,14 +4,7 @@ import { authClient } from './client';
 import type { AuthClient } from '../../../../src/apis/auth/controllers';
 
 type PublicAuthStartInput = Parameters<AuthClient['authentication']['start']>[0];
-export type AuthStartInput =
-  | PublicAuthStartInput
-  | {
-      type: 'internal';
-      clientId: string;
-      token: string;
-      redirectUrl: string;
-    };
+export type AuthStartInput = PublicAuthStartInput;
 export type AuthStartResponse = Awaited<
   ReturnType<AuthClient['authentication']['start']>
 >;
@@ -82,7 +75,7 @@ export let authState = createLoader({
   },
   mutators: {
     start: async (data: AuthStartInput) => {
-      let auth = await authClient.authentication.start(data as PublicAuthStartInput);
+      let auth = await authClient.authentication.start(data);
 
       return handleStartResponse(auth, data);
     }

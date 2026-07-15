@@ -122,7 +122,14 @@ export let ssoDelegationApp = createHono()
     try {
       delegation = await ssoDelegationService.authenticateExport(credentials);
     } catch {
-      return c.json({ error: 'invalid_client' }, 404);
+      try {
+        await ssoDelegationService.getExportByClientId({
+          clientId: credentials.clientId
+        });
+      } catch {
+        return c.json({ error: 'delegation_not_found' }, 410);
+      }
+      return c.json({ error: 'invalid_client' }, 401);
     }
 
     let body = (await c.req.parseBody()) as Record<string, string>;

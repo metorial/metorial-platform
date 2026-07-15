@@ -30,7 +30,9 @@ export let doesAuthAttemptMatchClient = (d: {
   attemptAccountOid: bigint | null;
   clientAppOid: bigint;
   clientAccountOid: bigint | null;
-}) => d.attemptAppOid == d.clientAppOid && d.attemptAccountOid == d.clientAccountOid;
+}) =>
+  d.attemptAppOid == d.clientAppOid &&
+  (d.clientAccountOid == null || d.attemptAccountOid == d.clientAccountOid);
 
 export let isValidAccountDomain = (domain: string) => {
   if (!domain || domain.length > 253 || domain.includes('@') || /\s/.test(domain)) {

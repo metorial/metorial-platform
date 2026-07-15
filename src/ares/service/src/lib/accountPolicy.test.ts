@@ -72,7 +72,7 @@ describe('account domain policy', () => {
     ).toBe(false);
   });
 
-  it('requires authorization attempts to match app and account client context', () => {
+  it('allows app clients to exchange account attempts while scoping account clients', () => {
     expect(
       doesAuthAttemptMatchClient({
         attemptAppOid: 1n,
@@ -88,13 +88,29 @@ describe('account domain policy', () => {
         clientAppOid: 1n,
         clientAccountOid: null
       })
-    ).toBe(false);
+    ).toBe(true);
     expect(
       doesAuthAttemptMatchClient({
         attemptAppOid: 1n,
         attemptAccountOid: null,
         clientAppOid: 1n,
         clientAccountOid: 2n
+      })
+    ).toBe(false);
+    expect(
+      doesAuthAttemptMatchClient({
+        attemptAppOid: 1n,
+        attemptAccountOid: 2n,
+        clientAppOid: 1n,
+        clientAccountOid: 3n
+      })
+    ).toBe(false);
+    expect(
+      doesAuthAttemptMatchClient({
+        attemptAppOid: 1n,
+        attemptAccountOid: 2n,
+        clientAppOid: 3n,
+        clientAccountOid: null
       })
     ).toBe(false);
   });
