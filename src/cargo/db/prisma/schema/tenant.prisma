@@ -34,6 +34,9 @@ model Tenant {
   skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
   skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
 }
 
 model Environment {
@@ -66,6 +69,9 @@ model Environment {
   skillRepositories     SkillRepository[]
   skillExports          SkillExport[]
   skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
 
   @@unique([tenantOid, identifier])
   @@index([tenantOid])
@@ -92,17 +98,27 @@ model TenantActor {
 
   createdAt DateTime @default(now())
 
-  documentParticipants   DocumentParticipant[]
-  createdDocuments       Document[]               @relation("DocumentCreator")
-  createdStores          Store[]                  @relation("StoreCreator")
-  createdSkills          Skill[]                  @relation("SkillCreator")
-  createdFiles           File[]                   @relation("FileCreator")
-  createdFileLinks       FileLink[]               @relation("FileLinkCreator")
-  createdSkillExports    SkillExport[]            @relation("SkillExportCreator")
-  documentVersionEditors DocumentVersionEditors[]
-  storeParticipants      StoreParticipant[]
-  skillParticipants      SkillParticipant[]
-  storeItems             StoreItem[]
+  documentParticipants      DocumentParticipant[]
+  createdDocuments          Document[]                 @relation("DocumentCreator")
+  createdStores             Store[]                    @relation("StoreCreator")
+  createdSkills             Skill[]                    @relation("SkillCreator")
+  createdFiles              File[]                     @relation("FileCreator")
+  createdFileLinks          FileLink[]                 @relation("FileLinkCreator")
+  createdSkillExports       SkillExport[]              @relation("SkillExportCreator")
+  createdSkillImports       SkillImport[]              @relation("SkillImportCreator")
+  createdMergeRequests      SkillMergeRequest[]        @relation("SkillMergeRequestCreator")
+  createdSkillForkSyncs     SkillForkSync[]            @relation("SkillForkSyncCreator")
+  startedMergeRequests      SkillMergeRequest[]        @relation("SkillMergeRequestMergeStarter")
+  mergedMergeRequests       SkillMergeRequest[]        @relation("SkillMergeRequestMerger")
+  closedMergeRequests       SkillMergeRequest[]        @relation("SkillMergeRequestCloser")
+  rolledBackMergeRequests   SkillMergeRequest[]        @relation("SkillMergeRequestRollbacker")
+  documentVersionEditors    DocumentVersionEditors[]
+  storeParticipants         StoreParticipant[]
+  skillParticipants         SkillParticipant[]
+  resolvedMergeRequestItems SkillMergeRequestItem[]    @relation("SkillMergeRequestItemResolver")
+  skillMergeRequestComments SkillMergeRequestComment[]
+  skillMergeRequestEvents   SkillMergeRequestEvent[]
+  storeItems                StoreItem[]
 
   @@unique([tenantOid, identifier])
 }

@@ -1,0 +1,28 @@
+enum SkillAgentStatus {
+  active
+  archived
+}
+
+model SkillAgent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status SkillAgentStatus @default(active)
+
+  name        String
+  slug        String
+  description String?
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  storeItemOid BigInt?    @unique
+  storeItem    StoreItem? @relation(fields: [storeItemOid], references: [oid], onDelete: SetNull)
+
+  documentOid BigInt
+  document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+}

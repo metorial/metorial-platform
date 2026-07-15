@@ -78,7 +78,7 @@ export let scmProvidersController = Controller.create(
       .body(
         'default',
         v.object({
-          type: v.enumOf(['github_enterprise', 'gitlab_selfhosted'], {
+          type: v.enumOf(['github_enterprise', 'gitlab_selfhosted', 'bitbucket_data_center'], {
             description: 'Type of self-hosted SCM provider to configure'
           })
         })

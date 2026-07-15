@@ -10,6 +10,8 @@ service CodeBucket {
   rpc CreateBucketFromZip(CreateBucketFromZipRequest) returns (CreateBucketResponse);
   rpc CreateBucketFromGithub(CreateBucketFromGithubRequest) returns (CreateBucketResponse);
   rpc CreateBucketFromGitlab(CreateBucketFromGitlabRequest) returns (CreateBucketResponse);
+  rpc CreateBucketFromBitbucketCloud(CreateBucketFromBitbucketCloudRequest) returns (CreateBucketResponse);
+  rpc CreateBucketFromBitbucketDataCenter(CreateBucketFromBitbucketDataCenterRequest) returns (CreateBucketResponse);
 
   rpc GetBucketToken(GetBucketTokenRequest) returns (GetBucketTokenResponse);
   rpc GetBucketFile(GetBucketFileRequest) returns (GetBucketFileResponse);
@@ -26,6 +28,8 @@ service CodeBucket {
 
   rpc ExportBucketToGithub(ExportBucketToGithubRequest) returns (ExportBucketToGithubResponse);
   rpc ExportBucketToGitlab(ExportBucketToGitlabRequest) returns (ExportBucketToGitlabResponse);
+  rpc ExportBucketToBitbucketCloud(ExportBucketToBitbucketCloudRequest) returns (ExportBucketToBitbucketResponse);
+  rpc ExportBucketToBitbucketDataCenter(ExportBucketToBitbucketDataCenterRequest) returns (ExportBucketToBitbucketResponse);
 }
 
 message FileInfo {
@@ -184,3 +188,46 @@ message ExportBucketToGitlabRequest {
 }
 
 message ExportBucketToGitlabResponse {}
+
+message CreateBucketFromBitbucketCloudRequest {
+  string new_bucket_id = 1;
+  string workspace = 2;
+  string repo = 3;
+  string path = 4;
+  string ref = 5;
+  string token = 6;
+  string bitbucket_web_url = 7;
+}
+
+message CreateBucketFromBitbucketDataCenterRequest {
+  string new_bucket_id = 1;
+  string clone_url = 2;
+  string path = 3;
+  string ref = 4;
+  string username = 5;
+  string token = 6;
+}
+
+message ExportBucketToBitbucketCloudRequest {
+  string bucket_id = 1;
+  string workspace = 2;
+  string repo = 3;
+  string path = 4;
+  string branch = 5;
+  string commit_message = 6;
+  string token = 7;
+  string bitbucket_api_url = 8;
+  string bitbucket_web_url = 9;
+}
+
+message ExportBucketToBitbucketDataCenterRequest {
+  string bucket_id = 1;
+  string clone_url = 2;
+  string path = 3;
+  string branch = 4;
+  string commit_message = 5;
+  string username = 6;
+  string token = 7;
+}
+
+message ExportBucketToBitbucketResponse {}

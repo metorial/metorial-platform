@@ -1,4 +1,5 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import {
   type IntegrationPreview,
   type SkillItem,
@@ -99,7 +100,7 @@ let truncate = (value: string | null | undefined, length = 100) => {
   return `${value.slice(0, length)}...`;
 };
 
-type SkillItemPickerKind = 'provider' | 'integration';
+export type SkillItemPickerKind = 'provider' | 'integration';
 type LinkedProviderItem = SkillItem | SkillTemplateItem;
 
 let getSkillItemEntity = (
@@ -550,7 +551,7 @@ let SkillItemPickerPanel = (p: {
   );
 };
 
-let showSkillItemPickerPanel = (p: {
+export let showSkillItemPickerPanel = (p: {
   kind: SkillItemPickerKind;
   instanceId: string;
   skillId: string;
@@ -666,30 +667,51 @@ let showSkillTemplateItemPickerPanel = (p: {
 
 let AddSkillItemMenu = (p: {
   disabled?: boolean;
+  allowProviders?: boolean;
   onSelect: (kind: SkillItemPickerKind) => void;
-}) => (
-  <Menu
-    items={[
-      { id: 'provider', label: 'Provider', description: 'Link an individual provider.' },
-      {
-        id: 'integration',
-        label: 'Integration',
-        description: 'Link an integration with multiple providers.'
-      }
-    ]}
-    onItemClick={item => {
-      if (item === 'provider' || item === 'integration') p.onSelect(item);
-    }}
-  >
-    <Button size="2" iconLeft={<RiAddLine />} disabled={p.disabled} variant="outline">
-      Add Provider
-    </Button>
-  </Menu>
-);
+}) => {
+  let allowProviders = p.allowProviders ?? true;
+
+  if (!allowProviders) {
+    return (
+      <Button
+        size="2"
+        iconLeft={<RiAddLine />}
+        disabled={p.disabled}
+        variant="outline"
+        onClick={() => p.onSelect('integration')}
+      >
+        Add Integration
+      </Button>
+    );
+  }
+
+  return (
+    <Menu
+      items={[
+        { id: 'provider', label: 'Provider', description: 'Link an individual provider.' },
+        {
+          id: 'integration',
+          label: 'Integration',
+          description: 'Link an integration with multiple providers.'
+        }
+      ]}
+      onItemClick={item => {
+        if (item === 'provider' || item === 'integration') p.onSelect(item);
+      }}
+    >
+      <Button size="2" iconLeft={<RiAddLine />} disabled={p.disabled} variant="outline">
+        Add Provider
+      </Button>
+    </Menu>
+  );
+};
 
 export let SkillLinkProvidersScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
+  readOnly?: boolean;
+  allowProviders?: boolean;
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
 }) => {
@@ -750,6 +772,7 @@ export let SkillLinkProvidersScene = (p: {
 
   let openPicker = (kind: SkillItemPickerKind) => {
     if (!p.instanceId || !p.skillId) return;
+    if (kind === 'provider' && p.allowProviders === false) return;
 
     showSkillItemPickerPanel({
       kind,
@@ -800,13 +823,21 @@ export let SkillLinkProvidersScene = (p: {
       }
 
       return (
-        <Box
-          title="Providers"
-          description="Link providers and integrations to be used with this skill."
-          rightActions={
-            <AddSkillItemMenu disabled={!p.instanceId || !p.skillId} onSelect={openPicker} />
-          }
-        >
+        <>
+          <PageHeader
+            size="6"
+            title="Providers"
+            description="Link providers and integrations to be used with this skill."
+            actions={
+              !p.readOnly ? (
+                <AddSkillItemMenu
+                  disabled={!p.instanceId || !p.skillId}
+                  allowProviders={p.allowProviders}
+                  onSelect={openPicker}
+                />
+              ) : null
+            }
+          />
           {skillItems.data.length === 0 ? (
             <EmptyState>
               <Text color="gray600" size="2">
@@ -816,21 +847,21 @@ export let SkillLinkProvidersScene = (p: {
           ) : (
             <>
               <Table
-                headers={['Name', 'Type', '']}
+                headers={p.readOnly ? ['Name', 'Type'] : ['Name', 'Type', '']}
                 data={skillItems.data.map(item =>
                   getSkillItemTableRow({
                     item,
                     providerListings: providerListingLookup,
                     integrationLookup,
                     isDeleting: deleteSkillItem.isLoading,
-                    onDelete: item => deleteItem(item as SkillItem)
+                    onDelete: p.readOnly ? undefined : item => deleteItem(item as SkillItem)
                   })
                 )}
               />
               <deleteSkillItem.RenderError />
             </>
           )}
-        </Box>
+        </>
       );
     }
   );

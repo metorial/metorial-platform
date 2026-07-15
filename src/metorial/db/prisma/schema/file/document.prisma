@@ -1,0 +1,136 @@
+model DocumentContent {
+  oid BigInt @id @default(autoincrement())
+
+  cargoOid BigInt? @unique
+  content  String
+
+  documents        Document[]
+  documentVersions DocumentVersion[]
+}
+
+model Document {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  title String
+
+  isContentOwner    Boolean
+  isReadOnly        Boolean @default(false)
+  isTemplateBacking Boolean @default(false)
+  maxVersionNumber  Int
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt
+  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  contentOid BigInt
+  content    DocumentContent @relation(fields: [contentOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt @unique
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  currentVersionOid BigInt?
+  currentVersion    DocumentVersion? @relation(fields: [currentVersionOid], references: [oid], onDelete: Cascade, name: "DocumentToCurrentVersion")
+
+  draftVersionExpiresAt DateTime?
+
+  parentDocumentOid BigInt?
+  parentDocument    Document?  @relation("DocumentToSubdocument", fields: [parentDocumentOid], references: [oid], onDelete: Cascade)
+  subdocuments      Document[] @relation("DocumentToSubdocument")
+
+  createdByResourceActorOid BigInt?
+  createdByResourceActor    ResourceActor? @relation("DocumentCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: SetNull)
+
+  createdAt                         DateTime                @default(now())
+  updatedAt                         DateTime                @default(now()) @updatedAt
+  documentParticipants              DocumentParticipant[]
+  documentVersions                  DocumentVersion[]
+  storeItems                        StoreItem[]
+  storeVersionItems                 StoreVersionItem[]
+  skillAgents                       SkillAgent[]
+  mergeRequestItemsAsBaseDocument   SkillMergeRequestItem[] @relation("SkillMergeRequestItemBaseDocument")
+  mergeRequestItemsAsSourceDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemSourceDocument")
+  mergeRequestItemsAsTargetDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemTargetDocument")
+
+  @@index([resourceTenantOid, resourceGroupOid])
+  @@index([resourceTenantOid, resourceGroupOid, isTemplateBacking])
+  @@index([isContentOwner])
+  @@index([draftVersionExpiresAt])
+}
+
+enum DocumentParticipantRole {
+  editor
+  viewer
+}
+
+model DocumentParticipant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  role DocumentParticipantRole
+
+  documentOid BigInt
+  document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  editCount Int @default(0)
+
+  lastEditedAt DateTime?
+  lastViewedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentOid, resourceActorOid])
+}
+
+model DocumentVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  versionNumber Int
+  listEditedAt  DateTime?
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt
+  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  documentOid BigInt
+  document    Document @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  contentOid BigInt
+  content    DocumentContent @relation(fields: [contentOid], references: [oid], onDelete: Cascade)
+
+  previousVersionOid BigInt?
+  previousVersion    DocumentVersion?  @relation("DocumentVersionHistory", fields: [previousVersionOid], references: [oid], onDelete: Cascade)
+  nextVersions       DocumentVersion[] @relation("DocumentVersionHistory")
+
+  currentVersionOfDocuments Document[] @relation("DocumentToCurrentVersion")
+
+  createdAt                                DateTime                 @default(now())
+  documentVersionEditors                   DocumentVersionEditors[]
+  storeVersionItems                        StoreVersionItem[]
+  mergeRequestItemsAsBaseDocumentVersion   SkillMergeRequestItem[]  @relation("SkillMergeRequestItemBaseDocumentVersion")
+  mergeRequestItemsAsSourceDocumentVersion SkillMergeRequestItem[]  @relation("SkillMergeRequestItemSourceDocumentVersion")
+  mergeRequestItemsAsTargetDocumentVersion SkillMergeRequestItem[]  @relation("SkillMergeRequestItemTargetDocumentVersion")
+
+  @@unique([resourceTenantOid, resourceGroupOid, documentOid, versionNumber])
+}
+
+model DocumentVersionEditors {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  documentVersionOid BigInt
+  documentVersion    DocumentVersion @relation(fields: [documentVersionOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  @@unique([documentVersionOid, resourceActorOid])
+}

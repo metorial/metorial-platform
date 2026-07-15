@@ -44,6 +44,7 @@ export let toolCallController = app.controller({
           providerConfigIds: v.optional(v.array(v.string())),
           providerAuthConfigIds: v.optional(v.array(v.string())),
           toolIds: v.optional(v.array(v.string())),
+          connectionIds: v.optional(v.array(v.string())),
 
           createdAt: createdAtValidator,
           updatedAt: updatedAtValidator
@@ -69,6 +70,7 @@ export let toolCallController = app.controller({
         providerConfigIds: ctx.input.providerConfigIds,
         providerAuthConfigIds: ctx.input.providerAuthConfigIds,
         toolIds: ctx.input.toolIds,
+        connectionIds: ctx.input.connectionIds,
 
         createdAt: ctx.input.createdAt,
         updatedAt: ctx.input.updatedAt

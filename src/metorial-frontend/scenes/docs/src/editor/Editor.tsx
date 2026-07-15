@@ -6,6 +6,8 @@ import {
 } from '@tiptap/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled, { useTheme } from 'styled-components';
+import type { Awareness } from 'y-protocols/awareness';
+import type { Doc as YDoc } from 'yjs';
 import type { Theme } from '../styles/theme';
 import { BlockHandle } from './BlockHandle';
 import { CalloutMenu } from './CalloutMenu';
@@ -119,6 +121,16 @@ interface EditorProps {
   onOpenPageInfo?: () => void;
   allowInitialHashScroll?: boolean;
   onInitialHashScrollComplete?: () => void;
+  collaboration?: {
+    ydoc: YDoc;
+    awareness: Awareness;
+    user: {
+      name: string;
+      color: string;
+      imageUrl?: string;
+    };
+    onFirstRender?: () => void;
+  };
 }
 
 export function Editor({
@@ -143,7 +155,8 @@ export function Editor({
   statusCharCount,
   onOpenPageInfo,
   allowInitialHashScroll,
-  onInitialHashScrollComplete
+  onInitialHashScrollComplete,
+  collaboration
 }: EditorProps) {
   let theme = useTheme() as Theme;
   let themeRef = useRef(theme);
@@ -183,17 +196,28 @@ export function Editor({
   // the slash menu).
   let extensions = useMemo(
     () => [
-      ...buildExtensions(),
+      ...buildExtensions(
+        collaboration
+          ? {
+              collaboration: {
+                ydoc: collaboration.ydoc,
+                awareness: collaboration.awareness,
+                user: collaboration.user,
+                onFirstRender: collaboration.onFirstRender
+              }
+            }
+          : undefined
+      ),
       SlashCommand.configure({
         suggestion: slashSuggestion(() => themeRef.current)
       })
     ],
-    []
+    [collaboration]
   );
 
   let editor = useEditor({
     extensions: extensions as any,
-    content: initialMarkdown,
+    content: collaboration ? undefined : initialMarkdown,
     editable: !readOnly,
     autofocus: false,
     immediatelyRender: true,
@@ -319,6 +343,12 @@ export function Editor({
       onMarkdownChange(md);
     }
   });
+
+  useEffect(() => {
+    if (!collaboration) return;
+
+    collaboration.awareness.setLocalStateField('user', collaboration.user);
+  }, [collaboration]);
 
   useEffect(() => {
     if (!editor) return;
@@ -558,7 +588,7 @@ export function Editor({
           <TiptapEditorContent editor={editor} />
         </EditorContent>
       </EditorScroll>
-      {editor && (
+      {/* {editor && (
         <TableOfContents
           editor={editor}
           scrollContainerRef={scrollRef}
@@ -566,7 +596,7 @@ export function Editor({
           allowInitialHashScroll={allowInitialHashScroll}
           onInitialHashScrollComplete={onInitialHashScrollComplete}
         />
-      )}
+      )} */}
       {!readOnly && (
         <>
           <EditorBubbleMenu editor={editor} linkPromptToken={linkPromptToken} />

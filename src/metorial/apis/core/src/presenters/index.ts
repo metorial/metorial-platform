@@ -44,6 +44,8 @@ import {
   v1ConsumerAccessListingPresenter,
   v1ConsumerAccessPresenter,
   v1ConsumerAccessRequestPresenter,
+  v1ConsumerActivityAgentPresenter,
+  v1ConsumerActivitySessionConnectionPresenter,
   v1ConsumerAndProfilePresenter,
   v1ConsumerGroupPresenter,
   v1ConsumerInvitePresenter,
@@ -62,17 +64,17 @@ import {
   // Custom Provider presenters
   v1CustomProviderPresenter,
   v1CustomProviderVersionPresenter,
+  v1DocumentEditTokenPresenter,
   v1DocumentParticipantPresenter,
   v1DocumentPermissionsPresenter,
   v1DocumentPresenter,
   v1DocumentVersionPresenter,
+  v1EnclavePresenter,
   v1FileLinkPresenter,
   v1FilePresenter,
+  v1FirewallBindingPresenter,
+  v1FirewallPresenter,
   v1FlagsPresenter,
-  v1KeyProviderErrorPresenter,
-  v1KeyProviderPresenter,
-  v1KeyProviderSetupInfoPresenter,
-  v1KeyProviderValidationPresenter,
   v1IdentityActorPresenter,
   v1IdentityCredentialPresenter,
   v1IdentityDelegationConfigPresenter,
@@ -88,6 +90,10 @@ import {
   v1IntegrationPresenter,
   v1IntegrationProviderPresenter,
   v1IntegrationSetupSessionPresenter,
+  v1KeyProviderErrorPresenter,
+  v1KeyProviderPresenter,
+  v1KeyProviderSetupInfoPresenter,
+  v1KeyProviderValidationPresenter,
   v1MachineAccessPresenter,
   v1MagicMcpEndpointPresenter,
   v1MagicMcpGroupPresenter,
@@ -97,17 +103,10 @@ import {
   v1MagicMcpTokenPresenter,
   v1MonitorAlertPresenter,
   v1MonitorPresenter,
-  v1ProtoGuardAlertPresenter,
-  v1ProtoGuardConfigPresenter,
-  v1EnclavePresenter,
-  v1FirewallBindingPresenter,
-  v1FirewallPresenter,
+  v1NetworkLogsPresenter,
   v1NetworkPolicyPresenter,
   v1NetworkPolicyRulePresenter,
   v1NetworkPresenter,
-  v1NetworkLogsPresenter,
-  v1ResourceCountsPresenter,
-  v1SandboxPresenter,
   v1OAuthApplicationClientSecretPresenter,
   v1OAuthApplicationPresenter,
   v1OAuthAuthorizationLogPresenter,
@@ -127,12 +126,14 @@ import {
   v1PortalOAuthClientPresenter,
   v1PortalPresenter,
   v1ProfilePresenter,
+  v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
+  v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
   v1ProjectRetentionPresenter,
-  v1ProjectAuthConfigConfigurationPresenter,
-  v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectToolCallingConfigurationPresenter,
+  v1ProtoGuardAlertPresenter,
+  v1ProtoGuardConfigPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
   v1ProviderAuthConfigEventPresenter,
@@ -167,6 +168,8 @@ import {
   v1ProviderTypePresenter,
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
+  v1ResourceCountsPresenter,
+  v1SandboxPresenter,
   v1ScmAccountPreviewPresenter,
   v1ScmConnectionPresenter,
   v1ScmConnectionSetupPresenter,
@@ -189,12 +192,19 @@ import {
   v1SkillAgentPresenter,
   v1SkillConfigurationPresenter,
   v1SkillExportPresenter,
+  v1SkillForkSyncPresenter,
+  v1SkillImportPresenter,
   v1SkillGroupItemPresenter,
   v1SkillGroupPresenter,
   v1SkillItemPresenter,
   v1SkillMarketplacePluginPresenter,
   v1SkillMarketplacePresenter,
   v1SkillMarketplaceRepositoryPresenter,
+  v1SkillMergePlanPresenter,
+  v1SkillMergeRequestCommentPresenter,
+  v1SkillMergeRequestEventPresenter,
+  v1SkillMergeRequestItemPresenter,
+  v1SkillMergeRequestPresenter,
   v1SkillParticipantPresenter,
   v1SkillPluginPresenter,
   v1SkillPluginRepositoryPresenter,
@@ -243,6 +253,8 @@ import {
   consumerAccessListingType,
   consumerAccessRequestType,
   consumerAccessType,
+  consumerActivityAgentType,
+  consumerActivitySessionConnectionType,
   consumerAndProfileType,
   consumerGroupType,
   consumerInviteType,
@@ -262,12 +274,16 @@ import {
   customProviderType,
   customProviderVersionType,
   deploymentPreviewType,
+  documentEditTokenType,
   documentParticipantType,
   documentPermissionsType,
   documentType,
   documentVersionType,
+  enclaveType,
   fileLinkType,
   fileType,
+  firewallBindingType,
+  firewallType,
   flagsType,
   identityActorType,
   identityCredentialType,
@@ -297,15 +313,10 @@ import {
   magicMcpTokenType,
   monitorAlertType,
   monitorType,
-  enclaveType,
-  firewallBindingType,
-  firewallType,
+  networkLogsType,
   networkPolicyRuleType,
   networkPolicyType,
   networkType,
-  networkLogsType,
-  resourceCountsType,
-  sandboxType,
   oauthApplicationClientSecretType,
   oauthApplicationType,
   oauthAuthorizationLogType,
@@ -325,10 +336,10 @@ import {
   portalOAuthClientType,
   portalType,
   profileType,
-  projectBrandType,
-  projectRetentionType,
   projectAuthConfigConfigurationType,
+  projectBrandType,
   projectIntegrationNamingConfigurationType,
+  projectRetentionType,
   projectToolCallingConfigurationType,
   projectType,
   protoGuardAlertType,
@@ -364,6 +375,8 @@ import {
   providerTypeType,
   providerVersionType,
   publisherType,
+  resourceCountsType,
+  sandboxType,
   scmAccountPreviewType,
   scmConnectionSetupType,
   scmConnectionType,
@@ -386,12 +399,19 @@ import {
   skillAgentType,
   skillConfigurationType,
   skillExportType,
+  skillForkSyncType,
+  skillImportType,
   skillGroupItemType,
   skillGroupType,
   skillItemType,
   skillMarketplacePluginType,
   skillMarketplaceRepositoryType,
   skillMarketplaceType,
+  skillMergePlanType,
+  skillMergeRequestCommentType,
+  skillMergeRequestEventType,
+  skillMergeRequestItemType,
+  skillMergeRequestType,
   skillParticipantType,
   skillPluginRepositoryType,
   skillPluginSkillType,
@@ -627,6 +647,11 @@ export let documentPresenter = declarePresenter(documentType, {
   mt_2026_01_01_magnetar: v1DocumentPresenter
 });
 
+export let documentEditTokenPresenter = declarePresenter(documentEditTokenType, {
+  mt_2025_01_01_dashboard: v1DocumentEditTokenPresenter,
+  mt_2026_01_01_magnetar: v1DocumentEditTokenPresenter
+});
+
 export let documentPermissionsPresenter = declarePresenter(documentPermissionsType, {
   mt_2025_01_01_dashboard: v1DocumentPermissionsPresenter,
   mt_2026_01_01_magnetar: v1DocumentPermissionsPresenter
@@ -682,6 +707,16 @@ export let skillExportPresenter = declarePresenter(skillExportType, {
   mt_2026_01_01_magnetar: v1SkillExportPresenter
 });
 
+export let skillImportPresenter = declarePresenter(skillImportType, {
+  mt_2025_01_01_dashboard: v1SkillImportPresenter,
+  mt_2026_01_01_magnetar: v1SkillImportPresenter
+});
+
+export let skillForkSyncPresenter = declarePresenter(skillForkSyncType, {
+  mt_2025_01_01_dashboard: v1SkillForkSyncPresenter,
+  mt_2026_01_01_magnetar: v1SkillForkSyncPresenter
+});
+
 export let skillMarketplacePresenter = declarePresenter(skillMarketplaceType, {
   mt_2025_01_01_dashboard: v1SkillMarketplacePresenter,
   mt_2026_01_01_magnetar: v1SkillMarketplacePresenter
@@ -733,6 +768,31 @@ export let skillVersionPresenter = declarePresenter(skillVersionType, {
 export let skillVersionSnapshotPresenter = declarePresenter(skillVersionSnapshotType, {
   mt_2025_01_01_dashboard: v1SkillVersionSnapshotPresenter,
   mt_2026_01_01_magnetar: v1SkillVersionSnapshotPresenter
+});
+
+export let skillMergeRequestPresenter = declarePresenter(skillMergeRequestType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestPresenter
+});
+
+export let skillMergeRequestItemPresenter = declarePresenter(skillMergeRequestItemType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestItemPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestItemPresenter
+});
+
+export let skillMergeRequestCommentPresenter = declarePresenter(skillMergeRequestCommentType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestCommentPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestCommentPresenter
+});
+
+export let skillMergeRequestEventPresenter = declarePresenter(skillMergeRequestEventType, {
+  mt_2025_01_01_dashboard: v1SkillMergeRequestEventPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergeRequestEventPresenter
+});
+
+export let skillMergePlanPresenter = declarePresenter(skillMergePlanType, {
+  mt_2025_01_01_dashboard: v1SkillMergePlanPresenter,
+  mt_2026_01_01_magnetar: v1SkillMergePlanPresenter
 });
 
 export let secretPresenter = declarePresenter(secretType, {
@@ -879,6 +939,21 @@ export let consumerProviderPresenter = declarePresenter(consumerProviderType, {
   mt_2026_04_01_consumer: v1ConsumerProviderPresenter
 });
 
+export let consumerActivityAgentPresenter = declarePresenter(consumerActivityAgentType, {
+  mt_2025_01_01_dashboard: v1ConsumerActivityAgentPresenter,
+  mt_2026_01_01_magnetar: v1ConsumerActivityAgentPresenter,
+  mt_2026_04_01_consumer: v1ConsumerActivityAgentPresenter
+});
+
+export let consumerActivitySessionConnectionPresenter = declarePresenter(
+  consumerActivitySessionConnectionType,
+  {
+    mt_2025_01_01_dashboard: v1ConsumerActivitySessionConnectionPresenter,
+    mt_2026_01_01_magnetar: v1ConsumerActivitySessionConnectionPresenter,
+    mt_2026_04_01_consumer: v1ConsumerActivitySessionConnectionPresenter
+  }
+);
+
 export let portalOAuthClientPresenter = declarePresenter(portalOAuthClientType, {
   mt_2025_01_01_dashboard: v1PortalOAuthClientPresenter,
   mt_2026_01_01_magnetar: v1PortalOAuthClientPresenter,
@@ -959,7 +1034,8 @@ export let publisherPresenter = declarePresenter(publisherType, {
 
 export let agentPresenter = declarePresenter(agentType, {
   mt_2025_01_01_dashboard: v1AgentPresenter,
-  mt_2026_01_01_magnetar: v1AgentPresenter
+  mt_2026_01_01_magnetar: v1AgentPresenter,
+  mt_2026_04_01_consumer: v1AgentPresenter
 });
 
 export let agentInstancePresenter = declarePresenter(agentInstanceType, {
@@ -991,7 +1067,8 @@ export let identityActorPresenter = declarePresenter(identityActorType, {
 
 export let identityCredentialPresenter = declarePresenter(identityCredentialType, {
   mt_2025_01_01_dashboard: v1IdentityCredentialPresenter,
-  mt_2026_01_01_magnetar: v1IdentityCredentialPresenter
+  mt_2026_01_01_magnetar: v1IdentityCredentialPresenter,
+  mt_2026_04_01_consumer: v1IdentityCredentialPresenter
 });
 
 export let identityDelegationPresenter = declarePresenter(identityDelegationType, {
@@ -1322,7 +1399,8 @@ export let subspaceSessionMessagePresenter = declarePresenter(sessionMessageType
 
 export let subspaceSessionConnectionPresenter = declarePresenter(sessionConnectionType, {
   mt_2025_01_01_dashboard: v1SessionConnectionPresenter,
-  mt_2026_01_01_magnetar: v1SessionConnectionPresenter
+  mt_2026_01_01_magnetar: v1SessionConnectionPresenter,
+  mt_2026_04_01_consumer: v1SessionConnectionPresenter
 });
 
 export let subspaceSessionEventPresenter = declarePresenter(sessionEventType, {
@@ -1414,7 +1492,8 @@ export let subspaceCustomProviderEnvironmentPresenter = declarePresenter(
 
 export let toolCallPresenter = declarePresenter(toolCallType, {
   mt_2025_01_01_dashboard: v1ProviderToolCallPresenter,
-  mt_2026_01_01_magnetar: v1ProviderToolCallPresenter
+  mt_2026_01_01_magnetar: v1ProviderToolCallPresenter,
+  mt_2026_04_01_consumer: v1ProviderToolCallPresenter
 });
 
 export let scmConnectionPresenter = declarePresenter(scmConnectionType, {

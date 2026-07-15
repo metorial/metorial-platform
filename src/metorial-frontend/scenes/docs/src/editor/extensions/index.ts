@@ -24,7 +24,10 @@ import Superscript from '@tiptap/extension-superscript';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import CharacterCount from '@tiptap/extension-character-count';
+import Collaboration from '@tiptap/extension-collaboration';
 import { Markdown } from 'tiptap-markdown';
+import type { Awareness } from 'y-protocols/awareness';
+import type { Doc as YDoc } from 'yjs';
 
 import { Callout } from './Callout';
 import { CustomCodeBlock } from './CustomCodeBlock';
@@ -32,13 +35,26 @@ import { EquationBlock } from './EquationBlock';
 import { ImagePlaceholder } from './ImagePlaceholder';
 import { HeadingWithId } from './HeadingWithId';
 import { lowlight } from './lowlight';
+import { RemoteCursorOverlay } from './RemoteCursorOverlay';
 
 export { lowlight } from './lowlight';
 
-export let buildExtensions = () => [
+export let buildExtensions = (opts?: {
+  collaboration?: {
+    ydoc: YDoc;
+    awareness: Awareness;
+    user: {
+      name: string;
+      color: string;
+      imageUrl?: string;
+    };
+    onFirstRender?: () => void;
+  };
+}) => [
   StarterKit.configure({
     codeBlock: false,
     heading: false,
+    undoRedo: opts?.collaboration ? false : undefined,
     dropcursor: {
       color: '#0099ff',
       width: 3,
@@ -127,6 +143,20 @@ export let buildExtensions = () => [
   }),
 
   CharacterCount,
+
+  ...(opts?.collaboration
+    ? [
+        Collaboration.configure({
+          document: opts.collaboration.ydoc,
+          field: 'body',
+          onFirstRender: opts.collaboration.onFirstRender
+        }),
+        RemoteCursorOverlay({
+          awareness: opts.collaboration.awareness,
+          user: opts.collaboration.user
+        })
+      ]
+    : []),
 
   Callout,
   ImagePlaceholder,

@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, enrichMessages, getProviderTelemetryErrorGroupsStorageTarget } = vi.hoisted(() => ({
-  db: {
-    sessionError: {
-      findMany: vi.fn()
-    }
-  },
-  enrichMessages: vi.fn(async (messages: any[]) => messages),
-  getProviderTelemetryErrorGroupsStorageTarget: vi.fn()
-}));
+let { db, enrichMessages, getProviderTelemetryErrorGroupsStorageTarget, captureMessage } =
+  vi.hoisted(() => ({
+    db: {
+      sessionError: {
+        findMany: vi.fn()
+      }
+    },
+    enrichMessages: vi.fn(async (messages: any[]) => messages),
+    getProviderTelemetryErrorGroupsStorageTarget: vi.fn(),
+    captureMessage: vi.fn()
+  }));
 
 vi.mock('@metorial-subspace/db', () => ({ db }));
 vi.mock('@metorial-subspace/connection-utils', () => ({
@@ -20,36 +22,57 @@ vi.mock('../services/sessionMessage', () => ({
     enrichMessages
   }
 }));
+vi.mock('@lowerdeck/sentry', () => ({
+  getSentry: () => ({ captureMessage })
+}));
 
 import {
+  PROVIDER_TELEMETRY_EXPORT_QUEUE_JOB_OPTIONS,
   PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY,
+  PROVIDER_TELEMETRY_QUARANTINE_KEY_PREFIX,
+  ProviderTelemetryExportInfraError,
+  getProviderTelemetryFailedMessageQuarantineKey,
   getProviderTelemetryFailedMessagesExportChunkKey,
   listProviderTelemetryFailedMessagesForExport,
   runProviderTelemetryErrorGroupsExport,
   type ProviderTelemetryErrorGroupsExportState,
   type ProviderTelemetryFailedMessageExportCandidate,
-  type ProviderTelemetryFailedMessagesExportListInput
+  type ProviderTelemetryFailedMessagesExportList,
+  type ProviderTelemetryFailedMessagesExportListInput,
+  type ProviderTelemetryFailedMessagesExportPageError
 } from './providerTelemetryErrorGroupExport';
 
-let createStorage = (state?: ProviderTelemetryErrorGroupsExportState | null) => ({
-  upsertBucket: vi.fn(async (_bucket: string) => ({})),
-  getObject: vi.fn(async (_bucket: string, key: string) => {
-    if (key !== PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY || state === undefined) {
-      throw { statusCode: 404 };
-    }
+let createStorage = (state?: ProviderTelemetryErrorGroupsExportState) => {
+  let objects = new Map<string, string>();
+  if (state !== undefined) {
+    objects.set(PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY, JSON.stringify(state));
+  }
 
-    return { data: Buffer.from(JSON.stringify(state)) };
-  }),
-  putObject: vi.fn(
-    async (
-      _bucket: string,
-      _key: string,
-      _data: Buffer | Uint8Array | Blob | ReadableStream | string,
-      _contentType?: string,
-      _metadata?: Record<string, string>
-    ) => ({})
-  )
-});
+  return {
+    objects,
+    upsertBucket: vi.fn(async (_bucket: string) => ({})),
+    getObject: vi.fn(async (_bucket: string, key: string) => {
+      let data = objects.get(key);
+      if (data === undefined) throw { statusCode: 404 };
+      return { data: Buffer.from(data) };
+    }),
+    putObject: vi.fn(
+      async (
+        _bucket: string,
+        key: string,
+        data: Buffer | Uint8Array | Blob | ReadableStream | string,
+        _contentType?: string,
+        _metadata?: Record<string, string>
+      ) => {
+        objects.set(
+          key,
+          typeof data === 'string' ? data : Buffer.from(data as Uint8Array).toString('utf8')
+        );
+        return {};
+      }
+    )
+  };
+};
 
 let createCandidate = (
   input: Partial<{
@@ -63,7 +86,6 @@ let createCandidate = (
     toolKey: string | null;
     toolNativeKey: string;
     toolName: string;
-    methodOrToolKey: string | null;
   }> = {}
 ): ProviderTelemetryFailedMessageExportCandidate => {
   let occurredAt = new Date(input.occurredAt ?? '2026-06-18T00:10:00.000Z');
@@ -74,6 +96,7 @@ let createCandidate = (
   return {
     error: {
       id: input.errorId ?? 'serr_1',
+      type: 'message_processing_provider_error',
       code: 'provider_error',
       group: {
         id: input.groupId ?? 'serg_1'
@@ -82,7 +105,6 @@ let createCandidate = (
     message: {
       id: input.messageId ?? 'msg_1',
       type: input.messageType ?? 'tool_call',
-      methodOrToolKey: input.methodOrToolKey ?? 'fallback_method',
       toolCall: toolKey
         ? {
             id: `tc_${input.messageId ?? '1'}`,
@@ -110,6 +132,29 @@ let createCandidate = (
   };
 };
 
+let pageError = (
+  candidates: ProviderTelemetryFailedMessageExportCandidate[],
+  opts: { isReady?: boolean } = {}
+): ProviderTelemetryFailedMessagesExportPageError => ({
+  error: candidates[0]!.error,
+  occurredAt: candidates[0]!.occurredAt,
+  isReady: opts.isReady ?? true,
+  candidates
+});
+
+let singlePage = (
+  entries: ProviderTelemetryFailedMessagesExportPageError[],
+  hasMore = false
+) =>
+  vi.fn(
+    async (
+      _input: ProviderTelemetryFailedMessagesExportListInput
+    ): Promise<ProviderTelemetryFailedMessagesExportList> => ({
+      errors: entries,
+      hasMore
+    })
+  );
+
 let parseJsonCall = (call: any[]) => JSON.parse(call[2]);
 
 let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCandidate) => ({
@@ -122,62 +167,27 @@ let createPresentedMessage = (candidate: ProviderTelemetryFailedMessageExportCan
     data: {
       email: 'alice@example.com',
       token: 'Bearer abcdefghijklmnopqrstuvwxyz012345',
-      phone: '+1 202-555-0110',
-      query: 'https://api.example.com/callback?client_secret=top-secret&safe=yes',
       retryCount: 2,
-      ok: false,
-      missing: null,
-      createdAt: new Date('2026-06-18T00:09:00.000Z')
+      ok: false
     }
   },
-  output: {
-    jsonrpc: '2.0',
-    id: 1,
-    error: {
-      code: -32000,
-      message: 'Tool call failed',
-      data: {
-        ok: false,
-        code: 'PROVIDER_ERROR',
-        message: 'Nested provider message',
-        details: {
-          Message: 'Case-insensitive message'
-        }
-      }
-    }
-  },
-  toolCall: candidate.tool
-    ? {
-        id: candidate.tool.id,
-        toolKey: candidate.tool.key,
-        rationale: 'User asked for this tool',
-        operation: 'call_tool',
-        tool: {
-          id: 'tool_1',
-          key: candidate.tool.key,
-          name: candidate.tool.name,
-          providerId: candidate.provider?.id ?? null
-        }
-      }
-    : null,
   error: {
     id: candidate.error.id,
     code: candidate.error.code,
     message: 'Top-level provider error',
-    data: {
-      authorization: 'Bearer abcdefghijklmnopqrstuvwxyz012345',
-      code: 'PROVIDER_ERROR',
-      object: 'provider.error',
-      status: 500,
-      message: 'Failed for bob@example.com',
-      nested: {
-        MESSAGE: 'Uppercase message key'
-      }
-    },
     groupId: candidate.error.group.id
   },
-  createdAt: new Date('2026-06-18T00:10:00.000Z')
+  createdAt: candidate.occurredAt
 });
+
+let emptyResultShape = {
+  exportedKeys: [],
+  quarantinedKeys: [],
+  state: null,
+  exportedCount: 0,
+  quarantinedCount: 0,
+  deferredCount: 0
+};
 
 describe('runProviderTelemetryErrorGroupsExport', () => {
   beforeEach(() => {
@@ -186,7 +196,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
 
   it('no-ops when the export bucket is not configured', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
-    let storage = createStorage(undefined);
+    let storage = createStorage();
     let listFailedMessages = vi.fn();
 
     let result = await runProviderTelemetryErrorGroupsExport({
@@ -200,16 +210,12 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     expect(storage.getObject).not.toHaveBeenCalled();
     expect(storage.putObject).not.toHaveBeenCalled();
     expect(listFailedMessages).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      exportedKeys: [],
-      state: null,
-      exportedCount: 0
-    });
+    expect(result).toEqual(emptyResultShape);
   });
 
   it('uses the shared connection-utils storage target when storage is not injected', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
-    let storage = createStorage(undefined);
+    let storage = createStorage();
     getProviderTelemetryErrorGroupsStorageTarget.mockReturnValueOnce({
       storage,
       bucketName: 'exports'
@@ -217,11 +223,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
 
     await runProviderTelemetryErrorGroupsExport({
       now,
-      listFailedMessages: vi.fn(async () => ({
-        items: [],
-        nextWatermark: null,
-        hasMore: false
-      }))
+      listFailedMessages: singlePage([])
     });
 
     expect(getProviderTelemetryErrorGroupsStorageTarget).toHaveBeenCalledWith(undefined);
@@ -230,7 +232,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
 
   it('no-ops when the configured export bucket is missing', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
-    let storage = createStorage(undefined);
+    let storage = createStorage();
     storage.upsertBucket.mockRejectedValueOnce({ statusCode: 404 });
     let listFailedMessages = vi.fn();
 
@@ -242,19 +244,14 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
 
     expect(storage.upsertBucket).toHaveBeenCalledWith('exports');
-    expect(storage.getObject).not.toHaveBeenCalled();
     expect(storage.putObject).not.toHaveBeenCalled();
     expect(listFailedMessages).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      exportedKeys: [],
-      state: null,
-      exportedCount: 0
-    });
+    expect(result).toEqual(emptyResultShape);
   });
 
-  it('treats a missing v2 state object as a first run and exports a failed-message chunk', async () => {
+  it('treats a missing state object as a first run: 7-day lookback, lagged upper bound, chunk + state', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
-    let storage = createStorage(undefined);
+    let storage = createStorage();
     let candidate = createCandidate({
       providerName: 'Elasticsearch',
       providerSlug: 'elasticsearch',
@@ -262,16 +259,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       toolNativeKey: 'search_documents',
       toolName: 'Search Documents'
     });
-    let listFailedMessages = vi.fn(
-      async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
-        items: [candidate],
-        nextWatermark: {
-          occurred_at: '2026-06-18T00:10:00.000Z',
-          id: 'serr_1'
-        },
-        hasMore: false
-      })
-    );
+    let listFailedMessages = singlePage([pageError([candidate])]);
 
     let result = await runProviderTelemetryErrorGroupsExport({
       now,
@@ -287,7 +275,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     expect(listFailedMessages).toHaveBeenCalledWith({
       range: {
         from: new Date('2026-06-11T00:15:00.000Z'),
-        to: now
+        to: new Date('2026-06-18T00:13:00.000Z')
       },
       limit: 100,
       after: null
@@ -309,7 +297,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       generated_at: '2026-06-18T00:15:00.000Z',
       range: {
         from: '2026-06-11T00:15:00.000Z',
-        to: '2026-06-18T00:15:00.000Z'
+        to: '2026-06-18T00:13:00.000Z'
       },
       item_count: 1,
       items: [
@@ -331,86 +319,48 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
         }
       ]
     });
-    let payload = exportChunk.items[0].payload;
-    expect(payload).toMatchObject({
-      object: 'session.message',
-      id: 'msg_1',
-      type: 'tool_call',
-      status: 'failed',
-      source: 'model',
-      input: {
-        data: {
-          token: '[REDACTED]',
-          phone: '[REDACTED]',
-          retryCount: 2,
-          ok: false,
-          missing: null,
-          createdAt: '2026-06-18T00:09:00.000Z'
-        }
-      },
-      toolCall: {
-        id: 'tc_1',
-        toolKey: 'elasticsearch_search_documents',
-        rationale: '[REDACTED]',
-        operation: 'call_tool',
-        tool: {
-          id: 'tool_1',
-          key: 'elasticsearch_search_documents',
-          name: '[REDACTED]',
-          providerId: 'prv_1'
-        }
-      },
-      error: {
-        id: 'serr_1',
-        code: 'provider_error',
-        message: '[REDACTED]',
-        data: {
-          authorization: '[REDACTED]',
-          code: 'PROVIDER_ERROR',
-          object: 'provider.error',
-          status: 500
-        },
-        groupId: 'serg_1'
-      },
-      createdAt: '2026-06-18T00:10:00.000Z'
-    });
 
+    let payload = exportChunk.items[0].payload;
+    expect(payload.input.data.token).toBe('[REDACTED]');
+    expect(payload.input.data.retryCount).toBe(2);
+
+    let watermark = {
+      occurred_at: '2026-06-18T00:10:00.000Z',
+      id: 'serr_1'
+    };
     let stateFile = parseJsonCall(storage.putObject.mock.calls[1]!);
     expect(stateFile).toEqual({
       version: 2,
-      last_exported: {
-        occurred_at: '2026-06-18T00:10:00.000Z',
-        id: 'serr_1'
-      },
-      last_checked_at: '2026-06-18T00:15:00.000Z'
+      last_exported: watermark,
+      last_checked_at: '2026-06-18T00:15:00.000Z',
+      last_processed: watermark,
+      last_run: {
+        status: 'completed',
+        exported_count: 1,
+        quarantined_count: 0,
+        deferred_count: 0
+      }
     });
     expect(result).toEqual({
       exportedKeys: [expectedKey],
+      quarantinedKeys: [],
       state: stateFile,
-      exportedCount: 1
+      exportedCount: 1,
+      quarantinedCount: 0,
+      deferredCount: 0
     });
   });
 
   it('redacts a broad set of OpenRedaction-supported PII categories in export payloads', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
-    let storage = createStorage(undefined);
+    let storage = createStorage();
     let candidate = createCandidate();
-    let listFailedMessages = vi.fn(
-      async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
-        items: [candidate],
-        nextWatermark: {
-          occurred_at: '2026-06-18T00:10:00.000Z',
-          id: 'serr_1'
-        },
-        hasMore: false
-      })
-    );
 
     await runProviderTelemetryErrorGroupsExport({
       now,
       storage,
       bucketName: 'exports',
-      listFailedMessages,
+      listFailedMessages: singlePage([pageError([candidate])]),
       presentMessage: async () => ({
         object: 'session.message',
         id: candidate.message.id,
@@ -568,9 +518,9 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     });
   });
 
-  it('exports each page as a chunk and counts exported messages', async () => {
+  it('exports pages with a mid-run checkpoint and counts exported messages', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
-    let storage = createStorage(undefined);
+    let storage = createStorage();
     let first = createCandidate({
       errorId: 'serr_1',
       messageId: 'msg_1',
@@ -586,26 +536,13 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       messageId: 'msg_3',
       occurredAt: '2026-06-18T00:12:00.000Z'
     });
-    let firstWatermark = {
-      occurred_at: '2026-06-18T00:10:00.000Z',
-      id: 'serr_1'
-    };
     let listFailedMessages = vi.fn(
-      async (input: ProviderTelemetryFailedMessagesExportListInput) =>
+      async (
+        input: ProviderTelemetryFailedMessagesExportListInput
+      ): Promise<ProviderTelemetryFailedMessagesExportList> =>
         input.after
-          ? {
-              items: [second, third],
-              nextWatermark: {
-                occurred_at: '2026-06-18T00:12:00.000Z',
-                id: 'serr_3'
-              },
-              hasMore: false
-            }
-          : {
-              items: [first],
-              nextWatermark: firstWatermark,
-              hasMore: true
-            }
+          ? { errors: [pageError([second]), pageError([third])], hasMore: false }
+          : { errors: [pageError([first])], hasMore: true }
     );
 
     let result = await runProviderTelemetryErrorGroupsExport({
@@ -622,7 +559,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     expect(listFailedMessages).toHaveBeenNthCalledWith(1, {
       range: {
         from: new Date('2026-06-11T00:15:00.000Z'),
-        to: now
+        to: new Date('2026-06-18T00:13:00.000Z')
       },
       limit: 100,
       after: null
@@ -630,12 +567,27 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     expect(listFailedMessages).toHaveBeenNthCalledWith(2, {
       range: {
         from: new Date('2026-06-11T00:15:00.000Z'),
-        to: now
+        to: new Date('2026-06-18T00:13:00.000Z')
       },
       limit: 100,
-      after: firstWatermark
+      after: {
+        occurred_at: '2026-06-18T00:10:00.000Z',
+        id: 'serr_1'
+      }
     });
-    expect(storage.putObject).toHaveBeenCalledTimes(3);
+
+    // chunk 1, checkpoint state, chunk 2, final state
+    expect(storage.putObject).toHaveBeenCalledTimes(4);
+    let checkpoint = parseJsonCall(storage.putObject.mock.calls[1]!);
+    expect(storage.putObject.mock.calls[1]![1]).toBe(
+      PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY
+    );
+    expect(checkpoint.last_run.status).toBe('running');
+    expect(checkpoint.last_processed).toEqual({
+      occurred_at: '2026-06-18T00:10:00.000Z',
+      id: 'serr_1'
+    });
+
     expect(result.exportedKeys).toEqual([
       getProviderTelemetryFailedMessagesExportChunkKey([first]),
       getProviderTelemetryFailedMessagesExportChunkKey([second, third])
@@ -645,9 +597,15 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       occurred_at: '2026-06-18T00:12:00.000Z',
       id: 'serr_3'
     });
+    expect(result.state?.last_run).toEqual({
+      status: 'completed',
+      exported_count: 3,
+      quarantined_count: 0,
+      deferred_count: 0
+    });
   });
 
-  it('resumes after the existing high-water mark', async () => {
+  it('resumes after a legacy last_exported watermark', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
     let watermark = {
       occurred_at: '2026-06-18T00:00:00.000Z',
@@ -658,13 +616,7 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
       last_exported: watermark,
       last_checked_at: '2026-06-18T00:00:00.000Z'
     });
-    let listFailedMessages = vi.fn(
-      async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
-        items: [],
-        nextWatermark: null,
-        hasMore: false
-      })
-    );
+    let listFailedMessages = singlePage([]);
 
     await runProviderTelemetryErrorGroupsExport({
       now,
@@ -676,27 +628,30 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     expect(listFailedMessages).toHaveBeenCalledWith({
       range: {
         from: new Date('2026-06-18T00:00:00.000Z'),
-        to: now
+        to: new Date('2026-06-18T00:13:00.000Z')
       },
       limit: 100,
       after: watermark
     });
   });
 
-  it('uses last_checked_at as the next range start when no item was previously exported', async () => {
+  it('prefers last_processed over last_exported when resuming', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
+    let exportedWatermark = {
+      occurred_at: '2026-06-18T00:00:00.000Z',
+      id: 'serr_b'
+    };
+    let processedWatermark = {
+      occurred_at: '2026-06-18T00:05:00.000Z',
+      id: 'serr_c'
+    };
     let storage = createStorage({
       version: 2,
-      last_exported: null,
-      last_checked_at: '2026-06-18T00:00:00.000Z'
+      last_exported: exportedWatermark,
+      last_checked_at: '2026-06-18T00:00:00.000Z',
+      last_processed: processedWatermark
     });
-    let listFailedMessages = vi.fn(
-      async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
-        items: [],
-        nextWatermark: null,
-        hasMore: false
-      })
-    );
+    let listFailedMessages = singlePage([]);
 
     await runProviderTelemetryErrorGroupsExport({
       now,
@@ -707,37 +662,57 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
 
     expect(listFailedMessages).toHaveBeenCalledWith({
       range: {
-        from: new Date('2026-06-18T00:00:00.000Z'),
-        to: now
+        from: new Date('2026-06-18T00:05:00.000Z'),
+        to: new Date('2026-06-18T00:13:00.000Z')
+      },
+      limit: 100,
+      after: processedWatermark
+    });
+  });
+
+  it('falls back to the 7-day lookback and ignores last_checked_at when no watermark exists', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage({
+      version: 2,
+      last_exported: null,
+      last_checked_at: '2026-06-18T00:00:00.000Z'
+    });
+    let listFailedMessages = singlePage([]);
+
+    await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages
+    });
+
+    expect(listFailedMessages).toHaveBeenCalledWith({
+      range: {
+        from: new Date('2026-06-11T00:15:00.000Z'),
+        to: new Date('2026-06-18T00:13:00.000Z')
       },
       limit: 100,
       after: null
     });
   });
 
-  it('updates only state when there are no grouped failed messages to export', async () => {
+  it('updates only state when there is nothing to export', async () => {
     let now = new Date('2026-06-18T00:15:00.000Z');
+    let watermark = {
+      occurred_at: '2026-06-18T00:00:00.000Z',
+      id: 'serr_b'
+    };
     let storage = createStorage({
       version: 2,
-      last_exported: {
-        occurred_at: '2026-06-18T00:00:00.000Z',
-        id: 'serr_b'
-      },
+      last_exported: watermark,
       last_checked_at: '2026-06-18T00:00:00.000Z'
     });
-    let listFailedMessages = vi.fn(
-      async (_input: ProviderTelemetryFailedMessagesExportListInput) => ({
-        items: [],
-        nextWatermark: null,
-        hasMore: false
-      })
-    );
 
     let result = await runProviderTelemetryErrorGroupsExport({
       now,
       storage,
       bucketName: 'exports',
-      listFailedMessages
+      listFailedMessages: singlePage([])
     });
 
     expect(storage.putObject).toHaveBeenCalledTimes(1);
@@ -746,14 +721,513 @@ describe('runProviderTelemetryErrorGroupsExport', () => {
     );
     expect(parseJsonCall(storage.putObject.mock.calls[0]!)).toEqual({
       version: 2,
-      last_exported: {
-        occurred_at: '2026-06-18T00:00:00.000Z',
-        id: 'serr_b'
-      },
-      last_checked_at: '2026-06-18T00:15:00.000Z'
+      last_exported: watermark,
+      last_checked_at: '2026-06-18T00:15:00.000Z',
+      last_processed: watermark,
+      last_run: {
+        status: 'completed',
+        exported_count: 0,
+        quarantined_count: 0,
+        deferred_count: 0
+      }
     });
     expect(result.exportedKeys).toEqual([]);
     expect(result.exportedCount).toBe(0);
+  });
+
+  it('quarantines a poison message and keeps exporting later records', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let first = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+    let poison = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+    let third = createCandidate({
+      errorId: 'serr_3',
+      messageId: 'msg_3',
+      occurredAt: '2026-06-18T00:12:00.000Z'
+    });
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([
+        pageError([first]),
+        pageError([poison]),
+        pageError([third])
+      ]),
+      presentMessage: async message => {
+        if (message.id === 'msg_2') {
+          throw new TypeError('Cannot read properties of undefined (reading data)');
+        }
+        return createPresentedMessage(
+          [first, third].find(candidate => candidate.message.id === message.id)!
+        );
+      }
+    });
+
+    let expectedChunkKey = getProviderTelemetryFailedMessagesExportChunkKey([first, third]);
+    let expectedQuarantineKey = getProviderTelemetryFailedMessageQuarantineKey({
+      occurred_at: '2026-06-18T00:11:00.000Z',
+      error_id: 'serr_2',
+      message_id: 'msg_2',
+      stage: 'present'
+    });
+
+    expect(result.exportedKeys).toEqual([expectedChunkKey]);
+    expect(result.quarantinedKeys).toEqual([expectedQuarantineKey]);
+    expect(result.exportedCount).toBe(2);
+    expect(result.quarantinedCount).toBe(1);
+    expect(result.state?.last_processed).toEqual({
+      occurred_at: '2026-06-18T00:12:00.000Z',
+      id: 'serr_3'
+    });
+    expect(result.state?.last_exported).toEqual({
+      occurred_at: '2026-06-18T00:12:00.000Z',
+      id: 'serr_3'
+    });
+
+    let exportChunk = JSON.parse(storage.objects.get(expectedChunkKey)!);
+    expect(exportChunk.items.map((item: any) => item.message_id)).toEqual(['msg_1', 'msg_3']);
+
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage.mock.calls[0]![1]).toMatchObject({
+      level: 'warning',
+      extra: {
+        stage: 'present',
+        reason: 'presentation_failed',
+        errorId: 'serr_2',
+        messageId: 'msg_2'
+      }
+    });
+  });
+
+  it('writes quarantine records without payloads, raw error text, or a .json suffix', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let poison = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+
+    await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([poison])]),
+      presentMessage: async () => {
+        throw new TypeError('secret-user-data@example.com leaked into an error');
+      }
+    });
+
+    let quarantineKey = getProviderTelemetryFailedMessageQuarantineKey({
+      occurred_at: '2026-06-18T00:11:00.000Z',
+      error_id: 'serr_2',
+      message_id: 'msg_2',
+      stage: 'present'
+    });
+
+    expect(quarantineKey.startsWith(PROVIDER_TELEMETRY_QUARANTINE_KEY_PREFIX)).toBe(true);
+    expect(quarantineKey.endsWith('.json')).toBe(false);
+    expect(quarantineKey.endsWith('.jsonl')).toBe(true);
+
+    let raw = storage.objects.get(quarantineKey)!;
+    expect(raw).toBeDefined();
+    expect(raw).not.toContain('secret-user-data');
+    expect(raw).not.toContain('example.com');
+
+    let record = JSON.parse(raw);
+    expect(Object.keys(record).sort()).toEqual(
+      [
+        'object',
+        'version',
+        'stage',
+        'reason',
+        'error_id',
+        'message_id',
+        'occurred_at',
+        'fingerprint',
+        'quarantined_at'
+      ].sort()
+    );
+    expect(record).toMatchObject({
+      object: 'provider_telemetry.failed_message_export_quarantine',
+      version: 1,
+      stage: 'present',
+      reason: 'presentation_failed',
+      error_id: 'serr_2',
+      message_id: 'msg_2',
+      occurred_at: '2026-06-18T00:11:00.000Z',
+      quarantined_at: '2026-06-18T00:15:00.000Z'
+    });
+    expect(record.fingerprint).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  it('quarantines a message whose payload cannot be redacted', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let poison = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([poison])]),
+      // BigInt payloads cannot be JSON-serialized, so redaction fails
+      presentMessage: async () => ({ big: 1n })
+    });
+
+    expect(result.quarantinedCount).toBe(1);
+    let record = JSON.parse(storage.objects.get(result.quarantinedKeys[0]!)!);
+    expect(record.stage).toBe('redact');
+    expect(record.reason).toBe('redaction_failed');
+    expect(result.state?.last_processed).toEqual({
+      occurred_at: '2026-06-18T00:11:00.000Z',
+      id: 'serr_2'
+    });
+    expect(result.state?.last_exported).toBeNull();
+  });
+
+  it('exports oversized payloads with heavy bodies replaced by placeholders', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let huge = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+    let hugeOutput = { body: 'x'.repeat(2 * 1024 * 1024) };
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([huge])]),
+      presentMessage: async () => ({
+        object: 'session.message',
+        id: huge.message.id,
+        status: 'failed',
+        input: { params: { name: 'get_pipeline_logs' } },
+        output: hugeOutput,
+        error: {
+          id: huge.error.id,
+          code: 'invocation_error',
+          groupId: huge.error.group.id
+        },
+        createdAt: huge.occurredAt
+      })
+    });
+
+    expect(result.exportedCount).toBe(1);
+    expect(result.quarantinedCount).toBe(0);
+
+    let exportChunk = JSON.parse(storage.objects.get(result.exportedKeys[0]!)!);
+    let payload = exportChunk.items[0].payload;
+    expect(payload.output).toEqual({
+      truncated: true,
+      original_bytes: JSON.stringify(hugeOutput).length
+    });
+    // the small fields survive intact
+    expect(payload.input).toEqual({ params: { name: 'get_pipeline_logs' } });
+    expect(payload.error.code).toBe('invocation_error');
+    expect(payload.id).toBe('msg_1');
+  });
+
+  it('quarantines payloads that stay oversized after truncation', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let huge = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+    let normal = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([huge]), pageError([normal])]),
+      presentMessage: async message =>
+        message.id === 'msg_1'
+          ? { blob: 'x'.repeat(1024 * 1024 + 1) }
+          : createPresentedMessage(normal)
+    });
+
+    expect(result.exportedCount).toBe(1);
+    expect(result.quarantinedCount).toBe(1);
+
+    let record = JSON.parse(storage.objects.get(result.quarantinedKeys[0]!)!);
+    expect(record.stage).toBe('redact');
+    expect(record.reason).toBe('payload_too_large');
+    expect(record.error_id).toBe('serr_1');
+    expect(storage.objects.get(result.quarantinedKeys[0]!)!.length).toBeLessThan(1024);
+    expect(result.state?.last_processed).toEqual({
+      occurred_at: '2026-06-18T00:11:00.000Z',
+      id: 'serr_2'
+    });
+  });
+
+  it('fails the run without touching state when preparation hits an infrastructure error', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let candidate = createCandidate();
+
+    await expect(
+      runProviderTelemetryErrorGroupsExport({
+        now,
+        storage,
+        bucketName: 'exports',
+        listFailedMessages: singlePage([pageError([candidate])]),
+        presentMessage: async () => {
+          throw new ProviderTelemetryExportInfraError('storage read failed');
+        }
+      })
+    ).rejects.toThrow('storage read failed');
+
+    expect(storage.putObject).not.toHaveBeenCalled();
+  });
+
+  it('defers at the first recent ungrouped error and never advances past it', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let ready = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:01:00.000Z'
+    });
+    // 10 minutes old: inside the readiness grace period
+    let ungrouped = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:05:00.000Z'
+    });
+    let later = createCandidate({
+      errorId: 'serr_3',
+      messageId: 'msg_3',
+      occurredAt: '2026-06-18T00:12:00.000Z'
+    });
+    let listFailedMessages = singlePage(
+      [pageError([ready]), pageError([ungrouped], { isReady: false }), pageError([later])],
+      true
+    );
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages,
+      presentMessage: async () => createPresentedMessage(ready)
+    });
+
+    // a deferred run stops paging entirely
+    expect(listFailedMessages).toHaveBeenCalledTimes(1);
+    expect(result.exportedCount).toBe(1);
+    expect(result.quarantinedCount).toBe(0);
+    expect(result.deferredCount).toBe(2);
+    expect(result.state?.last_processed).toEqual({
+      occurred_at: '2026-06-18T00:01:00.000Z',
+      id: 'serr_1'
+    });
+    expect(result.state?.last_run).toEqual({
+      status: 'deferred',
+      exported_count: 1,
+      quarantined_count: 0,
+      deferred_count: 2
+    });
+  });
+
+  it('quarantines an ungrouped error older than the grace period and continues', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    // more than 4 hours old: past the readiness grace period
+    let stale = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-17T19:00:00.000Z'
+    });
+    let ready = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([
+        pageError([stale], { isReady: false }),
+        pageError([ready])
+      ]),
+      presentMessage: async () => createPresentedMessage(ready)
+    });
+
+    expect(result.exportedCount).toBe(1);
+    expect(result.quarantinedCount).toBe(1);
+    expect(result.deferredCount).toBe(0);
+    expect(result.state?.last_processed).toEqual({
+      occurred_at: '2026-06-18T00:10:00.000Z',
+      id: 'serr_2'
+    });
+
+    let record = JSON.parse(storage.objects.get(result.quarantinedKeys[0]!)!);
+    expect(record).toMatchObject({
+      stage: 'readiness',
+      reason: 'not_grouped_within_grace_period',
+      error_id: 'serr_1',
+      message_id: null,
+      message_ids: ['msg_1']
+    });
+  });
+
+  it('reuses an existing chunk object instead of rewriting it', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let candidate = createCandidate();
+    let expectedKey = getProviderTelemetryFailedMessagesExportChunkKey([candidate]);
+    storage.objects.set(expectedKey, JSON.stringify({ existing: true }));
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([candidate])]),
+      presentMessage: async () => createPresentedMessage(candidate)
+    });
+
+    let chunkWrites = storage.putObject.mock.calls.filter(call => call[1] === expectedKey);
+    expect(chunkWrites).toHaveLength(0);
+    expect(storage.objects.get(expectedKey)).toBe(JSON.stringify({ existing: true }));
+    expect(result.exportedKeys).toEqual([expectedKey]);
+    expect(result.exportedCount).toBe(1);
+    expect(result.state?.last_exported).toEqual({
+      occurred_at: '2026-06-18T00:10:00.000Z',
+      id: 'serr_1'
+    });
+  });
+
+  it('reuses an existing quarantine object instead of rewriting it', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let poison = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+    let quarantineKey = getProviderTelemetryFailedMessageQuarantineKey({
+      occurred_at: '2026-06-18T00:11:00.000Z',
+      error_id: 'serr_2',
+      message_id: 'msg_2',
+      stage: 'present'
+    });
+    storage.objects.set(quarantineKey, 'existing');
+
+    let result = await runProviderTelemetryErrorGroupsExport({
+      now,
+      storage,
+      bucketName: 'exports',
+      listFailedMessages: singlePage([pageError([poison])]),
+      presentMessage: async () => {
+        throw new TypeError('poison');
+      }
+    });
+
+    let quarantineWrites = storage.putObject.mock.calls.filter(
+      call => call[1] === quarantineKey
+    );
+    expect(quarantineWrites).toHaveLength(0);
+    expect(storage.objects.get(quarantineKey)).toBe('existing');
+    expect(result.quarantinedKeys).toEqual([quarantineKey]);
+    expect(result.quarantinedCount).toBe(1);
+  });
+
+  it('leaves state untouched when a storage write fails', async () => {
+    let now = new Date('2026-06-18T00:15:00.000Z');
+    let storage = createStorage();
+    let candidate = createCandidate();
+    storage.putObject.mockRejectedValueOnce(new Error('s3 unavailable'));
+
+    await expect(
+      runProviderTelemetryErrorGroupsExport({
+        now,
+        storage,
+        bucketName: 'exports',
+        listFailedMessages: singlePage([pageError([candidate])]),
+        presentMessage: async () => createPresentedMessage(candidate)
+      })
+    ).rejects.toThrow('s3 unavailable');
+
+    let stateWrites = storage.putObject.mock.calls.filter(
+      call => call[1] === PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY
+    );
+    expect(stateWrites).toHaveLength(0);
+    expect(storage.objects.has(PROVIDER_TELEMETRY_FAILED_MESSAGES_STATE_KEY)).toBe(false);
+  });
+});
+
+describe('getProviderTelemetryFailedMessagesExportChunkKey', () => {
+  it('produces identical keys for identical member sets', () => {
+    let a = createCandidate({ errorId: 'serr_1', messageId: 'msg_1' });
+    let b = createCandidate({ errorId: 'serr_2', messageId: 'msg_2' });
+
+    expect(getProviderTelemetryFailedMessagesExportChunkKey([a, b])).toBe(
+      getProviderTelemetryFailedMessagesExportChunkKey([a, b])
+    );
+  });
+
+  it('produces different keys when the middle of the set changes', () => {
+    let a = createCandidate({
+      errorId: 'serr_1',
+      messageId: 'msg_1',
+      occurredAt: '2026-06-18T00:10:00.000Z'
+    });
+    let b = createCandidate({
+      errorId: 'serr_2',
+      messageId: 'msg_2',
+      occurredAt: '2026-06-18T00:11:00.000Z'
+    });
+    let c = createCandidate({
+      errorId: 'serr_3',
+      messageId: 'msg_3',
+      occurredAt: '2026-06-18T00:12:00.000Z'
+    });
+
+    // same first/last members, different middle
+    expect(getProviderTelemetryFailedMessagesExportChunkKey([a, b, c])).not.toBe(
+      getProviderTelemetryFailedMessagesExportChunkKey([a, c])
+    );
+  });
+
+  it('keeps the export key prefix and .json suffix', () => {
+    let key = getProviderTelemetryFailedMessagesExportChunkKey([createCandidate()]);
+    expect(key.startsWith('provider-telemetry/failed-messages-')).toBe(true);
+    expect(key.endsWith('.json')).toBe(true);
+  });
+});
+
+describe('queue policy', () => {
+  it('retries three times and removes terminally failed jobs', () => {
+    expect(PROVIDER_TELEMETRY_EXPORT_QUEUE_JOB_OPTIONS).toEqual({
+      attempts: 3,
+      removeOnFail: true
+    });
   });
 });
 
@@ -762,7 +1236,7 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
     vi.clearAllMocks();
   });
 
-  it('queries grouped errors through failed session messages and presents provider/tool metadata', async () => {
+  it('scans all session errors, marking ungrouped ones as not ready', async () => {
     let from = new Date('2026-06-18T00:00:00.000Z');
     let to = new Date('2026-06-18T01:00:00.000Z');
     let after = {
@@ -774,7 +1248,14 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
       id: 'msg_1',
       type: 'tool_call',
       status: 'failed',
-      methodOrToolKey: 'fallback_tool',
+      providerRun: null,
+      toolCall: null
+    };
+    let ungroupedMessage = {
+      oid: 11n,
+      id: 'msg_2',
+      type: 'tool_call',
+      status: 'failed',
       providerRun: null,
       toolCall: null
     };
@@ -783,6 +1264,7 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
         id: 'serr_1',
         code: 'provider_error',
         createdAt: new Date('2026-06-18T00:20:00.000Z'),
+        groupOid: 5n,
         group: { id: 'serg_1' },
         providerRun: {
           provider: {
@@ -795,6 +1277,15 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
           }
         },
         sessionMessages: [rawMessage]
+      },
+      {
+        id: 'serr_2',
+        code: 'provider_error',
+        createdAt: new Date('2026-06-18T00:25:00.000Z'),
+        groupOid: null,
+        group: null,
+        providerRun: null,
+        sessionMessages: [ungroupedMessage]
       }
     ]);
     enrichMessages.mockResolvedValue([
@@ -825,7 +1316,6 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
     let query = db.sessionError.findMany.mock.calls[0]![0];
     expect(query.where).toEqual({
       AND: [
-        { groupOid: { not: null } },
         { createdAt: { gte: from, lte: to } },
         { sessionMessages: { some: { status: 'failed' } } },
         {
@@ -839,22 +1329,19 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
         }
       ]
     });
-    expect(query.include.sessionMessages.where).toEqual({ status: 'failed' });
-    expect(query.include.sessionMessages.include.providerRun.include.provider.include).toEqual(
-      {
-        listing: true
-      }
-    );
     expect(query.orderBy).toEqual([{ createdAt: 'asc' }, { id: 'asc' }]);
     expect(query.take).toBe(26);
 
-    expect(result).toMatchObject({
-      hasMore: false,
-      nextWatermark: {
-        occurred_at: '2026-06-18T00:20:00.000Z',
-        id: 'serr_1'
-      },
-      items: [
+    // only messages of ready errors are enriched
+    expect(enrichMessages).toHaveBeenCalledTimes(1);
+    expect(enrichMessages.mock.calls[0]![0]).toEqual([rawMessage]);
+
+    expect(result.hasMore).toBe(false);
+    expect(result.errors).toHaveLength(2);
+    expect(result.errors[0]).toMatchObject({
+      isReady: true,
+      occurredAt: new Date('2026-06-18T00:20:00.000Z'),
+      candidates: [
         {
           provider: {
             id: 'prv_1',
@@ -869,5 +1356,10 @@ describe('listProviderTelemetryFailedMessagesForExport', () => {
         }
       ]
     });
+    expect(result.errors[1]).toMatchObject({
+      isReady: false,
+      occurredAt: new Date('2026-06-18T00:25:00.000Z')
+    });
+    expect(result.errors[1]!.candidates[0]!.message.id).toBe('msg_2');
   });
 });

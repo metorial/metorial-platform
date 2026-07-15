@@ -296,6 +296,15 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Consumer Magic MCP',
     description: 'These endpoints manage consumer access to Magic MCP functionality.'
   },
+  'consumer#instance.operations': {
+    name: 'Consumer Operations',
+    description:
+      'These endpoints expose consumer-scoped runtime clients, connections, and tool calls.'
+  },
+  'consumer#instance.identity': {
+    name: 'Consumer Identity',
+    description: 'These endpoints expose consumer-scoped identity credentials.'
+  },
   'consumer#instance.assistant': {
     name: 'Consumer Assistants',
     description: 'These endpoints list assistants and read assistant metadata for consumers.'

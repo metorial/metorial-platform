@@ -232,6 +232,8 @@ model StoreVersionItem {
   documentOid BigInt?
   document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
 
+  documentTitle String?
+
   documentVersionOid BigInt?
   documentVersion    DocumentVersion? @relation(fields: [documentVersionOid], references: [oid], onDelete: SetNull)
 

@@ -263,11 +263,29 @@ let SkillLayout = dynamicPage(() =>
   import('./pages/(skills)/skill/_layout').then(c => c.SkillLayout)
 );
 let SkillPage = dynamicPage(() => import('./pages/(skills)/skill').then(c => c.SkillPage));
+let SkillProvidersPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/providers').then(c => c.SkillProvidersPage)
+);
+let SkillAgentsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/agents').then(c => c.SkillAgentsPage)
+);
+let SkillAgentDocumentPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/agent').then(c => c.SkillAgentDocumentPage)
+);
 let SkillParticipantsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
 );
+let SkillGroupsForSkillPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/groups').then(c => c.SkillGroupsPage)
+);
 let SkillVersionsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
+);
+let SkillMergeRequestsPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/merge-requests').then(c => c.SkillMergeRequestsPage)
+);
+let SkillMergeRequestPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/merge-request').then(c => c.SkillMergeRequestPage)
 );
 let SkillSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
@@ -714,6 +732,9 @@ let AssistantContextPage = dynamicPage(() =>
   import('./pages/assistant/context').then(c => c.AssistantContextPage)
 );
 let DocumentPage = dynamicPage(() => import('./pages/doc').then(c => c.DocumentPage));
+let SkillItemDocumentPage = dynamicPage(() =>
+  import('./pages/skill-item-document').then(c => c.SkillItemDocumentPage)
+);
 let InfrastructureOverviewPage = dynamicPage(() =>
   import('./pages/(infrastructure)/overview').then(c => c.InfrastructureOverviewPage)
 );
@@ -1595,12 +1616,40 @@ export let productHomeSlice = createSlice([
                 element: <SkillPage />
               },
               {
+                path: 'item/:itemId',
+                element: <SkillItemDocumentPage />
+              },
+              {
+                path: 'providers',
+                element: <SkillProvidersPage />
+              },
+              {
+                path: 'agents',
+                element: <SkillAgentsPage />
+              },
+              {
+                path: 'agent/:documentId',
+                element: <SkillAgentDocumentPage />
+              },
+              {
                 path: 'participants',
                 element: <SkillParticipantsPage />
               },
               {
+                path: 'groups',
+                element: <SkillGroupsForSkillPage />
+              },
+              {
                 path: 'versions',
                 element: <SkillVersionsPage />
+              },
+              {
+                path: 'merge-requests',
+                element: <SkillMergeRequestsPage />
+              },
+              {
+                path: 'merge-requests/:mergeRequestId/:mergeRequestTab?',
+                element: <SkillMergeRequestPage />
               },
               {
                 path: 'settings',

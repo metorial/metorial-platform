@@ -48,7 +48,11 @@ export let scmBackendSetupPublicController = createHono()
     let body = await useValidatedBody(
       c,
       v.object({
-        type: v.union([v.literal('github_enterprise'), v.literal('gitlab_selfhosted')]),
+        type: v.union([
+          v.literal('github_enterprise'),
+          v.literal('gitlab_selfhosted'),
+          v.literal('bitbucket_data_center')
+        ]),
         name: v.string(),
         apiUrl: v.string(),
         clientId: v.string(),
@@ -65,18 +69,24 @@ export let scmBackendSetupPublicController = createHono()
 
     let tenant = await db.tenant.findUniqueOrThrow({ where: { oid: setupSession.tenantOid } });
 
-    // Extract base URL from apiUrl (remove path like /api/v3 or /api/v4)
-    let baseUrl = new URL(body.apiUrl);
-    baseUrl.pathname = '';
-    let webUrl = baseUrl.toString().replace(/\/$/, ''); // Remove trailing slash
-
-    // Add the API path based on provider type
-    let apiUrl = body.apiUrl;
-    if (body.type === 'github_enterprise' && !apiUrl.includes('/api')) {
-      apiUrl = `${apiUrl}/api/v3`;
-    } else if (body.type === 'gitlab_selfhosted' && !apiUrl.includes('/api')) {
-      apiUrl = `${apiUrl}/api/v4`;
+    let inputUrl = new URL(body.apiUrl);
+    inputUrl.search = '';
+    inputUrl.hash = '';
+    if (body.type === 'github_enterprise') {
+      inputUrl.pathname = inputUrl.pathname.replace(/\/api\/v3\/?$/, '');
+    } else if (body.type === 'gitlab_selfhosted') {
+      inputUrl.pathname = inputUrl.pathname.replace(/\/api\/v4\/?$/, '');
+    } else {
+      inputUrl.pathname = inputUrl.pathname.replace(/\/rest\/api\/(?:1\.0|latest)\/?$/, '');
     }
+    let webUrl = inputUrl.toString().replace(/\/$/, '');
+
+    let apiUrl =
+      body.type === 'github_enterprise'
+        ? `${webUrl}/api/v3`
+        : body.type === 'gitlab_selfhosted'
+          ? `${webUrl}/api/v4`
+          : `${webUrl}/rest/api/1.0`;
 
     let backend = await scmBackendService.createScmBackend({
       tenant,
@@ -99,7 +109,9 @@ export let scmBackendSetupPublicController = createHono()
 
     // Determine where to redirect
     if (setupSession.parentInstallationSession) {
-      return c.redirect(`/origin/scm/installation-session/${setupSession.parentInstallationSession.id}`);
+      return c.redirect(
+        `/origin/scm/installation-session/${setupSession.parentInstallationSession.id}`
+      );
     }
 
     if (setupSession.redirectUrl) {

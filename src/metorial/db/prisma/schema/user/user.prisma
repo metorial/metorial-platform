@@ -31,6 +31,12 @@ model User {
   synthesisTenantId        String?
   synthesisEnvironmentId   String?
 
+  resourceTenantOid BigInt?         @unique
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
+
+  resourceGroupOid BigInt?        @unique
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: SetNull)
+
   globalProfileOid BigInt?
   globalProfile    GlobalProfile? @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
 

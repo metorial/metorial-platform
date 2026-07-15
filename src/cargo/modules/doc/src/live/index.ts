@@ -4,8 +4,19 @@ import { generatePlainId } from '@lowerdeck/id';
 import { db } from '@metorial-cargo/db';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
+import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { internalDocumentSyncService } from '../internal/documentSync';
+import { queueDocumentCollaborationFlush } from '../queues/documentCollaborationFlush';
 import { documentService } from '../services/document';
+import { canSendDocumentLiveMessage } from './documentLiveAccess';
+import { publishDocumentLiveBusMessage, subscribeToDocumentLiveBus } from './documentLiveBus';
+import { type DocumentLiveBusMessageType } from './documentLiveBusProtocol';
+import {
+  listActiveLiveSessions,
+  removeLiveSession,
+  shouldPublishParticipantPayload,
+  upsertLiveSession
+} from './documentLiveSessionRegistry';
 
 export { websocket };
 
@@ -28,13 +39,44 @@ type DocumentLiveClientMessage =
       data: {
         title: string;
       };
+    }
+  | {
+      type: 'yjs_update';
+      data: {
+        update: string;
+        generation?: number;
+      };
+    }
+  | {
+      type: 'yjs_state_initialize';
+      data: {
+        update: string;
+        generation?: number;
+      };
+    }
+  | {
+      type: 'awareness_update';
+      data: {
+        clientId: number;
+        update: string;
+      };
+    }
+  | {
+      type: 'document_snapshot_save';
+      data: {
+        title: string;
+        content: string;
+      };
     };
 
 type LiveSession = {
   id: string;
   documentId: string;
   actorId: string;
+  canWrite: boolean;
   lastPingAt: number;
+  awarenessClientId?: number;
+  awarenessUpdate?: string;
 };
 
 let liveSessions = new Map<string, LiveSession>();
@@ -62,10 +104,12 @@ let getActiveSessionIds = (documentId: string) => {
   });
 };
 
-let getActiveActorIds = (documentId: string) =>
+let getActiveActorIds = async (documentId: string) =>
   [
     ...new Set(
-      getActiveSessionIds(documentId).map(sessionId => liveSessions.get(sessionId)?.actorId)
+      (await listActiveLiveSessions(documentId, participantTimeoutMs)).map(
+        session => session.actorId
+      )
     )
   ].filter((actorId): actorId is string => !!actorId);
 
@@ -89,6 +133,105 @@ let broadcastToDocument = (documentId: string, type: string, data: any) => {
     send(ws, type, data);
   }
 };
+
+let broadcastToDocumentExcept = (
+  documentId: string,
+  excludedSessionId: string,
+  type: string,
+  data: any
+) => {
+  for (let sessionId of getActiveSessionIds(documentId)) {
+    if (sessionId === excludedSessionId) continue;
+
+    let ws = socketsBySessionId.get(sessionId);
+    if (!ws) continue;
+    send(ws, type, data);
+  }
+};
+
+let broadcastDistributedToDocument = async (
+  documentId: string,
+  type: DocumentLiveBusMessageType,
+  data: any,
+  originSessionId?: string
+) => {
+  broadcastToDocument(documentId, type, data);
+  await publishDocumentLiveBusMessage({
+    originSessionId,
+    documentId,
+    type,
+    data
+  });
+};
+
+let broadcastDistributedToDocumentExcept = async (
+  documentId: string,
+  excludedSessionId: string,
+  type: DocumentLiveBusMessageType,
+  data: any
+) => {
+  broadcastToDocumentExcept(documentId, excludedSessionId, type, data);
+  await publishDocumentLiveBusMessage({
+    originSessionId: excludedSessionId,
+    documentId,
+    type,
+    data
+  });
+};
+
+let handleLiveBusMessage = async (message: {
+  documentId: string;
+  type: DocumentLiveBusMessageType;
+  data: any;
+}) => {
+  if (message.type === 'collaboration_reset') {
+    broadcastToDocument(
+      message.documentId,
+      message.type,
+      await buildCollaborationResetPayload(message.documentId, {
+        stateUpdate: message.data.stateUpdate ?? null,
+        generation: message.data.generation
+      })
+    );
+    return;
+  }
+
+  broadcastToDocument(message.documentId, message.type, message.data);
+};
+
+let subscribeToLiveBus = () => {
+  subscribeToDocumentLiveBus(handleLiveBusMessage).catch(error => {
+    console.error('Failed to subscribe to Cargo live document events', error);
+    let retryTimer = setTimeout(subscribeToLiveBus, 5000);
+    retryTimer.unref?.();
+  });
+};
+
+subscribeToLiveBus();
+
+let persistLiveSession = async (session: LiveSession) => {
+  await upsertLiveSession(session, participantTimeoutMs);
+};
+
+let getAwarenessPayload = async (documentId: string) =>
+  (await listActiveLiveSessions(documentId, participantTimeoutMs))
+    .map(session => {
+      if (
+        !session ||
+        typeof session.awarenessClientId != 'number' ||
+        !session.awarenessUpdate
+      ) {
+        return null;
+      }
+
+      return {
+        sessionId: session.id,
+        actorId: session.actorId,
+        clientId: session.awarenessClientId,
+        update: session.awarenessUpdate
+      };
+    })
+    .filter((state): state is NonNullable<typeof state> => !!state);
 
 let presentActor = (actor: any) => ({
   object: 'cargo#actor',
@@ -206,8 +349,36 @@ let buildDocumentPayload = (
   };
 };
 
+let buildCollaborationResetPayload = async (
+  documentId: string,
+  state?: {
+    stateUpdate: string | null;
+    generation: number;
+  }
+) => {
+  let [scopedDocument, collaboration] = await Promise.all([
+    documentService.getScopedDocumentById({ documentId }),
+    state
+      ? Promise.resolve({
+          update: state.stateUpdate,
+          generation: state.generation
+        })
+      : internalDocumentCollaborationService.getSnapshot(documentId)
+  ]);
+
+  return {
+    document: buildDocumentPayload(scopedDocument.document),
+    stateUpdate: collaboration.update,
+    generation: collaboration.generation
+  };
+};
+
+let sendCollaborationReset = async (ws: WSContext<any>, documentId: string) => {
+  send(ws, 'collaboration_reset', await buildCollaborationResetPayload(documentId));
+};
+
 let broadcastParticipantList = async (documentId: string) => {
-  let actorIds = getActiveActorIds(documentId);
+  let actorIds = await getActiveActorIds(documentId);
   let payload =
     actorIds.length === 0
       ? []
@@ -251,6 +422,14 @@ let broadcastParticipantList = async (documentId: string) => {
 
   lastParticipantPayloadByDocumentId.set(documentId, serialized);
   broadcastToDocument(documentId, 'participant_list', payload);
+
+  if (await shouldPublishParticipantPayload(documentId, serialized, participantTimeoutMs)) {
+    await publishDocumentLiveBusMessage({
+      documentId,
+      type: 'participant_list',
+      data: payload
+    });
+  }
 };
 
 let removeSession = async (sessionId: string) => {
@@ -259,6 +438,7 @@ let removeSession = async (sessionId: string) => {
 
   liveSessions.delete(sessionId);
   socketsBySessionId.delete(sessionId);
+  await removeLiveSession(session.documentId, sessionId);
 
   let room = sessionIdsByDocumentId.get(session.documentId);
   if (room) {
@@ -267,6 +447,19 @@ let removeSession = async (sessionId: string) => {
       sessionIdsByDocumentId.delete(session.documentId);
       lastParticipantPayloadByDocumentId.delete(session.documentId);
     }
+  }
+
+  if (typeof session.awarenessClientId == 'number') {
+    await broadcastDistributedToDocument(
+      session.documentId,
+      'awareness_remove',
+      {
+        sessionId,
+        actorId: session.actorId,
+        clientId: session.awarenessClientId
+      },
+      sessionId
+    );
   }
 
   await broadcastParticipantList(session.documentId);
@@ -305,6 +498,7 @@ export let documentLiveApi = createHono()
       let url = new URL(c.req.url);
       let documentId = url.searchParams.get('documentId');
       let actorId = url.searchParams.get('actorId');
+      let canWrite = url.searchParams.get('canWrite') === 'true';
 
       if (!documentId || !actorId) {
         throw new Error('documentId and actorId query params are required');
@@ -325,16 +519,29 @@ export let documentLiveApi = createHono()
 
       return {
         onOpen: async (_, ws) => {
-          liveSessions.set(sessionId, {
+          let session = {
             id: sessionId,
             documentId,
             actorId,
+            canWrite,
             lastPingAt: Date.now()
-          });
+          };
+
+          liveSessions.set(sessionId, session);
           socketsBySessionId.set(sessionId, ws);
           getRoomSessionIds(documentId).add(sessionId);
+          await persistLiveSession(session);
 
+          let collaboration =
+            await internalDocumentCollaborationService.getSnapshot(documentId);
           send(ws, 'document_snapshot', buildDocumentPayload(scopedDocument.document));
+          send(ws, 'collaboration_snapshot', {
+            sessionId,
+            document: buildDocumentPayload(scopedDocument.document),
+            stateUpdate: collaboration.update,
+            generation: collaboration.generation,
+            awareness: await getAwarenessPayload(documentId)
+          });
           await broadcastParticipantList(documentId);
         },
 
@@ -346,6 +553,7 @@ export let documentLiveApi = createHono()
 
           try {
             let parsed = JSON.parse(event.data.toString()) as DocumentLiveClientMessage;
+            await persistLiveSession(session);
 
             if (parsed.type === 'ping') {
               let ws = socketsBySessionId.get(sessionId);
@@ -357,7 +565,120 @@ export let documentLiveApi = createHono()
               return;
             }
 
-            if (parsed.type !== 'document_update' && parsed.type !== 'document_title_update') {
+            if (
+              !canSendDocumentLiveMessage({
+                canWrite: session.canWrite,
+                type: parsed.type
+              })
+            ) {
+              let ws = socketsBySessionId.get(sessionId);
+              if (ws) {
+                send(ws, 'error', {
+                  code: 'document_read_only',
+                  message: 'This live document connection is read-only'
+                });
+              }
+              return;
+            }
+
+            if (parsed.type === 'yjs_update') {
+              if (typeof parsed.data?.update !== 'string') {
+                throw new Error('Invalid live document Yjs update payload');
+              }
+
+              if (scopedDocument.document.isReadOnly) {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
+              }
+
+              let merged = await internalDocumentCollaborationService.mergeUpdate({
+                documentId: session.documentId,
+                update: parsed.data.update,
+                actorId: session.actorId,
+                generation:
+                  typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
+              });
+              if (merged.stale) {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
+              }
+              await queueDocumentCollaborationFlush(session.documentId, merged.revision);
+
+              await broadcastDistributedToDocumentExcept(
+                session.documentId,
+                sessionId,
+                'yjs_update',
+                {
+                  sessionId,
+                  actorId: session.actorId,
+                  update: parsed.data.update,
+                  generation: merged.generation
+                }
+              );
+              return;
+            }
+
+            if (parsed.type === 'yjs_state_initialize') {
+              if (typeof parsed.data?.update !== 'string') {
+                throw new Error('Invalid live document Yjs state initialize payload');
+              }
+
+              if (scopedDocument.document.isReadOnly) {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
+              }
+
+              let initialized = await internalDocumentCollaborationService.initializeState({
+                documentId: session.documentId,
+                update: parsed.data.update,
+                generation:
+                  typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
+              });
+              let ws = socketsBySessionId.get(sessionId);
+              if (initialized.stale) {
+                if (ws) await sendCollaborationReset(ws, session.documentId);
+                return;
+              }
+              if (ws) {
+                send(ws, 'yjs_state_initialized', initialized);
+              }
+              return;
+            }
+
+            if (parsed.type === 'awareness_update') {
+              if (
+                typeof parsed.data?.clientId !== 'number' ||
+                typeof parsed.data?.update !== 'string'
+              ) {
+                throw new Error('Invalid live document awareness payload');
+              }
+
+              session.awarenessClientId = parsed.data.clientId;
+              session.awarenessUpdate = parsed.data.update;
+              await persistLiveSession(session);
+
+              await broadcastDistributedToDocumentExcept(
+                session.documentId,
+                sessionId,
+                'awareness_update',
+                {
+                  sessionId,
+                  actorId: session.actorId,
+                  clientId: parsed.data.clientId,
+                  update: parsed.data.update
+                }
+              );
+              return;
+            }
+
+            if (
+              parsed.type !== 'document_update' &&
+              parsed.type !== 'document_title_update' &&
+              parsed.type !== 'document_snapshot_save'
+            ) {
               throw new Error('Invalid live document payload');
             }
 
@@ -373,6 +694,14 @@ export let documentLiveApi = createHono()
               typeof parsed.data?.title !== 'string'
             ) {
               throw new Error('Invalid live document payload');
+            }
+
+            if (
+              parsed.type === 'document_snapshot_save' &&
+              (typeof parsed.data?.content !== 'string' ||
+                typeof parsed.data?.title !== 'string')
+            ) {
+              throw new Error('Invalid live document snapshot payload');
             }
 
             let currentScopedDocument = await documentService.getScopedDocumentById({
@@ -393,14 +722,20 @@ export let documentLiveApi = createHono()
               input: {
                 actorId: session.actorId,
                 title: parsed.data.title,
-                content: parsed.type === 'document_update' ? parsed.data.content : undefined
+                content:
+                  parsed.type === 'document_update' || parsed.type === 'document_snapshot_save'
+                    ? parsed.data.content
+                    : undefined
               }
             });
 
-            broadcastToDocument(
+            await broadcastDistributedToDocument(
               updatedDocument.id,
-              'document_snapshot',
-              buildDocumentPayload(updatedDocument)
+              parsed.type === 'document_snapshot_save'
+                ? 'document_snapshot_saved'
+                : 'document_snapshot',
+              buildDocumentPayload(updatedDocument),
+              sessionId
             );
 
             let childDocuments =
@@ -412,13 +747,14 @@ export let documentLiveApi = createHono()
             let sharedUpdatedAt = updatedDocument.draftUpdatedAt ?? updatedDocument.updatedAt;
 
             for (let childDocument of childDocuments) {
-              broadcastToDocument(
+              await broadcastDistributedToDocument(
                 childDocument.id,
                 'document_snapshot',
                 buildDocumentPayload(childDocument, {
                   content: sharedContent,
                   updatedAt: sharedUpdatedAt
-                })
+                }),
+                sessionId
               );
             }
 

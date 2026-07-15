@@ -32,7 +32,7 @@ RUN cd extensions/memfs && \
 RUN bun x tsc && bun x vite build
 
 # Stage 2: Build Go service
-FROM golang:1.24-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 
 WORKDIR /app
 

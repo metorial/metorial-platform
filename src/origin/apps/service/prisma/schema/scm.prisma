@@ -1,6 +1,7 @@
 enum ScmProvider {
   github
   gitlab
+  bitbucket
 }
 
 enum ScmRepositorySyncStatus {
@@ -207,6 +208,10 @@ model ScmRepositoryWebhookReceivedEvent {
   payload   String
 
   createdAt DateTime @default(now())
+
+  pushes ScmRepositoryPush[]
+
+  @@unique([webhookOid, idempotencyKey])
 }
 
 model ScmRepositoryPush {
@@ -219,6 +224,10 @@ model ScmRepositoryPush {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  webhookReceivedEventOid BigInt?
+  webhookReceivedEvent    ScmRepositoryWebhookReceivedEvent? @relation(fields: [webhookReceivedEventOid], references: [oid], onDelete: SetNull)
+  webhookDispatchedAt     DateTime?
+
   pusherName       String?
   pusherEmail      String?
   senderIdentifier String?
@@ -229,4 +238,6 @@ model ScmRepositoryPush {
 
   createdAt           DateTime             @default(now())
   changeNotifications ChangeNotification[]
+
+  @@index([webhookReceivedEventOid])
 }

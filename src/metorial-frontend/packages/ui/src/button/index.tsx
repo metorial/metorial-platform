@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
-import { Check } from 'react-feather';
+import { Check, ChevronDown } from 'react-feather';
 import { styled } from 'styled-components';
 import _useDelayed from 'use-delayed';
+import { Menu, MenuProps } from '../menu';
 import { Spinner } from '../spinner';
 import { ButtonStyleProps, buttonTheme, getButtonStyles } from './constants';
 
@@ -20,7 +21,7 @@ let Wrapper = styled('button')`
   flex-shrink: 0;
   position: relative;
   cursor: pointer;
-  color: ${buttonTheme.passive_color};
+  color: ${buttonTheme.passive_color} !important;
   background: ${buttonTheme.passive_background};
   border: solid 1px ${buttonTheme.passive_border};
   box-shadow: ${buttonTheme.passive_shadow};
@@ -35,7 +36,7 @@ let Wrapper = styled('button')`
 
   &:not(:disabled):hover,
   &:not(:disabled):focus {
-    color: ${buttonTheme.active_color};
+    color: ${buttonTheme.active_color} !important;
     background: ${buttonTheme.active_background};
     border: solid 1px ${buttonTheme.active_border};
     box-shadow: ${buttonTheme.active_shadow};
@@ -53,11 +54,18 @@ let Wrapper = styled('button')`
   }
 `;
 
+let SplitButton = styled('div')`
+  display: inline-flex;
+  gap: 1px;
+  align-items: stretch;
+`;
+
 let Overlay = styled(motion.div)`
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: inherit;
   top: 0;
   left: 0;
   right: 0;
@@ -96,7 +104,6 @@ let Content = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.5;
   font-weight: 500;
 `;
 
@@ -114,6 +121,7 @@ export let Button = React.forwardRef(
       size,
       shadow,
       onHover,
+      menu,
       as = 'button',
       ...props
     }: {
@@ -124,6 +132,7 @@ export let Button = React.forwardRef(
       success?: boolean;
       fullWidth?: boolean;
       onHover?: () => void;
+      menu?: MenuProps['items'];
       as?: 'button' | 'span' | 'div';
     } & ButtonStyleProps &
       React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -143,23 +152,31 @@ export let Button = React.forwardRef(
     let loadingVisible = useDelayed(loading, 200, [false]);
     let successVisible = useDelayed(success, 200, [false]);
     let contentVisible = useDelayed(!loading && !success, 200);
+    let hasMenu = Boolean(menu?.length);
+    let buttonStyle = {
+      ...style,
+      ...props.style,
 
-    return (
+      width: fullWidth && !hasMenu ? '100%' : undefined,
+
+      ...(!children && {
+        width: style.height,
+        padding: 0
+      }),
+
+      ...(hasMenu && {
+        borderTopRightRadius: 0,
+        borderBottomRightRadius: 0,
+        flexGrow: fullWidth ? 1 : undefined
+      })
+    };
+
+    let button = (
       <Wrapper
         as={as}
         ref={ref as any}
         {...props}
-        style={{
-          ...style,
-          ...props.style,
-
-          width: fullWidth ? '100%' : undefined,
-
-          ...(!children && {
-            width: style.height,
-            padding: 0
-          })
-        }}
+        style={buttonStyle}
         disabled={props.disabled || loading}
         onClick={(e: any) => {
           if (loading || success) e.preventDefault();
@@ -244,6 +261,35 @@ export let Button = React.forwardRef(
           {iconRight && <Icon>{iconRight}</Icon>}
         </Inner>
       </Wrapper>
+    );
+
+    if (!hasMenu) return button;
+
+    return (
+      <SplitButton style={{ width: fullWidth ? '100%' : undefined }}>
+        {button}
+        <Menu items={menu!} label="More actions">
+          <Wrapper
+            type="button"
+            aria-label="More actions"
+            disabled={props.disabled || loading || success}
+            style={{
+              ...style,
+              width: style.height,
+              padding: 0,
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Icon>
+              <ChevronDown />
+            </Icon>
+          </Wrapper>
+        </Menu>
+      </SplitButton>
     );
   }
 );

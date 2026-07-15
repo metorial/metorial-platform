@@ -9,6 +9,10 @@ let Wrapper = styled.header`
   flex-direction: column;
   gap: 10px;
   margin-bottom: 20px;
+
+  &[data-inline='true'] {
+    margin-bottom: unset;
+  }
 `;
 
 let Content = styled.div`
@@ -60,7 +64,8 @@ export let PageHeader = ({
   top,
   subHeader,
   pagination,
-  size = '7'
+  size = '7',
+  inline
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -72,9 +77,14 @@ export let PageHeader = ({
     label: React.ReactNode;
   }[];
   size?: '7' | '3' | '1' | '2' | '4' | '5' | '6' | '8' | '9';
+  inline?: boolean;
 }) => {
   return (
-    <Wrapper data-size={size} style={{ gap: Math.round(Number(size) * 1.2) }}>
+    <Wrapper
+      data-size={size}
+      style={{ gap: Math.round(Number(size) * 1.2) }}
+      data-inline={!!inline}
+    >
       <HeaderSection>
         <Content>
           {pagination && (

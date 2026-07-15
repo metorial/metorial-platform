@@ -28,6 +28,19 @@ let createScope = async () => {
   };
 };
 
+let getCargoScopeRecords = async (d: { tenantId: string; environmentId: string }) => ({
+  tenant: await db.tenant.findUniqueOrThrow({
+    where: {
+      id: d.tenantId
+    }
+  }),
+  environment: await db.environment.findUniqueOrThrow({
+    where: {
+      id: d.environmentId
+    }
+  })
+});
+
 let createPurpose = async () =>
   await cargoClient.filePurpose.upsert({
     slug: 'organization_image_store',
@@ -1754,6 +1767,74 @@ describe('cargo store.e2e', () => {
     ).rejects.toThrow(
       'Store template updates and deletes are only allowed within the matching tenant and environment'
     );
+  });
+
+  it('serves managed template documents from the tenant backing store', async () => {
+    let { tenant, environment } = await createScope();
+    let scope = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let actor = await createActor(tenant.id, {
+      identifier: 'managed-template-reader',
+      name: 'Managed Template Reader'
+    });
+    let created = await cargoClient.storeTemplate.create({
+      name: 'Managed Skill Template',
+      items: [
+        {
+          path: '/SKILL.md',
+          type: 'document',
+          title: 'Managed Skill',
+          content: '# Managed Skill\n\nRead-only managed content.',
+          encoding: 'utf-8'
+        }
+      ]
+    });
+
+    await syncStandaloneTemplate(created.id);
+
+    let scopedTemplate = await cargoClient.storeTemplate.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeTemplateId: created.id
+    });
+    let items = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: scopedTemplate.storeId!,
+      actorId: actor.id,
+      defaultPermissions: ['content_read'],
+      limit: 10
+    });
+    let documentId = items.items.find(item => item.path === '/SKILL.md')!.documentId!;
+    let document = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId,
+      actorId: actor.id,
+      defaultPermissions: ['content_read']
+    });
+    let documentRecord = await db.document.findUniqueOrThrow({
+      where: {
+        id: documentId
+      },
+      include: {
+        file: true
+      }
+    });
+
+    expect(document.content).toBe('# Managed Skill\n\nRead-only managed content.');
+    expect(documentRecord).toMatchObject({
+      tenantOid: scope.tenant.oid,
+      environmentOid: scope.environment.oid,
+      isReadOnly: true,
+      isTemplateBacking: true,
+      file: {
+        isReadOnly: true,
+        isTemplateBacking: true
+      }
+    });
   });
 
   it('updates and deletes scoped store templates only from the matching tenant and environment', async () => {

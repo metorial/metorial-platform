@@ -24,6 +24,7 @@ import {
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
+  MetorialDashboardInstanceDocumentsEditTokenEndpoint,
   MetorialDashboardInstanceDocumentsEndpoint,
   MetorialDashboardInstanceDocumentsParticipantsEndpoint,
   MetorialDashboardInstanceDocumentsPermissionsEndpoint,
@@ -70,6 +71,8 @@ import {
   MetorialDashboardInstancePortalsEndpoint,
   MetorialDashboardInstancePortalsListingsEndpoint,
   MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint,
+  MetorialDashboardInstanceProtoGuardAlertsEndpoint,
+  MetorialDashboardInstanceProtoGuardConfigEndpoint,
   MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigEventsEndpoint,
@@ -94,10 +97,7 @@ import {
   MetorialDashboardInstanceProvidersTriggersEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstanceProviderTemplatesEndpoint,
-  MetorialDashboardInstanceProtoGuardAlertsEndpoint,
-  MetorialDashboardInstanceProtoGuardConfigEndpoint,
   MetorialDashboardInstancePublishersEndpoint,
-  MetorialDashboardInstancesResourceCountsEndpoint,
   MetorialDashboardInstanceScmAccountsEndpoint,
   MetorialDashboardInstanceScmConnectionsEndpoint,
   MetorialDashboardInstanceScmInstallationEndpoint,
@@ -117,12 +117,19 @@ import {
   MetorialDashboardInstanceSkillsConfigurationsEndpoint,
   MetorialDashboardInstanceSkillsEndpoint,
   MetorialDashboardInstanceSkillsExportsEndpoint,
+  MetorialDashboardInstanceSkillsForkSyncsEndpoint,
   MetorialDashboardInstanceSkillsGroupsEndpoint,
   MetorialDashboardInstanceSkillsGroupsItemsEndpoint,
+  MetorialDashboardInstanceSkillsImportsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsEventsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint,
+  MetorialDashboardInstanceSkillsMergeRequestsPlanEndpoint,
   MetorialDashboardInstanceSkillsParticipantsEndpoint,
   MetorialDashboardInstanceSkillsPluginsEndpoint,
   MetorialDashboardInstanceSkillsPluginsRepositoriesEndpoint,
@@ -132,6 +139,7 @@ import {
   MetorialDashboardInstanceSkillsTemplatesItemsEndpoint,
   MetorialDashboardInstanceSkillsVersionsEndpoint,
   MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint,
+  MetorialDashboardInstancesResourceCountsEndpoint,
   MetorialDashboardInstanceStoresEndpoint,
   MetorialDashboardInstanceStoresItemsEndpoint,
   MetorialDashboardInstanceStoresParticipantsEndpoint,
@@ -489,16 +497,61 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         body.append('path', input.store.path);
       }
 
-      return await manager
-        ._post({
-          path: ['files'],
-          body
-        })
-        .transform(mapDashboardInstanceFilesGetOutput);
+      console.log('Uploading file with body:', Object.fromEntries(body.entries()));
+
+      let base = manager.apiHost;
+      if (!base.endsWith('/')) base += '/';
+
+      try {
+        let res = await fetch(`${base}files`, {
+          method: 'POST',
+          body,
+          headers: manager.getHeaders(manager.config),
+          credentials: 'include',
+          redirect: 'follow',
+          referrerPolicy: 'no-referrer-when-downgrade',
+          cache: 'no-cache',
+          mode: 'cors'
+        });
+
+        let json = await res.json();
+
+        if (!res.ok) {
+          let errorData: {
+            status: number;
+            code: string;
+            message: string;
+          };
+          try {
+            errorData = json;
+          } catch {
+            errorData = {
+              status: res.status,
+              code: 'file_upload_failed',
+              message: `File upload failed with status ${res.status}`
+            };
+          }
+
+          throw new MetorialSDKError(errorData);
+        }
+
+        let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
+
+        return mapped;
+      } catch (error) {
+        console.error('File upload failed:', error);
+
+        throw new MetorialSDKError({
+          status: 500,
+          code: 'file_upload_failed',
+          message: 'File upload failed due to an unexpected error'
+        });
+      }
     }
   }),
 
   documents: Object.assign(new MetorialDashboardInstanceDocumentsEndpoint(manager), {
+    editToken: new MetorialDashboardInstanceDocumentsEditTokenEndpoint(manager),
     participants: new MetorialDashboardInstanceDocumentsParticipantsEndpoint(manager),
     permissions: new MetorialDashboardInstanceDocumentsPermissionsEndpoint(manager),
     versions: new MetorialDashboardInstanceDocumentsVersionsEndpoint(manager)
@@ -513,7 +566,17 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   skills: Object.assign(new MetorialDashboardInstanceSkillsEndpoint(manager), {
     agents: new MetorialDashboardInstanceSkillsAgentsEndpoint(manager),
     configurations: new MetorialDashboardInstanceSkillsConfigurationsEndpoint(manager),
+    forkSyncs: new MetorialDashboardInstanceSkillsForkSyncsEndpoint(manager),
     items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
+    mergeRequests: Object.assign(
+      new MetorialDashboardInstanceSkillsMergeRequestsEndpoint(manager),
+      {
+        plan: new MetorialDashboardInstanceSkillsMergeRequestsPlanEndpoint(manager),
+        items: new MetorialDashboardInstanceSkillsMergeRequestsItemsEndpoint(manager),
+        comments: new MetorialDashboardInstanceSkillsMergeRequestsCommentsEndpoint(manager),
+        events: new MetorialDashboardInstanceSkillsMergeRequestsEventsEndpoint(manager)
+      }
+    ),
     participants: new MetorialDashboardInstanceSkillsParticipantsEndpoint(manager),
     versions: Object.assign(new MetorialDashboardInstanceSkillsVersionsEndpoint(manager), {
       snapshot: new MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint(manager)
@@ -547,6 +610,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   skillExports: new MetorialDashboardInstanceSkillsExportsEndpoint(manager),
+  skillImports: new MetorialDashboardInstanceSkillsImportsEndpoint(manager),
 
   skillSyncs: new MetorialDashboardInstanceSkillsSyncsEndpoint(manager),
 

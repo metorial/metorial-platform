@@ -11,6 +11,9 @@ model ScmInstallationSession {
   installationOid BigInt?          @unique
   installation    ScmInstallation? @relation(fields: [installationOid], references: [oid], onDelete: Cascade)
 
+  selectedBackendOid BigInt?
+  selectedBackend    ScmBackend? @relation("selectedScmBackend", fields: [selectedBackendOid], references: [oid], onDelete: SetNull)
+
   redirectUrl String?
 
   state String @unique
@@ -22,6 +25,7 @@ model ScmInstallationSession {
   backendSetupSessions ScmBackendSetupSession[]
 
   @@index([tenantOid])
+  @@index([selectedBackendOid])
   @@index([state])
 }
 

@@ -26,7 +26,7 @@ export let scmProviderSetupSessionController = app.controller({
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted'])
+        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted', 'bitbucket_data_center'])
       })
     )
     .do(async ctx => {

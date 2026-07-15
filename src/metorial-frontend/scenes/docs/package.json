@@ -11,8 +11,10 @@
   "dependencies": {
     "@metorial/code": "^1.0.0",
     "@metorial/data-hooks": "^1.0.0",
+    "@metorial/docs-editor-schema": "^1.0.0",
     "@metorial/dynamic-component": "^1.0.0",
     "@metorial/frontend-config": "^1.0.0",
+    "@metorial/scene-skills": "^1.0.0",
     "@metorial/state": "^1.0.0",
     "@metorial/ui": "^1.0.0",
     "@radix-ui/react-popover": "^1.1.13",
@@ -61,6 +63,7 @@
     "@tiptap/react": "3.6.1",
     "@tiptap/starter-kit": "3.6.1",
     "@tiptap/suggestion": "3.6.1",
+    "@tiptap/y-tiptap": "3.0.5",
     "clsx": "^2.1.1",
     "diff": "^9.0.0",
     "dompurify": "^3.4.2",
@@ -77,7 +80,9 @@
     "remark-gfm": "^4.0.1",
     "styled-components": "^6.1.13",
     "tiptap-markdown": "^0.9.0",
-    "yaml": "^2.9.0"
+    "y-protocols": "^1.0.7",
+    "yaml": "^2.9.0",
+    "yjs": "^13.6.31"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

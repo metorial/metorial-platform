@@ -1,8 +1,6 @@
 // Original source: https://github.com/Azure/fetch-event-source/blob/main/src/parse.ts
 // License: https://github.com/Azure/fetch-event-source/blob/main/LICENSE
 
-import type { ReadableStreamReadResult } from 'stream/web';
-
 export interface EventSourceMessage {
   id: string;
   event: string;
@@ -15,8 +13,9 @@ export let getBytes = async (
   onChunk: (arr: Uint8Array) => void
 ) => {
   let reader = stream.getReader();
-  let result: ReadableStreamReadResult<Uint8Array>;
-  while (!(result = await reader.read()).done) {
+  while (true) {
+    let result = await reader.read();
+    if (result.done) break;
     onChunk(result.value);
   }
 };

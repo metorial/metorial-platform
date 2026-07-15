@@ -29,6 +29,12 @@ model Project {
   synthesisTenantId String?
   nebulaTenantId    String?
 
+  resourceTenantOid BigInt?         @unique
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: SetNull)
+
+  resourceGroupOid BigInt?        @unique
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: SetNull)
+
   consumerAuthClientRegistrationsPerMinuteLimit Int @default(10)
   consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
 

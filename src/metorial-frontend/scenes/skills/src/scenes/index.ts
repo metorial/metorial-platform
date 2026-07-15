@@ -18,6 +18,11 @@ import type {
   SkillPluginSettingsScene as _SkillPluginSettingsScene
 } from './skillMarketplaceSettings';
 import type { SkillParticipantsScene as _SkillParticipantsScene } from './skillParticipants';
+import type {
+  SkillMergeRequestScene as _SkillMergeRequestScene,
+  SkillMergeRequestsScene as _SkillMergeRequestsScene
+} from './skillMergeRequests';
+export { showCreateSkillMergeRequestModal } from './skillMergeRequests';
 import type { SkillPluginSkillsScene as _SkillPluginSkillsScene } from './skillPluginSkills';
 import type {
   SkillGroupSettingsScene as _SkillGroupSettingsScene,
@@ -29,6 +34,9 @@ import type {
   StoreFileViewerScene as _StoreFileViewerScene
 } from './skillStoreFileViewer';
 import type { SkillVersionsScene as _SkillVersionsScene } from './skillVersions';
+import type { SkillWorkspaceLayout as _SkillWorkspaceLayout } from './skillWorkspaceLayout';
+
+export type { SkillWorkspaceLayoutProps, SkillWorkspaceRoutes } from './skillWorkspaceLayout';
 
 export let SkillLinkProvidersScene = dynamicComponent<
   Parameters<typeof _SkillLinkProvidersScene>
@@ -70,6 +78,14 @@ export let SkillVersionsScene = dynamicComponent<Parameters<typeof _SkillVersion
   import('./skillVersions').then(m => m.SkillVersionsScene)
 );
 
+export let SkillMergeRequestsScene = dynamicComponent<
+  Parameters<typeof _SkillMergeRequestsScene>
+>(() => import('./skillMergeRequests').then(m => m.SkillMergeRequestsScene));
+
+export let SkillMergeRequestScene = dynamicComponent<
+  Parameters<typeof _SkillMergeRequestScene>
+>(() => import('./skillMergeRequests').then(m => m.SkillMergeRequestScene));
+
 export let SkillTemplateLinkProvidersScene = dynamicComponent<
   Parameters<typeof _SkillTemplateLinkProvidersScene>
 >(() => import('./skillLinkProviders').then(m => m.SkillTemplateLinkProvidersScene));
@@ -100,4 +116,8 @@ export let SkillStoreFileViewerScene = dynamicComponent<
 
 export let StoreFileViewerScene = dynamicComponent<Parameters<typeof _StoreFileViewerScene>>(
   () => import('./skillStoreFileViewer').then(m => m.StoreFileViewerScene)
+);
+
+export let SkillWorkspaceLayout = dynamicComponent<Parameters<typeof _SkillWorkspaceLayout>>(
+  () => import('./skillWorkspaceLayout').then(m => m.SkillWorkspaceLayout)
 );

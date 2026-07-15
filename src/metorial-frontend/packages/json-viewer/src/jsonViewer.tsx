@@ -1,14 +1,11 @@
 import { theme } from '@metorial/ui';
-import { JsonValue, TreeView, VisualJson, useStudio } from '@visual-json/react';
+import { type JsonValue, TreeView, VisualJson, useStudio } from '@visual-json/react';
 import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 
 let Viewer = styled.div`
   overflow: hidden;
   font-size: 12px;
-  /* border: 1px solid ${theme.colors.gray300};
-  border-radius: 10px;
-  background: ${theme.colors.background}; */
 
   [data-vj-root] {
     display: flex;
@@ -22,9 +19,6 @@ let Viewer = styled.div`
 
   [role='treeitem'] {
     border-radius: 8px;
-    /* align-items: flex-start;
-    flex-wrap: wrap;
-    min-width: 0; */
   }
 
   [role='treeitem'] > span[style*='text-overflow'] {
@@ -107,3 +101,5 @@ export let JsonViewer = ({ className, value }: { className?: string; value: Json
     </Viewer>
   );
 };
+
+export type { JsonValue };

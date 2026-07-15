@@ -1,4 +1,3 @@
-import { getConfig } from '@metorial/config';
 import { Context } from '@lowerdeck/hono';
 import { createConnectionHono } from '../hono';
 
@@ -27,7 +26,7 @@ export let buildOAuthClientConfig = (base: string) => ({
   client_id_metadata_document_supported: false,
   code_challenge_methods_supported: ['S256'],
   grant_types_supported: ['authorization_code', 'refresh_token'],
-  issuer: getConfig().urls.apiUrl,
+  issuer: base,
   registration_endpoint: `${base}/oauth/register`,
   response_modes_supported: ['query'],
   response_types_supported: ['code'],
@@ -56,6 +55,7 @@ type OAuthRoutePathConfig = {
   metadata: string[];
   connect: string[];
   protectedResource: string[];
+  protectedResourceMetadata: string[];
   openIdConfiguration: string[];
   register: string[];
   authorize: string[];
@@ -78,6 +78,7 @@ let portalOAuthPaths: OAuthRoutePathConfig = {
     ':portalId/:magicMcpTargetId/.well-known/oauth-protected-resource',
     ':portalId/.well-known/oauth-protected-resource'
   ],
+  protectedResourceMetadata: [':portalId/:magicMcpTargetId', ':portalId'],
   openIdConfiguration: [
     ':portalId/:magicMcpTargetId/.well-known/openid-configuration',
     ':portalId/.well-known/openid-configuration'
@@ -99,6 +100,7 @@ let pluginOAuthPaths: OAuthRoutePathConfig = {
   ],
   connect: [':skillPluginId'],
   protectedResource: [':skillPluginId/.well-known/oauth-protected-resource'],
+  protectedResourceMetadata: [':skillPluginId'],
   openIdConfiguration: [':skillPluginId/.well-known/openid-configuration'],
   register: [':skillPluginId/oauth/register'],
   authorize: [':skillPluginId/oauth/authorize'],
@@ -133,6 +135,14 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
   let metadataServer = createConnectionHono();
   for (let path of d.paths.metadata) {
     metadataServer = metadataServer.get(path, withResolvedRoute(d.handlers.metadata));
+  }
+
+  let protectedResourceServer = createConnectionHono();
+  for (let path of d.paths.protectedResourceMetadata) {
+    protectedResourceServer = protectedResourceServer.get(
+      path,
+      withResolvedRoute(d.handlers.protectedResource)
+    );
   }
 
   let connectServer = createConnectionHono();
@@ -184,6 +194,7 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
 
   return {
     metadataServer,
+    protectedResourceServer,
     connectServer
   };
 };
@@ -210,6 +221,7 @@ export let createPortalOAuthServers = <TRoute>(
 
   return {
     metadataServer: servers.metadataServer,
+    protectedResourceServer: servers.protectedResourceServer,
     connectPortalServer: servers.connectServer
   };
 };
@@ -225,6 +237,7 @@ export let createPluginOAuthServers = <TRoute>(
 
   return {
     metadataServer: servers.metadataServer,
+    protectedResourceServer: servers.protectedResourceServer,
     connectPluginServer: servers.connectServer
   };
 };

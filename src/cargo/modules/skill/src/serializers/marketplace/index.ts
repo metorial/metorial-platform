@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial-cargo/db';
 import semver from 'semver';
@@ -40,46 +41,73 @@ export let applyMarketplace = createApplicator(
       skillMarketplaceOid: input.skillMarketplace.oid
     });
 
-    let pluginHashes = plugins
-      .map(s =>
+    let tenant = await db.tenant.findFirstOrThrow({
+      where: { oid: input.skillMarketplace.tenantOid }
+    });
+    let legacyPluginHashes = plugins
+      .map(plugin =>
         [
           1,
-          s.oid,
-          s.skillPlugin.oid,
-          s.updatedAt.getTime(),
-          s.skillPlugin.updatedAt.getTime()
+          plugin.oid,
+          plugin.skillPlugin.oid,
+          plugin.updatedAt.getTime(),
+          plugin.skillPlugin.updatedAt.getTime()
         ].join(':')
       )
       .join('|');
-
-    let hash = await Hash.sha256(
+    let legacyHash = await Hash.sha256(
       [
         1,
         input.skillMarketplace.oid,
         input.skillMarketplace.updatedAt.getTime(),
-        pluginHashes
+        legacyPluginHashes
       ].join(':')
     );
 
-    let tenant = await db.tenant.findFirstOrThrow({
-      where: { oid: input.skillMarketplace.tenantOid }
-    });
+    // Hash only values that affect generated files. Timestamps and the generated
+    // version are deliberately excluded so importing our own version-only commit
+    // cannot schedule another version-only sync.
+    let hash = await Hash.sha256(
+      canonicalize({
+        serializerVersion: 2,
+        marketplace: {
+          slug: input.skillMarketplace.slug,
+          name: input.skillMarketplace.name,
+          ownerName: tenant.organizationName ?? tenant.name
+        },
+        plugins: plugins.map(plugin => ({
+          slug: plugin.pluginSlug,
+          category: plugin.skillPlugin.category ?? 'Productivity',
+          description:
+            plugin.skillPlugin.description ??
+            plugin.skillPlugin.skillPluginSkills[0]?.skill.description ??
+            ''
+        }))
+      })
+    );
 
     return {
       plugins,
       tenant,
-      hash
+      hash,
+      legacyHash
     };
   },
   {
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { plugins, tenant, hash }) => {
+    apply: async (input, context, { plugins, tenant, hash, legacyHash }) => {
       if (input.skillMarketplace.versionHash !== hash) {
-        let nextVersion = semver.inc(input.skillMarketplace.version ?? '0.0.0', 'patch')!;
+        let isHashMigration = input.skillMarketplace.versionHash === legacyHash;
+        let nextVersion = isHashMigration
+          ? input.skillMarketplace.version
+          : semver.inc(input.skillMarketplace.version ?? '0.0.0', 'patch')!;
 
-        await db.skillMarketplace.updateMany({
-          where: { oid: input.skillMarketplace.oid },
+        let updated = await db.skillMarketplace.updateMany({
+          where: {
+            oid: input.skillMarketplace.oid,
+            versionHash: input.skillMarketplace.versionHash
+          },
           data: {
             versionHash: hash,
             version: nextVersion,
@@ -89,7 +117,20 @@ export let applyMarketplace = createApplicator(
           }
         });
 
-        input.skillMarketplace.version = nextVersion;
+        if (updated.count > 0) {
+          input.skillMarketplace.version = nextVersion;
+          input.skillMarketplace.versionHash = hash;
+        } else {
+          let current = await db.skillMarketplace.findUniqueOrThrow({
+            where: { oid: input.skillMarketplace.oid }
+          });
+          if (current.versionHash !== hash) {
+            throw new Error('Marketplace changed while its sync was being processed');
+          }
+
+          input.skillMarketplace.version = current.version;
+          input.skillMarketplace.versionHash = current.versionHash;
+        }
       }
 
       let codexMarketplace = json({

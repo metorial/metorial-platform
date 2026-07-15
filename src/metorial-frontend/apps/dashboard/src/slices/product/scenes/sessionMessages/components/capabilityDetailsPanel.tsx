@@ -1,7 +1,7 @@
+import { JsonViewer } from '@metorial/json-viewer';
 import { Badge, Panel, Text, showModal, theme } from '@metorial/ui';
 import { Fragment, type ReactNode } from 'react';
 import styled from 'styled-components';
-import { JsonViewer } from '../../../../../components/jsonViewer';
 import { asRecord, isPresentJsonValue } from '../utils';
 
 type CapabilityKind = 'tool' | 'prompt' | 'resource' | 'resourceTemplate';

@@ -22,6 +22,16 @@ import {
   syncPropagateWaitQueueProcessor
 } from './sync/propagate';
 import { syncStartQueueProcessor } from './sync/start';
+import {
+  skillMergeRequestPerformQueueProcessor,
+  skillMergeRequestRecoveryCron
+} from './mergeRequest';
+import { skillForkSyncQueueProcessor } from './forkSync';
+import { skillImportAcquireQueueProcessor } from './import/acquire';
+import { skillImportDiscoverQueueProcessor } from './import/discover';
+import { skillImportFinishQueueProcessor } from './import/finish';
+import { skillImportItemQueueProcessor } from './import/item';
+import { skillImportRecoveryCron } from './import/recovery';
 
 export let skillQueueProcessor = combineQueueProcessors([
   lifecycleQueues,
@@ -40,9 +50,20 @@ export let skillQueueProcessor = combineQueueProcessors([
   syncPropagateWaitQueueProcessor,
   syncFinishQueueProcessor,
   skillDestinationSyncCleanupCron,
-  skillExportQueueProcessor
+  skillExportQueueProcessor,
+  skillMergeRequestPerformQueueProcessor,
+  skillMergeRequestRecoveryCron,
+  skillForkSyncQueueProcessor,
+  skillImportAcquireQueueProcessor,
+  skillImportDiscoverQueueProcessor,
+  skillImportItemQueueProcessor,
+  skillImportFinishQueueProcessor,
+  skillImportRecoveryCron
 ]);
 
 export * from './lifecycle';
 export * from './search';
 export * from './export';
+export * from './mergeRequest';
+export * from './forkSync';
+export * from './import/acquire';

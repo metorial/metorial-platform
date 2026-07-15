@@ -83,6 +83,8 @@ import {
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
+  ConsumerActivityAgent,
+  ConsumerActivitySessionConnection,
   ConsumerProviderCatalogEntry,
   EnrichedConsumerSurface
 } from '@metorial/module-consumer';
@@ -91,6 +93,8 @@ import type {
   CargoFileLink,
   CargoSkillAgent,
   CargoSkillConfiguration,
+  CargoSkillForkSync,
+  CargoSkillImport,
   CargoSkillVersion,
   CargoSkillVersionSnapshot,
   CargoStore,
@@ -103,6 +107,11 @@ import type {
   EnrichedCargoSkillMarketplace,
   EnrichedCargoSkillMarketplacePlugin,
   EnrichedCargoSkillMarketplaceRepository,
+  EnrichedCargoSkillMergePlan,
+  EnrichedCargoSkillMergeRequest,
+  EnrichedCargoSkillMergeRequestComment,
+  EnrichedCargoSkillMergeRequestEvent,
+  EnrichedCargoSkillMergeRequestItem,
   EnrichedCargoSkillParticipant,
   EnrichedCargoSkillPlugin,
   EnrichedCargoSkillPluginRepository,
@@ -517,6 +526,14 @@ export let documentType = PresentableType.create<{
   document: EnrichedCargoDocument;
 }>()('document');
 
+export let documentEditTokenType = PresentableType.create<{
+  token: {
+    token: string;
+    expiresAt: Date;
+    documentId: string;
+  };
+}>()('document.edit_token');
+
 export let documentPermissionsType = PresentableType.create<{
   permissions: CargoDocumentPermissions;
 }>()('documentPermissions');
@@ -561,6 +578,14 @@ export let skillExportType = PresentableType.create<{
   skillExport: EnrichedCargoSkillExport;
 }>()('skillExport');
 
+export let skillImportType = PresentableType.create<{
+  skillImport: CargoSkillImport;
+}>()('skillImport');
+
+export let skillForkSyncType = PresentableType.create<{
+  skillForkSync: CargoSkillForkSync;
+}>()('skillForkSync');
+
 export let skillMarketplaceType = PresentableType.create<{
   skillMarketplace: EnrichedCargoSkillMarketplace;
 }>()('skillMarketplace');
@@ -600,6 +625,26 @@ export let skillVersionType = PresentableType.create<{
 export let skillVersionSnapshotType = PresentableType.create<{
   skillVersionSnapshot: CargoSkillVersionSnapshot;
 }>()('skillVersionSnapshot');
+
+export let skillMergeRequestType = PresentableType.create<{
+  skillMergeRequest: EnrichedCargoSkillMergeRequest;
+}>()('skillMergeRequest');
+
+export let skillMergeRequestItemType = PresentableType.create<{
+  skillMergeRequestItem: EnrichedCargoSkillMergeRequestItem;
+}>()('skillMergeRequestItem');
+
+export let skillMergeRequestCommentType = PresentableType.create<{
+  skillMergeRequestComment: EnrichedCargoSkillMergeRequestComment;
+}>()('skillMergeRequestComment');
+
+export let skillMergeRequestEventType = PresentableType.create<{
+  skillMergeRequestEvent: EnrichedCargoSkillMergeRequestEvent;
+}>()('skillMergeRequestEvent');
+
+export let skillMergePlanType = PresentableType.create<{
+  skillMergePlan: EnrichedCargoSkillMergePlan;
+}>()('skillMergePlan');
 
 export let secretType = PresentableType.create<{
   secret: Secret & { type: SecretType; organization: Organization; instance: Instance };
@@ -901,6 +946,15 @@ export let consumerSessionType = PresentableType.create<{
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;
 }>()('consumer.provider');
+
+export let consumerActivityAgentType = PresentableType.create<ConsumerActivityAgent>()(
+  'consumer.activity_agent'
+);
+
+export let consumerActivitySessionConnectionType =
+  PresentableType.create<ConsumerActivitySessionConnection>()(
+    'consumer.activity_session_connection'
+  );
 
 export let portalOAuthClientType = PresentableType.create<{
   portalAuthClient: ConsumerAuthClient & {

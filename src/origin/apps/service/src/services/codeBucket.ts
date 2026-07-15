@@ -6,13 +6,18 @@ import type { ScmRepository } from '../../prisma/generated/browser';
 import type { CodeBucket, CodeBucketTemplate, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { getBitbucketAccessTokenWithInstallation } from '../lib/bitbucket';
 import { codeBucketClient } from '../lib/codeWorkspace';
 import { getInstallationAccessToken } from '../lib/githubApp';
+import { getGitLabAccessTokenWithInstallation } from '../lib/gitlab';
 import { normalizePath } from '../lib/normalizePath';
+import { getBitbucketCloneUrl } from '../queues/codeBucket/bitbucket';
 import { cloneBucketQueue } from '../queues/codeBucket/cloneBucket';
 import { copyFromToBucketQueue } from '../queues/codeBucket/copyFromToBucket';
+import { exportBitbucketQueue } from '../queues/codeBucket/exportBitbucket';
 import { exportGithubQueue } from '../queues/codeBucket/exportGithub';
 import { exportGitlabQueue } from '../queues/codeBucket/exportGitlab';
+import { importBitbucketQueue } from '../queues/codeBucket/importBitbucket';
 import { importGithubQueue } from '../queues/codeBucket/importGithub';
 import { importGitlabQueue } from '../queues/codeBucket/importGitlab';
 import { importTemplateQueue } from '../queues/codeBucket/importTemplate';
@@ -112,6 +117,13 @@ class codeBucketServiceImpl {
         ref,
         repoId: d.repo.id
       });
+    } else if (d.repo.provider === 'bitbucket') {
+      await importBitbucketQueue.add({
+        newBucketId: codeBucket.id,
+        path: d.path ?? '/',
+        ref,
+        repoId: d.repo.id
+      });
     } else {
       throw new ServiceError(
         badRequestError({
@@ -153,6 +165,13 @@ class codeBucketServiceImpl {
         owner: d.repo.externalOwner,
         path: d.codeBucket.path ?? '/',
         repo: d.repo.externalName,
+        ref: d.codeBucket.syncRef ?? d.repo.defaultBranch ?? 'main',
+        repoId: d.repo.id
+      });
+    } else if (d.repo.provider === 'bitbucket') {
+      await importBitbucketQueue.add({
+        newBucketId: d.codeBucket.id,
+        path: d.codeBucket.path ?? '/',
         ref: d.codeBucket.syncRef ?? d.repo.defaultBranch ?? 'main',
         repoId: d.repo.id
       });
@@ -257,6 +276,14 @@ class codeBucketServiceImpl {
         branchName: d.branchName,
         commitMessage: d.commitMessage
       });
+    } else if (d.repo.provider === 'bitbucket') {
+      await exportBitbucketQueue.add({
+        bucketId: d.codeBucket.id,
+        repoId: d.repo.id,
+        path: d.path,
+        branchName: d.branchName,
+        commitMessage: d.commitMessage
+      });
     } else {
       throw new ServiceError(
         badRequestError({
@@ -305,19 +332,45 @@ class codeBucketServiceImpl {
     }
 
     if (repo.provider === 'gitlab') {
-      if (!repo.installation.accessToken) {
-        throw new ServiceError(badRequestError({ message: 'Access token not found' }));
-      }
+      let token = await getGitLabAccessTokenWithInstallation(repo.installation);
 
       await codeBucketClient.exportBucketToGitlab({
         bucketId: d.codeBucket.id,
         projectId: Long.fromString(repo.externalId),
         path: d.path,
-        token: repo.installation.accessToken,
+        token,
         gitlabApiUrl: repo.installation.backend.apiUrl,
         branch,
         commitMessage
       });
+      return;
+    }
+
+    if (repo.provider === 'bitbucket') {
+      let token = await getBitbucketAccessTokenWithInstallation(repo.installation);
+      if (repo.installation.backend.type === 'bitbucket_data_center') {
+        await codeBucketClient.exportBucketToBitbucketDataCenter({
+          bucketId: d.codeBucket.id,
+          cloneUrl: getBitbucketCloneUrl(repo),
+          path: d.path,
+          username: '',
+          token,
+          branch,
+          commitMessage
+        });
+      } else {
+        await codeBucketClient.exportBucketToBitbucketCloud({
+          bucketId: d.codeBucket.id,
+          workspace: repo.externalOwner,
+          repo: repo.externalName,
+          path: d.path,
+          token,
+          bitbucketApiUrl: repo.installation.backend.apiUrl,
+          bitbucketWebUrl: repo.installation.backend.webUrl,
+          branch,
+          commitMessage
+        });
+      }
       return;
     }
 

@@ -24,9 +24,19 @@ export let v1ScmProviderPresenter = Presenter.create(scmProviderType)
       object: v.literal('scm.provider'),
       id: v.string({ description: 'Unique SCM provider identifier' }),
 
-      type: v.enumOf(['github', 'github_enterprise', 'gitlab', 'gitlab_selfhosted'], {
-        description: 'SCM backend type'
-      }),
+      type: v.enumOf(
+        [
+          'github',
+          'github_enterprise',
+          'gitlab',
+          'gitlab_selfhosted',
+          'bitbucket',
+          'bitbucket_data_center'
+        ],
+        {
+          description: 'SCM backend type'
+        }
+      ),
       name: v.string({ description: 'Provider name' }),
       description: v.nullable(v.string({ description: 'Provider description' })),
       api_url: v.nullable(v.string({ description: 'API base URL for the SCM provider' })),

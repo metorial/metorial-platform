@@ -163,6 +163,8 @@ let PluginPickerPanel = (p: {
                         description={truncate(plugin.description)}
                         height={200}
                         onClick={() => selectPlugin(plugin)}
+                        disabled={selectedId !== null && selectedId !== plugin.id}
+                        loading={selectedId === plugin.id}
                         icon={
                           <Avatar
                             entity={{
@@ -218,11 +220,8 @@ let SkillPickerPanel = (p: {
     <>
       <Panel.Header>
         <div>
-          <Panel.Title>Add Single Skill</Panel.Title>
-          <Panel.Description>
-            A dedicated plugin will be created for the selected skill and added to this
-            marketplace.
-          </Panel.Description>
+          <Panel.Title>Add Skill</Panel.Title>
+          <Panel.Description>Choose a skill to add to this marketplace.</Panel.Description>
         </div>
       </Panel.Header>
 
@@ -259,6 +258,8 @@ let SkillPickerPanel = (p: {
                       description={truncate(skill.description)}
                       height={200}
                       onClick={() => selectSkill(skill)}
+                      disabled={selectedId !== null && selectedId !== skill.id}
+                      loading={selectedId === skill.id}
                       icon={
                         <Avatar
                           entity={{
@@ -324,7 +325,7 @@ let getPluginTableRow = (p: {
         <Avatar
           entity={{
             name: title,
-            photoUrl: plugin?.imageUrl ?? undefined
+            imageUrl: plugin?.imageUrl ?? undefined
           }}
           size={32}
           radius={999}
@@ -392,7 +393,7 @@ export let SkillMarketplacePluginsScene = (p: {
   let linkedPluginIds = useMemo(
     () =>
       (marketplacePlugins.data ?? [])
-        .map(item => item.skillPlugin?.id ?? item.skillPluginId)
+        .map(item => item.skillPlugin?.id ?? item.skillPlugin?.id)
         .filter((id): id is string => !!id),
     [marketplacePlugins.data]
   );
@@ -477,13 +478,13 @@ export let SkillMarketplacePluginsScene = (p: {
 
   return renderWithLoader({ marketplacePlugins })(({ marketplacePlugins }) => (
     <Box
-      title="Plugins"
-      description="Choose which plugins are available in this marketplace."
+      title="Plugins and Skills"
+      description="Choose which plugins and skills are available in this marketplace."
       rightActions={
         <Menu
           items={[
-            { id: 'plugin', label: 'Add Existing Plugin' },
-            { id: 'skill', label: 'Add Single Skill' }
+            // { id: 'plugin', label: 'Add Existing Plugin' },
+            { id: 'skill', label: 'Add Skill' }
           ]}
           onItemClick={item => {
             if (item === 'plugin') addExistingPlugin();

@@ -42,13 +42,16 @@ model Document {
   createdByTenantActorOid BigInt?
   createdByTenantActor    TenantActor? @relation("DocumentCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: SetNull)
 
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @default(now()) @updatedAt
-  documentParticipants DocumentParticipant[]
-  documentVersions     DocumentVersion[]
-  storeItems           StoreItem[]
-  storeVersionItems    StoreVersionItem[]
-  skillAgents          SkillAgent[]
+  createdAt                         DateTime                @default(now())
+  updatedAt                         DateTime                @default(now()) @updatedAt
+  documentParticipants              DocumentParticipant[]
+  documentVersions                  DocumentVersion[]
+  storeItems                        StoreItem[]
+  storeVersionItems                 StoreVersionItem[]
+  skillAgents                       SkillAgent[]
+  mergeRequestItemsAsBaseDocument   SkillMergeRequestItem[] @relation("SkillMergeRequestItemBaseDocument")
+  mergeRequestItemsAsSourceDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemSourceDocument")
+  mergeRequestItemsAsTargetDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemTargetDocument")
 
   @@index([tenantOid, environmentOid])
   @@index([tenantOid, environmentOid, isTemplateBacking])
@@ -108,9 +111,12 @@ model DocumentVersion {
 
   currentVersionOfDocuments Document[] @relation("DocumentToCurrentVersion")
 
-  createdAt              DateTime                 @default(now())
-  documentVersionEditors DocumentVersionEditors[]
-  storeVersionItems      StoreVersionItem[]
+  createdAt                                DateTime                 @default(now())
+  documentVersionEditors                   DocumentVersionEditors[]
+  storeVersionItems                        StoreVersionItem[]
+  mergeRequestItemsAsBaseDocumentVersion   SkillMergeRequestItem[]  @relation("SkillMergeRequestItemBaseDocumentVersion")
+  mergeRequestItemsAsSourceDocumentVersion SkillMergeRequestItem[]  @relation("SkillMergeRequestItemSourceDocumentVersion")
+  mergeRequestItemsAsTargetDocumentVersion SkillMergeRequestItem[]  @relation("SkillMergeRequestItemTargetDocumentVersion")
 
   @@unique([tenantOid, environmentOid, documentOid, versionNumber])
 }

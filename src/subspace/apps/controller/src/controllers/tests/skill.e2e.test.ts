@@ -1,6 +1,10 @@
 import { ID, get4ByteIntId, getId } from '@metorial-subspace/db';
-import { indexSkillRecord, reconcileSkillProviderLinks } from '@metorial-subspace/module-skills';
-import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  indexSkillRecord,
+  reconcileSkillProviderLinks
+} from '@metorial-subspace/module-skills';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cargo } from '../../../../../modules/skills/src/cargo';
 import { createSubspaceControllerRootTestClient } from '../../test/client';
 import { getVoyagerStubCalls } from '../../test/helpers/voyagerStub';
 import { cleanDatabase, testDb } from '../../test/setup';
@@ -188,7 +192,85 @@ let createIntegrationProvider = async (d: {
 
 describe('skill.e2e', () => {
   beforeEach(async () => {
+    vi.restoreAllMocks();
     await cleanDatabase();
+  });
+
+  it('registers an existing Cargo skill idempotently', async () => {
+    let { client, tenant, tenantRecord, environmentRecord } = await createTenantContext();
+    let organizationActorId = 'oact_importer';
+    let actor = await client.actor.upsert({
+      tenantId: tenant.id,
+      name: 'Importing Admin',
+      identifier: 'importing-admin',
+      organizationActorId,
+      type: 'external'
+    });
+    vi.spyOn(cargo.tenant, 'upsert').mockResolvedValue({ id: 'cargo-tenant' } as any);
+    vi.spyOn(cargo.environment, 'upsert').mockResolvedValue({
+      id: 'cargo-environment'
+    } as any);
+    vi.spyOn(cargo.skill, 'get').mockResolvedValue({
+      object: 'cargo#skill',
+      id: 'skl_imported',
+      image: null,
+      name: 'Imported Skill',
+      description: 'Imported from a repository',
+      metadata: { imported: true },
+      clientName: 'imported-skill',
+      clientDescription: null,
+      clientMetadata: null,
+      license: null,
+      compatibility: null,
+      storeId: 'str_imported',
+      createdBy: null,
+      createdAt: new Date()
+    } as any);
+
+    let registered = await client.skill.registerCargo({
+      tenantId: tenant.id,
+      environmentId: environmentRecord.id,
+      actorId: actor.id,
+      skillId: 'skl_imported'
+    });
+    let registeredAgain = await client.skill.registerCargo({
+      tenantId: tenant.id,
+      environmentId: environmentRecord.id,
+      actorId: actor.id,
+      skillId: 'skl_imported'
+    });
+    let fetched = await client.skill.get({
+      tenantId: tenant.id,
+      environmentId: environmentRecord.id,
+      skillId: 'skl_imported'
+    });
+    let listed = await client.skill.list({
+      tenantId: tenant.id,
+      environmentId: environmentRecord.id,
+      ids: ['skl_imported'],
+      limit: 10
+    });
+    let records = await testDb.skill.findMany({
+      where: {
+        id: 'skl_imported',
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      },
+      include: {
+        skillEntity: true,
+        ownerTenantActor: true
+      }
+    });
+
+    expect(registered.id).toBe('skl_imported');
+    expect(registered.storeId).toBe('str_imported');
+    expect(registered.metadata).toEqual({ imported: true });
+    expect(registeredAgain.id).toBe(registered.id);
+    expect(fetched.id).toBe(registered.id);
+    expect(listed.items.map(skill => skill.id)).toEqual([registered.id]);
+    expect(records).toHaveLength(1);
+    expect(records[0]?.skillEntity.ownerSkillOid).toBe(records[0]?.oid);
+    expect(records[0]?.ownerTenantActor?.id).toBe(actor.id);
   });
 
   it('creates, updates, and archives a skill through the controller', async () => {

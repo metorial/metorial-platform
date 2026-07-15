@@ -10,10 +10,14 @@
   },
   "dependencies": {
     "@metorial/code": "^1.0.0",
+    "@metorial/code-editor": "workspace:*",
     "@metorial/data-hooks": "^1.0.0",
     "@metorial/dynamic-component": "^1.0.0",
     "@metorial/frontend-config": "^1.0.0",
     "@metorial/layout": "^1.0.0",
+    "@metorial/markdown": "^1.0.0",
+    "@metorial/microfrontend": "^1.0.0",
+    "@metorial/scene-scm": "^1.0.0",
     "@metorial/state": "^1.0.0",
     "@metorial/ui": "^1.0.0",
     "@metorial/ui-product": "^1.0.0",
@@ -26,11 +30,9 @@
     "react": "19.1.1",
     "react-avatar-editor": "^13.0.2",
     "react-dropzone": "^14.3.8",
-    "react-markdown": "^9.0.1",
     "react-router-dom": "^6.26.1",
     "react-textarea-autosize": "^8.5.9",
     "react-use": "^17.6.0",
-    "remark-gfm": "^4.0.1",
     "styled-components": "^6.1.13"
   },
   "devDependencies": {

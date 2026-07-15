@@ -1,0 +1,288 @@
+enum StoreStatus {
+  active
+  archived
+}
+
+enum StoreAccess {
+  private
+  public_read
+  public_write
+}
+
+enum StoreCloneType {
+  sync_until_change
+  duplicate
+}
+
+enum StoreTemplateItemEncoding {
+  utf_8  @map("utf-8")
+  base64
+}
+
+enum StoreTemplateType {
+  linked_store
+  standalone
+}
+
+enum StoreItemKind {
+  file
+  document
+  directory
+}
+
+model Store {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name              String
+  access            StoreAccess     @default(private)
+  cloneType         StoreCloneType?
+  itemCount         Int             @default(0)
+  dirtyAt           DateTime?
+  isReadOnly        Boolean         @default(false)
+  isTemplateBacking Boolean         @default(false)
+  lastEditedAt      DateTime        @default(now())
+
+  createdByResourceActorOid BigInt?
+  createdByResourceActor    ResourceActor? @relation("StoreCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: SetNull)
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt
+  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  parentStoreOid BigInt?
+  parentStore    Store?  @relation("StoreHierarchy", fields: [parentStoreOid], references: [oid], onDelete: Cascade)
+  childStores    Store[] @relation("StoreHierarchy")
+
+  parentStoreTemplateOid BigInt?
+  parentStoreTemplate    StoreTemplate? @relation("StoreTemplateParent", fields: [parentStoreTemplateOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  items             StoreItem[]
+  versions          StoreVersion[]
+  storeParticipants StoreParticipant[]
+  skill             Skill?
+  storeDirectories  StoreDirectory[]
+  sourceTemplates   StoreTemplate[]       @relation("StoreTemplateSource")
+  templateBacking   StoreTemplateBacking?
+
+  @@index([resourceTenantOid, resourceGroupOid, dirtyAt])
+  @@index([resourceTenantOid, resourceGroupOid, isTemplateBacking])
+}
+
+model StoreTemplate {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+  type StoreTemplateType
+  hash String?
+
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  sourceStoreOid BigInt?
+  sourceStore    Store?  @relation("StoreTemplateSource", fields: [sourceStoreOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  items              StoreTemplateItem[]
+  instantiatedStores Store[]                @relation("StoreTemplateParent")
+  skillTemplate      SkillTemplate?
+  backingStores      StoreTemplateBacking[]
+
+  @@index([resourceTenantOid, resourceGroupOid])
+  @@index([sourceStoreOid])
+  @@index([hash])
+}
+
+model StoreTemplateItem {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  kind StoreItemKind
+  path String
+
+  content         String?
+  encoding        StoreTemplateItemEncoding?
+  mimeType        String?
+  title           String?
+  hash            String?
+  contentHash     String?
+  fileStoreId     String?
+  contentByteSize Int?
+
+  storeTemplateOid BigInt
+  storeTemplate    StoreTemplate @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeTemplateOid, path])
+  @@index([storeTemplateOid, hash])
+}
+
+model StoreTemplateBacking {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  storeTemplateOid BigInt
+  storeTemplate    StoreTemplate @relation(fields: [storeTemplateOid], references: [oid], onDelete: Cascade)
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt
+  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  storeOid BigInt @unique
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  lastSyncedHash String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeTemplateOid, resourceTenantOid, resourceGroupOid])
+  @@index([resourceTenantOid, resourceGroupOid])
+}
+
+model StoreItem {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  kind StoreItemKind
+  path String
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  referenceOid BigInt?
+  reference    FileReference? @relation(fields: [referenceOid], references: [oid], onDelete: Cascade)
+
+  documentOid BigInt?
+  document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  directoryOid BigInt?
+  directory    StoreDirectory? @relation("StoreItemDirectory", fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  parentDirectoryOid BigInt?
+  parentDirectory    StoreDirectory? @relation("StoreItemParentDirectory", fields: [parentDirectoryOid], references: [oid], onDelete: Cascade)
+
+  lastModifiedByResourceActorOid BigInt?
+  lastModifiedByResourceActor    ResourceActor? @relation(fields: [lastModifiedByResourceActorOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  skillAgent SkillAgent?
+
+  @@unique([storeOid, path])
+  @@unique([directoryOid])
+  @@index([parentDirectoryOid])
+  @@index([documentOid])
+}
+
+model StoreVersion {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  versionNumber Int
+  sourceDirtyAt DateTime
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  items        StoreVersionItem[]
+  skillVersion SkillVersion?
+
+  @@unique([storeOid, versionNumber])
+  @@unique([storeOid, sourceDirtyAt])
+  @@index([storeOid, createdAt])
+}
+
+model StoreVersionItem {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  kind StoreItemKind
+  path String
+
+  storeVersionOid BigInt
+  storeVersion    StoreVersion @relation(fields: [storeVersionOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  documentOid BigInt?
+  document    Document? @relation(fields: [documentOid], references: [oid], onDelete: Cascade)
+
+  documentTitle String?
+
+  documentVersionOid BigInt?
+  documentVersion    DocumentVersion? @relation(fields: [documentVersionOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([storeVersionOid, path])
+  @@index([fileOid])
+  @@index([documentOid])
+  @@index([documentVersionOid])
+}
+
+enum StoreParticipantPermissions {
+  content_read
+  content_write
+}
+
+model StoreParticipant {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  permissions StoreParticipantPermissions[]
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([storeOid, resourceActorOid])
+}
+
+model StoreDirectory {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  isAutoCreated Boolean
+  path          String
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  parentDirectoryOid BigInt?
+  parentDirectory    StoreDirectory?  @relation("StoreDirectoryHierarchy", fields: [parentDirectoryOid], references: [oid], onDelete: Cascade)
+  childDirectories   StoreDirectory[] @relation("StoreDirectoryHierarchy")
+
+  storeItem  StoreItem?  @relation("StoreItemDirectory")
+  storeItems StoreItem[] @relation("StoreItemParentDirectory")
+
+  createdAt DateTime @default(now())
+
+  @@unique([storeOid, path])
+}

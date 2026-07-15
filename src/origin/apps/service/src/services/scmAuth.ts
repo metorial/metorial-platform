@@ -6,16 +6,23 @@ import { env } from '../env';
 import { getId } from '../id';
 import { createGitHubAppClient } from '../lib/githubApp';
 import {
+  createBitbucketClientWithToken,
+  exchangeBitbucketOAuthCode,
+  getBitbucketOAuthUrl
+} from '../lib/bitbucket';
+import {
   createGitLabClientWithToken,
   exchangeGitLabOAuthCode,
   getGitLabOAuthUrl
 } from '../lib/gitlab';
+import { withScmProviderError } from '../lib/scmProviderError';
+import { scmInstallationSessionService } from './scmInstallationSession';
 
 class scmAuthServiceImpl {
   async getAuthorizationUrl(i: {
     tenant: Tenant;
     actor: Actor;
-    provider: 'github' | 'gitlab';
+    provider: 'github' | 'gitlab' | 'bitbucket';
     backendId: string;
     redirectUrl: string;
     state: string; // State from installation session
@@ -64,6 +71,17 @@ class scmAuthServiceImpl {
       });
     }
 
+    if (
+      i.provider === 'bitbucket' &&
+      (backend.type === 'bitbucket' || backend.type === 'bitbucket_data_center')
+    ) {
+      return getBitbucketOAuthUrl({
+        backend,
+        redirectUri: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/oauth/bitbucket/callback`,
+        state: i.state
+      });
+    }
+
     throw new ServiceError(
       badRequestError({
         message: 'Unsupported provider'
@@ -106,9 +124,14 @@ class scmAuthServiceImpl {
       }
 
       let octokit = createGitHubAppClient(existingInstallation.backend);
-      let installationRes = await octokit.request('GET /app/installations/{installation_id}', {
-        installation_id: parseInt(i.installationId)
-      });
+      let installationRes = await withScmProviderError(
+        'github',
+        'load the app installation',
+        () =>
+          octokit.request('GET /app/installations/{installation_id}', {
+            installation_id: parseInt(i.installationId)
+          })
+      );
 
       let installation = installationRes.data;
       let account = installation.account;
@@ -147,10 +170,16 @@ class scmAuthServiceImpl {
       },
       include: {
         tenant: true,
-        ownerActor: true
+        ownerActor: true,
+        selectedBackend: true
       }
     });
-    if (!session) {
+    if (
+      !session ||
+      session.expiresAt <= new Date() ||
+      session.installationOid != null ||
+      !session.selectedBackend
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Invalid state'
@@ -178,9 +207,14 @@ class scmAuthServiceImpl {
       // Get installation details using GitHub App authentication
       let octokit = createGitHubAppClient(backend);
 
-      let installationRes = await octokit.request('GET /app/installations/{installation_id}', {
-        installation_id: parseInt(i.installationId)
-      });
+      let installationRes = await withScmProviderError(
+        'github',
+        'load the app installation',
+        () =>
+          octokit.request('GET /app/installations/{installation_id}', {
+            installation_id: parseInt(i.installationId)
+          })
+      );
 
       let installation = installationRes.data;
       let account = installation.account;
@@ -229,10 +263,9 @@ class scmAuthServiceImpl {
         }
       });
 
-      // Complete the installation session
-      await db.scmInstallationSession.update({
-        where: { id: session.id },
-        data: { installationOid: createdInstallation.oid }
+      await scmInstallationSessionService.completeInstallationSession({
+        sessionId: session.id,
+        installationOid: createdInstallation.oid
       });
 
       return createdInstallation;
@@ -252,10 +285,16 @@ class scmAuthServiceImpl {
       },
       include: {
         tenant: true,
-        ownerActor: true
+        ownerActor: true,
+        selectedBackend: true
       }
     });
-    if (!session) {
+    if (
+      !session ||
+      session.expiresAt <= new Date() ||
+      session.installationOid != null ||
+      !session.selectedBackend
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Invalid state'
@@ -263,18 +302,8 @@ class scmAuthServiceImpl {
       );
     }
 
-    // Find the GitLab backend
-    let backend = await db.scmBackend.findFirst({
-      where: {
-        OR: [
-          { isDefault: true, tenantOid: null, type: { in: ['gitlab', 'gitlab_selfhosted'] } },
-          { tenantOid: session.tenantOid, type: { in: ['gitlab', 'gitlab_selfhosted'] } }
-        ]
-      },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
-    });
-
-    if (!backend) {
+    let backend = session.selectedBackend;
+    if (backend.type !== 'gitlab' && backend.type !== 'gitlab_selfhosted') {
       throw new ServiceError(notFoundError('scm_backend.gitlab'));
     }
 
@@ -288,7 +317,9 @@ class scmAuthServiceImpl {
 
       // Get user info
       let gitlab = createGitLabClientWithToken(accessToken, backend);
-      let user = await gitlab.Users.showCurrentUser();
+      let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
+        gitlab.Users.showCurrentUser()
+      );
 
       let data = {
         provider: i.provider,
@@ -324,10 +355,9 @@ class scmAuthServiceImpl {
         }
       });
 
-      // Complete the installation session
-      await db.scmInstallationSession.update({
-        where: { id: session.id },
-        data: { installationOid: createdInstallation.oid }
+      await scmInstallationSessionService.completeInstallationSession({
+        sessionId: session.id,
+        installationOid: createdInstallation.oid
       });
 
       return createdInstallation;
@@ -338,6 +368,72 @@ class scmAuthServiceImpl {
         message: 'Unsupported provider'
       })
     );
+  }
+
+  async handleBitbucketOAuthCallback(i: {
+    provider: 'bitbucket';
+    code: string;
+    state: string;
+  }) {
+    let session = await db.scmInstallationSession.findUnique({
+      where: { state: i.state },
+      include: { selectedBackend: true }
+    });
+    if (
+      !session ||
+      session.expiresAt <= new Date() ||
+      session.installationOid != null ||
+      !session.selectedBackend
+    ) {
+      throw new ServiceError(badRequestError({ message: 'Invalid state' }));
+    }
+
+    let backend = session.selectedBackend;
+    if (backend.type !== 'bitbucket' && backend.type !== 'bitbucket_data_center') {
+      throw new ServiceError(notFoundError('scm_backend.bitbucket'));
+    }
+
+    let credentials = await exchangeBitbucketOAuthCode({
+      backend,
+      code: i.code,
+      redirectUri: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/oauth/bitbucket/callback`
+    });
+    let client = createBitbucketClientWithToken(credentials.accessToken, backend);
+    let user = await withScmProviderError('bitbucket', 'load the authenticated user', () =>
+      client.getCurrentUser()
+    );
+    let data = {
+      provider: i.provider,
+      tenantOid: session.tenantOid,
+      backendOid: backend.oid,
+      ownerActorOid: session.ownerActorOid,
+      accessToken: credentials.accessToken,
+      refreshToken: credentials.refreshToken,
+      accessTokenExpiresAt: credentials.expiresAt,
+      accountType: user.type,
+      externalAccountId: user.id,
+      externalAccountLogin: user.slug,
+      externalAccountName: user.name,
+      externalAccountEmail: null,
+      externalAccountImageUrl: null
+    };
+    let installation = await db.scmInstallation.upsert({
+      where: {
+        tenantOid_provider_backendOid_externalAccountId: {
+          tenantOid: session.tenantOid,
+          provider: i.provider,
+          backendOid: backend.oid,
+          externalAccountId: user.id
+        }
+      },
+      update: data,
+      create: { ...getId('scmInstallation'), ...data }
+    });
+    await scmInstallationSessionService.completeInstallationSession({
+      sessionId: session.id,
+      installationOid: installation.oid
+    });
+    return installation;
   }
 
   async getMatchingInstallation(i: {

@@ -1,0 +1,93 @@
+enum SkillExportTarget {
+  skill
+  plugin
+  marketplace
+}
+
+enum SkillExportStatus {
+  pending
+  completed
+  failed
+}
+
+model SkillExportRef {
+  oid BigInt @id @default(autoincrement())
+
+  cargoOid BigInt? @unique
+  hash     String
+
+  skillConfigurationOid BigInt?
+  skillConfiguration    SkillConfiguration? @relation(fields: [skillConfigurationOid], references: [oid], onDelete: SetNull)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  managedSkillPluginOid BigInt?
+  managedSkillPlugin    ManagedSkillPlugin? @relation(fields: [managedSkillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: SetNull)
+
+  fileReferenceOid BigInt?
+  fileReference    FileReference? @relation(fields: [fileReferenceOid], references: [oid], onDelete: SetNull)
+
+  fileLinkOid BigInt?
+  fileLink    FileLink? @relation(fields: [fileLinkOid], references: [oid], onDelete: SetNull)
+
+  fileDestinationTag Int?
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt
+  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  skillExports SkillExport[]
+
+  @@unique([resourceTenantOid, resourceGroupOid, hash])
+}
+
+model SkillExport {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  target SkillExportTarget
+  status SkillExportStatus
+
+  exportRefOid BigInt
+  exportRef    SkillExportRef @relation(fields: [exportRefOid], references: [oid], onDelete: Cascade)
+
+  fileOid BigInt?
+  file    File?   @relation(fields: [fileOid], references: [oid], onDelete: SetNull)
+
+  fileReferenceOid BigInt?
+  fileReference    FileReference? @relation(fields: [fileReferenceOid], references: [oid], onDelete: SetNull)
+
+  fileLinkOid BigInt?
+  fileLink    FileLink? @relation(fields: [fileLinkOid], references: [oid], onDelete: SetNull)
+
+  creatorResourceActorOid BigInt?
+  creatorResourceActor    ResourceActor? @relation("SkillExportCreator", fields: [creatorResourceActorOid], references: [oid], onDelete: SetNull)
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt
+  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([status])
+  @@index([creatorResourceActorOid])
+}
+

@@ -1,17 +1,30 @@
 import { flushDocumentDraft } from '@metorial-cargo/module-doc';
 import {
+  processSkillForkSyncJob,
+  processSkillMergeRequestPerformJob,
   skillMarketplacePluginService,
   skillMarketplaceService,
   skillPluginService,
   skillPluginSkillService
 } from '@metorial-cargo/module-skill';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { db, getId, snowflake } from '../../db';
 import { storeVersionService } from '@metorial-cargo/module-store';
-import { cargoClient } from '../../test/client';
-import { cleanDatabase } from '../../test/setup';
+import { Buffer } from 'node:buffer';
+import { beforeEach, describe, expect, it } from 'vitest';
+import * as Y from 'yjs';
 import { applyMarketplace } from '../../../../modules/skill/src/serializers/marketplace';
 import { applyPlugin } from '../../../../modules/skill/src/serializers/plugin';
+import { skillMergeRequestApplyInternalService } from '../../../../modules/skill/src/services/skillMergeRequestApplyInternal';
+import { db, getId, snowflake } from '../../db';
+import { cargoClient } from '../../test/client';
+import { cleanDatabase } from '../../test/setup';
+
+let createTestYjsUpdate = (content: string) => {
+  let document = new Y.Doc();
+  document.getText('test').insert(0, content);
+  let update = Buffer.from(Y.encodeStateAsUpdate(document)).toString('base64');
+  document.destroy();
+  return update;
+};
 
 let subtractHours = (date: Date, hours: number) =>
   new Date(date.getTime() - hours * 60 * 60 * 1000);
@@ -47,6 +60,21 @@ let createActor = async (
     identifier: d.identifier,
     name: d.name
   });
+
+let waitForSkillForkSync = async (d: {
+  tenantId: string;
+  environmentId: string;
+  skillForkSyncId: string;
+  actorId: string;
+}) => {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    let sync = await cargoClient.skillForkSync.get(d);
+    if (!['pending', 'processing'].includes(sync.status)) return sync;
+    await Bun.sleep(20);
+  }
+
+  return await cargoClient.skillForkSync.get(d);
+};
 
 let getCargoScopeRecords = async (d: { tenantId: string; environmentId: string }) => ({
   tenant: await db.tenant.findUniqueOrThrow({
@@ -229,6 +257,40 @@ describe('cargo skill.e2e', () => {
     await cleanDatabase();
   });
 
+  it('uses a safe custom error for merge verification failures', async () => {
+    let verificationError = await skillMergeRequestApplyInternalService
+      .verifyResolvedItems({
+        items: [],
+        before: {
+          itemsByPath: new Map([
+            [
+              '/private/skill.md',
+              { kind: 'document', path: '/private/skill.md', content: 'before' }
+            ]
+          ])
+        } as any,
+        target: {
+          itemsByPath: new Map([
+            [
+              '/private/skill.md',
+              { kind: 'document', path: '/private/skill.md', content: 'after' }
+            ]
+          ])
+        } as any
+      })
+      .then(
+        () => null,
+        error => error
+      );
+
+    expect(verificationError).toMatchObject({
+      name: 'SkillMergeRequestMergeError',
+      code: 'verification_failed',
+      message: 'The proposed result could not be verified. Review the request and try again.'
+    });
+    expect(verificationError.message).not.toContain('/private/skill.md');
+  });
+
   it('lists and gets skill syncs by plugin and marketplace', async () => {
     let { tenant, environment } = await createScope();
     let scope = await getCargoScopeRecords({
@@ -309,9 +371,7 @@ describe('cargo skill.e2e', () => {
       status: 'processing',
       skillPluginId: skillPlugin.id
     });
-    expect(listedForMarketplace.items.map(item => item.id)).toEqual([
-      marketplaceSync.id
-    ]);
+    expect(listedForMarketplace.items.map(item => item.id)).toEqual([marketplaceSync.id]);
     expect(listedForMarketplace.items[0]).toMatchObject({
       object: 'cargo#skillSync',
       id: marketplaceSync.id,
@@ -428,6 +488,138 @@ describe('cargo skill.e2e', () => {
         skillExportId: secondExport.id
       })
     ).rejects.toThrow();
+  });
+
+  it('presents partial skill imports and scopes them to their creator', async () => {
+    let { tenant, environment } = await createScope();
+    let firstActor = await createActor(tenant.id, {
+      identifier: 'skill-import-first',
+      name: 'Skill Import First'
+    });
+    let secondActor = await createActor(tenant.id, {
+      identifier: 'skill-import-second',
+      name: 'Skill Import Second'
+    });
+    let { tenant: tenantRecord, environment: environmentRecord } = await getCargoScopeRecords({
+      tenantId: tenant.id,
+      environmentId: environment.id
+    });
+    let firstActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: { id: firstActor.id }
+    });
+    let secondActorRecord = await db.tenantActor.findUniqueOrThrow({
+      where: { id: secondActor.id }
+    });
+    let firstImportIds = getId('skillImport');
+    let secondImportIds = getId('skillImport');
+    let firstImport = await db.skillImport.create({
+      data: {
+        ...firstImportIds,
+        sourceType: 'public_repository',
+        status: 'completed',
+        repositoryUrl: 'https://github.com/metorial/example',
+        repositoryName: 'example',
+        ref: 'main',
+        creatorTenantActorOid: firstActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid,
+        completedAt: new Date(),
+        items: {
+          create: [
+            {
+              ...getId('skillImportItem'),
+              status: 'completed',
+              path: '/skills/one',
+              targetSkillId: 'csk_imported_one',
+              completedAt: new Date()
+            },
+            {
+              ...getId('skillImportItem'),
+              status: 'failed',
+              path: '/skills/two',
+              targetSkillId: 'csk_imported_two',
+              error: 'Invalid skill metadata',
+              completedAt: new Date(),
+              cleanupCompletedAt: new Date()
+            }
+          ]
+        }
+      }
+    });
+    let secondImport = await db.skillImport.create({
+      data: {
+        ...secondImportIds,
+        sourceType: 'origin_repository',
+        status: 'processing',
+        repositoryId: 'repo_private',
+        repositoryName: 'private',
+        creatorTenantActorOid: secondActorRecord.oid,
+        tenantOid: tenantRecord.oid,
+        environmentOid: environmentRecord.oid
+      }
+    });
+
+    let listed = await cargoClient.skillImport.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      actorId: firstActor.id,
+      limit: 10
+    });
+    let listedForTenant = await cargoClient.skillImport.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    expect(listed.items.map(item => item.id)).toEqual([firstImport.id]);
+    expect(listedForTenant.items.map(item => item.id).sort()).toEqual(
+      [firstImport.id, secondImport.id].sort()
+    );
+    expect(listed.items[0]).toMatchObject({
+      status: 'completed',
+      results: {
+        total: 2,
+        completed: 1,
+        failed: 1,
+        pending: 0
+      }
+    });
+    expect(
+      await cargoClient.skillImport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillImportId: firstImport.id
+      })
+    ).toMatchObject({
+      source: {
+        type: 'public',
+        repositoryUrl: 'https://github.com/metorial/example',
+        ref: 'main'
+      },
+      createdBy: {
+        id: firstActor.id
+      }
+    });
+    await expect(
+      cargoClient.skillImport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        actorId: firstActor.id,
+        skillImportId: secondImport.id
+      })
+    ).rejects.toThrow();
+    expect(
+      await cargoClient.skillImport.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillImportId: secondImport.id
+      })
+    ).toMatchObject({
+      id: secondImport.id,
+      createdBy: {
+        id: secondActor.id
+      }
+    });
   });
 
   it('creates, lists, gets, and updates skills with linked stores', async () => {
@@ -914,12 +1106,11 @@ describe('cargo skill.e2e', () => {
         id: skillPluginSkill.id
       }
     });
-    let deletedSkillMarketplacePlugin =
-      await db.skillMarketplacePlugin.findUniqueOrThrow({
-        where: {
-          id: skillMarketplacePlugin.id
-        }
-      });
+    let deletedSkillMarketplacePlugin = await db.skillMarketplacePlugin.findUniqueOrThrow({
+      where: {
+        id: skillMarketplacePlugin.id
+      }
+    });
 
     expect(deletedSkillPlugin.status).toBe('archived');
     expect(deletedSkillPluginSkill.status).toBe('archived');
@@ -965,12 +1156,11 @@ describe('cargo skill.e2e', () => {
         id: skillMarketplace.id
       }
     });
-    let deletedSkillMarketplacePlugin =
-      await db.skillMarketplacePlugin.findUniqueOrThrow({
-        where: {
-          id: skillMarketplacePlugin.id
-        }
-      });
+    let deletedSkillMarketplacePlugin = await db.skillMarketplacePlugin.findUniqueOrThrow({
+      where: {
+        id: skillMarketplacePlugin.id
+      }
+    });
 
     expect(deletedSkillMarketplace.status).toBe('archived');
     expect(deletedSkillMarketplacePlugin.status).toBe('archived');
@@ -1516,6 +1706,892 @@ describe('cargo skill.e2e', () => {
     });
   });
 
+  it('uses the last effective merge as separate source and target baselines', async () => {
+    let { tenant, environment } = await createScope();
+    let upstreamEditor = await createActor(tenant.id, {
+      identifier: 'skill-repeat-merge-upstream-editor',
+      name: 'Skill Repeat Merge Upstream Editor'
+    });
+    let forkEditor = await createActor(tenant.id, {
+      identifier: 'skill-repeat-merge-fork-editor',
+      name: 'Skill Repeat Merge Fork Editor'
+    });
+    let upstream = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_repeat_merge_upstream',
+      actorId: upstreamEditor.id,
+      name: 'Repeat Merge Upstream'
+    });
+    let upstreamDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Skill',
+      content: 'base content',
+      actorId: upstreamEditor.id,
+      store: {
+        id: upstream.storeId,
+        path: '/SKILL.md'
+      }
+    });
+    await flushDocumentDraft({
+      documentId: upstreamDocument.id,
+      force: true
+    });
+
+    let fork = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_repeat_merge_fork',
+      actorId: forkEditor.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Repeat Merge Fork'
+    });
+    let forkItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: fork.storeId,
+      limit: 100
+    });
+    let forkDocumentId = forkItems.items.find(item => item.path === '/SKILL.md')!.documentId!;
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: forkDocumentId,
+      actorId: forkEditor.id,
+      content: 'fork content one'
+    });
+    await flushDocumentDraft({
+      documentId: forkDocumentId,
+      force: true
+    });
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: upstreamDocument.id,
+      actorId: upstreamEditor.id,
+      content: 'upstream content one'
+    });
+    await flushDocumentDraft({
+      documentId: upstreamDocument.id,
+      force: true
+    });
+
+    let firstMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: fork.id,
+      actorId: forkEditor.id,
+      title: 'First custom merge'
+    });
+    let firstPlan = await cargoClient.skillMergeRequest.getPlan({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: firstMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+    let firstConflict = firstPlan.items.find(item => item.path === '/SKILL.md')!;
+    await cargoClient.skillMergeRequest.resolveItem({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: firstMergeRequest.id,
+      itemId: firstConflict.id,
+      actorId: upstreamEditor.id,
+      resolutionType: 'edit_document',
+      resolution: {
+        title: 'Skill',
+        content: 'custom merged content'
+      }
+    });
+    await cargoClient.skillMergeRequest.perform({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: firstMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+    await processSkillMergeRequestPerformJob({
+      skillMergeRequestId: firstMergeRequest.id
+    });
+
+    await expect(
+      cargoClient.skillMergeRequest.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        sourceSkillId: fork.id,
+        actorId: forkEditor.id,
+        title: 'No incremental changes'
+      })
+    ).rejects.toThrow('has no changes to merge');
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: forkDocumentId,
+      actorId: forkEditor.id,
+      content: 'fork content two'
+    });
+    await flushDocumentDraft({
+      documentId: forkDocumentId,
+      force: true
+    });
+    let secondMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: fork.id,
+      actorId: forkEditor.id,
+      title: 'Second incremental merge'
+    });
+    let secondPlan = await cargoClient.skillMergeRequest.getPlan({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: secondMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+
+    expect(secondMergeRequest.baseStrategy).toBe('inferred_current');
+    expect(secondPlan.items).toHaveLength(1);
+    expect(secondPlan.items[0]).toMatchObject({
+      path: '/SKILL.md',
+      changeType: 'modified',
+      status: 'resolved',
+      resolutionType: 'accept_source',
+      documentMerge: {
+        baseContent: 'fork content one',
+        sourceContent: 'fork content two',
+        targetContent: 'custom merged content',
+        hasConflict: false
+      }
+    });
+
+    await cargoClient.skillMergeRequest.perform({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: secondMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+    await processSkillMergeRequestPerformJob({
+      skillMergeRequestId: secondMergeRequest.id
+    });
+
+    let upstreamOnlyDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Upstream Only',
+      content: 'upstream only content',
+      actorId: upstreamEditor.id,
+      store: {
+        id: upstream.storeId,
+        path: '/upstream-only.md'
+      }
+    });
+    await flushDocumentDraft({
+      documentId: upstreamOnlyDocument.id,
+      force: true
+    });
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: upstreamDocument.id,
+      actorId: upstreamEditor.id,
+      content: 'independent upstream change'
+    });
+    await flushDocumentDraft({
+      documentId: upstreamDocument.id,
+      force: true
+    });
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: forkDocumentId,
+      actorId: forkEditor.id,
+      content: 'fork content three'
+    });
+    await flushDocumentDraft({
+      documentId: forkDocumentId,
+      force: true
+    });
+
+    let conflictingMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: fork.id,
+      actorId: forkEditor.id,
+      title: 'Conflicting incremental merge'
+    });
+    let conflictingPlan = await cargoClient.skillMergeRequest.getPlan({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: conflictingMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+
+    expect(conflictingPlan.items).toHaveLength(1);
+    expect(conflictingPlan.items[0]).toMatchObject({
+      path: '/SKILL.md',
+      changeType: 'conflicted',
+      status: 'unresolved',
+      conflictReason: 'source_and_target_changed'
+    });
+    expect(
+      conflictingPlan.items.find(item => item.path === '/upstream-only.md')
+    ).toBeUndefined();
+
+    await cargoClient.skillMergeRequest.close({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: conflictingMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+    let closedEvents = await cargoClient.skillMergeRequest.event.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: conflictingMergeRequest.id,
+      actorId: upstreamEditor.id,
+      limit: 20
+    });
+    expect(closedEvents.items.at(-1)).toMatchObject({
+      type: 'closed',
+      actor: { id: upstreamEditor.id }
+    });
+    await cargoClient.skillMergeRequest.rollback({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: secondMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+
+    let afterRollbackMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: fork.id,
+      actorId: forkEditor.id,
+      title: 'Merge after rollback'
+    });
+    let afterRollbackPlan = await cargoClient.skillMergeRequest.getPlan({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: afterRollbackMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+
+    expect(afterRollbackMergeRequest.baseStrategy).toBe('inferred_current');
+    expect(afterRollbackPlan.items).toHaveLength(1);
+    expect(afterRollbackPlan.items[0]).toMatchObject({
+      path: '/SKILL.md',
+      changeType: 'modified',
+      status: 'resolved',
+      resolutionType: 'accept_source'
+    });
+  });
+
+  it('does not remerge a synced sibling fork after the upstream merge is rolled back', async () => {
+    let { tenant, environment } = await createScope();
+    let actor = await createActor(tenant.id, {
+      identifier: 'skill-rollback-sibling-editor',
+      name: 'Skill Rollback Sibling Editor'
+    });
+    let upstream = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_rollback_sibling_upstream',
+      actorId: actor.id,
+      name: 'Rollback Sibling Upstream'
+    });
+    let upstreamDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Skill',
+      content: 'base content',
+      actorId: actor.id,
+      store: {
+        id: upstream.storeId,
+        path: '/SKILL.md'
+      }
+    });
+    await flushDocumentDraft({
+      documentId: upstreamDocument.id,
+      force: true
+    });
+
+    let forkA = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_rollback_sibling_fork_a',
+      actorId: actor.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Rollback Sibling Fork A'
+    });
+    let forkB = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_rollback_sibling_fork_b',
+      actorId: actor.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Rollback Sibling Fork B'
+    });
+    let forkAItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: forkA.storeId,
+      limit: 100
+    });
+    let forkADocumentId = forkAItems.items.find(
+      item => item.path === '/SKILL.md'
+    )!.documentId!;
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: forkADocumentId,
+      actorId: actor.id,
+      content: 'fork A content'
+    });
+    await flushDocumentDraft({
+      documentId: forkADocumentId,
+      force: true
+    });
+
+    let forkAMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: forkA.id,
+      actorId: actor.id,
+      title: 'Merge fork A'
+    });
+    await cargoClient.skillMergeRequest.perform({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: forkAMergeRequest.id,
+      actorId: actor.id
+    });
+    await processSkillMergeRequestPerformJob({
+      skillMergeRequestId: forkAMergeRequest.id
+    });
+
+    let forkBSync = await cargoClient.skillForkSync.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      forkSkillId: forkB.id,
+      actorId: actor.id
+    });
+    await processSkillForkSyncJob({
+      skillForkSyncId: forkBSync.id
+    });
+    let processingSync = await cargoClient.skillForkSync.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillForkSyncId: forkBSync.id,
+      actorId: actor.id
+    });
+    await processSkillMergeRequestPerformJob({
+      skillMergeRequestId: processingSync.generatedMergeRequestId!
+    });
+
+    await cargoClient.skillMergeRequest.rollback({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: forkAMergeRequest.id,
+      actorId: actor.id
+    });
+    expect(
+      (
+        await cargoClient.document.get({
+          tenantId: tenant.id,
+          environmentId: environment.id,
+          documentId: upstreamDocument.id
+        })
+      ).content
+    ).toBe('base content');
+
+    await expect(
+      cargoClient.skillMergeRequest.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        sourceSkillId: forkB.id,
+        actorId: actor.id,
+        title: 'Merge fork B after rollback'
+      })
+    ).rejects.toThrow('The source skill has no changes to merge');
+  });
+
+  it('creates, comments on, asynchronously merges, and rolls back skill merge requests', async () => {
+    let { tenant, environment } = await createScope();
+    let upstreamEditor = await createActor(tenant.id, {
+      identifier: 'skill-merge-upstream-editor',
+      name: 'Skill Merge Upstream Editor'
+    });
+    let forkReader = await createActor(tenant.id, {
+      identifier: 'skill-merge-fork-reader',
+      name: 'Skill Merge Fork Reader'
+    });
+    let upstream = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_merge_upstream',
+      actorId: upstreamEditor.id,
+      name: 'Merge Upstream'
+    });
+    let upstreamDocument = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Instructions',
+      content: 'base instructions',
+      actorId: upstreamEditor.id,
+      store: {
+        id: upstream.storeId,
+        path: '/instructions.md'
+      }
+    });
+    await flushDocumentDraft({
+      documentId: upstreamDocument.id,
+      force: true
+    });
+
+    let fork = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_merge_fork',
+      actorId: forkReader.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Merge Fork'
+    });
+    let forkRecord = await db.skill.findUniqueOrThrow({
+      where: {
+        id: fork.id
+      }
+    });
+
+    expect(forkRecord.forkedFromSkillVersionOid).toBeTruthy();
+
+    await cargoClient.skill.upsertActor({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: upstream.id,
+      actorId: forkReader.id,
+      permissions: ['content_read']
+    });
+
+    let forkItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: fork.storeId,
+      limit: 100
+    });
+    let forkDocumentItem = forkItems.items.find(item => item.path === '/instructions.md')!;
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: forkDocumentItem.documentId!,
+      actorId: forkReader.id,
+      content: 'fork instructions'
+    });
+    await flushDocumentDraft({
+      documentId: forkDocumentItem.documentId!,
+      force: true
+    });
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: upstreamDocument.id,
+      actorId: upstreamEditor.id,
+      content: 'upstream instructions'
+    });
+    await flushDocumentDraft({
+      documentId: upstreamDocument.id,
+      force: true
+    });
+
+    let mergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: fork.id,
+      actorId: forkReader.id,
+      title: 'Merge fork instructions',
+      description: 'Bring forked instructions upstream'
+    });
+    let plan = await cargoClient.skillMergeRequest.getPlan({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+    let anonymousMergeRequests = await cargoClient.skillMergeRequest.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      limit: 10
+    });
+    let conflict = plan.items.find(item => item.path === '/instructions.md')!;
+
+    expect(mergeRequest.status).toBe('open');
+    expect(mergeRequest.createdByActor).toMatchObject({ id: forkReader.id });
+    expect(anonymousMergeRequests.items).toHaveLength(0);
+    expect(mergeRequest.baseStrategy).toBe('exact');
+    expect(mergeRequest.requestedSourceSkillVersionId).toBeTruthy();
+    expect(mergeRequest.requestedTargetSkillVersionId).toBeTruthy();
+    expect(conflict).toMatchObject({
+      kind: 'document',
+      changeType: 'conflicted',
+      status: 'unresolved',
+      documentMerge: {
+        baseContent: 'base instructions',
+        sourceContent: 'fork instructions',
+        targetContent: 'upstream instructions',
+        hasConflict: true
+      }
+    });
+
+    let comment = await cargoClient.skillMergeRequest.comment.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      skillMergeRequestItemId: conflict.id,
+      actorId: forkReader.id,
+      body: 'Please take the fork version with an edit.'
+    });
+
+    expect(comment).toMatchObject({
+      skillMergeRequestItemId: conflict.id,
+      actor: {
+        id: forkReader.id
+      },
+      path: '/instructions.md'
+    });
+    await expect(
+      cargoClient.skillMergeRequest.comment.update({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: mergeRequest.id,
+        commentId: comment.id,
+        actorId: upstreamEditor.id,
+        body: 'Edited by another actor.'
+      })
+    ).rejects.toThrow('Cannot edit another actor comment');
+    await db.tenantActor.update({
+      where: {
+        id: upstreamEditor.id
+      },
+      data: {
+        organizationActorId: 'oac_skill_merge_upstream_editor'
+      }
+    });
+    await expect(
+      cargoClient.skillMergeRequest.comment.update({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: mergeRequest.id,
+        commentId: comment.id,
+        actorId: upstreamEditor.id,
+        body: 'Edited by organization member.',
+        canManageComments: true
+      })
+    ).resolves.toMatchObject({
+      body: 'Edited by organization member.'
+    });
+    await cargoClient.skillMergeRequest.comment.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      commentId: comment.id,
+      actorId: forkReader.id,
+      body: 'Please take the fork version with an edit.'
+    });
+    let consumerActor = await createActor(tenant.id, {
+      identifier: 'skill-merge-consumer',
+      name: 'Skill Merge Consumer'
+    });
+    await db.tenantActor.update({
+      where: {
+        id: consumerActor.id
+      },
+      data: {
+        consumerId: 'con_skill_merge_consumer'
+      }
+    });
+    await cargoClient.skill.upsertActor({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: fork.id,
+      actorId: consumerActor.id,
+      permissions: ['content_read']
+    });
+    await expect(
+      cargoClient.skillMergeRequest.comment.delete({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: mergeRequest.id,
+        commentId: comment.id,
+        actorId: consumerActor.id,
+        canManageComments: true
+      })
+    ).rejects.toThrow('Cannot delete another actor comment');
+    await expect(
+      cargoClient.skillMergeRequest.resolveItem({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: mergeRequest.id,
+        itemId: conflict.id,
+        actorId: upstreamEditor.id,
+        resolutionType: 'edit_document',
+        resolution: {
+          title: 'Instructions'
+        }
+      })
+    ).rejects.toThrow('edit_document with content');
+    await expect(
+      cargoClient.skillMergeRequest.bulkResolveItems({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: mergeRequest.id,
+        actorId: upstreamEditor.id,
+        items: [
+          {
+            itemId: conflict.id,
+            resolutionType: 'edit_document',
+            resolution: { content: 'first' }
+          },
+          {
+            itemId: conflict.id,
+            resolutionType: 'edit_document',
+            resolution: { content: 'second' }
+          }
+        ]
+      })
+    ).rejects.toThrow('item IDs must be unique');
+
+    await cargoClient.skillMergeRequest.resolveItem({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      itemId: conflict.id,
+      actorId: upstreamEditor.id,
+      resolutionType: 'edit_document',
+      resolution: {
+        title: 'Instructions',
+        content: 'merged instructions'
+      }
+    });
+
+    let merging = await cargoClient.skillMergeRequest.perform({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+
+    expect(merging.status).toBe('merging');
+
+    let merged =
+      (await processSkillMergeRequestPerformJob({
+        skillMergeRequestId: mergeRequest.id
+      })) ??
+      (await db.skillMergeRequest.findUniqueOrThrow({
+        where: { id: mergeRequest.id }
+      }));
+    let mergedDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: upstreamDocument.id
+    });
+
+    expect(merged?.status).toBe('merged');
+    expect(merged?.preMergeTargetSkillVersionOid).toBeTruthy();
+    expect(merged?.mergedTargetSkillVersionOid).toBeTruthy();
+    expect(mergedDocument.content).toBe('merged instructions');
+
+    let rolledBack = await cargoClient.skillMergeRequest.rollback({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+    let rolledBackDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: upstreamDocument.id
+    });
+
+    expect(rolledBack.status).toBe('merged');
+    expect(rolledBack.rollbackTargetSkillVersionId).toBeTruthy();
+    expect(rolledBack.rolledBackByActor).toMatchObject({ id: upstreamEditor.id });
+    expect(rolledBackDocument.content).toBe('upstream instructions');
+
+    await cargoClient.skillMergeRequest.comment.delete({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      commentId: comment.id,
+      actorId: forkReader.id
+    });
+    let events = await cargoClient.skillMergeRequest.event.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: mergeRequest.id,
+      actorId: upstreamEditor.id,
+      limit: 20
+    });
+    expect(events.items.map(event => event.type)).toEqual([
+      'created',
+      'commented',
+      'all_conflicts_resolved',
+      'merge_started',
+      'merge_completed',
+      'rolled_back'
+    ]);
+    expect(events.items[0]?.actor).toMatchObject({ id: forkReader.id });
+    expect(events.items[1]).toMatchObject({
+      actor: { id: forkReader.id },
+      comment: {
+        id: comment.id,
+        actor: { id: forkReader.id },
+        body: '[DELETED]',
+        deletedAt: expect.any(Date)
+      }
+    });
+    expect(events.items.slice(2).every(event => event.actor?.id === upstreamEditor.id)).toBe(
+      true
+    );
+    expect(
+      await cargoClient.skillMergeRequest.event.get({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: mergeRequest.id,
+        eventId: events.items[1]!.id,
+        actorId: upstreamEditor.id
+      })
+    ).toMatchObject({
+      type: 'commented',
+      comment: { id: comment.id }
+    });
+    await expect(
+      cargoClient.skillMergeRequest.rollback({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        skillMergeRequestId: mergeRequest.id,
+        actorId: upstreamEditor.id
+      })
+    ).rejects.toThrow('Only unrolled-back merged requests');
+
+    let unchangedFork = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_merge_unchanged_fork',
+      actorId: forkReader.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Unchanged Merge Fork'
+    });
+    await expect(
+      cargoClient.skillMergeRequest.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        sourceSkillId: unchangedFork.id,
+        actorId: forkReader.id,
+        title: 'Empty merge request'
+      })
+    ).rejects.toThrow('has no changes to merge');
+
+    let rebasedFork = await cargoClient.skill.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillId: 'csk_merge_rebased_fork',
+      actorId: forkReader.id,
+      parentSkill: {
+        skillId: upstream.id,
+        type: 'fork'
+      },
+      name: 'Rebased Merge Fork'
+    });
+    await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Fork addition',
+      content: 'added by fork',
+      actorId: forkReader.id,
+      store: {
+        id: rebasedFork.storeId,
+        path: '/fork-addition.md'
+      }
+    });
+    let rebasedMergeRequest = await cargoClient.skillMergeRequest.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      sourceSkillId: rebasedFork.id,
+      actorId: forkReader.id,
+      title: 'Merge fork addition after upstream edit'
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: upstreamDocument.id,
+      actorId: upstreamEditor.id,
+      content: 'upstream changed after merge request creation'
+    });
+    await flushDocumentDraft({
+      documentId: upstreamDocument.id,
+      force: true
+    });
+
+    await cargoClient.skillMergeRequest.perform({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      skillMergeRequestId: rebasedMergeRequest.id,
+      actorId: upstreamEditor.id
+    });
+    let rebasedMerge =
+      (await processSkillMergeRequestPerformJob({
+        skillMergeRequestId: rebasedMergeRequest.id
+      })) ??
+      (await db.skillMergeRequest.findUniqueOrThrow({
+        where: { id: rebasedMergeRequest.id }
+      }));
+
+    expect(rebasedMerge?.status).toBe('merged');
+    let upstreamItemsAfterRebase = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: upstream.storeId,
+      limit: 100
+    });
+    expect(upstreamItemsAfterRebase.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: '/fork-addition.md'
+        })
+      ])
+    );
+
+    await db.skill.update({
+      where: { id: fork.id },
+      data: { forkedFromSkillVersionOid: null }
+    });
+    await expect(
+      cargoClient.skillMergeRequest.create({
+        tenantId: tenant.id,
+        environmentId: environment.id,
+        sourceSkillId: fork.id,
+        actorId: forkReader.id,
+        title: 'Legacy fork merge'
+      })
+    ).rejects.toThrow('require a fork with a recorded base version');
+  });
+
   it('tracks skill participants from creator, store access, use, and forks', async () => {
     let { tenant, environment } = await createScope();
     let creator = await createActor(tenant.id, {
@@ -1673,8 +2749,20 @@ describe('cargo skill.e2e', () => {
       tenantId: tenant.id,
       environmentId: environment.id,
       documentId: 'cdoc_skill_template_source_document',
+      title: 'Template Skill',
+      content:
+        '---\ndescription: Template metadata\n---\n\n# Template Skill\n\nTemplate-backed content',
+      store: {
+        id: sourceStore.id,
+        path: '/SKILL.md'
+      }
+    });
+    await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: 'cdoc_skill_template_source_readme',
       title: 'Readme',
-      content: 'template-backed content',
+      content: '# Readme\n\nSupplemental content',
       store: {
         id: sourceStore.id,
         path: '/docs/readme.md'
@@ -1722,6 +2810,11 @@ describe('cargo skill.e2e', () => {
     let createdDocument = await cargoClient.document.get({
       tenantId: tenant.id,
       environmentId: environment.id,
+      documentId: createdItems.items.find(item => item.path === '/SKILL.md')!.documentId!
+    });
+    let createdReadmeDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
       documentId: createdItems.items.find(item => item.path === '/docs/readme.md')!.documentId!
     });
     let createdDocumentRecord = await db.document.findUnique({
@@ -1755,8 +2848,15 @@ describe('cargo skill.e2e', () => {
       skillTemplateRecord?.storeTemplateOid
     );
     expect(createdStoreRecord?.createdByTenantActorOid).toBeTruthy();
+    expect(createdItems.items.map(item => item.path)).toContain('/SKILL.md');
     expect(createdItems.items.map(item => item.path)).toContain('/docs/readme.md');
-    expect(createdDocument.content).toBe('template-backed content');
+    expect(createdDocument.title).toBe(skill.name);
+    expect(createdDocument.content).toBe(
+      '---\ndescription: Template metadata\n---\n\n# Skill From Template Parent\n\nTemplate-backed content'
+    );
+    expect(createdDocument.content).not.toContain('# Template Skill');
+    expect(createdReadmeDocument.title).toBe('Readme');
+    expect(createdReadmeDocument.content).toBe('# Readme\n\nSupplemental content');
     expect(createdDocumentRecord?.parentDocumentOid).toBeNull();
     expect(createdDocumentRecord?.isContentOwner).toBe(true);
     expect(createdDocumentRecord?.createdByTenantActorOid).toBeTruthy();
@@ -1875,6 +2975,13 @@ describe('cargo skill.e2e', () => {
           content: 'template file content',
           encoding: 'utf-8',
           mimeType: 'text/plain'
+        },
+        {
+          path: '/SKILL.md',
+          type: 'document',
+          content:
+            '---\ndescription: Standalone template\n---\n\n# Template Skill\n\nStandalone body',
+          encoding: 'utf-8'
         }
       ]
     });
@@ -1909,9 +3016,25 @@ describe('cargo skill.e2e', () => {
         file: true
       }
     });
+    let createdItems = await cargoClient.storeItem.list({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: instantiatedSkill.storeId,
+      limit: 20
+    });
+    let createdSkillDocument = await cargoClient.document.get({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: createdItems.items.find(item => item.path === '/SKILL.md')!.documentId!
+    });
 
     expect(templateItemRecord?.mimeType).toBe('text/plain');
     expect(createdFileItem?.file?.fileType).toBe('text/plain');
+    expect(createdSkillDocument.title).toBe(instantiatedSkill.name);
+    expect(createdSkillDocument.content).toBe(
+      '---\ndescription: Standalone template\n---\n\n# From Standalone File Template\n\nStandalone body'
+    );
+    expect(createdSkillDocument.content).not.toContain('# Template Skill');
   });
 
   it('rejects skill template creation when more than one source input is provided', async () => {
@@ -1936,5 +3059,4 @@ describe('cargo skill.e2e', () => {
       'Provide exactly one of skillId, storeId, or items when creating a skill template'
     );
   });
-
 });

@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpEndpointStatus } from '@metorial/db';
@@ -72,6 +72,15 @@ let resolveMagicMcpEndpointServers = (d: {
   }
 
   return undefined;
+};
+
+let requireConsumerOwnedEndpoint = (d: {
+  consumerProfile?: { oid: bigint };
+  magicMcpEndpoint: { consumerProfileOid: bigint | null };
+}) => {
+  if (d.consumerProfile && d.magicMcpEndpoint.consumerProfileOid !== d.consumerProfile.oid) {
+    throw new ServiceError(notFoundError('magic_mcp.endpoint'));
+  }
 };
 
 export let magicMcpEndpointController = Controller.create(
@@ -355,7 +364,10 @@ export let magicMcpEndpointController = Controller.create(
       )
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write'],
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
           fineGrainedPolicy: 'deny'
         })
       )
@@ -367,20 +379,40 @@ export let magicMcpEndpointController = Controller.create(
       )
       .output(magicMcpEndpointPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
       .do(async ctx => {
+        requireConsumerOwnedEndpoint({
+          consumerProfile: ctx.consumerProfile,
+          magicMcpEndpoint: ctx.magicMcpEndpoint
+        });
         await magicMcpEndpointService.checkWriteAccess({
           endpoint: ctx.magicMcpEndpoint,
           instance: ctx.instance,
           accessTags: ctx.accessTags
         });
 
+        let servers =
+          resolveMagicMcpEndpointServers({
+            magicMcpServer: ctx.body.magic_mcp_servers,
+            required: true
+          }) ?? [];
+
+        if (ctx.consumerProfile) {
+          await Promise.all(
+            servers.map(server =>
+              magicMcpServerService.getMagicMcpServerById({
+                instance: ctx.instance,
+                magicMcpServerId: server.magicMcpServerId,
+                accessTags: ctx.accessTags,
+                consumerSurface: ctx.consumerSurface
+              })
+            )
+          );
+        }
+
         let magicMcpEndpoint = await magicMcpEndpointService.addServersToEndpoint({
           endpoint: ctx.magicMcpEndpoint,
-          servers:
-            resolveMagicMcpEndpointServers({
-              magicMcpServer: ctx.body.magic_mcp_servers,
-              required: true
-            }) ?? []
+          servers
         });
 
         return magicMcpEndpointPresenter.present({
@@ -402,7 +434,10 @@ export let magicMcpEndpointController = Controller.create(
       )
       .use(
         checkAccess({
-          possibleScopes: ['instance.provider.session:write'],
+          possibleScopes: [
+            'instance.provider.session:write',
+            'consumer#instance.magic_mcp:write'
+          ],
           fineGrainedPolicy: 'deny'
         })
       )
@@ -414,7 +449,12 @@ export let magicMcpEndpointController = Controller.create(
       )
       .output(magicMcpEndpointPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
+      .use(requireConsumerTokenForPublishableKey())
       .do(async ctx => {
+        requireConsumerOwnedEndpoint({
+          consumerProfile: ctx.consumerProfile,
+          magicMcpEndpoint: ctx.magicMcpEndpoint
+        });
         await magicMcpEndpointService.checkWriteAccess({
           endpoint: ctx.magicMcpEndpoint,
           instance: ctx.instance,

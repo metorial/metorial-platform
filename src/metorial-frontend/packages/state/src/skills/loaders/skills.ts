@@ -15,6 +15,7 @@ import type {
   DashboardInstanceSkillsListQuery,
   DashboardInstanceSkillsParticipantsGetOutput,
   DashboardInstanceSkillsParticipantsListQuery,
+  DashboardInstanceSkillsShareBody,
   DashboardInstanceSkillsUpdateBody,
   DashboardInstanceSkillsVersionsGetOutput,
   DashboardInstanceSkillsVersionsListQuery,
@@ -117,6 +118,11 @@ export let useSkill = (
     deleteMutator: data.useMutator('delete')
   };
 };
+
+export let useShareSkill = skillLoader.createExternalMutator(
+  (i: DashboardInstanceSkillsShareBody & { instanceId: string; skillId: string }) =>
+    withAuth(sdk => sdk.skills.share(i.instanceId, i.skillId, i))
+);
 
 export let defaultSkillConfigurationLoader = createLoader({
   name: 'defaultSkillConfiguration',

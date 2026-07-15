@@ -41,6 +41,7 @@ model Consumer {
   createdSkills        Skill[]
   consumerSkills       ConsumerSkill[]
   workspaceProfiles    WorkspaceProfile[]
+  resourceActors       ResourceActor[]
 
   @@unique([email, organizationOid])
 }

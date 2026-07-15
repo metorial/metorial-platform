@@ -1,6 +1,6 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { generatePlainId } from '@lowerdeck/id';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
@@ -16,6 +16,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   type DateFilter,
+  getConnectionRetentionFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
@@ -74,7 +75,31 @@ class agentServiceImpl {
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.types ? { type: { in: d.types } } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
-                actors ? { actorOid: actors.in } : undefined!,
+                actors
+                  ? {
+                      OR: [
+                        { actorOid: actors.in },
+                        {
+                          agentInstances: {
+                            some: {
+                              sessionParticipants: {
+                                some: {
+                                  sessionConnections: {
+                                    some: {
+                                      status: 'active' as const,
+                                      isParentDeleted: false,
+                                      ...getConnectionRetentionFilter(d.tenant),
+                                      session: { identityActorOid: actors.in }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)

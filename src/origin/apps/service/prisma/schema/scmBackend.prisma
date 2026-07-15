@@ -3,6 +3,8 @@ enum ScmBackendType {
   github_enterprise
   gitlab
   gitlab_selfhosted
+  bitbucket
+  bitbucket_data_center
 }
 
 model ScmBackend {
@@ -35,6 +37,7 @@ model ScmBackend {
   updatedAt DateTime @default(now()) @updatedAt
 
   installations        ScmInstallation[]
+  selectedInstallationSessions ScmInstallationSession[] @relation("selectedScmBackend")
   backendSetupSessions ScmBackendSetupSession[]
   accounts             ScmAccount[]
   repositories         ScmRepository[]

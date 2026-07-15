@@ -37,6 +37,9 @@ model Skill {
   parentSkill    Skill?  @relation("SkillHierarchy", fields: [parentSkillOid], references: [oid], onDelete: Cascade)
   childSkills    Skill[] @relation("SkillHierarchy")
 
+  forkedFromSkillVersionOid BigInt?
+  forkedFromSkillVersion    SkillVersion? @relation("SkillForkBaseVersion", fields: [forkedFromSkillVersionOid], references: [oid], onDelete: SetNull)
+
   parentSkillTemplateOid BigInt?
   parentSkillTemplate    SkillTemplate? @relation("SkillTemplateHierarchy", fields: [parentSkillTemplateOid], references: [oid], onDelete: SetNull)
 
@@ -53,6 +56,13 @@ model Skill {
   skillDestinationItems SkillDestinationItem[]
   managedSkillPlugins   ManagedSkillPlugin[]
   skillExportRefs       SkillExportRef[]
+  sourceMergeRequests   SkillMergeRequest[]    @relation("SkillMergeRequestSource")
+  targetMergeRequests   SkillMergeRequest[]    @relation("SkillMergeRequestTarget")
+  forkSyncs             SkillForkSync[]        @relation("SkillForkSyncFork")
+  upstreamForkSyncs     SkillForkSync[]        @relation("SkillForkSyncUpstream")
+  skillImportItems      SkillImportItem[]
+
+  @@index([forkedFromSkillVersionOid])
 }
 
 model SkillConfiguration {
@@ -128,10 +138,418 @@ model SkillVersion {
   storeVersionOid BigInt       @unique
   storeVersion    StoreVersion @relation(fields: [storeVersionOid], references: [oid], onDelete: Cascade)
 
+  forkedSkills                          Skill[]             @relation("SkillForkBaseVersion")
+  mergeRequestsAsBaseSourceVersion      SkillMergeRequest[] @relation("SkillMergeRequestBaseSourceVersion")
+  mergeRequestsAsBaseTargetVersion      SkillMergeRequest[] @relation("SkillMergeRequestBaseTargetVersion")
+  mergeRequestsAsRequestedSourceVersion SkillMergeRequest[] @relation("SkillMergeRequestRequestedSourceVersion")
+  mergeRequestsAsRequestedTargetVersion SkillMergeRequest[] @relation("SkillMergeRequestRequestedTargetVersion")
+  mergeRequestsAsPreMergeTargetVersion  SkillMergeRequest[] @relation("SkillMergeRequestPreMergeTargetVersion")
+  mergeRequestsAsMergedTargetVersion    SkillMergeRequest[] @relation("SkillMergeRequestMergedTargetVersion")
+  mergeRequestsAsRollbackTargetVersion  SkillMergeRequest[] @relation("SkillMergeRequestRollbackTargetVersion")
+
   createdAt DateTime @default(now())
 
   @@unique([skillOid, versionNumber])
   @@index([skillOid, createdAt])
+}
+
+enum SkillMergeRequestStatus {
+  open
+  closed
+  merging
+  merged
+}
+
+enum SkillMergeRequestDirection {
+  fork_to_upstream
+  upstream_to_fork
+}
+
+enum SkillMergeRequestErrorCode {
+  target_changed
+  unresolved_after_refresh
+  apply_failed
+  verification_failed
+  enqueue_failed
+  stale_merge_recovered
+}
+
+enum SkillMergeRequestEventType {
+  created
+  commented
+  all_conflicts_resolved
+  merge_started
+  merge_completed
+  merge_failed
+  closed
+  rolled_back
+}
+
+enum SkillMergeRequestItemStatus {
+  unresolved
+  resolved
+  skipped
+  applied
+}
+
+enum SkillMergeRequestChangeType {
+  added
+  modified
+  removed
+  unchanged
+  conflicted
+}
+
+enum SkillMergeRequestResolutionType {
+  accept_source
+  keep_target
+  remove
+  edit_document
+  replace_file
+  skip
+}
+
+enum SkillMergeRequestBaseStrategy {
+  exact
+  inferred_created_at
+  inferred_current
+}
+
+model SkillMergeRequest {
+  oid BigInt @id
+  id  String @unique
+
+  status       SkillMergeRequestStatus       @default(open)
+  direction    SkillMergeRequestDirection    @default(fork_to_upstream)
+  baseStrategy SkillMergeRequestBaseStrategy @default(exact)
+
+  title          String
+  description    String?
+  mergeError     String?
+  mergeErrorCode SkillMergeRequestErrorCode?
+  activePairKey  String?                     @unique
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  sourceSkillOid BigInt
+  sourceSkill    Skill  @relation("SkillMergeRequestSource", fields: [sourceSkillOid], references: [oid], onDelete: Cascade)
+
+  targetSkillOid BigInt
+  targetSkill    Skill  @relation("SkillMergeRequestTarget", fields: [targetSkillOid], references: [oid], onDelete: Cascade)
+
+  baseSourceSkillVersionOid BigInt?
+  baseSourceSkillVersion    SkillVersion? @relation("SkillMergeRequestBaseSourceVersion", fields: [baseSourceSkillVersionOid], references: [oid], onDelete: SetNull)
+
+  baseTargetSkillVersionOid BigInt
+  baseTargetSkillVersion    SkillVersion @relation("SkillMergeRequestBaseTargetVersion", fields: [baseTargetSkillVersionOid], references: [oid], onDelete: Restrict)
+
+  requestedSourceSkillVersionOid BigInt
+  requestedSourceSkillVersion    SkillVersion @relation("SkillMergeRequestRequestedSourceVersion", fields: [requestedSourceSkillVersionOid], references: [oid], onDelete: Restrict)
+
+  requestedTargetSkillVersionOid BigInt
+  requestedTargetSkillVersion    SkillVersion @relation("SkillMergeRequestRequestedTargetVersion", fields: [requestedTargetSkillVersionOid], references: [oid], onDelete: Restrict)
+
+  preMergeTargetSkillVersionOid BigInt?
+  preMergeTargetSkillVersion    SkillVersion? @relation("SkillMergeRequestPreMergeTargetVersion", fields: [preMergeTargetSkillVersionOid], references: [oid], onDelete: SetNull)
+
+  mergedTargetSkillVersionOid BigInt?
+  mergedTargetSkillVersion    SkillVersion? @relation("SkillMergeRequestMergedTargetVersion", fields: [mergedTargetSkillVersionOid], references: [oid], onDelete: SetNull)
+
+  rollbackTargetSkillVersionOid BigInt?
+  rollbackTargetSkillVersion    SkillVersion? @relation("SkillMergeRequestRollbackTargetVersion", fields: [rollbackTargetSkillVersionOid], references: [oid], onDelete: SetNull)
+
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("SkillMergeRequestCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: SetNull)
+
+  mergeStartedByTenantActorOid BigInt?
+  mergeStartedByTenantActor    TenantActor? @relation("SkillMergeRequestMergeStarter", fields: [mergeStartedByTenantActorOid], references: [oid], onDelete: SetNull)
+
+  mergedByTenantActorOid BigInt?
+  mergedByTenantActor    TenantActor? @relation("SkillMergeRequestMerger", fields: [mergedByTenantActorOid], references: [oid], onDelete: SetNull)
+
+  closedByTenantActorOid BigInt?
+  closedByTenantActor    TenantActor? @relation("SkillMergeRequestCloser", fields: [closedByTenantActorOid], references: [oid], onDelete: SetNull)
+
+  rolledBackByTenantActorOid BigInt?
+  rolledBackByTenantActor    TenantActor? @relation("SkillMergeRequestRollbacker", fields: [rolledBackByTenantActorOid], references: [oid], onDelete: SetNull)
+
+  mergeStartedAt DateTime?
+  mergedAt       DateTime?
+  closedAt       DateTime?
+  rolledBackAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  items             SkillMergeRequestItem[]
+  comments          SkillMergeRequestComment[]
+  events            SkillMergeRequestEvent[]
+  generatedForkSync SkillForkSync?             @relation("SkillForkSyncMergeRequest")
+
+  @@index([tenantOid, environmentOid, status, createdAt])
+  @@index([sourceSkillOid, status, createdAt])
+  @@index([targetSkillOid, status, createdAt])
+  @@index([baseSourceSkillVersionOid])
+  @@index([createdByTenantActorOid, createdAt])
+  @@index([status, mergeStartedAt])
+}
+
+enum SkillForkSyncStatus {
+  pending
+  processing
+  action_required
+  completed
+  failed
+  cancelled
+}
+
+model SkillForkSync {
+  oid BigInt @id
+  id  String @unique
+
+  status        SkillForkSyncStatus @default(pending)
+  activePairKey String?             @unique
+  error         String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  forkSkillOid BigInt
+  forkSkill    Skill  @relation("SkillForkSyncFork", fields: [forkSkillOid], references: [oid], onDelete: Cascade)
+
+  upstreamSkillOid BigInt
+  upstreamSkill    Skill  @relation("SkillForkSyncUpstream", fields: [upstreamSkillOid], references: [oid], onDelete: Cascade)
+
+  createdByTenantActorOid BigInt?
+  createdByTenantActor    TenantActor? @relation("SkillForkSyncCreator", fields: [createdByTenantActorOid], references: [oid], onDelete: SetNull)
+
+  generatedMergeRequestOid BigInt?            @unique
+  generatedMergeRequest    SkillMergeRequest? @relation("SkillForkSyncMergeRequest", fields: [generatedMergeRequestOid], references: [oid], onDelete: SetNull)
+
+  processingStartedAt DateTime?
+  actionRequiredAt    DateTime?
+  completedAt         DateTime?
+  failedAt            DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
+
+  @@index([tenantOid, environmentOid, status, createdAt])
+  @@index([forkSkillOid, status, createdAt])
+  @@index([upstreamSkillOid, status, createdAt])
+  @@index([createdByTenantActorOid, createdAt])
+}
+
+enum SkillImportSourceType {
+  public_repository
+  origin_repository
+}
+
+enum SkillImportStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum SkillImportItemStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model SkillImport {
+  oid BigInt @id
+  id  String @unique
+
+  sourceType SkillImportSourceType
+  status     SkillImportStatus     @default(pending)
+
+  repositoryUrl  String?
+  repositoryId   String?
+  repositoryName String?
+  ref            String?
+  path           String?
+  codeBucketId   String?
+  error          String?
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  creatorTenantActorOid BigInt?
+  creatorTenantActor    TenantActor? @relation("SkillImportCreator", fields: [creatorTenantActorOid], references: [oid], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  items SkillImportItem[]
+
+  @@index([tenantOid, environmentOid, createdAt])
+  @@index([creatorTenantActorOid, createdAt])
+  @@index([status, updatedAt])
+}
+
+model SkillImportItem {
+  oid BigInt @id
+  id  String @unique
+
+  status        SkillImportItemStatus @default(pending)
+  path          String
+  error         String?
+  targetSkillId String                @unique
+
+  skillImportOid BigInt
+  skillImport    SkillImport @relation(fields: [skillImportOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: SetNull)
+
+  createdAt          DateTime  @default(now())
+  startedAt          DateTime?
+  heartbeatAt        DateTime?
+  completedAt        DateTime?
+  cleanupCompletedAt DateTime?
+  updatedAt          DateTime  @default(now()) @updatedAt
+
+  @@unique([skillImportOid, path])
+  @@index([skillImportOid, status])
+  @@index([skillOid])
+}
+
+model SkillMergeRequestItem {
+  oid BigInt @id
+  id  String @unique
+
+  path           String
+  kind           StoreItemKind
+  changeType     SkillMergeRequestChangeType
+  status         SkillMergeRequestItemStatus      @default(unresolved)
+  resolutionType SkillMergeRequestResolutionType?
+  conflictReason String?
+  resolution     Json?
+
+  skillMergeRequestOid BigInt
+  skillMergeRequest    SkillMergeRequest @relation(fields: [skillMergeRequestOid], references: [oid], onDelete: Cascade)
+
+  baseFileOid BigInt?
+  baseFile    File?   @relation("SkillMergeRequestItemBaseFile", fields: [baseFileOid], references: [oid], onDelete: SetNull)
+
+  sourceFileOid BigInt?
+  sourceFile    File?   @relation("SkillMergeRequestItemSourceFile", fields: [sourceFileOid], references: [oid], onDelete: SetNull)
+
+  targetFileOid BigInt?
+  targetFile    File?   @relation("SkillMergeRequestItemTargetFile", fields: [targetFileOid], references: [oid], onDelete: SetNull)
+
+  baseDocumentOid   BigInt?
+  baseDocument      Document? @relation("SkillMergeRequestItemBaseDocument", fields: [baseDocumentOid], references: [oid], onDelete: SetNull)
+  baseDocumentTitle String?
+
+  sourceDocumentOid   BigInt?
+  sourceDocument      Document? @relation("SkillMergeRequestItemSourceDocument", fields: [sourceDocumentOid], references: [oid], onDelete: SetNull)
+  sourceDocumentTitle String?
+
+  targetDocumentOid   BigInt?
+  targetDocument      Document? @relation("SkillMergeRequestItemTargetDocument", fields: [targetDocumentOid], references: [oid], onDelete: SetNull)
+  targetDocumentTitle String?
+
+  baseDocumentVersionOid BigInt?
+  baseDocumentVersion    DocumentVersion? @relation("SkillMergeRequestItemBaseDocumentVersion", fields: [baseDocumentVersionOid], references: [oid], onDelete: SetNull)
+
+  sourceDocumentVersionOid BigInt?
+  sourceDocumentVersion    DocumentVersion? @relation("SkillMergeRequestItemSourceDocumentVersion", fields: [sourceDocumentVersionOid], references: [oid], onDelete: SetNull)
+
+  targetDocumentVersionOid BigInt?
+  targetDocumentVersion    DocumentVersion? @relation("SkillMergeRequestItemTargetDocumentVersion", fields: [targetDocumentVersionOid], references: [oid], onDelete: SetNull)
+
+  resolvedByTenantActorOid BigInt?
+  resolvedByTenantActor    TenantActor? @relation("SkillMergeRequestItemResolver", fields: [resolvedByTenantActorOid], references: [oid], onDelete: SetNull)
+
+  resolvedAt DateTime?
+  appliedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  comments SkillMergeRequestComment[]
+
+  @@unique([skillMergeRequestOid, path])
+  @@index([skillMergeRequestOid, status])
+  @@index([baseFileOid])
+  @@index([sourceFileOid])
+  @@index([targetFileOid])
+  @@index([baseDocumentOid])
+  @@index([sourceDocumentOid])
+  @@index([targetDocumentOid])
+  @@index([baseDocumentVersionOid])
+  @@index([sourceDocumentVersionOid])
+  @@index([targetDocumentVersionOid])
+}
+
+model SkillMergeRequestComment {
+  oid BigInt @id
+  id  String @unique
+
+  body String
+  path String?
+
+  skillMergeRequestOid BigInt
+  skillMergeRequest    SkillMergeRequest @relation(fields: [skillMergeRequestOid], references: [oid], onDelete: Cascade)
+
+  skillMergeRequestItemOid BigInt?
+  skillMergeRequestItem    SkillMergeRequestItem? @relation(fields: [skillMergeRequestItemOid], references: [oid], onDelete: Cascade)
+
+  inReplyToCommentOid BigInt?
+  inReplyToComment    SkillMergeRequestComment?  @relation("SkillMergeRequestCommentThread", fields: [inReplyToCommentOid], references: [oid], onDelete: Cascade)
+  replies             SkillMergeRequestComment[] @relation("SkillMergeRequestCommentThread")
+
+  tenantActorOid BigInt
+  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  event SkillMergeRequestEvent?
+
+  @@index([skillMergeRequestOid, createdAt])
+  @@index([skillMergeRequestItemOid, createdAt])
+  @@index([tenantActorOid, createdAt])
+  @@index([inReplyToCommentOid])
+  @@index([deletedAt])
+}
+
+model SkillMergeRequestEvent {
+  oid BigInt @id
+  id  String @unique
+
+  type         SkillMergeRequestEventType
+  errorCode    SkillMergeRequestErrorCode?
+  errorMessage String?
+
+  skillMergeRequestOid BigInt
+  skillMergeRequest    SkillMergeRequest @relation(fields: [skillMergeRequestOid], references: [oid], onDelete: Cascade)
+
+  tenantActorOid BigInt?
+  tenantActor    TenantActor? @relation(fields: [tenantActorOid], references: [oid], onDelete: SetNull)
+
+  commentOid BigInt?                   @unique
+  comment    SkillMergeRequestComment? @relation(fields: [commentOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([skillMergeRequestOid, createdAt, oid])
+  @@index([tenantActorOid, createdAt])
 }
 
 enum SkillParticipantRole {

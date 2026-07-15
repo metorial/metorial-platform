@@ -9,19 +9,21 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@metorial/dashboard-sdk": "1.0.0-internal",
-    "@metorial/util-endpoint": "^1.0.0-rc.5",
-    "@metorial/frontend-config": "^1.0.0",
-    "@metorial/data-hooks": "^1.0.0",
-    "@metorial-platform-systems/synthesis-client": "1.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/programmable-promise": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
+    "@metorial-platform-systems/synthesis-client": "1.0.0",
+    "@metorial/dashboard-sdk": "1.0.0-internal",
+    "@metorial/data-hooks": "^1.0.0",
+    "@metorial/frontend-config": "^1.0.0",
     "@metorial/generated": "latest",
     "@metorial/storage": "^1.0.0",
+    "@metorial/util-endpoint": "^1.0.0-rc.5",
     "react": "19.1.1",
     "react-router-dom": "^6.26.1",
-    "@lowerdeck/delay": "workspace:2.0.0"
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.31"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

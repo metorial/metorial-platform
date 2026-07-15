@@ -5,6 +5,7 @@ import { syncCollectQueue } from './collect';
 
 export let syncStartQueue = createQueue<{
   skillDestinationSyncId: string;
+  skillRepositoryId?: string;
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/start',
@@ -28,10 +29,12 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
   if (!sync) throw new QueueRetryError();
   if (sync.status !== 'pending') return;
 
-  await db.skillDestinationSync.updateMany({
+  let claimedSync = await db.skillDestinationSync.updateMany({
     where: { oid: sync.oid, status: 'pending' },
     data: { status: 'processing', startedAt: new Date() }
   });
+  if (claimedSync.count === 0) return;
+
   await appendSkillDestinationSyncLog(data.skillDestinationSyncId, 'Starting sync.');
 
   // Cancel other syncs for the same destination
@@ -62,6 +65,7 @@ export let syncStartQueueProcessor = syncStartQueue.process(async data => {
   });
 
   await syncCollectQueue.add({
-    skillDestinationSyncId: data.skillDestinationSyncId
+    skillDestinationSyncId: data.skillDestinationSyncId,
+    skillRepositoryId: data.skillRepositoryId
   });
 });

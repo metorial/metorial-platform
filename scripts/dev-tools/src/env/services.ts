@@ -57,6 +57,14 @@ export let originServiceEnv: Env = [
   {
     key: 'SCM_GITLAB_CLIENT_SECRET',
     isRequired: false
+  },
+  {
+    key: 'SCM_BITBUCKET_CLIENT_ID',
+    isRequired: false
+  },
+  {
+    key: 'SCM_BITBUCKET_CLIENT_SECRET',
+    isRequired: false
   }
 ];
 

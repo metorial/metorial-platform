@@ -99,3 +99,13 @@ export let resolveSkillParticipants = createResolver(async ({ scope, ids }) =>
     select: { oid: true }
   })
 );
+
+export let resolveSkillMergeRequests = createResolver(async ({ scope, ids }) =>
+  db.skillMergeRequest.findMany({
+    where: {
+      ...scope,
+      id: { in: ids }
+    },
+    select: { oid: true }
+  })
+);

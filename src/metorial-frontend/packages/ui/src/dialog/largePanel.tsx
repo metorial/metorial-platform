@@ -2,7 +2,11 @@ import * as RadixDialogDialog from '@radix-ui/react-dialog';
 import { RiCloseLine } from '@remixicon/react';
 import React, { useRef } from 'react';
 import { styled } from 'styled-components';
-import { DialogProvider, useDialogZIndex } from './state';
+import {
+  DialogProvider,
+  preventDialogDismissWhenSelectOpen,
+  useDialogZIndex
+} from './state';
 import { Close, Content, Overlay } from './styles';
 
 export { useDialog, useDialogContext, useIsInDialog } from './state';
@@ -43,6 +47,7 @@ export let LargePanelDialog = {
 
             <PanelContent
               ref={contentRef}
+              onPointerDownOutside={preventDialogDismissWhenSelectOpen}
               style={{
                 ...style,
                 zIndex: zIndex + 1

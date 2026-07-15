@@ -1,7 +1,6 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
 import {
   subspaceSkillGroupItemService,
@@ -62,36 +61,6 @@ export let skillGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(asyn
 
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
-
-let assertConsumerCanAddToSkillGroup = async (ctx: {
-  consumerProfile?: unknown;
-  consumerGroups?: { oid: bigint }[];
-  skillGroupId: string;
-}) => {
-  if (!ctx.consumerProfile) return;
-
-  let allowed = await db.skillGroup.findFirst({
-    where: {
-      id: ctx.skillGroupId,
-      consumerAccesses: {
-        some: {
-          consumerGroupOid: {
-            in: ctx.consumerGroups?.map(group => group.oid) ?? []
-          }
-        }
-      }
-    },
-    select: { oid: true }
-  });
-
-  if (!allowed) {
-    throw new ServiceError(
-      forbiddenError({
-        message: 'Consumer does not have permission to add skills to this group.'
-      })
-    );
-  }
-};
 
 export let skillController = Controller.create(
   {
@@ -198,11 +167,6 @@ export let skillController = Controller.create(
             allowDeleted: true,
             consumerProfile: ctx.consumerProfile,
             consumerGroups: ctx.consumerGroups
-          });
-          await assertConsumerCanAddToSkillGroup({
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups,
-            skillGroupId
           });
         }
 
@@ -407,6 +371,49 @@ export let skillController = Controller.create(
           consumerProfile: ctx.consumerProfile,
           consumerGroups: ctx.consumerGroups!,
           skillId: ctx.skill.id
+        });
+
+        return skillPresenter.present({ skill });
+      }),
+
+    share: skillGroup
+      .post(instancePath('skills/:skillId/shares', 'skills.share'), {
+        name: 'Share skill',
+        description: 'Shares a skill with consumers or organization members.'
+      })
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .body(
+        'default',
+        v.object({
+          consumer_profile_ids: v.optional(v.array(v.string())),
+          organization_member_ids: v.optional(v.array(v.string())),
+          permission: v.enumOf(['none', 'read', 'write'])
+        })
+      )
+      .output(skillPresenter)
+      .do(async ctx => {
+        await consumerSkillService.shareSkill({
+          organization: ctx.organization,
+          instance: ctx.instance,
+          skill: ctx.skill.localSkill,
+          permission: ctx.body.permission,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups,
+          currentOrganizationMember: ctx.member,
+          targets: {
+            consumerProfileIds: ctx.body.consumer_profile_ids,
+            organizationMemberIds: ctx.body.organization_member_ids
+          }
+        });
+
+        let skill = await subspaceSkillService.get({
+          instance: ctx.instance,
+          skillId: ctx.skill.id,
+          allowDeleted: true,
+          consumerProfile: ctx.consumerProfile,
+          consumerGroups: ctx.consumerGroups
         });
 
         return skillPresenter.present({ skill });

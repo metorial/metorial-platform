@@ -153,7 +153,8 @@ export let SkillsGrid = (
   let duplicateSkill = useDuplicateSkill();
   let skills = useSkills(instanceId, {
     order: 'desc',
-    status: ['active', 'archived'],
+    status: ['active'],
+    limit: 21,
     ...query
   });
   let providerIds = useMemo(

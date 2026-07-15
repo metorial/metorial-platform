@@ -18,6 +18,9 @@ NPM_BIN=../../../../node_modules/.bin
 if [ ! -d "$NPM_BIN" ]; then
   NPM_BIN=../../../node_modules/.bin
 fi
+if [ ! -d "$NPM_BIN" ]; then
+  NPM_BIN=../../../../../node_modules/.bin
+fi
 
 if [ ! -d "$NPM_BIN" ]; then
   echo "Error: Node.js binary directory '$NPM_BIN' does not exist."

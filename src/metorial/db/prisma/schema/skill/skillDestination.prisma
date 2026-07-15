@@ -1,0 +1,114 @@
+model SkillDestination {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  codeBucketId String
+  tag          Int    @default(0)
+
+  isDirty                Boolean   @default(false)
+  lastTransientChangeAt  DateTime?
+  firstTransientChangeAt DateTime?
+  shouldFlushAt          DateTime?
+  mustFlushAt            DateTime?
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  syncs                 SkillDestinationSync[]
+  skillMarketplace      SkillMarketplace?
+  skillPlugin           SkillPlugin?
+  skillDestinationItems SkillDestinationItem[]
+
+  @@index([isDirty])
+  @@index([shouldFlushAt])
+  @@index([mustFlushAt])
+}
+
+model SkillDestinationItem {
+  oid BigInt @id @default(autoincrement())
+
+  cargoOid BigInt? @unique
+
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  skillMarketplaceOid BigInt?
+  skillMarketplace    SkillMarketplace? @relation(fields: [skillMarketplaceOid], references: [oid], onDelete: Cascade)
+
+  skillPluginOid BigInt?
+  skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt?
+  skill    Skill?  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  hash String
+}
+
+enum SkillDestinationSyncStatus {
+  pending
+  completed
+  failed
+  processing
+  canceled
+}
+
+enum SkillDestinationSyncRepositoryPropagationStatus {
+  pending
+  processing
+  completed
+  failed
+  canceled
+}
+
+model SkillDestinationSync {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status            SkillDestinationSyncStatus
+  isAtRepoSyncStage Boolean                    @default(false)
+
+  destinationOid BigInt
+  destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  prName        String?
+  prDescription String?
+  commitMessage String?
+
+  /// [SyncLogEntry]
+  logs Json[] @default([])
+
+  repositoryPropagations SkillDestinationSyncRepositoryPropagation[]
+}
+
+model SkillDestinationSyncRepositoryPropagation {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status       SkillDestinationSyncRepositoryPropagationStatus
+  originSyncId String?
+
+  branchName    String
+  prName        String
+  prDescription String?
+  commitMessage String?
+  errorMessage  String?
+
+  skillDestinationSyncOid BigInt
+  skillDestinationSync    SkillDestinationSync @relation(fields: [skillDestinationSyncOid], references: [oid], onDelete: Cascade)
+
+  skillRepositoryOid BigInt
+  skillRepository    SkillRepository @relation(fields: [skillRepositoryOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@unique([skillDestinationSyncOid, skillRepositoryOid])
+  @@index([status])
+  @@index([originSyncId])
+}

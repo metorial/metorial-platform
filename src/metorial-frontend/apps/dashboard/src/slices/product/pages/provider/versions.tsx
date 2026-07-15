@@ -1,4 +1,4 @@
-import { Badge, Button, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Badge, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useProviderVersionContext } from './providerVersionContext';
 
@@ -48,17 +48,6 @@ export let ProviderVersionsPage = () => {
                 />
 
                 <Entity.Field title="ID" value={<ID id={version.id} />} />
-
-                <Entity.Field title="Actions" right>
-                  <Button
-                    size="2"
-                    variant={isSelected ? 'outline' : 'solid'}
-                    onClick={() => setSelectedVersionId(version.id)}
-                    disabled={isSelected}
-                  >
-                    {isSelected ? 'Selected' : 'Select version'}
-                  </Button>
-                </Entity.Field>
               </Entity.Content>
             </Entity.Wrapper>
           );

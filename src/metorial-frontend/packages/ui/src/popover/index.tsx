@@ -1,7 +1,7 @@
 import * as RadixPopover from '@radix-ui/react-popover';
 import React, { useEffect, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { useDialogZIndex } from '../dialog/state';
+import { useZindex } from '../dialog/state';
 import { theme } from '../theme';
 
 let fadeInTop = keyframes`
@@ -161,6 +161,7 @@ let Root = ({
   arrow,
   operationKey,
   onOpenChange,
+  onOpenAutoFocus,
   side,
   align,
   sideOffset,
@@ -171,6 +172,7 @@ let Root = ({
   children: React.ReactNode;
   arrow?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onOpenAutoFocus?: React.ComponentProps<typeof RadixPopover.Content>['onOpenAutoFocus'];
   open?: boolean;
 
   side?: React.ComponentProps<typeof RadixPopover.Content>['side'];
@@ -195,7 +197,7 @@ let Root = ({
     if (typeof openProp === 'boolean') setOpen(openProp);
   }, [openProp]);
 
-  let zIndex = useDialogZIndex(open);
+  let zIndex = useZindex(open);
 
   return (
     <RadixPopover.Root open={open} onOpenChange={setOpen}>
@@ -208,6 +210,11 @@ let Root = ({
           align={align}
           sideOffset={sideOffset}
           alignOffset={alignOffset}
+          onOpenAutoFocus={onOpenAutoFocus}
+          onInteractOutside={event => {
+            let target = event.target as Element | null;
+            if (target?.closest('[data-metorial-select-content]')) event.preventDefault();
+          }}
         >
           {children}
 

@@ -2,7 +2,7 @@ import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
-  useCreateSkillFromTemplate,
+  useCreateSkill,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -18,7 +18,7 @@ export let SkillTemplateLayout = () => {
   let project = useCurrentProject();
   let { skillTemplateId } = useParams();
   let skillTemplate = useSkillTemplate(instance.data?.id, skillTemplateId);
-  let createSkillFromTemplate = useCreateSkillFromTemplate();
+  let createSkill = useCreateSkill();
   let navigate = useNavigate();
   let pathname = useLocation().pathname;
 
@@ -39,9 +39,9 @@ export let SkillTemplateLayout = () => {
       initialName: skillTemplate.data.name,
       initialDescription: skillTemplate.data.description,
       onSubmit: async values => {
-        let [skill] = await createSkillFromTemplate.mutate({
+        let [skill] = await createSkill.mutate({
           instanceId: instance.data!.id,
-          skillTemplateId: skillTemplate.data!.id,
+          templateId: skillTemplate.data!.id,
           name: values.name,
           description: values.description
         });

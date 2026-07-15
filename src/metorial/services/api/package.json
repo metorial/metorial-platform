@@ -19,6 +19,7 @@
     "@metorial/auth": "1.0.0",
     "@metorial/logging": "1.0.0",
     "@metorial/module-access": "1.0.0",
+    "@metorial/module-cargo-sync": "1.0.0",
     "@metorial/module-email": "1.0.0",
     "@metorial/module-event": "1.0.0",
     "@metorial/module-file": "1.0.0",

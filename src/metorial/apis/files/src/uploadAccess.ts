@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { accessService, type AuthInfo } from '@metorial/module-access';
+import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';
 import {
   getInstanceCargoAccess,
@@ -13,6 +13,7 @@ type ResolvedUploadTarget = {
   owner: FileOwner;
   cargoAccess?: ReturnType<typeof getInstanceCargoAccess>;
   isInstanceOwner: boolean;
+  canWrite: boolean;
 };
 
 let getRestrictedInstanceId = (auth: AuthInfo) => {
@@ -27,6 +28,8 @@ export let resolveUploadTarget = async (d: {
   auth: AuthInfo;
   instanceId?: string | null;
   organizationId?: string | null;
+  possibleScopes?: Scope[];
+  writeScopes?: Scope[];
 }): Promise<ResolvedUploadTarget> => {
   if (d.auth.type === 'fine_grained') {
     throw new ServiceError(
@@ -39,9 +42,12 @@ export let resolveUploadTarget = async (d: {
   let instanceId = d.instanceId ?? getRestrictedInstanceId(d.auth);
 
   if (instanceId) {
+    let possibleScopes = d.possibleScopes ?? [...uploadScopes];
+    let writeScopes = d.writeScopes ?? [...uploadScopes];
+
     await accessService.checkAccess({
       authInfo: d.auth,
-      possibleScopes: [...uploadScopes]
+      possibleScopes
     });
 
     let instanceAccess = await accessService.accessInstance({
@@ -63,8 +69,19 @@ export let resolveUploadTarget = async (d: {
       member: 'member' in instanceAccess ? instanceAccess.member : undefined,
       project: instanceAccess.project,
       instance: instanceAccess.instance,
-      possibleScopes: [...uploadScopes]
+      possibleScopes
     });
+
+    let canWrite =
+      d.auth.orgScopes.some(scope => writeScopes.includes(scope)) &&
+      (await accessService.canAccessTargetScopes({
+        authInfo: d.auth,
+        organization: instanceAccess.organization,
+        member: 'member' in instanceAccess ? instanceAccess.member : undefined,
+        project: instanceAccess.project,
+        instance: instanceAccess.instance,
+        possibleScopes: writeScopes
+      }));
 
     return {
       owner: {
@@ -73,7 +90,8 @@ export let resolveUploadTarget = async (d: {
         instance: instanceAccess.instance
       },
       cargoAccess: getInstanceCargoAccess(cargoAccessContext),
-      isInstanceOwner: true
+      isInstanceOwner: true,
+      canWrite
     };
   }
 
@@ -96,7 +114,8 @@ export let resolveUploadTarget = async (d: {
         type: 'organization',
         organization: organization.organization
       },
-      isInstanceOwner: false
+      isInstanceOwner: false,
+      canWrite: false
     };
   }
 
@@ -105,6 +124,7 @@ export let resolveUploadTarget = async (d: {
       type: 'user',
       user: d.auth.user
     },
-    isInstanceOwner: false
+    isInstanceOwner: false,
+    canWrite: false
   };
 };

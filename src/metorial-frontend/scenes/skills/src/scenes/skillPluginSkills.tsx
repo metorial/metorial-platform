@@ -273,7 +273,7 @@ let showPluginSkillFormModal = (p: {
 
             <ActionsRow>
               <Dialog.Actions>
-                <Button variant="outline" type="button" onClick={close} size="2">
+                <Button variant="soft" type="button" onClick={close} size="2">
                   Cancel
                 </Button>
                 <Button

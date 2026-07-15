@@ -164,7 +164,8 @@ class SkillMarketplaceRepositoryServiceImpl {
     });
 
     await forceSkillDestinationSync({
-      destination: { oid: marketplace.destinationOid }
+      destination: { oid: marketplace.destinationOid },
+      repository: { id: skillRepository.id }
     });
 
     let [enriched] = await this.enrichRepositories({

@@ -1,4 +1,14 @@
-import { Button, getLink, Menu, Spacer, Text, theme, Title, toast } from '@metorial/ui';
+import {
+  Button,
+  getLink,
+  Menu,
+  Spacer,
+  Spinner,
+  Text,
+  theme,
+  Title,
+  toast
+} from '@metorial/ui';
 import { RiMore2Fill } from '@remixicon/react';
 import copy from 'copy-to-clipboard';
 import React from 'react';
@@ -58,9 +68,13 @@ let Grid = styled.ul.withConfig({
       : ''}
 `;
 
-let Wrapper = styled.li.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
+let Wrapper = styled.li.withConfig({
+  shouldForwardProp: p => p !== '$mode' && p !== '$disabled'
+})<{
   $mode?: ItemGridItemMode;
+  $disabled?: boolean;
 }>`
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -73,6 +87,7 @@ let Wrapper = styled.li.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
   text-align: left;
   text-decoration: none;
   transition: all 0.2s;
+  opacity: ${p => (p.$disabled ? 0.45 : 1)};
 
   &[data-button='true'] {
     cursor: pointer;
@@ -84,6 +99,19 @@ let Wrapper = styled.li.withConfig({ shouldForwardProp: p => p !== '$mode' })<{
       box-shadow: ${theme.shadows.medium};
     }
   }
+`;
+
+let LoadingIndicator = styled.div`
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
 `;
 
 let Header = styled.header`
@@ -160,19 +188,21 @@ let MenuWrapper = styled.div`
 type ItemGridActionProps = {
   href?: string;
   onClick?: () => void;
+  disabled?: boolean;
 };
 
-let getActionProps = ({ href, onClick }: ItemGridActionProps) => {
+let getActionProps = ({ href, onClick, disabled }: ItemGridActionProps) => {
   if (onClick) {
     return {
       as: 'button' as const,
       type: 'button' as const,
       onClick,
+      disabled,
       'data-button': 'true'
     };
   }
 
-  if (href) {
+  if (href && !disabled) {
     return {
       as: 'span' as const,
       'data-button': 'true'
@@ -182,8 +212,8 @@ let getActionProps = ({ href, onClick }: ItemGridActionProps) => {
   return {};
 };
 
-let wrapAction = (children: React.ReactNode, href?: string) => {
-  if (!href) return children;
+let wrapAction = (children: React.ReactNode, href?: string, disabled?: boolean) => {
+  if (!href || disabled) return children;
 
   let Link = getLink();
 
@@ -222,7 +252,9 @@ export let ItemGrid = {
     bottom,
     mode = 'default',
     small,
-    height
+    height,
+    disabled = false,
+    loading = false
   }: {
     title: React.ReactNode;
     description?: React.ReactNode;
@@ -236,6 +268,8 @@ export let ItemGrid = {
     mode?: ItemGridItemMode;
     small?: boolean;
     height?: number;
+    disabled?: boolean;
+    loading?: boolean;
   }) => {
     let menuItems = [
       ...(entity && showCopyId ? [{ id: 'id', label: 'Copy ID' }] : []),
@@ -244,14 +278,22 @@ export let ItemGrid = {
 
     return wrapAction(
       <Wrapper
-        {...getActionProps({ href, onClick })}
+        {...getActionProps({ href, onClick, disabled })}
         $mode={mode}
+        $disabled={disabled}
+        aria-busy={loading}
         style={{
           height: mode === 'compactHorizontal' ? height : undefined,
           minHeight: height ?? (mode === 'compactHorizontal' || small ? 'unset' : 200),
           overflow: mode === 'compactHorizontal' && height ? 'hidden' : undefined
         }}
       >
+        {loading && (
+          <LoadingIndicator>
+            <Spinner size={20} />
+          </LoadingIndicator>
+        )}
+
         <Header>
           {mode === 'compactHorizontal' ? (
             <CompactHeaderContent>
@@ -319,7 +361,8 @@ export let ItemGrid = {
           </>
         )}
       </Wrapper>,
-      onClick ? undefined : href
+      onClick ? undefined : href,
+      disabled
     );
   },
   CenteredItem: ({
@@ -327,17 +370,23 @@ export let ItemGrid = {
     description,
     icon,
     href,
-    onClick
+    onClick,
+    disabled = false,
+    loading = false
   }: {
     title: React.ReactNode;
     description?: React.ReactNode;
     icon: React.ReactNode;
     href?: string;
     onClick?: () => void;
+    disabled?: boolean;
+    loading?: boolean;
   }) => {
     return wrapAction(
       <Wrapper
-        {...getActionProps({ href, onClick })}
+        {...getActionProps({ href, onClick, disabled })}
+        $disabled={disabled}
+        aria-busy={loading}
         style={{
           alignItems: 'center',
           justifyContent: 'center',
@@ -345,6 +394,12 @@ export let ItemGrid = {
           minHeight: 200
         }}
       >
+        {loading && (
+          <LoadingIndicator>
+            <Spinner size={20} />
+          </LoadingIndicator>
+        )}
+
         <div>{icon}</div>
 
         <TitleWrapper>
@@ -359,7 +414,8 @@ export let ItemGrid = {
           </Text>
         )}
       </Wrapper>,
-      onClick ? undefined : href
+      onClick ? undefined : href,
+      disabled
     );
   },
   RawItem: Wrapper

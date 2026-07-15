@@ -451,7 +451,19 @@ class StoreAccessServiceImpl {
     store: Pick<Store, 'oid'>;
     actor: TenantActor;
     permissions: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
   }) {
+    if (d.overridePermissions) {
+      let [participant] = await this.upsertStoreParticipants({
+        storeOids: [d.store.oid],
+        actor: d.actor,
+        defaultPermissions: d.permissions,
+        overridePermissions: true
+      });
+
+      return participant;
+    }
+
     let [participant] = await this.ensureStoreParticipantsHavePermissions({
       actor: d.actor,
       items: [

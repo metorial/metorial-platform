@@ -8,7 +8,6 @@ export type SkillsMarketplacesPluginsListOutput = {
     identifier: string;
     skillConfigurationId: string | null;
     skillMarketplaceId: string | null;
-    skillPluginId: string | null;
     skillPlugin: {
       object: 'skill.plugin';
       id: string;
@@ -61,10 +60,6 @@ export let mapSkillsMarketplacesPluginsListOutput =
           ),
           skillMarketplaceId: mtMap.objectField(
             'skill_marketplace_id',
-            mtMap.passthrough()
-          ),
-          skillPluginId: mtMap.objectField(
-            'skill_plugin_id',
             mtMap.passthrough()
           ),
           skillPlugin: mtMap.objectField(

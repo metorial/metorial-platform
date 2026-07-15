@@ -14,7 +14,11 @@ import {
   sessionDocsCategory,
   skillDocsCategory
 } from './_categories';
-import { consumerProviderController, consumerSessionController } from './consumer';
+import {
+  consumerActivityController,
+  consumerProviderController,
+  consumerSessionController
+} from './consumer';
 import {
   dashboardAssistantController,
   dashboardAuthConfigConfigurationController,
@@ -136,12 +140,17 @@ import {
   skillConfigurationController,
   skillController,
   skillExportController,
+  skillForkSyncController,
+  skillImportController,
   skillGroupController,
   skillGroupItemController,
   skillItemController,
   skillMarketplaceController,
   skillMarketplacePluginController,
   skillMarketplaceRepositoryController,
+  skillMergeRequestController,
+  skillMergeRequestCommentController,
+  skillMergeRequestEventController,
   skillParticipantController,
   skillPluginController,
   skillPluginRepositoryController,
@@ -373,9 +382,14 @@ let setControllerDocsMetadata = <
   skillTemplateItemController,
   skillVersionController,
   skillExportController,
+  skillForkSyncController,
+  skillImportController,
   skillMarketplaceController,
   skillMarketplacePluginController,
   skillMarketplaceRepositoryController,
+  skillMergeRequestController,
+  skillMergeRequestCommentController,
+  skillMergeRequestEventController,
   skillPluginController,
   skillPluginRepositoryController,
   skillPluginSkillController
@@ -498,13 +512,18 @@ export let magnetarController = Controller.create<any>(
     skillTemplateItemController,
     skillVersionController,
     skillExportController,
+    skillForkSyncController,
     skillMarketplaceController,
     skillMarketplacePluginController,
+    skillMergeRequestController,
+    skillMergeRequestCommentController,
+    skillMergeRequestEventController,
     skillPluginController,
     skillPluginSkillController,
 
     consumerSessionController,
     consumerProviderController,
+    consumerActivityController,
 
     managementApiKeyController,
     dashboardAssistantController,
@@ -549,6 +568,7 @@ export let consumerApiController = Controller.create<any>(
 
     consumerSessionController,
     consumerProviderController,
+    consumerActivityController,
     dashboardAssistantController
   }
 );
@@ -621,9 +641,14 @@ export let dashboardController = Controller.create<any>(
     skillTemplateItemController,
     skillVersionController,
     skillExportController,
+    skillForkSyncController,
+    skillImportController,
     skillMarketplaceController,
     skillMarketplacePluginController,
     skillMarketplaceRepositoryController,
+    skillMergeRequestController,
+    skillMergeRequestCommentController,
+    skillMergeRequestEventController,
     skillPluginController,
     skillPluginRepositoryController,
     skillPluginSkillController,

@@ -4,7 +4,13 @@ export type ManagementInstanceScmProvidersListOutput = {
   items: {
     object: 'scm.provider';
     id: string;
-    type: 'github' | 'github_enterprise' | 'gitlab' | 'gitlab_selfhosted';
+    type:
+      | 'github'
+      | 'github_enterprise'
+      | 'gitlab'
+      | 'gitlab_selfhosted'
+      | 'bitbucket'
+      | 'bitbucket_data_center';
     name: string;
     description: string | null;
     apiUrl: string | null;

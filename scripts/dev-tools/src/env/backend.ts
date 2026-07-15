@@ -34,6 +34,14 @@ export let backendEnv: Env = [
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}`
   },
   {
+    key: 'CARGO_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/cargo'
+  },
+  {
+    key: 'CARGO_SYNC_CLAIM_METORIAL_OWNERSHIP',
+    defaultValue: 'false'
+  },
+  {
     key: 'PAYMENT_DATABASE_URL',
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}-payment`,
     isEnterprise: true
@@ -79,7 +87,7 @@ export let backendEnv: Env = [
   { key: 'ENCRYPTION_SECRET', defaultValue: `encryption-secret` },
 
   { key: 'OBJECT_STORAGE_URL', defaultValue: 'http://services:52010' },
-  { key: 'FILES_BUCKET_NAME', defaultValue: 'metorial-oss-files-dev' },
+  { key: 'FILES_BUCKET_NAME', defaultValue: 'mte-files' },
 
   {
     key: 'USAGE_MONGO_URI',
@@ -138,6 +146,11 @@ export let backendEnv: Env = [
     key: 'HORIZON_INTERNAL_URL',
     isEnterprise: true,
     defaultValue: 'http://localhost:52133/metorial-horizon-internal/api'
+  },
+  {
+    key: 'HORIZON_OUTPOST_URL',
+    isEnterprise: true,
+    defaultValue: 'http://localhost:52131'
   },
   { key: 'HORIZON_APP_ID', isEnterprise: true, defaultValue: `metorial-enterprise-dev` },
   { key: 'HORIZON_SIGNING_SECRET', isEnterprise: true, defaultValue: 'secret' },

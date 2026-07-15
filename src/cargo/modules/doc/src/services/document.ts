@@ -30,6 +30,7 @@ import type { DocumentDraft } from '../internal/documentDraft';
 import { internalDocumentDraftService } from '../internal/documentDraft';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 import { internalDocumentVersioningService } from '../internal/documentVersioning';
+import { rewriteDocumentMarkdownTitle } from '../lib/documentMarkdown';
 import { documentFlushQueue } from '../queues/documentFlush';
 
 let draftFlushDelayMs = 60 * 1000;
@@ -663,6 +664,7 @@ class DocumentServiceImpl {
         id?: string;
         title?: string;
         cloneType?: StoreCloneType;
+        rewriteContentTitle?: boolean;
         actorId?: string;
         creatorActorId?: string;
         defaultPermissions?: StoreParticipantPermissions[];
@@ -690,6 +692,13 @@ class DocumentServiceImpl {
 
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
     let cloneType = d.input.cloneType ?? 'sync_until_change';
+    if (d.input.rewriteContentTitle && cloneType !== 'duplicate') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Document content titles can only be rewritten for duplicate clones'
+        })
+      );
+    }
 
     let clonedDocument = await withTransaction(async db => {
       let documentIds = d.input.id
@@ -699,6 +708,9 @@ class DocumentServiceImpl {
       let sourceTitle = d.document.resolvedTitle ?? d.document.title;
       let sourceContent = d.document.resolvedContent ?? d.document.content.content;
       let nextTitle = d.input.title ?? sourceTitle;
+      let nextContent = d.input.rewriteContentTitle
+        ? rewriteDocumentMarkdownTitle(sourceContent, nextTitle)
+        : sourceContent;
 
       let file = await fileService.createFile({
         tenant: d.tenant,
@@ -709,7 +721,7 @@ class DocumentServiceImpl {
         input: {
           name: nextTitle,
           mimeType: documentMimeType,
-          size: getTextByteSize(sourceContent),
+          size: getTextByteSize(nextContent),
           title: nextTitle,
           actorId: creatorActor?.id
         }
@@ -719,7 +731,7 @@ class DocumentServiceImpl {
         await db.documentContent.create({
           data: {
             oid: contentIds.oid,
-            content: sourceContent
+            content: nextContent
           }
         });
       }

@@ -21,7 +21,7 @@ export let useDialog = (initialState = false) => {
 };
 
 let currentZIndexRef = { value: 1000 };
-export let useDialogZIndex = (isOpen: boolean) => {
+export let useZindex = (isOpen: boolean) => {
   let [zIndex, setZIndex] = useState(() => currentZIndexRef.value + 5);
 
   useEffect(() => {
@@ -32,7 +32,18 @@ export let useDialogZIndex = (isOpen: boolean) => {
   return zIndex;
 };
 
+export let useZIndex = useZindex;
+export let useDialogZIndex = useZindex;
+
 let DialogContext = React.createContext<DialogState | null>(null);
 export let DialogProvider = DialogContext.Provider;
 export let useDialogContext = () => useContext(DialogContext);
 export let useIsInDialog = () => !!useContext(DialogContext);
+
+export let preventDialogDismissWhenSelectOpen = (event: { preventDefault: () => void }) => {
+  let openSelect = document.querySelector(
+    '[data-metorial-select-content][data-state="open"]'
+  );
+
+  if (openSelect) event.preventDefault();
+};

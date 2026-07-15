@@ -69,6 +69,28 @@ class scmBackendServiceImpl {
         }
       });
     }
+
+    if (env.bb.SCM_BITBUCKET_CLIENT_ID && env.bb.SCM_BITBUCKET_CLIENT_SECRET) {
+      await db.scmBackend.upsert({
+        where: { defaultIdentifier: 'default::bitbucket_cloud' },
+        create: {
+          ...getId('scmBackend'),
+          defaultIdentifier: 'default::bitbucket_cloud',
+          type: 'bitbucket',
+          name: 'Bitbucket',
+          description: 'Bitbucket Cloud',
+          apiUrl: 'https://api.bitbucket.org/2.0',
+          webUrl: 'https://bitbucket.org',
+          clientId: env.bb.SCM_BITBUCKET_CLIENT_ID,
+          clientSecret: env.bb.SCM_BITBUCKET_CLIENT_SECRET,
+          isDefault: true
+        },
+        update: {
+          clientId: env.bb.SCM_BITBUCKET_CLIENT_ID,
+          clientSecret: env.bb.SCM_BITBUCKET_CLIENT_SECRET
+        }
+      });
+    }
   }
 
   async getDefaultGithubBackend(): Promise<ScmBackend> {
@@ -120,7 +142,7 @@ class scmBackendServiceImpl {
 
   async createScmBackend(d: {
     tenant: Tenant;
-    type: 'github_enterprise' | 'gitlab_selfhosted';
+    type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
     name: string;
     description?: string;
     apiUrl: string;

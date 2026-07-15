@@ -11,6 +11,7 @@ import type {
 import { db } from '../../db';
 import { getId } from '../../id';
 import { jackson } from '../../lib/jackson';
+import { getSamlConnectionDefaultRedirectUrl } from '../../lib/ssoRedirect';
 import { enqueueDisableSsoDirectoryUsers } from '../../queues/disableSsoDirectoryUsers';
 
 let ssoConnectionInclude = {
@@ -30,12 +31,18 @@ class SsoConnectionServiceImpl {
       samlMetadata: { type: 'xml'; payload: string } | { type: 'url'; url: string };
     };
   }) {
+    let connectionId = getId('ssoConnection');
+
     let con = await jackson.apiController.createSAMLConnection({
       product: 'metorial',
       tenant: d.tenant.id,
       name: d.input.name,
       redirectUrl: jackson.redirectUrl,
-      defaultRedirectUrl: jackson.defaultRedirectUrl.saml,
+      defaultRedirectUrl: getSamlConnectionDefaultRedirectUrl({
+        callbackUrl: jackson.defaultRedirectUrl.saml,
+        tenantId: d.tenant.id,
+        connectionId: connectionId.id
+      }),
       rawMetadata:
         d.input.samlMetadata.type === 'xml' ? d.input.samlMetadata.payload : undefined!,
       metadataUrl: d.input.samlMetadata.type === 'url' ? d.input.samlMetadata.url : undefined
@@ -50,7 +57,7 @@ class SsoConnectionServiceImpl {
 
     return await db.ssoConnection.create({
       data: {
-        ...getId('ssoConnection'),
+        ...connectionId,
         tenantOid: d.tenant.oid,
         internalId: con.clientID,
         internalClientId: con.clientID,

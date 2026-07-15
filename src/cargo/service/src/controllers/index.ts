@@ -14,9 +14,12 @@ import { skillController } from './skill';
 import { skillAgentController } from './skillAgent';
 import { skillConfigurationController } from './skillConfiguration';
 import { skillExportController } from './skillExport';
+import { skillImportController } from './skillImport';
 import { skillMarketplaceController } from './skillMarketplace';
 import { skillMarketplacePluginController } from './skillMarketplacePlugin';
 import { skillMarketplaceRepositoryController } from './skillMarketplaceRepository';
+import { skillForkSyncController } from './skillForkSync';
+import { skillMergeRequestController } from './skillMergeRequest';
 import { skillParticipantController } from './skillParticipant';
 import { skillPluginController } from './skillPlugin';
 import { skillPluginRepositoryController } from './skillPluginRepository';
@@ -62,9 +65,12 @@ let skillControllers = {
   skillAgent: skillAgentController,
   skillConfiguration: skillConfigurationController,
   skillExport: skillExportController,
+  skillImport: skillImportController,
   skillMarketplace: skillMarketplaceController,
   skillMarketplacePlugin: skillMarketplacePluginController,
   skillMarketplaceRepository: skillMarketplaceRepositoryController,
+  skillForkSync: skillForkSyncController,
+  skillMergeRequest: skillMergeRequestController,
   skillParticipant: skillParticipantController,
   skillPlugin: skillPluginController,
   skillPluginRepository: skillPluginRepositoryController,

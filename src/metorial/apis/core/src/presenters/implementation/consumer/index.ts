@@ -2,6 +2,7 @@ export * from './consumer';
 export * from './consumerAccess';
 export * from './consumerAccessListing';
 export * from './consumerAccessRequest';
+export * from './consumerActivity';
 export * from './consumerAndProfile';
 export * from './consumerGroup';
 export * from './consumerInvite';

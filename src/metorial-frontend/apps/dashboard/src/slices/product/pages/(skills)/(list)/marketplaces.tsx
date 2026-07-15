@@ -1,6 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
-import { Spacer } from '@metorial/ui';
 import { useState } from 'react';
 import { useFilterQuery } from '../../../../../components/table/components/query';
 import { TableFilterState } from '../../../../../components/table/filter';
@@ -34,8 +33,6 @@ export let SkillMarketplacesPage = () => {
         filters={filters}
         placeholder="Search marketplaces..."
       />
-
-      <Spacer size={15} />
 
       <SkillMarketplacesGrid instanceId={instance.data.id} {...skillMarketplacesFilter} />
     </>

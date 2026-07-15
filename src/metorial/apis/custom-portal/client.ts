@@ -4,7 +4,9 @@ import type { CustomPortalClient } from './src';
 export let createCustomPortalClient = (endpoint: string) => {
   return createClient<CustomPortalClient>({
     endpoint,
-    referrerPolicy: 'unsafe-url'
+    referrerPolicy: 'unsafe-url',
+    disableBatching: true,
+    useDirectMethodRoute: true
   });
 };
 

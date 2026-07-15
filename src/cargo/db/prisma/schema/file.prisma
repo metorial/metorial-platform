@@ -57,12 +57,15 @@ model File {
   updatedAt DateTime  @default(now()) @updatedAt
   expiresAt DateTime?
 
-  links             FileLink[]
-  document          Document?
-  storeItems        StoreItem[]
-  storeVersionItems StoreVersionItem[]
-  skillExports      SkillExport[]
-  skillExportRefs   SkillExportRef[]
+  links                         FileLink[]
+  document                      Document?
+  storeItems                    StoreItem[]
+  storeVersionItems             StoreVersionItem[]
+  skillExports                  SkillExport[]
+  skillExportRefs               SkillExportRef[]
+  mergeRequestItemsAsBaseFile   SkillMergeRequestItem[] @relation("SkillMergeRequestItemBaseFile")
+  mergeRequestItemsAsSourceFile SkillMergeRequestItem[] @relation("SkillMergeRequestItemSourceFile")
+  mergeRequestItemsAsTargetFile SkillMergeRequestItem[] @relation("SkillMergeRequestItemTargetFile")
 
   @@index([storeId, status])
   @@index([status, expiresAt, oid])

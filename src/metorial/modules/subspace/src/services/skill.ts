@@ -180,6 +180,18 @@ export let syncSkillFromSubspace = async (d: {
     }
   });
 
+  if (skill.status === 'archived') {
+    await db.skillGroupItem.updateMany({
+      where: {
+        skillOid: skill.oid,
+        status: 'active'
+      },
+      data: {
+        status: 'archived'
+      }
+    });
+  }
+
   if (!existingSkill && skill.status == 'active') {
     await Fabric.fire('skill.created:after', {
       instance: d.instance,
@@ -483,7 +495,18 @@ let requireConsumerReadContext = (d: ConsumerReadContext) => {
 
 export let subspaceSkillService = createSubspaceService(
   subspace.skill,
-  ['get', 'list', 'create', 'update', 'delete', 'fork', 'duplicate', 'getMany', 'upsertActor'],
+  [
+    'get',
+    'list',
+    'create',
+    'update',
+    'delete',
+    'fork',
+    'duplicate',
+    'getMany',
+    'registerCargo',
+    'upsertActor'
+  ],
   inner => ({
     get: async (arg0: Parameters<typeof inner.get>[0] & ConsumerReadContext) => {
       await assertSkillReadable({
@@ -534,6 +557,23 @@ export let subspaceSkillService = createSubspaceService(
           skills
         })
       );
+    },
+    registerCargo: async (
+      arg0: Parameters<typeof inner.registerCargo>[0] & {
+        organizationActor?: OrganizationActor;
+      }
+    ) => {
+      let skill = await inner.registerCargo(arg0);
+
+      return await enrichSkill({
+        instance: arg0.instance,
+        skill,
+        owner: arg0.organizationActor
+          ? {
+              organizationActor: arg0.organizationActor
+            }
+          : undefined
+      });
     },
     create: async (arg0: Parameters<typeof inner.create>[0] & SkillWriteActorInput) => {
       let { consumerProfile, ...input } = arg0;

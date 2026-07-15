@@ -1,3 +1,4 @@
+import { generatePlainId } from '@lowerdeck/id';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, env, getId, withTransaction } from '@metorial-cargo/db';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
@@ -49,6 +50,7 @@ let normalizeOriginLogs = (logs: unknown, prefix: string): SkillDestinationSyncL
 
 export let syncPropagateStartQueue = createQueue<{
   skillDestinationSyncId: string;
+  skillRepositoryId?: string;
 }>({
   redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/propagate/start',
@@ -87,10 +89,13 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
   });
   if (!sync || sync.status !== 'processing') return;
 
-  let repositoryLinks =
+  let allRepositoryLinks =
     sync.destination.skillMarketplace?.repositories ??
     sync.destination.skillPlugin?.repositories ??
     [];
+  let repositoryLinks = data.skillRepositoryId
+    ? allRepositoryLinks.filter(link => link.skillRepository.id === data.skillRepositoryId)
+    : allRepositoryLinks;
 
   await db.skillDestinationSync.update({
     where: { oid: sync.oid },
@@ -138,7 +143,7 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
           status: 'pending',
           skillDestinationSyncOid: sync.oid,
           skillRepositoryOid: link.skillRepository.oid,
-          branchName: `metorial/sync-${target}-${repository.syncCounter}`,
+          branchName: `metorial/sync-${target}-${repository.syncCounter}-${generatePlainId(4).toLowerCase()}`,
           prName: sync.prName ?? `Sync ${target}`,
           prDescription: sync.prDescription,
           commitMessage: sync.commitMessage ?? sync.prName ?? `Sync ${target}`

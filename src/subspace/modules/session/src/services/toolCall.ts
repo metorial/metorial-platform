@@ -88,6 +88,7 @@ class toolCallServiceImpl {
     providerConfigIds?: string[];
     providerAuthConfigIds?: string[];
     toolIds?: string[];
+    connectionIds?: string[];
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
@@ -153,20 +154,7 @@ class toolCallServiceImpl {
                 : undefined!,
               actors
                 ? {
-                    message: {
-                      OR: [
-                        {
-                          senderParticipant: {
-                            identityActorOid: actors.in
-                          }
-                        },
-                        {
-                          responderParticipant: {
-                            identityActorOid: actors.in
-                          }
-                        }
-                      ]
-                    }
+                    session: { identityActorOid: actors.in }
                   }
                 : undefined!,
               identities
@@ -191,6 +179,14 @@ class toolCallServiceImpl {
               tools
                 ? {
                     OR: [{ tool: { oid: tools.in } }, { toolKey: { in: d.toolIds ?? [] } }]
+                  }
+                : undefined!,
+
+              d.connectionIds
+                ? {
+                    message: {
+                      connection: { id: { in: d.connectionIds } }
+                    }
                   }
                 : undefined!,
 

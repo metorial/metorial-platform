@@ -1,70 +1,69 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
+import { DocumentEditorScene } from '@metorial/scene-docs';
 import {
-  SkillAgentsScene,
-  SkillLinkProvidersScene,
-  StoreFileViewerScene
-} from '@metorial/scene-skills';
-import {
+  useAllStoreItems,
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject,
   useSkill
 } from '@metorial/state';
+import { Text } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
-let PageStack = styled.div`
+let DocumentPage = styled.div`
+  height: 100%;
+  min-height: 0;
+`;
+
+let EmptyState = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
 `;
 
 export let SkillPage = () => {
   let organization = useCurrentOrganization();
-  let project = useCurrentProject();
   let instance = useCurrentInstance();
   let { skillId } = useParams();
   let skill = useSkill(instance.data?.id, skillId);
+  let storeItems = useAllStoreItems(instance.data?.id, skill.data?.storeId, {
+    order: 'asc',
+    type: ['document']
+  });
 
   return (
-    <PageStack>
-      {renderWithLoader({ skill })(({ skill }) => (
-        <>
-          <StoreFileViewerScene
+    <DocumentPage>
+      {renderWithLoader({ skill, storeItems })(({ skill, storeItems }) => {
+        let skillDocument = storeItems.data.find(
+          item => item.path.replace(/^\/+/, '').toLowerCase() == 'skill.md'
+        )?.document;
+
+        if (!skillDocument) {
+          return (
+            <EmptyState>
+              <Text color="gray600">This skill does not contain a SKILL.md document.</Text>
+            </EmptyState>
+          );
+        }
+
+        return (
+          <DocumentEditorScene
             instanceId={instance.data?.id}
-            storeId={skill.data.storeId}
-            title="Skill Files"
-            description="Manage the documents and files of this skill. Describe workflows, behaviors, and tasks for agentic workflows."
-            getDocumentPath={documentId =>
-              Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
+            documentId={skillDocument.id}
+            setRestrictHeight={enabled =>
+              (window as any).metorial_setRestrictHeight?.(enabled)
             }
+            hideSharingControls
+            skillShareContext={{
+              mode: 'dashboard',
+              organizationId: organization.data?.id,
+              skills: [{ id: skill.data.id, name: skill.data.name }]
+            }}
           />
-
-          <SkillAgentsScene
-            instanceId={instance.data?.id}
-            skillId={skillId}
-            getDocumentPath={documentId =>
-              Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
-            }
-          />
-
-          <SkillLinkProvidersScene instanceId={instance.data?.id} skillId={skillId} />
-
-          {/* <SkillGroupsForSkillScene
-            instanceId={instance.data?.id}
-            skillId={skillId}
-            getSkillGroupPath={skillGroupId =>
-              Paths.instance.skillGroup(
-                organization.data,
-                project.data,
-                instance.data,
-                skillGroupId
-              )
-            }
-          /> */}
-        </>
-      ))}
-    </PageStack>
+        );
+      })}
+    </DocumentPage>
   );
 };

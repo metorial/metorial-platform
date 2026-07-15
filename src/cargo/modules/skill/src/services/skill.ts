@@ -17,7 +17,8 @@ import { actorService } from '@metorial-cargo/module-file';
 import {
   storeAccessService,
   storeReadPermission,
-  storeService
+  storeService,
+  storeVersionService
 } from '@metorial-cargo/module-store';
 import { internalImageService } from '../internal/image';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
@@ -107,6 +108,12 @@ class SkillServiceImpl {
           actorId: d.input.actorId
         })
       : undefined;
+    let forkBaseSkillVersion =
+      d.parentSkill && d.parentSkillCloneType === 'fork'
+        ? await this.createForkBaseSkillVersion({
+            parentSkill: d.parentSkill
+          })
+        : undefined;
 
     return await withTransaction(async db => {
       let store = d.parentSkillTemplate
@@ -117,7 +124,10 @@ class SkillServiceImpl {
               templateId: d.parentSkillTemplate.storeTemplate.id,
               name: d.input.name,
               actor,
-              access: 'private'
+              access: 'private',
+              documentTitleOverrides: {
+                '/SKILL.md': d.input.name
+              }
             }
           })
         : d.parentSkill
@@ -164,6 +174,7 @@ class SkillServiceImpl {
           environmentOid: d.environment.oid,
           storeOid: store.oid,
           parentSkillOid: d.parentSkill?.oid,
+          forkedFromSkillVersionOid: forkBaseSkillVersion?.oid,
           parentSkillTemplateOid: d.parentSkillTemplate?.oid,
           createdByTenantActorOid: actor?.oid
         },
@@ -213,6 +224,31 @@ class SkillServiceImpl {
 
       return skill;
     });
+  }
+
+  private async createForkBaseSkillVersion(d: { parentSkill: SkillRecord }) {
+    let snapshot = await storeVersionService.createStoreVersionSnapshotNow({
+      storeId: d.parentSkill.store.id
+    });
+
+    let skillVersion = await db.skillVersion.findFirst({
+      where: {
+        skillOid: d.parentSkill.oid,
+        storeVersion: {
+          id: snapshot.version.id
+        }
+      }
+    });
+
+    if (!skillVersion) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Failed to create fork base version for skill ${d.parentSkill.id}`
+        })
+      );
+    }
+
+    return skillVersion;
   }
 
   async listSkills(
@@ -423,6 +459,7 @@ class SkillServiceImpl {
       skill: SkillRecord;
       actorId: string;
       permissions: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
     }
   ) {
     let actor = await actorService.getActorById({
@@ -433,7 +470,8 @@ class SkillServiceImpl {
     let participant = await storeAccessService.ensureActorStorePermissions({
       store: d.skill.store,
       actor,
-      permissions: d.permissions
+      permissions: d.permissions,
+      overridePermissions: d.overridePermissions
     });
     if (!participant) {
       throw new ServiceError(notFoundError('store.participant'));

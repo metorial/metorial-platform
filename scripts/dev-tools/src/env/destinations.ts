@@ -34,6 +34,12 @@ export let destinations: Destination[] = [
     path: 'src/metorial/services/api'
   },
 
+  {
+    type: 'oss',
+    env: backendEnv,
+    path: 'src/metorial/db'
+  },
+
   // {
   //   type: 'oss',
   //   env: backendEnv,

@@ -14,8 +14,14 @@ export type {
   CargoSkillAgent,
   CargoSkillConfiguration,
   CargoSkillExport,
+  CargoSkillForkSync,
+  CargoSkillImport,
   CargoSkillMarketplace,
   CargoSkillMarketplacePlugin,
+  CargoSkillMergePlan,
+  CargoSkillMergeRequest,
+  CargoSkillMergeRequestComment,
+  CargoSkillMergeRequestItem,
   CargoSkillParticipant,
   CargoSkillPlugin,
   CargoSkillPluginSkill,
@@ -33,6 +39,7 @@ export { uploadCargoFile } from '../cargo';
 
 export * from './access';
 export * from './document';
+export * from './documentEditToken';
 export * from './documentParticipant';
 export * from './documentVersion';
 export * from './file';
@@ -41,8 +48,11 @@ export * from './fileReference';
 export * from './skillAgent';
 export * from './skillConfiguration';
 export * from './skillExport';
+export * from './skillForkSync';
+export * from './skillImport';
 export * from './skillMarketplace';
 export * from './skillMarketplaceRepository';
+export * from './skillMergeRequest';
 export * from './skillParticipant';
 export * from './skillPlugin';
 export * from './skillPluginRepository';

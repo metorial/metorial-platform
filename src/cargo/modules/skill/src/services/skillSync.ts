@@ -118,7 +118,7 @@ class SkillSyncServiceImpl {
             ...opts,
             where: {
               id: d.ids?.length ? { in: d.ids } : undefined,
-              status: d.statuses?.length ? { in: d.statuses } : undefined,
+              status: d.statuses?.length ? { in: d.statuses } : { not: 'canceled' },
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
               destination: {
                 AND: [

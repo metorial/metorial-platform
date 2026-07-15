@@ -11,9 +11,10 @@ import {
 } from '@remixicon/react';
 import type { DragEvent, MouseEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SkillFilePreviewLightbox } from './filePreviewLightbox';
+import type { SkillSharePanelContext } from './skillSharePanel';
 
 export type SkillFileTreeNode = {
   id: string;
@@ -28,6 +29,9 @@ export type SkillFileTreeNode = {
   isPending?: boolean;
   children: SkillFileTreeNode[];
 };
+
+let getSkillShareNavigationState = (shareContext?: SkillSharePanelContext | null) =>
+  shareContext ? { metorialSkillShare: shareContext } : undefined;
 
 let TreeRoot = styled.div`
   display: flex;
@@ -49,17 +53,39 @@ let TreeRowButton = styled.button`
   width: 100%;
   min-width: 0;
   flex: 1;
-  min-height: 30px;
-  padding: 3px 8px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: inherit;
+  color: ${theme.colors.gray900};
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
-    background: color-mix(in srgb, ${theme.colors.foreground} 4%, transparent);
+    color: ${theme.colors.foreground};
+    background: ${theme.colors.gray300};
+  }
+
+  &:active {
+    background: ${theme.colors.gray300};
+  }
+
+  &:hover:active {
+    background: ${theme.colors.gray400};
+  }
+
+  &:focus-visible {
+    background: ${theme.colors.gray300};
+  }
+
+  &:hover:focus-visible {
+    background: ${theme.colors.gray400};
   }
 `;
 
@@ -70,39 +96,74 @@ let TreeRowLink = styled(Link)`
   align-self: stretch;
   min-width: 0;
   flex: 1;
-  color: inherit;
+  color: ${theme.colors.gray900};
+  font-size: 13px;
   text-decoration: none;
   border-radius: 6px;
-
-  &:hover {
-    color: inherit;
-    text-decoration: none;
-  }
-`;
-
-let TreeRowShell = styled.div<{ $dropTarget?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 30px;
-  padding: 3px 8px;
-  border: none;
-  border-radius: 6px;
-  background: ${p =>
-    p.$dropTarget
-      ? `color-mix(in srgb, ${theme.colors.blue800} 14%, transparent)`
-      : 'transparent'};
-  color: inherit;
   transition:
     background 0.2s ease,
     color 0.2s ease;
 
   &:hover {
+    color: ${theme.colors.foreground};
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    background: ${theme.colors.gray300};
+  }
+
+  &:hover:focus-visible {
+    background: ${theme.colors.gray400};
+  }
+`;
+
+let TreeRowShell = styled.div<{ $active?: boolean; $dropTarget?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: ${p =>
+    p.$dropTarget
+      ? `color-mix(in srgb, ${theme.colors.blue800} 14%, transparent)`
+      : p.$active
+        ? theme.colors.gray300
+        : 'transparent'};
+  color: ${theme.colors.gray900};
+  font-size: 13px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    color: ${theme.colors.foreground};
     background: ${p =>
       p.$dropTarget
         ? `color-mix(in srgb, ${theme.colors.blue800} 18%, transparent)`
-        : `color-mix(in srgb, ${theme.colors.foreground} 4%, transparent)`};
+        : p.$active
+          ? theme.colors.gray400
+          : theme.colors.gray300};
+  }
+
+  &:active {
+    background: ${theme.colors.gray300};
+  }
+
+  &:hover:active {
+    background: ${theme.colors.gray400};
+  }
+
+  &:focus-within {
+    background: ${theme.colors.gray300};
+  }
+
+  &:hover:focus-within {
+    background: ${theme.colors.gray400};
   }
 `;
 
@@ -115,7 +176,7 @@ let TreeChevron = styled(RiArrowRightSLine)<{ $open: boolean }>`
   flex: 0 0 auto;
   transition: transform 0.2s ease;
   transform: rotate(${p => (p.$open ? 90 : 0)}deg);
-  color: color-mix(in srgb, ${theme.colors.foreground} 56%, transparent);
+  color: inherit;
   width: 14px;
   height: 14px;
 `;
@@ -155,7 +216,7 @@ let TreeAction = styled.button`
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: color-mix(in srgb, ${theme.colors.foreground} 58%, transparent);
+  color: ${theme.colors.gray900};
   cursor: pointer;
   flex: 0 0 auto;
   transition:
@@ -163,7 +224,7 @@ let TreeAction = styled.button`
     color 0.2s ease;
 
   &:hover {
-    background: color-mix(in srgb, ${theme.colors.foreground} 8%, transparent);
+    background: ${theme.colors.gray400};
     color: ${theme.colors.foreground};
   }
 
@@ -185,6 +246,8 @@ let TreeSpinnerWrap = styled.div`
 let TreeNameWrap = styled.div`
   min-width: 0;
   overflow: hidden;
+  color: inherit;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -505,7 +568,8 @@ let SkillFileTreeRow = (p: {
   onDelete: (itemId: string) => Promise<void>;
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
+  shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
   onCancelRename: () => void;
@@ -517,6 +581,7 @@ let SkillFileTreeRow = (p: {
   onToggle: (path: string) => void;
   dragTargetPath: string | null;
 }) => {
+  let location = useLocation();
   let navigate = useNavigate();
   let isDirectory = p.node.kind == 'directory';
   let isOpen = p.expandedPaths.has(p.node.path);
@@ -528,9 +593,11 @@ let SkillFileTreeRow = (p: {
     p.node.name != 'SKILL.md' &&
     !!p.node.itemId;
   let documentPath =
-    p.node.kind == 'document' && p.node.documentId
-      ? p.getDocumentPath(p.node.documentId)
+    p.node.kind == 'document' && p.node.documentId && p.node.itemId
+      ? p.getDocumentPath(p.node.documentId, p.node.itemId)
       : null;
+  let isActive =
+    p.node.kind == 'document' && documentPath?.split(/[?#]/)[0] == location.pathname;
   let fileInputRef = useRef<HTMLInputElement | null>(null);
   let previewTriggerRef = useRef<HTMLButtonElement | null>(null);
   let [fileError, setFileError] = useState<string | null>(null);
@@ -589,11 +656,16 @@ let SkillFileTreeRow = (p: {
 
     let fileRow = (
       <TreeRowShell
+        $active={isActive}
         draggable={canDrag}
         onClick={e => {
           if (isNestedTreeActionClick(e)) return;
-          if (documentPath) navigate(documentPath);
-          else if (p.node.kind == 'file' && p.node.fileId) previewTriggerRef.current?.click();
+          if (documentPath) {
+            navigate(documentPath, {
+              state: getSkillShareNavigationState(p.shareContext)
+            });
+          } else if (p.node.kind == 'file' && p.node.fileId)
+            previewTriggerRef.current?.click();
         }}
         onDragStart={e => {
           if (!canDrag || !p.node.itemId || !p.node.parentPath || p.node.kind == 'directory') {
@@ -655,14 +727,16 @@ let SkillFileTreeRow = (p: {
         }}
       >
         {documentPath ? (
-          <TreeRowLink to={documentPath}>
+          <TreeRowLink to={documentPath} state={getSkillShareNavigationState(p.shareContext)}>
             <TreeIndent $depth={p.depth} />
             <ChevronSpacer />
             <TreeIconWrap $kind={p.node.kind}>
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
             <TreeNameWrap>
-              <Text size="2">{getDisplayName(p.node)}</Text>
+              <Text size="2" style={{ fontSize: 13 }}>
+                {getDisplayName(p.node)}
+              </Text>
             </TreeNameWrap>
           </TreeRowLink>
         ) : p.node.kind == 'file' && p.node.fileId ? (
@@ -678,7 +752,9 @@ let SkillFileTreeRow = (p: {
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
             <TreeNameWrap>
-              <Text size="2">{getDisplayName(p.node)}</Text>
+              <Text size="2" style={{ fontSize: 13 }}>
+                {getDisplayName(p.node)}
+              </Text>
             </TreeNameWrap>
           </SkillFilePreviewLightbox>
         ) : (
@@ -689,7 +765,9 @@ let SkillFileTreeRow = (p: {
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
             <TreeNameWrap>
-              <Text size="2">{getDisplayName(p.node)}</Text>
+              <Text size="2" style={{ fontSize: 13 }}>
+                {getDisplayName(p.node)}
+              </Text>
             </TreeNameWrap>
           </TreeLabel>
         )}
@@ -878,7 +956,9 @@ let SkillFileTreeRow = (p: {
             <TreeIcon kind={p.node.kind} open={isOpen} />
           </TreeIconWrap>
           <TreeNameWrap>
-            <Text size="2">{getDisplayName(p.node)}</Text>
+            <Text size="2" style={{ fontSize: 13 }}>
+              {getDisplayName(p.node)}
+            </Text>
           </TreeNameWrap>
         </TreeLabel>
       </TreeRowButton>
@@ -986,6 +1066,7 @@ let SkillFileTreeRow = (p: {
                   onFileSelect={p.onFileSelect}
                   onFilesDrop={p.onFilesDrop}
                   getDocumentPath={p.getDocumentPath}
+                  shareContext={p.shareContext}
                   instanceId={p.instanceId}
                   editingItemPath={p.editingItemPath}
                   onCancelRename={p.onCancelRename}
@@ -1025,7 +1106,8 @@ let SkillFileTreeInner = (p: {
   onDelete: (itemId: string) => Promise<void>;
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
+  shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
   onCancelRename: () => void;
@@ -1055,6 +1137,7 @@ let SkillFileTreeInner = (p: {
             onFileSelect={p.onFileSelect}
             onFilesDrop={p.onFilesDrop}
             getDocumentPath={p.getDocumentPath}
+            shareContext={p.shareContext}
             instanceId={p.instanceId}
             editingItemPath={p.editingItemPath}
             onCancelRename={p.onCancelRename}
@@ -1089,7 +1172,8 @@ export let SkillFileTree = (p: {
   onDelete: (itemId: string) => Promise<void>;
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
+  shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   onRename: (itemId: string, parentPath: string, name: string) => Promise<void>;
   onMove: (itemId: string, parentPath: string, name: string) => Promise<void>;
@@ -1120,6 +1204,7 @@ export let SkillFileTree = (p: {
       onFileSelect={p.onFileSelect}
       onFilesDrop={p.onFilesDrop}
       getDocumentPath={p.getDocumentPath}
+      shareContext={p.shareContext}
       instanceId={p.instanceId}
       onCancelRename={() => setEditingItemPath(null)}
       onDragTargetChange={setDragTargetPath}

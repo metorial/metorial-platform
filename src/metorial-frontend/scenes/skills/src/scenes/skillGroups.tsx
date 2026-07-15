@@ -1,16 +1,17 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { PageHeader } from '@metorial/layout';
 import {
   refetchSkillGroupMembershipLoaders,
-  type Skill,
-  type SkillGroup,
-  type SkillGroupItem,
   useAllSkillGroupItems,
   useCreateSkillGroupItem,
   useCreateSkillGroupItemQuiet,
   useDeleteSkillGroupItem,
   useRemoveSkillFromSkillGroupQuiet,
   useSkillGroups,
-  useSkills
+  useSkills,
+  type Skill,
+  type SkillGroup,
+  type SkillGroupItem
 } from '@metorial/state';
 import {
   Avatar,
@@ -27,9 +28,8 @@ import {
   theme
 } from '@metorial/ui';
 import { Box, ItemGrid, Table } from '@metorial/ui-product';
-import { RiAddLine, RiArrowRightSLine, RiMore2Line, RiSettings3Line } from '@remixicon/react';
+import { RiAddLine, RiMore2Line, RiSettings3Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 let EmptyState = styled.div`
@@ -109,63 +109,6 @@ let AccessRowCopy = styled.div`
 let AccessToggleWrap = styled.div`
   display: flex;
   justify-content: flex-end;
-`;
-
-let AccessGroupList = styled.div`
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: 10px;
-  overflow: hidden;
-`;
-
-let accessGroupItemStyles = `
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 11px 14px;
-  background: ${theme.colors.background};
-`;
-
-let AccessGroupItem = styled.div<{ $isLast?: boolean }>`
-  ${accessGroupItemStyles}
-
-  ${p =>
-    !p.$isLast
-      ? `
-    border-bottom: 1px solid ${theme.colors.gray300};
-  `
-      : ''}
-`;
-
-let AccessGroupItemLink = styled(Link)<{ $isLast?: boolean }>`
-  ${accessGroupItemStyles}
-  color: inherit;
-  text-decoration: none;
-  transition: background 0.15s ease;
-
-  ${p =>
-    !p.$isLast
-      ? `
-    border-bottom: 1px solid ${theme.colors.gray300};
-  `
-      : ''}
-
-  &:hover {
-    background: ${theme.colors.gray200};
-    text-decoration: none;
-  }
-`;
-
-let AccessGroupMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-`;
-
-let AccessGroupChevron = styled(RiArrowRightSLine)`
-  color: ${theme.colors.gray500};
-  flex-shrink: 0;
 `;
 
 let Description = styled.span`
@@ -370,10 +313,8 @@ let SkillGroupAccessPanel = (p: {
     <>
       <Panel.Header>
         <div>
-          <Panel.Title>Group access</Panel.Title>
-          <Panel.Description>
-            Choose which portal groups can access this skill.
-          </Panel.Description>
+          <Panel.Title>Manage groups</Panel.Title>
+          <Panel.Description>Choose which skill groups include this skill.</Panel.Description>
         </div>
       </Panel.Header>
 
@@ -400,7 +341,7 @@ let SkillGroupAccessPanel = (p: {
                 <AccessToggleWrap>
                   <Switch
                     hideLabel
-                    label={`${group.name} access`}
+                    label={`Include in ${group.name}`}
                     checked={draftAllowedGroupIds.includes(group.id)}
                     disabled={isSaving}
                     onCheckedChange={checked => toggleDraft(group.id, checked)}
@@ -550,45 +491,47 @@ export let SkillGroupSkillsScene = (p: {
   };
 
   return renderWithLoader({ skillGroupItems })(({ skillGroupItems }) => (
-    <Box
-      title="Skills"
-      description="Choose which skills belong to this group."
-      rightActions={
-        <Button
-          size="2"
-          iconLeft={<RiAddLine />}
-          disabled={!p.instanceId || !p.skillGroupId}
-          onClick={openPicker}
-          variant="outline"
-        >
-          Add Skill
-        </Button>
-      }
-    >
-      {skillGroupItems.data.length === 0 ? (
-        <EmptyState>
-          <Text color="gray600" size="2">
-            This group does not include any skills yet.
-          </Text>
-        </EmptyState>
-      ) : (
-        <>
-          <Table
-            headers={['Name', 'Identifier', '']}
-            data={skillGroupItems.data.map(item =>
-              getSkillTableRow({
-                skill: item.skill,
-                getSkillPath: p.getSkillPath,
-                isDeleting: deleteSkillGroupItem.isLoading,
-                onRemove: () => removeSkill(item)
-              })
-            )}
-          />
-          <createSkillGroupItem.RenderError />
-          <deleteSkillGroupItem.RenderError />
-        </>
-      )}
-    </Box>
+    <>
+      <Box
+        title="Skills"
+        description="Choose which skills belong to this group."
+        rightActions={
+          <Button
+            size="2"
+            iconLeft={<RiAddLine />}
+            disabled={!p.instanceId || !p.skillGroupId}
+            onClick={openPicker}
+            variant="outline"
+          >
+            Add Skill
+          </Button>
+        }
+      >
+        {skillGroupItems.data.length === 0 ? (
+          <EmptyState>
+            <Text color="gray600" size="2">
+              This group does not include any skills yet.
+            </Text>
+          </EmptyState>
+        ) : (
+          <>
+            <Table
+              headers={['Name', 'Identifier', '']}
+              data={skillGroupItems.data.map(item =>
+                getSkillTableRow({
+                  skill: item.skill,
+                  getSkillPath: p.getSkillPath,
+                  isDeleting: deleteSkillGroupItem.isLoading,
+                  onRemove: () => removeSkill(item)
+                })
+              )}
+            />
+            <createSkillGroupItem.RenderError />
+            <deleteSkillGroupItem.RenderError />
+          </>
+        )}
+      </Box>
+    </>
   ));
 };
 
@@ -597,13 +540,14 @@ export let SkillGroupsForSkillScene = (p: {
   skillId: string | null | undefined;
   getSkillGroupPath?: (skillGroupId: string) => string;
   showAccessLevel?: boolean;
+  readOnly?: boolean;
 }) => {
   let skillGroups = useSkillGroups(p.instanceId, {
     order: 'asc',
     status: ['active'],
     ...(p.skillId ? { skillId: p.skillId } : {})
   });
-  let allSkillGroups = useSkillGroups(p.instanceId, {
+  let allSkillGroups = useSkillGroups(p.readOnly ? null : p.instanceId, {
     order: 'asc',
     status: ['active'],
     limit: 100
@@ -628,21 +572,25 @@ export let SkillGroupsForSkillScene = (p: {
 
   return renderWithPagination(skillGroups, { hidePaginationWhenUnavailable: true })(
     skillGroups => (
-      <Box
-        title="Access"
-        description="Choose which portal groups can access this skill."
-        rightActions={
-          <Button
-            size="2"
-            iconLeft={<RiSettings3Line />}
-            disabled={!p.instanceId || !p.skillId || !allSkillGroups.data}
-            onClick={openAccessPanel}
-            variant="outline"
-          >
-            Manage access
-          </Button>
-        }
-      >
+      <>
+        <PageHeader
+          size="6"
+          title="Groups"
+          description="Manage the groups this skill belongs to."
+          actions={
+            !p.readOnly ? (
+              <Button
+                size="2"
+                iconLeft={<RiSettings3Line />}
+                disabled={!p.instanceId || !p.skillId || !allSkillGroups.data}
+                onClick={openAccessPanel}
+                variant="outline"
+              >
+                Manage groups
+              </Button>
+            ) : null
+          }
+        />
         {skillGroups.data.items.length === 0 ? (
           <EmptyState>
             <Text color="gray600" size="2">
@@ -650,13 +598,21 @@ export let SkillGroupsForSkillScene = (p: {
             </Text>
           </EmptyState>
         ) : (
-          <AccessGroupList>
-            {skillGroups.data.items.map((group, index) => {
-              let groupPath = p.getSkillGroupPath?.(group.id);
-              let isLast = index === skillGroups.data.items.length - 1;
-              let rowContent = (
-                <>
-                  <AccessRowCopy>
+          <Table
+            headers={['Group', 'Skills']}
+            data={skillGroups.data.items.map(group => ({
+              href: p.getSkillGroupPath?.(group.id),
+              data: [
+                <SkillName>
+                  <Avatar
+                    entity={{
+                      name: group.name,
+                      imageUrl: `https://avatar-cdn.metorial.com/${group.id}`
+                    }}
+                    size={32}
+                    radius={999}
+                  />
+                  <SkillText>
                     <Text size="2" weight="strong">
                       {group.name}
                     </Text>
@@ -665,30 +621,14 @@ export let SkillGroupsForSkillScene = (p: {
                         <Description>{group.description}</Description>
                       </Text>
                     ) : null}
-                  </AccessRowCopy>
-
-                  <AccessGroupMeta>
-                    <Text size="2" color="gray600">
-                      {group.skills.length} skill{group.skills.length === 1 ? '' : 's'}
-                    </Text>
-                    {groupPath ? <AccessGroupChevron size={16} /> : null}
-                  </AccessGroupMeta>
-                </>
-              );
-
-              return groupPath ? (
-                <AccessGroupItemLink key={group.id} to={groupPath} $isLast={isLast}>
-                  {rowContent}
-                </AccessGroupItemLink>
-              ) : (
-                <AccessGroupItem key={group.id} $isLast={isLast}>
-                  {rowContent}
-                </AccessGroupItem>
-              );
-            })}
-          </AccessGroupList>
+                  </SkillText>
+                </SkillName>,
+                `${group.skills.length} skill${group.skills.length === 1 ? '' : 's'}`
+              ]
+            }))}
+          />
         )}
-      </Box>
+      </>
     )
   );
 };

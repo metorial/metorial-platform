@@ -5,7 +5,7 @@ export let skillRepositorySchema = v.object({
   object: v.literal('scm.repository#skill'),
   id: v.string(),
 
-  provider: v.enumOf(['github', 'gitlab']),
+  provider: v.enumOf(['github', 'gitlab', 'bitbucket']),
   name: v.string(),
   url: v.string(),
   is_private: v.boolean(),

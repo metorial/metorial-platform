@@ -15,6 +15,12 @@ import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
 export type Document = DashboardInstanceDocumentsGetOutput;
+export type DocumentEditToken = {
+  object: 'document.edit_token';
+  token: string;
+  expiresAt: Date;
+  documentId: string;
+};
 export type DocumentParticipant = DashboardInstanceDocumentsParticipantsGetOutput;
 export type DocumentPermissions = DashboardInstanceDocumentsPermissionsGetOutput;
 export type DocumentVersion = DashboardInstanceDocumentsVersionsGetOutput;
@@ -92,6 +98,15 @@ export let updateDocument = (
   }
 ) => withAuth(sdk => sdk.documents.update(body.instanceId, body.documentId, body));
 
+export let getDocumentEditToken = (d: { instanceId: string; documentId: string }) =>
+  withAuth(
+    sdk =>
+      (sdk.documents as any).editToken.get(
+        d.instanceId,
+        d.documentId
+      ) as Promise<DocumentEditToken>
+  );
+
 export let documentPermissionsLoader = createLoader({
   name: 'documentPermissions',
   parents: [documentLoader],
@@ -106,6 +121,23 @@ export let useDocumentPermissions = (
 ) => {
   return documentPermissionsLoader.use(
     instanceId && documentId ? { instanceId, documentId } : null
+  );
+};
+
+export let documentEditTokenLoader = createLoader({
+  name: 'documentEditToken',
+  parents: [documentLoader],
+  fetch: (i: { instanceId: string; documentId: string }) => getDocumentEditToken(i),
+  mutators: {}
+});
+
+export let useDocumentEditToken = (
+  instanceId: string | null | undefined,
+  documentId: string | null | undefined,
+  enabled?: boolean
+) => {
+  return documentEditTokenLoader.use(
+    enabled !== false && instanceId && documentId ? { instanceId, documentId } : null
   );
 };
 

@@ -8,7 +8,8 @@ import {
   withTransaction
 } from '@metorial/db';
 import { createSubspaceService } from '../lib/subspaceService';
-import { getVisibleSkillWhere, intersectIds, subspaceSkillService } from './skill';
+import { getVisibleSkillWhere, subspaceSkillService } from './skill';
+import { assertSkillGroupReadable, getAccessibleSkillGroupIds } from './skillGroupAccess';
 import { subspace } from '../subspace';
 
 type SubspaceSkillGroupResult = Awaited<ReturnType<typeof subspace.skillGroup.get>>;
@@ -277,90 +278,6 @@ let requireConsumerReadContext = (d: ConsumerReadContext) => {
     consumerProfile: d.consumerProfile,
     consumerGroups: d.consumerGroups ?? []
   };
-};
-
-let getAccessibleSkillGroupIds = async (d: {
-  instance: Instance;
-  consumerProfile: ConsumerProfile;
-  consumerGroups: Pick<ConsumerGroup, 'oid'>[];
-  requestedIds?: string[];
-}) => {
-  let skillGroups = await db.skillGroup.findMany({
-    where: {
-      instanceOid: d.instance.oid,
-      OR: [
-        {
-          consumerAccesses: {
-            some: {
-              consumerGroupOid: {
-                in: d.consumerGroups.map(group => group.oid)
-              }
-            }
-          }
-        },
-        {
-          items: {
-            some: {
-              status: 'active' as const,
-              skill: {
-                is: getVisibleSkillWhere(d)
-              }
-            }
-          }
-        }
-      ]
-    },
-    select: {
-      id: true
-    }
-  });
-
-  return intersectIds(
-    skillGroups.map(skillGroup => skillGroup.id),
-    d.requestedIds
-  );
-};
-
-let assertSkillGroupReadable = async (d: {
-  instance: Instance;
-  skillGroupId: string;
-  consumerProfile?: ConsumerProfile;
-  consumerGroups?: Pick<ConsumerGroup, 'oid'>[];
-}) => {
-  if (!d.consumerProfile) return;
-
-  let skillGroup = await db.skillGroup.findFirst({
-    where: {
-      instanceOid: d.instance.oid,
-      id: d.skillGroupId,
-      OR: [
-        {
-          consumerAccesses: {
-            some: {
-              consumerGroupOid: {
-                in: d.consumerGroups?.map(group => group.oid) ?? []
-              }
-            }
-          }
-        },
-        {
-          items: {
-            some: {
-              status: 'active' as const,
-              skill: {
-                is: getVisibleSkillWhere({
-                  consumerProfile: d.consumerProfile,
-                  consumerGroups: d.consumerGroups ?? []
-                })
-              }
-            }
-          }
-        }
-      ]
-    }
-  });
-
-  if (!skillGroup) throw new Error('Skill group not found');
 };
 
 export let subspaceSkillGroupService = createSubspaceService(

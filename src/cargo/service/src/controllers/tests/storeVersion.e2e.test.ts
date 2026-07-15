@@ -481,4 +481,53 @@ describe('cargo storeVersion.e2e', () => {
 
     expect(refreshedStore?.dirtyAt?.toISOString()).toBe(staleDirtyAt.toISOString());
   });
+
+  it('keeps snapshotted document content and titles immutable', async () => {
+    let { tenant, environment } = await createScope();
+    let store = await cargoClient.store.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      storeId: 'cst_store_version_immutable_document',
+      name: 'Immutable Document Store'
+    });
+    let document = await cargoClient.document.create({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      title: 'Original title',
+      content: 'Original content',
+      store: {
+        id: store.id,
+        path: '/SKILL.md'
+      }
+    });
+    let snapshot = await storeVersionService.createStoreVersionSnapshotNow({
+      storeId: store.id
+    });
+
+    await cargoClient.document.update({
+      tenantId: tenant.id,
+      environmentId: environment.id,
+      documentId: document.id,
+      title: 'Updated title',
+      content: 'Updated content'
+    });
+    await flushDocument(document.id);
+
+    let snapshottedItem = await db.storeVersionItem.findFirstOrThrow({
+      where: {
+        storeVersionOid: snapshot.version.oid,
+        path: '/SKILL.md'
+      },
+      include: {
+        documentVersion: {
+          include: {
+            content: true
+          }
+        }
+      }
+    });
+
+    expect(snapshottedItem.documentTitle).toBe('Original title');
+    expect(snapshottedItem.documentVersion?.content.content).toBe('Original content');
+  });
 });

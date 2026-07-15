@@ -15,6 +15,8 @@ import {
   mapDashboardInstanceSkillsListOutput,
   mapDashboardInstanceSkillsListQuery,
   mapDashboardInstanceSkillsPublishConsumerSkillOutput,
+  mapDashboardInstanceSkillsShareBody,
+  mapDashboardInstanceSkillsShareOutput,
   mapDashboardInstanceSkillsUpdateBody,
   mapDashboardInstanceSkillsUpdateOutput,
   type DashboardInstanceSkillsCreateBody,
@@ -28,6 +30,8 @@ import {
   type DashboardInstanceSkillsListOutput,
   type DashboardInstanceSkillsListQuery,
   type DashboardInstanceSkillsPublishConsumerSkillOutput,
+  type DashboardInstanceSkillsShareBody,
+  type DashboardInstanceSkillsShareOutput,
   type DashboardInstanceSkillsUpdateBody,
   type DashboardInstanceSkillsUpdateOutput
 } from '../resources';
@@ -264,6 +268,36 @@ export class MetorialDashboardInstanceSkillsEndpoint {
     return this._post(request).transform(
       mapDashboardInstanceSkillsPublishConsumerSkillOutput
     );
+  }
+
+  /**
+   * @name Share skill
+   * @description Shares a skill with consumers or organization members.
+   *
+   * @param `instanceId` - string
+   * @param `skillId` - string
+   * @param `body` - DashboardInstanceSkillsShareBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsShareOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  share(
+    instanceId: string,
+    skillId: string,
+    body: DashboardInstanceSkillsShareBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsShareOutput> {
+    let path = `dashboard/instances/${instanceId}/skills/${skillId}/shares`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSkillsShareBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapDashboardInstanceSkillsShareOutput);
   }
 
   /**
