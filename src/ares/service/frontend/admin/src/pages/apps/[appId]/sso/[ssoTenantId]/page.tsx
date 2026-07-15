@@ -1,5 +1,5 @@
 import { renderWithLoader, useMutation } from '@metorial-io/data-hooks';
-import { Button, Datalist, Spacer, Switch, Title } from '@metorial-io/ui';
+import { Button, Datalist, Spacer, Title } from '@metorial-io/ui';
 import { Table } from '@metorial-io/ui-product';
 import { useParams } from 'react-router-dom';
 import { ssoConnectionsState, ssoTenantState } from '../../../../../state';
@@ -8,10 +8,8 @@ import { adminClient } from '../../../../../state/client';
 export let SsoTenantPage = () => {
   let { appId, ssoTenantId } = useParams();
   let ssoTenant = ssoTenantState.use({ id: ssoTenantId! });
-  let ssoTenantRoot = ssoTenant;
   let connections = ssoConnectionsState.use({ tenantId: ssoTenantId! });
   let createSetup = useMutation(adminClient.sso.createSetup);
-  let setGlobal = useMutation(adminClient.sso.setGlobal);
 
   return renderWithLoader({ ssoTenant, connections })(({ ssoTenant, connections }) => (
     <>
@@ -40,31 +38,6 @@ export let SsoTenantPage = () => {
           }
         ]}
       />
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          marginTop: 30,
-          marginBottom: 10
-        }}
-      >
-        <Title weight="strong" as="h2" size="4">
-          Global SSO
-        </Title>
-      </div>
-
-      <Switch
-        label="Available on all apps"
-        checked={ssoTenant.data.isGlobal}
-        disabled={setGlobal.isLoading}
-        onCheckedChange={async checked => {
-          let [res] = await setGlobal.mutate({ id: ssoTenantId!, isGlobal: checked });
-          if (res) ssoTenantRoot.refetch();
-        }}
-      />
-      <setGlobal.RenderError />
 
       <div
         style={{

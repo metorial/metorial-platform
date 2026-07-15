@@ -124,10 +124,9 @@ export let AuthLayout = ({
           <Footer>
             <p>
               By signing up for, logging in to and/or using a{' '}
-              <a href="https://metorial.com">Metorial</a> service, you agree to
-              Metorial&apos;s{' '}
-              <a href="https://metorial.com/legal/terms-of-service">terms of service</a>{' '}
-              and <a href="https://metorial.com/legal/privacy-policy">privacy policy</a>.
+              <a href="https://metorial.com">Metorial</a> service, you agree to Metorial&apos;s{' '}
+              <a href="https://metorial.com/legal/terms-of-service">terms of service</a> and{' '}
+              <a href="https://metorial.com/legal/privacy-policy">privacy policy</a>.
             </p>
           </Footer>
         </Content>

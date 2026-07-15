@@ -11,14 +11,30 @@ import {
   Input,
   Or,
   Spacer,
-  Text
+  Text,
+  theme
 } from '@metorial-io/ui';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { styled } from 'styled-components';
 import { GithubLogo } from '../components/github';
 import { GoogleLogo } from '../components/google';
 import { AuthLayout } from '../components/layout';
-import { authState } from '../state/auth';
+import {
+  type AuthConnectionOption,
+  type AuthConnectionSelection,
+  authState
+} from '../state/auth';
+
+let Notice = styled.div`
+  padding: 12px 14px;
+  border: 1px solid ${theme.colors.gray400};
+  border-radius: 8px;
+  background: ${theme.colors.gray200};
+  color: ${theme.colors.gray800};
+  font-size: 13px;
+  line-height: 1.5;
+`;
 
 export let AuthHomeScene = ({
   clientId,
@@ -26,6 +42,7 @@ export let AuthHomeScene = ({
   nextUrl,
   email,
   type,
+  reason,
 
   setAuthIntent
 }: {
@@ -34,6 +51,7 @@ export let AuthHomeScene = ({
   type: 'login' | 'signup' | 'switch';
   nextUrl: string;
   sessionOrUserId: string | undefined;
+  reason?: string;
 
   setAuthIntent?: (d: { authIntentId: string; authIntentClientSecret: string }) => void;
 }) => {
@@ -49,6 +67,12 @@ export let AuthHomeScene = ({
 
   let submitting = useRef(false);
   let [loadingSource, setLoadingSource] = useState<string>();
+  let [connectionSelection, setConnectionSelection] = useState<AuthConnectionSelection | null>(
+    null
+  );
+  let selectionAuth = authState.use(
+    connectionSelection ? { clientId: connectionSelection.clientId } : null
+  );
   let form = useForm({
     initialValues: {
       email: email ?? ''
@@ -86,14 +110,18 @@ export let AuthHomeScene = ({
 
       if (!res) return;
 
-      setAuthIntent?.({
-        authIntentId: res.id,
-        authIntentClientSecret: res.clientSecret
-      });
+      if (res.type == 'selection') {
+        setConnectionSelection(res);
+      } else {
+        setAuthIntent?.({
+          authIntentId: res.authIntent.id,
+          authIntentClientSecret: res.authIntent.clientSecret
+        });
+      }
     }
   });
 
-  let canAutoSubmit = form.values.email && email; // && type == 'login';
+  let canAutoSubmit = form.values.email && email && !reason;
   let autoSubmittedRef = useRef(false);
 
   useEffect(() => {
@@ -138,10 +166,14 @@ export let AuthHomeScene = ({
       .then(([res]) => {
         if (!res) return;
 
-        setAuthIntent?.({
-          authIntentId: res.id,
-          authIntentClientSecret: res.clientSecret
-        });
+        if (res.type == 'selection') {
+          setConnectionSelection(res);
+        } else {
+          setAuthIntent?.({
+            authIntentId: res.authIntent.id,
+            authIntentClientSecret: res.authIntent.clientSecret
+          });
+        }
       });
   }, [sessionOrUserIdToLogInWith]);
 
@@ -174,7 +206,12 @@ export let AuthHomeScene = ({
     );
   }
 
-  if (((canAutoSubmit || sessionOrUserId) && !startAuthentication.error) || auth.isLoading)
+  if (
+    ((canAutoSubmit || sessionOrUserId) &&
+      !connectionSelection &&
+      !startAuthentication.error) ||
+    auth.isLoading
+  )
     return (
       <AuthLayout>
         {captcha}
@@ -184,13 +221,56 @@ export let AuthHomeScene = ({
 
   let options = auth.data?.options ?? [];
   let hasEmailOption = options.some(o => o.type === 'email');
-  let hasOAuthOptions = options.some(o => o.type.startsWith('oauth.'));
-  let ssoOptions = options.filter(o => o.type.startsWith('sso.'));
+  let oauthOptions = options.filter(o => o.type === 'oauth');
+  let ssoOptions = options.filter(o => o.type === 'sso');
+  let hasOAuthOptions = oauthOptions.length > 0;
   let hasAlternativeOptions = hasOAuthOptions || ssoOptions.length > 0;
+
+  let activeBoot = selectionAuth.data ?? auth.data;
+  let bootClient = activeBoot?.client;
+  let bootAccount = bootClient?.account;
+  let selectionAccount = connectionSelection?.account;
+  let account = selectionAccount ?? bootAccount;
+
+  let startSso = (option: AuthConnectionOption) => {
+    setLoadingSource(`sso_${option.connectionId}`);
+    startAuthentication.mutate({
+      type: 'sso',
+      clientId: connectionSelection?.clientId ?? clientId,
+      ssoTenantId: option.tenantId,
+      ssoConnectionId: option.connectionId,
+      email: connectionSelection?.email ?? email,
+      redirectUrl: nextUrl
+    });
+  };
 
   let lines: React.ReactNode[] = [];
 
-  if (hasEmailOption) {
+  if (connectionSelection) {
+    lines.push(
+      <>
+        {connectionSelection.options.map((option, i) => (
+          <Fragment key={option.connectionId}>
+            {i > 0 && <Spacer height={10} />}
+            <Button
+              onClick={() => startSso(option)}
+              size="2"
+              fullWidth
+              variant="outline"
+              loading={
+                startAuthentication.isLoading && loadingSource == `sso_${option.connectionId}`
+              }
+              disabled={startAuthentication.isLoading}
+            >
+              {option.tenantName} — {option.connectionName}
+            </Button>
+          </Fragment>
+        ))}
+      </>
+    );
+  }
+
+  if (!connectionSelection && hasEmailOption) {
     lines.push(
       <form onSubmit={form.handleSubmit}>
         <Input label="Email" {...form.getFieldProps('email')} />
@@ -207,7 +287,9 @@ export let AuthHomeScene = ({
           }
           disabled={startAuthentication.isLoading || form.isSubmitting}
         >
-          Continue
+          {account && !account.allowEmailLogin && ssoOptions.length === 0
+            ? 'Log in as guest'
+            : 'Continue'}
         </Button>
         <startAuthentication.RenderError />
 
@@ -242,20 +324,20 @@ export let AuthHomeScene = ({
     );
   }
 
-  if (hasOAuthOptions) {
+  if (!connectionSelection && hasOAuthOptions) {
     let oauthProviders: {
       icon: React.ReactNode;
-      type: string;
+      type: 'google' | 'github';
     }[] = [];
 
-    if (options.some(o => o.type === 'oauth.google')) {
+    if (oauthOptions.some(o => o.provider === 'google')) {
       oauthProviders.push({
         icon: <GoogleLogo />,
         type: 'google'
       });
     }
 
-    if (options.some(o => o.type === 'oauth.github')) {
+    if (oauthOptions.some(o => o.provider === 'github')) {
       oauthProviders.push({
         icon: <GithubLogo theme="light" />,
         type: 'github'
@@ -274,7 +356,7 @@ export let AuthHomeScene = ({
                 startAuthentication.mutate({
                   type: 'oauth',
                   clientId,
-                  provider: providerType as any,
+                  provider: providerType,
                   redirectUrl: nextUrl
                 });
               }}
@@ -293,34 +375,26 @@ export let AuthHomeScene = ({
     );
   }
 
-  if (ssoOptions.length > 0) {
+  if (!connectionSelection && ssoOptions.length > 0) {
     lines.push(
       <>
         {ssoOptions.map((option, i) => {
-          let ssoTenantId = option.type.replace('sso.', '');
-          let name = option.name ?? 'Single Sign-On';
-
           return (
-            <Fragment key={option.type}>
+            <Fragment key={option.connectionId}>
               {i > 0 && <Spacer height={10} />}
 
               <Button
-                onClick={() => {
-                  setLoadingSource(option.type);
-                  startAuthentication.mutate({
-                    type: 'sso',
-                    clientId,
-                    ssoTenantId,
-                    redirectUrl: nextUrl
-                  });
-                }}
+                onClick={() => startSso(option)}
                 size="2"
                 fullWidth
                 variant="outline"
-                loading={startAuthentication.isLoading && loadingSource == option.type}
+                loading={
+                  startAuthentication.isLoading &&
+                  loadingSource == `sso_${option.connectionId}`
+                }
                 disabled={startAuthentication.isLoading}
               >
-                SSO - {name}
+                {option.tenantName} — {option.connectionName}
               </Button>
             </Fragment>
           );
@@ -332,29 +406,55 @@ export let AuthHomeScene = ({
   return (
     <AuthLayout
       main={{
-        title: {
-          login: 'Log in',
-          signup: 'Sign up',
-          switch: 'Choose account'
-        }[type],
-        description: {
-          login: hasEmailOption
-            ? `Welcome back! Enter your email to continue.`
-            : hasAlternativeOptions
-              ? `Welcome back! Choose a sign-in method to continue.`
-              : `Welcome back! No sign-in methods are currently available.`,
-          signup: hasEmailOption
-            ? `Nice to meet you! Enter your email to get started.`
-            : hasAlternativeOptions
-              ? `Nice to meet you! Choose a sign-in method to get started.`
-              : `No sign-in methods are currently available for sign up.`,
-          switch: `Choose the account you'd like to continue with.`
-        }[type]
+        title: connectionSelection
+          ? `Choose how to continue${account?.name ? ` to ${account.name}` : ''}`
+          : account
+            ? `Log in to ${account.name} on Metorial`
+            : {
+                login: 'Log in',
+                signup: 'Sign up',
+                switch: 'Choose account'
+              }[type],
+        description: connectionSelection
+          ? `We found more than one sign-in connection for ${connectionSelection.email}.`
+          : {
+              login: hasEmailOption
+                ? `Welcome back! Enter your email to continue.`
+                : hasAlternativeOptions
+                  ? `Welcome back! Choose a sign-in method to continue.`
+                  : `Welcome back! No sign-in methods are currently available.`,
+              signup: hasEmailOption
+                ? `Nice to meet you! Enter your email to get started.`
+                : hasAlternativeOptions
+                  ? `Nice to meet you! Choose a sign-in method to get started.`
+                  : `No sign-in methods are currently available for sign up.`,
+              switch: `Choose the account you'd like to continue with.`
+            }[type]
       }}
     >
       {captcha}
 
-      {!!auth.data?.users.length && (
+      {reason?.includes('social') && reason.includes('disabled') && (
+        <>
+          <Notice>
+            Social login is disabled for this account. Choose one of the available sign-in
+            methods below.
+          </Notice>
+          <Spacer height={20} />
+        </>
+      )}
+
+      {reason == 'account_sso_required' && (
+        <>
+          <Notice>
+            This email belongs to {account?.name ?? 'an account'} with its own sign-in policy.
+            Choose an available account sign-in method below.
+          </Notice>
+          <Spacer height={20} />
+        </>
+      )}
+
+      {!connectionSelection && !!auth.data?.users.length && (
         <>
           <div
             style={{

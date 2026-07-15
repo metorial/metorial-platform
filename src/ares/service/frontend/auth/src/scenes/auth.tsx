@@ -28,6 +28,7 @@ export let AuthScene = ({ type }: { type: 'login' | 'signup' | 'switch' }) => {
     searchParams.get('redirect_uri') ??
     auth.data?.defaultRedirectUrl;
   let sessionOrUserId = searchParams.get('user_id') ?? searchParams.get('session_id');
+  let reason = searchParams.get('auth_error') ?? searchParams.get('reason') ?? undefined;
 
   if (!email && nextUrl) {
     try {
@@ -51,6 +52,7 @@ export let AuthScene = ({ type }: { type: 'login' | 'signup' | 'switch' }) => {
       nextUrl={nextUrl ?? 'https://metorial.com'}
       email={email ?? undefined}
       type={type}
+      reason={reason}
       setAuthIntent={setAuthIntent}
       sessionOrUserId={sessionOrUserId ?? undefined}
     />
