@@ -9,6 +9,7 @@ export type ScmReposPreviewOutput = {
     name: string;
     identifier: string;
   }[];
+  nextCursor?: string | undefined;
 };
 
 export let mapScmReposPreviewOutput = mtMap.object<ScmReposPreviewOutput>({
@@ -24,12 +25,15 @@ export let mapScmReposPreviewOutput = mtMap.object<ScmReposPreviewOutput>({
         identifier: mtMap.objectField('identifier', mtMap.passthrough())
       })
     )
-  )
+  ),
+  nextCursor: mtMap.objectField('next_cursor', mtMap.passthrough())
 });
 
 export type ScmReposPreviewBody = {
   installationId: string;
   externalAccountId?: string | undefined;
+  cursor?: string | undefined;
+  limit?: number | undefined;
 };
 
 export let mapScmReposPreviewBody = mtMap.object<ScmReposPreviewBody>({
@@ -37,6 +41,8 @@ export let mapScmReposPreviewBody = mtMap.object<ScmReposPreviewBody>({
   externalAccountId: mtMap.objectField(
     'external_account_id',
     mtMap.passthrough()
-  )
+  ),
+  cursor: mtMap.objectField('cursor', mtMap.passthrough()),
+  limit: mtMap.objectField('limit', mtMap.passthrough())
 });
 

@@ -38,6 +38,7 @@ import styled from 'styled-components';
 import {
   type ScmAccountSelection,
   type ScmInstallation,
+  type ScmRepositoryPreview,
   filterScmRepositories,
   formatScmProvider,
   getInstallationName,
@@ -136,8 +137,9 @@ let AccountMeta = styled.div`
 
 let AccountMenu = styled.div`
   width: min(600px, calc(100vw - 50px));
-  max-height: min(540px, calc(100vh - 180px));
-  overflow: auto;
+  max-height: min(540px, var(--radix-popover-content-available-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 `;
 
 let AccountMenuTitle = styled.div`
@@ -485,6 +487,8 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
   let [selectedAccount, setSelectedAccount] = useState<ScmAccountSelection | null>(null);
   let [accountMenuKey, setAccountMenuKey] = useState('initial');
   let [search, setSearch] = useState('');
+  let [previewCursor, setPreviewCursor] = useState<string | undefined>();
+  let [loadedRepos, setLoadedRepos] = useState<ScmRepositoryPreview[]>([]);
   let [view, setView] = useState<'repositories' | 'create'>('repositories');
   let [createName, setCreateName] = useState('');
   let [createVisibility, setCreateVisibility] = useState<'private' | 'public'>('private');
@@ -508,20 +512,46 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
     selectedAccount
       ? {
           installationId: selectedAccount.installationId,
-          externalAccountId: selectedAccount.externalAccountId
+          externalAccountId: selectedAccount.externalAccountId,
+          cursor: previewCursor
         }
       : undefined
   );
 
+  useEffect(() => {
+    setPreviewCursor(undefined);
+    setLoadedRepos([]);
+  }, [selectedAccount?.installationId, selectedAccount?.externalAccountId]);
+
+  useEffect(() => {
+    let repoPage = repos.data;
+    if (!repoPage) return;
+    setLoadedRepos(current =>
+      previewCursor
+        ? [
+            ...current,
+            ...repoPage.repos.filter(
+              repo => !current.some(item => item.externalId == repo.externalId)
+            )
+          ]
+        : repoPage.repos
+    );
+  }, [repos.data, previewCursor]);
+
+  useEffect(() => {
+    if (!repos.data?.nextCursor || repos.isLoading) return;
+    setPreviewCursor(repos.data.nextCursor);
+  }, [repos.data?.nextCursor, repos.isLoading]);
+
   let filteredRepos = useMemo(
     () =>
       filterScmRepositories(
-        repos.data?.repos ?? [],
+        loadedRepos,
         search,
         p.excludedExternalRepoIds ?? [],
         p.excludedRepositoryIdentifiers ?? []
       ),
-    [repos.data?.repos, search, p.excludedExternalRepoIds, p.excludedRepositoryIdentifiers]
+    [loadedRepos, search, p.excludedExternalRepoIds, p.excludedRepositoryIdentifiers]
   );
   let publicRepository = useMemo(
     () =>
@@ -806,6 +836,8 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
                             onSelect={account => {
                               setSelectedAccount(account);
                               setSearch('');
+                              setPreviewCursor(undefined);
+                              setLoadedRepos([]);
                               setAccountMenuKey(
                                 `${account.installationId}:${account.externalAccountId}`
                               );
@@ -920,84 +952,87 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
               </EmptyState>
             )}
 
-            {selectedAccount
-              ? renderWithLoader(
-                  { repos },
-                  { spaceTop: 30 }
-                )(({ repos }) => (
-                  <>
-                    {(!publicRepository || filteredRepos.length > 0) && (
-                      <>
-                        <ResultMeta>
-                          <Text size="1" color="gray600">
-                            {filteredRepos.length}{' '}
-                            {filteredRepos.length == 1 ? 'repository' : 'repositories'}
-                          </Text>
-                          <Text size="1" color="gray600">
-                            {formatScmProvider(selectedAccount.provider)}
-                          </Text>
-                        </ResultMeta>
+            {selectedAccount ? (
+              repos.isLoading && loadedRepos.length == 0 ? (
+                <>
+                  <Spacer height={20} />
+                  <Text size="2" color="gray600">
+                    Loading repositories…
+                  </Text>
+                </>
+              ) : (
+                <>
+                  {(!publicRepository || filteredRepos.length > 0) && (
+                    <>
+                      <ResultMeta>
+                        <Text size="1" color="gray600">
+                          {filteredRepos.length}{' '}
+                          {filteredRepos.length == 1 ? 'repository' : 'repositories'}
+                        </Text>
+                        <Text size="1" color="gray600">
+                          {formatScmProvider(selectedAccount.provider)}
+                        </Text>
+                      </ResultMeta>
 
-                        <RepoList>
-                          {filteredRepos.map(repository => {
-                            let selected = repository.externalId == p.selectedExternalRepoId;
-                            return (
-                              <RepoItem
-                                key={repository.externalId}
-                                type="button"
-                                $selected={selected}
-                                disabled={createRepo.isLoading}
-                                onClick={() => selectRepository(repository.externalId)}
+                      <RepoList>
+                        {filteredRepos.map(repository => {
+                          let selected = repository.externalId == p.selectedExternalRepoId;
+                          return (
+                            <RepoItem
+                              key={repository.externalId}
+                              type="button"
+                              $selected={selected}
+                              disabled={createRepo.isLoading}
+                              onClick={() => selectRepository(repository.externalId)}
+                            >
+                              <RepoIcon>
+                                <RiGitRepositoryLine size={18} />
+                              </RepoIcon>
+                              <div style={{ minWidth: 0 }}>
+                                <RepoTitle>{repository.identifier}</RepoTitle>
+                                <RepoMeta>
+                                  {formatScmProvider(repository.provider)} · {repository.name}
+                                </RepoMeta>
+                              </div>
+                              <Button
+                                as="div"
+                                size="2"
+                                variant={selected ? 'solid' : 'outline'}
+                                success={selected}
+                                loading={
+                                  !!(
+                                    createRepo.isLoading &&
+                                    createRepo.input &&
+                                    'externalRepoId' in createRepo.input &&
+                                    createRepo.input.externalRepoId == repository.externalId
+                                  )
+                                }
                               >
-                                <RepoIcon>
-                                  <RiGitRepositoryLine size={18} />
-                                </RepoIcon>
-                                <div style={{ minWidth: 0 }}>
-                                  <RepoTitle>{repository.identifier}</RepoTitle>
-                                  <RepoMeta>
-                                    {formatScmProvider(repository.provider)} ·{' '}
-                                    {repository.name}
-                                  </RepoMeta>
-                                </div>
-                                <Button
-                                  as="div"
-                                  size="2"
-                                  variant={selected ? 'solid' : 'outline'}
-                                  success={selected}
-                                  loading={
-                                    !!(
-                                      createRepo.isLoading &&
-                                      createRepo.input &&
-                                      'externalRepoId' in createRepo.input &&
-                                      createRepo.input.externalRepoId == repository.externalId
-                                    )
-                                  }
-                                >
-                                  {selected ? 'Selected' : 'Select'}
-                                </Button>
-                              </RepoItem>
-                            );
-                          })}
+                                {selected ? 'Selected' : 'Select'}
+                              </Button>
+                            </RepoItem>
+                          );
+                        })}
 
-                          {!filteredRepos.length && (
-                            <EmptyState>
-                              <Text size="2" weight="strong">
-                                No repositories found
-                              </Text>
-                              <Spacer size={4} />
-                              <Text size="2" color="gray600">
-                                {search
-                                  ? 'Try another search or switch to a different account.'
-                                  : 'This account has no available repositories.'}
-                              </Text>
-                            </EmptyState>
-                          )}
-                        </RepoList>
-                      </>
-                    )}
-                  </>
-                ))
-              : null}
+                        {!filteredRepos.length && (
+                          <EmptyState>
+                            <Text size="2" weight="strong">
+                              No repositories found
+                            </Text>
+                            <Spacer size={4} />
+                            <Text size="2" color="gray600">
+                              {search
+                                ? 'Try another search or switch to a different account.'
+                                : 'This account has no available repositories.'}
+                            </Text>
+                          </EmptyState>
+                        )}
+                      </RepoList>
+                    </>
+                  )}
+                </>
+              )
+            ) : null}
 
             <createInstallation.RenderError />
             <createProvider.RenderError />

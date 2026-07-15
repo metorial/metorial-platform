@@ -55,7 +55,13 @@ export let scmRepositoryController = app.controller({
       v.object({
         tenantId: v.string(),
         scmInstallationId: v.string(),
-        externalAccountId: v.optional(v.string())
+        externalAccountId: v.optional(v.string()),
+        cursor: v.optional(v.string()),
+        limit: v.optional(
+          v.number({
+            modifiers: [v.minValue(1), v.maxValue(100)]
+          })
+        )
       })
     )
     .do(async ctx => {
@@ -64,13 +70,16 @@ export let scmRepositoryController = app.controller({
         scmInstallationId: ctx.input.scmInstallationId
       });
 
-      let repos = await scmRepoService.listRepositoryPreviews({
+      let result = await scmRepoService.listRepositoryPreviews({
         installation,
-        externalAccountId: ctx.input.externalAccountId ?? installation.externalAccountId
+        externalAccountId: ctx.input.externalAccountId ?? installation.externalAccountId,
+        cursor: ctx.input.cursor,
+        limit: ctx.input.limit
       });
 
       return {
-        repositories: repos.map(scmRepoPreviewPresenter)
+        repositories: result.repositories.map(scmRepoPreviewPresenter),
+        nextCursor: result.nextCursor
       };
     }),
 

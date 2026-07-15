@@ -1,7 +1,7 @@
 import * as RadixPopover from '@radix-ui/react-popover';
 import React, { useEffect, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { useZindex } from '../dialog/state';
+import { useDialogContext, useZindex } from '../dialog/state';
 import { theme } from '../theme';
 
 let fadeInTop = keyframes`
@@ -184,6 +184,7 @@ let Root = ({
   operationKey?: string;
 }) => {
   let [open, setOpen] = useState(false);
+  let dialog = useDialogContext();
 
   useEffect(() => {
     setOpen(false);
@@ -203,7 +204,7 @@ let Root = ({
     <RadixPopover.Root open={open} onOpenChange={setOpen}>
       <RadixPopover.Trigger asChild>{trigger}</RadixPopover.Trigger>
 
-      <RadixPopover.Portal>
+      <RadixPopover.Portal container={dialog?.contentRef?.current}>
         <Wrapper
           style={{ zIndex }}
           side={side}

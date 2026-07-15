@@ -32,10 +32,14 @@ export let wrapScmProviderError = (
 ): ServiceError<any> => {
   if (isServiceError(error)) return error;
 
-  console.error(`SCM provider error (${provider}):`, error);
-  Sentry.captureException(error);
-
   let status = getScmProviderErrorStatus(error);
+  console.error(`SCM provider error (${provider}, status: ${status ?? 'unknown'})`);
+  if (status == null || status >= 500) {
+    Sentry.captureException(
+      error instanceof Error ? error : new Error(`SCM provider request failed (${provider})`)
+    );
+  }
+
   let prefix = `${providerName(provider)} could not ${operation}`;
   let mapped =
     status === 400 || status === 422

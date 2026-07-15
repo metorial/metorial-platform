@@ -97,7 +97,13 @@ export let scmRepositoryController = app.controller({
         tenantId: v.string(),
         environmentId: v.string(),
         scmConnectionId: v.string(),
-        externalAccountId: v.optional(v.string())
+        externalAccountId: v.optional(v.string()),
+        cursor: v.optional(v.string()),
+        limit: v.optional(
+          v.number({
+            modifiers: [v.minValue(1), v.maxValue(100)]
+          })
+        )
       })
     )
     .do(async ctx => {
@@ -105,11 +111,16 @@ export let scmRepositoryController = app.controller({
         tenant: ctx.tenant,
         input: {
           scmConnectionId: ctx.input.scmConnectionId,
-          externalAccountId: ctx.input.externalAccountId
+          externalAccountId: ctx.input.externalAccountId,
+          cursor: ctx.input.cursor,
+          limit: ctx.input.limit
         }
       });
 
-      return items.repositories.map(item => scmRepositoryPreviewPresenter(item));
+      return {
+        repositories: items.repositories.map(item => scmRepositoryPreviewPresenter(item)),
+        nextCursor: items.nextCursor
+      };
     }),
 
   createRepository: tenantApp
