@@ -87,6 +87,11 @@ export let ssoAuthApp = createHono()
           })
         );
       }
+      if (!connection.internalClientId || !connection.internalClientSecret) {
+        throw new ServiceError(
+          badRequestError({ message: 'Imported connections must use delegation auth.' })
+        );
+      }
 
       let codeVerifier = generateCodeVerifier();
       let codeChallenge = generateCodeChallenge(codeVerifier);
@@ -163,6 +168,11 @@ export let ssoAuthApp = createHono()
           badRequestError({
             message: 'Connection not found or disabled for auth.'
           })
+        );
+      }
+      if (!connection.internalClientId || !connection.internalClientSecret) {
+        throw new ServiceError(
+          badRequestError({ message: 'Imported connections must use delegation auth.' })
         );
       }
 

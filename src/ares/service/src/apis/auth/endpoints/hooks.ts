@@ -3,12 +3,17 @@ import { createHono } from '@lowerdeck/hono';
 import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
 import * as Cookies from 'cookie';
+import { randomBytes } from 'crypto';
+import { db } from '../../../db';
 import { env } from '../../../env';
 import { tickets } from '../../../lib/tickets';
 import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
+import { createDelegationCodeChallenge } from '../../../lib/ssoDelegationProtocol';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoAuthService } from '../../../services/sso/auth';
+import { ssoDelegationClient } from '../../../services/sso/delegationClient';
+import { ssoIdentityService } from '../../../services/sso/identity';
 import { ssoLoginService } from '../../../services/sso/login';
 import { resolveClient } from '../lib/resolveApp';
 import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
@@ -26,6 +31,8 @@ let getAccountLoginUrl = (d: {
   if (d.email) authUrl.searchParams.set('email', d.email);
   return authUrl.toString();
 };
+
+let createCodeVerifier = () => randomBytes(32).toString('base64url');
 
 export let authHooksApp = createHono()
   .get('/oauth/:ticket', async ctx => {
@@ -220,9 +227,158 @@ export let authHooksApp = createHono()
       )
     );
 
+    if (tenant.importedDelegationOid) {
+      let imported = await db.ssoImportedDelegation.findUnique({
+        where: { oid: tenant.importedDelegationOid },
+        include: {
+          remoteInstance: true,
+          localExportedDelegation: true
+        }
+      });
+      if (!imported || imported.status !== 'active') {
+        throw new ServiceError(badRequestError({ message: 'SSO delegation is disabled' }));
+      }
+
+      let codeVerifier = createCodeVerifier();
+      await db.ssoAuth.update({
+        where: { oid: ssoAuth.oid },
+        data: { codeVerifier }
+      });
+
+      let authorizationUrl = new URL(
+        imported.remoteInstance.authorizationEndpointUrl
+      );
+      authorizationUrl.searchParams.set('client_id', imported.clientId);
+      authorizationUrl.searchParams.set(
+        'response_type',
+        'urn:metorial.com:ares:sso-delegation'
+      );
+      authorizationUrl.searchParams.set(
+        'redirect_uri',
+        `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-delegation-response`
+      );
+      authorizationUrl.searchParams.set('state', ssoAuth.state);
+      authorizationUrl.searchParams.set(
+        'code_challenge',
+        createDelegationCodeChallenge(codeVerifier)
+      );
+      authorizationUrl.searchParams.set('code_challenge_method', 'S256');
+      if (connection?.sourceId) {
+        authorizationUrl.searchParams.set('connection_id', connection.sourceId);
+      }
+      if (ticket.email) authorizationUrl.searchParams.set('login_hint', ticket.email);
+      return ctx.redirect(authorizationUrl.toString());
+    }
+
     return ctx.redirect(
       `${env.service.ARES_SSO_URL}/sso/auth?client_secret=${ssoAuth.clientSecret}`
     );
+  })
+  .get('/sso-delegation-response', async ctx => {
+    let code = ctx.req.query('code');
+    let state = ctx.req.query('state');
+    if (!code || !state) {
+      throw new ServiceError(badRequestError({ message: 'Missing delegation code or state' }));
+    }
+
+    let auth = await db.ssoAuth.findUnique({
+      where: { state },
+      include: {
+        tenant: {
+          include: {
+            importedDelegation: {
+              include: {
+                remoteInstance: true,
+                localExportedDelegation: true
+              }
+            }
+          }
+        }
+      }
+    });
+    let imported = auth?.tenant.importedDelegation;
+    if (
+      !auth ||
+      !imported ||
+      imported.status !== 'active' ||
+      auth.status !== 'pending' ||
+      (auth.expiresAt && auth.expiresAt <= new Date()) ||
+      !auth.codeVerifier
+    ) {
+      throw new ServiceError(badRequestError({ message: 'Invalid delegation state' }));
+    }
+
+    let redirectUri = `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-delegation-response`;
+    let snapshot = await ssoDelegationClient.exchangeCode({
+      imported,
+      code,
+      redirectUri,
+      codeVerifier: auth.codeVerifier
+    });
+    if (
+      snapshot.type !== 'identity' ||
+      snapshot.delegation.id !== imported.sourceDelegationId ||
+      snapshot.delegation.clientId !== imported.clientId ||
+      snapshot.tenant.id !== imported.sourceTenantId ||
+      !snapshot.connection ||
+      !snapshot.userProfile
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'Delegation identity did not match the import' })
+      );
+    }
+
+    let connection = await db.ssoConnection.findFirst({
+      where: {
+        importedDelegationOid: imported.oid,
+        sourceId: snapshot.connection.id,
+        tenantOid: auth.tenantOid,
+        status: 'active'
+      }
+    });
+    if (!connection) {
+      throw new ServiceError(
+        badRequestError({ message: 'Delegated SSO connection is unavailable' })
+      );
+    }
+
+    let profileData = snapshot.userProfile;
+    let user = await ssoIdentityService.upsertUser({
+      tenant: auth.tenant,
+      email: profileData.email,
+      firstName: profileData.firstName,
+      lastName: profileData.lastName
+    });
+    let profile = await ssoIdentityService.upsertUserProfile({
+      tenant: auth.tenant,
+      connection,
+      user,
+      data: {
+        email: profileData.email,
+        uid: profileData.uid,
+        uidHash: profileData.uidHash,
+        sub: profileData.sub ?? undefined,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        roles: profileData.roles,
+        groups: profileData.groups,
+        raw: profileData.raw
+      }
+    });
+    await db.ssoAuth.update({
+      where: { oid: auth.oid },
+      data: {
+        status: 'completed',
+        connectionOid: connection.oid,
+        userOid: user.oid,
+        userProfileOid: profile.oid
+      }
+    });
+
+    let next = new URL(`${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`);
+    next.searchParams.set('tenant_id', auth.tenant.id);
+    next.searchParams.set('auth_id', auth.id);
+    return ctx.redirect(next.toString());
   })
   .get('/sso-response', async ctx => {
     let tenantId = ctx.req.query('tenant_id');

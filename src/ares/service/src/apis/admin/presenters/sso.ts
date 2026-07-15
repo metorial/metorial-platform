@@ -23,6 +23,8 @@ export let ssoTenantPresenter = (
   clientId: tenant.clientId,
   externalId: tenant.externalId,
   enrollment: tenant.enrollment,
+  source: tenant.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  isEditable: !tenant.importedDelegationOid,
   account: tenant.account
     ? {
         id: tenant.account.id,
@@ -48,6 +50,9 @@ export let ssoConnectionPresenter = (connection: SsoConnection) => ({
   status: connection.status,
   providerType: connection.providerType,
   providerName: connection.providerName,
+  source: connection.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  sourceId: connection.sourceId,
+  isEditable: !connection.importedDelegationOid,
 
   createdAt: connection.createdAt
 });
