@@ -1,0 +1,170 @@
+enum SsoImportedDelegationStatus {
+  active
+  disabled
+}
+
+enum SsoDelegationTokenType {
+  identity
+  metadata
+}
+
+model AresInstance {
+  oid BigInt @id
+  id  String @unique
+
+  singletonKey String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  exportedDelegations SsoExportedDelegation[]
+}
+
+model RemoteAresInstance {
+  oid BigInt @id
+  id  String @unique
+
+  remoteId String @unique
+
+  authorizationEndpointUrl String
+  tokenUrl                 String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  importedDelegations SsoImportedDelegation[]
+}
+
+model SsoExportedDelegation {
+  oid BigInt @id
+  id  String @unique
+
+  identifier   String
+  clientId     String @unique
+  clientSecret String
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    AresInstance @relation(fields: [instanceOid], references: [oid], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  localImports       SsoImportedDelegation[]          @relation("LocalExportedDelegation")
+  authRequests       SsoDelegationAuthRequest[]
+  authorizationCodes SsoDelegationAuthorizationCode[]
+  tokens             SsoDelegationToken[]
+
+  @@unique([tenantOid, identifier])
+  @@index([instanceOid])
+}
+
+model SsoImportedDelegation {
+  oid BigInt @id
+  id  String @unique
+
+  status SsoImportedDelegationStatus @default(active)
+
+  clientId           String  @unique
+  clientSecret       String
+  sourceDelegationId String
+  sourceTenantId     String
+  sourceExternalId   String?
+
+  remoteInstanceOid BigInt
+  remoteInstance    RemoteAresInstance @relation(fields: [remoteInstanceOid], references: [oid], onDelete: Restrict)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  localExportedDelegationOid BigInt?                @unique
+  localExportedDelegation    SsoExportedDelegation? @relation("LocalExportedDelegation", fields: [localExportedDelegationOid], references: [oid], onDelete: SetNull)
+
+  lastSyncAttemptAt DateTime?
+  lastSyncedAt      DateTime?
+  syncFailureCount  Int       @default(0)
+  lastSyncError     String?   @db.Text
+  disabledAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tenant      SsoTenant?
+  connections SsoConnection[]
+
+  @@unique([remoteInstanceOid, sourceDelegationId])
+  @@index([appOid, status])
+  @@index([lastSyncedAt])
+}
+
+model SsoDelegationAuthRequest {
+  oid BigInt @id
+  id  String @unique
+
+  redirectUri         String
+  state               String
+  codeChallenge       String
+  codeChallengeMethod String
+  sourceConnectionId  String?
+  expiresAt           DateTime
+
+  exportedDelegationOid BigInt
+  exportedDelegation    SsoExportedDelegation @relation(fields: [exportedDelegationOid], references: [oid], onDelete: Cascade)
+
+  ssoAuthOid BigInt  @unique
+  ssoAuth    SsoAuth @relation(fields: [ssoAuthOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([exportedDelegationOid, expiresAt])
+}
+
+model SsoDelegationAuthorizationCode {
+  oid BigInt @id
+  id  String @unique
+
+  codeHash      String    @unique
+  redirectUri   String
+  codeChallenge String
+  expiresAt     DateTime
+  consumedAt    DateTime?
+
+  exportedDelegationOid BigInt
+  exportedDelegation    SsoExportedDelegation @relation(fields: [exportedDelegationOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt
+  connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  userProfileOid BigInt
+  userProfile    SsoUserProfile @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([exportedDelegationOid, expiresAt])
+}
+
+model SsoDelegationToken {
+  oid BigInt @id
+  id  String @unique
+
+  type      SsoDelegationTokenType
+  tokenHash String                 @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  exportedDelegationOid BigInt
+  exportedDelegation    SsoExportedDelegation @relation(fields: [exportedDelegationOid], references: [oid], onDelete: Cascade)
+
+  connectionOid BigInt?
+  connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
+
+  userProfileOid BigInt?
+  userProfile    SsoUserProfile? @relation(fields: [userProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([exportedDelegationOid, expiresAt])
+}

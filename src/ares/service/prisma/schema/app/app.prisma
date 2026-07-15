@@ -34,4 +34,5 @@ model App {
   accessGroups           AccessGroup[]
   accessGroupAssignments AccessGroupAssignment[]
   ssoScimOperations      SsoScimOperation[]
+  importedSsoDelegations SsoImportedDelegation[]
 }

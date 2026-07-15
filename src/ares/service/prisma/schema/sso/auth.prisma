@@ -11,7 +11,7 @@ model SsoAuth {
   status SsoAuthStatus @default(pending)
 
   redirectUri  String
-  state        String
+  state        String  @unique
   codeVerifier String?
   email        String?
 
@@ -32,4 +32,7 @@ model SsoAuth {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  expiresAt DateTime?
+
+  delegationAuthRequest SsoDelegationAuthRequest?
 }

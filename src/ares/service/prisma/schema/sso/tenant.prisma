@@ -1,6 +1,7 @@
 enum SsoTenantStatus {
   pending
   completed
+  disabled
 }
 
 enum SsoTenantEnrollment {
@@ -31,6 +32,9 @@ model SsoTenant {
   accountOid BigInt?
   account    Account? @relation(fields: [accountOid], references: [oid], onDelete: Restrict)
 
+  importedDelegationOid BigInt?                @unique
+  importedDelegation    SsoImportedDelegation? @relation(fields: [importedDelegationOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -45,6 +49,7 @@ model SsoTenant {
 
   identityProvider      UserIdentityProvider?
   allowedAccountDomains AccountDomainSsoTenant[]
+  exportedDelegations   SsoExportedDelegation[]
 
   @@index([appOid, enrollment])
   @@index([accountOid, status])

@@ -135,7 +135,9 @@ model SsoUserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  auths SsoAuth[]
+  auths                        SsoAuth[]
+  delegationAuthorizationCodes SsoDelegationAuthorizationCode[]
+  delegationTokens             SsoDelegationToken[]
 
   userIdentities UserIdentity[]
   ownedUser      SsoUser?                  @relation("SsoUserOwnerProfile")

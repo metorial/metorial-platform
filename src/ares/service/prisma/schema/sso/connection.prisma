@@ -17,9 +17,14 @@ model SsoConnection {
 
   status SsoConnectionStatus @default(active)
 
-  internalId           String
-  internalClientId     String
-  internalClientSecret String
+  internalId           String?
+  internalClientId     String?
+  internalClientSecret String?
+
+  sourceId String?
+
+  importedDelegationOid BigInt?
+  importedDelegation    SsoImportedDelegation? @relation(fields: [importedDelegationOid], references: [oid], onDelete: Cascade)
 
   providerType SsoConnectionProviderType
   providerName String?
@@ -32,13 +37,18 @@ model SsoConnection {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  connectionSetups      SsoConnectionSetup[]
-  userProfiles          SsoUserProfile[]
-  auths                 SsoAuth[]
-  directories           SsoDirectory[]
-  groups                SsoConnectionGroup[]
-  roles                 SsoConnectionRole[]
-  allowedAccountDomains AccountDomainSsoConnection[]
+  connectionSetups             SsoConnectionSetup[]
+  userProfiles                 SsoUserProfile[]
+  auths                        SsoAuth[]
+  directories                  SsoDirectory[]
+  groups                       SsoConnectionGroup[]
+  roles                        SsoConnectionRole[]
+  allowedAccountDomains        AccountDomainSsoConnection[]
+  delegationAuthorizationCodes SsoDelegationAuthorizationCode[]
+  delegationTokens             SsoDelegationToken[]
+
+  @@unique([importedDelegationOid, sourceId])
+  @@index([importedDelegationOid, status])
 }
 
 enum SsoDirectoryStatus {
