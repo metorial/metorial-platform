@@ -18,6 +18,9 @@ model SsoAuth {
   tenantOid BigInt
   tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
   connectionOid BigInt?
   connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
 

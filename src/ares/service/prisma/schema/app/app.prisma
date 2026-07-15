@@ -27,10 +27,11 @@ model App {
   emailDomains           EmailDomain[]
   userEmails             UserEmail[]
   oauthProviders         AppOAuthProvider[]
+  accounts               Account[]
+  accountDomains         AccountDomain[]
   ssoTenants             SsoTenant[]
   auditLogs              AuditLog[]
   accessGroups           AccessGroup[]
   accessGroupAssignments AccessGroupAssignment[]
-  ssoTenantDomain        SsoTenantDomain[]
   ssoScimOperations      SsoScimOperation[]
 }

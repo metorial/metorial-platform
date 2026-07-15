@@ -206,7 +206,15 @@ class AccessGroupServiceImpl {
       if (emailAddresses.length === 0) return false;
 
       let tenants = await db.ssoTenant.findMany({
-        where: { OR: [{ appOid: d.appOid }, { isGlobal: true }] },
+        where: {
+          appOid: d.appOid,
+          OR: [
+            { enrollment: 'app' },
+            ...(d.user.accountOid
+              ? [{ enrollment: 'account' as const, accountOid: d.user.accountOid }]
+              : [])
+          ]
+        },
         select: { oid: true }
       });
       let tenantOids = tenants.map(t => t.oid);
@@ -216,7 +224,13 @@ class AccessGroupServiceImpl {
       if (ssoTenantValues) {
         let matchingTenants = await db.ssoTenant.findMany({
           where: {
-            OR: [{ appOid: d.appOid }, { isGlobal: true }],
+            appOid: d.appOid,
+            OR: [
+              { enrollment: 'app' },
+              ...(d.user.accountOid
+                ? [{ enrollment: 'account' as const, accountOid: d.user.accountOid }]
+                : [])
+            ],
             id: { in: ssoTenantValues }
           },
           select: { oid: true }
