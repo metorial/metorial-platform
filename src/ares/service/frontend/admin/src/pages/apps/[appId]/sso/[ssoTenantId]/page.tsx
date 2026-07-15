@@ -28,6 +28,9 @@ export let SsoTenantPage = () => {
           { label: 'Status', value: ssoTenant.data.status },
           { label: 'Client ID', value: ssoTenant.data.clientId },
           { label: 'External ID', value: ssoTenant.data.externalId ?? '-' },
+          { label: 'Source', value: ssoTenant.data.source },
+          { label: 'Enrollment', value: ssoTenant.data.enrollment },
+          { label: 'Account', value: ssoTenant.data.account?.name ?? '-' },
           {
             label: 'Created At',
             value: new Date(ssoTenant.data.createdAt).toLocaleDateString('de-at')
@@ -52,29 +55,33 @@ export let SsoTenantPage = () => {
           Connections
         </Title>
 
-        <Button
-          size="1"
-          loading={createSetup.isLoading}
-          onClick={async () => {
-            let [res] = await createSetup.mutate({
-              tenantId: ssoTenantId!,
-              appId: appId!
-            });
-            if (res) {
-              window.open(res.setupUrl, '_blank');
-            }
-          }}
-        >
-          Add Connection
-        </Button>
+        {ssoTenant.data.isEditable && (
+          <Button
+            size="1"
+            loading={createSetup.isLoading}
+            onClick={async () => {
+              let [res] = await createSetup.mutate({
+                tenantId: ssoTenantId!,
+                appId: appId!
+              });
+              if (res) {
+                window.open(res.setupUrl, '_blank');
+              }
+            }}
+          >
+            Add Connection
+          </Button>
+        )}
       </div>
 
       <createSetup.RenderError />
 
       <Table
-        headers={['Name', 'Provider Type', 'Provider Name', 'Created At']}
+        headers={['Name', 'Status', 'Source', 'Provider Type', 'Provider Name', 'Created At']}
         data={connections.data.items.map((connection: any) => [
           connection.name,
+          connection.status,
+          connection.source,
           connection.providerType,
           connection.providerName ?? '-',
           new Date(connection.createdAt).toLocaleDateString('de-at')

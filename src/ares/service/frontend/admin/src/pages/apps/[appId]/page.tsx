@@ -259,11 +259,23 @@ export let AppPage = () => {
       </div>
 
       <Table
-        headers={['Name', 'Status', 'Connections', 'Created At', '']}
+        headers={[
+          'Name',
+          'Status',
+          'Source',
+          'Enrollment',
+          'Account',
+          'Connections',
+          'Created At',
+          ''
+        ]}
         data={ssoTenants.data.items.map((tenant: any) => ({
             data: [
               tenant.name,
               tenant.status,
+              tenant.source,
+              tenant.enrollment,
+              tenant.account?.name ?? '-',
               tenant.counts.connections,
               new Date(tenant.createdAt).toLocaleDateString('de-at'),
               <Button as="span" size="1">
