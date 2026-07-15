@@ -15,7 +15,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
       identifier: r.identifier
     })),
 
-    next_cursor: repoPreviews.nextCursor ?? undefined
+    ...(repoPreviews.nextCursor ? { next_cursor: repoPreviews.nextCursor } : {})
   }))
   .schema(
     v.object({
