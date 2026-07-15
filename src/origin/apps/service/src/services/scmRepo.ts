@@ -224,25 +224,29 @@ class scmRepoServiceImpl {
 
       // Existing clients can still supply the installation's user ID. New account previews
       // supply the actual personal namespace ID required by GitLab's project APIs.
-      let page = providerCursor ? Number(providerCursor) : 1;
-      if (!Number.isInteger(page) || page < 1) {
+      let idAfter = providerCursor ? Number(providerCursor) : undefined;
+      if (idAfter !== undefined && (!Number.isInteger(idAfter) || idAfter < 1)) {
         throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
       }
       let projects: any[];
+      let nextProviderCursor: string | undefined;
       if (
         !i.externalAccountId ||
         i.externalAccountId == personalNamespaceId ||
         i.externalAccountId == i.installation.externalAccountId
       ) {
         projects = await withScmProviderError('gitlab', 'list user projects', () =>
-          gitlab.Users.allProjects(user.id, { perPage: limit, page })
+          gitlab.Users.allProjects(user.id, { perPage: limit, idAfter, maxPages: 1 })
         );
+        nextProviderCursor = projects.length === limit ? String(projects.at(-1)?.id) : undefined;
       } else {
         // List projects for a specific group
         let groupId = getGitLabNamespaceId(i.externalAccountId);
+        let page = providerCursor ? Number(providerCursor) : 1;
         projects = await withScmProviderError('gitlab', 'list group projects', () =>
           gitlab.Groups.allProjects(groupId, { perPage: limit, page })
         );
+        nextProviderCursor = projects.length === limit ? String(page + 1) : undefined;
       }
 
       let hostname = new URL(i.installation.backend.webUrl).hostname;
@@ -267,7 +271,7 @@ class scmRepoServiceImpl {
           }) satisfies ScmRepoPreview
         ),
         nextCursor: encodeRepositoryPreviewCursor(
-          projects.length === limit ? String(page + 1) : undefined,
+          nextProviderCursor,
           i.externalAccountId
         )
       };
