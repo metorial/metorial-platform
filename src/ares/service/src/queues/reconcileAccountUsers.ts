@@ -89,7 +89,7 @@ export let reconcileAccountUsersQueueProcessor = reconcileAccountUsersQueue.proc
     await reconcileSingleAccountUserQueue.addManyWithOps(
       users.map(user => ({
         data: { operationId: data.operationId, userId: user.id },
-        opts: { id: `${data.operationId}:${user.id}` }
+        opts: { id: `${data.operationId}--${user.id}` }
       }))
     );
 
@@ -102,7 +102,7 @@ export let reconcileAccountUsersQueueProcessor = reconcileAccountUsersQueue.proc
         domain: data.domain,
         cursor
       },
-      { id: `${data.operationId}:page:${cursor}` }
+      { id: `${data.operationId}--page--${cursor}` }
     );
   }
 );

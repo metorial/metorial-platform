@@ -28,7 +28,7 @@ export let enqueueDisableSsoDirectoryUsers = async (d: { directoryId: string }) 
       data: {
         directoryId: d.directoryId
       },
-      opts: { id: `directory:${d.directoryId}` }
+      opts: { id: `directory--${d.directoryId}` }
     }
   ]);
 };
