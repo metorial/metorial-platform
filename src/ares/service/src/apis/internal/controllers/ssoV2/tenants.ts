@@ -1,6 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { env } from '../../../../env';
+import { getInitialSsoTenantEnrollment } from '../../../../lib/accountPolicy';
 import { adminService } from '../../../../services/admin';
 import { ssoSetupService } from '../../../../services/sso/setup';
 import { ssoTenantService } from '../../../../services/sso/tenant';
@@ -31,6 +32,7 @@ export let ssoTenantsController = internalApp.controller({
       v.object({
         appId: v.string(),
         name: v.string(),
+        enrollment: v.enumOf(['app', 'account']),
         externalId: v.optional(v.string()),
         hideInUI: v.optional(v.boolean()),
         metadata: v.optional(v.record(v.any()))
@@ -44,7 +46,8 @@ export let ssoTenantsController = internalApp.controller({
           name: input.name,
           externalId: input.externalId,
           hideInUI: input.hideInUI,
-          metadata: input.metadata
+          metadata: input.metadata,
+          enrollment: getInitialSsoTenantEnrollment(input.enrollment)
         }
       });
       return ssoTenantPresenter(tenant);

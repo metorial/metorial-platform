@@ -8,6 +8,12 @@ export let ID = createIdGenerator({
   app_clientId: idType.key('app_client_'),
   tenant_clientId: idType.key('ten_client_'),
 
+  account: idType.sorted('acc_'),
+  account_clientId: idType.key('account_'),
+  accountDomain: idType.sorted('acd_'),
+  accountDomainSsoTenant: idType.sorted('adt_'),
+  accountDomainSsoConnection: idType.sorted('adc_'),
+
   authIntent: idType.sorted('ain_'),
   authIntentStep: idType.sorted('ast_'),
   authIntentCode: idType.sorted('aic_'),
@@ -33,7 +39,6 @@ export let ID = createIdGenerator({
 
   ssoTenant: idType.sorted('stn_'),
   ssoTenant_clientId: idType.key('sso_tenant_'),
-  ssoTenantDomain: idType.sorted('std_'),
   ssoConnection: idType.sorted('scn_'),
   ssoConnectionSetup: idType.sorted('scs_'),
   ssoConnectionSetup_clientSecret: idType.key('sso_setup_'),

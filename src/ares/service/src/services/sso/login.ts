@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type {
+  Account,
   App,
   AuthDevice,
   SsoConnection,
@@ -16,11 +17,16 @@ class SsoLoginServiceImpl {
     connection: SsoConnection;
     userProfile: SsoUserProfile;
     app: App;
+    account?: Account | null;
     device: AuthDevice;
     context: { ip: string; ua: string };
     redirectUrl: string;
   }) {
-    if (d.tenant.appOid !== d.app.oid && !d.tenant.isGlobal) {
+    if (
+      d.tenant.appOid !== d.app.oid ||
+      (d.tenant.enrollment == 'account' &&
+        (!d.account || d.tenant.accountOid !== d.account.oid))
+    ) {
       throw new ServiceError(
         badRequestError({ message: 'SSO tenant does not belong to this app' })
       );
@@ -39,7 +45,8 @@ class SsoLoginServiceImpl {
       context: d.context,
       redirectUrl: d.redirectUrl,
       device: d.device,
-      app: d.app
+      app: d.app,
+      account: d.account
     });
 
     validateRedirectUrl(authAttempt.redirectUrl, d.app.redirectDomains);

@@ -52,7 +52,7 @@ export let ssoAuthApp = createHono()
         );
       }
 
-      if (auth.email && connections.length > 1) {
+      if (auth.email && !auth.connectionOid && connections.length > 1) {
         let user = await db.ssoUser.findFirst({
           where: { tenantOid: auth.tenant.oid, email: auth.email }
         });
@@ -67,12 +67,13 @@ export let ssoAuthApp = createHono()
         }
       }
 
-      let connection: (typeof connections)[number] | null = null;
+      let connection: (typeof connections)[number] | null =
+        connections.find(connection => connection.oid == auth.connectionOid) ?? null;
       let connectionId = c.req.query('connection_id');
 
-      if (connections.length == 1) {
+      if (!connection && connections.length == 1) {
         connection = connections[0]!;
-      } else if (connectionId) {
+      } else if (!connection && connectionId) {
         connection = connections.find(c => c.id === connectionId) || null;
       }
 
@@ -147,6 +148,9 @@ export let ssoAuthApp = createHono()
       let auth = await ssoAuthService.getAuthByClientSecret({
         clientSecret: body.state
       });
+      if (auth.account && auth.account.status != 'active') {
+        throw new ServiceError(badRequestError({ message: 'Account is not active.' }));
+      }
       if (auth.status === 'completed') {
         return c.redirect(auth.redirectUri);
       }

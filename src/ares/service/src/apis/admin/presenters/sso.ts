@@ -1,14 +1,18 @@
 import type {
   SsoConnection,
   SsoDirectory,
-  SsoTenant,
-  SsoTenantDomain
+  SsoTenant
 } from '../../../../prisma/generated/client';
 
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
-    ssoTenantDomain?: SsoTenantDomain[];
+    account?: {
+      id: string;
+      clientId: string;
+      identifier: string;
+      name: string;
+    } | null;
   }
 ) => ({
   object: 'ares#ssoTenant' as const,
@@ -18,18 +22,19 @@ export let ssoTenantPresenter = (
   status: tenant.status,
   clientId: tenant.clientId,
   externalId: tenant.externalId,
-  isGlobal: tenant.isGlobal,
+  enrollment: tenant.enrollment,
+  account: tenant.account
+    ? {
+        id: tenant.account.id,
+        clientId: tenant.account.clientId,
+        identifier: tenant.account.identifier,
+        name: tenant.account.name
+      }
+    : null,
 
   counts: {
     connections: tenant._count?.connections ?? 0
   },
-
-  domains: (tenant.ssoTenantDomain ?? []).map(domain => ({
-    id: domain.id,
-    domain: domain.domain,
-    createdAt: domain.createdAt,
-    updatedAt: domain.updatedAt
-  })),
 
   createdAt: tenant.createdAt,
   updatedAt: tenant.updatedAt

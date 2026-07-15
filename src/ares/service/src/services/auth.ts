@@ -8,6 +8,7 @@ import { generateCode, generateCustomId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { addMinutes, subMinutes } from 'date-fns';
 import type {
+  Account,
   App,
   AuthDevice,
   AuthIntent,
@@ -20,6 +21,11 @@ import { db, withTransaction } from '../db';
 import { sendAuthCodeEmail } from '../email/authCode';
 import { successfulLoginVerification } from '../email/successfulLogin';
 import { getId } from '../id';
+import {
+  doesAuthAttemptMatchClient,
+  getAccountEmailAuthFlow,
+  isAccountDomainConnectionAllowed
+} from '../lib/accountPolicy';
 import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
 import type { OAuthCredentials } from '../lib/socials';
@@ -29,11 +35,15 @@ import { accessGroupService } from './accessGroup';
 import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
-import { ssoTenantService } from './sso/tenant';
 import { userService } from './user';
 
 class AuthServiceImpl {
-  async ensureEmailAuthEnabled(d: { app?: App; appOid?: bigint }) {
+  async ensureEmailAuthEnabled(d: {
+    app?: App;
+    appOid?: bigint;
+    account?: Account | null;
+    accountOid?: bigint | null;
+  }) {
     let app = d.app;
 
     if (!app) {
@@ -53,11 +63,166 @@ class AuthServiceImpl {
       );
     }
 
+    let account = d.account;
+    if (!account && d.accountOid) {
+      account = await db.account.findUnique({ where: { oid: d.accountOid } });
+    }
+    if (d.accountOid && !account) {
+      throw new ServiceError(forbiddenError({ message: 'Invalid account' }));
+    }
+    if (account && account.status != 'active') {
+      throw new ServiceError(
+        forbiddenError({ message: 'Email authentication is unavailable for this account' })
+      );
+    }
+
     return app;
   }
 
-  async getAuthOptions(d: { app: App }) {
-    let options: { type: string; name?: string }[] = [];
+  async resolveAccountForEmail(d: { app: App; account?: Account | null; email: string }) {
+    let { email, domain } = parseEmail(d.email);
+    let accountDomain = await db.accountDomain.findUnique({
+      where: { appOid_domain: { appOid: d.app.oid, domain } },
+      include: {
+        account: true,
+        allowedTenants: true,
+        allowedConnections: true
+      }
+    });
+
+    if (d.account && accountDomain && accountDomain.accountOid != d.account.oid) {
+      throw new ServiceError(
+        forbiddenError({ message: 'Email domain does not belong to this account' })
+      );
+    }
+
+    let linkedUser =
+      !d.account && !accountDomain
+        ? await db.user.findFirst({
+            where: {
+              appOid: d.app.oid,
+              OR: [
+                { email },
+                {
+                  userEmails: {
+                    some: {
+                      email,
+                      verifiedAt: { not: null }
+                    }
+                  }
+                }
+              ],
+              account: { status: 'active' }
+            },
+            include: { account: true }
+          })
+        : null;
+    let account = d.account ?? accountDomain?.account ?? linkedUser?.account ?? null;
+    if (account && (account.appOid != d.app.oid || account.status != 'active')) {
+      throw new ServiceError(forbiddenError({ message: 'Invalid account' }));
+    }
+
+    return { account, accountDomain };
+  }
+
+  async getSsoConnections(d: {
+    app: App;
+    account?: Account | null;
+    email?: string;
+    includeHidden?: boolean;
+  }) {
+    let resolved = d.email
+      ? await this.resolveAccountForEmail({
+          app: d.app,
+          account: d.account,
+          email: d.email
+        })
+      : { account: d.account ?? null, accountDomain: null };
+    let account = resolved.account;
+
+    let connections = await db.ssoConnection.findMany({
+      where: {
+        status: 'active',
+        tenant: {
+          status: 'completed',
+          ...(d.includeHidden ? {} : { hideInUI: false }),
+          appOid: d.app.oid,
+          ...(account
+            ? { enrollment: 'account', accountOid: account.oid }
+            : { enrollment: 'app' })
+        }
+      },
+      include: { tenant: true },
+      orderBy: [{ tenantOid: 'asc' }, { oid: 'asc' }]
+    });
+
+    if (
+      resolved.accountDomain &&
+      (resolved.accountDomain.allowedTenants.length > 0 ||
+        resolved.accountDomain.allowedConnections.length > 0)
+    ) {
+      let allowedTenantOids = resolved.accountDomain.allowedTenants.map(
+        item => item.tenantOid
+      );
+      let allowedConnectionOids = resolved.accountDomain.allowedConnections.map(
+        item => item.connectionOid
+      );
+      connections = connections.filter(connection =>
+        isAccountDomainConnectionAllowed({
+          tenantOid: connection.tenantOid,
+          connectionOid: connection.oid,
+          allowedTenantOids,
+          allowedConnectionOids
+        })
+      );
+    }
+
+    return { account, connections };
+  }
+
+  async resolveSsoConnection(d: {
+    app: App;
+    account?: Account | null;
+    tenantId: string;
+    connectionId?: string;
+    email?: string;
+  }) {
+    let { account, connections } = await this.getSsoConnections({
+      ...d,
+      includeHidden: true
+    });
+    let eligible = connections.filter(connection => connection.tenant.id == d.tenantId);
+    let tenant = eligible[0]?.tenant;
+    if (!tenant) {
+      throw new ServiceError(
+        badRequestError({ message: 'SSO tenant is not available for this client' })
+      );
+    }
+    let connection = d.connectionId
+      ? eligible.find(connection => connection.id == d.connectionId)
+      : eligible.length == 1
+        ? eligible[0]
+        : null;
+    if (d.connectionId && !connection) {
+      throw new ServiceError(
+        badRequestError({ message: 'SSO connection is not available for this client' })
+      );
+    }
+    return { account, tenant, connection };
+  }
+
+  async getAuthOptions(d: { app: App; account?: Account | null }) {
+    let options: (
+      | { type: 'email' }
+      | { type: 'oauth'; provider: 'github' | 'google' }
+      | {
+          type: 'sso';
+          tenantId: string;
+          tenantName: string;
+          connectionId: string;
+          connectionName: string;
+        }
+    )[] = [];
 
     if (!d.app.disableEmailAuth) {
       options.push({ type: 'email' });
@@ -70,25 +235,24 @@ class AuthServiceImpl {
       }
     });
 
-    for (let provider of oauthProviders) {
-      options.push({ type: `oauth.${provider.provider}` });
-    }
-
-    let ssoTenants = await db.ssoTenant.findMany({
-      where: {
-        status: 'completed',
-        hideInUI: false,
-        OR: [{ appOid: d.app.oid }, { isGlobal: true }]
+    if (!d.account || d.account.allowSocialLogin) {
+      for (let provider of oauthProviders) {
+        options.push({ type: 'oauth', provider: provider.provider });
       }
-    });
-
-    for (let tenant of ssoTenants) {
-      options.push({ type: `sso.${tenant.id}`, name: tenant.name });
     }
 
-    return {
-      options
-    };
+    let { connections } = await this.getSsoConnections(d);
+    for (let connection of connections.reverse()) {
+      options.unshift({
+        type: 'sso',
+        tenantId: connection.tenant.id,
+        tenantName: connection.tenant.name,
+        connectionId: connection.id,
+        connectionName: connection.name
+      });
+    }
+
+    return { options };
   }
 
   async authWithEmail(d: {
@@ -98,28 +262,47 @@ class AuthServiceImpl {
     device: AuthDevice;
     captchaToken?: string;
     app: App;
+    account?: Account | null;
   }) {
     if (d.captchaToken && !(await turnstileVerifier.verify({ token: d.captchaToken }))) {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
 
-    let { email, domain } = parseEmail(d.email);
-
-    let ssoTenant = await ssoTenantService.getTenantByDomain({
+    let { email } = parseEmail(d.email);
+    let { account, connections } = await this.getSsoConnections({
       app: d.app,
-      domain
+      account: d.account,
+      email,
+      includeHidden: true
     });
-
-    if (ssoTenant) {
+    let accountEmailAuthFlow = getAccountEmailAuthFlow(!!account, connections.length);
+    if (accountEmailAuthFlow == 'sso_redirect') {
       return {
         type: 'hook' as const,
         authType: 'sso' as const,
         email,
-        ssoTenant
+        account,
+        ssoTenant: connections[0]!.tenant,
+        ssoConnection: connections[0]!
       };
     }
 
-    await this.ensureEmailAuthEnabled({ app: d.app });
+    if (accountEmailAuthFlow == 'sso_selection') {
+      return {
+        type: 'selection' as const,
+        account,
+        email,
+        options: connections.map(connection => ({
+          type: 'sso' as const,
+          tenantId: connection.tenant.id,
+          tenantName: connection.tenant.name,
+          connectionId: connection.id,
+          connectionName: connection.name
+        }))
+      };
+    }
+
+    await this.ensureEmailAuthEnabled({ app: d.app, account });
 
     await authBlockService.registerBlock({ email, context: d.context });
 
@@ -128,7 +311,7 @@ class AuthServiceImpl {
       type: 'login.email',
       ip: d.context.ip,
       ua: d.context.ua,
-      metadata: { email }
+      metadata: { email, accountId: account?.id ?? null }
     });
 
     return await withTransaction(async tdb => {
@@ -146,7 +329,8 @@ class AuthServiceImpl {
             authAttempt: await this.createAuthAttempt({
               user,
               device: d.device,
-              redirectUrl: d.redirectUrl
+              redirectUrl: d.redirectUrl,
+              account
             })
           };
         }
@@ -167,6 +351,7 @@ class AuthServiceImpl {
           userOid: user?.oid ?? null,
           deviceOid: d.device.oid,
           appOid: d.app.oid,
+          accountOid: account?.oid ?? null,
 
           expiresAt: addMinutes(new Date(), 30),
 
@@ -224,7 +409,16 @@ class AuthServiceImpl {
     redirectUrl: string;
     device: AuthDevice;
     app: App;
+    account?: Account | null;
   }) {
+    if (d.account && (!d.account.allowSocialLogin || d.account.status != 'active')) {
+      return {
+        type: 'social_disabled' as const,
+        account: d.account,
+        email: null
+      };
+    }
+
     let oauthProvider = await db.appOAuthProvider.findFirst({
       where: {
         appOid: d.app.oid,
@@ -247,19 +441,32 @@ class AuthServiceImpl {
 
     let socialRes = await socials[d.provider].exchangeCodeForData(d.code, credentials);
 
-    auditLogService.log({
-      appOid: d.app.oid,
-      type: 'login.oauth',
-      ip: d.context.ip,
-      ua: d.context.ua,
-      metadata: { provider: d.provider }
-    });
-
     if (!socialRes.email) {
       throw new ServiceError(
         badRequestError({ message: 'Social provider did not return email address' })
       );
     }
+
+    let { account } = await this.resolveAccountForEmail({
+      app: d.app,
+      account: d.account,
+      email: socialRes.email
+    });
+    if (account && !account.allowSocialLogin) {
+      return {
+        type: 'social_disabled' as const,
+        account,
+        email: socialRes.email
+      };
+    }
+
+    auditLogService.log({
+      appOid: d.app.oid,
+      type: 'login.oauth',
+      ip: d.context.ip,
+      ua: d.context.ua,
+      metadata: { provider: d.provider, accountId: account?.id ?? null }
+    });
 
     let identityProvider = await db.userIdentityProvider.findFirst({
       where: { oauthProviderOid: oauthProvider.oid }
@@ -319,6 +526,9 @@ class AuthServiceImpl {
     let user = userIdentity.userOid
       ? await db.user.findUnique({ where: { oid: userIdentity.userOid } })
       : null;
+    if (user) {
+      user = await userService.linkToAccount({ user });
+    }
 
     if (
       user &&
@@ -332,7 +542,8 @@ class AuthServiceImpl {
         authAttempt: await this.createAuthAttempt({
           user,
           device: d.device,
-          redirectUrl: d.redirectUrl
+          redirectUrl: d.redirectUrl,
+          account
         })
       };
     }
@@ -347,6 +558,7 @@ class AuthServiceImpl {
         userOid: userIdentity.userOid,
         deviceOid: d.device.oid,
         appOid: d.app.oid,
+        accountOid: account?.oid ?? null,
 
         redirectUrl: d.redirectUrl,
 
@@ -378,7 +590,18 @@ class AuthServiceImpl {
     redirectUrl: string;
     device: AuthDevice;
     app: App;
+    account?: Account | null;
   }) {
+    if (
+      d.ssoTenant.appOid != d.app.oid ||
+      (d.ssoTenant.enrollment == 'account' &&
+        (!d.account || d.ssoTenant.accountOid != d.account.oid))
+    ) {
+      throw new ServiceError(
+        forbiddenError({ message: 'SSO tenant is not available for this account' })
+      );
+    }
+
     let identityProvider = await db.userIdentityProvider.findFirst({
       where: { ssoTenantOid: d.ssoTenant.oid }
     });
@@ -453,6 +676,7 @@ class AuthServiceImpl {
 
     let user = await db.user.findUnique({ where: { oid: userIdentity.userOid! } });
     if (!user) throw new Error('User not found after SSO identity linking');
+    user = await userService.linkToAccount({ user });
 
     auditLogService.log({
       appOid: d.app.oid,
@@ -460,13 +684,18 @@ class AuthServiceImpl {
       userOid: user.oid,
       ip: d.context.ip,
       ua: d.context.ua,
-      metadata: { ssoConnectionId: d.ssoConnectionId }
+      metadata: {
+        accountId: d.account?.id ?? null,
+        ssoTenantId: d.ssoTenant.id,
+        ssoConnectionId: d.ssoConnectionId
+      }
     });
 
     return await this.createAuthAttempt({
       user,
       device: d.device,
-      redirectUrl: d.redirectUrl
+      redirectUrl: d.redirectUrl,
+      account: d.account
     });
   }
 
@@ -476,7 +705,10 @@ class AuthServiceImpl {
     authIntent: AuthIntent;
     index: number;
   }) {
-    await this.ensureEmailAuthEnabled({ appOid: i.authIntent.appOid });
+    await this.ensureEmailAuthEnabled({
+      appOid: i.authIntent.appOid,
+      accountOid: i.authIntent.accountOid
+    });
 
     return await withTransaction(async tdb => {
       let step = await tdb.authIntentStep.create({
@@ -533,12 +765,21 @@ class AuthServiceImpl {
       }
     });
     if (!authIntent) throw new ServiceError(notFoundError('auth_intent', d.authIntentId));
+    if (authIntent.accountOid) {
+      let account = await db.account.findUnique({ where: { oid: authIntent.accountOid } });
+      if (!account || account.status != 'active' || account.appOid != authIntent.appOid) {
+        throw new ServiceError(notFoundError('auth_intent', d.authIntentId));
+      }
+    }
 
     return authIntent;
   }
 
   async resendAuthIntentCode(d: { authIntent: AuthIntent; step: AuthIntentStep }) {
-    await this.ensureEmailAuthEnabled({ appOid: d.authIntent.appOid });
+    await this.ensureEmailAuthEnabled({
+      appOid: d.authIntent.appOid,
+      accountOid: d.authIntent.accountOid
+    });
 
     let codes = await db.authIntentCode.findMany({
       where: { authIntentOid: d.authIntent.oid },
@@ -572,7 +813,10 @@ class AuthServiceImpl {
     });
     if (!authIntent) throw new ServiceError(notFoundError('auth_intent'));
 
-    await this.ensureEmailAuthEnabled({ appOid: authIntent.appOid });
+    await this.ensureEmailAuthEnabled({
+      appOid: authIntent.appOid,
+      accountOid: authIntent.accountOid
+    });
 
     if (d.step.type != 'email_code' || d.input.type != 'email_code') {
       throw new ServiceError(forbiddenError({ message: 'Invalid step type' }));
@@ -673,8 +917,18 @@ class AuthServiceImpl {
     };
     app: App;
   }) {
+    let account = d.authIntent.accountOid
+      ? await db.account.findUnique({ where: { oid: d.authIntent.accountOid } })
+      : null;
+    if (d.authIntent.accountOid && (!account || account.status != 'active')) {
+      throw new ServiceError(forbiddenError({ message: 'Invalid account' }));
+    }
+
     if (d.authIntent.type == 'email_code') {
-      await this.ensureEmailAuthEnabled({ app: d.app });
+      await this.ensureEmailAuthEnabled({
+        app: d.app,
+        account
+      });
     }
 
     if (!d.authIntent.verifiedAt || d.authIntent.userOid) {
@@ -698,6 +952,7 @@ class AuthServiceImpl {
 
     return await withTransaction(async tdb => {
       if (user) {
+        user = await userService.linkToAccount({ user });
         user = await userService.updateUser({
           user,
           input: {
@@ -746,10 +1001,12 @@ class AuthServiceImpl {
     device: AuthDevice;
     authIntent?: AuthIntent;
     redirectUrl: string;
+    account?: Account | null;
   }) {
+    let user = await userService.linkToAccount({ user: d.user });
     let hasAccess = await accessGroupService.checkAppAccess({
-      user: d.user,
-      appOid: d.user.appOid
+      user,
+      appOid: user.appOid
     });
     if (!hasAccess) {
       throw new ServiceError(
@@ -765,9 +1022,10 @@ class AuthServiceImpl {
 
           status: 'pending',
 
-          userOid: d.user.oid,
+          userOid: user.oid,
           deviceOid: d.device.oid,
-          appOid: d.user.appOid,
+          appOid: user.appOid,
+          accountOid: d.account?.oid ?? d.authIntent?.accountOid ?? user.accountOid,
 
           redirectUrl: d.redirectUrl,
           authIntentOid: d.authIntent?.oid ?? null,
@@ -781,7 +1039,10 @@ class AuthServiceImpl {
 
   async completeAuthIntent(d: { authIntent: AuthIntent; app: App }) {
     if (d.authIntent.type == 'email_code') {
-      await this.ensureEmailAuthEnabled({ app: d.app });
+      await this.ensureEmailAuthEnabled({
+        app: d.app,
+        accountOid: d.authIntent.accountOid
+      });
     }
 
     if (
@@ -798,6 +1059,12 @@ class AuthServiceImpl {
       db.authDevice.findUnique({ where: { oid: d.authIntent.deviceOid } })
     ]);
     if (!user || !device) throw new Error('WTF - Invalid auth intent state');
+    let account = d.authIntent.accountOid
+      ? await db.account.findUnique({ where: { oid: d.authIntent.accountOid } })
+      : null;
+    if (d.authIntent.accountOid && (!account || account.status != 'active')) {
+      throw new ServiceError(forbiddenError({ message: 'Invalid account' }));
+    }
 
     if (Date.now() - user.createdAt.getTime() > 60 * 1000) {
       await successfulLoginVerification.send({
@@ -819,7 +1086,8 @@ class AuthServiceImpl {
         authIntent: d.authIntent,
         redirectUrl: d.authIntent.redirectUrl,
         user,
-        device
+        device,
+        account
       });
     });
   }
@@ -833,6 +1101,12 @@ class AuthServiceImpl {
       }
     });
     if (!authAttempt) throw new ServiceError(notFoundError('auth_attempt', d.authAttemptId));
+    if (authAttempt.accountOid) {
+      let account = await db.account.findUnique({ where: { oid: authAttempt.accountOid } });
+      if (!account || account.status != 'active' || account.appOid != authAttempt.appOid) {
+        throw new ServiceError(notFoundError('auth_attempt', d.authAttemptId));
+      }
+    }
 
     return authAttempt;
   }
@@ -845,11 +1119,21 @@ class AuthServiceImpl {
       }
     });
     if (!authAttempt) throw new ServiceError(notFoundError('auth_attempt', d.authAttemptId));
+    if (authAttempt.accountOid) {
+      let account = await db.account.findUnique({ where: { oid: authAttempt.accountOid } });
+      if (!account || account.status != 'active' || account.appOid != authAttempt.appOid) {
+        throw new ServiceError(notFoundError('auth_attempt', d.authAttemptId));
+      }
+    }
 
     return authAttempt;
   }
 
-  async exchangeAuthorizationCode(d: { app: App; authorizationCode: string }) {
+  async exchangeAuthorizationCode(d: {
+    app: App;
+    account?: Account | null;
+    authorizationCode: string;
+  }) {
     let authAttempt = await db.authAttempt.findUnique({
       where: { authorizationCode: d.authorizationCode }
     });
@@ -858,7 +1142,14 @@ class AuthServiceImpl {
       throw new ServiceError(badRequestError({ message: 'Invalid authorization code' }));
     }
 
-    if (authAttempt.appOid !== d.app.oid) {
+    if (
+      !doesAuthAttemptMatchClient({
+        attemptAppOid: authAttempt.appOid,
+        attemptAccountOid: authAttempt.accountOid,
+        clientAppOid: d.app.oid,
+        clientAccountOid: d.account?.oid ?? null
+      })
+    ) {
       throw new ServiceError(badRequestError({ message: 'Invalid authorization code' }));
     }
 

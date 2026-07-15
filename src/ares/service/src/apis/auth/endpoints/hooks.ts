@@ -10,9 +10,22 @@ import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoAuthService } from '../../../services/sso/auth';
 import { ssoLoginService } from '../../../services/sso/login';
-import { ssoTenantService } from '../../../services/sso/tenant';
-import { resolveApp } from '../lib/resolveApp';
+import { resolveClient } from '../lib/resolveApp';
 import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
+
+let getAccountLoginUrl = (d: {
+  accountClientId: string;
+  redirectUrl: string;
+  email?: string | null;
+  reason?: 'social_login_disabled' | 'account_sso_required';
+}) => {
+  let authUrl = new URL(`${env.service.ARES_AUTH_URL}/login`);
+  authUrl.searchParams.set('client_id', d.accountClientId);
+  authUrl.searchParams.set('redirect_url', d.redirectUrl);
+  authUrl.searchParams.set('auth_error', d.reason ?? 'social_login_disabled');
+  if (d.email) authUrl.searchParams.set('email', d.email);
+  return authUrl.toString();
+};
 
 export let authHooksApp = createHono()
   .get('/oauth/:ticket', async ctx => {
@@ -27,7 +40,16 @@ export let authHooksApp = createHono()
       })
     );
 
-    let app = await resolveApp(ticket.appClientId);
+    let { app, account } = await resolveClient(ticket.appClientId);
+    validateRedirectUrl(ticket.redirectUrl, app.redirectDomains);
+    if (account && !account.allowSocialLogin) {
+      return ctx.redirect(
+        getAccountLoginUrl({
+          accountClientId: account.clientId,
+          redirectUrl: ticket.redirectUrl
+        })
+      );
+    }
 
     let state = generateCustomId('oauth_state', 50);
 
@@ -79,7 +101,16 @@ export let authHooksApp = createHono()
       deviceId: string;
     };
 
-    let app = await resolveApp(stateData.appClientId);
+    let { app, account } = await resolveClient(stateData.appClientId);
+    validateRedirectUrl(stateData.redirectUrl, app.redirectDomains);
+    if (account && !account.allowSocialLogin) {
+      return ctx.redirect(
+        getAccountLoginUrl({
+          accountClientId: account.clientId,
+          redirectUrl: stateData.redirectUrl
+        })
+      );
+    }
     let device = await deviceService.dangerouslyGetDeviceOnlyById({
       deviceId: stateData.deviceId
     });
@@ -95,8 +126,19 @@ export let authHooksApp = createHono()
       app,
       device,
       redirectUrl: stateData.redirectUrl,
-      context: { ip, ua }
+      context: { ip, ua },
+      account
     });
+
+    if (res.type == 'social_disabled') {
+      return ctx.redirect(
+        getAccountLoginUrl({
+          accountClientId: res.account.clientId,
+          redirectUrl: stateData.redirectUrl,
+          email: res.email
+        })
+      );
+    }
 
     if (res.type == 'auth_attempt') {
       validateRedirectUrl(res.authAttempt.redirectUrl, app.redirectDomains);
@@ -137,22 +179,25 @@ export let authHooksApp = createHono()
         appClientId: v.string(),
         deviceId: v.string(),
         ssoTenantId: v.string(),
+        ssoConnectionId: v.optional(v.string()),
         redirectUrl: v.string(),
         email: v.optional(v.string())
       })
     );
 
-    let app = await resolveApp(ticket.appClientId);
-
-    let tenant = await ssoTenantService.getTenantById({ tenantId: ticket.ssoTenantId });
-    if (tenant.appOid !== app.oid && !tenant.isGlobal) {
-      throw new ServiceError(
-        badRequestError({ message: 'SSO tenant does not belong to this app' })
-      );
-    }
-
+    let { app, account: clientAccount } = await resolveClient(ticket.appClientId);
+    validateRedirectUrl(ticket.redirectUrl, app.redirectDomains);
+    let { account, tenant, connection } = await authService.resolveSsoConnection({
+      app,
+      account: clientAccount,
+      tenantId: ticket.ssoTenantId,
+      connectionId: ticket.ssoConnectionId,
+      email: ticket.email
+    });
     let ssoAuth = await ssoAuthService.createAuth({
       tenant,
+      account,
+      connection: connection ?? undefined,
       input: {
         redirectUri: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`,
         state: generateCustomId('sso_state', 50),
@@ -187,8 +232,9 @@ export let authHooksApp = createHono()
       throw new ServiceError(badRequestError({ message: 'Missing tenant_id or auth_id' }));
     }
 
-    let { tenant, connection, userProfile } = await ssoAuthService.completeAuth({
-      authId
+    let { tenant, account, connection, userProfile } = await ssoAuthService.completeAuth({
+      authId,
+      tenantId
     });
 
     let cookieHeader = ctx.req.header('cookie') ?? '';
@@ -204,7 +250,27 @@ export let authHooksApp = createHono()
       redirectUrl: string;
     };
 
-    let app = await resolveApp(stateData.appClientId);
+    let resolvedClient = await resolveClient(stateData.appClientId);
+    let app = resolvedClient.app;
+    validateRedirectUrl(stateData.redirectUrl, app.redirectDomains);
+    if (resolvedClient.account && resolvedClient.account.oid != account?.oid) {
+      throw new ServiceError(badRequestError({ message: 'SSO account context changed' }));
+    }
+    let emailAccount = await authService.resolveAccountForEmail({
+      app,
+      account,
+      email: userProfile.email
+    });
+    if (!account && emailAccount.account) {
+      return ctx.redirect(
+        getAccountLoginUrl({
+          accountClientId: emailAccount.account.clientId,
+          redirectUrl: stateData.redirectUrl,
+          email: userProfile.email,
+          reason: 'account_sso_required'
+        })
+      );
+    }
     let device = await deviceService.dangerouslyGetDeviceOnlyById({
       deviceId: stateData.deviceId
     });
@@ -219,6 +285,7 @@ export let authHooksApp = createHono()
       connection,
       userProfile,
       app,
+      account,
       device,
       context: { ip, ua },
       redirectUrl: stateData.redirectUrl

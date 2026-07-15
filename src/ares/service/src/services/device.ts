@@ -2,6 +2,7 @@ import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { generateCustomId, generatePlainId } from '@lowerdeck/id';
 import { addMinutes, addWeeks } from 'date-fns';
 import type {
+  Account,
   App,
   AuthAttempt,
   AuthDevice,
@@ -50,11 +51,16 @@ class DeviceService {
     return !d.session.loggedOutAt && d.session.expiresAt.getTime() > Date.now();
   }
 
-  async getLoggedInAndLoggedOutUsersForDevice(d: { device: AuthDevice; app: App }) {
+  async getLoggedInAndLoggedOutUsersForDevice(d: {
+    device: AuthDevice;
+    app: App;
+    account?: Account | null;
+  }) {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
         deviceOid: d.device.oid,
-        appOid: d.app.oid
+        appOid: d.app.oid,
+        ...(d.account ? { user: { accountOid: d.account.oid } } : {})
       },
       include: {
         user: { include: { userEmails: true } }
@@ -112,15 +118,24 @@ class DeviceService {
         throw new ServiceError(unauthorizedError({ message: 'Invalid auth attempt' }));
       }
 
-      let [device, user] = await Promise.all([
+      let [device, user, account] = await Promise.all([
         db.authDevice.findUniqueOrThrow({
           where: { oid: d.authAttempt.deviceOid }
         }),
         db.user.findUniqueOrThrow({
           where: { oid: d.authAttempt.userOid },
           include: { app: true }
-        })
+        }),
+        d.authAttempt.accountOid
+          ? db.account.findUnique({ where: { oid: d.authAttempt.accountOid } })
+          : null
       ]);
+      if (
+        d.authAttempt.accountOid &&
+        (!account || account.status != 'active' || account.appOid != d.authAttempt.appOid)
+      ) {
+        throw new ServiceError(unauthorizedError({ message: 'Invalid account context' }));
+      }
 
       let existingSession = await this.getSessionForLoggedInUser({
         user,
