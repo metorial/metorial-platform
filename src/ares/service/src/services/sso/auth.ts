@@ -1,5 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { addMinutes } from 'date-fns';
 import type { Account, SsoConnection, SsoTenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId, ID } from '../../id';
@@ -87,7 +88,8 @@ class SsoAuthServiceImpl {
         connectionOid: d.connection?.oid ?? null,
         state: d.input.state,
         redirectUri: d.input.redirectUri,
-        email: d.input.email ?? null
+        email: d.input.email ?? null,
+        expiresAt: addMinutes(new Date(), 30)
       }
     });
   }
@@ -98,6 +100,9 @@ class SsoAuthServiceImpl {
       include: { tenant: true, account: true, connection: true }
     });
     if (!auth) throw new ServiceError(notFoundError('sso.auth'));
+    if (auth.expiresAt && auth.expiresAt <= new Date()) {
+      throw new ServiceError(notFoundError('sso.auth'));
+    }
     if (
       auth.tenant.status != 'completed' ||
       (auth.account &&
@@ -134,6 +139,7 @@ class SsoAuthServiceImpl {
       !auth ||
       auth.tenant.id != d.tenantId ||
       auth.status != 'completed' ||
+      (auth.expiresAt && auth.expiresAt <= new Date()) ||
       !auth.user ||
       !auth.connection ||
       !auth.userProfile

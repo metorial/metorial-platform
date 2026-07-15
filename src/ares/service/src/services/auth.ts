@@ -147,6 +147,10 @@ class AuthServiceImpl {
           status: 'completed',
           ...(d.includeHidden ? {} : { hideInUI: false }),
           appOid: d.app.oid,
+          OR: [
+            { importedDelegationOid: null },
+            { importedDelegation: { status: 'active' } }
+          ],
           ...(account
             ? { enrollment: 'account', accountOid: account.oid }
             : { enrollment: 'app' })

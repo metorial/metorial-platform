@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -31,6 +31,11 @@ class SsoConnectionServiceImpl {
       samlMetadata: { type: 'xml'; payload: string } | { type: 'url'; url: string };
     };
   }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
     let connectionId = getId('ssoConnection');
 
     let con = await jackson.apiController.createSAMLConnection({
@@ -82,6 +87,11 @@ class SsoConnectionServiceImpl {
       clientSecret: string;
     };
   }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
     let internalId = generatePlainId(20);
 
     let con = await jackson.apiController.createOIDCConnection({
@@ -139,6 +149,12 @@ class SsoConnectionServiceImpl {
           clientSecret: string;
         };
   }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
+
     if (d.input.providerType === 'saml') {
       return await this.createSamlConnection({
         tenant: d.tenant,
@@ -269,6 +285,12 @@ class SsoConnectionServiceImpl {
       status?: SsoConnectionStatus;
     };
   }) {
+    if (d.connection.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
+
     if (d.connection.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('sso.connection'));
     }
@@ -298,6 +320,12 @@ class SsoConnectionServiceImpl {
     connection: SsoConnection;
     status: SsoConnectionStatus;
   }) {
+    if (d.connection.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
+
     if (d.connection.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('sso.connection'));
     }

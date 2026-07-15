@@ -6,9 +6,9 @@ import * as Cookies from 'cookie';
 import { randomBytes } from 'crypto';
 import { db } from '../../../db';
 import { env } from '../../../env';
+import { createDelegationCodeChallenge } from '../../../lib/ssoDelegationProtocol';
 import { tickets } from '../../../lib/tickets';
 import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
-import { createDelegationCodeChallenge } from '../../../lib/ssoDelegationProtocol';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoAuthService } from '../../../services/sso/auth';
@@ -245,9 +245,7 @@ export let authHooksApp = createHono()
         data: { codeVerifier }
       });
 
-      let authorizationUrl = new URL(
-        imported.remoteInstance.authorizationEndpointUrl
-      );
+      let authorizationUrl = new URL(imported.remoteInstance.authorizationEndpointUrl);
       authorizationUrl.searchParams.set('client_id', imported.clientId);
       authorizationUrl.searchParams.set(
         'response_type',

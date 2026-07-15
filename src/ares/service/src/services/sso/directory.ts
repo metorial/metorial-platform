@@ -43,6 +43,11 @@ class SsoDirectoryServiceImpl {
     if (d.connection.status !== 'active') {
       throw new ServiceError(badRequestError({ message: 'Connection is disabled' }));
     }
+    if (d.connection.importedDelegationOid || !d.connection.internalId) {
+      throw new ServiceError(
+        badRequestError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
 
     let res = await jackson.directorySyncController.directories.create({
       name: d.input.name,
@@ -191,6 +196,11 @@ class SsoDirectoryServiceImpl {
       tenant: d.tenant,
       directoryId: d.directory.id
     });
+    if (existing.connection.importedDelegationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
 
     if (d.input.status && d.input.status !== existing.status) {
       return await this.setDirectoryStatus({
@@ -217,6 +227,11 @@ class SsoDirectoryServiceImpl {
     directory: SsoDirectory;
     status: SsoDirectoryStatus;
   }) {
+    if (d.connection.importedDelegationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
     if (
       d.connection.tenantOid !== d.tenant.oid ||
       d.directory.connectionOid !== d.connection.oid

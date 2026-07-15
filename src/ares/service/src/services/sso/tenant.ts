@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { App, SsoTenant } from '../../../prisma/generated/client';
@@ -53,6 +53,11 @@ class SsoTenantServiceImpl {
       hideInUI?: boolean;
     };
   }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO tenants are read-only' })
+      );
+    }
     return await db.ssoTenant.update({
       where: { oid: d.tenant.oid },
       data: {
