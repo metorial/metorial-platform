@@ -58,6 +58,15 @@ export let ID = createIdGenerator({
   ssoUserProfile: idType.sorted('sup_'),
   ssoAuth: idType.sorted('sau_'),
   ssoAuth_clientSecret: idType.key('sso_auth_'),
+  aresInstance: idType.sorted('ari_'),
+  remoteAresInstance: idType.sorted('rai_'),
+  ssoExportedDelegation: idType.sorted('sed_'),
+  ssoExportedDelegation_clientId: idType.key('sso_del_client_'),
+  ssoExportedDelegation_clientSecret: idType.key('sso_del_secret_'),
+  ssoImportedDelegation: idType.sorted('sid_'),
+  ssoDelegationAuthRequest: idType.sorted('sda_'),
+  ssoDelegationAuthorizationCode: idType.sorted('sdc_'),
+  ssoDelegationToken: idType.sorted('sdt_'),
 
   appOAuthProvider: idType.sorted('aop_'),
 

@@ -28,5 +28,21 @@ export let cleanupCron = createCron(
     await db.ssoScimOperation.deleteMany({
       where: { createdAt: { lt: twoWeeksAgo } }
     });
+
+    await db.ssoDelegationAuthRequest.deleteMany({
+      where: { expiresAt: { lt: now } }
+    });
+
+    await db.ssoDelegationAuthorizationCode.deleteMany({
+      where: { expiresAt: { lt: now } }
+    });
+
+    await db.ssoDelegationToken.deleteMany({
+      where: { expiresAt: { lt: now } }
+    });
+
+    await db.ssoAuth.deleteMany({
+      where: { expiresAt: { lt: now } }
+    });
   }
 );

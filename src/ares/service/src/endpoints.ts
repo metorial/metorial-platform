@@ -6,27 +6,28 @@ import { internalApi } from './apis/internal';
 import { ssoApi } from './apis/sso';
 import { db } from './db';
 import { withSecurityHeaders } from './lib/securityHeaders';
+import { aresPorts } from './ports';
 
 let Sentry = getSentry();
 
 let authServer = Bun.serve({
   fetch: withSecurityHeaders(authApi),
-  port: 52120
+  port: aresPorts.auth
 });
 
 let adminServer = Bun.serve({
   fetch: withSecurityHeaders(adminApi),
-  port: 52121
+  port: aresPorts.admin
 });
 
 let ssoServer = Bun.serve({
-  fetch: ssoApi,
-  port: 52122
+  fetch: withSecurityHeaders(ssoApi),
+  port: aresPorts.sso
 });
 
 let internalServer = Bun.serve({
   fetch: internalApi,
-  port: 52123
+  port: aresPorts.internal
 });
 
 let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {
@@ -56,7 +57,7 @@ if (process.env.NODE_ENV === 'production') {
         return new Response('Service Unavailable', { status: 503 });
       }
     },
-    port: 12121
+    port: aresPorts.health
   });
 }
 
