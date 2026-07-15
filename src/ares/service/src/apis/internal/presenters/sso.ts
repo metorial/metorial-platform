@@ -149,6 +149,8 @@ export let ssoTenantPresenter = (
   metadata: tenant.metadata,
   enrollment: tenant.enrollment,
   hideInUI: tenant.hideInUI,
+  source: tenant.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  isEditable: !tenant.importedDelegationOid,
   counts: {
     connections: tenant._count?.connections ?? 0
   },
@@ -187,6 +189,9 @@ export let ssoConnectionPresenter = (
   providerType: connection.providerType,
   providerName: connection.providerName,
   metadata: connection.metadata,
+  source: connection.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  sourceId: connection.sourceId,
+  isEditable: !connection.importedDelegationOid,
   tenant: connection.tenant ? ssoTenantRefPresenter(connection.tenant) : null,
   directories: (connection.directories ?? []).map(ssoDirectoryRefPresenter),
   groups: (connection.groups ?? []).map(ssoConnectionGroupRefPresenter),

@@ -1,6 +1,7 @@
 import { internalApp } from '../../_app';
 import { accountsController } from './accounts';
 import { ssoConnectionsController } from './connections';
+import { ssoDelegationsController } from './delegations';
 import { ssoDirectoriesController } from './directories';
 import { ssoGroupsController } from './groups';
 import { ssoRolesController } from './roles';
@@ -11,6 +12,7 @@ export let ssoV2Controller = internalApp.controller({
   accounts: accountsController,
   tenants: ssoTenantsController,
   connections: ssoConnectionsController,
+  delegations: ssoDelegationsController,
   directories: ssoDirectoriesController,
   groups: ssoGroupsController,
   roles: ssoRolesController,
