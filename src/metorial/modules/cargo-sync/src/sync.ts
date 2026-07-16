@@ -441,6 +441,7 @@ let mapRow = async (spec: CargoSyncModelSpec, row: any) => {
   if (spec.source === 'Skill' && !data.name) data.name = row.id;
 
   let conflict = false;
+  let skip = false;
 
   for (let relation of relations) {
     let sourceOid = row[relation.field];
@@ -455,15 +456,11 @@ let mapRow = async (spec: CargoSyncModelSpec, row: any) => {
       targetOid = await repairDocumentContent(sourceOid);
     }
     if (targetOid == null) {
-      if (relation.required) {
-        throw new Error(
-          `Missing ${relation.model}:${sourceOid.toString()} while syncing ${spec.source}:${recordIdFor(spec.source, row)}`
-        );
-      }
       data[targetField] = null;
       conflict = true;
+      skip ||= relation.required ?? false;
       conflicts.push({
-        type: 'unresolved_relation',
+        type: relation.required ? 'missing_required_relation' : 'unresolved_relation',
         field: relation.field,
         targetModel: relation.model,
         sourceOid: sourceOid.toString()
@@ -472,6 +469,8 @@ let mapRow = async (spec: CargoSyncModelSpec, row: any) => {
       data[targetField] = targetOid;
     }
   }
+
+  if (skip) return { data, conflict, conflicts, skip };
 
   if (spec.source === 'TenantActor') {
     let actorLinks = await resolveResourceActorLinks(row);
@@ -568,7 +567,7 @@ let mapRow = async (spec: CargoSyncModelSpec, row: any) => {
     data.storeTemplateId = storeTemplate.id;
   }
 
-  return { data, conflict, conflicts, skip: false };
+  return { data, conflict, conflicts, skip };
 };
 
 let attachResourceScope = async (
