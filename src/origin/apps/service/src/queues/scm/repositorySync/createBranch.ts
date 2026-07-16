@@ -64,20 +64,31 @@ export let createBranchRepositorySyncQueueProcessor = createBranchRepositorySync
       });
 
       await appendRepositorySyncLog(sync.id, 'Preparing an update branch.');
-      await createRepositorySyncBranch(sync);
+      let branchResult = await createRepositorySyncBranch(sync, {
+        onLog: message => appendRepositorySyncLog(sync.id, message)
+      });
       await appendRepositorySyncLog(sync.id, 'Update branch is ready.');
       logRepositorySyncQueueEvent('createBranch', 'provider branch is ready', {
         syncId: sync.id,
         repoId: sync.repo.id,
-        branchName: sync.branchName
+        branchName: sync.branchName,
+        baseBranch: branchResult?.baseBranch ?? sync.baseBranch
       });
 
-      await db.scmRepositorySync.update({
-        where: { oid: sync.oid },
-        data: {
-          status: 'syncing_contents'
-        }
-      });
+      let baseBranch = branchResult?.baseBranch ?? sync.baseBranch;
+      await db.$transaction([
+        db.scmRepository.update({
+          where: { oid: sync.repo.oid },
+          data: { defaultBranch: baseBranch }
+        }),
+        db.scmRepositorySync.update({
+          where: { oid: sync.oid },
+          data: {
+            baseBranch,
+            status: 'syncing_contents'
+          }
+        })
+      ]);
       logRepositorySyncQueueEvent('createBranch', 'transitioned sync to syncing_contents', {
         syncId: sync.id
       });

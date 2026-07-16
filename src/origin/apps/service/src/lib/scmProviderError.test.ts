@@ -9,7 +9,12 @@ vi.mock('@lowerdeck/sentry', () => ({
   getSentry: () => ({ captureException: mocks.captureException })
 }));
 
-import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
+import {
+  formatScmProviderError,
+  getScmProviderErrorDetails,
+  withScmProviderError,
+  wrapScmProviderError
+} from './scmProviderError';
 
 describe('SCM provider errors', () => {
   beforeEach(() => {
@@ -30,7 +35,7 @@ describe('SCM provider errors', () => {
 
     expect(mapped.data.status).toBe(status);
     expect(mapped.data.code).toBe(code);
-    expect(mapped.message).not.toContain('network failure');
+    expect(mapped.message).toContain('GitLab could not list repositories');
   });
 
   it('preserves existing ServiceErrors', async () => {
@@ -60,5 +65,63 @@ describe('SCM provider errors', () => {
     wrapScmProviderError('gitlab', { response: { status: 500 } }, 'refresh the OAuth token');
 
     expect(mocks.captureException).toHaveBeenCalledWith(expect.any(Error));
+  });
+
+  it('extracts GitBeaker request details without query parameters or headers', () => {
+    let details = getScmProviderErrorDetails({
+      cause: {
+        description: 'Cannot create branch',
+        request: {
+          method: 'POST',
+          url: 'https://gitlab.com/api/v4/projects/123/repository/branches?private_token=secret',
+          headers: { authorization: 'Bearer secret' }
+        },
+        response: {
+          statusCode: 400,
+          headers: new Headers({ 'x-request-id': 'request-123' })
+        }
+      }
+    });
+
+    expect(details).toEqual({
+      status: 400,
+      description: 'Cannot create branch',
+      method: 'POST',
+      endpoint: 'https://gitlab.com/api/v4/projects/123/repository/branches',
+      requestId: 'request-123',
+      classification: 'invalid_request'
+    });
+  });
+
+  it('formats detailed diagnostics without JavaScript stacks or credentials', () => {
+    let message = formatScmProviderError({
+      provider: 'gitlab',
+      operation: 'create the update branch',
+      error: {
+        stack: 'GitbeakerRequestError: 400\n at internal.js:10:2',
+        cause: {
+          description: 'authorization=secret Bearer abc.def',
+          request: {
+            method: 'POST',
+            url: 'https://gitlab.com/api/v4/projects/123/repository/branches?access_token=secret'
+          },
+          response: { statusCode: 400 }
+        }
+      },
+      context: {
+        projectId: 123,
+        baseBranch: 'main',
+        targetBranch: 'metorial/sync-1'
+      },
+      remediation: 'Check protected branch rules.'
+    });
+
+    expect(message).toContain('HTTP status: 400');
+    expect(message).toContain('authorization=[redacted]');
+    expect(message).toContain('projectId=123');
+    expect(message).toContain('Check protected branch rules');
+    expect(message).not.toContain('internal.js');
+    expect(message).not.toContain('abc.def');
+    expect(message).not.toContain('access_token=secret');
   });
 });

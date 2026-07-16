@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, ServiceError } from '@lowerdeck/error';
 import type {
   ScmBackend,
   ScmInstallation,
@@ -8,7 +8,12 @@ import type {
 import { createBitbucketClientWithInstallation } from './bitbucket';
 import { createGitHubInstallationClient } from './githubApp';
 import { createGitLabClientWithInstallation } from './gitlab';
-import { getScmProviderErrorStatus } from './scmProviderError';
+import {
+  getScmProviderErrorDetails,
+  getScmProviderErrorStatus,
+  isRetryableScmProviderError,
+  wrapScmProviderError
+} from './scmProviderError';
 
 type SyncWithRepo = ScmRepositorySync & {
   repo: ScmRepository & {
@@ -54,14 +59,153 @@ let logGitHubSyncError = (message: string, e: any, d: Record<string, unknown>) =
 };
 
 let logGitLabSyncDebug = (message: string, d: Record<string, unknown>) => {
-  void message;
-  void d;
+  console.log(
+    JSON.stringify({
+      event: 'gitlab_repository_sync',
+      level: 'info',
+      message,
+      ...d
+    })
+  );
 };
 
 let logGitLabSyncError = (message: string, e: any, d: Record<string, unknown>) => {
-  void message;
-  void e;
-  void d;
+  console.error(
+    JSON.stringify({
+      event: 'gitlab_repository_sync',
+      level: 'error',
+      message,
+      ...d,
+      providerError: getScmProviderErrorDetails(e)
+    })
+  );
+};
+
+let normalizeGitLabBranch = (value: unknown) => {
+  if (typeof value !== 'string') return undefined;
+  let normalized = value.trim();
+  if (!normalized || ['null', 'undefined'].includes(normalized.toLowerCase())) return undefined;
+  return normalized;
+};
+
+let getGitLabProjectDefaultBranch = (project: any) =>
+  normalizeGitLabBranch(project?.default_branch ?? project?.defaultBranch);
+
+let gitLabDelay = (attempt: number) =>
+  new Promise(resolve => setTimeout(resolve, attempt * 250));
+
+let runRetryableGitLabRead = async <T>(operation: () => Promise<T>) => {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isRetryableScmProviderError(error) || attempt === 3) throw error;
+      await gitLabDelay(attempt);
+    }
+  }
+
+  throw new Error('GitLab request retry loop exhausted');
+};
+
+let getGitLabBranchOrNull = async (gitlab: any, projectId: number, branchName: string) => {
+  try {
+    return await runRetryableGitLabRead(() => gitlab.Branches.show(projectId, branchName));
+  } catch (error) {
+    if (getScmProviderErrorStatus(error) === 404) return null;
+    throw error;
+  }
+};
+
+let waitForGitLabBranch = async (gitlab: any, projectId: number, branchName: string) => {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    let branch = await getGitLabBranchOrNull(gitlab, projectId, branchName);
+    if (branch) return branch;
+    if (attempt < 3) await gitLabDelay(attempt);
+  }
+
+  return null;
+};
+
+let getGitLabBranchSha = (branch: any) => branch?.commit?.id ?? branch?.commit?.sha;
+
+let assertGitLabSyncBranchIsSafe = (d: {
+  branch: any;
+  baseBranch: any;
+  branchName: string;
+  baseBranchName: string;
+}) => {
+  let branchSha = getGitLabBranchSha(d.branch);
+  let baseSha = getGitLabBranchSha(d.baseBranch);
+  if (branchSha && baseSha && branchSha === baseSha) return;
+
+  throw new ServiceError(
+    conflictError({
+      message:
+        `GitLab update branch "${d.branchName}" already exists and does not point to ` +
+        `the current base branch "${d.baseBranchName}". Choose a new update branch or remove ` +
+        'the existing branch before retrying.'
+    })
+  );
+};
+
+let initializeEmptyGitLabRepository = async (d: {
+  gitlab: any;
+  projectId: number;
+  branchName: string;
+  context: Record<string, unknown>;
+  onLog?: (message: string) => Promise<void>;
+}) => {
+  await d.onLog?.(`GitLab repository is empty; initializing default branch "${d.branchName}".`);
+  logGitLabSyncDebug('initializing empty repository', {
+    ...d.context,
+    baseBranch: d.branchName
+  });
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await d.gitlab.RepositoryFiles.create(
+        d.projectId,
+        '.gitignore',
+        d.branchName,
+        '\n',
+        'Initialize repository'
+      );
+    } catch (error) {
+      let branch = await getGitLabBranchOrNull(d.gitlab, d.projectId, d.branchName);
+      if (branch) {
+        await d.onLog?.(`GitLab default branch "${d.branchName}" was initialized concurrently.`);
+        return branch;
+      }
+
+      if (isRetryableScmProviderError(error) && attempt < 3) {
+        await gitLabDelay(attempt);
+        continue;
+      }
+
+      throw wrapScmProviderError('gitlab', error, 'initialize the empty repository', {
+        context: {
+          ...d.context,
+          baseBranch: d.branchName
+        },
+        remediation:
+          'Ensure the connected GitLab user can create commits and that no protected-branch rule blocks the default branch.'
+      });
+    }
+
+    let branch = await waitForGitLabBranch(d.gitlab, d.projectId, d.branchName);
+    if (branch) {
+      await d.onLog?.(`Initialized GitLab default branch "${d.branchName}".`);
+      return branch;
+    }
+  }
+
+  throw new ServiceError(
+    badRequestError({
+      message:
+        `GitLab accepted repository initialization but default branch "${d.branchName}" ` +
+        'could not be verified. Retry the sync after GitLab finishes processing the initial commit.'
+    })
+  );
 };
 
 let initializeEmptyGitHubRepository = async (d: {
@@ -258,7 +402,12 @@ let createNeutralGitHubMetorialCiCheck = async (d: {
   }
 };
 
-export let createRepositorySyncBranch = async (sync: SyncWithRepo) => {
+export let createRepositorySyncBranch = async (
+  sync: SyncWithRepo,
+  options?: {
+    onLog?: (message: string) => Promise<void>;
+  }
+): Promise<{ baseBranch: string } | void> => {
   if (sync.repo.provider === 'github') {
     let octokit = await getGitHubClient(sync.repo);
 
@@ -370,21 +519,178 @@ export let createRepositorySyncBranch = async (sync: SyncWithRepo) => {
 
   if (sync.repo.provider === 'gitlab') {
     let gitlab = await getGitLabClient(sync.repo);
+    let projectId = parseInt(sync.repo.externalId);
+    let context = {
+      syncId: sync.id,
+      repoId: sync.repo.id,
+      projectId,
+      cachedBaseBranch: sync.baseBranch,
+      targetBranch: sync.branchName
+    };
 
+    await options?.onLog?.('Refreshing GitLab repository metadata.');
+    let project;
     try {
-      await gitlab.Branches.create(
-        parseInt(sync.repo.externalId),
-        sync.branchName,
-        sync.baseBranch
-      );
-    } catch (e: any) {
-      let status = getScmProviderErrorStatus(e);
-      if (status !== 400 && status !== 409) throw e;
-
-      await gitlab.Branches.show(parseInt(sync.repo.externalId), sync.branchName);
+      project = await runRetryableGitLabRead(() => gitlab.Projects.show(projectId));
+    } catch (error) {
+      throw wrapScmProviderError('gitlab', error, 'refresh repository metadata', {
+        context,
+        remediation:
+          'Verify that the connected GitLab user can access this project and reconnect the integration if access changed.'
+      });
     }
 
-    return;
+    let liveBaseBranch = getGitLabProjectDefaultBranch(project);
+    let baseBranchName =
+      liveBaseBranch ?? normalizeGitLabBranch(sync.baseBranch) ?? 'main';
+    let baseBranch;
+
+    if (!liveBaseBranch) {
+      baseBranch = await initializeEmptyGitLabRepository({
+        gitlab,
+        projectId,
+        branchName: baseBranchName,
+        context,
+        onLog: options?.onLog
+      });
+    } else {
+      await options?.onLog?.(`Verifying GitLab base branch "${baseBranchName}".`);
+      try {
+        baseBranch = await getGitLabBranchOrNull(gitlab, projectId, baseBranchName);
+      } catch (error) {
+        throw wrapScmProviderError('gitlab', error, 'verify the base branch', {
+          context: {
+            ...context,
+            liveBaseBranch: baseBranchName
+          },
+          remediation:
+            'Verify that the connected GitLab user can read repository branches and that the project is still accessible.'
+        });
+      }
+
+      if (!baseBranch) {
+        throw new ServiceError(
+          badRequestError({
+            message:
+              `GitLab reports "${baseBranchName}" as the default branch, but that branch does ` +
+              `not exist or is not visible to the connected user. Repository: ${sync.repo.id}; ` +
+              `project: ${projectId}; target branch: "${sync.branchName}". Refresh the GitLab ` +
+              'project default branch or reconnect an account with repository access.'
+          })
+        );
+      }
+    }
+
+    if (baseBranchName !== sync.baseBranch) {
+      await options?.onLog?.(
+        `Using live GitLab default branch "${baseBranchName}" instead of cached branch "${sync.baseBranch}".`
+      );
+    }
+
+    let existingTarget;
+    try {
+      existingTarget = await getGitLabBranchOrNull(gitlab, projectId, sync.branchName);
+    } catch (error) {
+      throw wrapScmProviderError('gitlab', error, 'check the update branch', {
+        context: {
+          ...context,
+          liveBaseBranch: baseBranchName
+        }
+      });
+    }
+
+    if (existingTarget) {
+      assertGitLabSyncBranchIsSafe({
+        branch: existingTarget,
+        baseBranch,
+        branchName: sync.branchName,
+        baseBranchName
+      });
+      await options?.onLog?.(`Reusing existing GitLab update branch "${sync.branchName}".`);
+      return { baseBranch: baseBranchName };
+    }
+
+    await options?.onLog?.(
+      `Creating GitLab update branch "${sync.branchName}" from "${baseBranchName}".`
+    );
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await gitlab.Branches.create(projectId, sync.branchName, baseBranchName);
+      } catch (error) {
+        let createdBranch;
+        try {
+          createdBranch = await waitForGitLabBranch(gitlab, projectId, sync.branchName);
+        } catch (verifyError) {
+          logGitLabSyncError('failed to verify branch after create error', verifyError, {
+            ...context,
+            liveBaseBranch: baseBranchName,
+            createError: getScmProviderErrorDetails(error)
+          });
+        }
+
+        if (createdBranch) {
+          assertGitLabSyncBranchIsSafe({
+            branch: createdBranch,
+            baseBranch,
+            branchName: sync.branchName,
+            baseBranchName
+          });
+          await options?.onLog?.(
+            `Verified GitLab update branch "${sync.branchName}" after an ambiguous create response.`
+          );
+          return { baseBranch: baseBranchName };
+        }
+
+        if (isRetryableScmProviderError(error) && attempt < 3) {
+          await options?.onLog?.(
+            `GitLab branch creation had a transient failure; retrying attempt ${attempt + 1} of 3.`
+          );
+          await gitLabDelay(attempt);
+          continue;
+        }
+
+        throw wrapScmProviderError('gitlab', error, 'create the update branch', {
+          context: {
+            ...context,
+            liveBaseBranch: baseBranchName,
+            attempt
+          },
+          remediation:
+            'Check the connected user’s Developer-or-higher access, protected branch rules matching the target name, and whether the target branch name is allowed.'
+        });
+      }
+
+      let createdBranch = await waitForGitLabBranch(gitlab, projectId, sync.branchName);
+      if (!createdBranch) {
+        if (attempt < 3) {
+          await options?.onLog?.(
+            `GitLab did not expose the created branch yet; retrying verification attempt ${attempt + 1} of 3.`
+          );
+          await gitLabDelay(attempt);
+          continue;
+        }
+
+        throw new ServiceError(
+          badRequestError({
+            message:
+              `GitLab accepted update branch "${sync.branchName}" but the branch could not be ` +
+              `verified after 3 attempts. Repository: ${sync.repo.id}; project: ${projectId}; ` +
+              `base branch: "${baseBranchName}". Retry after GitLab finishes processing the branch.`
+          })
+        );
+      }
+
+      assertGitLabSyncBranchIsSafe({
+        branch: createdBranch,
+        baseBranch,
+        branchName: sync.branchName,
+        baseBranchName
+      });
+      await options?.onLog?.(`GitLab update branch "${sync.branchName}" is ready.`);
+      return { baseBranch: baseBranchName };
+    }
+
+    throw new Error('GitLab branch creation retry loop exhausted');
   }
 
   if (sync.repo.provider === 'bitbucket') {

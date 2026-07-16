@@ -29,6 +29,27 @@ import type { ScmAccountPreview, ScmRepoPreview } from '../types';
 
 let defaultRepositoryPreviewLimit = 50;
 
+export let normalizeGitLabDefaultBranch = (value: unknown, fallback = 'main') => {
+  if (typeof value !== 'string') return fallback;
+  let normalized = value.trim();
+  if (!normalized || ['null', 'undefined'].includes(normalized.toLowerCase())) return fallback;
+  return normalized;
+};
+
+export let getGitLabCreateProjectInput = (i: {
+  name: string;
+  description?: string;
+  isPrivate: boolean;
+  namespaceId: number;
+}) => ({
+  name: i.name,
+  description: i.description,
+  visibility: i.isPrivate ? ('private' as const) : ('public' as const),
+  namespaceId: i.namespaceId,
+  initializeWithReadme: true,
+  defaultBranch: 'main'
+});
+
 let decodeRepositoryPreviewCursor = (
   cursor: string | undefined,
   externalAccountId: string | undefined
@@ -606,7 +627,9 @@ class scmRepoServiceImpl {
         installationOid: i.installation.oid,
         externalIsPrivate: project.visibility === 'private',
         externalName: String(project.path),
-        defaultBranch: String(project.default_branch),
+        defaultBranch: normalizeGitLabDefaultBranch(
+          project.default_branch ?? project.defaultBranch
+        ),
         externalOwner: String(project.namespace.path),
         externalUrl: String(project.web_url)
       };
@@ -731,12 +754,14 @@ class scmRepoServiceImpl {
 
       let projectRes;
       try {
-        projectRes = await gitlab.Projects.create({
-          name: i.name,
-          description: i.description,
-          visibility: i.isPrivate ? 'private' : 'public',
-          namespaceId
-        });
+        projectRes = await gitlab.Projects.create(
+          getGitLabCreateProjectInput({
+            name: i.name,
+            description: i.description,
+            isPrivate: i.isPrivate,
+            namespaceId
+          })
+        );
       } catch (error: any) {
         if (isGitLabNamespaceError(error)) {
           throw new ServiceError(
