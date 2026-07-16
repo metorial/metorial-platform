@@ -1,5 +1,11 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { randomUUID } from 'crypto';
+import { db } from '../../../../db';
+import { env } from '../../../../env';
+import { getId } from '../../../../id';
+import { ssoAuthService } from '../../../../services/sso/auth';
 import { ssoConnectionService } from '../../../../services/sso/connection';
 import { ssoGroupRoleService } from '../../../../services/sso/groupRole';
 import { ssoIdentityService } from '../../../../services/sso/identity';
@@ -85,6 +91,61 @@ export let ssoConnectionsController = tenantApp.controller({
         connectionId: input.connectionId
       });
       return ssoConnectionPresenter(connection);
+    }),
+
+  test: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        connectionId: v.string(),
+        redirectUri: v.string()
+      })
+    )
+    .do(async ({ input, tenant }) => {
+      let redirectUri: URL;
+      try {
+        redirectUri = new URL(input.redirectUri);
+      } catch {
+        throw new ServiceError(badRequestError({ message: 'Invalid redirect URI.' }));
+      }
+      if (redirectUri.protocol !== 'http:' && redirectUri.protocol !== 'https:') {
+        throw new ServiceError(badRequestError({ message: 'Invalid redirect URI protocol.' }));
+      }
+
+      let connection = await ssoConnectionService.getConnectionById({
+        tenant,
+        connectionId: input.connectionId
+      });
+      if (connection.status !== 'active') {
+        throw new ServiceError(badRequestError({ message: 'SSO connection is disabled.' }));
+      }
+
+      let account = tenant.accountOid
+        ? await db.account.findUnique({ where: { oid: tenant.accountOid } })
+        : null;
+      let auth = await ssoAuthService.createAuth({
+        tenant,
+        account,
+        connection,
+        input: {
+          redirectUri: redirectUri.toString(),
+          state: randomUUID(),
+          purpose: 'connection_test'
+        }
+      });
+      await db.ssoTest.create({
+        data: {
+          ...getId('ssoTest'),
+          authId: auth.id,
+          authOid: auth.oid,
+          tenantOid: tenant.oid,
+          connectionOid: connection.oid
+        }
+      });
+      let url = new URL('/sso/auth', env.service.ARES_SSO_URL);
+      url.searchParams.set('client_secret', auth.clientSecret);
+      return { url: url.toString() };
     }),
 
   update: tenantApp

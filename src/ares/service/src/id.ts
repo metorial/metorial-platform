@@ -58,6 +58,7 @@ export let ID = createIdGenerator({
   ssoUserProfile: idType.sorted('sup_'),
   ssoAuth: idType.sorted('sau_'),
   ssoAuth_clientSecret: idType.key('sso_auth_'),
+  ssoTest: idType.sorted('sst_'),
   aresInstance: idType.sorted('ari_'),
   remoteAresInstance: idType.sorted('rai_'),
   ssoExportedDelegation: idType.sorted('sed_'),

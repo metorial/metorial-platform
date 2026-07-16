@@ -41,6 +41,10 @@ export let cleanupCron = createCron(
       where: { expiresAt: { lt: now } }
     });
 
+    await db.ssoTest.deleteMany({
+      where: { createdAt: { lt: oneWeekAgo } }
+    });
+
     await db.ssoAuth.deleteMany({
       where: { expiresAt: { lt: now } }
     });

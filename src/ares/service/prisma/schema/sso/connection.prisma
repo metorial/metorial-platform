@@ -40,6 +40,7 @@ model SsoConnection {
   connectionSetups             SsoConnectionSetup[]
   userProfiles                 SsoUserProfile[]
   auths                        SsoAuth[]
+  tests                        SsoTest[]
   directories                  SsoDirectory[]
   groups                       SsoConnectionGroup[]
   roles                        SsoConnectionRole[]

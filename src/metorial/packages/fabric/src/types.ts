@@ -238,6 +238,7 @@ export interface FabricEvents {
   'enterprise.user.created:after': { user: FabricEnterpriseUser };
   'enterprise.user.updated:after': { user: FabricEnterpriseUser };
   'enterprise.user.deleted:after': { user: FabricEnterpriseUser };
+  'enterprise.updated:after': { enterprise: FabricEnterprise };
 
   'user.session.created:before': { user: User, performedBy: User; context?: Context };
   'user.session.created:after': { user: User, session: UserSession, performedBy: User; context?: Context };

@@ -16,6 +16,8 @@ import type {
   SsoUserProfileRole,
   SsoUserRole
 } from '../../../../prisma/generated/client';
+import { env } from '../../../env';
+import { jackson } from '../../../lib/jackson';
 
 export let ssoTenantRefPresenter = (
   tenant: Pick<SsoTenant, 'id' | 'name' | 'status' | 'clientId' | 'externalId'>
@@ -149,6 +151,9 @@ export let ssoTenantPresenter = (
   metadata: tenant.metadata,
   enrollment: tenant.enrollment,
   hideInUI: tenant.hideInUI,
+  entityId: env.sso.SAML_AUDIENCE,
+  replyUrl: jackson.defaultRedirectUrl.saml,
+  redirectUri: jackson.defaultRedirectUrl.oidc,
   source: tenant.importedDelegationOid ? ('imported' as const) : ('local' as const),
   isEditable: !tenant.importedDelegationOid,
   counts: {

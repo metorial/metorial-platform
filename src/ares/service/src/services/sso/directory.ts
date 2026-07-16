@@ -49,12 +49,23 @@ class SsoDirectoryServiceImpl {
       );
     }
 
-    let res = await jackson.directorySyncController.directories.create({
-      name: d.input.name,
-      type: d.input.type,
-      tenant: d.connection.internalId,
-      product: 'metorial'
-    });
+    let res;
+    try {
+      res = await jackson.directorySyncController.directories.create({
+        name: d.input.name,
+        type: d.input.type,
+        tenant: d.connection.internalId,
+        product: 'metorial'
+      });
+    } catch (error) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Could not create SCIM directory: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        })
+      );
+    }
 
     if (res.error || !res.data) {
       throw new ServiceError(

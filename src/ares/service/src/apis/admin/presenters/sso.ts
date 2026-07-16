@@ -3,6 +3,8 @@ import type {
   SsoDirectory,
   SsoTenant
 } from '../../../../prisma/generated/client';
+import { env } from '../../../env';
+import { jackson } from '../../../lib/jackson';
 
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
@@ -23,6 +25,9 @@ export let ssoTenantPresenter = (
   clientId: tenant.clientId,
   externalId: tenant.externalId,
   enrollment: tenant.enrollment,
+  entityId: env.sso.SAML_AUDIENCE,
+  replyUrl: jackson.defaultRedirectUrl.saml,
+  redirectUri: jackson.defaultRedirectUrl.oidc,
   source: tenant.importedDelegationOid ? ('imported' as const) : ('local' as const),
   isEditable: !tenant.importedDelegationOid,
   account: tenant.account

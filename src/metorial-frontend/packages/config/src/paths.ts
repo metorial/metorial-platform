@@ -1055,6 +1055,92 @@ let AdminPaths = Object.assign(
       AdminPaths(accountId, 'auth', ...subPages),
     domains: (accountId: string | null | undefined, ...subPages: SubPages) =>
       AdminPaths(accountId, 'auth/domains', ...subPages),
+    authConnections: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'auth/connections', ...subPages),
+    authConnection: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!connectionId) return '#';
+      return AdminPaths(accountId, 'auth/connections', connectionId, ...subPages);
+    },
+    authConnectionDirectories: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!connectionId) return '#';
+      return AdminPaths(
+        accountId,
+        'auth/connections',
+        connectionId,
+        'directories',
+        ...subPages
+      );
+    },
+    authConnectionUsers: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!connectionId) return '#';
+      return AdminPaths(accountId, 'auth/connections', connectionId, 'users', ...subPages);
+    },
+    authConnectionUser: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      userId: string | null | undefined
+    ) => {
+      if (!connectionId || !userId) return '#';
+      return AdminPaths(accountId, 'auth/connections', connectionId, 'users', userId);
+    },
+    authConnectionGroups: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!connectionId) return '#';
+      return AdminPaths(accountId, 'auth/connections', connectionId, 'groups', ...subPages);
+    },
+    authConnectionGroup: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      groupId: string | null | undefined
+    ) => {
+      if (!connectionId || !groupId) return '#';
+      return AdminPaths(accountId, 'auth/connections', connectionId, 'groups', groupId);
+    },
+    authConnectionRoles: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      ...subPages: SubPages
+    ) => {
+      if (!connectionId) return '#';
+      return AdminPaths(accountId, 'auth/connections', connectionId, 'roles', ...subPages);
+    },
+    authConnectionRole: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      roleId: string | null | undefined
+    ) => {
+      if (!connectionId || !roleId) return '#';
+      return AdminPaths(accountId, 'auth/connections', connectionId, 'roles', roleId);
+    },
+    authConnectionDirectory: (
+      accountId: string | null | undefined,
+      connectionId: string | null | undefined,
+      directoryId: string | null | undefined
+    ) => {
+      if (!connectionId || !directoryId) return '#';
+      return AdminPaths(
+        accountId,
+        'auth/connections',
+        connectionId,
+        'directories',
+        directoryId
+      );
+    },
     auditLogs: (accountId: string | null | undefined, ...subPages: SubPages) =>
       AdminPaths(accountId, 'audit-logs', ...subPages),
     billing: (accountId: string | null | undefined, ...subPages: SubPages) =>

@@ -52,6 +52,7 @@ class SsoAuthServiceImpl {
       redirectUri: string;
       email?: string;
       state: string;
+      purpose?: 'authentication' | 'connection_test';
     };
   }) {
     if (d.tenant.status != 'completed') {
@@ -88,6 +89,7 @@ class SsoAuthServiceImpl {
         connectionOid: d.connection?.oid ?? null,
         state: d.input.state,
         redirectUri: d.input.redirectUri,
+        purpose: d.input.purpose,
         email: d.input.email ?? null,
         expiresAt: addMinutes(new Date(), 30)
       }

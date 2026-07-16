@@ -6,6 +6,7 @@ import { db } from '../../../db';
 import { env } from '../../../env';
 import { jackson } from '../../../lib/jackson';
 import { ssoAuthService } from '../../../services/sso/auth';
+import { getSsoAuthCompletionRedirect } from '../../../services/sso/authRedirect';
 import { ssoConnectionService } from '../../../services/sso/connection';
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { authSelectConnectionHtml } from '../pages/auth-select-connection';
@@ -222,11 +223,38 @@ export let ssoAuthApp = createHono()
         }
       });
 
-      let finalRedirectUri = new URL(auth.redirectUri);
-      finalRedirectUri.searchParams.set('tenant_id', auth.tenant.id);
-      finalRedirectUri.searchParams.set('auth_id', auth.id);
+      let testSso =
+        auth.purpose === 'connection_test'
+          ? await db.ssoTest.findUnique({ where: { authOid: auth.oid } })
+          : null;
+      if (auth.purpose === 'connection_test' && !testSso) {
+        throw new ServiceError(badRequestError({ message: 'SSO test record not found.' }));
+      }
+      if (testSso) {
+        await db.ssoTest.update({
+          where: { oid: testSso.oid },
+          data: {
+            status: 'completed',
+            userOid: user.oid,
+            userProfileOid: profile.oid,
+            completedAt: new Date()
+          }
+        });
+      }
 
-      return c.redirect(finalRedirectUri.toString());
+      let completionRedirect = getSsoAuthCompletionRedirect({
+        redirectUri: auth.redirectUri,
+        purpose: auth.purpose,
+        tenantId: auth.tenant.id,
+        authId: auth.id,
+        userId: user.id,
+        testSsoId: testSso?.id
+      });
+      if (completionRedirect.consumeAuth) {
+        await db.ssoAuth.delete({ where: { oid: auth.oid } });
+        return c.redirect(completionRedirect.url);
+      }
+      return c.redirect(completionRedirect.url);
     } catch (error: any) {
       return c.html(
         errorHtml({

@@ -3,12 +3,18 @@ enum SsoAuthStatus {
   completed
 }
 
+enum SsoAuthPurpose {
+  authentication
+  connection_test
+}
+
 model SsoAuth {
   oid          BigInt @id
   id           String @unique
   clientSecret String @unique
 
   status SsoAuthStatus @default(pending)
+  purpose SsoAuthPurpose @default(authentication)
 
   redirectUri  String
   state        String  @unique
@@ -35,4 +41,5 @@ model SsoAuth {
   expiresAt DateTime?
 
   delegationAuthRequest SsoDelegationAuthRequest?
+  testSso              SsoTest?
 }

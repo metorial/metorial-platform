@@ -136,6 +136,7 @@ model SsoUserProfile {
   updatedAt DateTime @default(now()) @updatedAt
 
   auths                        SsoAuth[]
+  ssoTests                     SsoTest[]
   delegationAuthorizationCodes SsoDelegationAuthorizationCode[]
   delegationTokens             SsoDelegationToken[]
 

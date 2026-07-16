@@ -46,6 +46,7 @@ model SsoTenant {
   groups           SsoGroup[]
   roles            SsoRole[]
   auths            SsoAuth[]
+  tests            SsoTest[]
 
   identityProvider      UserIdentityProvider?
   allowedAccountDomains AccountDomainSsoTenant[]
