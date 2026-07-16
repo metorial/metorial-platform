@@ -112,7 +112,11 @@ export type ScmProviderErrorDetails = {
 
 let classifyScmProviderError = (status: number | undefined, description: string | undefined) => {
   let normalized = description?.toLowerCase() ?? '';
-  if (normalized.includes('protected branch') || normalized.includes('protected ref')) {
+  if (
+    normalized.includes('protected branch') ||
+    normalized.includes('protected ref') ||
+    normalized.includes('is protected')
+  ) {
     return 'protected_branch' as const;
   }
   if (normalized.includes('branch not found') || normalized.includes('reference not found')) {
@@ -191,6 +195,35 @@ export let formatScmProviderError = (d: {
   return parts.filter(Boolean).join(' ');
 };
 
+let publicErrorReason = (classification: ScmProviderErrorDetails['classification']) => {
+  if (classification === 'protected_branch') return 'a protected branch rule blocked the request';
+  if (classification === 'missing_branch') return 'the requested branch was not found';
+  if (classification === 'permission_denied') return 'the integration lacks permission';
+  if (classification === 'authentication_failed') return 'authentication failed';
+  if (classification === 'resource_not_found') return 'the requested resource was not found';
+  if (classification === 'conflict') return 'the resource already exists or changed';
+  if (classification === 'rate_limited') return 'the provider rate limit was reached';
+  if (classification === 'timeout') return 'the provider request timed out';
+  if (classification === 'invalid_request') return 'the request was rejected';
+  if (classification === 'upstream_failure') return 'the provider is temporarily unavailable';
+  return 'the provider request failed';
+};
+
+export let formatScmProviderPublicError = (d: {
+  provider: ScmProvider;
+  operation: string;
+  error: unknown;
+}) => {
+  let details = getScmProviderErrorDetails(d.error);
+  return `${providerName(d.provider)} could not ${d.operation}: ${publicErrorReason(details.classification)}.`;
+};
+
+export let getScmProviderLogDetails = (error: unknown) => {
+  let attached = (error as any)?.scmProviderDiagnostic;
+  if (attached) return attached;
+  return { providerError: getScmProviderErrorDetails(error) };
+};
+
 export let wrapScmProviderError = (
   provider: ScmProvider,
   error: unknown,
@@ -203,20 +236,23 @@ export let wrapScmProviderError = (
   if (isServiceError(error)) return error;
 
   let status = getScmProviderErrorStatus(error);
-  let message = formatScmProviderError({
+  let detailedMessage = formatScmProviderError({
     provider,
     operation,
     error,
     context: options?.context,
     remediation: options?.remediation
   });
+  let message = formatScmProviderPublicError({ provider, operation, error });
   console.error(
     JSON.stringify({
       event: 'scm_provider_error',
       provider,
       operation,
       ...getScmProviderErrorDetails(error),
-      context: options?.context
+      context: options?.context,
+      remediation: options?.remediation,
+      diagnostic: detailedMessage
     })
   );
   if (status == null || status >= 500) {
@@ -250,6 +286,17 @@ export let wrapScmProviderError = (
                   : internalServerError({ message });
 
   let serviceError = new ServiceError(mapped);
+  Object.defineProperty(serviceError, 'scmProviderDiagnostic', {
+    value: {
+      provider,
+      operation,
+      ...getScmProviderErrorDetails(error),
+      context: options?.context,
+      remediation: options?.remediation,
+      diagnostic: detailedMessage
+    },
+    enumerable: false
+  });
   if (error instanceof Error) serviceError.setParent(error);
   return serviceError;
 };

@@ -1,5 +1,5 @@
 import { db } from '../../../db';
-import { getScmProviderErrorDetails } from '../../../lib/scmProviderError';
+import { getScmProviderLogDetails } from '../../../lib/scmProviderError';
 
 export type RepositorySyncLogEntry = [number, string];
 
@@ -32,7 +32,7 @@ export let logRepositorySyncQueueError = (
       stage,
       message,
       ...d,
-      providerError: getScmProviderErrorDetails(error)
+      providerDiagnostic: getScmProviderLogDetails(error)
     })
   );
 };
@@ -48,8 +48,33 @@ export let appendRepositorySyncLog = async (syncId: string, message: string) => 
   });
 };
 
-export let markRepositorySyncFailed = async (syncId: string, error: unknown) => {
+let stripLowerdeckErrorPrefix = (message: string) =>
+  message.replace(/^\[@lowerdeck\/error\]:\s*/, '').trim();
+
+export let getRepositorySyncErrorMessage = (error: unknown) => {
+  let dataMessage = (error as any)?.data?.message;
+  if (typeof dataMessage === 'string' && dataMessage.trim()) {
+    return stripLowerdeckErrorPrefix(dataMessage);
+  }
+
   let message = error instanceof Error ? error.message : String(error);
+  let serialized = message.match(/\s+\((\{.*\})\)\s*$/s)?.[1];
+  if (serialized) {
+    try {
+      let parsed = JSON.parse(serialized);
+      if (typeof parsed?.message === 'string' && parsed.message.trim()) {
+        return stripLowerdeckErrorPrefix(parsed.message);
+      }
+    } catch {
+      // Keep the original message when the suffix is not lowerdeck error metadata.
+    }
+  }
+
+  return stripLowerdeckErrorPrefix(message.replace(/\s+\(\{.*\}\)\s*$/s, ''));
+};
+
+export let markRepositorySyncFailed = async (syncId: string, error: unknown) => {
+  let message = getRepositorySyncErrorMessage(error);
 
   await db.scmRepositorySync.updateMany({
     where: {

@@ -21,13 +21,16 @@ describe('repository sync failure diagnostics', () => {
     vi.restoreAllMocks();
   });
 
-  it('stores the classified provider message without a JavaScript stack trace', async () => {
+  it('stores the short classified provider message without lowerdeck decoration', async () => {
     let error = Object.assign(
       new Error(
-        'GitLab could not create the update branch. HTTP status: 400. Provider response: Cannot create protected branch.'
+        '[@lowerdeck/error]: GitLab could not create the update branch: the request was rejected. ({"status":400,"code":"bad_request"})'
       ),
       {
-        stack: 'Error: provider failure\n at internal.js:10:2'
+        stack: 'Error: provider failure\n at internal.js:10:2',
+        data: {
+          message: 'GitLab could not create the update branch: the request was rejected.'
+        }
       }
     );
 
@@ -37,8 +40,7 @@ describe('repository sync failure diagnostics', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           status: 'failed',
-          errorMessage:
-            'GitLab could not create the update branch. HTTP status: 400. Provider response: Cannot create protected branch.'
+          errorMessage: 'GitLab could not create the update branch: the request was rejected.'
         })
       })
     );

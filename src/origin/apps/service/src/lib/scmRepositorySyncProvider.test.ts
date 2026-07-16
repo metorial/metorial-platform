@@ -124,8 +124,10 @@ describe('GitLab repository sync', () => {
     gitlab.Branches.create.mockRejectedValue(error);
 
     await expect(createRepositorySyncBranch(createSync())).rejects.toMatchObject({
-      data: { code: 'bad_request' },
-      message: expect.stringContaining('Cannot create branch because it is protected')
+      data: {
+        code: 'bad_request',
+        message: expect.stringContaining('a protected branch rule blocked the request')
+      }
     });
   });
 
@@ -146,7 +148,7 @@ describe('GitLab repository sync', () => {
     let result = createRepositorySyncBranch(createSync());
     await expect(result).rejects.toMatchObject({
       data: { code: 'forbidden' },
-      message: expect.stringContaining('HTTP status: 403')
+      message: expect.stringContaining('the integration lacks permission')
     });
     await expect(result).rejects.not.toMatchObject({
       message: expect.stringContaining('secret.js')

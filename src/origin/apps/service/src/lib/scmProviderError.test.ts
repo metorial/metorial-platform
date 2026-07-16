@@ -12,6 +12,7 @@ vi.mock('@lowerdeck/sentry', () => ({
 import {
   formatScmProviderError,
   getScmProviderErrorDetails,
+  getScmProviderLogDetails,
   withScmProviderError,
   wrapScmProviderError
 } from './scmProviderError';
@@ -53,6 +54,45 @@ describe('SCM provider errors', () => {
     let mapped = wrapScmProviderError('github', providerError, 'load repositories');
 
     expect(mapped.parent).toBe(providerError);
+  });
+
+  it('keeps the public error short while retaining full structured log details', () => {
+    let mapped = wrapScmProviderError(
+      'gitlab',
+      {
+        cause: {
+          description: 'The branch name must match ^[a-z0-9-]{1,63}$',
+          request: {
+            method: 'POST',
+            url: 'https://gitlab.com/api/v4/projects/123/repository/branches'
+          },
+          response: { statusCode: 400 }
+        }
+      },
+      'create the update branch',
+      {
+        context: {
+          projectId: 123,
+          targetBranch: 'metorial/sync-1'
+        },
+        remediation: 'Use a branch name accepted by the project push rules.'
+      }
+    );
+
+    expect(mapped.data.message).toBe(
+      'GitLab could not create the update branch: the request was rejected.'
+    );
+    expect(mapped.data.message).not.toContain('projectId');
+    expect(mapped.data.message).not.toContain('regular expression');
+    expect(getScmProviderLogDetails(mapped)).toMatchObject({
+      status: 400,
+      classification: 'invalid_request',
+      context: {
+        projectId: 123,
+        targetBranch: 'metorial/sync-1'
+      },
+      diagnostic: expect.stringContaining('The branch name must match')
+    });
   });
 
   it('does not report expected provider 4xx responses to Sentry', () => {

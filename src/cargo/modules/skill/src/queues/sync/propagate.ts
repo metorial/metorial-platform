@@ -7,10 +7,35 @@ import {
   appendSkillDestinationSyncLogs,
   type SkillDestinationSyncLogEntry
 } from './_lib/logs';
+import {
+  createSkillSyncBranchName,
+  normalizeSkillSyncBranchName
+} from './_lib/branchName';
 import { syncFinishQueue } from './finish';
 
+let getPublicErrorMessage = (error: unknown) => {
+  let dataMessage = (error as any)?.data?.message;
+  let message =
+    typeof dataMessage === 'string'
+      ? dataMessage
+      : error instanceof Error
+        ? error.message
+        : String(error);
+  let serialized = message.match(/\s+\((\{.*\})\)\s*$/s)?.[1];
+  if (serialized) {
+    try {
+      let parsed = JSON.parse(serialized);
+      if (typeof parsed?.message === 'string') message = parsed.message;
+    } catch {
+      // Leave non-lowerdeck metadata intact.
+    }
+  }
+
+  return message.replace(/^\[@lowerdeck\/error\]:\s*/, '').trim();
+};
+
 let failSync = async (d: { skillDestinationSyncId: string; error: unknown }) => {
-  let errorMessage = d.error instanceof Error ? d.error.message : String(d.error);
+  let errorMessage = getPublicErrorMessage(d.error);
 
   await db.skillDestinationSync.updateMany({
     where: {
@@ -143,7 +168,11 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
           status: 'pending',
           skillDestinationSyncOid: sync.oid,
           skillRepositoryOid: link.skillRepository.oid,
-          branchName: `metorial/sync-${target}-${repository.syncCounter}-${generatePlainId(4).toLowerCase()}`,
+          branchName: createSkillSyncBranchName({
+            target,
+            syncCounter: repository.syncCounter,
+            suffix: generatePlainId(4)
+          }),
           prName: sync.prName ?? `Sync ${target}`,
           prDescription: sync.prDescription,
           commitMessage: sync.commitMessage ?? sync.prName ?? `Sync ${target}`
@@ -205,6 +234,15 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
       if (!propagation) throw new QueueRetryError();
 
       if (!propagation.originSyncId) {
+        let normalizedBranchName = normalizeSkillSyncBranchName(propagation.branchName);
+        if (normalizedBranchName !== propagation.branchName) {
+          propagation = await db.skillDestinationSyncRepositoryPropagation.update({
+            where: { oid: propagation.oid },
+            data: { branchName: normalizedBranchName },
+            include: { skillRepository: true }
+          });
+        }
+
         let originTenant = await getOriginTenant({
           oid: propagation.skillRepository.tenantOid,
           id: sync.destination.id
