@@ -68,14 +68,14 @@ export let SkillMarketplaceLayout = () => {
     marketplace.refetch();
   }, 10_000);
 
-  useInterval(
-    () => {
-      if (marketplace.data?.syncStatus !== 'synced' && !syncMarketplace.isLoading) {
-        syncMarketplace.mutate({});
-      }
-    },
-    marketplace.data?.syncStatus === 'pending' ? 10_000 : 60_000
-  );
+  // useInterval(
+  //   () => {
+  //     if (marketplace.data?.syncStatus !== 'synced' && !syncMarketplace.isLoading) {
+  //       syncMarketplace.mutate({});
+  //     }
+  //   },
+  //   marketplace.data?.syncStatus === 'pending' ? 10_000 : 60_000
+  // );
 
   return (
     <ContentLayout>
@@ -144,7 +144,7 @@ export let SkillMarketplaceLayout = () => {
                     linked to this marketplace have changed. Metorial is processing these
                     changes and updating the marketplace. This can take a few minutes.
                   </span>
-                  {/* {marketplace.data?.syncStatus === 'pending' && (
+                  {marketplace.data?.syncStatus === 'pending' && (
                     <Button
                       size="2"
                       loading={syncMarketplace.isLoading}
@@ -153,7 +153,7 @@ export let SkillMarketplaceLayout = () => {
                     >
                       Sync Now
                     </Button>
-                  )} */}
+                  )}
                 </Callout>
 
                 <Spacer height={20} />
