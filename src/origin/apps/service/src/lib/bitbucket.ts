@@ -258,6 +258,42 @@ export class BitbucketClient {
     return repos.map(repo => this.normalizeDataCenterRepository(repo));
   }
 
+  async listRepositoryPage(i: {
+    accountSlug?: string;
+    cursor?: string;
+    limit: number;
+  }): Promise<{ repositories: BitbucketRepository[]; nextCursor?: string }> {
+    if (!isDataCenter(this.backend)) {
+      let path = i.cursor ?? (i.accountSlug
+        ? `repositories/${encodeURIComponent(i.accountSlug)}`
+        : 'repositories');
+      let page = await this.request<{ values: any[]; next?: string }>(path, {
+        query: i.cursor ? undefined : { pagelen: i.limit, role: 'member' }
+      });
+      return {
+        repositories: page.values.map(repo => this.normalizeCloudRepository(repo)),
+        nextCursor: page.next
+      };
+    }
+
+    let start = i.cursor ? Number(i.cursor) : 0;
+    if (!Number.isInteger(start) || start < 0) {
+      throw new ServiceError(badRequestError({ message: 'Invalid Bitbucket repository cursor' }));
+    }
+    let path = i.accountSlug
+      ? `projects/${encodeURIComponent(i.accountSlug)}/repos`
+      : 'repos';
+    let page = await this.request<{
+      values: any[];
+      isLastPage: boolean;
+      nextPageStart?: number;
+    }>(path, { query: { limit: i.limit, start } });
+    return {
+      repositories: page.values.map(repo => this.normalizeDataCenterRepository(repo)),
+      nextCursor: page.isLastPage || page.nextPageStart == null ? undefined : String(page.nextPageStart)
+    };
+  }
+
   async getRepository(owner: string, repo: string): Promise<BitbucketRepository> {
     if (!isDataCenter(this.backend)) {
       let result = await this.request<any>(

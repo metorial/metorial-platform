@@ -145,17 +145,22 @@ class scmRepositoryServiceImpl {
     input: {
       scmConnectionId: string;
       externalAccountId?: string;
+      cursor?: string;
+      limit?: number;
     };
-  }): Promise<{ repositories: ScmRepositoryPreview[] }> {
+  }): Promise<{ repositories: ScmRepositoryPreview[]; nextCursor: string | null }> {
     let tenant = await getTenantForOrigin(d.tenant);
     let result = await origin.scmRepository.listRepositoryPreviews({
       tenantId: tenant.id,
       scmInstallationId: d.input.scmConnectionId,
-      externalAccountId: d.input.externalAccountId
+      externalAccountId: d.input.externalAccountId,
+      cursor: d.input.cursor,
+      limit: d.input.limit
     });
 
     return {
-      repositories: result.repositories.map(normalizeScmRepositoryPreview)
+      repositories: result.repositories.map(normalizeScmRepositoryPreview),
+      nextCursor: result.nextCursor
     };
   }
 }

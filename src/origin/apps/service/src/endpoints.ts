@@ -9,12 +9,14 @@ await scmBackendService.ensureDefaultBackends();
 
 let originServer = Bun.serve({
   fetch: originApi,
-  port: 52090
+  port: 52090,
+  idleTimeout: 250
 });
 
 let scmServer = Bun.serve({
   fetch: scmController.fetch,
-  port: 52093
+  port: 52093,
+  idleTimeout: 60
 });
 
 console.log(`Origin controller running on http://localhost:${originServer.port}`);

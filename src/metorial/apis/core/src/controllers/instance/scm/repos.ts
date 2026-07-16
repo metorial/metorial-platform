@@ -98,6 +98,13 @@ export let scmReposController = Controller.create(
           installation_id: v.string({ description: 'SCM installation ID' }),
           external_account_id: v.optional(
             v.string({ description: 'Filter by external account ID' })
+          ),
+          cursor: v.optional(v.string({ description: 'Cursor from a previous repository preview page' })),
+          limit: v.optional(
+            v.number({
+              description: 'Maximum number of repositories to return (defaults to 50)',
+              modifiers: [v.minValue(1), v.maxValue(100)]
+            })
           )
         })
       )
@@ -106,7 +113,9 @@ export let scmReposController = Controller.create(
         let repoPreviews = await subspaceScmRepositoryService.listRepositoryPreviews({
           instance: ctx.instance,
           scmConnectionId: ctx.body.installation_id,
-          externalAccountId: ctx.body.external_account_id
+          externalAccountId: ctx.body.external_account_id,
+          cursor: ctx.body.cursor,
+          limit: ctx.body.limit
         });
 
         return scmRepoPreviewPresenter.present({

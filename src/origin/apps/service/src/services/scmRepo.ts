@@ -27,6 +27,41 @@ import { createRepoWebhookQueue } from '../queues/scm/createRepoWebhook';
 import { createHandleRepoPushQueue } from '../queues/scm/handleRepoPush';
 import type { ScmAccountPreview, ScmRepoPreview } from '../types';
 
+let defaultRepositoryPreviewLimit = 50;
+
+let decodeRepositoryPreviewCursor = (
+  cursor: string | undefined,
+  externalAccountId: string | undefined
+) => {
+  if (!cursor) return undefined;
+
+  try {
+    let value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+    if (
+      typeof value?.providerCursor != 'string' ||
+      value.externalAccountId !== (externalAccountId ?? null)
+    ) {
+      throw new Error('Invalid cursor');
+    }
+    return value.providerCursor;
+  } catch {
+    throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
+  }
+};
+
+let encodeRepositoryPreviewCursor = (
+  providerCursor: string | undefined,
+  externalAccountId: string | undefined
+) => {
+  if (!providerCursor) return null;
+  return Buffer.from(
+    JSON.stringify({
+      providerCursor,
+      externalAccountId: externalAccountId ?? null
+    })
+  ).toString('base64url');
+};
+
 let getGitLabPersonalNamespaceIdForUser = async (gitlab: any, user: any) => {
   let namespaces = await withScmProviderError<any[]>(
     'gitlab',
@@ -117,7 +152,12 @@ class scmRepoServiceImpl {
   async listRepositoryPreviews(i: {
     installation: ScmInstallation & { backend: ScmBackend };
     externalAccountId?: string;
+    cursor?: string;
+    limit?: number;
   }) {
+    let limit = Math.min(Math.max(i.limit ?? defaultRepositoryPreviewLimit, 1), 100);
+    let providerCursor = decodeRepositoryPreviewCursor(i.cursor, i.externalAccountId);
+
     if (i.installation.provider == 'github') {
       if (!i.installation.externalInstallationId) {
         throw new ServiceError(badRequestError({ message: 'Installation ID not found' }));
@@ -127,35 +167,28 @@ class scmRepoServiceImpl {
         i.installation.backend
       );
 
-      // For GitHub Apps, use the installation repositories endpoint
-      // This lists all repositories the installation has access to
-      let allRepos: any[] = [];
-      let page = 1;
-
-      while (true) {
-        let response = await withScmProviderError(
-          'github',
-          'list installation repositories',
-          () =>
-            octokit.request('GET /installation/repositories', {
-              per_page: 100,
-              page
-            })
-        );
-
-        allRepos.push(...response.data.repositories);
-
-        if (response.data.repositories.length < 100) break;
-        page++;
+      let page = providerCursor ? Number(providerCursor) : 1;
+      if (!Number.isInteger(page) || page < 1) {
+        throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
       }
+      let response = await withScmProviderError(
+        'github',
+        'list installation repositories',
+        () =>
+          octokit.request('GET /installation/repositories', {
+            per_page: limit,
+            page
+          })
+      );
 
       // Filter by externalAccountId if provided (to support account-specific filtering in UI)
       let filteredRepos = i.externalAccountId
-        ? allRepos.filter(r => r.owner.id.toString() === i.externalAccountId)
-        : allRepos;
+        ? response.data.repositories.filter(r => r.owner.id.toString() === i.externalAccountId)
+        : response.data.repositories;
 
-      return filteredRepos.map(
-        r =>
+      return {
+        repositories: filteredRepos.map(
+          r =>
           ({
             provider: i.installation.provider,
             name: r.name,
@@ -171,13 +204,17 @@ class scmRepoServiceImpl {
               provider: i.installation.provider
             }
           }) satisfies ScmRepoPreview
-      );
+        ),
+        nextCursor: encodeRepositoryPreviewCursor(
+          response.data.repositories.length === limit ? String(page + 1) : undefined,
+          i.externalAccountId
+        )
+      };
     }
 
     if (i.installation.provider == 'gitlab') {
       let gitlab = await createGitLabClientWithInstallation(i.installation);
 
-      let allProjects: any[] = [];
       let user = await withScmProviderError('gitlab', 'load the authenticated user', () =>
         gitlab.Users.showCurrentUser()
       );
@@ -187,26 +224,36 @@ class scmRepoServiceImpl {
 
       // Existing clients can still supply the installation's user ID. New account previews
       // supply the actual personal namespace ID required by GitLab's project APIs.
+      let idAfter = providerCursor ? Number(providerCursor) : undefined;
+      if (idAfter !== undefined && (!Number.isInteger(idAfter) || idAfter < 1)) {
+        throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
+      }
+      let projects: any[];
+      let nextProviderCursor: string | undefined;
       if (
         !i.externalAccountId ||
         i.externalAccountId == personalNamespaceId ||
         i.externalAccountId == i.installation.externalAccountId
       ) {
-        allProjects = await withScmProviderError('gitlab', 'list user projects', () =>
-          gitlab.Users.allProjects(user.id, { perPage: 100 })
+        projects = await withScmProviderError('gitlab', 'list user projects', () =>
+          gitlab.Users.allProjects(user.id, { perPage: limit, idAfter, maxPages: 1 })
         );
+        nextProviderCursor = projects.length === limit ? String(projects.at(-1)?.id) : undefined;
       } else {
         // List projects for a specific group
         let groupId = getGitLabNamespaceId(i.externalAccountId);
-        allProjects = await withScmProviderError('gitlab', 'list group projects', () =>
-          gitlab.Groups.allProjects(groupId, { perPage: 100 })
+        let page = providerCursor ? Number(providerCursor) : 1;
+        projects = await withScmProviderError('gitlab', 'list group projects', () =>
+          gitlab.Groups.allProjects(groupId, { perPage: limit, page })
         );
+        nextProviderCursor = projects.length === limit ? String(page + 1) : undefined;
       }
 
       let hostname = new URL(i.installation.backend.webUrl).hostname;
 
-      return allProjects.map(
-        (p: any) =>
+      return {
+        repositories: projects.map(
+          (p: any) =>
           ({
             provider: i.installation.provider,
             name: p.name,
@@ -222,7 +269,12 @@ class scmRepoServiceImpl {
               provider: i.installation.provider
             }
           }) satisfies ScmRepoPreview
-      );
+        ),
+        nextCursor: encodeRepositoryPreviewCursor(
+          nextProviderCursor,
+          i.externalAccountId
+        )
+      };
     }
 
     if (i.installation.provider == 'bitbucket') {
@@ -231,12 +283,17 @@ class scmRepoServiceImpl {
       let selected = i.externalAccountId
         ? accounts.find(account => account.id === i.externalAccountId)
         : undefined;
-      let repos = await withScmProviderError('bitbucket', 'list repositories', () =>
-        client.listRepositories(selected?.slug)
+      let page = await withScmProviderError('bitbucket', 'list repositories', () =>
+        client.listRepositoryPage({
+          accountSlug: selected?.slug,
+          cursor: providerCursor,
+          limit
+        })
       );
       let hostname = new URL(i.installation.backend.webUrl).hostname;
-      return repos.map(
-        repo =>
+      return {
+        repositories: page.repositories.map(
+          repo =>
           ({
             provider: i.installation.provider,
             name: repo.name,
@@ -252,7 +309,9 @@ class scmRepoServiceImpl {
               provider: i.installation.provider
             }
           }) satisfies ScmRepoPreview
-      );
+        ),
+        nextCursor: encodeRepositoryPreviewCursor(page.nextCursor, i.externalAccountId)
+      };
     }
 
     throw new ServiceError(badRequestError({ message: 'Unsupported provider' }));

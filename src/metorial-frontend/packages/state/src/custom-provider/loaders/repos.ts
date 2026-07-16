@@ -23,9 +23,7 @@ export let useScmInstallations = (
   query?: DashboardInstanceScmInstallationListQuery
 ) => {
   let data = usePaginator(pagination =>
-    scmInstallationsLoader.use(
-      instanceId ? { instanceId, ...pagination, ...query } : null
-    )
+    scmInstallationsLoader.use(instanceId ? { instanceId, ...pagination, ...query } : null)
   );
 
   return data;
@@ -119,12 +117,23 @@ export let useResolveScmRepository = scmInstallationsLoader.createExternalMutato
           installationAccounts.flatMap(({ installation, accounts }) =>
             accounts.map(async account => ({
               installation,
-              repositories: (
-                await sdk.scm.repos.preview(i.instanceId, {
-                  installationId: installation.id,
-                  externalAccountId: account.externalId
-                })
-              ).repos
+              repositories: await (async () => {
+                let cursor: string | undefined;
+                let repositories: Awaited<ReturnType<typeof sdk.scm.repos.preview>>['repos'] =
+                  [];
+
+                while (true) {
+                  let page = await sdk.scm.repos.preview(i.instanceId, {
+                    installationId: installation.id,
+                    externalAccountId: account.externalId,
+                    cursor,
+                    limit: 50
+                  });
+                  repositories.push(...page.repos);
+                  if (!page.nextCursor) return repositories;
+                  cursor = page.nextCursor;
+                }
+              })()
             }))
           )
         );
@@ -184,9 +193,7 @@ export let useScmAccounts = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceScmAccountsPreviewBody
 ) => {
-  let data = scmAccountsLoader.use(
-    instanceId && query ? { instanceId, ...query } : null
-  );
+  let data = scmAccountsLoader.use(instanceId && query ? { instanceId, ...query } : null);
 
   return data;
 };
@@ -212,10 +219,7 @@ export let useScmConnections = (instanceId: string | null | undefined) => {
 };
 
 export let useCreateScmConnection = scmConnectionsLoader.createExternalMutator(
-  (i: {
-    instanceId: string;
-    redirectUrl?: string;
-  }) =>
+  (i: { instanceId: string; redirectUrl?: string }) =>
     withAuth(sdk =>
       sdk.scm.connections.create(i.instanceId, {
         redirectUrl: i.redirectUrl
