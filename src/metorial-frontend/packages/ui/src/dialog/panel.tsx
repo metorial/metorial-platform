@@ -88,6 +88,8 @@ export let Panel = {
             <Wrapper
               ref={contentRef}
               onPointerDownOutside={preventDialogDismissWhenSelectOpen}
+              onInteractOutside={preventDialogDismissWhenSelectOpen}
+              onFocusOutside={preventDialogDismissWhenSelectOpen}
               style={{
                 ...style,
 

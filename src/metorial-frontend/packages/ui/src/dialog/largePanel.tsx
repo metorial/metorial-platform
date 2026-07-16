@@ -48,6 +48,8 @@ export let LargePanelDialog = {
             <PanelContent
               ref={contentRef}
               onPointerDownOutside={preventDialogDismissWhenSelectOpen}
+              onInteractOutside={preventDialogDismissWhenSelectOpen}
+              onFocusOutside={preventDialogDismissWhenSelectOpen}
               style={{
                 ...style,
                 zIndex: zIndex + 1

@@ -40,10 +40,37 @@ export let DialogProvider = DialogContext.Provider;
 export let useDialogContext = () => useContext(DialogContext);
 export let useIsInDialog = () => !!useContext(DialogContext);
 
-export let preventDialogDismissWhenSelectOpen = (event: { preventDefault: () => void }) => {
-  let openSelect = document.querySelector(
-    '[data-metorial-select-content][data-state="open"]'
-  );
+type OutsideInteractionEvent = Event & {
+  detail?: {
+    originalEvent?: Event;
+  };
+};
 
-  if (openSelect) event.preventDefault();
+let preventDialogDismissForPointerGesture = false;
+
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'pointerdown',
+    () => {
+      preventDialogDismissForPointerGesture = false;
+    },
+    true
+  );
+}
+
+export let markSelectPointerDismiss = () => {
+  preventDialogDismissForPointerGesture = true;
+};
+
+export let preventDialogDismissWhenSelectOpen = (event: OutsideInteractionEvent) => {
+  if (preventDialogDismissForPointerGesture) {
+    event.preventDefault();
+    return;
+  }
+
+  let target = event.detail?.originalEvent?.target ?? event.target;
+  let isSelectInteraction =
+    target instanceof Element && target.closest('[data-metorial-select-content]') != null;
+
+  if (isSelectInteraction) event.preventDefault();
 };

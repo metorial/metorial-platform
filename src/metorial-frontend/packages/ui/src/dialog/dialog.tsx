@@ -92,6 +92,8 @@ export let Dialog = {
             <Wrapper
               ref={contentRef}
               onPointerDownOutside={preventDialogDismissWhenSelectOpen}
+              onInteractOutside={preventDialogDismissWhenSelectOpen}
+              onFocusOutside={preventDialogDismissWhenSelectOpen}
               style={{
                 zIndex: zIndex + 1,
                 maxWidth: width ? width : variant == 'padded' ? 480 : 400,

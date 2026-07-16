@@ -4,7 +4,7 @@ import { RiArrowDownSLine, RiArrowUpSLine, RiCheckLine } from '@remixicon/react'
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { ButtonSize, getButtonSize } from '../button/constants';
-import { useZindex } from '../dialog/state';
+import { markSelectPointerDismiss, useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { theme } from '../theme';
@@ -215,7 +215,11 @@ export let Select = ({
           </RadixSelect.Icon>
         </Trigger>
         <RadixSelect.Portal>
-          <Content data-metorial-select-content="true" style={{ zIndex }}>
+          <Content
+            data-metorial-select-content="true"
+            style={{ zIndex }}
+            onPointerDownOutside={markSelectPointerDismiss}
+          >
             <RadixSelect.ScrollUpButton className="SelectScrollButton">
               <RiArrowUpSLine size={14} />
             </RadixSelect.ScrollUpButton>
