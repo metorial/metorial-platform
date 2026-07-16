@@ -1130,7 +1130,8 @@ let AdminPaths = Object.assign(
     authConnectionDirectory: (
       accountId: string | null | undefined,
       connectionId: string | null | undefined,
-      directoryId: string | null | undefined
+      directoryId: string | null | undefined,
+      ...subPages: SubPages
     ) => {
       if (!connectionId || !directoryId) return '#';
       return AdminPaths(
@@ -1138,7 +1139,8 @@ let AdminPaths = Object.assign(
         'auth/connections',
         connectionId,
         'directories',
-        directoryId
+        directoryId,
+        ...subPages
       );
     },
     auditLogs: (accountId: string | null | undefined, ...subPages: SubPages) =>
