@@ -263,6 +263,10 @@ class SsoDirectoryServiceImpl {
     });
 
     if (d.status === 'disabled' && d.directory.status !== 'disabled') {
+      await Promise.all([
+        db.ssoDirectoryGroup.deleteMany({ where: { directoryOid: directory.oid } }),
+        db.ssoDirectoryRole.deleteMany({ where: { directoryOid: directory.oid } })
+      ]);
       await enqueueDisableSsoDirectoryUsers({
         directoryId: directory.id
       });

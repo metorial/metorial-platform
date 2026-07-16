@@ -125,6 +125,7 @@ let upsertUserProfileFromDirectoryUser = async (d: {
       userProfile: profile,
       roles
     });
+    await ssoGroupRoleService.reconcileDirectoryRoles({ directory });
 
     profile = await db.ssoUserProfile.update({
       where: { oid: profile.oid },
@@ -310,7 +311,7 @@ class SsoDirectorySyncServiceImpl {
 
     let groupPayload = d.event.data as Group;
 
-    return await ssoGroupRoleService.upsertGroup({
+    let group = await ssoGroupRoleService.upsertGroup({
       connection: directory.connection,
       value: groupPayload.id,
       displayName: groupPayload.name,
@@ -318,6 +319,8 @@ class SsoDirectorySyncServiceImpl {
         raw: groupPayload.raw ?? groupPayload
       }
     });
+    await ssoGroupRoleService.linkDirectoryGroup({ directory, group });
+    return group;
   }
 
   async syncGroupMembershipFromDirectoryEvent(d: {
@@ -341,7 +344,7 @@ class SsoDirectorySyncServiceImpl {
       scimOperationId: d.scimOperationId
     });
 
-    await ssoGroupRoleService.upsertGroup({
+    let group = await ssoGroupRoleService.upsertGroup({
       connection: directory.connection,
       value: userPayload.group.id,
       displayName: userPayload.group.name,
@@ -349,6 +352,7 @@ class SsoDirectorySyncServiceImpl {
         raw: userPayload.group.raw ?? userPayload.group
       }
     });
+    await ssoGroupRoleService.linkDirectoryGroup({ directory, group });
 
     await ssoGroupRoleService.setUserProfileGroupMembership({
       connection: directory.connection,
@@ -420,6 +424,7 @@ class SsoDirectorySyncServiceImpl {
         userProfile: link.userProfile,
         roles: []
       });
+      await ssoGroupRoleService.reconcileDirectoryRoles({ directory: d.directory });
 
       let user = await db.ssoUser.findUnique({
         where: { oid: link.userProfile.userOid }
@@ -456,11 +461,39 @@ class SsoDirectorySyncServiceImpl {
     if (!group) return;
 
     let affectedLinks = await db.ssoUserProfileGroup.findMany({
-      where: { groupOid: group.oid },
+      where: {
+        groupOid: group.oid,
+        userProfile: {
+          directories: {
+            some: { directoryOid: directory.oid, deprovisionedAt: null }
+          }
+        }
+      },
       include: { userProfile: { include: { ownedUser: true } } }
     });
 
-    await db.ssoUserProfileGroup.deleteMany({ where: { groupOid: group.oid } });
+    await db.ssoDirectoryGroup.deleteMany({
+      where: { directoryOid: directory.oid, groupOid: group.oid }
+    });
+
+    for (let link of affectedLinks) {
+      let otherSource = await db.ssoDirectoryGroup.findFirst({
+        where: {
+          groupOid: group.oid,
+          directory: {
+            userProfiles: {
+              some: {
+                userProfileOid: link.userProfileOid,
+                deprovisionedAt: null
+              }
+            }
+          }
+        }
+      });
+      if (!otherSource) {
+        await db.ssoUserProfileGroup.delete({ where: { oid: link.oid } });
+      }
+    }
 
     let affectedProfiles = new Map(
       affectedLinks.map(link => [link.userProfile.oid, link.userProfile])

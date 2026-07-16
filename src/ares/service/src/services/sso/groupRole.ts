@@ -6,6 +6,7 @@ import type {
   SsoConnection,
   SsoConnectionGroup,
   SsoConnectionRole,
+  SsoDirectory,
   SsoGroup,
   SsoRole,
   SsoTenant,
@@ -34,6 +35,82 @@ let ssoConnectionRoleInclude = {
 } satisfies Prisma.SsoConnectionRoleInclude;
 
 class SsoGroupRoleServiceImpl {
+  async linkDirectoryGroup(d: { directory: SsoDirectory; group: SsoConnectionGroup }) {
+    if (d.group.connectionOid !== d.directory.connectionOid) {
+      throw new ServiceError(notFoundError('sso.group'));
+    }
+
+    return await db.ssoDirectoryGroup.upsert({
+      where: {
+        directoryOid_groupOid: {
+          directoryOid: d.directory.oid,
+          groupOid: d.group.oid
+        }
+      },
+      create: {
+        ...getId('ssoDirectoryGroup'),
+        directoryOid: d.directory.oid,
+        groupOid: d.group.oid
+      },
+      update: {}
+    });
+  }
+
+  async reconcileDirectoryRoles(d: { directory: SsoDirectory }) {
+    if (d.directory.status !== 'active') {
+      await db.ssoDirectoryRole.deleteMany({
+        where: { directoryOid: d.directory.oid }
+      });
+      return;
+    }
+
+    let roles = await db.ssoConnectionRole.findMany({
+      where: {
+        connectionOid: d.directory.connectionOid,
+        userProfiles: {
+          some: {
+            userProfile: {
+              directories: {
+                some: {
+                  directoryOid: d.directory.oid,
+                  deprovisionedAt: null
+                }
+              }
+            }
+          }
+        }
+      },
+      select: { oid: true }
+    });
+    let roleOids = roles.map(role => role.oid);
+
+    await withTransaction(async tdb => {
+      await tdb.ssoDirectoryRole.deleteMany({
+        where: {
+          directoryOid: d.directory.oid,
+          roleOid: roleOids.length ? { notIn: roleOids } : undefined
+        }
+      });
+
+      for (let role of roles) {
+        await tdb.ssoDirectoryRole.upsert({
+          where: {
+            directoryOid_roleOid: {
+              directoryOid: d.directory.oid,
+              roleOid: role.oid
+            }
+          },
+          create: {
+            ...getId('ssoDirectoryRole'),
+            directoryOid: d.directory.oid,
+            roleOid: role.oid
+          },
+          update: {}
+        });
+      }
+    });
+  }
+
   async syncConnectionGroupRoot(d: {
     group: SsoConnectionGroup;
     connection?: Pick<SsoConnection, 'tenantOid'>;
@@ -398,6 +475,7 @@ class SsoGroupRoleServiceImpl {
       userIds?: string[];
       userProfileIds?: string[];
       connectionIds?: string[];
+      directoryIds?: string[];
       groupIds?: string[];
     };
   }) {
@@ -408,6 +486,17 @@ class SsoGroupRoleServiceImpl {
         ? { some: { connection: { id: { in: d.filters.connectionIds } } } }
         : undefined,
       AND: [
+        d.filters?.directoryIds?.length
+          ? {
+              connectionGroups: {
+                some: {
+                  directories: {
+                    some: { directory: { id: { in: d.filters.directoryIds } } }
+                  }
+                }
+              }
+            }
+          : undefined,
         d.filters?.userIds?.length
           ? {
               OR: [
@@ -496,6 +585,7 @@ class SsoGroupRoleServiceImpl {
       userIds?: string[];
       userProfileIds?: string[];
       connectionIds?: string[];
+      directoryIds?: string[];
       roleIds?: string[];
     };
   }) {
@@ -506,6 +596,17 @@ class SsoGroupRoleServiceImpl {
         ? { some: { connection: { id: { in: d.filters.connectionIds } } } }
         : undefined,
       AND: [
+        d.filters?.directoryIds?.length
+          ? {
+              connectionRoles: {
+                some: {
+                  directories: {
+                    some: { directory: { id: { in: d.filters.directoryIds } } }
+                  }
+                }
+              }
+            }
+          : undefined,
         d.filters?.userIds?.length
           ? {
               OR: [

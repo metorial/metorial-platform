@@ -43,6 +43,8 @@ export let ID = createIdGenerator({
   ssoConnectionSetup: idType.sorted('scs_'),
   ssoConnectionSetup_clientSecret: idType.key('sso_setup_'),
   ssoDirectory: idType.sorted('sdr_'),
+  ssoDirectoryGroup: idType.sorted('sdg_'),
+  ssoDirectoryRole: idType.sorted('sdrt_'),
   ssoScimOperation: idType.sorted('sop_'),
   ssoGroup: idType.sorted('sgr_'),
   ssoRole: idType.sorted('sro_'),

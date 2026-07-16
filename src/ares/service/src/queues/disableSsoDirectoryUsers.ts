@@ -107,6 +107,7 @@ export let disableSingleSsoDirectoryUserQueueProcessor =
       userProfile: link.userProfile,
       roles: []
     });
+    await ssoGroupRoleService.reconcileDirectoryRoles({ directory: link.directory });
 
     if (!link.userProfile.ownedUser) return;
 

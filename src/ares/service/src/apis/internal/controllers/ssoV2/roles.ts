@@ -34,6 +34,7 @@ export let ssoRolesController = tenantApp.controller({
           userIds: v.optional(v.array(v.string())),
           userProfileIds: v.optional(v.array(v.string())),
           connectionIds: v.optional(v.array(v.string())),
+          directoryIds: v.optional(v.array(v.string())),
           roleIds: v.optional(v.array(v.string()))
         })
       )
