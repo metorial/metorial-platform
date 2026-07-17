@@ -4,7 +4,7 @@ import React, { useRef } from 'react';
 import { styled } from 'styled-components';
 import {
   DialogProvider,
-  preventDialogDismissWhenSelectOpen,
+  preventDialogDismissForSelectInteraction,
   useDialogZIndex
 } from './state';
 import { Close, Content, Overlay } from './styles';
@@ -47,9 +47,9 @@ export let LargePanelDialog = {
 
             <PanelContent
               ref={contentRef}
-              onPointerDownOutside={preventDialogDismissWhenSelectOpen}
-              onInteractOutside={preventDialogDismissWhenSelectOpen}
-              onFocusOutside={preventDialogDismissWhenSelectOpen}
+              onPointerDownOutside={preventDialogDismissForSelectInteraction}
+              onInteractOutside={preventDialogDismissForSelectInteraction}
+              onFocusOutside={preventDialogDismissForSelectInteraction}
               style={{
                 ...style,
                 zIndex: zIndex + 1

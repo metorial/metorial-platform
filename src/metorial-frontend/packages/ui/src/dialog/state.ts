@@ -46,6 +46,9 @@ type OutsideInteractionEvent = Event & {
   };
 };
 
+// Radix Select disables pointer events outside its portal. When it closes, the remainder of
+// that pointer gesture can be retargeted to a parent dialog overlay after the Select has
+// already unmounted. Keep the guard alive for that gesture, then clear it before the next one.
 let preventDialogDismissForPointerGesture = false;
 
 if (typeof document !== 'undefined') {
@@ -62,12 +65,13 @@ export let markSelectPointerDismiss = () => {
   preventDialogDismissForPointerGesture = true;
 };
 
-export let preventDialogDismissWhenSelectOpen = (event: OutsideInteractionEvent) => {
+export let preventDialogDismissForSelectInteraction = (event: OutsideInteractionEvent) => {
   if (preventDialogDismissForPointerGesture) {
     event.preventDefault();
     return;
   }
 
+  // Radix wraps outside events, so the actual interaction target is on the original event.
   let target = event.detail?.originalEvent?.target ?? event.target;
   let isSelectInteraction =
     target instanceof Element && target.closest('[data-metorial-select-content]') != null;
