@@ -1,0 +1,42 @@
+{
+  "name": "@metorial-cargo/module-doc",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/cron": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hono": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/redis": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@metorial-cargo/db": "^1.0.0",
+    "@metorial-cargo/list-utils": "^1.0.0",
+    "@metorial-cargo/module-file": "^1.0.0",
+    "@metorial-cargo/module-store": "^1.0.0",
+    "@metorial/docs-editor-schema": "^1.0.0",
+    "hono": "4.12.23",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.31"
+  },
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./live": "./src/live/index.ts"
+  }
+}
