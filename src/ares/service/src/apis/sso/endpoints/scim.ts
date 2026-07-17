@@ -44,6 +44,7 @@ export let scimApp = createHono()
     let startedAt = Date.now();
     let directoryId = c.req.param('directoryId');
     let resourceType = c.req.param('resourceType');
+    let normalizedResourceType = resourceType.toLowerCase();
     let resourceId = c.req.param('resourceId');
     let requestBody = await getBody(c);
     let query = getQuery(c);
@@ -63,7 +64,7 @@ export let scimApp = createHono()
         input: {
           internalDirectoryId: directoryId,
           method: c.req.method,
-          resourceType: resourceType.toLowerCase(),
+          resourceType: normalizedResourceType,
           resourceId,
           query,
           requestBody
@@ -77,7 +78,7 @@ export let scimApp = createHono()
           body: requestBody,
           directoryId,
           resourceId,
-          resourceType: resourceType.toLowerCase(),
+          resourceType: normalizedResourceType,
           apiSecret: getBearerToken(c.req.header('authorization')),
           query
         },
@@ -86,10 +87,32 @@ export let scimApp = createHono()
           await ssoDirectorySyncService.handleDirectorySyncEvent({
             directory: directory!,
             event,
-            scimOperationId
+            scimOperationId,
+            scimRequest: {
+              method: c.req.method,
+              resourceType: normalizedResourceType,
+              body: requestBody
+            }
           });
         }
       );
+
+      let responseGroupValue = res.data?.displayName;
+      if (
+        normalizedResourceType === 'groups' &&
+        responseGroupValue &&
+        c.req.method !== 'DELETE' &&
+        res.status >= 200 &&
+        res.status < 400
+      ) {
+        res.data = {
+          ...res.data,
+          members: await ssoDirectorySyncService.listDirectoryGroupMembers({
+            directory,
+            groupValue: responseGroupValue
+          })
+        };
+      }
 
       if (scimOperationId) {
         await ssoDirectorySyncService.completeScimOperation({
@@ -108,7 +131,7 @@ export let scimApp = createHono()
           input: {
             internalDirectoryId: directoryId,
             method: c.req.method,
-            resourceType: resourceType.toLowerCase(),
+            resourceType: normalizedResourceType,
             resourceId,
             query,
             requestBody,
@@ -147,7 +170,7 @@ export let scimApp = createHono()
           input: {
             internalDirectoryId: directoryId,
             method: c.req.method,
-            resourceType: resourceType.toLowerCase(),
+            resourceType: normalizedResourceType,
             resourceId,
             query,
             requestBody,

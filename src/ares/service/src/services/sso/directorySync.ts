@@ -1,8 +1,13 @@
 import type { DirectorySyncEvent, Group, User, UserWithGroup } from '@boxyhq/saml-jackson';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, SsoDirectory, SsoTenant } from '../../../prisma/generated/client';
+import type {
+  Prisma,
+  SsoConnectionGroup,
+  SsoDirectory,
+  SsoTenant
+} from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId } from '../../id';
 import { reconcileSingleSsoUserQueue } from '../../queues/reconcileSsoUsers';
@@ -20,6 +25,21 @@ let getPersistedUserProfileGroups = async (userProfileOid: bigint) => {
   });
 
   return uniqueValues(groupLinks.map(link => link.group.value));
+};
+
+type ScimGroupMember = {
+  value: string;
+  display?: string;
+};
+
+let getDirectoryGroupValue = (group: Group) => {
+  if (!group.name) {
+    throw new ServiceError(
+      badRequestError({ message: 'SCIM group display name is required' })
+    );
+  }
+
+  return group.name;
 };
 
 let upsertUserProfileFromDirectoryUser = async (d: {
@@ -272,10 +292,241 @@ class SsoDirectorySyncServiceImpl {
     );
   }
 
+  async listDirectoryGroupMembers(d: {
+    directory: SsoDirectory;
+    groupValue: string;
+  }): Promise<ScimGroupMember[]> {
+    let links = await db.ssoDirectoryUserProfile.findMany({
+      where: {
+        directoryOid: d.directory.oid,
+        externalId: { not: null },
+        deprovisionedAt: null,
+        userProfile: {
+          groupLinks: {
+            some: {
+              group: {
+                connectionOid: d.directory.connectionOid,
+                value: d.groupValue
+              }
+            }
+          }
+        }
+      },
+      select: {
+        externalId: true,
+        userProfile: { select: { email: true } }
+      },
+      orderBy: { oid: 'asc' }
+    });
+
+    return links.flatMap(link =>
+      link.externalId ? [{ value: link.externalId, display: link.userProfile.email }] : []
+    );
+  }
+
+  async replaceDirectoryGroupMembers(d: {
+    directory: SsoDirectory;
+    group: SsoConnectionGroup;
+    members: ScimGroupMember[];
+    scimOperationId?: string;
+  }) {
+    if (d.group.connectionOid !== d.directory.connectionOid) {
+      throw new ServiceError(notFoundError('sso.group'));
+    }
+
+    if (
+      !Array.isArray(d.members) ||
+      d.members.some(member => !member || typeof member.value !== 'string' || !member.value)
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'Every SCIM group member must have a value' })
+      );
+    }
+
+    let memberValues = uniqueValues(d.members.map(member => member.value));
+    let directoryLinks = memberValues.length
+      ? await db.ssoDirectoryUserProfile.findMany({
+          where: {
+            directoryOid: d.directory.oid,
+            externalId: { in: memberValues },
+            deprovisionedAt: null
+          },
+          include: { userProfile: { include: { user: true } } }
+        })
+      : [];
+    let directoryLinksByExternalId = new Map(
+      directoryLinks.flatMap(link =>
+        link.externalId ? [[link.externalId, link] as const] : []
+      )
+    );
+    let missingMemberValues = memberValues.filter(
+      memberValue => !directoryLinksByExternalId.has(memberValue)
+    );
+
+    if (missingMemberValues.length) {
+      throw new ServiceError(
+        badRequestError({
+          message: `SCIM group references unknown users: ${missingMemberValues.join(', ')}`
+        })
+      );
+    }
+
+    let existingMemberships = await db.ssoUserProfileGroup.findMany({
+      where: {
+        groupOid: d.group.oid,
+        userProfile: {
+          directories: {
+            some: {
+              directoryOid: d.directory.oid,
+              deprovisionedAt: null
+            }
+          }
+        }
+      },
+      include: { userProfile: { include: { user: true } } }
+    });
+    let desiredProfileOids = new Set(directoryLinks.map(link => link.userProfileOid));
+    let existingProfileOids = new Set(
+      existingMemberships.map(membership => membership.userProfileOid)
+    );
+    let affectedProfiles = new Map<
+      bigint,
+      (typeof existingMemberships)[number]['userProfile']
+    >();
+
+    for (let membership of existingMemberships) {
+      if (desiredProfileOids.has(membership.userProfileOid)) continue;
+
+      await db.ssoUserProfileGroup.delete({ where: { oid: membership.oid } });
+      affectedProfiles.set(membership.userProfileOid, membership.userProfile);
+    }
+
+    for (let link of directoryLinks) {
+      if (existingProfileOids.has(link.userProfileOid)) continue;
+
+      await db.ssoUserProfileGroup.upsert({
+        where: {
+          userProfileOid_groupOid: {
+            userProfileOid: link.userProfileOid,
+            groupOid: d.group.oid
+          }
+        },
+        create: {
+          ...getId('ssoUserProfileGroup'),
+          userProfileOid: link.userProfileOid,
+          groupOid: d.group.oid
+        },
+        update: {}
+      });
+      affectedProfiles.set(link.userProfileOid, link.userProfile);
+    }
+
+    for (let profile of affectedProfiles.values()) {
+      let groups = await getPersistedUserProfileGroups(profile.oid);
+
+      await db.ssoUserProfile.update({
+        where: { oid: profile.oid },
+        data: {
+          groups,
+          isGroupRoleMemberReconciled: true
+        }
+      });
+
+      await reconcileSingleSsoUserQueue.add({
+        ssoUserId: profile.user.id,
+        source: 'directory_group_membership_changed',
+        scimOperationId: d.scimOperationId
+      });
+    }
+
+    return await this.listDirectoryGroupMembers({
+      directory: d.directory,
+      groupValue: d.group.value
+    });
+  }
+
+  async normalizeLegacyDirectoryGroup(d: {
+    directory: SsoDirectory;
+    group: SsoConnectionGroup;
+    legacyGroupValue: string;
+    scimOperationId?: string;
+  }) {
+    if (d.legacyGroupValue === d.group.value) return;
+
+    let legacyGroup = await db.ssoConnectionGroup.findFirst({
+      where: {
+        connectionOid: d.directory.connectionOid,
+        value: d.legacyGroupValue,
+        directories: {
+          some: { directoryOid: d.directory.oid },
+          every: { directoryOid: d.directory.oid }
+        }
+      },
+      include: {
+        userProfiles: { include: { userProfile: { include: { user: true } } } }
+      }
+    });
+    if (!legacyGroup || legacyGroup.oid === d.group.oid) return;
+
+    let affectedProfiles = new Map(
+      legacyGroup.userProfiles.map(link => [link.userProfileOid, link.userProfile])
+    );
+
+    for (let link of legacyGroup.userProfiles) {
+      await db.ssoUserProfileGroup.upsert({
+        where: {
+          userProfileOid_groupOid: {
+            userProfileOid: link.userProfileOid,
+            groupOid: d.group.oid
+          }
+        },
+        create: {
+          ...getId('ssoUserProfileGroup'),
+          userProfileOid: link.userProfileOid,
+          groupOid: d.group.oid
+        },
+        update: {}
+      });
+    }
+
+    await db.ssoConnectionGroup.delete({ where: { oid: legacyGroup.oid } });
+
+    for (let profile of affectedProfiles.values()) {
+      let groups = await getPersistedUserProfileGroups(profile.oid);
+
+      await db.ssoUserProfile.update({
+        where: { oid: profile.oid },
+        data: {
+          groups,
+          isGroupRoleMemberReconciled: true
+        }
+      });
+
+      await reconcileSingleSsoUserQueue.add({
+        ssoUserId: profile.user.id,
+        source: 'directory_group_membership_changed',
+        scimOperationId: d.scimOperationId
+      });
+    }
+
+    await db.ssoGroup.deleteMany({
+      where: {
+        oid: legacyGroup.rootGroupOid ?? undefined,
+        connectionGroups: { none: {} },
+        users: { none: {} }
+      }
+    });
+  }
+
   async handleDirectorySyncEvent(d: {
     directory: SsoDirectory;
     event: DirectorySyncEvent;
     scimOperationId?: string;
+    scimRequest?: {
+      method: string;
+      resourceType: string;
+      body?: any;
+    };
   }) {
     let eventName = d.event.event;
 
@@ -321,6 +572,12 @@ class SsoDirectorySyncServiceImpl {
   async syncGroupFromDirectoryEvent(d: {
     directory: SsoDirectory;
     event: DirectorySyncEvent;
+    scimOperationId?: string;
+    scimRequest?: {
+      method: string;
+      resourceType: string;
+      body?: any;
+    };
   }) {
     let directory = await db.ssoDirectory.findUnique({
       where: { oid: d.directory.oid },
@@ -329,16 +586,39 @@ class SsoDirectorySyncServiceImpl {
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
 
     let groupPayload = d.event.data as Group;
+    let groupValue = getDirectoryGroupValue(groupPayload);
 
     let group = await ssoGroupRoleService.upsertGroup({
       connection: directory.connection,
-      value: groupPayload.id,
+      value: groupValue,
       displayName: groupPayload.name,
       metadata: {
         raw: groupPayload.raw ?? groupPayload
       }
     });
     await ssoGroupRoleService.linkDirectoryGroup({ directory, group });
+    await this.normalizeLegacyDirectoryGroup({
+      directory,
+      group,
+      legacyGroupValue: groupPayload.id,
+      scimOperationId: d.scimOperationId
+    });
+
+    let scimMethod = d.scimRequest?.method.toUpperCase();
+    let members = d.scimRequest?.body?.members;
+    if (
+      d.scimRequest?.resourceType.toLowerCase() === 'groups' &&
+      (scimMethod === 'POST' || scimMethod === 'PUT') &&
+      Array.isArray(members)
+    ) {
+      await this.replaceDirectoryGroupMembers({
+        directory,
+        group,
+        members,
+        scimOperationId: d.scimOperationId
+      });
+    }
+
     return group;
   }
 
@@ -355,6 +635,7 @@ class SsoDirectorySyncServiceImpl {
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
 
     let userPayload = d.event.data as UserWithGroup;
+    let groupValue = getDirectoryGroupValue(userPayload.group);
     let { user, profile } = await upsertUserProfileFromDirectoryUser({
       directory,
       userPayload,
@@ -365,18 +646,24 @@ class SsoDirectorySyncServiceImpl {
 
     let group = await ssoGroupRoleService.upsertGroup({
       connection: directory.connection,
-      value: userPayload.group.id,
+      value: groupValue,
       displayName: userPayload.group.name,
       metadata: {
         raw: userPayload.group.raw ?? userPayload.group
       }
     });
     await ssoGroupRoleService.linkDirectoryGroup({ directory, group });
+    await this.normalizeLegacyDirectoryGroup({
+      directory,
+      group,
+      legacyGroupValue: userPayload.group.id,
+      scimOperationId: d.scimOperationId
+    });
 
     await ssoGroupRoleService.setUserProfileGroupMembership({
       connection: directory.connection,
       userProfile: profile,
-      groupValue: userPayload.group.id,
+      groupValue,
       member: d.member
     });
 
@@ -470,11 +757,12 @@ class SsoDirectorySyncServiceImpl {
     if (!directory) throw new ServiceError(notFoundError('sso.directory'));
 
     let groupPayload = d.event.data as Group;
+    let groupValue = getDirectoryGroupValue(groupPayload);
 
     let group = await db.ssoConnectionGroup.findFirst({
       where: {
         connectionOid: directory.connectionOid,
-        value: groupPayload.id
+        value: groupValue
       }
     });
     if (!group) return;
