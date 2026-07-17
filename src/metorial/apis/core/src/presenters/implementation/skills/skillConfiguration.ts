@@ -6,7 +6,7 @@ export let v1SkillConfigurationPresenter = Presenter.create(skillConfigurationTy
   .presenter(async ({ skillConfiguration }) => ({
     object: 'skill.configuration' as const,
     id: skillConfiguration.id,
-    is_default: skillConfiguration.isDefault,
+    is_default: skillConfiguration.isDefault ?? false,
     allow_scripts: skillConfiguration.allowScripts,
     allowed_file_extensions: skillConfiguration.allowedFileExtensions,
     allow_non_standard_directories: skillConfiguration.allowNonStandardDirectories,

@@ -10,7 +10,7 @@ import {
   resolveSkillMarketplacePlugins,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillMarketplacePluginStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
@@ -60,7 +60,7 @@ let getMarketplacePluginSlug = createSlugGenerator(
 
 class SkillMarketplacePluginServiceImpl {
   private async getSkillConfigurationOid(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string | null | undefined;
     }
   ) {
@@ -85,7 +85,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   private async getSkillPlugin(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginId: string;
     }
   ) {
@@ -103,7 +103,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   private async getSkillMarketplacePluginRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplacePluginId: string;
       skillMarketplace?: SkillMarketplaceRecord;
     }
@@ -139,7 +139,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async listSkillMarketplacePlugins(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplace: SkillMarketplaceRecord;
       ids?: string[];
       skillPluginIds?: string[];
@@ -188,7 +188,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async getSkillMarketplacePluginById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplacePluginId: string;
       skillMarketplace?: SkillMarketplaceRecord;
     }
@@ -197,7 +197,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async addSkillMarketplacePlugin(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplace: SkillMarketplaceRecord;
       input: {
         skillPluginId: string;
@@ -323,7 +323,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async removeSkillMarketplacePlugin(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplacePlugin: SkillMarketplacePluginRecord;
     }
   ) {

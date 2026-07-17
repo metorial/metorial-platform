@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
-import type { EnrichedCargoDocumentActor } from '@metorial/module-file';
+import { db, type ResourceActor } from '@metorial/db';
+import type { AssistantConversationWithAssistant } from '@metorial/module-assistant';
 import type { PresenterContext } from '@metorial/presenter';
 import { Presenter } from '@metorial/presenter';
 import { documentParticipantType } from '../../types';
@@ -16,26 +17,73 @@ export let documentParticipantActorSchema = v.object({
 });
 
 export let presentDocumentParticipantActor = async (
-  actor: EnrichedCargoDocumentActor,
+  actor:
+    | ResourceActor
+    | AssistantConversationWithAssistant['createdByActor'],
   opts: PresenterContext
 ) => {
-  let orgActor = actor.organizationActor
+  let enrichedActor = 'organizationActor' in actor ? actor : null;
+  let resourceActor = enrichedActor ? null : (actor as ResourceActor);
+  let organizationActor = enrichedActor
+    ? enrichedActor.organizationActor
+    : resourceActor?.organizationActorOid
+    ? await db.organizationActor.findUnique({
+        where: {
+            oid: resourceActor.organizationActorOid
+        },
+        include: {
+          organization: true,
+          teams: {
+            include: {
+              team: true
+            }
+          }
+        }
+      })
+    : null;
+  let instanceConsumer =
+    enrichedActor
+      ? enrichedActor.consumer
+      : !organizationActor && resourceActor?.consumerOid
+      ? await db.instanceConsumer.findFirst({
+          where: {
+              consumerOid: resourceActor.consumerOid
+          },
+          include: {
+            consumer: {
+              include: {
+                organizationMember: true,
+                profiles: {
+                  include: {
+                    surface: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'asc'
+          }
+        })
+        : null;
+
+  let orgActor = organizationActor
     ? await v1OrganizationActorPresenter
-        .present({ organizationActor: actor.organizationActor }, opts)
+        .present({ organizationActor }, opts)
         .run()
     : null;
-  let consumer = actor.consumer
-    ? await v1ConsumerPresenter.present({ consumer: actor.consumer }, opts).run()
+  let consumer = instanceConsumer
+    ? await v1ConsumerPresenter.present({ consumer: instanceConsumer }, opts).run()
     : null;
 
   return {
-    type: actor.organizationActor
+    type: organizationActor
       ? ('organization_actor' as const)
-      : actor.consumer
+      : instanceConsumer
         ? ('consumer' as const)
         : ('unknown' as const),
 
-    name: actor.name,
+    name: organizationActor?.name ?? instanceConsumer?.name ?? actor.name,
     image_url: orgActor?.image_url ?? consumer?.image_url ?? null,
     email: orgActor?.email ?? consumer?.email ?? null,
     organization_actor: orgActor,
@@ -51,7 +99,7 @@ export let v1DocumentParticipantPresenter = Presenter.create(documentParticipant
     edit_count: documentParticipant.editCount,
     last_edited_at: documentParticipant.lastEditedAt,
     last_viewed_at: documentParticipant.lastViewedAt,
-    actor: await presentDocumentParticipantActor(documentParticipant.actor, opts),
+    actor: await presentDocumentParticipantActor(documentParticipant.resourceActor, opts),
     created_at: documentParticipant.createdAt
   }))
   .schema(

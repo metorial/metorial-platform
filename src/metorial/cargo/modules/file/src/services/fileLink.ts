@@ -18,8 +18,8 @@ import {
 } from '@metorial/cargo-list-utils';
 import type { FileLink, Prisma } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
-import { actorService } from './actor';
-import type { CargoResourceScope } from './filePurpose';
+import { resourceActorService } from '@metorial/module-resource-tenant';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { fileReferenceService } from './fileReference';
 
 let include = {
@@ -43,7 +43,7 @@ class FileLinkServiceImpl {
   }
 
   async createFileLink(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       file: {
         oid: bigint;
         id: string;
@@ -69,7 +69,7 @@ class FileLinkServiceImpl {
 
     return await withTransaction(async db => {
       let actor = d.input.actorId
-        ? await actorService.getActorById({
+        ? await resourceActorService.getActorById({
             resourceTenant: d.resourceTenant,
             actorId: d.input.actorId
           })
@@ -148,7 +148,7 @@ class FileLinkServiceImpl {
   }
 
   async listFileLinks(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       fileId?: string[];
       fileIds?: string[];
@@ -159,7 +159,7 @@ class FileLinkServiceImpl {
     }
   ) {
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant,
           actorId: d.actorId
         })
@@ -194,13 +194,13 @@ class FileLinkServiceImpl {
   }
 
   async getFileLinkById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       fileLinkId: string;
       actorId?: string;
     }
   ) {
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant,
           actorId: d.actorId
         })

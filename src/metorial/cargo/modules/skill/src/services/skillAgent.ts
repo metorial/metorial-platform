@@ -10,9 +10,10 @@ import {
   resolveStoreItems
 } from '@metorial/cargo-list-utils';
 import { documentService } from '@metorial/cargo-module-doc';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { actorService } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import {
+  type StoreAccessInput,
   storeAccessService,
   storeService,
   storeWritePermission
@@ -75,7 +76,7 @@ class SkillAgentServiceImpl {
   }
 
   private async getSkillAgentRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillAgentId: string;
       includeArchived?: boolean;
     }
@@ -103,13 +104,14 @@ class SkillAgentServiceImpl {
   }
 
   async createSkillAgent(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skill: SkillRecord;
       input: {
         name: string;
         description?: string | null;
         content?: string;
         actorId?: string;
+        accessTags?: StoreAccessInput['accessTags'];
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
       };
@@ -133,6 +135,7 @@ class SkillAgentServiceImpl {
         title: input.name,
         content: d.input.content ?? '',
         actorId: d.input.actorId,
+        accessTags: d.input.accessTags,
         store: {
           id: d.skill.store!.id,
           path: input.path
@@ -174,7 +177,7 @@ class SkillAgentServiceImpl {
   }
 
   async listSkillAgents(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       skillId: string;
       documentIds?: string[];
@@ -217,7 +220,7 @@ class SkillAgentServiceImpl {
   }
 
   async getSkillAgentById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillAgentId: string;
       includeArchived?: boolean;
     }
@@ -226,9 +229,10 @@ class SkillAgentServiceImpl {
   }
 
   async updateSkillAgent(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillAgent: SkillAgentRecord;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
       input: {
@@ -259,6 +263,7 @@ class SkillAgentServiceImpl {
       resourceGroup: d.resourceGroup,
       store: d.skillAgent.skill.store!,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -300,15 +305,16 @@ class SkillAgentServiceImpl {
   }
 
   async deleteSkillAgent(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillAgent: SkillAgentRecord;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
   ) {
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -326,6 +332,7 @@ class SkillAgentServiceImpl {
           }
         ],
         actor,
+        accessTags: d.accessTags,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions
       });

@@ -1,10 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  documentAuthoritativeWriteService,
-  documentService
+  documentAuthoritativeWriteService, documentService
 } from '@metorial/cargo-module-doc';
-import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { resourceActorService } from '@metorial/module-resource-tenant';
+import { type ResourceScope } from '@metorial/module-resource-tenant';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
 import type { Store } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
@@ -71,7 +71,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   private async applyDocumentResolution(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
       actorId?: string;
@@ -137,7 +137,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       resourceGroup: d.resourceGroup,
       store: d.mergeRequest.targetSkill.store!,
       actor: d.actorId
-        ? await actorService.getActorById({
+        ? await resourceActorService.getActorById({
             resourceTenant: d.resourceTenant!,
             actorId: d.actorId
           })
@@ -153,14 +153,14 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   async applyItemResolution(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
       actorId?: string;
     }
   ) {
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -269,7 +269,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   async applyResolvedItems(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       items: SkillMergeRequestItemRecord[];
       actorId?: string;
@@ -374,7 +374,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   private async restoreSnapshotItem(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SnapshotItem;
       actorId?: string;
@@ -421,7 +421,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   private async rollbackSkillMergeRequestUnlocked(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
@@ -454,7 +454,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       currentVersion.oid
     );
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -524,7 +524,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   async rollbackSkillMergeRequest(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }

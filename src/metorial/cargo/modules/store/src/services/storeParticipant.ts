@@ -8,7 +8,7 @@ import {
   resolveStoreParticipants,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 
@@ -19,7 +19,7 @@ export let storeParticipantInclude = {
 
 class StoreParticipantServiceImpl {
   async getStoreParticipantById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       storeParticipantId: string;
     }
   ) {
@@ -42,7 +42,7 @@ class StoreParticipantServiceImpl {
   }
 
   async listStoreParticipants(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       storeIds?: string[];
       actorIds?: string[];

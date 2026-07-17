@@ -1,8 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { DateFilter } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { actorService } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import type { SkillMergeRequestResolutionType, SkillMergeRequestStatus } from '@metorial/db';
 import { db, Prisma, withTransaction } from '@metorial/db';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
@@ -28,7 +28,7 @@ export type {
 
 class SkillMergeRequestServiceImpl {
   async createSkillMergeRequest(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       actorId?: string;
@@ -40,7 +40,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async listSkillMergeRequests(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       sourceSkillIds?: string[];
       targetSkillIds?: string[];
@@ -54,7 +54,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async getSkillMergeRequestById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMergeRequestId: string;
       actorId?: string;
     }
@@ -69,7 +69,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async saveSkillMergeRequestItemResolution(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId: string;
       actorId?: string;
@@ -152,7 +152,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async bulkSaveSkillMergeRequestItemResolutions(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       items: {
@@ -258,7 +258,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async performSkillMergeRequest(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
@@ -375,13 +375,13 @@ class SkillMergeRequestServiceImpl {
   }
 
   async closeSkillMergeRequest(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
   ) {
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -454,7 +454,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async rollbackSkillMergeRequest(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }

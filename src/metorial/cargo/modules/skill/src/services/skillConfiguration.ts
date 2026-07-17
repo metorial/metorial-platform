@@ -12,7 +12,7 @@ import {
   normalizeDateFilter,
   resolveSkillConfigurations
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { enqueueSkillConfigurationLifecycle } from '../queues/lifecycle';
@@ -77,7 +77,7 @@ class SkillConfigurationServiceImpl {
   }
 
   private async getSkillConfigurationRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string;
     }
   ) {
@@ -104,7 +104,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async createSkillConfiguration(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       input: SkillConfigurationInput & {
         isInternal?: boolean;
       };
@@ -127,7 +127,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async listSkillConfigurations(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
@@ -156,7 +156,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async getSkillConfigurationById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string;
     }
   ) {
@@ -168,7 +168,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async getManySkillConfigurations(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationIds: string[];
     }
   ) {
@@ -189,7 +189,7 @@ class SkillConfigurationServiceImpl {
     });
   }
 
-  async upsertDefaultSkillConfiguration(d: CargoResourceScope) {
+  async upsertDefaultSkillConfiguration(d: ResourceScope) {
     return await withTransaction(async db => {
       let existing = await db.skillConfiguration.findFirst({
         where: {
@@ -218,7 +218,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async updateSkillConfiguration(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string;
       input: SkillConfigurationInput;
     }
@@ -253,7 +253,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async deleteSkillConfiguration(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string;
     }
   ) {

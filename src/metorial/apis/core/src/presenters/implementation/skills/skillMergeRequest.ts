@@ -92,19 +92,19 @@ export let v1SkillMergeRequestPresenter = Presenter.create(skillMergeRequestType
     description: skillMergeRequest.description,
     merge_error: skillMergeRequest.mergeError,
     merge_error_code: skillMergeRequest.mergeErrorCode,
-    source_skill_id: skillMergeRequest.sourceSkillId,
-    target_skill_id: skillMergeRequest.targetSkillId,
-    base_target_skill_version_id: skillMergeRequest.baseTargetSkillVersionId,
-    requested_source_skill_version_id: skillMergeRequest.requestedSourceSkillVersionId,
-    requested_target_skill_version_id: skillMergeRequest.requestedTargetSkillVersionId,
-    pre_merge_target_skill_version_id: skillMergeRequest.preMergeTargetSkillVersionId ?? null,
-    merged_target_skill_version_id: skillMergeRequest.mergedTargetSkillVersionId ?? null,
-    rollback_target_skill_version_id: skillMergeRequest.rollbackTargetSkillVersionId ?? null,
-    created_by: skillMergeRequest.createdByActor
-      ? await presentDocumentParticipantActor(skillMergeRequest.createdByActor, opts)
+    source_skill_id: skillMergeRequest.sourceSkill.id,
+    target_skill_id: skillMergeRequest.targetSkill.id,
+    base_target_skill_version_id: skillMergeRequest.baseTargetSkillVersion.id,
+    requested_source_skill_version_id: skillMergeRequest.requestedSourceSkillVersion.id,
+    requested_target_skill_version_id: skillMergeRequest.requestedTargetSkillVersion.id,
+    pre_merge_target_skill_version_id: skillMergeRequest.preMergeTargetSkillVersion?.id ?? null,
+    merged_target_skill_version_id: skillMergeRequest.mergedTargetSkillVersion?.id ?? null,
+    rollback_target_skill_version_id: skillMergeRequest.rollbackTargetSkillVersion?.id ?? null,
+    created_by: skillMergeRequest.createdByResourceActor
+      ? await presentDocumentParticipantActor(skillMergeRequest.createdByResourceActor, opts)
       : null,
-    item_count: skillMergeRequest.itemCount,
-    comment_count: skillMergeRequest.commentCount,
+    item_count: skillMergeRequest._count.items,
+    comment_count: skillMergeRequest._count.comments,
     merge_started_at: skillMergeRequest.mergeStartedAt ?? null,
     merged_at: skillMergeRequest.mergedAt ?? null,
     closed_at: skillMergeRequest.closedAt ?? null,
@@ -148,7 +148,7 @@ export let v1SkillMergeRequestItemPresenter = Presenter.create(skillMergeRequest
   .presenter(async ({ skillMergeRequestItem }, opts) => ({
     object: 'skill.merge_request.item' as const,
     id: skillMergeRequestItem.id,
-    skill_merge_request_id: skillMergeRequestItem.skillMergeRequestId,
+    skill_merge_request_id: skillMergeRequestItem.skillMergeRequest.id,
     path: skillMergeRequestItem.path,
     kind: skillMergeRequestItem.kind,
     change_type: skillMergeRequestItem.changeType,
@@ -156,8 +156,8 @@ export let v1SkillMergeRequestItemPresenter = Presenter.create(skillMergeRequest
     resolution_type: skillMergeRequestItem.resolutionType ?? null,
     conflict_reason: skillMergeRequestItem.conflictReason ?? null,
     resolution: skillMergeRequestItem.resolution ?? null,
-    resolved_by: skillMergeRequestItem.resolvedByActor
-      ? await presentDocumentParticipantActor(skillMergeRequestItem.resolvedByActor, opts)
+    resolved_by: skillMergeRequestItem.resolvedByResourceActor
+      ? await presentDocumentParticipantActor(skillMergeRequestItem.resolvedByResourceActor, opts)
       : null,
     resolved_at: skillMergeRequestItem.resolvedAt ?? null,
     applied_at: skillMergeRequestItem.appliedAt ?? null,
@@ -189,11 +189,11 @@ export let v1SkillMergeRequestCommentPresenter = Presenter.create(skillMergeRequ
   .presenter(async ({ skillMergeRequestComment }, opts) => ({
     object: 'skill.merge_request.comment' as const,
     id: skillMergeRequestComment.id,
-    skill_merge_request_item_id: skillMergeRequestComment.skillMergeRequestItemId ?? null,
-    actor: await presentDocumentParticipantActor(skillMergeRequestComment.actor, opts),
+    skill_merge_request_item_id: skillMergeRequestComment.skillMergeRequestItem?.id ?? null,
+    actor: await presentDocumentParticipantActor(skillMergeRequestComment.resourceActor, opts),
     body: skillMergeRequestComment.body,
     path: skillMergeRequestComment.path ?? null,
-    in_reply_to_comment_id: skillMergeRequestComment.inReplyToCommentId ?? null,
+    in_reply_to_comment_id: skillMergeRequestComment.inReplyToComment?.id ?? null,
     deleted_at: skillMergeRequestComment.deletedAt ?? null,
     created_at: skillMergeRequestComment.createdAt,
     updated_at: skillMergeRequestComment.updatedAt
@@ -219,8 +219,8 @@ export let v1SkillMergeRequestEventPresenter = Presenter.create(skillMergeReques
     object: 'skill.merge_request.event' as const,
     id: skillMergeRequestEvent.id,
     type: skillMergeRequestEvent.type,
-    actor: skillMergeRequestEvent.actor
-      ? await presentDocumentParticipantActor(skillMergeRequestEvent.actor, opts)
+    actor: skillMergeRequestEvent.resourceActor
+      ? await presentDocumentParticipantActor(skillMergeRequestEvent.resourceActor, opts)
       : null,
     comment: skillMergeRequestEvent.comment
       ? await v1SkillMergeRequestCommentPresenter
@@ -252,19 +252,19 @@ export let v1SkillMergePlanPresenter = Presenter.create(skillMergePlanType)
       .present({ skillMergeRequest: skillMergePlan.mergeRequest }, opts)
       .run(),
     items: await Promise.all(
-      skillMergePlan.items.map(async item => ({
+      skillMergePlan.items.map(async planItem => ({
         item: await v1SkillMergeRequestItemPresenter
-          .present({ skillMergeRequestItem: item }, opts)
+          .present({ skillMergeRequestItem: planItem.item }, opts)
           .run(),
-        base: item.base ? presentSnapshotItem(item.base) : null,
-        source: item.source ? presentSnapshotItem(item.source) : null,
-        target: item.target ? presentSnapshotItem(item.target) : null,
-        document_merge: item.documentMerge
+        base: planItem.base ? presentSnapshotItem(planItem.base) : null,
+        source: planItem.source ? presentSnapshotItem(planItem.source) : null,
+        target: planItem.target ? presentSnapshotItem(planItem.target) : null,
+        document_merge: planItem.documentMerge
           ? {
-              base_content: item.documentMerge.baseContent ?? null,
-              source_content: item.documentMerge.sourceContent ?? null,
-              target_content: item.documentMerge.targetContent ?? null,
-              has_conflict: item.documentMerge.hasConflict
+              base_content: planItem.documentMerge.baseContent ?? null,
+              source_content: planItem.documentMerge.sourceContent ?? null,
+              target_content: planItem.documentMerge.targetContent ?? null,
+              has_conflict: planItem.documentMerge.hasConflict
             }
           : null
       }))

@@ -243,11 +243,13 @@ let TreeSpinnerWrap = styled.div`
   flex: 0 0 auto;
 `;
 
-let TreeNameWrap = styled.div`
+let TreeName = styled.div`
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   color: inherit;
   font-size: 13px;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -733,11 +735,7 @@ let SkillFileTreeRow = (p: {
             <TreeIconWrap $kind={p.node.kind}>
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
-            <TreeNameWrap>
-              <Text size="2" style={{ fontSize: 13 }}>
-                {getDisplayName(p.node)}
-              </Text>
-            </TreeNameWrap>
+            <TreeName>{getDisplayName(p.node)}</TreeName>
           </TreeRowLink>
         ) : p.node.kind == 'file' && p.node.fileId ? (
           <SkillFilePreviewLightbox
@@ -751,11 +749,7 @@ let SkillFileTreeRow = (p: {
             <TreeIconWrap $kind={p.node.kind}>
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
-            <TreeNameWrap>
-              <Text size="2" style={{ fontSize: 13 }}>
-                {getDisplayName(p.node)}
-              </Text>
-            </TreeNameWrap>
+            <TreeName>{getDisplayName(p.node)}</TreeName>
           </SkillFilePreviewLightbox>
         ) : (
           <TreeLabel>
@@ -764,11 +758,7 @@ let SkillFileTreeRow = (p: {
             <TreeIconWrap $kind={p.node.kind}>
               <TreeIcon kind={p.node.kind} />
             </TreeIconWrap>
-            <TreeNameWrap>
-              <Text size="2" style={{ fontSize: 13 }}>
-                {getDisplayName(p.node)}
-              </Text>
-            </TreeNameWrap>
+            <TreeName>{getDisplayName(p.node)}</TreeName>
           </TreeLabel>
         )}
         {p.node.isPending ? (
@@ -955,11 +945,7 @@ let SkillFileTreeRow = (p: {
           <TreeIconWrap $kind={p.node.kind}>
             <TreeIcon kind={p.node.kind} open={isOpen} />
           </TreeIconWrap>
-          <TreeNameWrap>
-            <Text size="2" style={{ fontSize: 13 }}>
-              {getDisplayName(p.node)}
-            </Text>
-          </TreeNameWrap>
+          <TreeName>{getDisplayName(p.node)}</TreeName>
         </TreeLabel>
       </TreeRowButton>
 

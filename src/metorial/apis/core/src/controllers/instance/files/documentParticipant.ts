@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { documentParticipantService } from '@metorial/module-file';
+import { documentParticipantService } from '@metorial/cargo-module-doc';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -19,15 +19,10 @@ export let documentParticipantGroup = documentGroup.use(async ctx => {
 
   let documentParticipant = await documentParticipantService.getDocumentParticipantById({
     documentParticipantId: ctx.params.documentParticipantId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
-  if (documentParticipant.documentId !== ctx.document.id) {
+  if (documentParticipant.document.id !== ctx.document.id) {
     throw new ServiceError(
       notFoundError('document.participant', ctx.params.documentParticipantId)
     );
@@ -66,15 +61,10 @@ export let documentParticipantController = Controller.create(
       .do(async ctx => {
         let paginator = await documentParticipantService.listDocumentParticipants({
           documentId: ctx.document.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          lastEditedAt: ctx.query.updated_at
         });
         let list = await paginator.run(ctx.query);
 

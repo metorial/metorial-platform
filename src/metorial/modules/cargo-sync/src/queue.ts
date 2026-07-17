@@ -18,7 +18,7 @@ export let cargoSyncQueueProcessor = cargoSyncQueue.process(async data => {
 export let cargoSyncCron = createCron(
   {
     name: 'cargo/sync/cron',
-    cron: '0 0 * * *'
+    cron: '0 * * * *'
   },
   async () => {
     let runId = cargoSyncRunId();

@@ -15,9 +15,11 @@ import {
   resolveResourceActors,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { actorService, filePurposeService, fileService } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { filePurposeService, fileService } from '@metorial/cargo-module-file';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import {
+  type StoreAccessInput,
   storeAccessService,
   storeItemMutationService,
   storeReadPermission,
@@ -86,6 +88,7 @@ type DocumentWithEffectiveStoreId<T extends { file: { storeId: string } }> = T &
 };
 type DocumentAccessInput = {
   actorId?: string;
+  accessTags?: StoreAccessInput['accessTags'];
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
@@ -106,7 +109,7 @@ class DocumentServiceImpl {
   }
 
   private async getDocumentRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       documentId: string;
       includeDeleted?: boolean;
     }
@@ -184,7 +187,7 @@ class DocumentServiceImpl {
   }
 
   async createDocument(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       internal?: {
         isReadOnly?: boolean;
         isTemplateBacking?: boolean;
@@ -196,6 +199,7 @@ class DocumentServiceImpl {
         content: string;
         fileStoreId?: string | null;
         actorId?: string;
+        accessTags?: StoreAccessInput['accessTags'];
         store?: {
           id: string;
           path: string;
@@ -208,7 +212,7 @@ class DocumentServiceImpl {
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
 
     let actor = d.input.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant,
           actorId: d.input.actorId
         })
@@ -306,6 +310,7 @@ class DocumentServiceImpl {
           resourceGroup: d.resourceGroup,
           store,
           actorId: d.input.actorId,
+          accessTags: d.input.accessTags,
           defaultPermissions: d.input.defaultPermissions,
           overridePermissions: d.input.overridePermissions,
           requiredPermission: storeWritePermission
@@ -333,10 +338,11 @@ class DocumentServiceImpl {
   }
 
   async getDocumentById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       documentId: string;
       includeDeleted?: boolean;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -347,6 +353,7 @@ class DocumentServiceImpl {
       resourceGroup: d.resourceGroup,
       document,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -366,7 +373,7 @@ class DocumentServiceImpl {
   }
 
   async getDocumentPermissions(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       document: {
         id: string;
         oid: bigint;
@@ -375,6 +382,7 @@ class DocumentServiceImpl {
         createdByResourceActorOid?: bigint | null;
       };
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -384,6 +392,7 @@ class DocumentServiceImpl {
       resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions
     });
@@ -440,7 +449,7 @@ class DocumentServiceImpl {
   }
 
   async listDocuments(
-    d: CargoResourceScope &
+    d: ResourceScope &
       DocumentAccessInput & {
         ids?: string[];
         fileIds?: string[];
@@ -500,6 +509,7 @@ class DocumentServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -534,12 +544,13 @@ class DocumentServiceImpl {
   }
 
   async updateDocument(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       document: ResolvedDocumentRecord;
       input: {
         title?: string;
         content?: string;
         actorId?: string;
+        accessTags?: StoreAccessInput['accessTags'];
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
       };
@@ -558,6 +569,7 @@ class DocumentServiceImpl {
       resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.input.actorId,
+      accessTags: d.input.accessTags,
       defaultPermissions: d.input.defaultPermissions,
       overridePermissions: d.input.overridePermissions,
       requiredPermission: storeWritePermission
@@ -659,7 +671,7 @@ class DocumentServiceImpl {
   }
 
   async cloneDocument(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       document: ResolvedDocumentRecord;
       input: {
         id?: string;
@@ -667,6 +679,7 @@ class DocumentServiceImpl {
         cloneType?: StoreCloneType;
         rewriteContentTitle?: boolean;
         actorId?: string;
+        accessTags?: StoreAccessInput['accessTags'];
         creatorActorId?: string;
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
@@ -678,12 +691,13 @@ class DocumentServiceImpl {
       resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.input.actorId,
+      accessTags: d.input.accessTags,
       defaultPermissions: d.input.defaultPermissions,
       overridePermissions: d.input.overridePermissions,
       requiredPermission: storeReadPermission
     });
     let creatorActor = d.input.creatorActorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant,
           actorId: d.input.creatorActorId
         })
@@ -794,9 +808,10 @@ class DocumentServiceImpl {
   }
 
   async deleteDocument(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       document: ResolvedDocumentRecord;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -806,6 +821,7 @@ class DocumentServiceImpl {
       resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission

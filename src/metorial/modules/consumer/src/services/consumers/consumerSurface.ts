@@ -9,16 +9,15 @@ import {
   Instance,
   Organization,
   Prisma,
+  SkillConfiguration,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
-import {
-  skillConfigurationService,
-  type CargoSkillConfiguration
-} from '@metorial/module-file';
+import { skillConfigurationService } from '@metorial/cargo-module-skill';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
+import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
 import { normalizeConsumerSurfaceEmailWhitelist } from '../../lib/consumerSurfaceEmailWhitelist';
 import {
   consumerSurfaceArchivedQueue,
@@ -48,7 +47,7 @@ export type ConsumerSurfaceSkillConfigurationInput = {
 };
 
 export type EnrichedConsumerSurface = ConsumerSurfaceWithPublishableApiKey & {
-  skillConfiguration: CargoSkillConfiguration;
+  skillConfiguration: SkillConfiguration;
 };
 
 export type AresAppConfig = {
@@ -81,47 +80,31 @@ let fireConsumerAuthTenantLifecycleEvent = async (
 };
 
 class ConsumerSurfaceServiceImpl {
-  private async getSurfaceCargoOwner(d: {
+  private async getSurfaceCargoScope(d: {
     consumerSurface: Pick<ConsumerSurface, 'instanceOid' | 'organizationOid'>;
   }) {
-    let [instance, organization] = await Promise.all([
-      db.instance.findUniqueOrThrow({
-        where: {
-          oid: d.consumerSurface.instanceOid
-        }
-      }),
-      db.organization.findUniqueOrThrow({
-        where: {
-          oid: d.consumerSurface.organizationOid
-        }
-      })
-    ]);
-
-    return {
-      owner: {
-        type: 'instance' as const,
-        instance,
-        organization
+    let instance = await db.instance.findUniqueOrThrow({
+      where: {
+        oid: d.consumerSurface.instanceOid
       }
-    };
+    });
+
+    return await resolveResourceScopeForOwner({
+      type: 'instance',
+      instance
+    });
   }
 
   async enrichConsumerSurfaces<T extends ConsumerSurfaceWithPublishableApiKey>(d: {
     instance: Instance;
     consumerSurfaces: T[];
-  }): Promise<(T & { skillConfiguration: CargoSkillConfiguration })[]> {
+  }): Promise<(T & { skillConfiguration: SkillConfiguration })[]> {
     if (!d.consumerSurfaces.length) return [];
 
-    let organization = await db.organization.findUniqueOrThrow({
-      where: {
-        oid: d.instance.organizationOid
-      }
+    let scope = await resolveResourceScopeForOwner({
+      type: 'instance',
+      instance: d.instance
     });
-    let owner = {
-      type: 'instance' as const,
-      instance: d.instance,
-      organization
-    };
 
     let skillConfigurationIds = [
       ...new Set(
@@ -134,12 +117,12 @@ class ConsumerSurfaceServiceImpl {
     let [linkedSkillConfigurations, defaultSkillConfiguration] = await Promise.all([
       skillConfigurationIds.length
         ? skillConfigurationService.getManySkillConfigurations({
-            owner,
+            ...scope,
             skillConfigurationIds
           })
         : Promise.resolve([]),
       skillConfigurationService.getSkillConfigurationById({
-        owner,
+        ...scope,
         skillConfigurationId: 'default'
       })
     ]);
@@ -163,7 +146,7 @@ class ConsumerSurfaceServiceImpl {
   async enrichConsumerSurface<T extends ConsumerSurfaceWithPublishableApiKey>(d: {
     instance: Instance;
     consumerSurface: T;
-  }): Promise<T & { skillConfiguration: CargoSkillConfiguration }> {
+  }): Promise<T & { skillConfiguration: SkillConfiguration }> {
     let [consumerSurface] = await this.enrichConsumerSurfaces({
       instance: d.instance,
       consumerSurfaces: [d.consumerSurface]
@@ -176,19 +159,19 @@ class ConsumerSurfaceServiceImpl {
     consumerSurface: ConsumerSurfaceWithPublishableApiKey;
     input: ConsumerSurfaceSkillConfigurationInput;
   }) {
-    let cargoOwner = await this.getSurfaceCargoOwner({
+    let scope = await this.getSurfaceCargoScope({
       consumerSurface: d.consumerSurface
     });
 
     if (d.consumerSurface.skillConfigurationId) {
       let [existing] = await skillConfigurationService.getManySkillConfigurations({
-        ...cargoOwner,
+        ...scope,
         skillConfigurationIds: [d.consumerSurface.skillConfigurationId]
       });
 
       if (existing) {
-        return await skillConfigurationService.updateSkillConfigurationById({
-          ...cargoOwner,
+        return await skillConfigurationService.updateSkillConfiguration({
+          ...scope,
           skillConfigurationId: existing.id,
           input: d.input
         });
@@ -196,7 +179,7 @@ class ConsumerSurfaceServiceImpl {
     }
 
     return await skillConfigurationService.createSkillConfiguration({
-      ...cargoOwner,
+      ...scope,
       input: {
         ...d.input,
         isInternal: true

@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMergeRequestService } from '@metorial/module-file';
+import { skillMergeRequestCommentService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
@@ -34,10 +34,10 @@ export let skillMergeRequestCommentController = Controller.create(
       .outputList(skillMergeRequestCommentPresenter)
       .query('default', Paginator.validate(v.object({ item_id: v.optional(v.string()) })))
       .do(async ctx => {
-        let paginator = await skillMergeRequestService.listSkillMergeRequestComments({
-          ...getSkillMergeRequestAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id,
-          skillMergeRequestItemId: ctx.query.item_id
+        let paginator = await skillMergeRequestCommentService.listComments({
+          ...(await getSkillMergeRequestAccess(ctx)),
+          mergeRequest: ctx.skillMergeRequest,
+          itemId: ctx.query.item_id
         });
         let list = await paginator.run(ctx.query);
 
@@ -69,12 +69,14 @@ export let skillMergeRequestCommentController = Controller.create(
       )
       .output(skillMergeRequestCommentPresenter)
       .do(async ctx => {
+        let access = await getSkillMergeRequestAccess(ctx);
         let skillMergeRequestComment =
-          await skillMergeRequestService.createSkillMergeRequestComment({
-            ...getSkillMergeRequestAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
-            skillMergeRequestItemId: ctx.body.item_id,
+          await skillMergeRequestCommentService.createComment({
+            ...access,
+            mergeRequest: ctx.skillMergeRequest,
+            itemId: ctx.body.item_id,
             inReplyToCommentId: ctx.body.in_reply_to_comment_id,
+            actorId: access.actorId!,
             body: ctx.body.body,
             path: ctx.body.path
           });
@@ -97,9 +99,8 @@ export let skillMergeRequestCommentController = Controller.create(
       .output(skillMergeRequestCommentPresenter)
       .do(async ctx => {
         let skillMergeRequestComment =
-          await skillMergeRequestService.getSkillMergeRequestCommentById({
-            ...getSkillMergeRequestAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
+          await skillMergeRequestCommentService.getSkillMergeRequestCommentById({
+            mergeRequest: ctx.skillMergeRequest,
             commentId: ctx.params.commentId
           });
 
@@ -121,12 +122,18 @@ export let skillMergeRequestCommentController = Controller.create(
       .body('default', v.object({ body: v.string() }))
       .output(skillMergeRequestCommentPresenter)
       .do(async ctx => {
+        let access = await getSkillMergeRequestAccess(ctx);
         let skillMergeRequestComment =
-          await skillMergeRequestService.updateSkillMergeRequestComment({
-            ...getSkillMergeRequestAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
-            commentId: ctx.params.commentId,
-            body: ctx.body.body
+          await skillMergeRequestCommentService.updateComment({
+            ...access,
+            mergeRequest: ctx.skillMergeRequest,
+            comment: await skillMergeRequestCommentService.getSkillMergeRequestCommentById({
+              mergeRequest: ctx.skillMergeRequest,
+              commentId: ctx.params.commentId
+            }),
+            actorId: access.actorId!,
+            body: ctx.body.body,
+            canManageComments: !!ctx.member?.actor
           });
 
         return skillMergeRequestCommentPresenter.present({ skillMergeRequestComment });
@@ -146,11 +153,17 @@ export let skillMergeRequestCommentController = Controller.create(
       .use(checkAccess({ possibleScopes: [...skillMergeRequestWriteScopes] }))
       .output(skillMergeRequestCommentPresenter)
       .do(async ctx => {
+        let access = await getSkillMergeRequestAccess(ctx);
         let skillMergeRequestComment =
-          await skillMergeRequestService.deleteSkillMergeRequestComment({
-            ...getSkillMergeRequestAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
-            commentId: ctx.params.commentId
+          await skillMergeRequestCommentService.deleteComment({
+            ...access,
+            mergeRequest: ctx.skillMergeRequest,
+            comment: await skillMergeRequestCommentService.getSkillMergeRequestCommentById({
+              mergeRequest: ctx.skillMergeRequest,
+              commentId: ctx.params.commentId
+            }),
+            actorId: access.actorId!,
+            canManageComments: !!ctx.member?.actor
           });
 
         return skillMergeRequestCommentPresenter.present({ skillMergeRequestComment });

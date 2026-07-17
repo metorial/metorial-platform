@@ -40,6 +40,24 @@ export let voyagerSource = voyagerSourceProm.promise;
 })();
 
 export let voyagerIndex = {
+  skill: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill'),
+    name: 'Skills'
+  }),
+
+  skillGroup: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill_group'),
+    name: 'Skill Groups'
+  }),
+
+  skillTemplate: await voyager.index.upsert({
+    sourceId: (await voyagerSource).id,
+    identifier: getIndexName('skill_template'),
+    name: 'Skill Templates'
+  }),
+
   skillPlugin: await voyager.index.upsert({
     sourceId: (await voyagerSource).id,
     identifier: getIndexName('skill_plugin'),

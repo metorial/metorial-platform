@@ -3,16 +3,13 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveResourceActors,
-  resolveSkills
+  type DateFilter, normalizeDateFilter, resolveResourceActors, resolveSkills
 } from '@metorial/cargo-list-utils';
 import {
-  flushDocumentCollaborationState,
-  flushDocumentDraft
+  flushDocumentCollaborationState, flushDocumentDraft
 } from '@metorial/cargo-module-doc';
-import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { resourceActorService } from '@metorial/module-resource-tenant';
+import { type ResourceScope } from '@metorial/module-resource-tenant';
 import {
   storeAccessService,
   storeReadPermission,
@@ -37,7 +34,8 @@ import {
   normalizeSnapshot,
   sameSnapshotItem,
   skillVersionSnapshotInclude,
-  type Snapshot
+  type Snapshot,
+  type SnapshotItem
 } from '../lib/mergeSnapshot';
 import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 
@@ -137,9 +135,9 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 
 export type SkillMergePlanItem = {
   item: SkillMergeRequestItemRecord;
-  base?: import('../lib/mergeSnapshot').SnapshotItem;
-  source?: import('../lib/mergeSnapshot').SnapshotItem;
-  target?: import('../lib/mergeSnapshot').SnapshotItem;
+  base?: SnapshotItem;
+  source?: SnapshotItem;
+  target?: SnapshotItem;
   documentMerge?: {
     baseContent?: string;
     sourceContent?: string;
@@ -159,7 +157,7 @@ let getResolutionStatus = (
   resolutionType === 'skip' || resolutionType === 'keep_target' ? 'skipped' : 'resolved';
 
 class SkillMergeRequestInternalServiceImpl {
-  async getSkill(d: CargoResourceScope & { skillId: string }) {
+  async getSkill(d: ResourceScope & { skillId: string }) {
     let skill = await db.skill.findFirst({
       where: {
         resourceTenantOid: d.resourceTenant.oid,
@@ -589,7 +587,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertReadEitherSkill(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
@@ -617,7 +615,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertTargetWrite(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
@@ -679,7 +677,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async createSkillMergeRequest(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       actorId?: string;
@@ -694,7 +692,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async createDirectedSkillMergeRequest(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       actorId?: string;
@@ -758,7 +756,7 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -971,7 +969,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async listSkillMergeRequests(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       sourceSkillIds?: string[];
       targetSkillIds?: string[];
@@ -982,7 +980,7 @@ class SkillMergeRequestInternalServiceImpl {
     }
   ) {
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -1024,7 +1022,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async getSkillMergeRequestById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMergeRequestId: string;
       actorId?: string;
     }
@@ -1092,7 +1090,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertReadableReplacementFile(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       fileId: string;
@@ -1144,7 +1142,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async validateItemResolution(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
       actorId?: string;

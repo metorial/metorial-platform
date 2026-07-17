@@ -1,9 +1,6 @@
 import { documentService } from '@metorial/cargo-module-doc';
-import {
-  type CargoResourceScope,
-  filePurposeService,
-  fileService
-} from '@metorial/cargo-module-file';
+import { filePurposeService, fileService } from '@metorial/cargo-module-file';
+import { type ResourceScope } from '@metorial/module-resource-tenant';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
 import type { Prisma } from '@metorial/db';
 import { posix as path } from 'node:path';
@@ -53,7 +50,7 @@ let titleForMarkdown = (filePath: string, content: string) => {
 };
 
 export let materializeImportedSkill = async (
-  d: CargoResourceScope & {
+  d: ResourceScope & {
     codeBucketId: string;
     skillId: string;
     rootPath: string;

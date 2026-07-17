@@ -1,14 +1,18 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerSkillService } from '@metorial/module-consumer';
 import {
-  subspaceSkillGroupItemService,
-  subspaceSkillGroupService,
-  subspaceSkillService
-} from '@metorial/module-subspace';
+  skillGroupItemService,
+  skillGroupService,
+  skillResourceService,
+  skillService,
+  skillTemplateService
+} from '@metorial/cargo-module-skill';
+import { ID } from '@metorial/db';
+import { consumerSkillService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
@@ -48,13 +52,16 @@ export let skillGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(asyn
     );
   }
 
-  let skill = await subspaceSkillService.get({
-    instance: ctx.instance,
+  let access = await getInstanceCargoAccess(ctx);
+  let localSkill = await skillService.getSkillById({
+    resourceTenant: access.resourceTenant,
+    resourceGroup: access.resourceGroup,
     skillId: ctx.params.skillId,
     allowDeleted: true,
-    consumerProfile: ctx.consumerProfile,
-    consumerGroups: ctx.consumerGroups
+    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
+    consumerProfileOid: ctx.consumerProfile?.oid
   });
+  let skill = await skillResourceService.hydrateSkill(localSkill);
 
   return { skill };
 });
@@ -99,24 +106,29 @@ export let skillController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSkillService.list({
-          instance: ctx.instance,
-          consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups,
+        let access = await getInstanceCargoAccess(ctx);
+        let paginator = await skillService.listSkills({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
           search: ctx.query.search,
           allowDeleted: true,
-          status: normalizeArrayParam(ctx.query.status),
+          statuses: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          updatedAt: ctx.query.updated_at,
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
+          consumerProfileOid: ctx.consumerProfile?.oid
         });
 
         let list = await paginator.run(ctx.query);
+        let items = await skillResourceService.hydrateSkills(list.items);
 
-        return Paginator.present(list, skill => skillPresenter.present({ skill }));
+        return Paginator.present({ ...list, items }, skill =>
+          skillPresenter.present({ skill })
+        );
       }),
 
     get: skillGroup
@@ -160,13 +172,14 @@ export let skillController = Controller.create(
       .output(skillPresenter)
       .do(async ctx => {
         let skillGroupId = ctx.body.skill_group_id;
+        let access = await getInstanceCargoAccess(ctx);
         if (skillGroupId) {
-          await subspaceSkillGroupService.get({
-            instance: ctx.instance,
+          await skillGroupService.getSkillGroupById({
+            resourceTenant: access.resourceTenant,
+            resourceGroup: access.resourceGroup,
             skillGroupId,
             allowDeleted: true,
-            consumerProfile: ctx.consumerProfile,
-            consumerGroups: ctx.consumerGroups
+            accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
           });
         }
 
@@ -183,25 +196,60 @@ export let skillController = Controller.create(
           templateId: ctx.body.template_id
         };
         let skill = ctx.consumerProfile
-          ? await consumerSkillService.createConsumerSkill({
-              organization: ctx.organization,
-              instance: ctx.instance,
-              consumerSurface: ctx.consumerSurface!,
-              consumerProfile: ctx.consumerProfile,
-              consumerGroups: ctx.consumerGroups!,
-              input
-            })
-          : await subspaceSkillService.create({
-              instance: ctx.instance,
-              organizationActor: ctx.actor!,
-              ...input
-            });
+          ? await (async () => {
+              let created = await consumerSkillService.createConsumerSkill({
+                organization: ctx.organization,
+                instance: ctx.instance,
+                consumerSurface: ctx.consumerSurface!,
+                consumerProfile: ctx.consumerProfile,
+                consumerGroups: ctx.consumerGroups!,
+                input
+              });
+              return await skillResourceService.hydrateSkill(created);
+            })()
+          : await (async () => {
+              let template = input.templateId
+                ? await skillTemplateService.getSkillTemplateById({
+                    resourceTenant: access.resourceTenant,
+                    resourceGroup: access.resourceGroup,
+                    skillTemplateId: input.templateId
+                  })
+                : await skillTemplateService.getDefaultSkillTemplate({
+                    resourceTenant: access.resourceTenant,
+                    resourceGroup: access.resourceGroup
+                  });
+              let localSkill = await skillService.createSkill({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                parentSkillTemplate: template,
+                input: {
+                  id: await ID.generateId('skill'),
+                  actorId: access.actorId,
+                  name: input.name,
+                  description: input.description,
+                  clientName: input.clientName,
+                  clientDescription: input.clientDescription,
+                  license: input.license,
+                  compatibility: input.compatibility,
+                  clientMetadata: input.clientMetadata as any,
+                  metadata: input.metadata as any,
+                  imageFileId: input.imageFileId
+                }
+              });
+              if (template) {
+                await skillResourceService.copyDelegatedTemplateResourcesToSkill({
+                  skillTemplate: template,
+                  skill: localSkill
+                });
+              }
+              return await skillResourceService.hydrateSkill(localSkill);
+            })();
 
         if (skillGroupId) {
-          await subspaceSkillGroupItemService.create({
-            instance: ctx.instance,
-            skillGroupId,
-            skillId: skill.id
+          await skillGroupItemService.createSkillGroupItem({
+            resourceTenant: access.resourceTenant,
+            resourceGroup: access.resourceGroup,
+            input: { skillGroupId, skillId: skill.id }
           });
         }
 
@@ -244,19 +292,36 @@ export let skillController = Controller.create(
           imageFileId: ctx.body.image_file_id
         };
         let skill = ctx.consumerProfile
-          ? await consumerSkillService.updateConsumerSkill({
-              organization: ctx.organization,
-              instance: ctx.instance,
-              consumerProfile: ctx.consumerProfile,
-              skillId: ctx.skill.id,
-              input
-            })
-          : await subspaceSkillService.update({
-              instance: ctx.instance,
-              skillId: ctx.skill.id,
-              allowDeleted: true,
-              ...input
-            });
+          ? await (async () => {
+              let updated = await consumerSkillService.updateConsumerSkill({
+                organization: ctx.organization,
+                instance: ctx.instance,
+                consumerProfile: ctx.consumerProfile,
+                skillId: ctx.skill.id,
+                input
+              });
+              return await skillResourceService.hydrateSkill(updated);
+            })()
+          : await (async () => {
+              let access = await getInstanceCargoAccess(ctx);
+              let localSkill = await skillService.getSkillById({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                skillId: ctx.skill.id,
+                allowDeleted: true
+              });
+              let updated = await skillService.updateSkill({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                skill: localSkill,
+                actorId: access.actorId,
+                accessTags: access.accessTags,
+                defaultPermissions: access.defaultPermissions,
+                overridePermissions: access.overridePermissions,
+                input: input as any
+              });
+              return await skillResourceService.hydrateSkill(updated);
+            })();
 
         return skillPresenter.present({ skill });
       }),
@@ -272,17 +337,34 @@ export let skillController = Controller.create(
       .output(skillPresenter)
       .do(async ctx => {
         let skill = ctx.consumerProfile
-          ? await consumerSkillService.deleteConsumerSkill({
-              organization: ctx.organization,
-              instance: ctx.instance,
-              consumerProfile: ctx.consumerProfile,
-              skillId: ctx.skill.id
-            })
-          : await subspaceSkillService.delete({
-              instance: ctx.instance,
-              skillId: ctx.skill.id,
-              allowDeleted: true
-            });
+          ? await (async () => {
+              let archived = await consumerSkillService.deleteConsumerSkill({
+                organization: ctx.organization,
+                instance: ctx.instance,
+                consumerProfile: ctx.consumerProfile,
+                skillId: ctx.skill.id
+              });
+              return await skillResourceService.hydrateSkill(archived);
+            })()
+          : await (async () => {
+              let access = await getInstanceCargoAccess(ctx);
+              let localSkill = await skillService.getSkillById({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                skillId: ctx.skill.id,
+                allowDeleted: true
+              });
+              let archived = await skillService.archiveSkill({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                skill: localSkill,
+                actorId: access.actorId,
+                accessTags: access.accessTags,
+                defaultPermissions: access.defaultPermissions,
+                overridePermissions: access.overridePermissions
+              });
+              return await skillResourceService.hydrateSkill(archived);
+            })();
 
         return skillPresenter.present({ skill });
       }),
@@ -326,21 +408,43 @@ export let skillController = Controller.create(
           imageFileId: ctx.body.image_file_id
         };
         let skill = ctx.consumerProfile
-          ? await consumerSkillService.forkConsumerSkill({
-              organization: ctx.organization,
-              instance: ctx.instance,
-              consumerSurface: ctx.consumerSurface!,
-              consumerProfile: ctx.consumerProfile,
-              consumerGroups: ctx.consumerGroups!,
-              parentSkillId: ctx.skill.id,
-              input
-            })
-          : await subspaceSkillService.duplicate({
-              instance: ctx.instance,
-              organizationActor: ctx.actor!,
-              skillId: ctx.skill.id,
-              ...input
-            });
+          ? await (async () => {
+              let forked = await consumerSkillService.forkConsumerSkill({
+                organization: ctx.organization,
+                instance: ctx.instance,
+                consumerSurface: ctx.consumerSurface!,
+                consumerProfile: ctx.consumerProfile,
+                consumerGroups: ctx.consumerGroups!,
+                parentSkillId: ctx.skill.id,
+                input
+              });
+              return await skillResourceService.hydrateSkill(forked);
+            })()
+          : await (async () => {
+              let access = await getInstanceCargoAccess(ctx);
+              let parentSkill = await skillService.getSkillById({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                skillId: ctx.skill.id,
+                allowDeleted: true
+              });
+              let duplicate = await skillService.createSkill({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                parentSkill,
+                parentSkillCloneType: 'duplicate',
+                input: {
+                  id: await ID.generateId('skill'),
+                  actorId: access.actorId,
+                  ...input
+                }
+              });
+              await skillResourceService.copyDelegatedSkillResources({
+                sourceSkill: parentSkill,
+                targetSkill: duplicate
+              });
+              return await skillResourceService.hydrateSkill(duplicate);
+            })();
 
         return skillPresenter.present({ skill });
       }),
@@ -364,7 +468,7 @@ export let skillController = Controller.create(
           );
         }
 
-        let skill = await consumerSkillService.publishConsumerSkill({
+        let published = await consumerSkillService.publishConsumerSkill({
           organization: ctx.organization,
           instance: ctx.instance,
           consumerSurface: ctx.consumerSurface!,
@@ -372,6 +476,7 @@ export let skillController = Controller.create(
           consumerGroups: ctx.consumerGroups!,
           skillId: ctx.skill.id
         });
+        let skill = await skillResourceService.hydrateSkill(published);
 
         return skillPresenter.present({ skill });
       }),
@@ -408,13 +513,7 @@ export let skillController = Controller.create(
           }
         });
 
-        let skill = await subspaceSkillService.get({
-          instance: ctx.instance,
-          skillId: ctx.skill.id,
-          allowDeleted: true,
-          consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups
-        });
+        let skill = await skillResourceService.hydrateSkill(ctx.skill.localSkill);
 
         return skillPresenter.present({ skill });
       }),
@@ -441,20 +540,36 @@ export let skillController = Controller.create(
       )
       .output(skillPresenter)
       .do(async ctx => {
-        let skill = await subspaceSkillService.duplicate({
-          instance: ctx.instance,
-          organizationActor: ctx.actor!,
+        let access = await getInstanceCargoAccess(ctx);
+        let parentSkill = await skillService.getSkillById({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
           skillId: ctx.skill.id,
-          allowDeleted: true,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          clientName: ctx.body.client_name,
-          clientDescription: ctx.body.client_description,
-          license: ctx.body.license,
-          compatibility: ctx.body.compatibility,
-          clientMetadata: ctx.body.client_metadata,
-          metadata: ctx.body.metadata
+          allowDeleted: true
         });
+        let localSkill = await skillService.createSkill({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
+          parentSkill,
+          parentSkillCloneType: 'duplicate',
+          input: {
+            id: await ID.generateId('skill'),
+            actorId: access.actorId,
+            name: ctx.body.name,
+            description: ctx.body.description,
+            clientName: ctx.body.client_name,
+            clientDescription: ctx.body.client_description,
+            license: ctx.body.license,
+            compatibility: ctx.body.compatibility,
+            clientMetadata: ctx.body.client_metadata,
+            metadata: ctx.body.metadata
+          }
+        });
+        await skillResourceService.copyDelegatedSkillResources({
+          sourceSkill: parentSkill,
+          targetSkill: localSkill
+        });
+        let skill = await skillResourceService.hydrateSkill(localSkill);
 
         return skillPresenter.present({ skill });
       })

@@ -1,6 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, ResourceActor } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
 import { documentInclude } from '../services/document';
@@ -62,7 +62,7 @@ class InternalDocumentContentServiceImpl {
   }
 
   private async writeDocumentContent(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       document: DocumentRecord;
       nextContent: string;
       listEditedAt?: Date;
@@ -313,7 +313,7 @@ class InternalDocumentContentServiceImpl {
   }
 
   async persistDraftToDocument(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       document: DocumentRecord;
       draft: DocumentDraft;
       actors: ResourceActor[];

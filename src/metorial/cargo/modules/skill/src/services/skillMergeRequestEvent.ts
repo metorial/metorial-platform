@@ -3,7 +3,8 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
-import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { resourceActorService } from '@metorial/module-resource-tenant';
+import { type ResourceScope } from '@metorial/module-resource-tenant';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { SkillMergeRequestEventType, TransactionDB } from '@metorial/db';
 import { db, type Prisma } from '@metorial/db';
@@ -53,13 +54,13 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   private async assertReadAccess(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
   ) {
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -84,7 +85,7 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   async listEvents(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       types?: SkillMergeRequestEventType[];
@@ -110,7 +111,7 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   async getEventById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       eventId: string;

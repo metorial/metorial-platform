@@ -1,16 +1,17 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import {
+  skillGroupService,
+  skillService,
+  skillTemplateService
+} from '@metorial/cargo-module-skill';
 import { db } from '@metorial/db';
 import { consumerAccessService, consumerGroupService } from '@metorial/module-consumer';
 import { magicMcpServerService, providerTemplateService } from '@metorial/module-magic';
-import {
-  subspaceSkillGroupService,
-  subspaceSkillService,
-  subspaceSkillTemplateService
-} from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
@@ -183,32 +184,32 @@ export let portalConsumerAccessController = Controller.create(
         let localSkillTemplate = null;
         let localSkillGroup = null;
         let localSkillMarketplace = null;
+        let cargoAccess = await getInstanceCargoAccess(ctx);
 
         if (access.type == 'skill') {
-          let skill = await subspaceSkillService.get({
-            instance: ctx.instance,
+          localSkill = await skillService.getSkillById({
+            resourceTenant: cargoAccess.resourceTenant,
+            resourceGroup: cargoAccess.resourceGroup,
             skillId: access.skill_id,
             allowDeleted: true
           });
-          localSkill = skill.localSkill;
         }
 
         if (access.type == 'skill_template') {
-          let skillTemplate = await subspaceSkillTemplateService.get({
-            instance: ctx.instance,
-            skillTemplateId: access.skill_template_id,
-            allowDeleted: true
+          localSkillTemplate = await skillTemplateService.getSkillTemplateById({
+            resourceTenant: cargoAccess.resourceTenant,
+            resourceGroup: cargoAccess.resourceGroup,
+            skillTemplateId: access.skill_template_id
           });
-          localSkillTemplate = skillTemplate.localSkillTemplate;
         }
 
         if (access.type == 'skill_group') {
-          let skillGroup = await subspaceSkillGroupService.get({
-            instance: ctx.instance,
+          localSkillGroup = await skillGroupService.getSkillGroupById({
+            resourceTenant: cargoAccess.resourceTenant,
+            resourceGroup: cargoAccess.resourceGroup,
             skillGroupId: access.skill_group_id,
             allowDeleted: true
           });
-          localSkillGroup = skillGroup.localSkillGroup;
         }
         if (access.type == 'skill_marketplace') {
           localSkillMarketplace = await db.skillMarketplace.findFirst({

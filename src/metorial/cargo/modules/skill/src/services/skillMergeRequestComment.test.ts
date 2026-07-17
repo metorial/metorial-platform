@@ -33,8 +33,8 @@ vi.mock('@metorial/cargo-config/id', () => ({
   })
 }));
 
-vi.mock('@metorial/cargo-module-file', () => ({
-  actorService: {
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resourceActorService: {
     getActorById: mocks.getActor
   }
 }));

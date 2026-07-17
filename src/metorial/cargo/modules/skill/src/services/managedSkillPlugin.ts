@@ -4,7 +4,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { createSkillDestination } from '../internal/skillDestination';
@@ -314,7 +314,7 @@ class ManagedSkillPluginServiceImpl {
   }
 
   async ensureManagedSkillPlugin(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillId: string;
     }
   ) {

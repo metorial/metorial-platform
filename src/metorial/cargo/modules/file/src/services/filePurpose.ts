@@ -4,11 +4,6 @@ import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import { db } from '@metorial/db';
 
-export type CargoResourceScope = {
-  resourceTenant: { oid: bigint; id: string };
-  resourceGroup: { oid: bigint; id: string };
-};
-
 export let documentFilePurposeSlug = 'document';
 export let documentFilePurposeName = 'Document';
 export let genericFilePurposeSlug = 'generic';

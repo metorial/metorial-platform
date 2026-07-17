@@ -2,7 +2,8 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { resourceActorService } from '@metorial/module-resource-tenant';
+import { type ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillImportStatus } from '@metorial/db';
 import { db } from '@metorial/db';
 import { parsePublicRepositoryUrl } from '../import/publicRepository';
@@ -51,7 +52,7 @@ class SkillImportServiceImpl {
   }) {
     if (!d.actorId) return undefined;
     return (
-      await actorService.getActorById({
+      await resourceActorService.getActorById({
         resourceTenant: d.resourceTenant!,
         actorId: d.actorId
       })
@@ -59,7 +60,7 @@ class SkillImportServiceImpl {
   }
 
   async createSkillImport(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       actorId?: string;
       input: CreateSkillImportInput;
     }
@@ -106,7 +107,7 @@ class SkillImportServiceImpl {
   }
 
   async listSkillImports(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       actorId?: string;
       ids?: string[];
       statuses?: SkillImportStatus[];
@@ -132,7 +133,7 @@ class SkillImportServiceImpl {
   }
 
   async getSkillImportById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       actorId?: string;
       skillImportId: string;
     }

@@ -1,15 +1,12 @@
-import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillTemplateService } from '@metorial-subspace/module-skills';
 import { skillTemplatePresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
-import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
 
 export let skillTemplateApp = tenantApp.use(async ctx => {
   let skillTemplateId = ctx.body.skillTemplateId;
   if (!skillTemplateId) throw new Error('SkillTemplate ID is required');
-
   let skillTemplate = await skillTemplateService.getSkillTemplateById({
     skillTemplateId,
     tenant: ctx.tenant,
@@ -17,145 +14,74 @@ export let skillTemplateApp = tenantApp.use(async ctx => {
     solution: ctx.solution,
     allowDeleted: ctx.body.allowDeleted
   });
-
   return { skillTemplate };
 });
 
 export let skillTemplateController = app.controller({
-  list: tenantApp
+  hydrateResources: tenantApp
     .handler()
     .input(
-      Paginator.validate(
-        v.object({
-          tenantId: v.string(),
-          environmentId: v.string(),
-
-          search: v.optional(v.string()),
-          status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
-          allowDeleted: v.optional(v.boolean()),
-          owner: v.optional(v.array(v.enumOf(['system', 'tenant']))),
-
-          ids: v.optional(v.array(v.string())),
-          providerIds: v.optional(v.array(v.string())),
-          integrationIds: v.optional(v.array(v.string())),
-
-          createdAt: createdAtValidator,
-          updatedAt: updatedAtValidator
-        })
-      )
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        skillTemplateIds: v.array(v.string())
+      })
     )
     .do(async ctx => {
-      let paginator = await skillTemplateService.listSkillTemplates({
+      let templates = await skillTemplateService.getManySkillTemplates({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
-        search: ctx.input.search,
-        status: ctx.input.status,
-        allowDeleted: ctx.input.allowDeleted,
-        owner: ctx.input.owner,
-        ids: ctx.input.ids,
-        providerIds: ctx.input.providerIds,
-        integrationIds: ctx.input.integrationIds,
-        createdAt: ctx.input.createdAt,
-        updatedAt: ctx.input.updatedAt
+        skillTemplateIds: ctx.input.skillTemplateIds,
+        allowDeleted: true
       });
-
-      let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, skillTemplatePresenter);
+      return templates.map(template => {
+        let presented = skillTemplatePresenter(template);
+        return {
+          skillTemplateId: template.id,
+          items: presented.items
+        };
+      });
     }),
 
-  get: skillTemplateApp
+  syncResourceTarget: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        skillTemplateId: v.string(),
-        allowDeleted: v.optional(v.boolean())
-      })
-    )
-    .do(async ctx => skillTemplatePresenter(ctx.skillTemplate)),
-
-  create: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
+        id: v.string(),
+        status: v.enumOf(['active', 'archived', 'deleted']),
+        owner: v.enumOf(['system', 'tenant']),
+        slug: v.string(),
         name: v.string(),
-        skillId: v.optional(v.string()),
-        description: v.optional(v.string()),
-        metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any()))
-      })
-    )
-    .do(async ctx => {
-      let skillTemplate = await skillTemplateService.createSkillTemplate({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        input: {
-          name: ctx.input.name,
-          skillId: ctx.input.skillId,
-          description: ctx.input.description,
-          metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
-        }
-      });
-
-      return skillTemplatePresenter(skillTemplate);
-    }),
-
-  update: skillTemplateApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        skillTemplateId: v.string(),
-        allowDeleted: v.optional(v.boolean()),
-
-        name: v.optional(v.string()),
         description: v.optional(v.nullable(v.string())),
         metadata: v.optional(v.nullable(v.record(v.any()))),
-        privateMetadata: v.optional(v.nullable(v.record(v.any())))
+        storeId: v.optional(v.nullable(v.string())),
+        storeTemplateId: v.string(),
+        systemIdentifier: v.optional(v.nullable(v.string())),
+        sourceSkillId: v.optional(v.nullable(v.string()))
       })
     )
     .do(async ctx => {
-      let skillTemplate = await skillTemplateService.updateSkillTemplate({
+      let template = await skillTemplateService.upsertMetorialSkillTemplate({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
-        skillTemplate: ctx.skillTemplate,
         input: {
+          id: ctx.input.id,
+          status: ctx.input.status,
+          owner: ctx.input.owner,
+          slug: ctx.input.slug,
           name: ctx.input.name,
           description: ctx.input.description,
           metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata
+          storeId: ctx.input.storeId,
+          storeTemplateId: ctx.input.storeTemplateId,
+          systemIdentifier: ctx.input.systemIdentifier,
+          sourceSkillId: ctx.input.sourceSkillId
         }
       });
-
-      return skillTemplatePresenter(skillTemplate);
-    }),
-
-  delete: skillTemplateApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        skillTemplateId: v.string(),
-        allowDeleted: v.optional(v.boolean())
-      })
-    )
-    .do(async ctx => {
-      let skillTemplate = await skillTemplateService.archiveSkillTemplate({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skillTemplate: ctx.skillTemplate
-      });
-
-      return skillTemplatePresenter(skillTemplate);
+      return { skillTemplateId: template.id };
     })
 });

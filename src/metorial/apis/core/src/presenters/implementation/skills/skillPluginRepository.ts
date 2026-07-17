@@ -7,9 +7,9 @@ export let v1SkillPluginRepositoryPresenter = Presenter.create(skillPluginReposi
   .presenter(async ({ skillPluginRepository }) => ({
     object: 'skill.plugin_repository' as const,
     id: skillPluginRepository.id,
-    skill_plugin_id: skillPluginRepository.skillPluginId,
-    repo_id: skillPluginRepository.repoId,
-    repository: presentSkillRepository(skillPluginRepository.repository),
+    skill_plugin_id: skillPluginRepository.skillPlugin.id,
+    repo_id: skillPluginRepository.skillRepository.repoId,
+    repository: presentSkillRepository(skillPluginRepository.skillRepository),
     created_at: skillPluginRepository.createdAt,
     updated_at: skillPluginRepository.updatedAt
   }))

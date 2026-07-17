@@ -9,8 +9,8 @@ export let v1SkillMarketplacePluginPresenter = Presenter.create(skillMarketplace
     id: skillMarketplacePlugin.id,
     status: skillMarketplacePlugin.status,
     identifier: skillMarketplacePlugin.pluginSlug,
-    skill_configuration_id: skillMarketplacePlugin.skillConfigurationId ?? null,
-    skill_marketplace_id: skillMarketplacePlugin.skillMarketplaceId ?? null,
+    skill_configuration_id: skillMarketplacePlugin.skillConfiguration?.id ?? null,
+    skill_marketplace_id: skillMarketplacePlugin.skillMarketplace?.id ?? null,
     skill_plugin: skillMarketplacePlugin.skillPlugin
       ? await v1SkillPluginPresenter
           .present({ skillPlugin: skillMarketplacePlugin.skillPlugin }, opts)

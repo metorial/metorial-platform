@@ -7,8 +7,12 @@ import {
   resolveDocumentVersions,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  type StoreAccessInput,
+  storeAccessService,
+  storeReadPermission
+} from '@metorial/cargo-module-store';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 
@@ -25,9 +29,10 @@ export let documentVersionInclude = {
 
 class DocumentVersionServiceImpl {
   async getDocumentVersionById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       documentVersionId: string;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -54,6 +59,7 @@ class DocumentVersionServiceImpl {
       resourceGroup: d.resourceGroup,
       document: version.document,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -63,13 +69,14 @@ class DocumentVersionServiceImpl {
   }
 
   async listDocumentVersions(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       documentId: string;
       ids?: string[];
       editorActorIds?: string[];
       createdAt?: DateFilter;
       listEditedAt?: DateFilter;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -101,6 +108,7 @@ class DocumentVersionServiceImpl {
       resourceGroup: d.resourceGroup,
       document,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission

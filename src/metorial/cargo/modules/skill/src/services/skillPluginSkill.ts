@@ -10,7 +10,7 @@ import {
   resolveSkillPluginSkills,
   resolveSkills
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillPluginSkillStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
@@ -91,7 +91,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   private async getSkillConfigurationOid(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string | null | undefined;
     }
   ) {
@@ -116,7 +116,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   private async getSkill(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillId: string;
     }
   ) {
@@ -134,7 +134,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   private async getSkillPluginSkillRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginSkillId: string;
       skillPlugin?: SkillPluginRecord;
     }
@@ -168,7 +168,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async listSkillPluginSkills(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPlugin: SkillPluginRecord;
       ids?: string[];
       skillIds?: string[];
@@ -214,7 +214,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async getSkillPluginSkillById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginSkillId: string;
       skillPlugin?: SkillPluginRecord;
     }
@@ -223,7 +223,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async addSkillPluginSkill(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPlugin: SkillPluginRecord;
       input: {
         skillId: string;
@@ -371,7 +371,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async updateSkillPluginSkill(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginSkill: SkillPluginSkillRecord;
       input: SkillPluginSkillInput;
     }
@@ -416,7 +416,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async removeSkillPluginSkill(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginSkill: SkillPluginSkillRecord;
     }
   ) {

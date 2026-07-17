@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
 import type { ResourceActor, Skill, Store, StoreDirectory, StoreItemKind } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
@@ -109,6 +109,43 @@ class StoreItemMutationServiceImpl {
     );
   }
 
+  private async isSkillTemplateStore(store: Pick<Store, 'oid'>) {
+    return await withTransaction(
+      async db =>
+        !!(await db.store.findFirst({
+          where: {
+            oid: store.oid,
+            OR: [
+              {
+                sourceTemplates: {
+                  some: {
+                    skillTemplate: {
+                      is: {}
+                    }
+                  }
+                }
+              },
+              {
+                templateBacking: {
+                  is: {
+                    storeTemplate: {
+                      skillTemplate: {
+                        is: {}
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          select: {
+            oid: true
+          }
+        })),
+      { ifExists: true }
+    );
+  }
+
   private async assertSkillStoreFileLimit(store: Pick<Store, 'oid'>, client: any = db) {
     let fileCount = await client.storeItem.count({
       where: {
@@ -182,6 +219,18 @@ class StoreItemMutationServiceImpl {
     nextPath: NormalizedStorePath;
     nextKind: StoreItemKind;
   }) {
+    this.assertRootSkillDocumentMoveAllowed(d);
+
+    this.assertSkillStoreItemAllowed({
+      path: d.nextPath,
+      kind: d.nextKind
+    });
+  }
+
+  private assertRootSkillDocumentMoveAllowed(d: {
+    item: StoreItemRecord;
+    nextPath: NormalizedStorePath;
+  }) {
     let currentPath = this.normalizeExistingItemPath(d.item);
 
     if (
@@ -194,11 +243,6 @@ class StoreItemMutationServiceImpl {
         })
       );
     }
-
-    this.assertSkillStoreItemAllowed({
-      path: d.nextPath,
-      kind: d.nextKind
-    });
   }
 
   private async archiveActiveSkillAgentsForStoreItem(d: {
@@ -407,7 +451,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async resolveStoreItemTarget(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       fileId?: string;
       documentId?: string;
       allowEmpty?: boolean;
@@ -482,7 +526,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async normalizeStoreItemOperation(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       operation: StoreItemOperationInput;
     }
   ): Promise<NormalizedStoreItemOperation> {
@@ -554,7 +598,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async createItemReference(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       itemId: string;
       target: ResolvedStoreItemTarget;
     }
@@ -642,7 +686,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async ensureDirectoryItem(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       directory: StoreDirectory;
       actor?: Pick<ResourceActor, 'oid'>;
@@ -710,7 +754,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async ensureDirectoryHierarchy(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       path: NormalizedStorePath;
       actor?: Pick<ResourceActor, 'oid'>;
@@ -809,7 +853,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async ensureStoreRootDirectoryInTransaction(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       actor?: Pick<ResourceActor, 'oid'>;
     }
@@ -848,7 +892,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async updateContentStoreItem(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       item: StoreItemRecord;
       path: NormalizedStorePath;
@@ -940,7 +984,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async addContentStoreItem(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       path: NormalizedStorePath;
       target: ResolvedStoreItemTarget;
@@ -1157,7 +1201,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async moveDirectoryItem(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       item: StoreItemRecord;
       nextPath: NormalizedStorePath;
@@ -1281,7 +1325,7 @@ class StoreItemMutationServiceImpl {
   }
 
   async attachTargetToStore(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       path: string;
       target: ResolvedStoreItemTarget;
@@ -1379,7 +1423,7 @@ class StoreItemMutationServiceImpl {
   }
 
   async ensureStoreRootDirectory(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       actor?: Pick<ResourceActor, 'oid'>;
     }
@@ -1404,7 +1448,7 @@ class StoreItemMutationServiceImpl {
   }
 
   async modifyStoreItems(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       operations: StoreItemOperationInput[];
       actor?: Pick<ResourceActor, 'oid'>;
@@ -1446,6 +1490,7 @@ class StoreItemMutationServiceImpl {
       let root = await this.ensureStoreRootDirectoryInTransaction(d);
       let itemCount = currentStore.itemCount + root.createdItemCount;
       let skill = await this.getSkillForStore(d.store);
+      let isSkillTemplateStore = await this.isSkillTemplateStore(d.store);
 
       if (itemCount > maxStoreItems) {
         throw new ServiceError(
@@ -1655,6 +1700,12 @@ class StoreItemMutationServiceImpl {
         let nextKind = operation.target
           ? this.getContentItemKind(operation.target)
           : item.kind;
+        if (isSkillTemplateStore) {
+          this.assertRootSkillDocumentMoveAllowed({
+            item,
+            nextPath
+          });
+        }
         if (skill) {
           this.assertSkillStoreModifyAllowed({
             item,

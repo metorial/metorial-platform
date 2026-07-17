@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
@@ -31,7 +31,7 @@ export type EnrichedSkillMarketplaceRepositoryRecord = Omit<
 };
 
 class SkillMarketplaceRepositoryServiceImpl {
-  private async getMarketplace(d: CargoResourceScope & { skillMarketplaceId: string }) {
+  private async getMarketplace(d: ResourceScope & { skillMarketplaceId: string }) {
     let marketplace = await db.skillMarketplace.findFirst({
       where: {
         resourceTenantOid: d.resourceTenant.oid,
@@ -47,7 +47,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   private async enrichRepositories<T extends SkillMarketplaceRepositoryRecord>(
-    d: CargoResourceScope & { repositories: T[] }
+    d: ResourceScope & { repositories: T[] }
   ): Promise<
     (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
   > {
@@ -67,7 +67,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   async listSkillMarketplaceRepositories(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplaceId: string;
     }
   ) {
@@ -93,7 +93,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   async getSkillMarketplaceRepositoryById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplaceId: string;
       skillMarketplaceRepositoryId: string;
     }
@@ -123,7 +123,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   async createSkillMarketplaceRepository(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplaceId: string;
       repoId: string;
     }
@@ -178,7 +178,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   async deleteSkillMarketplaceRepository(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplaceId: string;
       skillMarketplaceRepositoryId: string;
     }

@@ -8,8 +8,12 @@ import {
   resolveDocuments,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  type StoreAccessInput,
+  storeAccessService,
+  storeReadPermission
+} from '@metorial/cargo-module-store';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
@@ -21,9 +25,10 @@ export let documentParticipantInclude = {
 
 class DocumentParticipantServiceImpl {
   async getDocumentParticipantById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       documentParticipantId: string;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -51,6 +56,7 @@ class DocumentParticipantServiceImpl {
       resourceGroup: d.resourceGroup,
       document: participant.document,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -60,7 +66,7 @@ class DocumentParticipantServiceImpl {
   }
 
   async listDocumentParticipants(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       documentId: string;
       ids?: string[];
       actorIds?: string[];
@@ -68,6 +74,7 @@ class DocumentParticipantServiceImpl {
       lastEditedAt?: DateFilter;
       lastViewedAt?: DateFilter;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -90,6 +97,7 @@ class DocumentParticipantServiceImpl {
       resourceGroup: d.resourceGroup,
       document,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission

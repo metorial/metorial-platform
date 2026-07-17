@@ -7,7 +7,7 @@ import {
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillDestinationSyncStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 
@@ -48,7 +48,7 @@ export type SkillSyncStatusFilter = SkillDestinationSyncStatus;
 
 class SkillSyncServiceImpl {
   private async getSkillSyncRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillSyncId: string;
     }
   ) {
@@ -72,7 +72,7 @@ class SkillSyncServiceImpl {
     );
   }
 
-  private scopeDestinationWhere(d: CargoResourceScope): Prisma.SkillDestinationWhereInput {
+  private scopeDestinationWhere(d: ResourceScope): Prisma.SkillDestinationWhereInput {
     return {
       OR: [
         {
@@ -92,7 +92,7 @@ class SkillSyncServiceImpl {
   }
 
   async listSkillSyncs(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       skillMarketplaceIds?: string[];
       skillPluginIds?: string[];
@@ -134,7 +134,7 @@ class SkillSyncServiceImpl {
   }
 
   async getSkillSyncById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillSyncId: string;
     }
   ) {

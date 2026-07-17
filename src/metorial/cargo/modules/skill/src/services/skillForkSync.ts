@@ -1,8 +1,8 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { actorService } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import {
   storeAccessService,
   storeReadPermission,
@@ -37,7 +37,7 @@ export type SkillForkSyncRecord = Prisma.SkillForkSyncGetPayload<{
 
 class SkillForkSyncServiceImpl {
   async createSkillForkSync(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       forkSkillId: string;
       actorId?: string;
     }
@@ -67,7 +67,7 @@ class SkillForkSyncServiceImpl {
 
     let upstreamSkill = forkSkill.parentSkill;
     let actor = d.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
@@ -146,7 +146,7 @@ class SkillForkSyncServiceImpl {
   }
 
   async getSkillForkSyncById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillForkSyncId: string;
       actorId?: string;
     }

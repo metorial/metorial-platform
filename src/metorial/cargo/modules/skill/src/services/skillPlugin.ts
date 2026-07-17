@@ -13,8 +13,8 @@ import {
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { resolveInstanceResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import type {
   EntityImage,
@@ -134,7 +134,7 @@ class SkillPluginServiceImpl {
   }
 
   private async getSkillConfigurationOid(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string | null | undefined;
     }
   ) {
@@ -159,7 +159,7 @@ class SkillPluginServiceImpl {
   }
 
   private async getSkillPluginRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginId: string;
     }
   ) {
@@ -184,7 +184,7 @@ class SkillPluginServiceImpl {
   }
 
   async listSkillPlugins(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       skillMarketplaceIds?: string[];
       skillMarketplacePluginIds?: string[];
@@ -277,7 +277,7 @@ class SkillPluginServiceImpl {
   }
 
   async getSkillPluginById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginId: string;
     }
   ) {
@@ -285,7 +285,7 @@ class SkillPluginServiceImpl {
   }
 
   async createSkillPlugin(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       input: {
         name: string;
         description?: string | null;
@@ -356,7 +356,7 @@ class SkillPluginServiceImpl {
   }
 
   async updateSkillPlugin(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPlugin: SkillPluginRecord;
       input: SkillPluginInput;
     }
@@ -426,7 +426,7 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async archiveSkillPlugin(d: CargoResourceScope & { skillPlugin: SkillPluginRecord }) {
+  async archiveSkillPlugin(d: ResourceScope & { skillPlugin: SkillPluginRecord }) {
     assertPluginIsNotManaged(d.skillPlugin);
 
     await withTransaction(async db => {
@@ -480,7 +480,7 @@ class SkillPluginServiceImpl {
   }
 
   async getSkillPluginEditorUrl(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPlugin: SkillPluginRecord;
       isReadOnly?: boolean;
     }
@@ -492,7 +492,7 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async forceSkillPluginSync(d: CargoResourceScope & { skillPlugin: SkillPluginRecord }) {
+  async forceSkillPluginSync(d: ResourceScope & { skillPlugin: SkillPluginRecord }) {
     await forceSkillDestinationSync({
       destination: d.skillPlugin.destination!
     });

@@ -22,8 +22,8 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
-import { fileReferenceService } from '@metorial/module-file';
 import { differenceInMinutes } from 'date-fns';
+import { cleanupFileImage, resolveFileImage } from '../lib/fileImage';
 import { syncBrandOrganizationQueue } from '../queues/syncBrand';
 import { syncProfileQueue } from '../queues/syncProfile';
 import { authBootstrapService } from './authBootstrap';
@@ -205,16 +205,17 @@ class OrganizationService {
       }
 
       if (d.input.imageFileId !== undefined) {
-        nextImage = await fileReferenceService.resolveImageEntityImage({
+        nextImage = await resolveFileImage({
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' },
           owner: {
             type: 'organization',
-            organizationId: d.organization.id
+            organization: d.organization
           },
-          purpose: 'organization_image',
-          entityType: 'organization',
-          entityId: d.organization.id
+          entity: {
+            type: 'organization',
+            id: d.organization.id
+          }
         });
       }
 
@@ -236,13 +237,12 @@ class OrganizationService {
       });
 
       if (d.input.image !== undefined || d.input.imageFileId !== undefined) {
-        await fileReferenceService.cleanupImageEntityImage({
-          image:
-            d.organization.image &&
+        await cleanupFileImage(
+          d.organization.image &&
             canonicalize(d.organization.image) !== canonicalize(nextImage)
-              ? d.organization.image
-              : undefined
-        });
+            ? d.organization.image
+            : undefined
+        );
       }
 
       await Fabric.fire('organization.updated:after', {

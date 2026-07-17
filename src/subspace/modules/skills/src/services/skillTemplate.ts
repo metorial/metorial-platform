@@ -23,10 +23,7 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import { cargo, ensureCargoScope } from '../cargo';
-import { createStoreForPlainTemplate } from '../definitions';
 import {
   skillTemplateArchivedQueue,
   skillTemplateCreatedQueue,
@@ -144,17 +141,106 @@ class skillTemplateServiceImpl {
   }): Promise<SkillTemplateWithEnrichedStoreId<T>[]> {
     if (d.skillTemplates.length === 0) return [];
 
-    let cargoScope = await ensureCargoScope(d);
-    let cargoTemplates = (await cargo.skillTemplate.getMany({
-      ...cargoScope,
-      skillTemplateIds: d.skillTemplates.map(template => template.id)
-    })) as CargoSkillTemplateSummary[];
-    let cargoTemplateById = new Map(cargoTemplates.map(template => [template.id, template]));
+    return d.skillTemplates;
+  }
 
-    return d.skillTemplates.map(template => ({
-      ...template,
-      storeId: cargoTemplateById.get(template.id)?.storeId ?? template.storeId
-    }));
+  async getManySkillTemplates(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    skillTemplateIds: string[];
+    allowDeleted?: boolean;
+  }) {
+    if (!d.skillTemplateIds.length) return [];
+    return await db.skillTemplate.findMany({
+      where: {
+        id: { in: d.skillTemplateIds },
+        ...normalizeStatusForGet(d).noParent,
+        OR: getAccessibleScope(d)
+      },
+      include: skillTemplateInclude
+    });
+  }
+
+  async upsertMetorialSkillTemplate(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    input: {
+      id: string;
+      status: SkillTemplateStatus;
+      owner: SkillTemplateOwner;
+      slug: string;
+      name: string;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      storeId?: string | null;
+      storeTemplateId: string;
+      systemIdentifier?: string | null;
+      sourceSkillId?: string | null;
+    };
+  }) {
+    let existing = await db.skillTemplate.findUnique({ where: { id: d.input.id } });
+    let sourceSkill = d.input.sourceSkillId
+      ? await skillService.getActiveSkillById({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          skillId: d.input.sourceSkillId
+        })
+      : null;
+
+    let template = await withTransaction(async db => {
+      let template = await db.skillTemplate.upsert({
+        where: { id: d.input.id },
+        create: {
+          ...getId('skillTemplate'),
+          id: d.input.id,
+          status: d.input.status,
+          owner: d.input.owner,
+          slug: d.input.slug,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+          storeId: d.input.storeId,
+          storeTemplateId: d.input.storeTemplateId,
+          systemIdentifier: d.input.systemIdentifier,
+          tenantOid: d.input.owner === 'tenant' ? d.tenant.oid : null,
+          solutionOid: d.input.owner === 'tenant' ? d.solution.oid : null,
+          environmentOid: d.input.owner === 'tenant' ? d.environment.oid : null
+        },
+        update: {
+          status: d.input.status,
+          owner: d.input.owner,
+          slug: d.input.slug,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+          storeId: d.input.storeId,
+          storeTemplateId: d.input.storeTemplateId,
+          systemIdentifier: d.input.systemIdentifier
+        },
+        include: skillTemplateInclude
+      });
+
+      if (sourceSkill && !existing) {
+        let items = await skillTemplateItemService.buildSkillTemplateItemsFromSkill({
+          skillOid: sourceSkill.oid,
+          skillTemplateOid: template.oid
+        });
+        if (items.length) await db.skillTemplateItem.createMany({ data: items });
+      }
+
+      return await db.skillTemplate.findUniqueOrThrow({
+        where: { id: template.id },
+        include: skillTemplateInclude
+      });
+    });
+
+    await (existing ? skillTemplateUpdatedQueue : skillTemplateCreatedQueue).add({
+      skillTemplateId: template.id
+    });
+    return template;
   }
 
   async listSkillTemplates(d: {
@@ -175,14 +261,7 @@ class skillTemplateServiceImpl {
     if (!d.search?.length) d.search = undefined;
 
     let accessibleScope = getAccessibleScope(d);
-    let search = d.search
-      ? await voyager.record.search({
-          tenantId: d.tenant.id,
-          sourceId: (await voyagerSource).id,
-          indexId: voyagerIndex.skillTemplate.id,
-          query: d.search
-        })
-      : null;
+    let search = null;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -193,7 +272,6 @@ class skillTemplateServiceImpl {
             OR: accessibleScope.length ? accessibleScope : undefined,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
-              search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
               d.providerIds
                 ? {
                     skillTemplateItems: {
@@ -276,6 +354,25 @@ class skillTemplateServiceImpl {
       skillId?: string;
     };
   }) {
+    let id = getId('skillTemplate').id;
+    return await this.upsertMetorialSkillTemplate({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      input: {
+        id,
+        status: 'active',
+        owner: 'tenant',
+        slug: getSlug({ name: d.input.name }),
+        name: d.input.name,
+        description: d.input.description,
+        metadata: d.input.metadata,
+        storeId: `projection-${id}`,
+        storeTemplateId: `projection-template-${id}`,
+        sourceSkillId: d.input.skillId
+      }
+    });
+    /*
     let name = d.input.name.trim();
     if (!name.length) {
       throw new ServiceError(
@@ -298,7 +395,7 @@ class skillTemplateServiceImpl {
         })
       : null;
     let cargoTemplate = sourceSkill
-      ? await cargo.skillTemplate.create({
+      ? await removedLegacyClient.skillTemplate.create({
           ...cargoScope,
           name,
           skillId: sourceSkill.id,
@@ -307,7 +404,7 @@ class skillTemplateServiceImpl {
       : await (async () => {
           let cargoStore = await createStoreForPlainTemplate(cargoScope, name);
 
-          return await cargo.skillTemplate.create({
+          return await removedLegacyClient.skillTemplate.create({
             ...cargoScope,
             name,
             storeId: cargoStore.id,
@@ -376,6 +473,7 @@ class skillTemplateServiceImpl {
     });
 
     return enrichedSkillTemplate ?? skillTemplate;
+    */
   }
 
   async updateSkillTemplate(d: {
@@ -393,8 +491,6 @@ class skillTemplateServiceImpl {
       where: { oid: d.skillTemplate.oid }
     });
 
-    let cargoScope = await ensureCargoScope(d);
-
     let template = await withTransaction(async db => {
       let template = await db.skillTemplate.update({
         where: {
@@ -405,12 +501,6 @@ class skillTemplateServiceImpl {
           input: d.input
         }),
         include: skillTemplateInclude
-      });
-
-      await cargo.skillTemplate.update({
-        ...cargoScope,
-        skillTemplateId: template.id,
-        name: template.name
       });
 
       await addAfterTransactionHook(async () =>

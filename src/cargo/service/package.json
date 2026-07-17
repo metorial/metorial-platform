@@ -13,7 +13,7 @@
     "worker:start": "bun ./dist-worker/index.js",
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "worker:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/worker.ts",
-    "enterprise:dev": "bun run dev",
+    "_enterprise:dev": "bun run dev",
     "dev:docker": "docker compose -p cargo -f ./docker-compose.dev.yml --profile infra --profile service up -d --pull always --build",
     "infra:up": "docker compose -p cargo -f ./docker-compose.dev.yml --profile infra up -d --pull always",
     "infra:down": "docker compose -p cargo -f ./docker-compose.dev.yml --profile infra down",

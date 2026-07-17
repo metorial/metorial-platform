@@ -23,9 +23,9 @@ export let v1SkillSyncPresenter = Presenter.create(skillSyncType)
     object: 'skill.sync' as const,
     id: skillSync.id,
     status: skillSync.status,
-    skill_marketplace_id: skillSync.skillMarketplaceId ?? null,
-    skill_plugin_id: skillSync.skillPluginId ?? null,
-    logs: skillSync.logs.map(([ts, msg]) => ({
+    skill_marketplace_id: skillSync.destination.skillMarketplace?.id ?? null,
+    skill_plugin_id: skillSync.destination.skillPlugin?.id ?? null,
+    logs: (skillSync.logs as [number, string][]).map(([ts, msg]) => ({
       timestamp: new Date(ts),
       message: msg
     })),
@@ -33,7 +33,7 @@ export let v1SkillSyncPresenter = Presenter.create(skillSyncType)
       object: 'skill.sync_repository_propagation' as const,
       id: propagation.id,
       status: propagation.status,
-      repo_id: propagation.repoId,
+      repo_id: propagation.skillRepository.repoId,
       branch_name: propagation.branchName,
       pr_name: propagation.prName,
       pr_description: propagation.prDescription,

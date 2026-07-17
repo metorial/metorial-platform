@@ -25,6 +25,8 @@ import {
   OrganizationMember,
   Portal,
   Project,
+  ResourceGroup,
+  ResourceTenant,
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
@@ -194,6 +196,11 @@ export type KeyProviderEventBase = {
 
 // prettier-ignore
 export interface FabricEvents {
+  'resource_tenant.resource_group.created:after': {
+    resourceTenant: ResourceTenant;
+    resourceGroup: ResourceGroup & { resourceTenant: ResourceTenant };
+  };
+
   'user.created:before': { context?: Context };
   'user.created:after': { user: User, performedBy: User; context?: Context };
   'user.updated:before': { user: User, performedBy: User; context?: Context };
@@ -541,6 +548,7 @@ export interface FabricEvents {
 
   'skill.created:before': { instance: Instance };
   'skill.created:after': { instance: Instance; skill: Skill };
+  'skill.updated:after': { instance: Instance; skill: Skill };
   'skill.archived:after': { instance: Instance; skill: Skill };
   'skill.deleted:after': { instance: Instance; skill: Skill };
 

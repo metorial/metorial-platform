@@ -12,10 +12,11 @@ import {
   resolveStoreItems
 } from '@metorial/cargo-list-utils';
 import { internalDocumentContentStoreService } from '@metorial/cargo-module-doc';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, StoreItemKind, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 import { storeAccessService, storeReadPermission } from './storeAccess';
+import type { StoreAccessInput } from './storeAccess';
 
 export let storeItemInclude = {
   store: {
@@ -91,9 +92,10 @@ class StoreItemServiceImpl {
   }
 
   async getStoreItemById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       itemId: string;
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -116,6 +118,7 @@ class StoreItemServiceImpl {
       resourceGroup: d.resourceGroup,
       item,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -125,7 +128,7 @@ class StoreItemServiceImpl {
   }
 
   async listStoreItems(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       storeId: string;
       fileIds?: string[];
@@ -138,6 +141,7 @@ class StoreItemServiceImpl {
       updatedAt?: DateFilter;
       types?: StoreItemKind[];
       actorId?: string;
+      accessTags?: StoreAccessInput['accessTags'];
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -157,6 +161,7 @@ class StoreItemServiceImpl {
             resourceTenant: d.resourceTenant,
             resourceGroup: d.resourceGroup,
             actorId: d.actorId,
+            accessTags: d.accessTags,
             defaultPermissions: d.defaultPermissions,
             overridePermissions: d.overridePermissions,
             requiredPermission: storeReadPermission,

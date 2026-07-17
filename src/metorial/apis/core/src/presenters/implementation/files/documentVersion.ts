@@ -10,14 +10,14 @@ export let v1DocumentVersionPresenter = Presenter.create(documentVersionType)
   .presenter(async ({ documentVersion }, opts) => ({
     object: 'document.version',
     id: documentVersion.id,
-    document_id: documentVersion.documentId,
+    document_id: documentVersion.document.id,
     version_number: documentVersion.versionNumber,
-    previous_version_id: documentVersion.previousVersionId ?? null,
+    previous_version_id: documentVersion.previousVersion?.id ?? null,
     list_edited_at: documentVersion.listEditedAt ?? null,
-    content: documentVersion.content,
+    content: documentVersion.content.content,
     editors: await Promise.all(
-      documentVersion.editors.map(
-        async actor => await presentDocumentParticipantActor(actor, opts)
+      documentVersion.documentVersionEditors.map(
+        async editor => await presentDocumentParticipantActor(editor.resourceActor, opts)
       )
     ),
     created_at: documentVersion.createdAt

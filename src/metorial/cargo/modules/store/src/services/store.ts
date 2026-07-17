@@ -15,7 +15,7 @@ import {
   documentService,
   rewriteDocumentMarkdownTitle
 } from '@metorial/cargo-module-doc';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import {
   filePurposeService,
   fileService,
@@ -76,7 +76,7 @@ class StoreServiceImpl {
     );
   }
 
-  private async getStoreRecord(d: CargoResourceScope & { storeId: string }) {
+  private async getStoreRecord(d: ResourceScope & { storeId: string }) {
     return await withTransaction(
       async db => {
         let store = await db.store.findFirst({
@@ -96,7 +96,7 @@ class StoreServiceImpl {
   }
 
   private assertStoreTemplateCloneScope(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       storeTemplate: Pick<
         StoreTemplateRecord,
         'id' | 'resourceTenantOid' | 'resourceGroupOid'
@@ -155,7 +155,7 @@ class StoreServiceImpl {
   }
 
   private async instantiateStandaloneTemplateItems(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       store: Store;
       storeTemplate: StoreTemplateRecord;
       actor?: ResourceActor;
@@ -254,7 +254,7 @@ class StoreServiceImpl {
   }
 
   async createStore(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       input: {
         id?: string;
         name: string;
@@ -323,7 +323,7 @@ class StoreServiceImpl {
   }
 
   async createStoreFromTemplate(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       input: {
         templateId: string;
         id?: string;
@@ -394,7 +394,7 @@ class StoreServiceImpl {
   }
 
   async listStores(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         ids?: string[];
         parentStoreIds?: string[];
@@ -454,7 +454,7 @@ class StoreServiceImpl {
   }
 
   async getStoreById(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         storeId: string;
       }
@@ -465,6 +465,7 @@ class StoreServiceImpl {
       resourceGroup: d.resourceGroup,
       store,
       actorId: d.actor?.id,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -474,7 +475,7 @@ class StoreServiceImpl {
   }
 
   async getStorePermissions(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
@@ -484,13 +485,14 @@ class StoreServiceImpl {
       resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions
     });
   }
 
   async updateStore(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         input: {
@@ -516,6 +518,7 @@ class StoreServiceImpl {
       resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -553,7 +556,7 @@ class StoreServiceImpl {
   }
 
   async cloneStore(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         input: {
@@ -571,6 +574,7 @@ class StoreServiceImpl {
       resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -629,7 +633,7 @@ class StoreServiceImpl {
   }
 
   async deleteStore(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         allowLinkedSkillDelete?: boolean;
@@ -645,6 +649,7 @@ class StoreServiceImpl {
       resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -730,7 +735,7 @@ class StoreServiceImpl {
   }
 
   async modifyStoreItems(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         operations: StoreItemOperationInput[];
@@ -745,6 +750,7 @@ class StoreServiceImpl {
       resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -760,7 +766,7 @@ class StoreServiceImpl {
   }
 
   private async cloneStoreItemIntoStore(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreServiceAccessInput & {
         targetStore: Store;
         item: StoreItemRecord;

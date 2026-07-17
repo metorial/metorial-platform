@@ -2,25 +2,26 @@ import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { skillPluginType } from '../../types';
+import { skillDestinationSyncStatusPresenter } from './skillDestination';
 import { v1SkillPluginSkillPresenter } from './skillPluginSkill';
 
 export let v1SkillPluginPresenter = Presenter.create(skillPluginType)
   .presenter(async ({ skillPlugin }, opts) => ({
     object: 'skill.plugin' as const,
-    id: skillPlugin.backing.id,
+    id: skillPlugin.id,
     status: skillPlugin.status,
-    sync_status: skillPlugin.syncStatus,
+    sync_status: skillDestinationSyncStatusPresenter(skillPlugin.destination),
     image_url: await getImageUrl(skillPlugin),
-    name: skillPlugin.name,
+    name: skillPlugin.name!,
     description: skillPlugin.description,
     long_description: skillPlugin.longDescription,
     category: skillPlugin.category,
-    slug: skillPlugin.slug,
-    skill_configuration_id: skillPlugin.skillConfigurationId ?? null,
+    slug: skillPlugin.slug!,
+    skill_configuration_id: skillPlugin.skillConfiguration?.id ?? null,
     skills: await Promise.all(
-      skillPlugin.skills.map(skillPluginSkill =>
+      skillPlugin.skillPluginSkills.map(skillPluginSkill =>
         v1SkillPluginSkillPresenter
-          .present({ skillPluginSkill: { ...skillPluginSkill, skillPlugin } }, opts)
+          .present({ skillPluginSkill }, opts)
           .run()
       )
     ),

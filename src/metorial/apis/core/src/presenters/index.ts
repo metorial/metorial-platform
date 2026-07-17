@@ -634,7 +634,8 @@ export let consumerOAuthTestAuthorizationPresenter = declarePresenter(
 
 export let filePresenter = declarePresenter(fileType, {
   mt_2025_01_01_dashboard: dashboardFilePresenter,
-  mt_2026_01_01_magnetar: v1FilePresenter
+  mt_2026_01_01_magnetar: v1FilePresenter,
+  mt_2026_04_01_consumer: dashboardFilePresenter
 });
 
 export let fileLinkPresenter = declarePresenter(fileLinkType, {

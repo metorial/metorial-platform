@@ -7,7 +7,7 @@ import {
   resolveStoreVersions,
   type DateFilter
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db, withTransaction, type TransactionDB } from '@metorial/db';
 import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
@@ -602,7 +602,7 @@ class StoreVersionServiceImpl {
   }
 
   async listStoreVersions(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         storeId: string;
         ids?: string[];
@@ -649,7 +649,7 @@ class StoreVersionServiceImpl {
   }
 
   async getStoreVersionById(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         storeVersionId: string;
       }
@@ -681,7 +681,7 @@ class StoreVersionServiceImpl {
   }
 
   async getLatestStoreVersion(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         storeId: string;
       }
@@ -733,7 +733,7 @@ class StoreVersionServiceImpl {
   }
 
   async getResolvedStoreVersion(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         storeId: string;
         storeVersionId: string;

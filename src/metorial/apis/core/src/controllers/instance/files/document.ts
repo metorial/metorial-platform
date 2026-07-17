@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { documentEditTokenService, documentService } from '@metorial/module-file';
+import { documentEditTokenService, documentService } from '@metorial/cargo-module-doc';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -22,12 +22,7 @@ export let documentGroup = instanceGroup.use(async ctx => {
 
   let document = await documentService.getDocumentById({
     documentId: ctx.params.documentId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
   return { document };
@@ -66,12 +61,7 @@ export let documentController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await documentService.listDocuments({
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           fileIds: normalizeArrayParam(ctx.query.file_id),
           storeIds: normalizeArrayParam(ctx.query.store_id),
@@ -104,16 +94,17 @@ export let documentController = Controller.create(
       )
       .output(documentPresenter)
       .do(async ctx => {
+        let access = await getInstanceCargoAccess(ctx);
         let document = await documentService.createDocument({
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
           input: {
             title: ctx.body.title,
-            content: ctx.body.content
+            content: ctx.body.content,
+            actorId: access.actorId,
+            accessTags: access.accessTags,
+            defaultPermissions: access.defaultPermissions,
+            overridePermissions: access.overridePermissions
           }
         });
 
@@ -148,13 +139,8 @@ export let documentController = Controller.create(
       .output(documentPermissionsPresenter)
       .do(async ctx => {
         let permissions = await documentService.getDocumentPermissions({
-          documentId: ctx.document.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx)
+          document: ctx.document,
+          ...(await getInstanceCargoAccess(ctx))
         });
 
         return documentPermissionsPresenter.present({ permissions });
@@ -174,14 +160,9 @@ export let documentController = Controller.create(
       )
       .output(documentEditTokenPresenter)
       .do(async ctx => {
-        let cargoAccess = getInstanceCargoAccess(ctx);
+        let cargoAccess = await getInstanceCargoAccess(ctx);
         let permissions = await documentService.getDocumentPermissions({
-          documentId: ctx.document.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
+          document: ctx.document,
           ...cargoAccess
         });
 
@@ -197,7 +178,19 @@ export let documentController = Controller.create(
           documentId: ctx.document.id,
           instanceId: ctx.instance.id,
           organizationId: ctx.organization.id,
-          accessActor: cargoAccess.accessActor,
+          accessActor: (ctx.member?.actor
+            ? {
+                identifier: `mte-oac-${ctx.member.actor.id}`,
+                name: ctx.member.actor.name,
+                organizationActorId: ctx.member.actor.id
+              }
+            : ctx.consumerProfile?.consumer
+              ? {
+                  identifier: `mte-con-${ctx.consumerProfile.consumer.id}`,
+                  name: ctx.consumerProfile.consumer.name,
+                  consumerId: ctx.consumerProfile.consumer.id
+                }
+              : undefined) as any,
           defaultPermissions: cargoAccess.defaultPermissions,
           overridePermissions: cargoAccess.overridePermissions
         });
@@ -225,17 +218,18 @@ export let documentController = Controller.create(
       )
       .output(documentPresenter)
       .do(async ctx => {
+        let access = await getInstanceCargoAccess(ctx);
         let document = await documentService.updateDocument({
           document: ctx.document,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
           input: {
             title: ctx.body.title,
-            content: ctx.body.content
+            content: ctx.body.content,
+            actorId: access.actorId,
+            accessTags: access.accessTags,
+            defaultPermissions: access.defaultPermissions,
+            overridePermissions: access.overridePermissions
           }
         });
 
@@ -257,12 +251,7 @@ export let documentController = Controller.create(
       .do(async ctx => {
         let document = await documentService.deleteDocument({
           document: ctx.document,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx)
+          ...(await getInstanceCargoAccess(ctx))
         });
 
         return documentPresenter.present({ document });
@@ -284,17 +273,19 @@ export let documentController = Controller.create(
       )
       .output(documentPresenter)
       .do(async ctx => {
+        let access = await getInstanceCargoAccess(ctx);
         let document = await documentService.cloneDocument({
           document: ctx.document,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
           input: {
             id: ctx.body.target_document_id,
-            title: ctx.body.title
+            title: ctx.body.title,
+            actorId: access.actorId,
+            creatorActorId: access.actorId,
+            accessTags: access.accessTags,
+            defaultPermissions: access.defaultPermissions,
+            overridePermissions: access.overridePermissions
           }
         });
 

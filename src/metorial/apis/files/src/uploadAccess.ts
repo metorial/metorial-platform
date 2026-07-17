@@ -1,16 +1,16 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
-import { organizationService } from '@metorial/module-organization';
 import {
   getInstanceCargoAccess,
   type InstanceCargoAccessContext
-} from '../../../modules/file/src/instanceAccess';
-import type { FileOwner } from '../../../modules/file/src/services/file';
+} from '@metorial/cargo-module-file';
+import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
+import { organizationService } from '@metorial/module-organization';
+import { type ResourceScopeOwner } from '@metorial/module-resource-tenant';
 
 let uploadScopes = ['instance.file:write', 'consumer#instance.file:write'] as const;
 
 type ResolvedUploadTarget = {
-  owner: FileOwner;
+  owner: ResourceScopeOwner;
   cargoAccess?: ReturnType<typeof getInstanceCargoAccess>;
   isInstanceOwner: boolean;
   canWrite: boolean;
@@ -86,7 +86,6 @@ export let resolveUploadTarget = async (d: {
     return {
       owner: {
         type: 'instance',
-        organization: instanceAccess.organization,
         instance: instanceAccess.instance
       },
       cargoAccess: getInstanceCargoAccess(cargoAccessContext),

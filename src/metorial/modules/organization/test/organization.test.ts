@@ -84,12 +84,29 @@ vi.mock('date-fns', () => ({
   differenceInMinutes: vi.fn()
 }));
 
-vi.mock('@metorial/module-file', () => ({
+vi.mock('@metorial/config', () => ({
+  getConfig: vi.fn(() => ({
+    urls: {
+      filesUrl: 'https://files.example.com'
+    }
+  }))
+}));
+
+vi.mock('@metorial/cargo-module-file', () => ({
+  fileService: {
+    getFileById: vi.fn()
+  },
+  fileLinkService: {
+    createFileLink: vi.fn()
+  },
   fileReferenceService: {
-    resolveImageEntityImage: vi.fn(),
-    createImageEntityImage: vi.fn(),
-    cleanupImageEntityImage: vi.fn()
+    upsertFileReference: vi.fn(),
+    deleteFileReferenceByIdAndCleanup: vi.fn()
   }
+}));
+
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveResourceScopeForOwner: vi.fn()
 }));
 
 // Mock organizationActorService
@@ -138,7 +155,7 @@ vi.mock('../src/queues/syncBrand', () => ({
 
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { fileReferenceService } from '@metorial/module-file';
+import { fileReferenceService } from '@metorial/cargo-module-file';
 import { differenceInMinutes } from 'date-fns';
 import { syncProfileQueue } from '../src/queues/syncProfile';
 import { organizationService } from '../src/services/organization';
@@ -631,8 +648,8 @@ describe('OrganizationService', () => {
         performedBy: { id: 'actor-1', oid: 1 } as any
       });
 
-      expect(fileReferenceService.cleanupImageEntityImage).toHaveBeenCalledWith({
-        image: mockOrg.image
+      expect(fileReferenceService.deleteFileReferenceByIdAndCleanup).toHaveBeenCalledWith({
+        fileReferenceId: 'frf_old'
       });
     });
 

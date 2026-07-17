@@ -1,7 +1,7 @@
 import { internalServerError, isServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
-import { db } from '@metorial/db';
+import { db, type StoreParticipantPermissions } from '@metorial/db';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
@@ -74,6 +74,8 @@ type LiveSession = {
   documentId: string;
   actorId: string;
   canWrite: boolean;
+  defaultPermissions?: StoreParticipantPermissions[];
+  overridePermissions?: boolean;
   lastPingAt: number;
   awarenessClientId?: number;
   awarenessUpdate?: string;
@@ -239,8 +241,6 @@ let presentActor = (actor: any) => ({
   identifier: actor.identifier,
   type: actor.type,
   name: actor.name,
-  organizationActorOid: actor.organizationActorOid,
-  consumerOid: actor.consumerOid,
   createdAt: actor.createdAt
 });
 
@@ -490,15 +490,40 @@ let cleanupTimer = setInterval(() => {
 }, participantCleanupIntervalMs);
 cleanupTimer.unref?.();
 
-export let documentLiveApi = createHono()
+type DocumentLiveConnection = {
+  documentId: string;
+  actorId: string;
+  canWrite: boolean;
+  defaultPermissions?: StoreParticipantPermissions[];
+  overridePermissions?: boolean;
+};
+
+type DocumentLiveApiOptions = {
+  path?: string;
+  resolveConnection?: (d: { request: Request; url: URL }) => Promise<DocumentLiveConnection>;
+};
+
+export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
+  createHono()
   .get('/ping', c => c.text('OK'))
   .get(
-    '/document-live',
+    options?.path ?? '/document-live',
     upgradeWebSocket(async c => {
       let url = new URL(c.req.url);
-      let documentId = url.searchParams.get('documentId');
-      let actorId = url.searchParams.get('actorId');
-      let canWrite = url.searchParams.get('canWrite') === 'true';
+      let connection = options?.resolveConnection
+        ? await options.resolveConnection({
+            request: c.req.raw,
+            url
+          })
+        : {
+            documentId: url.searchParams.get('documentId'),
+            actorId: url.searchParams.get('actorId'),
+            canWrite: url.searchParams.get('canWrite') === 'true',
+            defaultPermissions: undefined,
+            overridePermissions: undefined
+          };
+      let { documentId, actorId, canWrite, defaultPermissions, overridePermissions } =
+        connection;
 
       if (!documentId || !actorId) {
         throw new Error('documentId and actorId query params are required');
@@ -512,7 +537,9 @@ export let documentLiveApi = createHono()
         resourceTenant: scopedDocument.resourceTenant,
         resourceGroup: scopedDocument.resourceGroup,
         documentId,
-        actorId
+        actorId,
+        defaultPermissions,
+        overridePermissions
       });
 
       let sessionId = generatePlainId(20);
@@ -524,6 +551,8 @@ export let documentLiveApi = createHono()
             documentId,
             actorId,
             canWrite,
+            defaultPermissions,
+            overridePermissions,
             lastPingAt: Date.now()
           };
 
@@ -712,7 +741,9 @@ export let documentLiveApi = createHono()
               resourceTenant: currentScopedDocument.resourceTenant,
               resourceGroup: currentScopedDocument.resourceGroup,
               documentId: session.documentId,
-              actorId: session.actorId
+              actorId: session.actorId,
+              defaultPermissions: session.defaultPermissions,
+              overridePermissions: session.overridePermissions
             });
 
             let updatedDocument = await documentService.updateDocument({
@@ -778,3 +809,5 @@ export let documentLiveApi = createHono()
       };
     })
   );
+
+export let documentLiveApi = createDocumentLiveApi();

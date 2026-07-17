@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
@@ -79,7 +79,7 @@ let normalizeOriginRepository = (
 
 class SkillRepositoryServiceImpl {
   async getOriginRepositories(
-    d: CargoResourceScope & { repoIds: string[] }
+    d: ResourceScope & { repoIds: string[] }
   ): Promise<OriginRepositoryRecord[]> {
     if (d.repoIds.length === 0) return [];
 
@@ -93,7 +93,7 @@ class SkillRepositoryServiceImpl {
   }
 
   async getOriginRepository(
-    d: CargoResourceScope & { repoId: string }
+    d: ResourceScope & { repoId: string }
   ): Promise<OriginRepositoryRecord> {
     let repositories = await this.getOriginRepositories({
       resourceTenant: d.resourceTenant!,
@@ -108,7 +108,7 @@ class SkillRepositoryServiceImpl {
   }
 
   async enrichSkillRepositories<T extends SkillRepositoryRecord>(
-    d: CargoResourceScope & { skillRepositories: T[] }
+    d: ResourceScope & { skillRepositories: T[] }
   ): Promise<(T & { originRepository: OriginRepositoryRecord | null })[]> {
     let originRepositories = await this.getOriginRepositories({
       resourceTenant: d.resourceTenant!,
@@ -125,7 +125,7 @@ class SkillRepositoryServiceImpl {
     }));
   }
 
-  async ensureSkillRepositoryForRepo(d: CargoResourceScope & { repoId: string }) {
+  async ensureSkillRepositoryForRepo(d: ResourceScope & { repoId: string }) {
     await this.getOriginRepository(d);
 
     let existing = await db.skillRepository.findUnique({
@@ -192,7 +192,7 @@ class SkillRepositoryServiceImpl {
     }
   }
 
-  async getSkillRepositoryById(d: CargoResourceScope & { skillRepositoryId: string }) {
+  async getSkillRepositoryById(d: ResourceScope & { skillRepositoryId: string }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
         resourceTenantOid: d.resourceTenant.oid,
@@ -207,7 +207,7 @@ class SkillRepositoryServiceImpl {
     return skillRepository;
   }
 
-  async getSkillRepositoryByRepoId(d: CargoResourceScope & { repoId: string }) {
+  async getSkillRepositoryByRepoId(d: ResourceScope & { repoId: string }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
         resourceTenantOid: d.resourceTenant.oid,

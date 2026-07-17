@@ -26,10 +26,7 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { checkTenant } from '@metorial-subspace/module-tenant';
-import { cargo, ensureCargoActor, ensureCargoScope } from '../cargo';
-import { plainTemplate } from '../definitions';
 import { inferClientName, normalizeSkillClientFields } from '../lib/clientMetadata';
 import {
   skillArchivedQueue,
@@ -68,12 +65,6 @@ export let skillInclude = {
   },
   ownerTenantActor: true
 };
-
-let withCargoSkillUpsertActorOverride = (
-  input: Parameters<typeof cargo.skill.upsertActor>[0] & {
-    overridePermissions?: boolean;
-  }
-) => input as Parameters<typeof cargo.skill.upsertActor>[0];
 
 let getSlug = (input: { name: string }) =>
   `${slugify(input.name)}-${generatePlainId(7).toLowerCase()}`.toLowerCase();
@@ -242,14 +233,7 @@ class skillServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let search = d.search
-      ? await voyager.record.search({
-          tenantId: d.tenant.id,
-          sourceId: (await voyagerSource).id,
-          indexId: voyagerIndex.skill.id,
-          query: d.search
-        })
-      : null;
+    let search = null;
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -296,7 +280,6 @@ class skillServiceImpl {
                       }
                     }
                   : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -359,102 +342,125 @@ class skillServiceImpl {
       .filter((skill): skill is NonNullable<typeof skill> => !!skill);
   }
 
-  async registerCargoSkill(d: {
+  async upsertMetorialSkill(d: {
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
-    skillId: string;
+    input: {
+      id: string;
+      status: SkillStatus;
+      slug?: string | null;
+      name: string;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      image?: EntityImage | null;
+      clientName?: string | null;
+      clientDescription?: string | null;
+      clientMetadata?: Record<string, any> | null;
+      license?: string | null;
+      compatibility?: string | null;
+      storeId: string;
+      parentSkillId?: string | null;
+      parentType?: 'fork' | 'duplicate' | null;
+      parentTemplateId?: string | null;
+    };
     tenantActor?: TenantActor;
   }) {
-    let getExisting = async () =>
-      await db.skill.findFirst({
-        where: {
-          id: d.skillId,
-          tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
-        },
-        include: skillInclude
-      });
-    let existing = await getExisting();
-    if (existing) return existing;
-
-    let cargoScope = await ensureCargoScope(d);
-    let cargoSkill = await cargo.skill.get({
-      ...cargoScope,
-      skillId: d.skillId
-    });
-    let name = cargoSkill.name?.trim() || 'Imported skill';
-    let skillIds = getId('skill');
-    let skillEntityIds = getId('skillEntity');
-    let slug = getSlug({ name });
-
-    try {
-      return await withTransaction(async db => {
-        let existing = await db.skill.findFirst({
+    let parentSkill = d.input.parentSkillId
+      ? await db.skill.findFirst({
           where: {
-            id: d.skillId,
-            tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid
-          },
-          include: skillInclude
-        });
-        if (existing) return existing;
-
-        let skillEntity = await db.skillEntity.create({
-          data: {
-            ...skillEntityIds,
-            slug,
-            name,
-            description: cargoSkill.description,
-            image: (cargoSkill.image ?? undefined) as any,
+            id: d.input.parentSkillId,
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
             environmentOid: d.environment.oid
           }
-        });
-        let skill = await db.skill.create({
+        })
+      : null;
+    let parentTemplate = d.input.parentTemplateId
+      ? await db.skillTemplate.findFirst({
+          where: { id: d.input.parentTemplateId }
+        })
+      : null;
+    let existing = await db.skill.findUnique({
+      where: { id: d.input.id },
+      include: { skillEntity: true }
+    });
+    let slug = d.input.slug?.trim() || existing?.slug || getSlug({ name: d.input.name });
+
+    return await withTransaction(async db => {
+      let skillEntity =
+        existing?.skillEntity ??
+        (await db.skillEntity.create({
           data: {
-            ...skillIds,
-            id: cargoSkill.id,
-            status: 'active',
+            ...getId('skillEntity'),
             slug,
-            name,
-            description: cargoSkill.description,
-            metadata: (cargoSkill.metadata ?? undefined) as any,
-            image: (cargoSkill.image ?? undefined) as any,
-            clientName: cargoSkill.clientName?.trim() || name,
-            clientDescription: cargoSkill.clientDescription,
-            clientMetadata: (cargoSkill.clientMetadata ?? undefined) as any,
-            license: cargoSkill.license,
-            compatibility: cargoSkill.compatibility,
-            storeId: cargoSkill.storeId,
-            skillEntityOid: skillEntity.oid,
+            name: d.input.name,
+            description: d.input.description,
+            image: (d.input.image ?? undefined) as any,
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid,
-            ownerTenantActorOid: d.tenantActor?.oid
-          },
-          include: skillInclude
-        });
+            environmentOid: d.environment.oid
+          }
+        }));
 
+      let skill = await db.skill.upsert({
+        where: { id: d.input.id },
+        create: {
+          ...getId('skill'),
+          id: d.input.id,
+          status: d.input.status,
+          slug,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+          image: (d.input.image ?? undefined) as any,
+          clientName: d.input.clientName?.trim() || d.input.name,
+          clientDescription: d.input.clientDescription,
+          clientMetadata: d.input.clientMetadata as any,
+          license: d.input.license,
+          compatibility: d.input.compatibility,
+          storeId: d.input.storeId,
+          skillEntityOid: skillEntity.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid,
+          ownerTenantActorOid: d.tenantActor?.oid,
+          forkedFromSkillOid:
+            d.input.parentType === 'fork' ? parentSkill?.oid : null,
+          duplicatedFromSkillOid:
+            d.input.parentType === 'duplicate' ? parentSkill?.oid : null,
+          parentTemplateOid: parentTemplate?.oid
+        },
+        update: {
+          status: d.input.status,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
+          image: (d.input.image ?? undefined) as any,
+          clientName: d.input.clientName?.trim() || d.input.name,
+          clientDescription: d.input.clientDescription,
+          clientMetadata: d.input.clientMetadata as any,
+          license: d.input.license,
+          compatibility: d.input.compatibility,
+          storeId: d.input.storeId,
+          ownerTenantActorOid: d.tenantActor?.oid,
+          parentTemplateOid: parentTemplate?.oid
+        },
+        include: skillInclude
+      });
+
+      if (!skillEntity.ownerSkillOid) {
         await db.skillEntity.update({
           where: { oid: skillEntity.oid },
           data: { ownerSkillOid: skill.oid }
         });
-        await addAfterTransactionHook(async () =>
-          skillCreatedQueue.add({ skillId: skill.id })
-        );
+      }
 
-        return skill;
-      });
-    } catch (error) {
-      // Concurrent import status requests may attempt the same registration.
-      let existing = await getExisting();
-      if (existing) return existing;
-      throw error;
-    }
+      await addAfterTransactionHook(async () =>
+        (existing ? skillUpdatedQueue : skillCreatedQueue).add({ skillId: skill.id })
+      );
+      return skill;
+    });
   }
 
   async createSkill(d: {
@@ -492,6 +498,36 @@ class skillServiceImpl {
           parentSkillId?: never;
         };
   }) {
+    let id = getId('skill').id;
+    return await this.upsertMetorialSkill({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      tenantActor: d._operation.tenantActor,
+      input: {
+        id,
+        status: 'active',
+        name: d.input.name,
+        description: d.input.description,
+        metadata: d.input.metadata,
+        image: d.input.image,
+        clientName: d.input.clientName,
+        clientDescription: d.input.clientDescription,
+        clientMetadata: d.input.clientMetadata,
+        license: d.input.license,
+        compatibility: d.input.compatibility,
+        storeId: `projection-${id}`,
+        parentSkillId: d._operation.parentSkillId,
+        parentType:
+          d._operation.type === 'fork'
+            ? 'fork'
+            : d._operation.type === 'duplicate'
+              ? 'duplicate'
+              : null,
+        parentTemplateId: d.input.templateId
+      }
+    });
+    /*
     if (
       d.input.templateId &&
       (d._operation.type === 'fork' || d._operation.type === 'duplicate')
@@ -556,7 +592,7 @@ class skillServiceImpl {
       ? await ensureCargoActor(cargoScope, d._operation.tenantActor)
       : undefined;
 
-    let cargoSkill = await cargo.skill.create({
+    let cargoSkill = await removedLegacyClient.skill.create({
       ...cargoScope,
       skillId: skillData.id,
       name: skillData.name,
@@ -719,6 +755,7 @@ class skillServiceImpl {
         include: skillInclude
       });
     });
+    */
   }
 
   async forkSkill(d: {
@@ -829,17 +866,12 @@ class skillServiceImpl {
     let input = d.input;
 
     if (d.input.imageFileId !== undefined) {
-      let cargoScope = await ensureCargoScope(d);
-      let cargoSkill = await cargo.skill.update({
-        ...cargoScope,
-        skillId: d.skill.id,
-        imageFileId: d.input.imageFileId
-      });
-
-      input = {
-        ...input,
-        image: cargoSkill.image as EntityImage | null
-      };
+      throw new ServiceError(
+        badRequestError({
+          message: 'Skill images must be updated by Metorial.',
+          code: 'skill_metorial_authoritative'
+        })
+      );
     }
 
     return await withTransaction(async db => {
@@ -932,18 +964,12 @@ class skillServiceImpl {
     checkTenant(d, d.skill);
     checkDeletedRelation(d.skill);
 
-    let cargoScope = await ensureCargoScope(d);
-    let cargoActor = await ensureCargoActor(cargoScope, d.tenantActor);
-
-    return await cargo.skill.upsertActor(
-      withCargoSkillUpsertActorOverride({
-        ...cargoScope,
-        skillId: d.skill.id,
-        actorId: cargoActor.id,
-        permissions: d.permissions,
-        overridePermissions: d.overridePermissions
-      })
-    );
+    return {
+      skillId: d.skill.id,
+      actorId: d.tenantActor.id,
+      storeParticipantId: undefined as string | undefined,
+      permissions: d.permissions
+    };
   }
 
   async getActiveSkillById(d: {

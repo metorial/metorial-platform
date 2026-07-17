@@ -1,6 +1,6 @@
-import { ConsumerGroup, ConsumerProfile, Instance } from '@metorial/db';
+import { ConsumerGroup, ConsumerProfile, db, Instance } from '@metorial/db';
+import { skillService } from '@metorial/cargo-module-skill';
 import { consumerSkillService } from '@metorial/module-consumer';
-import { subspaceSkillService } from '@metorial/module-subspace';
 
 export let assertConsumerCanWriteSkillGroupItem = async (d: {
   instance: Instance;
@@ -10,16 +10,23 @@ export let assertConsumerCanWriteSkillGroupItem = async (d: {
 }) => {
   if (!d.consumerProfile) return;
 
-  let skill = await subspaceSkillService.get({
-    instance: d.instance,
+  let instance = await db.instance.findUniqueOrThrow({
+    where: { id: d.instance.id },
+    include: { resourceTenant: true, resourceGroup: true }
+  });
+  if (!instance.resourceTenant || !instance.resourceGroup) {
+    throw new Error('Instance has no Cargo resource scope');
+  }
+  let skill = await skillService.getSkillById({
+    resourceTenant: instance.resourceTenant,
+    resourceGroup: instance.resourceGroup,
     skillId: d.skillId,
     allowDeleted: true,
-    consumerProfile: d.consumerProfile,
-    consumerGroups: d.consumerGroups ?? []
+    consumerProfileOid: d.consumerProfile.oid
   });
 
   await consumerSkillService.assertConsumerCanWriteSkill({
-    skill: skill.localSkill,
+    skill,
     consumerProfile: d.consumerProfile
   });
 };

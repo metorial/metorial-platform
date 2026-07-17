@@ -1,13 +1,10 @@
-import {
-  badRequestError,
-  forbiddenError,
-  notFoundError,
-  ServiceError
+import { badRequestError, forbiddenError, notFoundError, ServiceError
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { resourceActorService } from '@metorial/module-resource-tenant';
+import { type ResourceScope } from '@metorial/module-resource-tenant';
 import { db, withTransaction } from '@metorial/db';
 import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
@@ -40,7 +37,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async listComments(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId?: string;
     }
@@ -71,7 +68,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async createComment(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId?: string;
       inReplyToCommentId?: string;
@@ -84,7 +81,7 @@ class SkillMergeRequestCommentServiceImpl {
       throw new ServiceError(badRequestError({ message: 'Comment body cannot be empty' }));
     }
 
-    let actor = await actorService.getActorById({
+    let actor = await resourceActorService.getActorById({
       resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
@@ -161,7 +158,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async updateComment(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
       actorId: string;
@@ -173,7 +170,7 @@ class SkillMergeRequestCommentServiceImpl {
       throw new ServiceError(badRequestError({ message: 'Comment body cannot be empty' }));
     }
 
-    let actor = await actorService.getActorById({
+    let actor = await resourceActorService.getActorById({
       resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
@@ -196,14 +193,14 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async deleteComment(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
       actorId: string;
       canManageComments?: boolean;
     }
   ) {
-    let actor = await actorService.getActorById({
+    let actor = await resourceActorService.getActorById({
       resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });

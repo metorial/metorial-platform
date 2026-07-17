@@ -3,6 +3,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { snowflake } from '@metorial/cargo-config/id';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -11,12 +12,22 @@ import {
   resolveSkillTemplates,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { actorService, resolveInstanceResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  resourceActorService,
+  resolveInstanceResourceScope
+} from '@metorial/module-resource-tenant';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  consumerSkillReadRoles
+} from '@metorial/module-access';
+import { subspaceSkillService } from '@metorial/module-subspace';
 import {
   storeAccessService,
   storeReadPermission,
   storeService,
+  storeWritePermission,
   storeVersionService
 } from '@metorial/cargo-module-store';
 import type { EntityImage, Prisma, StoreParticipantPermissions } from '@metorial/db';
@@ -45,7 +56,15 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 }>;
 
 class SkillServiceImpl {
-  private async getSkillRecord(d: CargoResourceScope & { skillId: string }) {
+  private async getSkillRecord(
+    d: ResourceScope & {
+      skillId: string;
+      allowDeleted?: boolean;
+      accessTags?: AnyAccessTagSelector;
+      consumerProfileOid?: bigint;
+    }
+  ) {
+    let accessWhere = await this.getConsumerAccessWhere(d);
     return await withTransaction(
       async db => {
         let skill = await db.skill.findFirst({
@@ -53,7 +72,8 @@ class SkillServiceImpl {
             resourceTenantOid: d.resourceTenant.oid,
             resourceGroupOid: d.resourceGroup.oid,
             id: d.skillId,
-            status: 'active'
+            status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
+            AND: accessWhere ? [accessWhere] : undefined
           },
           include: skillInclude
         });
@@ -67,7 +87,7 @@ class SkillServiceImpl {
   }
 
   async createSkill(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       parentSkill?: SkillRecord;
       parentSkillTemplate?: SkillTemplateRecord;
       parentSkillCloneType?: 'fork' | 'duplicate';
@@ -104,7 +124,7 @@ class SkillServiceImpl {
     }
 
     let actor = d.input.actorId
-      ? await actorService.getActorById({
+      ? await resourceActorService.getActorById({
           resourceTenant: d.resourceTenant!,
           actorId: d.input.actorId
         })
@@ -257,13 +277,22 @@ class SkillServiceImpl {
   }
 
   async listSkills(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       storeIds?: string[];
       parentSkillIds?: string[];
       parentSkillTemplateIds?: string[];
       createdByActorIds?: string[];
       createdAt?: DateFilter;
+      updatedAt?: DateFilter;
+      search?: string;
+      statuses?: Array<'active' | 'archived' | 'deleted'>;
+      skillGroupIds?: string[];
+      integrationIds?: string[];
+      providerIds?: string[];
+      allowDeleted?: boolean;
+      accessTags?: AnyAccessTagSelector;
+      consumerProfileOid?: bigint;
     }
   ) {
     let skills = await resolveSkills(d, d.ids);
@@ -271,6 +300,93 @@ class SkillServiceImpl {
     let parentSkills = await resolveSkills(d, d.parentSkillIds);
     let parentSkillTemplates = await resolveSkillTemplates(d, d.parentSkillTemplateIds);
     let createdByActors = await resolveResourceActors(d, d.createdByActorIds);
+    let accessWhere = await this.getConsumerAccessWhere(d);
+    let delegatedResourceSkillIds: string[] | undefined;
+    if (d.integrationIds?.length || d.providerIds?.length) {
+      let instance = await db.instance.findFirst({
+        where: {
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
+        }
+      });
+      if (instance) {
+        let candidates = await db.skill.findMany({
+          where: {
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
+            status: d.accessTags
+              ? 'active'
+              : d.statuses?.length
+                ? { in: d.statuses }
+                : d.allowDeleted
+                  ? undefined
+                  : 'active',
+            AND: accessWhere ? [accessWhere] : undefined
+          },
+          select: { id: true }
+        });
+        let hydrated = [];
+        for (let offset = 0; offset < candidates.length; offset += 100) {
+          hydrated.push(
+            ...(await subspaceSkillService.hydrateResources({
+              instance,
+              skillIds: candidates.slice(offset, offset + 100).map(skill => skill.id)
+            }))
+          );
+        }
+        delegatedResourceSkillIds = hydrated
+          .filter(resource => {
+            let integrationMatch =
+              !d.integrationIds?.length ||
+              resource.integrations.some(integration =>
+                d.integrationIds!.includes(integration.id)
+              );
+            let providerMatch =
+              !d.providerIds?.length ||
+              resource.providers.some(provider => d.providerIds!.includes(provider.id));
+            return integrationMatch && providerMatch;
+          })
+          .map(resource => resource.skillId);
+      } else {
+        delegatedResourceSkillIds = [];
+      }
+    }
+    let normalizedSearch = d.search?.trim() || undefined;
+    let search = normalizedSearch
+      ? await voyager.record.search({
+          tenantId: d.resourceTenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.skill.id,
+          query: normalizedSearch
+        })
+      : null;
+    let andFilters: Prisma.SkillWhereInput[] = [];
+    if (skills) andFilters.push({ oid: skills.in });
+    if (stores) andFilters.push({ storeOid: stores.in });
+    if (parentSkills) andFilters.push({ parentSkillOid: parentSkills.in });
+    if (parentSkillTemplates) {
+      andFilters.push({ parentSkillTemplateOid: parentSkillTemplates.in });
+    }
+    if (createdByActors) {
+      andFilters.push({ createdByResourceActorOid: createdByActors.in });
+    }
+    if (d.createdAt) andFilters.push({ createdAt: normalizeDateFilter(d.createdAt) });
+    if (d.updatedAt) andFilters.push({ updatedAt: normalizeDateFilter(d.updatedAt) });
+    if (search) andFilters.push({ id: { in: search.map(result => result.documentId) } });
+    if (accessWhere) andFilters.push(accessWhere);
+    if (d.integrationIds?.length || d.providerIds?.length) {
+      andFilters.push({ id: { in: delegatedResourceSkillIds ?? [] } });
+    }
+    if (d.skillGroupIds?.length) {
+      andFilters.push({
+        skillGroupItems: {
+          some: {
+            status: 'active',
+            skillGroup: { id: { in: d.skillGroupIds } }
+          }
+        }
+      });
+    }
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -280,19 +396,14 @@ class SkillServiceImpl {
             where: {
               resourceTenantOid: d.resourceTenant.oid,
               resourceGroupOid: d.resourceGroup.oid,
-              status: 'active',
-              AND: [
-                skills ? { oid: skills.in } : undefined!,
-                stores ? { storeOid: stores.in } : undefined!,
-                parentSkills ? { parentSkillOid: parentSkills.in } : undefined!,
-                parentSkillTemplates
-                  ? { parentSkillTemplateOid: parentSkillTemplates.in }
-                  : undefined!,
-                createdByActors
-                  ? { createdByResourceActorOid: createdByActors.in }
-                  : undefined!,
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
-              ].filter(Boolean)
+              status: d.accessTags
+                ? 'active'
+                : d.statuses?.length
+                  ? { in: d.statuses }
+                  : d.allowDeleted
+                    ? undefined
+                    : 'active',
+              AND: andFilters
             },
             include: skillInclude
           })
@@ -301,17 +412,53 @@ class SkillServiceImpl {
   }
 
   async getSkillById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillId: string;
+      allowDeleted?: boolean;
+      accessTags?: AnyAccessTagSelector;
+      consumerProfileOid?: bigint;
     }
   ) {
     return await this.getSkillRecord(d);
   }
 
+  private async getConsumerAccessWhere(d: {
+    accessTags?: AnyAccessTagSelector;
+    consumerProfileOid?: bigint;
+  }): Promise<Prisma.SkillWhereInput | undefined> {
+    if (!d.accessTags) return undefined;
+    let accessTagFilter = await accessTagService.getAccessTagFilter({
+      tags: d.accessTags,
+      roles: [...consumerSkillReadRoles]
+    });
+    if (!accessTagFilter) return undefined;
+
+    let accessFilters: Prisma.SkillWhereInput[] = [
+      { accessTagEntities: accessTagFilter },
+      {
+        skillGroupItems: {
+          some: {
+            status: 'active',
+            skillGroup: {
+              status: 'active',
+              accessTagEntities: accessTagFilter
+            }
+          }
+        }
+      }
+    ];
+    if (d.consumerProfileOid) {
+      accessFilters.unshift({ createdByConsumerProfileOid: d.consumerProfileOid });
+    }
+
+    return { OR: accessFilters };
+  }
+
   async updateSkill(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skill: SkillRecord;
       actorId?: string;
+      accessTags?: AnyAccessTagSelector;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
       input: {
@@ -346,6 +493,17 @@ class SkillServiceImpl {
         })
       );
     }
+
+    await storeAccessService.assertStoreAccessForStore({
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
+      store: d.skill.store!,
+      actorId: d.actorId,
+      accessTags: d.accessTags,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeWritePermission
+    });
 
     if (d.input.name !== undefined && !d.input.name.trim()) {
       throw new ServiceError(
@@ -428,7 +586,26 @@ class SkillServiceImpl {
     }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
   }
 
-  async archiveSkill(d: CargoResourceScope & { skill: SkillRecord }) {
+  async archiveSkill(
+    d: ResourceScope & {
+      skill: SkillRecord;
+      actorId?: string;
+      accessTags?: AnyAccessTagSelector;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ) {
+    await storeAccessService.assertStoreAccessForStore({
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
+      store: d.skill.store!,
+      actorId: d.actorId,
+      accessTags: d.accessTags,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeWritePermission
+    });
+
     await withTransaction(async db => {
       await db.skillPluginSkill.updateMany({
         where: {
@@ -462,14 +639,14 @@ class SkillServiceImpl {
   }
 
   async upsertSkillActor(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skill: SkillRecord;
       actorId: string;
       permissions: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
   ) {
-    let actor = await actorService.getActorById({
+    let actor = await resourceActorService.getActorById({
       resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
@@ -498,12 +675,12 @@ class SkillServiceImpl {
   }
 
   async markSkillUse(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skill: SkillRecord;
       actorId: string;
     }
   ) {
-    let actor = await actorService.getActorById({
+    let actor = await resourceActorService.getActorById({
       resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });

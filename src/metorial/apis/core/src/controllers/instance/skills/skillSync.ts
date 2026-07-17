@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillSyncService } from '@metorial/module-file';
+import { skillSyncService } from '@metorial/cargo-module-skill';
 import { Controller, Path } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -36,7 +36,7 @@ export let skillSyncGroup = instanceGroup
     }
 
     let skillSync = await skillSyncService.getSkillSyncById({
-      ...getSkillPluginAccess(ctx),
+      ...(await getSkillPluginAccess(ctx)),
       skillSyncId: ctx.params.skillSyncId
     });
 
@@ -72,7 +72,7 @@ export let skillSyncController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await skillSyncService.listSkillSyncs({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           skillMarketplaceIds: normalizeArrayParam(ctx.query.skill_marketplace_id),
           skillPluginIds: normalizeArrayParam(ctx.query.skill_plugin_id),

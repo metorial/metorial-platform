@@ -59,12 +59,29 @@ vi.mock('@metorial/id', () => ({
   generateCustomId: vi.fn()
 }));
 
-vi.mock('@metorial/module-file', () => ({
+vi.mock('@metorial/config', () => ({
+  getConfig: vi.fn(() => ({
+    urls: {
+      filesUrl: 'https://files.example.com'
+    }
+  }))
+}));
+
+vi.mock('@metorial/cargo-module-file', () => ({
+  fileService: {
+    getFileById: vi.fn()
+  },
+  fileLinkService: {
+    createFileLink: vi.fn()
+  },
   fileReferenceService: {
-    resolveImageEntityImage: vi.fn(),
-    createImageEntityImage: vi.fn(),
-    cleanupImageEntityImage: vi.fn()
+    upsertFileReference: vi.fn(),
+    deleteFileReferenceByIdAndCleanup: vi.fn()
   }
+}));
+
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveResourceScopeForOwner: vi.fn()
 }));
 
 vi.mock('@metorial/module-consumer', () => ({
@@ -137,9 +154,7 @@ describe('user module exports', () => {
   });
 
   it('should export syncUserUpdateSingleQueueProcessor', async () => {
-    const { syncUserUpdateSingleQueueProcessor } = await import(
-      '../src/queues/syncUserUpdate'
-    );
+    let { syncUserUpdateSingleQueueProcessor } = await import('../src/queues/syncUserUpdate');
     expect(syncUserUpdateSingleQueueProcessor).toBeDefined();
   });
 

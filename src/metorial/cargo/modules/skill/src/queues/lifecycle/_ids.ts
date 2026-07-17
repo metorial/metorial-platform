@@ -2,6 +2,8 @@ export let propagationDelayMs = 15_000;
 
 export type LifecycleResource =
   | 'skill'
+  | 'skillGroup'
+  | 'skillTemplate'
   | 'plugin'
   | 'pluginSkill'
   | 'managedSkillPlugin'

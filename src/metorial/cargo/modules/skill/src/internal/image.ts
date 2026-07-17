@@ -1,7 +1,7 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
 import type { EntityImage, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
@@ -44,7 +44,7 @@ class InternalImageServiceImpl {
   }
 
   private async createImageEntityImage(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       entity: { id: string; type: string };
       fileId: string;
       actorId?: string;
@@ -100,7 +100,7 @@ class InternalImageServiceImpl {
   }
 
   async resolveImageEntityImage<ClearImage extends EntityImage | null>(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       entity: { id: string; type: string };
       imageFileId: string | null;
       clearedImage: ClearImage;

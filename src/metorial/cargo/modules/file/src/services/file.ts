@@ -24,6 +24,7 @@ import {
   internalDocumentDraftService
 } from '@metorial/cargo-module-doc';
 import {
+  type StoreAccessInput,
   storeAccessService,
   storeItemMutationService,
   storeReadPermission,
@@ -32,10 +33,10 @@ import {
 import type { File, Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { getCargoFilesBucketName, getStorage } from '../storage';
-import { actorService } from './actor';
-import type { CargoResourceScope } from './filePurpose';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 
 let include = {
   purpose: true,
@@ -54,6 +55,7 @@ type FileRecord = Prisma.FileGetPayload<{
 }>;
 type FileAccessInput = {
   actorId?: string;
+  accessTags?: StoreAccessInput['accessTags'];
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
@@ -111,7 +113,7 @@ class FileServiceImpl {
   }
 
   async createFile(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       purpose: string;
       storeId: string;
       _isDocument?: boolean;
@@ -128,6 +130,7 @@ class FileServiceImpl {
         title?: string;
         expiresAt?: Date;
         actorId?: string;
+        accessTags?: StoreAccessInput['accessTags'];
         store?: {
           id: string;
           path: string;
@@ -150,7 +153,7 @@ class FileServiceImpl {
       }
 
       let actor = d.input.actorId
-        ? await actorService.getActorById({
+        ? await resourceActorService.getActorById({
             resourceTenant: d.resourceTenant,
             actorId: d.input.actorId
           })
@@ -199,6 +202,7 @@ class FileServiceImpl {
             resourceGroup: d.resourceGroup,
             store,
             actorId: d.input.actorId,
+            accessTags: d.input.accessTags,
             defaultPermissions: d.input.defaultPermissions,
             overridePermissions: d.input.overridePermissions,
             requiredPermission: storeWritePermission
@@ -255,6 +259,7 @@ class FileServiceImpl {
           resourceGroup: d.resourceGroup,
           store,
           actorId: d.input.actorId,
+          accessTags: d.input.accessTags,
           defaultPermissions: d.input.defaultPermissions,
           overridePermissions: d.input.overridePermissions,
           requiredPermission: storeWritePermission
@@ -279,7 +284,7 @@ class FileServiceImpl {
   }
 
   async getFileById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       fileId: string;
     } & FileAccessInput
   ) {
@@ -299,6 +304,7 @@ class FileServiceImpl {
       resourceGroup: d.resourceGroup,
       file,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -321,7 +327,7 @@ class FileServiceImpl {
   }
 
   async createUploadedFile(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       purpose: string;
       file: Blob;
       input: {
@@ -360,7 +366,7 @@ class FileServiceImpl {
   }
 
   async createUploadedFileFromByteStream(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       purpose: string;
       content: AsyncIterable<Uint8Array>;
       input: {
@@ -443,7 +449,7 @@ class FileServiceImpl {
   }
 
   async deleteFileById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       fileId: string;
     } & FileAccessInput
   ) {
@@ -459,7 +465,7 @@ class FileServiceImpl {
     if (!file) throw new ServiceError(notFoundError('file', d.fileId));
 
     if (d.actorId) {
-      let actor = await actorService.getActorById({
+      let actor = await resourceActorService.getActorById({
         resourceTenant: d.resourceTenant,
         actorId: d.actorId
       });
@@ -544,7 +550,7 @@ class FileServiceImpl {
   }
 
   async listFiles(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       purpose?: string[];
       storeIds?: string[];
@@ -626,6 +632,7 @@ class FileServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission

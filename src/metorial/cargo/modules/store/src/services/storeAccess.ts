@@ -1,10 +1,17 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { actorService } from '@metorial/cargo-module-file';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  consumerSkillReadRoles,
+  consumerSkillWriteRoles
+} from '@metorial/module-access';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import type {
   ResourceActor,
+  Prisma,
   Store,
   StoreAccess,
   StoreParticipant,
@@ -14,6 +21,7 @@ import { withTransaction } from '@metorial/db';
 
 export type StoreAccessInput = {
   actorId?: string;
+  accessTags?: AnyAccessTagSelector;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
@@ -127,17 +135,17 @@ class StoreAccessServiceImpl {
     return permissions;
   }
 
-  async getActorForAccess(d: Pick<CargoResourceScope, 'resourceTenant'> & StoreAccessInput) {
+  async getActorForAccess(d: Pick<ResourceScope, 'resourceTenant'> & StoreAccessInput) {
     if (!d.actorId) return undefined;
 
-    return await actorService.getActorById({
+    return await resourceActorService.getActorById({
       resourceTenant: d.resourceTenant,
       actorId: d.actorId
     });
   }
 
   async getStoreById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       storeId: string;
     }
   ) {
@@ -381,6 +389,101 @@ class StoreAccessServiceImpl {
       .map(participant => participant.storeOid);
   }
 
+  private async getSkillStoreAccess(d: {
+    resourceTenant: { oid: bigint };
+    resourceGroup: { oid: bigint };
+    actor: ResourceActor;
+    accessTags?: AnyAccessTagSelector;
+    requiredPermission: StoreParticipantPermissions;
+    storeOids: bigint[];
+  }) {
+    let roles =
+      d.requiredPermission === storeWritePermission
+        ? [...consumerSkillWriteRoles]
+        : [...consumerSkillReadRoles];
+    let accessTagFilter = await accessTagService.getAccessTagFilter({
+      tags: d.accessTags,
+      roles
+    });
+    let accessFilters: Prisma.SkillWhereInput[] = [
+      {
+        createdByResourceActorOid: d.actor.oid
+      }
+    ];
+    if (d.actor.consumerOid) {
+      accessFilters.push({
+        createdByConsumerOid: d.actor.consumerOid
+      });
+    }
+    if (d.actor.organizationActorOid) {
+      accessFilters.push({
+        createdByOrganizationActorOid: d.actor.organizationActorOid
+      });
+    }
+
+    if (accessTagFilter) {
+      accessFilters.push({
+        accessTagEntities: accessTagFilter
+      });
+
+      if (d.requiredPermission === storeReadPermission) {
+        accessFilters.push({
+          skillGroupItems: {
+            some: {
+              status: 'active',
+              skillGroup: {
+                status: 'active',
+                accessTagEntities: accessTagFilter
+              }
+            }
+          }
+        });
+      }
+    }
+
+    let [skillStores, accessibleSkills] = await withTransaction(
+      async db =>
+        await Promise.all([
+          db.skill.findMany({
+            where: {
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
+              storeOid: {
+                in: uniqueBigInts(d.storeOids)
+              }
+            },
+            select: {
+              storeOid: true
+            }
+          }),
+          db.skill.findMany({
+            where: {
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
+              status: 'active',
+              storeOid: {
+                in: uniqueBigInts(d.storeOids)
+              },
+              OR: accessFilters
+            },
+            select: {
+              storeOid: true
+            }
+          })
+        ]),
+      { ifExists: true }
+    );
+
+    return {
+      skillStoreOids: skillStores
+        .map(skill => skill.storeOid)
+        .filter((storeOid): storeOid is bigint => storeOid != null),
+      accessibleStoreOids: accessibleSkills
+        .map(skill => skill.storeOid)
+        .filter((storeOid): storeOid is bigint => storeOid != null)
+    };
+  }
+
   private async ensureStoreParticipantsHavePermissions(d: {
     actor: ResourceActor;
     items: Array<{
@@ -479,7 +582,7 @@ class StoreAccessServiceImpl {
   }
 
   async resolveAccessibleStoreOids(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
         storeOids: bigint[];
@@ -539,13 +642,31 @@ class StoreAccessServiceImpl {
                 )
             })
           : [];
+        let skillStoreAccess = actor
+          ? await this.getSkillStoreAccess({
+              resourceTenant: d.resourceTenant,
+              resourceGroup: d.resourceGroup,
+              actor,
+              accessTags: d.accessTags,
+              requiredPermission: d.requiredPermission,
+              storeOids: relevantStoreOids
+            })
+          : { skillStoreOids: [], accessibleStoreOids: [] };
+        let skillStoreOidSet = new Set(
+          skillStoreAccess.skillStoreOids.map(storeOid => storeOid.toString())
+        );
+        let participantStoreOids = this.getAccessibleStoreOids(
+          participants,
+          d.requiredPermission
+        ).filter(storeOid => !d.accessTags || !skillStoreOidSet.has(storeOid.toString()));
 
         return {
           actor,
           relevantStoreOids,
           accessibleStoreOids: uniqueBigInts([
-            ...this.getAccessibleStoreOids(participants, d.requiredPermission),
-            ...this.getAccessibleStoreOids(publicStoreParticipants, d.requiredPermission)
+            ...participantStoreOids,
+            ...this.getAccessibleStoreOids(publicStoreParticipants, d.requiredPermission),
+            ...skillStoreAccess.accessibleStoreOids
           ])
         };
       },
@@ -554,7 +675,7 @@ class StoreAccessServiceImpl {
   }
 
   async listAccessibleStoreOidsForTenantEnvironment(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
       }
@@ -575,6 +696,7 @@ class StoreAccessServiceImpl {
           resourceTenant: d.resourceTenant,
           resourceGroup: d.resourceGroup,
           actorId: d.actorId,
+          accessTags: d.accessTags,
           defaultPermissions: d.defaultPermissions,
           overridePermissions: d.overridePermissions,
           requiredPermission: d.requiredPermission,
@@ -586,7 +708,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStore(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id'>;
         requiredPermission: StoreParticipantPermissions;
@@ -596,6 +718,7 @@ class StoreAccessServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
@@ -617,7 +740,7 @@ class StoreAccessServiceImpl {
   }
 
   async getStorePermissions(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
@@ -651,6 +774,7 @@ class StoreAccessServiceImpl {
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
         actorId: d.actorId,
+        accessTags: d.accessTags,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeReadPermission,
@@ -660,6 +784,7 @@ class StoreAccessServiceImpl {
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
         actorId: d.actorId,
+        accessTags: d.accessTags,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeWritePermission,
@@ -689,7 +814,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForDocument(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         document: {
           id: string;
@@ -718,6 +843,7 @@ class StoreAccessServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
@@ -741,7 +867,7 @@ class StoreAccessServiceImpl {
   }
 
   async getDocumentPermissions(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         document: {
           id: string;
@@ -790,6 +916,7 @@ class StoreAccessServiceImpl {
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
         actorId: d.actorId,
+        accessTags: d.accessTags,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeReadPermission,
@@ -799,6 +926,7 @@ class StoreAccessServiceImpl {
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
         actorId: d.actorId,
+        accessTags: d.accessTags,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeWritePermission,
@@ -830,7 +958,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForFile(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         file: {
           id: string;
@@ -849,6 +977,7 @@ class StoreAccessServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
@@ -872,7 +1001,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStoreItem(
-    d: CargoResourceScope &
+    d: ResourceScope &
       StoreAccessInput & {
         item: {
           id: string;
@@ -885,6 +1014,7 @@ class StoreAccessServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       actorId: d.actorId,
+      accessTags: d.accessTags,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,

@@ -1,4 +1,4 @@
-import { documentEditTokenService } from '@metorial/module-file';
+import { documentEditTokenService } from '@metorial/cargo-module-doc';
 import { resolveUploadTarget } from './uploadAccess';
 
 let documentReadScopes = [

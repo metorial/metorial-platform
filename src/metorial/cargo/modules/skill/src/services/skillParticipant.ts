@@ -8,7 +8,7 @@ import {
   resolveResourceActors,
   resolveSkillParticipants
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { storeReadPermission, storeWritePermission } from '@metorial/cargo-module-store';
 import type {
   Prisma,
@@ -231,7 +231,7 @@ class SkillParticipantServiceImpl {
     });
   }
 
-  async syncAllSkillParticipantsFromStores(d: CargoResourceScope) {
+  async syncAllSkillParticipantsFromStores(d: ResourceScope) {
     let skills = await withTransaction(
       async db =>
         await db.skill.findMany({
@@ -253,7 +253,7 @@ class SkillParticipantServiceImpl {
   }
 
   async getSkillParticipantById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillParticipantId: string;
     }
   ) {
@@ -291,7 +291,7 @@ class SkillParticipantServiceImpl {
   }
 
   async listSkillParticipants(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       skillId: string;
       actorIds?: string[];

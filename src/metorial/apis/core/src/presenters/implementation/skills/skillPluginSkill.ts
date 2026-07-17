@@ -13,8 +13,8 @@ export let v1SkillPluginSkillPresenter = Presenter.create(skillPluginSkillType)
     client_metadata: skillPluginSkill.clientMetadata,
     license: skillPluginSkill.license,
     compatibility: skillPluginSkill.compatibility,
-    skill_configuration_id: skillPluginSkill.skillConfigurationId ?? null,
-    skill_id: skillPluginSkill.skillId,
+    skill_configuration_id: skillPluginSkill.skillConfiguration?.id ?? null,
+    skill_id: skillPluginSkill.skill.id,
     created_at: skillPluginSkill.createdAt,
     updated_at: skillPluginSkill.updatedAt
   }))

@@ -6,9 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -52,6 +54,15 @@ type gitlabCommitRequest struct {
 	Actions       []gitlabFileAction `json:"actions"`
 }
 
+type gitlabCommitError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *gitlabCommitError) Error() string {
+	return fmt.Sprintf("failed to create commit (status %d): %s", e.StatusCode, e.Body)
+}
+
 func UploadToRepo(projectID int64, targetPath, branch, commitMessage, token, gitlabAPIURL string, files []FileToUpload) error {
 	return UploadToRepoIter(projectID, targetPath, branch, commitMessage, token, gitlabAPIURL, func(yield func(FileToUpload) error) error {
 		for _, file := range files {
@@ -90,7 +101,20 @@ func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token,
 			message = fmt.Sprintf("%s (batch %d)", commitMessage, batch)
 		}
 		if err := createCommit(client, projectID, branch, message, token, gitlabAPIURL, actions); err != nil {
-			return err
+			var commitErr *gitlabCommitError
+			if !errors.As(err, &commitErr) || !commitErr.isFileActionConflict() {
+				return err
+			}
+
+			reconciledActions, reconcileErr := reconcileActions(client, projectID, branch, token, gitlabAPIURL, actions)
+			if reconcileErr != nil {
+				return fmt.Errorf("failed to reconcile GitLab commit after conflict: %w", reconcileErr)
+			}
+			if len(reconciledActions) > 0 {
+				if retryErr := createCommit(client, projectID, branch, message, token, gitlabAPIURL, reconciledActions); retryErr != nil {
+					return fmt.Errorf("failed to retry GitLab commit after conflict: %w", retryErr)
+				}
+			}
 		}
 
 		actions = nil
@@ -148,6 +172,45 @@ func UploadToRepoIter(projectID int64, targetPath, branch, commitMessage, token,
 	return flush()
 }
 
+func (e *gitlabCommitError) isFileActionConflict() bool {
+	if e.StatusCode != http.StatusBadRequest {
+		return false
+	}
+
+	body := strings.ToLower(e.Body)
+	return strings.Contains(body, "already exists") || strings.Contains(body, "does not exist")
+}
+
+func reconcileActions(client *http.Client, projectID int64, branch, token, gitlabAPIURL string, actions []gitlabFileAction) ([]gitlabFileAction, error) {
+	reconciled := make([]gitlabFileAction, 0, len(actions))
+
+	for _, action := range actions {
+		fileInfo, err := getFileInfo(client, projectID, action.FilePath, branch, token, gitlabAPIURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file info for %s: %w", action.FilePath, err)
+		}
+
+		if !fileInfo.Exists {
+			action.Action = "create"
+			reconciled = append(reconciled, action)
+			continue
+		}
+
+		content, err := base64.StdEncoding.DecodeString(action.Content)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode content for %s: %w", action.FilePath, err)
+		}
+		if fileInfo.ContentSHA256 == sha256Hex(content) {
+			continue
+		}
+
+		action.Action = "update"
+		reconciled = append(reconciled, action)
+	}
+
+	return reconciled, nil
+}
+
 func createCommit(client *http.Client, projectID int64, branch, commitMessage, token, gitlabAPIURL string, actions []gitlabFileAction) error {
 	commitReq := gitlabCommitRequest{
 		Branch:        branch,
@@ -179,7 +242,7 @@ func createCommit(client *http.Client, projectID int64, branch, commitMessage, t
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("failed to create commit (status %d): %s", resp.StatusCode, string(body))
+		return &gitlabCommitError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 
 	return nil
@@ -197,14 +260,19 @@ func sha256Hex(content []byte) string {
 
 // Helper function to get file metadata in the repository
 func getFileInfo(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string) (gitlabFileInfo, error) {
-	fileURL := fmt.Sprintf("%s/projects/%d/repository/files/%s?ref=%s",
+	fileURL, err := url.Parse(fmt.Sprintf("%s/projects/%d/repository/files/%s",
 		gitlabAPIURL,
 		projectID,
-		strings.ReplaceAll(filePath, "/", "%2F"), // URL encode the file path
-		branch,
-	)
+		url.PathEscape(filePath),
+	))
+	if err != nil {
+		return gitlabFileInfo{}, err
+	}
+	query := fileURL.Query()
+	query.Set("ref", branch)
+	fileURL.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("GET", fileURL, nil)
+	req, err := http.NewRequest("GET", fileURL.String(), nil)
 	if err != nil {
 		return gitlabFileInfo{}, err
 	}

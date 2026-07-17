@@ -82,7 +82,21 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
   .build();
 
 export let v1IntegrationPreviewPresenter = Object.assign(
-  (integration: SubspaceIntegrationPreview) => ({
+  (integration: Pick<
+    SubspaceIntegrationPreview,
+    | 'id'
+    | 'slug'
+    | 'name'
+    | 'description'
+    | 'metadata'
+    | 'canAttachCustomToolFilters'
+    | 'canAttachCustomProviderConfig'
+    | 'canOverrideToolFilters'
+    | 'useIntegrationNameForSessionProviderNameTemplatesOverride'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'archivedAt'
+  >) => ({
     object: 'integration#preview' as const,
     id: integration.id,
     slug: integration.slug,

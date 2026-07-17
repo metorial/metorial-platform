@@ -1,8 +1,15 @@
 import { v } from '@lowerdeck/validation';
-import { SubspaceProviderLight } from '@metorial/module-subspace';
+type ProviderPreviewInput = {
+  id: string;
+  name: string;
+  description: string | null;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export let v1ProviderPreview = Object.assign(
-  (provider: SubspaceProviderLight) => ({
+  (provider: ProviderPreviewInput) => ({
     object: 'provider#preview' as const,
     id: provider.id,
 

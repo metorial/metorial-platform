@@ -11,8 +11,8 @@ import {
   resolveSkillConfigurations,
   resolveSkillMarketplaces
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
-import { resolveInstanceResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import type { EntityImage, Prisma, SkillMarketplaceStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
@@ -104,7 +104,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   private async getSkillConfigurationOid(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillConfigurationId: string | null | undefined;
     }
   ) {
@@ -129,7 +129,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   private async getSkillMarketplaceRecord(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplaceId: string;
     }
   ) {
@@ -155,7 +155,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async listSkillMarketplaces(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       skillConfigurationIds?: string[];
       statuses?: SkillMarketplaceStatusFilter[];
@@ -205,7 +205,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async getSkillMarketplaceById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplaceId: string;
     }
   ) {
@@ -213,7 +213,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async createSkillMarketplace(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       input: {
         name: string;
         description?: string | null;
@@ -282,7 +282,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async updateSkillMarketplace(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplace: SkillMarketplaceRecord;
       input: SkillMarketplaceInput;
     }
@@ -349,7 +349,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async archiveSkillMarketplace(
-    d: CargoResourceScope & { skillMarketplace: SkillMarketplaceRecord }
+    d: ResourceScope & { skillMarketplace: SkillMarketplaceRecord }
   ) {
     await withTransaction(async db => {
       await db.skillMarketplacePlugin.updateMany({
@@ -392,7 +392,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async getSkillMarketplaceEditorUrl(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillMarketplace: SkillMarketplaceRecord;
       isReadOnly?: boolean;
     }
@@ -405,7 +405,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async forceSkillMarketplaceSync(
-    d: CargoResourceScope & { skillMarketplace: SkillMarketplaceRecord }
+    d: ResourceScope & { skillMarketplace: SkillMarketplaceRecord }
   ) {
     await forceSkillDestinationSync({
       destination: d.skillMarketplace.destination!

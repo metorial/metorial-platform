@@ -11,7 +11,7 @@ import {
 } from '@metorial/cargo-list-utils';
 import type { File, FileLink, FileReference } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
-import type { CargoResourceScope } from './filePurpose';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 
 let include = {
   fileLink: {
@@ -25,7 +25,7 @@ let include = {
 
 class FileReferenceServiceImpl {
   async upsertFileReference(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       fileLink: FileLink;
       input: {
         id?: string;
@@ -92,7 +92,7 @@ class FileReferenceServiceImpl {
   }
 
   async getFileReferenceById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       fileReferenceId: string;
     }
   ) {
@@ -113,7 +113,7 @@ class FileReferenceServiceImpl {
   }
 
   async listFileReferences(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       fileLinkId?: string;
       fileLinkIds?: string[];

@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeService } from '@metorial/module-file';
+import { storeService } from '@metorial/cargo-module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -34,12 +34,7 @@ export let storeGroup = instanceGroup.use(async ctx => {
 
   let store = await storeService.getStoreById({
     storeId: ctx.params.storeId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
   return { store };
@@ -72,12 +67,7 @@ export let storeController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await storeService.listStores({
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
@@ -106,20 +96,39 @@ export let storeController = Controller.create(
       .do(async ctx => {
         assertStoreCrudAllowed(ctx);
 
-        let store = await storeService.createStore({
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
-          input: {
-            name: ctx.body.name,
-            access: ctx.body.access,
-            templateId: ctx.body.template_id,
-            parentId: ctx.body.parent_id
-          }
-        });
+        let access = await getInstanceCargoAccess(ctx);
+        let store = ctx.body.template_id
+          ? await storeService.createStoreFromTemplate({
+              resourceTenant: access.resourceTenant,
+              resourceGroup: access.resourceGroup,
+              input: {
+                templateId: ctx.body.template_id,
+                name: ctx.body.name,
+                access: ctx.body.access,
+                actor: access.actor
+              }
+            })
+          : ctx.body.parent_id
+            ? await storeService.cloneStore({
+                ...access,
+                store: await storeService.getStoreById({
+                  ...access,
+                  storeId: ctx.body.parent_id
+                }),
+                input: {
+                  name: ctx.body.name,
+                  access: ctx.body.access
+                }
+              })
+            : await storeService.createStore({
+                resourceTenant: access.resourceTenant,
+                resourceGroup: access.resourceGroup,
+                input: {
+                  name: ctx.body.name,
+                  access: ctx.body.access,
+                  actor: access.actor
+                }
+              });
 
         return storePresenter.present({ store });
       }),
@@ -147,13 +156,8 @@ export let storeController = Controller.create(
       .output(storePermissionsPresenter)
       .do(async ctx => {
         let permissions = await storeService.getStorePermissions({
-          storeId: ctx.store.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx)
+          store: ctx.store,
+          ...(await getInstanceCargoAccess(ctx))
         });
 
         return storePermissionsPresenter.present({ permissions });
@@ -178,12 +182,7 @@ export let storeController = Controller.create(
 
         let store = await storeService.updateStore({
           store: ctx.store,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           input: {
             name: ctx.body.name,
             access: ctx.body.access
@@ -205,12 +204,7 @@ export let storeController = Controller.create(
 
         let store = await storeService.deleteStore({
           store: ctx.store,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx)
+          ...(await getInstanceCargoAccess(ctx))
         });
 
         return storePresenter.present({ store });
@@ -244,12 +238,7 @@ export let storeController = Controller.create(
       .do(async ctx => {
         let items = await storeService.modifyStoreItems({
           store: ctx.store,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           operations: ctx.body.operations
         });
 

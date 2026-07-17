@@ -7,7 +7,7 @@ import {
   resolveSkillVersions,
   resolveStoreVersions
 } from '@metorial/cargo-list-utils';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 
@@ -127,7 +127,7 @@ let toSkillVersionSnapshot = (version: SkillVersionSnapshotRecord): SkillVersion
 });
 
 class SkillVersionServiceImpl {
-  private async getSkill(d: CargoResourceScope & { skillId: string }) {
+  private async getSkill(d: ResourceScope & { skillId: string }) {
     let skill = await db.skill.findFirst({
       where: {
         resourceTenantOid: d.resourceTenant.oid,
@@ -146,7 +146,7 @@ class SkillVersionServiceImpl {
   }
 
   async listSkillVersions(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillId: string;
       ids?: string[];
       storeVersionIds?: string[];
@@ -178,7 +178,7 @@ class SkillVersionServiceImpl {
   }
 
   async getSkillVersionById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillVersionId: string;
     }
   ) {
@@ -199,7 +199,7 @@ class SkillVersionServiceImpl {
   }
 
   async getSkillVersionSnapshot(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillId: string;
       skillVersionId: string;
     }

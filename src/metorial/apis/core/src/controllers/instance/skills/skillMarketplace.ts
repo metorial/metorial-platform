@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMarketplaceService } from '@metorial/module-file';
+import { skillMarketplaceService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -28,14 +28,7 @@ let skillMarketplaceInput = {
 
 export let getSkillMarketplaceAccess = (
   ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
-) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+) => getInstanceCargoAccess(ctx);
 
 export let skillMarketplaceGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillMarketplaceId) {
@@ -50,7 +43,7 @@ export let skillMarketplaceGroup = instanceGroup.use(hasFlags(['skills-enabled']
   await assertConsumerCanAccessSkillMarketplace(ctx, ctx.params.skillMarketplaceId);
 
   let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
-    ...getSkillMarketplaceAccess(ctx),
+    ...(await getSkillMarketplaceAccess(ctx)),
     skillMarketplaceId: ctx.params.skillMarketplaceId
   });
 
@@ -101,7 +94,7 @@ export let skillMarketplaceController = Controller.create(
               : marketplaceFilter;
 
         let paginator = await skillMarketplaceService.listSkillMarketplaces({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           ids,
           statuses: normalizeArrayParam(ctx.query.status),
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
@@ -146,7 +139,7 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.createSkillMarketplace({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -172,7 +165,7 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.updateSkillMarketplace({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           skillMarketplace: ctx.skillMarketplace,
           input: {
             name: ctx.body.name,
@@ -198,7 +191,7 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.archiveSkillMarketplace({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           skillMarketplace: ctx.skillMarketplace
         });
 
@@ -222,7 +215,7 @@ export let skillMarketplaceController = Controller.create(
       .output(skillMarketplacePresenter)
       .do(async ctx => {
         let skillMarketplace = await skillMarketplaceService.forceSkillMarketplaceSync({
-          ...getSkillMarketplaceAccess(ctx),
+          ...(await getSkillMarketplaceAccess(ctx)),
           skillMarketplace: ctx.skillMarketplace
         });
 

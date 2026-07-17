@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
 import { flushDocumentDraft } from '../queues/documentFlush';
@@ -7,7 +7,7 @@ import { documentService, type ResolvedDocumentRecord } from './document';
 
 class DocumentAuthoritativeWriteService {
   async applyDocumentContent(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       document: ResolvedDocumentRecord;
       input: {
         title: string;

@@ -8,9 +8,9 @@ export let v1FileLinkPresenter = Presenter.create(fileLinkType)
     object: 'file.file_link',
 
     id: fileLink.id,
-    file_id: fileLink.fileId,
+    file_id: fileLink.file.id,
 
-    url: `${getConfig().urls.filesUrl}/files/${fileLink.fileId}/${fileLink.key}`,
+    url: `${getConfig().urls.filesUrl}/files/${fileLink.file.id}/${fileLink.key}`,
 
     created_at: fileLink.createdAt,
     expires_at: fileLink.expiresAt

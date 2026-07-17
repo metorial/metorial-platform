@@ -10,9 +10,9 @@ export let v1SkillParticipantPresenter = Presenter.create(skillParticipantType)
   .presenter(async ({ skillParticipant }, opts) => ({
     object: 'skill.participant',
     id: skillParticipant.id,
-    skill_id: skillParticipant.skillId,
+    skill_id: skillParticipant.skill.id,
     roles: skillParticipant.roles,
-    actor: await presentDocumentParticipantActor(skillParticipant.actor, opts),
+    actor: await presentDocumentParticipantActor(skillParticipant.resourceActor, opts),
     created_at: skillParticipant.createdAt,
     updated_at: skillParticipant.updatedAt
   }))

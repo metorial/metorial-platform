@@ -2,13 +2,20 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { snowflake } from '@metorial/cargo-config/id';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillTemplates,
   resolveStoreTemplates
 } from '@metorial/cargo-list-utils';
-import { resolveInstanceResourceScope } from '@metorial/cargo-module-file';
+import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  consumerSkillReadRoles
+} from '@metorial/module-access';
+import { subspaceSkillTemplateService } from '@metorial/module-subspace';
 import type {
   RequiredStoreTemplateScope,
   StoreTemplateCreateInput,
@@ -17,7 +24,8 @@ import type {
 } from '@metorial/cargo-module-store';
 import { storeService, storeTemplateService } from '@metorial/cargo-module-store';
 import type { Prisma } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
+import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle/skillTemplate';
 import { skillService } from './skill';
 
 let skillTemplateSummaryInclude = {
@@ -116,9 +124,14 @@ export type SkillTemplateWithScopedStoreId<T> = T & {
 export type SkillTemplateCreateInput = Omit<StoreTemplateCreateInput, 'id'> & {
   id: string;
   skillId?: string;
+  description?: string | null;
+  metadata?: Prisma.InputJsonValue | null;
 };
 
-export type SkillTemplateUpdateInput = StoreTemplateUpdateInput;
+export type SkillTemplateUpdateInput = StoreTemplateUpdateInput & {
+  description?: string | null;
+  metadata?: Prisma.InputJsonValue | null;
+};
 
 export type SkillTemplateUpsertInput = Omit<SkillTemplateCreateInput, 'skillId'> & {
   systemIdentifier: string;
@@ -135,6 +148,26 @@ let isSystemIdentifierUniqueConstraintError = (error: any) => {
 };
 
 class SkillTemplateServiceImpl {
+  private async ensurePlainSkillTemplate() {
+    return await this.upsertSkillTemplate({
+      input: {
+        id: await ID.generateId('skillTemplate'),
+        systemIdentifier: 'plain',
+        name: 'Plain',
+        items: [
+          {
+            path: '/SKILL.md',
+            type: 'document',
+            content:
+              '# Skill Template\n\nSet the scene, define the problem and task.\n\n## Prerequisites\n\n1. ...\n\n## Instructions\n\n1. ...\n\n## References\n',
+            encoding: 'utf-8'
+          },
+          { path: '/references/', type: 'directory' },
+          { path: '/assets/', type: 'directory' }
+        ]
+      }
+    });
+  }
   private getReadableStoreTemplateScopeWhere(d: {
     resourceTenant: { oid: bigint };
     resourceGroup: { oid: bigint };
@@ -185,10 +218,17 @@ class SkillTemplateServiceImpl {
     skillTemplateId: string;
     resourceTenant?: { oid: bigint; id: string };
     resourceGroup?: { oid: bigint; id: string };
+    accessTags?: AnyAccessTagSelector;
   }) {
+    let accessTagFilter = await accessTagService.getAccessTagFilter({
+      tags: d.accessTags,
+      roles: [...consumerSkillReadRoles]
+    });
     let skillTemplate = await db.skillTemplate.findFirst({
       where: {
         id: d.skillTemplateId,
+        status: d.accessTags ? 'active' : undefined,
+        accessTagEntities: accessTagFilter,
         storeTemplate:
           d.resourceTenant && d.resourceGroup
             ? {
@@ -333,7 +373,7 @@ class SkillTemplateServiceImpl {
         }
       });
 
-      return await db.skillTemplate.create({
+      let template = await db.skillTemplate.create({
         data: {
           resourceTenantOid: d.resourceTenant?.oid,
           resourceGroupOid: d.resourceGroup?.oid,
@@ -342,11 +382,21 @@ class SkillTemplateServiceImpl {
           owner: d.resourceTenant ? 'tenant' : 'system',
           slug: d.input.systemIdentifier ?? d.input.id,
           name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
           storeTemplateId: storeTemplate.id,
           ...ownerScope,
           systemIdentifier: d.input.systemIdentifier ?? null,
           storeTemplateOid: storeTemplate.oid
         },
+        include: skillTemplateInclude
+      });
+      await enqueueSkillTemplateLifecycle({
+        skillTemplateId: template.id,
+        event: 'created'
+      });
+      return await db.skillTemplate.findUniqueOrThrow({
+        where: { id: template.id },
         include: skillTemplateInclude
       });
     });
@@ -380,16 +430,24 @@ class SkillTemplateServiceImpl {
         }
       });
 
-      return await db.skillTemplate.update({
+      let template = await db.skillTemplate.update({
         where: {
           oid: d.skillTemplate.oid
         },
         data: {
           systemIdentifier: d.input.systemIdentifier,
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata as any,
           storeTemplateOid: storeTemplate.oid
         },
         include: skillTemplateInclude
       });
+      await enqueueSkillTemplateLifecycle({
+        skillTemplateId: template.id,
+        event: 'updated'
+      });
+      return template;
     });
   }
 
@@ -399,10 +457,83 @@ class SkillTemplateServiceImpl {
       storeTemplateIds?: string[];
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
+      search?: string;
+      statuses?: Array<'active' | 'archived' | 'deleted'>;
+      owners?: Array<'system' | 'tenant'>;
+      providerIds?: string[];
+      integrationIds?: string[];
+      accessTags?: AnyAccessTagSelector;
     }
   ) {
+    await this.ensurePlainSkillTemplate();
     let skillTemplates = await resolveSkillTemplates(d, d.ids);
     let storeTemplates = await resolveStoreTemplates(d, d.storeTemplateIds);
+    let accessTagFilter = await accessTagService.getAccessTagFilter({
+      tags: d.accessTags,
+      roles: [...consumerSkillReadRoles]
+    });
+    let delegatedResourceTemplateIds: string[] | undefined;
+    if (d.providerIds?.length || d.integrationIds?.length) {
+      let instance = await db.instance.findFirst({
+        where: {
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
+        }
+      });
+      let candidates = await db.skillTemplate.findMany({
+        where: {
+          status: d.accessTags
+            ? 'active'
+            : d.statuses?.length
+              ? { in: d.statuses }
+              : undefined,
+          accessTagEntities: accessTagFilter,
+          storeTemplate: { is: this.getReadableStoreTemplateScopeWhere(d) }
+        },
+        select: { id: true }
+      });
+      if (instance) {
+        let hydrated: Awaited<
+          ReturnType<typeof subspaceSkillTemplateService.hydrateResources>
+        > = [];
+        for (let offset = 0; offset < candidates.length; offset += 100) {
+          hydrated.push(
+            ...(await subspaceSkillTemplateService.hydrateResources({
+              instance,
+              skillTemplateIds: candidates
+                .slice(offset, offset + 100)
+                .map(template => template.id)
+            }))
+          );
+        }
+        delegatedResourceTemplateIds = hydrated
+          .filter(resource => {
+            let providerMatch =
+              !d.providerIds?.length ||
+              resource.items.some(
+                item => item.provider && d.providerIds!.includes(item.provider.id)
+              );
+            let integrationMatch =
+              !d.integrationIds?.length ||
+              resource.items.some(
+                item => item.integration && d.integrationIds!.includes(item.integration.id)
+              );
+            return providerMatch && integrationMatch;
+          })
+          .map(resource => resource.skillTemplateId);
+      } else {
+        delegatedResourceTemplateIds = [];
+      }
+    }
+    let normalizedSearch = d.search?.trim() || undefined;
+    let search = normalizedSearch
+      ? await voyager.record.search({
+          tenantId: d.resourceTenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.skillTemplate.id,
+          query: normalizedSearch
+        })
+      : null;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -411,16 +542,31 @@ class SkillTemplateServiceImpl {
             ...opts,
             where: {
               oid: skillTemplates ? skillTemplates.in : undefined,
+              status: d.accessTags
+                ? 'active'
+                : d.statuses?.length
+                  ? { in: d.statuses }
+                  : undefined,
+              owner: d.owners?.length ? { in: d.owners } : undefined,
               storeTemplateOid: storeTemplates ? storeTemplates.in : undefined,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
               updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined,
+              accessTagEntities: accessTagFilter,
+              AND: [
+                ...(search ? [{ id: { in: search.map(result => result.documentId) } }] : []),
+                ...(delegatedResourceTemplateIds
+                  ? [{ id: { in: delegatedResourceTemplateIds } }]
+                  : [])
+              ],
               storeTemplate: {
                 is: this.getReadableStoreTemplateScopeWhere(d)
               }
             },
             include: skillTemplateSummaryInclude
           })
-        ).map(skillTemplate => this.withScopedStoreId(skillTemplate, d))
+        ).map(skillTemplate =>
+          this.withScopedStoreId(skillTemplate as SkillTemplateSummaryRecord, d)
+        )
       )
     );
   }
@@ -428,9 +574,14 @@ class SkillTemplateServiceImpl {
   async getSkillTemplateById(
     d: RequiredStoreTemplateScope & {
       skillTemplateId: string;
+      accessTags?: AnyAccessTagSelector;
     }
   ) {
     return this.withScopedStoreId(await this.getSkillTemplateRecord(d), d);
+  }
+
+  async getDefaultSkillTemplate(d: RequiredStoreTemplateScope) {
+    return this.withScopedStoreId(await this.ensurePlainSkillTemplate(), d);
   }
 
   async getManySkillTemplatesByIds(
@@ -552,6 +703,10 @@ class SkillTemplateServiceImpl {
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       storeTemplateId: skillTemplate.storeTemplate!.id
+    });
+    await enqueueSkillTemplateLifecycle({
+      skillTemplateId: skillTemplate.id,
+      event: 'archived'
     });
 
     return skillTemplate;

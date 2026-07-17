@@ -2,8 +2,11 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import type { Instance, Organization } from '@metorial/db';
-import { skillAgentService } from '@metorial/module-file';
-import type { SubspaceSkill } from '@metorial/module-subspace';
+import {
+  skillAgentService,
+  skillService,
+  type SkillResource
+} from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -19,18 +22,12 @@ let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write']
 type SkillAgentContext = Parameters<typeof getInstanceCargoAccess>[0] & {
   instance: Instance;
   organization: Organization;
-  skill: SubspaceSkill;
+  skill: SkillResource;
 };
 
-let getSkillAgentInput = (ctx: SkillAgentContext) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
+let getSkillAgentInput = async (ctx: SkillAgentContext) => ({
   skillId: ctx.skill.id,
-  storeId: ctx.skill.storeId,
-  ...getInstanceCargoAccess(ctx)
+  ...(await getInstanceCargoAccess(ctx))
 });
 
 export let skillAgentGroup = skillGroup.use(async ctx => {
@@ -39,11 +36,11 @@ export let skillAgentGroup = skillGroup.use(async ctx => {
   }
 
   let skillAgent = await skillAgentService.getSkillAgentById({
-    ...getSkillAgentInput(ctx),
+    ...(await getSkillAgentInput(ctx)),
     skillAgentId: ctx.params.skillAgentId
   });
 
-  if (skillAgent.skillId !== ctx.skill.id) {
+  if (skillAgent.skill.id !== ctx.skill.id) {
     throw new ServiceError(notFoundError('skill.agent', ctx.params.skillAgentId));
   }
 
@@ -74,12 +71,21 @@ export let skillAgentController = Controller.create(
       )
       .output(skillAgentPresenter)
       .do(async ctx => {
+        let access = await getSkillAgentInput(ctx);
         let skillAgent = await skillAgentService.createSkillAgent({
-          ...getSkillAgentInput(ctx),
+          ...access,
+          skill: await skillService.getSkillById({
+            ...access,
+            skillId: ctx.skill.id
+          }),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            content: ctx.body.content
+            content: ctx.body.content,
+            actorId: access.actorId,
+            accessTags: access.accessTags,
+            defaultPermissions: access.defaultPermissions,
+            overridePermissions: access.overridePermissions
           }
         });
 
@@ -106,7 +112,7 @@ export let skillAgentController = Controller.create(
       .do(async ctx => {
         let { include_archived, ...pagination } = ctx.query;
         let paginator = await skillAgentService.listSkillAgents({
-          ...getSkillAgentInput(ctx),
+          ...(await getSkillAgentInput(ctx)),
           includeArchived: include_archived
         });
         let list = await paginator.run(pagination);
@@ -145,7 +151,7 @@ export let skillAgentController = Controller.create(
       .output(skillAgentPresenter)
       .do(async ctx => {
         let skillAgent = await skillAgentService.updateSkillAgent({
-          ...getSkillAgentInput(ctx),
+          ...(await getSkillAgentInput(ctx)),
           skillAgent: ctx.skillAgent,
           input: {
             name: ctx.body.name,
@@ -167,7 +173,7 @@ export let skillAgentController = Controller.create(
       .output(skillAgentPresenter)
       .do(async ctx => {
         let skillAgent = await skillAgentService.deleteSkillAgent({
-          ...getSkillAgentInput(ctx),
+          ...(await getSkillAgentInput(ctx)),
           skillAgent: ctx.skillAgent
         });
 

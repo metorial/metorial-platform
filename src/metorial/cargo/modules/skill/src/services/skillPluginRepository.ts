@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
@@ -31,7 +31,7 @@ export type EnrichedSkillPluginRepositoryRecord = Omit<
 };
 
 class SkillPluginRepositoryServiceImpl {
-  private async getPlugin(d: CargoResourceScope & { skillPluginId: string }) {
+  private async getPlugin(d: ResourceScope & { skillPluginId: string }) {
     let plugin = await db.skillPlugin.findFirst({
       where: {
         resourceTenantOid: d.resourceTenant.oid,
@@ -47,7 +47,7 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   private async enrichRepositories<T extends SkillPluginRepositoryRecord>(
-    d: CargoResourceScope & { repositories: T[] }
+    d: ResourceScope & { repositories: T[] }
   ): Promise<
     (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
   > {
@@ -67,7 +67,7 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   async listSkillPluginRepositories(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginId: string;
     }
   ) {
@@ -93,7 +93,7 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   async getSkillPluginRepositoryById(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginId: string;
       skillPluginRepositoryId: string;
     }
@@ -123,7 +123,7 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   async createSkillPluginRepository(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginId: string;
       repoId: string;
     }
@@ -177,7 +177,7 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   async deleteSkillPluginRepository(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillPluginId: string;
       skillPluginRepositoryId: string;
     }

@@ -2,13 +2,13 @@ import { Service } from '@lowerdeck/service';
 import { db } from '@metorial/db';
 import { fileService } from './file';
 import { fileLinkService } from './fileLink';
-import type { CargoResourceScope } from './filePurpose';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 
 class ReconcileServiceImpl {
   private async reconcileReferencesForLink(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       link: { oid: bigint };
       inputs: Array<{
         id?: string;
@@ -71,7 +71,7 @@ class ReconcileServiceImpl {
   }
 
   async reconcileFiles(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       inputs: Array<{
         id: string;
         storeId: string;

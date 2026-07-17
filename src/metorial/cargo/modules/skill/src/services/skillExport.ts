@@ -2,14 +2,9 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
 import { getId, snowflake } from '@metorial/cargo-config/id';
-import {
-  actorService,
-  type CargoResourceScope,
-  fileLinkService,
-  filePurposeService,
-  fileReferenceService,
-  fileService
-} from '@metorial/cargo-module-file';
+import { fileLinkService, filePurposeService, fileReferenceService, fileService } from '@metorial/cargo-module-file';
+import { resourceActorService } from '@metorial/module-resource-tenant';
+import { type ResourceScope } from '@metorial/module-resource-tenant';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import type {
   Prisma,
@@ -159,12 +154,12 @@ let isReusableExportFile = (d: {
 
 class SkillExportServiceImpl {
   private async getActorOid(
-    d: Pick<CargoResourceScope, 'resourceTenant'> & { actorId?: string }
+    d: Pick<ResourceScope, 'resourceTenant'> & { actorId?: string }
   ) {
     if (!d.actorId) return undefined;
 
     return (
-      await actorService.getActorById({
+      await resourceActorService.getActorById({
         resourceTenant: d.resourceTenant!,
         actorId: d.actorId
       })
@@ -172,7 +167,7 @@ class SkillExportServiceImpl {
   }
 
   private async getExportById(
-    d: CargoResourceScope & { skillExportId: string; actorId?: string }
+    d: ResourceScope & { skillExportId: string; actorId?: string }
   ) {
     let creatorResourceActorOid = await this.getActorOid(d);
 
@@ -198,7 +193,7 @@ class SkillExportServiceImpl {
   }
 
   private async resolveTarget(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       input: CreateSkillExportInput;
     }
   ): Promise<ResolvedExportTarget> {
@@ -267,7 +262,7 @@ class SkillExportServiceImpl {
   }
 
   private async resolveTargetFromExport(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillExport: SkillExportRecord;
     }
   ) {
@@ -310,7 +305,7 @@ class SkillExportServiceImpl {
   }
 
   private async upsertExportRef(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       target: ResolvedExportTarget;
     }
   ) {
@@ -374,7 +369,7 @@ class SkillExportServiceImpl {
   }
 
   private async createExportArtifact(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillExport: SkillExportRecord;
       target: ResolvedExportTarget;
     }
@@ -465,7 +460,7 @@ class SkillExportServiceImpl {
   }
 
   async createSkillExport(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       input: CreateSkillExportInput;
       actorId?: string;
     }
@@ -499,7 +494,7 @@ class SkillExportServiceImpl {
   }
 
   async listSkillExports(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       ids?: string[];
       targets?: SkillExportTarget[];
       statuses?: SkillExportStatus[];
@@ -528,13 +523,13 @@ class SkillExportServiceImpl {
   }
 
   async getSkillExportById(
-    d: CargoResourceScope & { skillExportId: string; actorId?: string }
+    d: ResourceScope & { skillExportId: string; actorId?: string }
   ) {
     return await this.getExportById(d);
   }
 
   async processSkillExport(
-    d: CargoResourceScope & {
+    d: ResourceScope & {
       skillExportId: string;
       skillDestinationSyncId?: string;
     }
