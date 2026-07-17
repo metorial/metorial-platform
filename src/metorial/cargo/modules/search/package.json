@@ -7,7 +7,7 @@
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "_test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

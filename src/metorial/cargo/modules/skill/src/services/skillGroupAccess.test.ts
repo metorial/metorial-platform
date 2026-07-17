@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, getAccessTagFilterMock } = vi.hoisted(() => ({
+let { db, getAccessTagFilterMock, getConsumerSkillAccessWhereMock } = vi.hoisted(() => ({
   db: {
     skillGroup: {
       findFirst: vi.fn()
@@ -9,7 +9,8 @@ let { db, getAccessTagFilterMock } = vi.hoisted(() => ({
       findFirst: vi.fn()
     }
   },
-  getAccessTagFilterMock: vi.fn()
+  getAccessTagFilterMock: vi.fn(),
+  getConsumerSkillAccessWhereMock: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -42,7 +43,8 @@ vi.mock('../queues/lifecycle/skillGroup', () => ({
 }));
 
 vi.mock('./skill', () => ({
-  skillService: {}
+  skillService: {},
+  getConsumerSkillAccessWhere: getConsumerSkillAccessWhereMock
 }));
 
 import { skillGroupService } from './skillGroup';
@@ -63,6 +65,9 @@ describe('consumer skill group lifecycle filtering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getAccessTagFilterMock.mockResolvedValue(accessTagFilter);
+    getConsumerSkillAccessWhereMock.mockResolvedValue({
+      OR: [{ createdByConsumerProfileOid: 4n }, { accessTagEntities: accessTagFilter }]
+    });
   });
 
   it('hydrates skill groups with active items backed by active skills only', async () => {
@@ -93,7 +98,7 @@ describe('consumer skill group lifecycle filtering', () => {
     );
   });
 
-  it('does not expose an active group item whose skill is archived', async () => {
+  it('applies the same consumer visibility filter as skill reads', async () => {
     db.skillGroupItem.findFirst.mockResolvedValue(null);
 
     await expect(
@@ -101,7 +106,8 @@ describe('consumer skill group lifecycle filtering', () => {
         ...scope,
         skillGroupItemId: 'sgi_archived_skill',
         allowDeleted: true,
-        accessTags
+        accessTags,
+        consumerProfileOid: 4n
       })
     ).rejects.toThrow();
 
@@ -109,10 +115,21 @@ describe('consumer skill group lifecycle filtering', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           skill: {
-            status: 'active'
+            status: 'active',
+            AND: [
+              {
+                OR: [
+                  { createdByConsumerProfileOid: 4n },
+                  { accessTagEntities: accessTagFilter }
+                ]
+              }
+            ]
           }
         })
       })
+    );
+    expect(getConsumerSkillAccessWhereMock).toHaveBeenCalledWith(
+      expect.objectContaining({ accessTags, consumerProfileOid: 4n })
     );
   });
 });

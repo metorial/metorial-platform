@@ -1,4 +1,4 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { storeService } from '@metorial/cargo-module-store';
@@ -95,6 +95,14 @@ export let storeController = Controller.create(
       .output(storePresenter)
       .do(async ctx => {
         assertStoreCrudAllowed(ctx);
+
+        if (ctx.body.template_id && ctx.body.parent_id) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'A store can only be created from either a template or a parent store.'
+            })
+          );
+        }
 
         let access = await getInstanceCargoAccess(ctx);
         let store = ctx.body.template_id

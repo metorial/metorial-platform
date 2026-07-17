@@ -1,10 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillGroupItemService,
-  skillResourceService
-} from '@metorial/cargo-module-skill';
+import { skillGroupItemService, skillResourceService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
@@ -36,10 +33,10 @@ export let skillGroupItemGroup = skillGroupGroup.use(async ctx => {
     skillGroupItemId: ctx.params.skillGroupItemId,
     skillGroupId: ctx.skillGroup.id,
     allowDeleted: true,
-    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
+    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
+    consumerProfileOid: ctx.consumerProfile?.oid
   });
-  let skillGroupItem =
-    await skillResourceService.hydrateSkillGroupItem(localSkillGroupItem);
+  let skillGroupItem = await skillResourceService.hydrateSkillGroupItem(localSkillGroupItem);
 
   return { skillGroupItem };
 });
@@ -90,7 +87,8 @@ export let skillGroupItemController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           skillIds: normalizeArrayParam(ctx.query.skill_id),
           createdAt: ctx.query.created_at,
-          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
+          consumerProfileOid: ctx.consumerProfile?.oid
         });
 
         let list = await paginator.run(ctx.query);

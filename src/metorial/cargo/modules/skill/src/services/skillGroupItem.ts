@@ -11,7 +11,7 @@ import {
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle/skillGroup';
 import { skillGroupService } from './skillGroup';
-import { skillService } from './skill';
+import { getConsumerSkillAccessWhere, skillService } from './skill';
 
 let include = {
   skillGroup: true,
@@ -32,12 +32,14 @@ class SkillGroupItemServiceImpl {
       skillIds?: string[];
       createdAt?: DateFilter;
       accessTags?: AnyAccessTagSelector;
+      consumerProfileOid?: bigint;
     }
   ) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
     });
+    let skillAccessWhere = await getConsumerSkillAccessWhere(d);
     return Paginator.create(({ prisma }) =>
       prisma(opts =>
         db.skillGroupItem.findMany({
@@ -63,7 +65,8 @@ class SkillGroupItemServiceImpl {
             },
             skill: {
               id: d.skillIds?.length ? { in: d.skillIds } : undefined,
-              status: d.accessTags ? 'active' : undefined
+              status: d.accessTags ? 'active' : undefined,
+              AND: skillAccessWhere ? [skillAccessWhere] : undefined
             }
           },
           include
@@ -78,12 +81,14 @@ class SkillGroupItemServiceImpl {
       skillGroupId?: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
+      consumerProfileOid?: bigint;
     }
   ) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
     });
+    let skillAccessWhere = await getConsumerSkillAccessWhere(d);
     let item = await db.skillGroupItem.findFirst({
       where: {
         id: d.skillGroupItemId,
@@ -99,7 +104,8 @@ class SkillGroupItemServiceImpl {
         },
         skill: d.accessTags
           ? {
-              status: 'active'
+              status: 'active',
+              AND: skillAccessWhere ? [skillAccessWhere] : undefined
             }
           : undefined
       },

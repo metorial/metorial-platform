@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "_test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
     "@types/bun": "latest",

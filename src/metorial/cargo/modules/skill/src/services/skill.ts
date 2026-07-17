@@ -55,6 +55,39 @@ export type SkillRecord = Prisma.SkillGetPayload<{
   include: typeof skillInclude;
 }>;
 
+export let getConsumerSkillAccessWhere = async (d: {
+  accessTags?: AnyAccessTagSelector;
+  consumerProfileOid?: bigint;
+}): Promise<Prisma.SkillWhereInput | undefined> => {
+  if (!d.accessTags) return undefined;
+
+  let accessTagFilter = await accessTagService.getAccessTagFilter({
+    tags: d.accessTags,
+    roles: [...consumerSkillReadRoles]
+  });
+  if (!accessTagFilter) return undefined;
+
+  let accessFilters: Prisma.SkillWhereInput[] = [
+    { accessTagEntities: accessTagFilter },
+    {
+      skillGroupItems: {
+        some: {
+          status: 'active',
+          skillGroup: {
+            status: 'active',
+            accessTagEntities: accessTagFilter
+          }
+        }
+      }
+    }
+  ];
+  if (d.consumerProfileOid) {
+    accessFilters.unshift({ createdByConsumerProfileOid: d.consumerProfileOid });
+  }
+
+  return { OR: accessFilters };
+};
+
 class SkillServiceImpl {
   private async getSkillRecord(
     d: ResourceScope & {
@@ -64,7 +97,7 @@ class SkillServiceImpl {
       consumerProfileOid?: bigint;
     }
   ) {
-    let accessWhere = await this.getConsumerAccessWhere(d);
+    let accessWhere = await getConsumerSkillAccessWhere(d);
     return await withTransaction(
       async db => {
         let skill = await db.skill.findFirst({
@@ -300,7 +333,7 @@ class SkillServiceImpl {
     let parentSkills = await resolveSkills(d, d.parentSkillIds);
     let parentSkillTemplates = await resolveSkillTemplates(d, d.parentSkillTemplateIds);
     let createdByActors = await resolveResourceActors(d, d.createdByActorIds);
-    let accessWhere = await this.getConsumerAccessWhere(d);
+    let accessWhere = await getConsumerSkillAccessWhere(d);
     let delegatedResourceSkillIds: string[] | undefined;
     if (d.integrationIds?.length || d.providerIds?.length) {
       let instance = await db.instance.findFirst({
@@ -420,38 +453,6 @@ class SkillServiceImpl {
     }
   ) {
     return await this.getSkillRecord(d);
-  }
-
-  private async getConsumerAccessWhere(d: {
-    accessTags?: AnyAccessTagSelector;
-    consumerProfileOid?: bigint;
-  }): Promise<Prisma.SkillWhereInput | undefined> {
-    if (!d.accessTags) return undefined;
-    let accessTagFilter = await accessTagService.getAccessTagFilter({
-      tags: d.accessTags,
-      roles: [...consumerSkillReadRoles]
-    });
-    if (!accessTagFilter) return undefined;
-
-    let accessFilters: Prisma.SkillWhereInput[] = [
-      { accessTagEntities: accessTagFilter },
-      {
-        skillGroupItems: {
-          some: {
-            status: 'active',
-            skillGroup: {
-              status: 'active',
-              accessTagEntities: accessTagFilter
-            }
-          }
-        }
-      }
-    ];
-    if (d.consumerProfileOid) {
-      accessFilters.unshift({ createdByConsumerProfileOid: d.consumerProfileOid });
-    }
-
-    return { OR: accessFilters };
   }
 
   async updateSkill(
