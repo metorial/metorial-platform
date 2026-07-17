@@ -11,6 +11,10 @@ let dom = new JSDOM('<!doctype html><html><body></body></html>');
 (globalThis as any).document = dom.window.document;
 (globalThis as any).DOMParser = dom.window.DOMParser;
 (globalThis as any).Node = dom.window.Node;
+Object.defineProperty(globalThis, 'navigator', {
+  configurable: true,
+  value: dom.window.navigator
+});
 
 describe('docs editor schema conversion', () => {
   it('round-trips common markdown through Yjs', () => {

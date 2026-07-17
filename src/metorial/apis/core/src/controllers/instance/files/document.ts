@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { documentEditTokenService, documentService } from '@metorial/cargo-module-doc';
 import { Controller } from '@metorial/rest';
-import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { getInstanceCargoAccess, getInstanceCargoActorInput } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -178,19 +178,7 @@ export let documentController = Controller.create(
           documentId: ctx.document.id,
           instanceId: ctx.instance.id,
           organizationId: ctx.organization.id,
-          accessActor: (ctx.member?.actor
-            ? {
-                identifier: `mte-oac-${ctx.member.actor.id}`,
-                name: ctx.member.actor.name,
-                organizationActorId: ctx.member.actor.id
-              }
-            : ctx.consumerProfile?.consumer
-              ? {
-                  identifier: `mte-con-${ctx.consumerProfile.consumer.id}`,
-                  name: ctx.consumerProfile.consumer.name,
-                  consumerId: ctx.consumerProfile.consumer.id
-                }
-              : undefined) as any,
+          accessActor: getInstanceCargoActorInput(ctx),
           defaultPermissions: cargoAccess.defaultPermissions,
           overridePermissions: cargoAccess.overridePermissions
         });
