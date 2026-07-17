@@ -1,7 +1,8 @@
 import type { DirectorySyncEvent, Group, User, UserWithGroup } from '@boxyhq/saml-jackson';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { SsoDirectory } from '../../../prisma/generated/client';
+import type { Prisma, SsoDirectory, SsoTenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId } from '../../id';
 import { reconcileSingleSsoUserQueue } from '../../queues/reconcileSsoUsers';
@@ -251,6 +252,24 @@ class SsoDirectorySyncServiceImpl {
     } catch (error) {
       console.warn('Failed to record SCIM operation', error);
     }
+  }
+
+  async listScimOperations(d: {
+    tenant: SsoTenant;
+    filters?: {
+      directoryIds?: string[];
+    };
+  }) {
+    let where: Prisma.SsoScimOperationWhereInput = {
+      directory: {
+        id: d.filters?.directoryIds?.length ? { in: d.filters.directoryIds } : undefined,
+        connection: { tenantOid: d.tenant.oid }
+      }
+    };
+
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts => await db.ssoScimOperation.findMany({ ...opts, where }))
+    );
   }
 
   async handleDirectorySyncEvent(d: {

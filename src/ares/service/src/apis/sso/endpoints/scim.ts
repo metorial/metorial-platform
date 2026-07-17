@@ -35,124 +35,132 @@ let getQuery = (c: any) => {
   return query;
 };
 
-export let scimApp = createHono().all('/:directoryId/:resourceType/:resourceId?', async c => {
-  let startedAt = Date.now();
-  let directoryId = c.req.param('directoryId');
-  let resourceType = c.req.param('resourceType');
-  let resourceId = c.req.param('resourceId');
-  let requestBody = await getBody(c);
-  let query = getQuery(c);
-  let directory: Awaited<ReturnType<typeof ssoDirectoryService.getDirectoryByInternalId>> | null =
-    null;
-  let eventNames: string[] = [];
-  let scimOperationId: string | undefined;
+export let scimApp = createHono()
+  .use('*', async (c, next) => {
+    console.log(`SCIM [${c.req.method}] ${c.req.url}`);
+    await next();
+  })
+  .all('/:directoryId/:resourceType/:resourceId?', async c => {
+    let startedAt = Date.now();
+    let directoryId = c.req.param('directoryId');
+    let resourceType = c.req.param('resourceType');
+    let resourceId = c.req.param('resourceId');
+    let requestBody = await getBody(c);
+    let query = getQuery(c);
+    let directory: Awaited<
+      ReturnType<typeof ssoDirectoryService.getDirectoryByInternalId>
+    > | null = null;
+    let eventNames: string[] = [];
+    let scimOperationId: string | undefined;
 
-  try {
-    directory = await ssoDirectoryService.getDirectoryByInternalId({ internalId: directoryId });
+    try {
+      directory = await ssoDirectoryService.getDirectoryByInternalId({
+        internalId: directoryId
+      });
 
-    let scimOperation = await ssoDirectorySyncService.beginScimOperation({
-      directory,
-      input: {
-        internalDirectoryId: directoryId,
-        method: c.req.method,
-        resourceType: resourceType.toLowerCase(),
-        resourceId,
-        query,
-        requestBody
-      }
-    });
-    scimOperationId = scimOperation?.id;
+      let scimOperation = await ssoDirectorySyncService.beginScimOperation({
+        directory,
+        input: {
+          internalDirectoryId: directoryId,
+          method: c.req.method,
+          resourceType: resourceType.toLowerCase(),
+          resourceId,
+          query,
+          requestBody
+        }
+      });
+      scimOperationId = scimOperation?.id;
 
-    let res = await jackson.directorySyncController.requests.handle(
-      {
-        method: c.req.method,
-        body: requestBody,
-        directoryId,
-        resourceId,
-        resourceType: resourceType.toLowerCase(),
-        apiSecret: getBearerToken(c.req.header('authorization')),
-        query
-      },
-      async (event: DirectorySyncEvent) => {
-        eventNames.push(event.event);
-        await ssoDirectorySyncService.handleDirectorySyncEvent({
-          directory: directory!,
-          event,
-          scimOperationId
+      let res = await jackson.directorySyncController.requests.handle(
+        {
+          method: c.req.method,
+          body: requestBody,
+          directoryId,
+          resourceId,
+          resourceType: resourceType.toLowerCase(),
+          apiSecret: getBearerToken(c.req.header('authorization')),
+          query
+        },
+        async (event: DirectorySyncEvent) => {
+          eventNames.push(event.event);
+          await ssoDirectorySyncService.handleDirectorySyncEvent({
+            directory: directory!,
+            event,
+            scimOperationId
+          });
+        }
+      );
+
+      if (scimOperationId) {
+        await ssoDirectorySyncService.completeScimOperation({
+          scimOperationId,
+          input: {
+            responseBody: res.data,
+            statusCode: res.status,
+            success: res.status >= 200 && res.status < 400,
+            durationMs: Date.now() - startedAt,
+            eventNames
+          }
+        });
+      } else {
+        await ssoDirectorySyncService.recordScimOperation({
+          directory,
+          input: {
+            internalDirectoryId: directoryId,
+            method: c.req.method,
+            resourceType: resourceType.toLowerCase(),
+            resourceId,
+            query,
+            requestBody,
+            responseBody: res.data,
+            statusCode: res.status,
+            success: res.status >= 200 && res.status < 400,
+            durationMs: Date.now() - startedAt,
+            eventNames
+          }
         });
       }
-    );
 
-    if (scimOperationId) {
-      await ssoDirectorySyncService.completeScimOperation({
-        scimOperationId,
-        input: {
-          responseBody: res.data,
-          statusCode: res.status,
-          success: res.status >= 200 && res.status < 400,
-          durationMs: Date.now() - startedAt,
-          eventNames
-        }
-      });
-    } else {
-      await ssoDirectorySyncService.recordScimOperation({
-        directory,
-        input: {
-          internalDirectoryId: directoryId,
-          method: c.req.method,
-          resourceType: resourceType.toLowerCase(),
-          resourceId,
-          query,
-          requestBody,
-          responseBody: res.data,
-          statusCode: res.status,
-          success: res.status >= 200 && res.status < 400,
-          durationMs: Date.now() - startedAt,
-          eventNames
-        }
-      });
+      return c.json(res.data, res.status as any);
+    } catch (error: any) {
+      let responseBody = {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'],
+        detail: error?.message ?? 'SCIM request failed',
+        status: '400'
+      };
+
+      if (scimOperationId) {
+        await ssoDirectorySyncService.completeScimOperation({
+          scimOperationId,
+          input: {
+            responseBody,
+            statusCode: 400,
+            success: false,
+            durationMs: Date.now() - startedAt,
+            eventNames,
+            errorMessage: error?.message ?? 'SCIM request failed'
+          }
+        });
+      } else {
+        await ssoDirectorySyncService.recordScimOperation({
+          directory,
+          input: {
+            internalDirectoryId: directoryId,
+            method: c.req.method,
+            resourceType: resourceType.toLowerCase(),
+            resourceId,
+            query,
+            requestBody,
+            responseBody,
+            statusCode: 400,
+            success: false,
+            durationMs: Date.now() - startedAt,
+            eventNames,
+            errorMessage: error?.message ?? 'SCIM request failed'
+          }
+        });
+      }
+
+      return c.json(responseBody, 400);
     }
-
-    return c.json(res.data, res.status as any);
-  } catch (error: any) {
-    let responseBody = {
-      schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'],
-      detail: error?.message ?? 'SCIM request failed',
-      status: '400'
-    };
-
-    if (scimOperationId) {
-      await ssoDirectorySyncService.completeScimOperation({
-        scimOperationId,
-        input: {
-          responseBody,
-          statusCode: 400,
-          success: false,
-          durationMs: Date.now() - startedAt,
-          eventNames,
-          errorMessage: error?.message ?? 'SCIM request failed'
-        }
-      });
-    } else {
-      await ssoDirectorySyncService.recordScimOperation({
-        directory,
-        input: {
-          internalDirectoryId: directoryId,
-          method: c.req.method,
-          resourceType: resourceType.toLowerCase(),
-          resourceId,
-          query,
-          requestBody,
-          responseBody,
-          statusCode: 400,
-          success: false,
-          durationMs: Date.now() - startedAt,
-          eventNames,
-          errorMessage: error?.message ?? 'SCIM request failed'
-        }
-      });
-    }
-
-    return c.json(responseBody, 400);
-  }
-});
+  });

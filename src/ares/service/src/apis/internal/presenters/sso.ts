@@ -130,6 +130,13 @@ export let ssoScimOperationPresenter = (operation: SsoScimOperation) => ({
   createdAt: operation.createdAt
 });
 
+export let ssoScimLogPresenter = (operation: SsoScimOperation) => ({
+  ...ssoScimOperationPresenter(operation),
+  query: operation.query,
+  requestBody: operation.requestBody,
+  responseBody: operation.responseBody
+});
+
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
