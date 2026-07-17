@@ -1,2 +1,2 @@
-export * from './checkTenantEnvironment';
+export * from './checkResourceScope';
 export * from './signedDownloadUrl';

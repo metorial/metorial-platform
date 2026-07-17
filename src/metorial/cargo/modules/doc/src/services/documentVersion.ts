@@ -1,16 +1,16 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db } from '@metorial-cargo/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveDocumentVersions,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { storeAccessService, storeReadPermission } from '@metorial-cargo/module-store';
+  resolveResourceActors
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
+import { db } from '@metorial/db';
 
 export let documentVersionInclude = {
   document: true,
@@ -18,14 +18,14 @@ export let documentVersionInclude = {
   content: true,
   documentVersionEditors: {
     include: {
-      tenantActor: true
+      resourceActor: true
     }
   }
 } satisfies Prisma.DocumentVersionInclude;
 
 class DocumentVersionServiceImpl {
   async getDocumentVersionById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       documentVersionId: string;
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -34,8 +34,8 @@ class DocumentVersionServiceImpl {
   ) {
     let version = await db.documentVersion.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.documentVersionId,
         document: {
           file: {
@@ -50,8 +50,8 @@ class DocumentVersionServiceImpl {
       throw new ServiceError(notFoundError('documentVersion', d.documentVersionId));
 
     await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document: version.document,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -63,7 +63,7 @@ class DocumentVersionServiceImpl {
   }
 
   async listDocumentVersions(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       documentId: string;
       ids?: string[];
       editorActorIds?: string[];
@@ -76,8 +76,8 @@ class DocumentVersionServiceImpl {
   ) {
     let document = await db.document.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.documentId,
         file: {
           status: 'active'
@@ -87,18 +87,18 @@ class DocumentVersionServiceImpl {
         oid: true,
         id: true,
         fileOid: true,
-        createdByTenantActorOid: true
+        createdByResourceActorOid: true
       }
     });
 
     if (!document) throw new ServiceError(notFoundError('document', d.documentId));
 
     let versions = await resolveDocumentVersions(d, d.ids);
-    let editorActors = await resolveTenantActors(d, d.editorActorIds);
+    let editorActors = await resolveResourceActors(d, d.editorActorIds);
 
     await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -112,8 +112,8 @@ class DocumentVersionServiceImpl {
           await db.documentVersion.findMany({
             ...opts,
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               oid: versions ? versions.in : undefined,
               document: {
                 id: d.documentId,
@@ -126,7 +126,7 @@ class DocumentVersionServiceImpl {
                   ? {
                       documentVersionEditors: {
                         some: {
-                          tenantActorOid: editorActors.in
+                          resourceActorOid: editorActors.in
                         }
                       }
                     }

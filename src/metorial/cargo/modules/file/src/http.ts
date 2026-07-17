@@ -4,12 +4,12 @@ import { extractIp } from '@lowerdeck/forwarded-for';
 import type { Context } from '@lowerdeck/hono';
 import { cors, createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
-import { documentService } from '@metorial-cargo/module-doc';
+import { documentService } from '@metorial/cargo-module-doc';
 import {
-  environmentService,
   fileDownloadService,
   fileService,
-  tenantService
+  resourceGroupService,
+  resourceTenantService
 } from './services';
 import { getCargoFilesBucketName, getStorage } from './storage';
 
@@ -25,8 +25,8 @@ let createFileUploadHandler = async (c: Context) =>
       let body = await c.req.formData();
 
       let file = body.get('file');
-      let tenantId = body.get('tenantId');
-      let environmentId = body.get('environmentId');
+      let resourceTenantId = body.get('resourceTenantId');
+      let resourceGroupId = body.get('resourceGroupId');
       let purpose = body.get('purpose');
       let actorId = body.get('actorId');
       let overridePermissions = body.get('overridePermissions');
@@ -38,8 +38,8 @@ let createFileUploadHandler = async (c: Context) =>
 
       if (
         !(file instanceof File) ||
-        typeof tenantId !== 'string' ||
-        typeof environmentId !== 'string' ||
+        typeof resourceTenantId !== 'string' ||
+        typeof resourceGroupId !== 'string' ||
         typeof purpose !== 'string'
       ) {
         throw new ServiceError(
@@ -82,10 +82,12 @@ let createFileUploadHandler = async (c: Context) =>
         );
       }
 
-      let tenant = await tenantService.getTenantById({ id: tenantId });
-      let environment = await environmentService.getEnvironmentById({
-        tenant,
-        id: environmentId
+      let resourceTenant = await resourceTenantService.getResourceTenantById({
+        id: resourceTenantId
+      });
+      let resourceGroup = await resourceGroupService.getResourceGroupById({
+        resourceTenant,
+        id: resourceGroupId
       });
 
       let storeId = (body.get('storeId') as string | null) ?? generatePlainId(20);
@@ -98,8 +100,8 @@ let createFileUploadHandler = async (c: Context) =>
       );
 
       let createdFile = await fileService.createFile({
-        tenant,
-        environment,
+        resourceTenant,
+        resourceGroup,
         purpose,
         storeId,
         input: {

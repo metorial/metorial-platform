@@ -1,15 +1,15 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { db } from '@metorial-cargo/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillVersions,
   resolveStoreVersions
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma } from '@metorial/db';
+import { db } from '@metorial/db';
 
 let skillVersionInclude = {
   skill: {
@@ -110,7 +110,7 @@ export type SkillVersionSnapshot = {
 let toSkillVersionSnapshot = (version: SkillVersionSnapshotRecord): SkillVersionSnapshot => ({
   id: version.id,
   skillId: version.skill.id,
-  storeId: version.skill.store.id,
+  storeId: version.skill.store!.id,
   storeVersionId: version.storeVersion.id,
   versionNumber: version.versionNumber,
   createdAt: version.createdAt,
@@ -127,11 +127,11 @@ let toSkillVersionSnapshot = (version: SkillVersionSnapshotRecord): SkillVersion
 });
 
 class SkillVersionServiceImpl {
-  private async getSkill(d: CargoTenantEnvironment & { skillId: string }) {
+  private async getSkill(d: CargoResourceScope & { skillId: string }) {
     let skill = await db.skill.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.skillId
       },
       select: {
@@ -146,7 +146,7 @@ class SkillVersionServiceImpl {
   }
 
   async listSkillVersions(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillId: string;
       ids?: string[];
       storeVersionIds?: string[];
@@ -178,7 +178,7 @@ class SkillVersionServiceImpl {
   }
 
   async getSkillVersionById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillVersionId: string;
     }
   ) {
@@ -186,8 +186,8 @@ class SkillVersionServiceImpl {
       where: {
         id: d.skillVersionId,
         skill: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
         }
       },
       include: skillVersionInclude
@@ -199,7 +199,7 @@ class SkillVersionServiceImpl {
   }
 
   async getSkillVersionSnapshot(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillId: string;
       skillVersionId: string;
     }
@@ -208,8 +208,8 @@ class SkillVersionServiceImpl {
       where: {
         id: d.skillVersionId,
         skill: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           id: d.skillId
         }
       },

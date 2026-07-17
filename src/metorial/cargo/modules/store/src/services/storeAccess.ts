@@ -1,15 +1,16 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { getId } from '@metorial/cargo-config/id';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { actorService } from '@metorial/cargo-module-file';
 import type {
+  ResourceActor,
   Store,
   StoreAccess,
   StoreParticipant,
-  StoreParticipantPermissions,
-  TenantActor
-} from '@metorial-cargo/db';
-import { getId, withTransaction } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { actorService } from '@metorial-cargo/module-file';
+  StoreParticipantPermissions
+} from '@metorial/db';
+import { withTransaction } from '@metorial/db';
 
 export type StoreAccessInput = {
   actorId?: string;
@@ -18,7 +19,7 @@ export type StoreAccessInput = {
 };
 
 export type StoreAccessResult = {
-  actor?: TenantActor;
+  actor?: ResourceActor;
   isOwner: boolean;
   relevantStoreOids: bigint[];
   accessibleStoreOids: bigint[];
@@ -126,17 +127,17 @@ class StoreAccessServiceImpl {
     return permissions;
   }
 
-  async getActorForAccess(d: Pick<CargoTenantEnvironment, 'tenant'> & StoreAccessInput) {
+  async getActorForAccess(d: Pick<CargoResourceScope, 'resourceTenant'> & StoreAccessInput) {
     if (!d.actorId) return undefined;
 
     return await actorService.getActorById({
-      tenant: d.tenant,
+      resourceTenant: d.resourceTenant,
       actorId: d.actorId
     });
   }
 
   async getStoreById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       storeId: string;
     }
   ) {
@@ -144,8 +145,8 @@ class StoreAccessServiceImpl {
       async db => {
         let store = await db.store.findFirst({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             id: d.storeId
           }
         });
@@ -229,20 +230,20 @@ class StoreAccessServiceImpl {
             }
           },
           include: {
-            tenantActor: true
+            resourceActor: true
           }
         });
 
         let permissionsByActor = new Map<
           bigint,
           {
-            actor: TenantActor;
+            actor: ResourceActor;
             permissions: Set<StoreParticipantPermissions>;
           }
         >();
 
         for (let participant of participants) {
-          let existing = permissionsByActor.get(participant.tenantActorOid);
+          let existing = permissionsByActor.get(participant.resourceActorOid);
           if (existing) {
             for (let permission of participant.permissions) {
               existing.permissions.add(permission);
@@ -250,8 +251,8 @@ class StoreAccessServiceImpl {
             continue;
           }
 
-          permissionsByActor.set(participant.tenantActorOid, {
-            actor: participant.tenantActor,
+          permissionsByActor.set(participant.resourceActorOid, {
+            actor: participant.resourceActor,
             permissions: new Set(participant.permissions)
           });
         }
@@ -267,7 +268,7 @@ class StoreAccessServiceImpl {
 
   private async upsertStoreParticipants(d: {
     storeOids: bigint[];
-    actor: TenantActor;
+    actor: ResourceActor;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
   }) {
@@ -281,7 +282,7 @@ class StoreAccessServiceImpl {
             storeOid: {
               in: storeOids
             },
-            tenantActorOid: d.actor.oid
+            resourceActorOid: d.actor.oid
           }
         });
 
@@ -315,9 +316,9 @@ class StoreAccessServiceImpl {
             let ids = getId('storeParticipant');
             let participant = await client.storeParticipant.upsert({
               where: {
-                storeOid_tenantActorOid: {
+                storeOid_resourceActorOid: {
                   storeOid,
-                  tenantActorOid: d.actor.oid
+                  resourceActorOid: d.actor.oid
                 }
               },
               update: {
@@ -327,7 +328,7 @@ class StoreAccessServiceImpl {
                 oid: ids.oid,
                 id: ids.id,
                 storeOid,
-                tenantActorOid: d.actor.oid,
+                resourceActorOid: d.actor.oid,
                 permissions: nextPermissions
               }
             });
@@ -345,9 +346,9 @@ class StoreAccessServiceImpl {
             let ids = getId('storeParticipant');
             let participant = await client.storeParticipant.upsert({
               where: {
-                storeOid_tenantActorOid: {
+                storeOid_resourceActorOid: {
                   storeOid,
-                  tenantActorOid: d.actor.oid
+                  resourceActorOid: d.actor.oid
                 }
               },
               update: {},
@@ -355,7 +356,7 @@ class StoreAccessServiceImpl {
                 oid: ids.oid,
                 id: ids.id,
                 storeOid,
-                tenantActorOid: d.actor.oid,
+                resourceActorOid: d.actor.oid,
                 permissions: nextPermissions
               }
             });
@@ -381,7 +382,7 @@ class StoreAccessServiceImpl {
   }
 
   private async ensureStoreParticipantsHavePermissions(d: {
-    actor: TenantActor;
+    actor: ResourceActor;
     items: Array<{
       storeOid: bigint;
       permissions: StoreParticipantPermissions[];
@@ -396,7 +397,7 @@ class StoreAccessServiceImpl {
             storeOid: {
               in: d.items.map(item => item.storeOid)
             },
-            tenantActorOid: d.actor.oid
+            resourceActorOid: d.actor.oid
           }
         });
 
@@ -433,7 +434,7 @@ class StoreAccessServiceImpl {
               oid: ids.oid,
               id: ids.id,
               storeOid: item.storeOid,
-              tenantActorOid: d.actor.oid,
+              resourceActorOid: d.actor.oid,
               permissions: item.permissions
             }
           });
@@ -449,7 +450,7 @@ class StoreAccessServiceImpl {
 
   async ensureActorStorePermissions(d: {
     store: Pick<Store, 'oid'>;
-    actor: TenantActor;
+    actor: ResourceActor;
     permissions: StoreParticipantPermissions[];
     overridePermissions?: boolean;
   }) {
@@ -478,7 +479,7 @@ class StoreAccessServiceImpl {
   }
 
   async resolveAccessibleStoreOids(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
         storeOids: bigint[];
@@ -498,8 +499,8 @@ class StoreAccessServiceImpl {
         let actor = await this.getActorForAccess(d);
         let stores = await db.store.findMany({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             oid: {
               in: relevantStoreOids
             }
@@ -553,7 +554,7 @@ class StoreAccessServiceImpl {
   }
 
   async listAccessibleStoreOidsForTenantEnvironment(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
       }
@@ -562,8 +563,8 @@ class StoreAccessServiceImpl {
       async db => {
         let stores = await db.store.findMany({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid
           },
           select: {
             oid: true
@@ -571,8 +572,8 @@ class StoreAccessServiceImpl {
         });
 
         return await this.resolveAccessibleStoreOids({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           actorId: d.actorId,
           defaultPermissions: d.defaultPermissions,
           overridePermissions: d.overridePermissions,
@@ -585,15 +586,15 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStore(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id'>;
         requiredPermission: StoreParticipantPermissions;
       }
   ) {
     let result = await this.resolveAccessibleStoreOids({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -616,7 +617,7 @@ class StoreAccessServiceImpl {
   }
 
   async getStorePermissions(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
@@ -647,8 +648,8 @@ class StoreAccessServiceImpl {
 
     let [readAccess, writeAccess] = await Promise.all([
       this.resolveAccessibleStoreOids({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         actorId: d.actorId,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -656,8 +657,8 @@ class StoreAccessServiceImpl {
         storeOids: [d.store.oid]
       }),
       this.resolveAccessibleStoreOids({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         actorId: d.actorId,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -688,14 +689,14 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForDocument(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         document: {
           id: string;
           oid: bigint;
           fileOid: bigint;
           isReadOnly?: boolean;
-          createdByTenantActorOid?: bigint | null;
+          createdByResourceActorOid?: bigint | null;
         };
         requiredPermission: StoreParticipantPermissions;
       }
@@ -709,13 +710,13 @@ class StoreAccessServiceImpl {
     }
 
     let actor = await this.getActorForAccess(d);
-    let isOwner = !!actor && d.document.createdByTenantActorOid === actor.oid;
+    let isOwner = !!actor && d.document.createdByResourceActorOid === actor.oid;
     let relevantStoreOids = await this.listRelevantStoreOidsForDocument({
       document: d.document
     });
     let access = await this.resolveAccessibleStoreOids({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -740,19 +741,19 @@ class StoreAccessServiceImpl {
   }
 
   async getDocumentPermissions(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         document: {
           id: string;
           oid: bigint;
           fileOid: bigint;
           isReadOnly?: boolean;
-          createdByTenantActorOid?: bigint | null;
+          createdByResourceActorOid?: bigint | null;
         };
       }
   ) {
     let actor = await this.getActorForAccess(d);
-    let isOwner = !!actor && d.document.createdByTenantActorOid === actor.oid;
+    let isOwner = !!actor && d.document.createdByResourceActorOid === actor.oid;
     let relevantStoreOids = await this.listRelevantStoreOidsForDocument({
       document: d.document
     });
@@ -786,8 +787,8 @@ class StoreAccessServiceImpl {
 
     let [readAccess, writeAccess] = await Promise.all([
       this.resolveAccessibleStoreOids({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         actorId: d.actorId,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -795,8 +796,8 @@ class StoreAccessServiceImpl {
         storeOids: relevantStoreOids
       }),
       this.resolveAccessibleStoreOids({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         actorId: d.actorId,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -829,24 +830,24 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForFile(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         file: {
           id: string;
           oid: bigint;
-          createdByTenantActorOid?: bigint | null;
+          createdByResourceActorOid?: bigint | null;
         };
         requiredPermission: StoreParticipantPermissions;
       }
   ) {
     let actor = await this.getActorForAccess(d);
-    let isOwner = !!actor && d.file.createdByTenantActorOid === actor.oid;
+    let isOwner = !!actor && d.file.createdByResourceActorOid === actor.oid;
     let relevantStoreOids = await this.listRelevantStoreOidsForFile({
       file: d.file
     });
     let access = await this.resolveAccessibleStoreOids({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -871,7 +872,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStoreItem(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         item: {
           id: string;
@@ -881,8 +882,8 @@ class StoreAccessServiceImpl {
       }
   ) {
     let access = await this.resolveAccessibleStoreOids({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,

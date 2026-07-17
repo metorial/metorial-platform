@@ -1,19 +1,17 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { db, env, getId, withTransaction } from '@metorial-cargo/db';
-import { storeVersionService } from '@metorial-cargo/module-store';
+import { getId } from '@metorial/cargo-config/id';
+import { storeVersionService } from '@metorial/cargo-module-store';
+import { createCron } from '@metorial/cron';
+import { db, withTransaction } from '@metorial/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalDocumentDraftService, internalDocumentVersioningService } from '../internal';
 import { documentInclude } from '../services/document';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 import { enqueueDocumentLifecycle } from './lifecycle';
-
-let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
 
 export let documentDraftVersionFlushManyQueue = createQueue<{
   cursor?: string;
 }>({
-  redisUrl,
   name: 'cargo/doc/draft-version-flush/many',
   workerOpts: {
     concurrency: 1
@@ -24,7 +22,6 @@ export let documentDraftVersionFlushSingleQueue = createQueue<{
   documentId: string;
   expectedDraftVersionExpiresAt: Date;
 }>({
-  redisUrl,
   name: 'cargo/doc/draft-version-flush/single',
   workerOpts: {
     concurrency: 5
@@ -96,8 +93,8 @@ export let flushExpiredDraftVersion = async (d: {
         },
         include: {
           ...documentInclude,
-          tenant: true,
-          environment: true
+          resourceTenant: true,
+          resourceGroup: true
         }
       });
       if (!document || document.isReadOnly || !document.currentVersion) return null;
@@ -129,8 +126,8 @@ export let flushExpiredDraftVersion = async (d: {
 
       let nextVersionNumber = document.maxVersionNumber + 1;
       let nextVersion = await internalDocumentVersioningService.createVersion({
-        tenant: document.tenant,
-        environment: document.environment,
+        resourceTenant: document.resourceTenant,
+        resourceGroup: document.resourceGroup,
         document,
         versionNumber: nextVersionNumber,
         contentOid: document.contentOid,
@@ -187,7 +184,6 @@ export let documentDraftVersionFlushSingleProcessor =
 
 export let documentDraftVersionFlushCron = createCron(
   {
-    redisUrl,
     name: 'cargo/doc/draft-version-flush/cron',
     cron: '*/15 * * * *'
   },

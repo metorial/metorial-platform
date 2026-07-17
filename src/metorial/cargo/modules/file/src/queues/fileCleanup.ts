@@ -1,13 +1,10 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { createCron } from '@metorial/cron';
+import { db } from '@metorial/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { getCargoFilesBucketName, getStorage } from '../storage';
-
-let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
 
 export let fileCleanupManyQueue = createQueue<{ cursor?: string }>({
-  redisUrl,
   name: 'cargo/file/cleanup/many',
   workerOpts: {
     concurrency: 1
@@ -15,7 +12,6 @@ export let fileCleanupManyQueue = createQueue<{ cursor?: string }>({
 });
 
 export let fileCleanupSingleQueue = createQueue<{ fileId: string }>({
-  redisUrl,
   name: 'cargo/file/cleanup/single',
   workerOpts: {
     concurrency: 1
@@ -93,7 +89,6 @@ export let fileCleanupSingleProcessor = fileCleanupSingleQueue.process(async dat
 
 export let fileCleanupCron = createCron(
   {
-    redisUrl,
     name: 'cargo/file/cleanup/cron',
     cron: '0 0 * * *'
   },

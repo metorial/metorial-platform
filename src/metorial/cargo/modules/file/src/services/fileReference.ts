@@ -1,16 +1,17 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { File, FileLink, FileReference } from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveFileLinks,
   resolveFileReferences,
   resolveFiles
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from './filePurpose';
+} from '@metorial/cargo-list-utils';
+import type { File, FileLink, FileReference } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
+import type { CargoResourceScope } from './filePurpose';
 
 let include = {
   fileLink: {
@@ -18,13 +19,13 @@ let include = {
       file: true
     }
   },
-  tenant: true,
-  environment: true
+  resourceTenant: true,
+  resourceGroup: true
 };
 
 class FileReferenceServiceImpl {
   async upsertFileReference(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       fileLink: FileLink;
       input: {
         id?: string;
@@ -37,8 +38,8 @@ class FileReferenceServiceImpl {
       let existing = d.input.id
         ? await db.fileReference.findFirst({
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               OR: [
                 { id: d.input.id },
                 {
@@ -51,8 +52,8 @@ class FileReferenceServiceImpl {
           })
         : await db.fileReference.findFirst({
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               fileLinkOid: d.fileLink.oid,
               entityType: d.input.entityType,
               entityId: d.input.entityId
@@ -80,8 +81,8 @@ class FileReferenceServiceImpl {
           oid: generated.oid,
           id: d.input.id ?? generated.id,
           fileLinkOid: d.fileLink.oid,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           entityType: d.input.entityType,
           entityId: d.input.entityId
         },
@@ -91,14 +92,14 @@ class FileReferenceServiceImpl {
   }
 
   async getFileReferenceById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       fileReferenceId: string;
     }
   ) {
     let fileReference = await db.fileReference.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.fileReferenceId
       },
       include
@@ -112,7 +113,7 @@ class FileReferenceServiceImpl {
   }
 
   async listFileReferences(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       fileLinkId?: string;
       fileLinkIds?: string[];
@@ -137,8 +138,8 @@ class FileReferenceServiceImpl {
             ...opts,
             where: {
               oid: fileReferences ? fileReferences.in : undefined,
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               fileLink:
                 fileLinks || files
                   ? {

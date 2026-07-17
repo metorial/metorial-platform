@@ -1,6 +1,8 @@
-import type { SkillDestination, SkillRepository, Tenant } from '@metorial-cargo/db';
-import { db, env, getId, withTransaction } from '@metorial-cargo/db';
 import { createOriginClient } from '@metorial-platform-systems/origin-client';
+import { env } from '@metorial/cargo-config';
+import { getId } from '@metorial/cargo-config/id';
+import type { ResourceTenant, SkillDestination, SkillRepository } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { syncStartQueue } from '../queues/sync/start';
 
 export let origin = createOriginClient({
@@ -8,28 +10,30 @@ export let origin = createOriginClient({
 });
 
 export let getOriginTenant = async (
-  tenantInput: Pick<Tenant, 'oid' | 'id'> & Partial<Pick<Tenant, 'identifier' | 'name'>>
+  tenantInput: Pick<ResourceTenant, 'oid' | 'id'> &
+    Partial<Pick<ResourceTenant, 'identifier' | 'name'>>
 ) => {
-  let tenant =
+  let resourceTenant =
     tenantInput.identifier && tenantInput.name
-      ? (tenantInput as Tenant)
-      : await db.tenant.findFirstOrThrow({
+      ? (tenantInput as ResourceTenant)
+      : await db.resourceTenant.findFirstOrThrow({
           where: {
             oid: tenantInput.oid
           }
         });
 
   return await origin.tenant.upsert({
-    identifier: tenant.identifier,
-    name: tenant.name
+    identifier: resourceTenant.identifier,
+    name: resourceTenant.name
   });
 };
 
 export let createSkillDestination = async (d: {
-  tenant: Pick<Tenant, 'oid' | 'id'> & Partial<Pick<Tenant, 'identifier' | 'name'>>;
+  resourceTenant: Pick<ResourceTenant, 'oid' | 'id'> &
+    Partial<Pick<ResourceTenant, 'identifier' | 'name'>>;
   purpose?: string;
 }): Promise<SkillDestination> => {
-  let originTenant = await getOriginTenant(d.tenant);
+  let originTenant = await getOriginTenant(d.resourceTenant);
 
   let codeBucket = await origin.codeBucket.create({
     tenantId: originTenant.id,
@@ -47,11 +51,12 @@ export let createSkillDestination = async (d: {
 };
 
 export let getSkillDestinationEditorUrl = async (d: {
-  tenant: Pick<Tenant, 'oid' | 'id'> & Partial<Pick<Tenant, 'identifier' | 'name'>>;
+  resourceTenant: Pick<ResourceTenant, 'oid' | 'id'> &
+    Partial<Pick<ResourceTenant, 'identifier' | 'name'>>;
   destination: Pick<SkillDestination, 'codeBucketId'>;
   isReadOnly?: boolean;
 }) => {
-  let originTenant = await getOriginTenant(d.tenant);
+  let originTenant = await getOriginTenant(d.resourceTenant);
   let res = await origin.codeBucket.getEditorToken({
     tenantId: originTenant.id,
     codeBucketId: d.destination.codeBucketId,

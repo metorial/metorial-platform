@@ -1,11 +1,11 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
-import { db, env, getId } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
+import { createCron } from '@metorial/cron';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { syncStartQueue } from '../sync/start';
 
 export let flushDirtySkillDestinationsCron = createCron(
   {
-    redisUrl: env.service.REDIS_URL,
     name: 'cargo/skill/dirty/flush/cron',
     cron: '*/1 * * * *'
   },
@@ -17,7 +17,6 @@ export let flushDirtySkillDestinationsCron = createCron(
 let flushDirtySkillDestinationsManyQueue = createQueue<{
   cursor?: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/dirty/flush/many',
   workerOpts: {
     concurrency: 1
@@ -52,7 +51,6 @@ export let flushDirtySkillDestinationsManyQueueProcessor =
 let flushDirtySkillDestinationsSingleQueue = createQueue<{
   destinationId: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/dirty/flush/single',
   workerOpts: {
     concurrency: 5

@@ -1,31 +1,32 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { addAfterTransactionHook, db, getId } from '@metorial-cargo/db';
-import { storeTemplateSyncSingleQueue } from '@metorial-cargo/module-store';
+import { getId } from '@metorial/cargo-config/id';
+import { storeTemplateSyncSingleQueue } from '@metorial/cargo-module-store';
+import { addAfterTransactionHook, db } from '@metorial/db';
 
 let include = {
-  tenant: true
+  resourceTenant: true
 };
 
-class EnvironmentServiceImpl {
-  async upsertEnvironment(d: {
-    tenant: { oid: bigint };
+class ResourceGroupServiceImpl {
+  async upsertResourceGroup(d: {
+    resourceTenant: { oid: bigint };
     input: {
       identifier: string;
       name: string;
       type: 'development' | 'production';
     };
   }) {
-    let existing = await db.environment.findFirst({
+    let existing = await db.resourceGroup.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
+        resourceTenantOid: d.resourceTenant.oid,
         identifier: d.input.identifier
       },
       include
     });
 
     if (existing) {
-      return await db.environment.update({
+      return await db.resourceGroup.update({
         where: {
           id: existing.id
         },
@@ -37,12 +38,12 @@ class EnvironmentServiceImpl {
       });
     }
 
-    let { oid, id } = getId('environment');
+    let { oid, id } = getId('resourceGroup');
 
-    let environment = await db.environment.upsert({
+    let resourceGroup = await db.resourceGroup.upsert({
       where: {
-        tenantOid_identifier: {
-          tenantOid: d.tenant.oid,
+        resourceTenantOid_identifier: {
+          resourceTenantOid: d.resourceTenant.oid,
           identifier: d.input.identifier
         }
       },
@@ -53,7 +54,7 @@ class EnvironmentServiceImpl {
       create: {
         oid,
         id,
-        tenantOid: d.tenant.oid,
+        resourceTenantOid: d.resourceTenant.oid,
         identifier: d.input.identifier,
         name: d.input.name,
         type: d.input.type
@@ -65,13 +66,13 @@ class EnvironmentServiceImpl {
       let storeTemplates = await db.storeTemplate.findMany({
         where: {
           type: 'standalone',
-          environmentOid: null,
+          resourceGroupOid: null,
           OR: [
             {
-              tenantOid: null
+              resourceTenantOid: null
             },
             {
-              tenantOid: d.tenant.oid
+              resourceTenantOid: d.resourceTenant.oid
             }
           ]
         },
@@ -85,34 +86,34 @@ class EnvironmentServiceImpl {
       await storeTemplateSyncSingleQueue.addMany(
         storeTemplates.map(storeTemplate => ({
           storeTemplateId: storeTemplate.id,
-          tenantId: environment.tenant.id,
-          environmentId: environment.id,
+          resourceTenantId: resourceGroup.resourceTenant.id,
+          resourceGroupId: resourceGroup.id,
           forceFullReconcile: true
         }))
       );
     });
 
-    return environment;
+    return resourceGroup;
   }
 
-  async getEnvironmentById(d: { tenant: { oid: bigint }; id: string }) {
-    let environment = await db.environment.findFirst({
+  async getResourceGroupById(d: { resourceTenant: { oid: bigint }; id: string }) {
+    let resourceGroup = await db.resourceGroup.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
+        resourceTenantOid: d.resourceTenant.oid,
         OR: [{ id: d.id }, { identifier: d.id }]
       },
       include
     });
 
-    if (!environment) throw new ServiceError(notFoundError('environment', d.id));
+    if (!resourceGroup) throw new ServiceError(notFoundError('resourceGroup', d.id));
 
-    return environment;
+    return resourceGroup;
   }
 
-  async listEnvironments(d: { tenant: { oid: bigint } }) {
-    return await db.environment.findMany({
+  async listResourceGroups(d: { resourceTenant: { oid: bigint } }) {
+    return await db.resourceGroup.findMany({
       where: {
-        tenantOid: d.tenant.oid
+        resourceTenantOid: d.resourceTenant.oid
       },
       orderBy: {
         createdAt: 'asc'
@@ -122,7 +123,7 @@ class EnvironmentServiceImpl {
   }
 }
 
-export let environmentService = Service.create(
-  'cargoEnvironmentService',
-  () => new EnvironmentServiceImpl()
+export let resourceGroupService = Service.create(
+  'cargoResourceGroupService',
+  () => new ResourceGroupServiceImpl()
 ).build();

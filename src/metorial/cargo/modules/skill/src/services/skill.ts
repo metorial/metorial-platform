@@ -2,24 +2,25 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { EntityImage, Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db, snowflake, withTransaction } from '@metorial-cargo/db';
+import { snowflake } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
+  resolveResourceActors,
   resolveSkills,
   resolveSkillTemplates,
-  resolveStores,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { actorService } from '@metorial-cargo/module-file';
+  resolveStores
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { actorService, resolveInstanceResourceScope } from '@metorial/cargo-module-file';
 import {
   storeAccessService,
   storeReadPermission,
   storeService,
   storeVersionService
-} from '@metorial-cargo/module-store';
+} from '@metorial/cargo-module-store';
+import type { EntityImage, Prisma, StoreParticipantPermissions } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillParticipantService } from './skillParticipant';
@@ -44,13 +45,13 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 }>;
 
 class SkillServiceImpl {
-  private async getSkillRecord(d: CargoTenantEnvironment & { skillId: string }) {
+  private async getSkillRecord(d: CargoResourceScope & { skillId: string }) {
     return await withTransaction(
       async db => {
         let skill = await db.skill.findFirst({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             id: d.skillId,
             status: 'active'
           },
@@ -66,7 +67,7 @@ class SkillServiceImpl {
   }
 
   async createSkill(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       parentSkill?: SkillRecord;
       parentSkillTemplate?: SkillTemplateRecord;
       parentSkillCloneType?: 'fork' | 'duplicate';
@@ -104,7 +105,7 @@ class SkillServiceImpl {
 
     let actor = d.input.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant!,
           actorId: d.input.actorId
         })
       : undefined;
@@ -114,14 +115,15 @@ class SkillServiceImpl {
             parentSkill: d.parentSkill
           })
         : undefined;
+    let ownerScope = await resolveInstanceResourceScope(d);
 
     return await withTransaction(async db => {
       let store = d.parentSkillTemplate
         ? await storeService.createStoreFromTemplate({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant!,
+            resourceGroup: d.resourceGroup,
             input: {
-              templateId: d.parentSkillTemplate.storeTemplate.id,
+              templateId: d.parentSkillTemplate.storeTemplate!.id,
               name: d.input.name,
               actor,
               access: 'private',
@@ -132,9 +134,9 @@ class SkillServiceImpl {
           })
         : d.parentSkill
           ? await storeService.cloneStore({
-              tenant: d.tenant,
-              environment: d.environment,
-              store: d.parentSkill.store,
+              resourceTenant: d.resourceTenant!,
+              resourceGroup: d.resourceGroup,
+              store: d.parentSkill.store!,
               actor,
               defaultPermissions: [storeReadPermission],
               input: {
@@ -145,8 +147,8 @@ class SkillServiceImpl {
               }
             })
           : await storeService.createStore({
-              tenant: d.tenant,
-              environment: d.environment,
+              resourceTenant: d.resourceTenant!,
+              resourceGroup: d.resourceGroup,
               input: {
                 name: d.input.name,
                 actor,
@@ -170,21 +172,24 @@ class SkillServiceImpl {
           license: d.input.license,
           compatibility: d.input.compatibility,
 
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
+          ...ownerScope,
+          storeId: store.id,
+          skillEntityId: d.input.id,
           storeOid: store.oid,
           parentSkillOid: d.parentSkill?.oid,
           forkedFromSkillVersionOid: forkBaseSkillVersion?.oid,
           parentSkillTemplateOid: d.parentSkillTemplate?.oid,
-          createdByTenantActorOid: actor?.oid
+          createdByResourceActorOid: actor?.oid
         },
         include: skillInclude
       });
 
       if (d.input.imageFileId !== undefined) {
         let image = await internalImageService.resolveImageEntityImage({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           entity: { id: skill.id, type: 'skill' },
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' },
@@ -228,7 +233,7 @@ class SkillServiceImpl {
 
   private async createForkBaseSkillVersion(d: { parentSkill: SkillRecord }) {
     let snapshot = await storeVersionService.createStoreVersionSnapshotNow({
-      storeId: d.parentSkill.store.id
+      storeId: d.parentSkill.store!.id
     });
 
     let skillVersion = await db.skillVersion.findFirst({
@@ -252,7 +257,7 @@ class SkillServiceImpl {
   }
 
   async listSkills(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       storeIds?: string[];
       parentSkillIds?: string[];
@@ -265,7 +270,7 @@ class SkillServiceImpl {
     let stores = await resolveStores(d, d.storeIds);
     let parentSkills = await resolveSkills(d, d.parentSkillIds);
     let parentSkillTemplates = await resolveSkillTemplates(d, d.parentSkillTemplateIds);
-    let createdByActors = await resolveTenantActors(d, d.createdByActorIds);
+    let createdByActors = await resolveResourceActors(d, d.createdByActorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -273,8 +278,8 @@ class SkillServiceImpl {
           await db.skill.findMany({
             ...opts,
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               status: 'active',
               AND: [
                 skills ? { oid: skills.in } : undefined!,
@@ -283,7 +288,9 @@ class SkillServiceImpl {
                 parentSkillTemplates
                   ? { parentSkillTemplateOid: parentSkillTemplates.in }
                   : undefined!,
-                createdByActors ? { createdByTenantActorOid: createdByActors.in } : undefined!,
+                createdByActors
+                  ? { createdByResourceActorOid: createdByActors.in }
+                  : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
               ].filter(Boolean)
             },
@@ -294,7 +301,7 @@ class SkillServiceImpl {
   }
 
   async getSkillById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillId: string;
     }
   ) {
@@ -302,7 +309,7 @@ class SkillServiceImpl {
   }
 
   async updateSkill(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skill: SkillRecord;
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -351,8 +358,8 @@ class SkillServiceImpl {
     let nextImage = d.input.image;
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
         entity: { id: d.skill.id, type: 'skill' },
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' },
@@ -364,9 +371,9 @@ class SkillServiceImpl {
 
     let store = d.input.name
       ? await storeService.updateStore({
-          environment: d.environment,
-          tenant: d.tenant,
-          store: d.skill.store,
+          resourceGroup: d.resourceGroup,
+          resourceTenant: d.resourceTenant!,
+          store: d.skill.store!,
           input: {
             name: d.input.name
           }
@@ -415,13 +422,13 @@ class SkillServiceImpl {
     await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
 
     return await this.getSkillRecord({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       skillId: d.skill.id
     }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
   }
 
-  async archiveSkill(d: CargoTenantEnvironment & { skill: SkillRecord }) {
+  async archiveSkill(d: CargoResourceScope & { skill: SkillRecord }) {
     await withTransaction(async db => {
       await db.skillPluginSkill.updateMany({
         where: {
@@ -455,7 +462,7 @@ class SkillServiceImpl {
   }
 
   async upsertSkillActor(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skill: SkillRecord;
       actorId: string;
       permissions: StoreParticipantPermissions[];
@@ -463,12 +470,12 @@ class SkillServiceImpl {
     }
   ) {
     let actor = await actorService.getActorById({
-      tenant: d.tenant,
+      resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
 
     let participant = await storeAccessService.ensureActorStorePermissions({
-      store: d.skill.store,
+      store: d.skill.store!,
       actor,
       permissions: d.permissions,
       overridePermissions: d.overridePermissions
@@ -483,7 +490,7 @@ class SkillServiceImpl {
 
     return {
       skillId: d.skill.id,
-      storeId: d.skill.store.id,
+      storeId: d.skill.store!.id,
       actorId: actor.id,
       storeParticipantId: participant.id,
       permissions: participant.permissions
@@ -491,13 +498,13 @@ class SkillServiceImpl {
   }
 
   async markSkillUse(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skill: SkillRecord;
       actorId: string;
     }
   ) {
     let actor = await actorService.getActorById({
-      tenant: d.tenant,
+      resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
 

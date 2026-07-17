@@ -6,14 +6,15 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { enqueueSkillConfigurationLifecycle } from '../queues/lifecycle';
 
 let skillConfigurationInclude = {} satisfies Prisma.SkillConfigurationInclude;
@@ -76,7 +77,7 @@ class SkillConfigurationServiceImpl {
   }
 
   private async getSkillConfigurationRecord(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillConfigurationId: string;
     }
   ) {
@@ -84,8 +85,8 @@ class SkillConfigurationServiceImpl {
       async db => {
         let skillConfiguration = await db.skillConfiguration.findFirst({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             isDefault: d.skillConfigurationId === 'default' ? true : undefined,
             id: d.skillConfigurationId === 'default' ? undefined : d.skillConfigurationId
           },
@@ -103,7 +104,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async createSkillConfiguration(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       input: SkillConfigurationInput & {
         isInternal?: boolean;
       };
@@ -114,8 +115,8 @@ class SkillConfigurationServiceImpl {
     return await db.skillConfiguration.create({
       data: {
         ...getId('skillConfiguration'),
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         isInternal: d.input.isInternal ?? false,
         allowScripts: data.allowScripts ?? true,
         allowedFileExtensions: data.allowedFileExtensions ?? [],
@@ -126,7 +127,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async listSkillConfigurations(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
@@ -140,8 +141,8 @@ class SkillConfigurationServiceImpl {
           await db.skillConfiguration.findMany({
             ...opts,
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               deletedAt: null,
               isInternal: false,
               oid: skillConfigurations ? skillConfigurations.in : undefined,
@@ -155,7 +156,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async getSkillConfigurationById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillConfigurationId: string;
     }
   ) {
@@ -167,7 +168,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async getManySkillConfigurations(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillConfigurationIds: string[];
     }
   ) {
@@ -178,8 +179,8 @@ class SkillConfigurationServiceImpl {
 
     return await db.skillConfiguration.findMany({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: {
           in: skillConfigurationIds
         }
@@ -188,12 +189,12 @@ class SkillConfigurationServiceImpl {
     });
   }
 
-  async upsertDefaultSkillConfiguration(d: CargoTenantEnvironment) {
+  async upsertDefaultSkillConfiguration(d: CargoResourceScope) {
     return await withTransaction(async db => {
       let existing = await db.skillConfiguration.findFirst({
         where: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           isDefault: true
         },
         include: skillConfigurationInclude
@@ -204,8 +205,8 @@ class SkillConfigurationServiceImpl {
       return await db.skillConfiguration.create({
         data: {
           ...getId('skillConfiguration'),
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           isDefault: true,
           allowScripts: true,
           allowedFileExtensions: [],
@@ -217,7 +218,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async updateSkillConfiguration(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillConfigurationId: string;
       input: SkillConfigurationInput;
     }
@@ -252,7 +253,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async deleteSkillConfiguration(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillConfigurationId: string;
     }
   ) {

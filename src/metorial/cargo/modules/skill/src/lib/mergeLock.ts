@@ -1,15 +1,15 @@
 import { createLock } from '@lowerdeck/lock';
-import type { SkillMergeRequestDirection } from '@metorial-cargo/db';
-import { env } from '@metorial-cargo/db';
+import { getConfig } from '@metorial/config';
+import type { SkillMergeRequestDirection } from '@metorial/db';
 
 export let skillMergeTargetLock = createLock({
   name: 'cargo/skill/merge',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 
 export let skillMergePairLock = createLock({
   name: 'cargo/skill/merge-pair',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 
 export let getCanonicalSkillPairKey = (firstSkillOid: bigint, secondSkillOid: bigint) =>

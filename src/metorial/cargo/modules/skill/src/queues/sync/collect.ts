@@ -1,5 +1,5 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { CargoSkillLimitError } from '../../lib/limits';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin } from '../../serializers/plugin';
@@ -14,7 +14,6 @@ export let syncCollectQueue = createQueue<{
   skillDestinationSyncId: string;
   skillRepositoryId?: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/collect',
   workerOpts: {
     concurrency: 10
@@ -49,8 +48,8 @@ let getSyncTaskLabel = (
 
 let getSyncPrMetadata = (d: {
   destination: {
-    skillMarketplace?: { name: string; id: string } | null;
-    skillPlugin?: { name: string; id: string } | null;
+    skillMarketplace?: { name: string | null; id: string } | null;
+    skillPlugin?: { name: string | null; id: string } | null;
   };
   tasks: SyncTask[];
   names: {
@@ -61,9 +60,9 @@ let getSyncPrMetadata = (d: {
   existingItemKeys: Set<string>;
 }) => {
   let target = d.destination.skillMarketplace
-    ? `marketplace ${d.destination.skillMarketplace.name}`
+    ? `marketplace ${d.destination.skillMarketplace.name ?? d.destination.skillMarketplace.id}`
     : d.destination.skillPlugin
-      ? `plugin ${d.destination.skillPlugin.name}`
+      ? `plugin ${d.destination.skillPlugin.name ?? d.destination.skillPlugin.id}`
       : 'skill destination';
 
   let title = `Update ${target}`;
@@ -377,7 +376,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   let tasks = taskManager.getTasks();
   let names = await getSyncTaskNames(tasks);
   let prMetadata = getSyncPrMetadata({
-    destination: sync.destination,
+    destination: sync.destination!,
     tasks,
     names,
     existingItemKeys

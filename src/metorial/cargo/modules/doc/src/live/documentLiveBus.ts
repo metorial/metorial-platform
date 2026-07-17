@@ -1,6 +1,6 @@
 import { generatePlainId } from '@lowerdeck/id';
 import { createRedisClient } from '@lowerdeck/redis';
-import { env } from '@metorial-cargo/db';
+import { getConfig } from '@metorial/config';
 import { hostname } from 'node:os';
 import {
   type DocumentLiveBusMessage,
@@ -11,10 +11,10 @@ import {
 let liveBusChannel = 'cargo:document:collaboration:live';
 
 let publisherRedisFactory = createRedisClient({
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 let subscriberRedisFactory = createRedisClient({
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 
 let publisherPromise: Promise<any> | undefined;

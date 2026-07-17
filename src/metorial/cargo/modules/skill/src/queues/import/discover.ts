@@ -1,11 +1,11 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, env, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
+import { db, withTransaction } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { discoverSkillPaths } from '../../import/discovery';
 import { listCodeBucketFiles } from '../../import/repository';
 import { skillImportItemQueue } from './item';
 
 export let skillImportDiscoverQueue = createQueue<{ skillImportId: string }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/import/discover',
   workerOpts: {
     concurrency: 5

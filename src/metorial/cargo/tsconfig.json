@@ -1,0 +1,46 @@
+{
+  "extends": "@metorial/tsconfig/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@metorial/cargo-config": [
+        "packages/config/src/index.ts"
+      ],
+      "@metorial/cargo-config/id": [
+        "packages/config/src/id.ts"
+      ],
+      "@metorial/cargo-list-utils": [
+        "packages/list-utils/src/index.ts"
+      ],
+      "@metorial/cargo-module-doc": [
+        "modules/doc/src/index.ts"
+      ],
+      "@metorial/cargo-module-doc/*": [
+        "modules/doc/src/*"
+      ],
+      "@metorial/cargo-module-file": [
+        "modules/file/src/index.ts"
+      ],
+      "@metorial/cargo-module-file/*": [
+        "modules/file/src/*"
+      ],
+      "@metorial/cargo-module-search": [
+        "modules/search/src/index.ts"
+      ],
+      "@metorial/cargo-module-skill": [
+        "modules/skill/src/index.ts"
+      ],
+      "@metorial/cargo-module-skill/*": [
+        "modules/skill/src/*"
+      ],
+      "@metorial/cargo-module-store": [
+        "modules/store/src/index.ts"
+      ]
+    },
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "modules/**/*.ts",
+    "packages/**/*.ts"
+  ]
+}

@@ -1,13 +1,10 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { db, env, withTransaction } from '@metorial-cargo/db';
+import { createCron } from '@metorial/cron';
+import { db, withTransaction } from '@metorial/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { subDays } from 'date-fns';
-
-let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
 
 export let documentCleanupManyQueue = createQueue<{ cursor?: string }>({
-  redisUrl,
   name: 'cargo/doc/cleanup/many',
   workerOpts: {
     concurrency: 1
@@ -15,7 +12,6 @@ export let documentCleanupManyQueue = createQueue<{ cursor?: string }>({
 });
 
 export let documentCleanupSingleQueue = createQueue<{ documentVersionId: string }>({
-  redisUrl,
   name: 'cargo/doc/cleanup/single',
   workerOpts: {
     concurrency: 5
@@ -126,7 +122,6 @@ export let documentCleanupSingleProcessor = documentCleanupSingleQueue.process(a
 
 export let documentCleanupCron = createCron(
   {
-    redisUrl,
     name: 'cargo/doc/cleanup/cron',
     cron: '0 * * * *'
   },

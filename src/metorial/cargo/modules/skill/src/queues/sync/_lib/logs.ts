@@ -1,4 +1,4 @@
-import { db } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
 
 export type SkillDestinationSyncLogEntry = [number, string];
 

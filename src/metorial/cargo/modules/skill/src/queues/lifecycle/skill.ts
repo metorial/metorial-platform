@@ -1,13 +1,12 @@
-import { createQueue } from '@lowerdeck/queue';
-import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
-import { enqueueManagedSkillPluginLifecycle } from './managedSkillPlugin';
+import { addAfterTransactionHook, db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
+import { enqueueManagedSkillPluginLifecycle } from './managedSkillPlugin';
 
 let skillLifecycleQueue = createQueue<{
   skillId: string;
   event: LifecycleEvent;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/lifecycle/skill',
   workerOpts: {
     concurrency: 10
@@ -33,7 +32,6 @@ export let skillLifecycleQueueProcessor = skillLifecycleQueue.process(async data
 export let propagateSkillDirtyQueue = createQueue<{
   skillId: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/dirty/prop/skill',
   workerOpts: {
     concurrency: 10

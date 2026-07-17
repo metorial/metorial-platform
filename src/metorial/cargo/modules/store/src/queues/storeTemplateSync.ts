@@ -1,14 +1,10 @@
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { env } from '@metorial-cargo/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalStoreTemplateSyncService } from '../internal/storeTemplateSync';
-
-let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
 
 export let storeTemplateItemUpdatedQueue = createQueue<{
   storeTemplateItemId: string;
 }>({
-  redisUrl,
   name: 'cargo/store-template/item/updated',
   workerOpts: {
     concurrency: 5
@@ -20,7 +16,6 @@ export let storeTemplateItemsUpdatedQueue = createQueue<{
   updatedItemIds?: string[];
   forceFullReconcile?: boolean;
 }>({
-  redisUrl,
   name: 'cargo/store-template/items/updated',
   workerOpts: {
     concurrency: 5
@@ -33,7 +28,6 @@ export let storeTemplateSyncManyQueue = createQueue<{
   updatedItemIds?: string[];
   forceFullReconcile?: boolean;
 }>({
-  redisUrl,
   name: 'cargo/store-template/sync/many',
   workerOpts: {
     concurrency: 1
@@ -42,12 +36,11 @@ export let storeTemplateSyncManyQueue = createQueue<{
 
 export let storeTemplateSyncSingleQueue = createQueue<{
   storeTemplateId: string;
-  tenantId: string;
-  environmentId: string;
+  resourceTenantId: string;
+  resourceGroupId: string;
   updatedItemIds?: string[];
   forceFullReconcile?: boolean;
 }>({
-  redisUrl,
   name: 'cargo/store-template/sync/single',
   workerOpts: {
     concurrency: 5
@@ -106,8 +99,8 @@ export let storeTemplateSyncManyProcessor = storeTemplateSyncManyQueue.process(a
     await storeTemplateSyncSingleQueue.addMany(
       result.targets.map(target => ({
         storeTemplateId: data.storeTemplateId,
-        tenantId: target.tenant.id,
-        environmentId: target.environment.id,
+        resourceTenantId: target.resourceTenant.id,
+        resourceGroupId: target.resourceGroup.id,
         updatedItemIds: data.updatedItemIds,
         forceFullReconcile: data.forceFullReconcile
       }))

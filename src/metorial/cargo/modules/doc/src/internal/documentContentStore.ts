@@ -1,6 +1,6 @@
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { withTransaction } from '@metorial-cargo/db';
+import type { Prisma } from '@metorial/db';
+import { withTransaction } from '@metorial/db';
 
 type DocumentStoreSource = {
   id: string;

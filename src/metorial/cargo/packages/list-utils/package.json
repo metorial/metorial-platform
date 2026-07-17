@@ -1,5 +1,5 @@
 {
-  "name": "@metorial-cargo/list-utils",
+  "name": "@metorial/cargo-list-utils",
   "module": "index.ts",
   "main": "src/index.ts",
   "type": "module",
@@ -9,13 +9,14 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@metorial/tsconfig": "^1.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@metorial-cargo/db": "^1.0.0"
+    "@metorial/db": "^1.0.0"
   },
   "types": "src/index.ts",
   "exports": {

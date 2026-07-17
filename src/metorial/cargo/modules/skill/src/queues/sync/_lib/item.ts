@@ -1,4 +1,4 @@
-import type { Prisma } from '@metorial-cargo/db';
+import type { Prisma } from '@metorial/db';
 import type { SyncTask } from './task';
 
 export let getSyncTaskItemKey = (task: SyncTask) => {
@@ -22,9 +22,7 @@ export let getSyncItemKey = (item: {
   throw new Error('Invalid item');
 };
 
-export let getSyncTaskItemWhere = (
-  task: SyncTask
-): Prisma.SkillDestinationItemWhereInput => {
+export let getSyncTaskItemWhere = (task: SyncTask): Prisma.SkillDestinationItemWhereInput => {
   if (task.type === 'skill') {
     return {
       skill: { id: task.skillId },

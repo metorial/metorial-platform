@@ -1,12 +1,11 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { materializeImportedSkill } from '../../import/materialize';
 import type { SkillRecord } from '../../services/skill';
 import { skillService } from '../../services/skill';
 import { skillImportFinishQueue } from './finish';
 
 export let skillImportItemQueue = createQueue<{ skillImportItemId: string }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/import/item',
   workerOpts: {
     concurrency: 5
@@ -22,9 +21,9 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     include: {
       skillImport: {
         include: {
-          tenant: true,
-          environment: true,
-          creatorTenantActor: true
+          resourceTenant: true,
+          resourceGroup: true,
+          creatorResourceActor: true
         }
       },
       skill: {
@@ -44,8 +43,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         (await db.skill.findFirst({
           where: {
             id: item.targetSkillId,
-            tenantOid: item.skillImport.tenantOid,
-            environmentOid: item.skillImport.environmentOid,
+            resourceTenantOid: item.skillImport.resourceTenantOid,
+            resourceGroupOid: item.skillImport.resourceGroupOid,
             status: 'active'
           },
           include: {
@@ -56,8 +55,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         }));
       if (cleanupSkill) {
         await skillService.archiveSkill({
-          tenant: item.skillImport.tenant,
-          environment: item.skillImport.environment,
+          resourceTenant: item.skillImport.resourceTenant!,
+          resourceGroup: item.skillImport.resourceGroup,
           skill: cleanupSkill
         });
       }
@@ -93,13 +92,13 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     if (!item.skillImport.codeBucketId) throw new Error('Import codebucket is missing');
 
     createdSkill = await materializeImportedSkill({
-      tenant: item.skillImport.tenant,
-      environment: item.skillImport.environment,
+      resourceTenant: item.skillImport.resourceTenant!,
+      resourceGroup: item.skillImport.resourceGroup,
       codeBucketId: item.skillImport.codeBucketId,
       skillId: item.targetSkillId,
       rootPath: item.path,
       repositoryName: item.skillImport.repositoryName,
-      actorId: item.skillImport.creatorTenantActor?.id,
+      actorId: item.skillImport.creatorResourceActor?.id,
       onSkillCreated: async skill => {
         createdSkill = skill;
         let linked = await db.skillImportItem.updateMany({
@@ -131,8 +130,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     });
     if (completed.count === 0) {
       await skillService.archiveSkill({
-        tenant: item.skillImport.tenant,
-        environment: item.skillImport.environment,
+        resourceTenant: item.skillImport.resourceTenant!,
+        resourceGroup: item.skillImport.resourceGroup,
         skill: createdSkill
       });
     }
@@ -141,8 +140,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     if (createdSkill) {
       try {
         await skillService.archiveSkill({
-          tenant: item.skillImport.tenant,
-          environment: item.skillImport.environment,
+          resourceTenant: item.skillImport.resourceTenant!,
+          resourceGroup: item.skillImport.resourceGroup,
           skill: createdSkill
         });
         cleanupSucceeded = true;

@@ -2,7 +2,7 @@ import { delay } from '@lowerdeck/delay';
 import { generatePlainId } from '@lowerdeck/id';
 import { createRedisClient } from '@lowerdeck/redis';
 import { Service } from '@lowerdeck/service';
-import { env } from '@metorial-cargo/db';
+import { getConfig } from '@metorial/config';
 import { Buffer } from 'node:buffer';
 import * as Y from 'yjs';
 
@@ -15,7 +15,7 @@ let queuedDocumentsHash = 'cargo:document:collaboration:queued';
 let actorDocumentsHash = 'cargo:document:collaboration:actor';
 
 let redisFactory = createRedisClient({
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 let redisClientPromise: Promise<any> | undefined;
 

@@ -1,10 +1,10 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@metorial/queue';
+import { managedSkillPluginLifecycleQueueProcessor } from './managedSkillPlugin';
 import { propagateSkillDirtyQueueProcessor, skillLifecycleQueueProcessor } from './skill';
 import {
   propagateSkillConfigurationDirtyQueueProcessor,
   skillConfigurationLifecycleQueueProcessor
 } from './skillConfiguration';
-import { managedSkillPluginLifecycleQueueProcessor } from './managedSkillPlugin';
 import {
   propagateSkillMarketplaceDirtyQueueProcessor,
   skillMarketplaceLifecycleQueueProcessor
@@ -22,9 +22,9 @@ import {
   skillPluginSkillLifecycleQueueProcessor
 } from './skillPluginSkill';
 
+export * from './managedSkillPlugin';
 export * from './skill';
 export * from './skillConfiguration';
-export * from './managedSkillPlugin';
 export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillPlugin';

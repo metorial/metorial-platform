@@ -1,20 +1,20 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, StoreItemKind, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db } from '@metorial-cargo/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
   resolveFileReferences,
   resolveFiles,
+  resolveResourceActors,
   resolveStoreDirectories,
-  resolveStoreItems,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import { internalDocumentContentStoreService } from '@metorial-cargo/module-doc';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+  resolveStoreItems
+} from '@metorial/cargo-list-utils';
+import { internalDocumentContentStoreService } from '@metorial/cargo-module-doc';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma, StoreItemKind, StoreParticipantPermissions } from '@metorial/db';
+import { db } from '@metorial/db';
 import { storeAccessService, storeReadPermission } from './storeAccess';
 
 export let storeItemInclude = {
@@ -91,7 +91,7 @@ class StoreItemServiceImpl {
   }
 
   async getStoreItemById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       itemId: string;
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -101,8 +101,8 @@ class StoreItemServiceImpl {
     let item = await db.storeItem.findFirst({
       where: {
         store: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
         },
         id: d.itemId
       },
@@ -112,8 +112,8 @@ class StoreItemServiceImpl {
     if (!item) throw new ServiceError(notFoundError('storeItem', d.itemId));
 
     await storeAccessService.assertStoreAccessForStoreItem({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       item,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -125,7 +125,7 @@ class StoreItemServiceImpl {
   }
 
   async listStoreItems(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       storeId: string;
       fileIds?: string[];
@@ -149,13 +149,13 @@ class StoreItemServiceImpl {
     let references = await resolveFileReferences(d, d.referenceIds);
     let directories = await resolveStoreDirectories(d, d.directoryIds);
     let parentDirectories = await resolveStoreDirectories(d, d.parentDirectoryIds);
-    let lastModifiedByActors = await resolveTenantActors(d, d.lastModifiedByActorIds);
+    let lastModifiedByActors = await resolveResourceActors(d, d.lastModifiedByActorIds);
 
     let accessibleStoreOids = d.actorId
       ? (
           await storeAccessService.resolveAccessibleStoreOids({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             actorId: d.actorId,
             defaultPermissions: d.defaultPermissions,
             overridePermissions: d.overridePermissions,
@@ -163,8 +163,8 @@ class StoreItemServiceImpl {
             storeOids: [
               (
                 await storeAccessService.getStoreById({
-                  tenant: d.tenant,
-                  environment: d.environment,
+                  resourceTenant: d.resourceTenant,
+                  resourceGroup: d.resourceGroup,
                   storeId: d.storeId
                 })
               ).oid
@@ -183,8 +183,8 @@ class StoreItemServiceImpl {
                 where: {
                   oid: items ? items.in : undefined,
                   store: {
-                    tenantOid: d.tenant.oid,
-                    environmentOid: d.environment.oid,
+                    resourceTenantOid: d.resourceTenant.oid,
+                    resourceGroupOid: d.resourceGroup.oid,
                     isTemplateBacking: d.storeId ? undefined : false,
                     oid: accessibleStoreOids ? { in: accessibleStoreOids } : undefined,
                     id: d.storeId
@@ -194,7 +194,7 @@ class StoreItemServiceImpl {
                   referenceOid: references ? references.in : undefined,
                   directoryOid: directories ? directories.in : undefined,
                   parentDirectoryOid: parentDirectories ? parentDirectories.in : undefined,
-                  lastModifiedByTenantActorOid: lastModifiedByActors
+                  lastModifiedByResourceActorOid: lastModifiedByActors
                     ? lastModifiedByActors.in
                     : undefined,
                   AND: [

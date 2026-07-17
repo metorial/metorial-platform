@@ -1,15 +1,15 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, SkillDestinationSyncStatus } from '@metorial-cargo/db';
-import { db, withTransaction } from '@metorial-cargo/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillMarketplaces,
   resolveSkillPlugins
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma, SkillDestinationSyncStatus } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 
 export let skillSyncInclude = {
   destination: {
@@ -17,15 +17,15 @@ export let skillSyncInclude = {
       skillMarketplace: {
         select: {
           id: true,
-          tenantOid: true,
-          environmentOid: true
+          resourceTenantOid: true,
+          resourceGroupOid: true
         }
       },
       skillPlugin: {
         select: {
           id: true,
-          tenantOid: true,
-          environmentOid: true
+          resourceTenantOid: true,
+          resourceGroupOid: true
         }
       }
     }
@@ -48,7 +48,7 @@ export type SkillSyncStatusFilter = SkillDestinationSyncStatus;
 
 class SkillSyncServiceImpl {
   private async getSkillSyncRecord(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillSyncId: string;
     }
   ) {
@@ -72,19 +72,19 @@ class SkillSyncServiceImpl {
     );
   }
 
-  private scopeDestinationWhere(d: CargoTenantEnvironment): Prisma.SkillDestinationWhereInput {
+  private scopeDestinationWhere(d: CargoResourceScope): Prisma.SkillDestinationWhereInput {
     return {
       OR: [
         {
           skillMarketplace: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid
           }
         },
         {
           skillPlugin: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid
           }
         }
       ]
@@ -92,7 +92,7 @@ class SkillSyncServiceImpl {
   }
 
   async listSkillSyncs(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       skillMarketplaceIds?: string[];
       skillPluginIds?: string[];
@@ -134,7 +134,7 @@ class SkillSyncServiceImpl {
   }
 
   async getSkillSyncById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillSyncId: string;
     }
   ) {

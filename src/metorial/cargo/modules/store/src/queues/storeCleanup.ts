@@ -1,15 +1,11 @@
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { env } from '@metorial-cargo/db';
-import { fileReferenceService } from '@metorial-cargo/module-file';
-
-let redisUrl = env.service.REDIS_URL;
+import { fileReferenceService } from '@metorial/cargo-module-file';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 let batchSize = 100;
 
 export let storeCleanupManyQueue = createQueue<{
   fileReferenceIds: string[];
   offset?: number;
 }>({
-  redisUrl,
   name: 'cargo/store/cleanup/many',
   workerOpts: {
     concurrency: 1
@@ -17,7 +13,6 @@ export let storeCleanupManyQueue = createQueue<{
 });
 
 export let storeCleanupSingleQueue = createQueue<{ fileReferenceId: string }>({
-  redisUrl,
   name: 'cargo/store/cleanup/single',
   workerOpts: {
     concurrency: 5

@@ -1,15 +1,16 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, SkillImportStatus } from '@metorial-cargo/db';
-import { db, getId } from '@metorial-cargo/db';
-import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma, SkillImportStatus } from '@metorial/db';
+import { db } from '@metorial/db';
 import { parsePublicRepositoryUrl } from '../import/publicRepository';
 import { skillImportAcquireQueue } from '../queues/import/acquire';
 import { skillRepositoryService } from './skillRepository';
 
 export let skillImportInclude = {
-  creatorTenantActor: true,
+  creatorResourceActor: true,
   items: {
     include: {
       skill: {
@@ -44,23 +45,26 @@ export type CreateSkillImportInput =
     };
 
 class SkillImportServiceImpl {
-  private async getCreatorOid(d: { tenant: { oid: bigint; id: string }; actorId?: string }) {
+  private async getCreatorOid(d: {
+    resourceTenant: { oid: bigint; id: string };
+    actorId?: string;
+  }) {
     if (!d.actorId) return undefined;
     return (
       await actorService.getActorById({
-        tenant: d.tenant,
+        resourceTenant: d.resourceTenant!,
         actorId: d.actorId
       })
     ).oid;
   }
 
   async createSkillImport(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       actorId?: string;
       input: CreateSkillImportInput;
     }
   ) {
-    let creatorTenantActorOid = await this.getCreatorOid(d);
+    let creatorResourceActorOid = await this.getCreatorOid(d);
     let repositoryName: string;
 
     if (d.input.type === 'public') {
@@ -68,8 +72,8 @@ class SkillImportServiceImpl {
     } else {
       repositoryName = (
         await skillRepositoryService.getOriginRepository({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           repoId: d.input.repositoryId
         })
       ).name;
@@ -87,9 +91,9 @@ class SkillImportServiceImpl {
         repositoryName,
         ref: d.input.ref ?? null,
         path: d.input.type === 'origin' ? (d.input.path ?? null) : null,
-        creatorTenantActorOid,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        creatorResourceActorOid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid
       },
       include: skillImportInclude
     });
@@ -102,22 +106,22 @@ class SkillImportServiceImpl {
   }
 
   async listSkillImports(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       actorId?: string;
       ids?: string[];
       statuses?: SkillImportStatus[];
     }
   ) {
-    let creatorTenantActorOid = await this.getCreatorOid(d);
+    let creatorResourceActorOid = await this.getCreatorOid(d);
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.skillImport.findMany({
             ...opts,
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
-              creatorTenantActorOid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
+              creatorResourceActorOid,
               id: d.ids?.length ? { in: d.ids } : undefined,
               status: d.statuses?.length ? { in: d.statuses } : undefined
             },
@@ -128,18 +132,18 @@ class SkillImportServiceImpl {
   }
 
   async getSkillImportById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       actorId?: string;
       skillImportId: string;
     }
   ) {
-    let creatorTenantActorOid = await this.getCreatorOid(d);
+    let creatorResourceActorOid = await this.getCreatorOid(d);
     let skillImport = await db.skillImport.findFirst({
       where: {
         id: d.skillImportId,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
-        creatorTenantActorOid
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
+        creatorResourceActorOid
       },
       include: skillImportInclude
     });

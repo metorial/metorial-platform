@@ -1,5 +1,5 @@
-import { db } from '@metorial-cargo/db';
-import { createResolver } from '../resolver';
+import { db } from '@metorial/db';
+import { createNumberResolver, createResolver } from '../resolver';
 
 export let resolveFiles = createResolver(async ({ scope, ids }) =>
   db.file.findMany({
@@ -22,7 +22,7 @@ export let resolveFileReferences = createResolver(async ({ scope, ids }) =>
   })
 );
 
-export let resolveFilePurposes = createResolver(async ({ ids }) =>
+export let resolveFilePurposes = createNumberResolver(async ({ ids }) =>
   db.filePurpose.findMany({
     where: { OR: [{ id: { in: ids } }, { slug: { in: ids } }] },
     select: { oid: true }

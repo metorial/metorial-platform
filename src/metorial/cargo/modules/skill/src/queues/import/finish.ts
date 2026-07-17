@@ -1,8 +1,7 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 
 export let skillImportFinishQueue = createQueue<{ skillImportId: string }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/import/finish',
   workerOpts: {
     concurrency: 5

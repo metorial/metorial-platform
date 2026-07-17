@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { db } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
 
 export let maxSkillStoreFiles = 1000;
 export let maxSkillPluginSkills = 100;

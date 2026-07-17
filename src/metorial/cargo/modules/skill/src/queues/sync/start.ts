@@ -1,5 +1,5 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncCollectQueue } from './collect';
 
@@ -7,7 +7,6 @@ export let syncStartQueue = createQueue<{
   skillDestinationSyncId: string;
   skillRepositoryId?: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/start',
   workerOpts: {
     concurrency: 10

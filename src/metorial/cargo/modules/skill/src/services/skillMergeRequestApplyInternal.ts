@@ -1,29 +1,29 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { Store } from '@metorial-cargo/db';
-import { db, withTransaction } from '@metorial-cargo/db';
 import {
   documentAuthoritativeWriteService,
   documentService
-} from '@metorial-cargo/module-doc';
-import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { storeItemMutationService } from '@metorial-cargo/module-store';
+} from '@metorial/cargo-module-doc';
+import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { storeItemMutationService } from '@metorial/cargo-module-store';
+import type { Store } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { sameSnapshotItem, type Snapshot, type SnapshotItem } from '../lib/mergeSnapshot';
+import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
   skillMergeRequestInclude,
   skillMergeRequestInternalService,
   type SkillMergeRequestItemRecord,
   type SkillMergeRequestRecord
 } from './skillMergeRequestInternal';
-import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 
 class SkillMergeRequestApplyInternalServiceImpl {
   private async getTargetItemByPath(d: { store: Pick<Store, 'oid'>; path: string }) {
     return await db.storeItem.findFirst({
       where: {
-        storeOid: d.store.oid,
+        storeOid: d.store!.oid,
         path: d.path
       },
       include: {
@@ -71,7 +71,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   private async applyDocumentResolution(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
       actorId?: string;
@@ -80,21 +80,21 @@ class SkillMergeRequestApplyInternalServiceImpl {
     }
   ) {
     let targetItem = await this.getTargetItemByPath({
-      store: d.mergeRequest.targetSkill.store,
+      store: d.mergeRequest.targetSkill.store!,
       path: d.item.path
     });
 
     if (targetItem?.document) {
       let document = await documentService.getDocumentById({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
         documentId: targetItem.document.id,
         actorId: d.actorId
       });
 
       await documentAuthoritativeWriteService.applyDocumentContent({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
         document,
         input: {
           title: d.title,
@@ -107,14 +107,14 @@ class SkillMergeRequestApplyInternalServiceImpl {
 
     if (!targetItem) {
       await documentService.createDocument({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
         input: {
           title: d.title,
           content: d.content,
           actorId: d.actorId,
           store: {
-            id: d.mergeRequest.targetSkill.store.id,
+            id: d.mergeRequest.targetSkill.store!.id,
             path: d.item.path
           }
         }
@@ -123,8 +123,8 @@ class SkillMergeRequestApplyInternalServiceImpl {
     }
 
     let document = await documentService.createDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       input: {
         title: d.title,
         content: d.content,
@@ -133,11 +133,14 @@ class SkillMergeRequestApplyInternalServiceImpl {
     });
 
     await storeItemMutationService.modifyStoreItems({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: d.mergeRequest.targetSkill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: d.mergeRequest.targetSkill.store!,
       actor: d.actorId
-        ? await actorService.getActorById({ tenant: d.tenant, actorId: d.actorId })
+        ? await actorService.getActorById({
+            resourceTenant: d.resourceTenant!,
+            actorId: d.actorId
+          })
         : undefined,
       operations: [
         {
@@ -150,7 +153,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   async applyItemResolution(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
       actorId?: string;
@@ -158,7 +161,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   ) {
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
       : undefined;
@@ -170,15 +173,15 @@ class SkillMergeRequestApplyInternalServiceImpl {
 
     if (resolutionType === 'remove') {
       let targetItem = await this.getTargetItemByPath({
-        store: d.mergeRequest.targetSkill.store,
+        store: d.mergeRequest.targetSkill.store!,
         path: d.item.path
       });
       if (!targetItem) return;
 
       await storeItemMutationService.modifyStoreItems({
-        tenant: d.tenant,
-        environment: d.environment,
-        store: d.mergeRequest.targetSkill.store,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
+        store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
           {
@@ -198,8 +201,8 @@ class SkillMergeRequestApplyInternalServiceImpl {
 
       if (resolutionType === 'replace_file') {
         await skillMergeRequestInternalService.assertReadableReplacementFile({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           mergeRequest: d.mergeRequest,
           actorId: d.actorId,
           fileId
@@ -207,14 +210,14 @@ class SkillMergeRequestApplyInternalServiceImpl {
       }
 
       let targetItem = await this.getTargetItemByPath({
-        store: d.mergeRequest.targetSkill.store,
+        store: d.mergeRequest.targetSkill.store!,
         path: d.item.path
       });
 
       await storeItemMutationService.modifyStoreItems({
-        tenant: d.tenant,
-        environment: d.environment,
-        store: d.mergeRequest.targetSkill.store,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
+        store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
           targetItem
@@ -238,9 +241,9 @@ class SkillMergeRequestApplyInternalServiceImpl {
       if (resolutionType !== 'accept_source') return;
 
       await storeItemMutationService.modifyStoreItems({
-        tenant: d.tenant,
-        environment: d.environment,
-        store: d.mergeRequest.targetSkill.store,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
+        store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
           {
@@ -255,8 +258,8 @@ class SkillMergeRequestApplyInternalServiceImpl {
     let { title, content } = this.getDocumentResolution({ item: d.item });
 
     await this.applyDocumentResolution({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
       item: d.item,
       actorId: d.actorId,
@@ -266,7 +269,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   async applyResolvedItems(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       items: SkillMergeRequestItemRecord[];
       actorId?: string;
@@ -295,8 +298,8 @@ class SkillMergeRequestApplyInternalServiceImpl {
       if (item.status === 'skipped') continue;
 
       await this.applyItemResolution({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
         mergeRequest: d.mergeRequest,
         item,
         actorId: d.actorId
@@ -371,7 +374,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   private async restoreSnapshotItem(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SnapshotItem;
       actorId?: string;
@@ -409,8 +412,8 @@ class SkillMergeRequestApplyInternalServiceImpl {
     } as SkillMergeRequestItemRecord;
 
     await this.applyItemResolution({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
       item: syntheticItem,
       actorId: d.actorId
@@ -418,7 +421,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   private async rollbackSkillMergeRequestUnlocked(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
@@ -436,8 +439,8 @@ class SkillMergeRequestApplyInternalServiceImpl {
     }
 
     let access = await skillMergeRequestInternalService.assertTargetWrite({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
       actorId: d.actorId
     });
@@ -451,22 +454,25 @@ class SkillMergeRequestApplyInternalServiceImpl {
       currentVersion.oid
     );
     let actor = d.actorId
-      ? await actorService.getActorById({ tenant: d.tenant, actorId: d.actorId })
+      ? await actorService.getActorById({
+          resourceTenant: d.resourceTenant!,
+          actorId: d.actorId
+        })
       : undefined;
 
     for (let path of [...current.itemsByPath.keys()].sort().reverse()) {
       if (preMerge.itemsByPath.has(path)) continue;
 
       let targetItem = await this.getTargetItemByPath({
-        store: d.mergeRequest.targetSkill.store,
+        store: d.mergeRequest.targetSkill.store!,
         path
       });
       if (!targetItem) continue;
 
       await storeItemMutationService.modifyStoreItems({
-        tenant: d.tenant,
-        environment: d.environment,
-        store: d.mergeRequest.targetSkill.store,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
+        store: d.mergeRequest.targetSkill.store!,
         actor,
         operations: [
           {
@@ -483,8 +489,8 @@ class SkillMergeRequestApplyInternalServiceImpl {
       }
 
       await this.restoreSnapshotItem({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
         mergeRequest: d.mergeRequest,
         item,
         actorId: d.actorId
@@ -502,7 +508,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         },
         data: {
           rollbackTargetSkillVersionOid: rollbackVersion.oid,
-          rolledBackByTenantActorOid: access.actor?.oid,
+          rolledBackByResourceActorOid: access.actor?.oid,
           rolledBackAt: new Date()
         },
         include: skillMergeRequestInclude
@@ -518,17 +524,17 @@ class SkillMergeRequestApplyInternalServiceImpl {
   }
 
   async rollbackSkillMergeRequest(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
   ) {
     return await skillMergeTargetLock.usingLock(
-      d.mergeRequest.targetSkill.store.id,
+      d.mergeRequest.targetSkill.store!.id,
       async () => {
         let mergeRequest = await skillMergeRequestInternalService.getRawSkillMergeRequestById({
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           skillMergeRequestId: d.mergeRequest.id
         });
 

@@ -1,5 +1,5 @@
-import { createCron } from '@lowerdeck/cron';
-import { db, env } from '@metorial-cargo/db';
+import { createCron } from '@metorial/cron';
+import { db } from '@metorial/db';
 import { skillImportAcquireQueue } from './acquire';
 import { skillImportItemQueue } from './item';
 
@@ -8,8 +8,7 @@ let staleAfterMs = 30 * 60 * 1000;
 export let skillImportRecoveryCron = createCron(
   {
     name: 'cargo/skill/import/recovery',
-    cron: '*/5 * * * *',
-    redisUrl: env.service.REDIS_URL
+    cron: '*/5 * * * *'
   },
   async () => {
     let staleBefore = new Date(Date.now() - staleAfterMs);

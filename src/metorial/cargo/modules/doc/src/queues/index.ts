@@ -1,17 +1,17 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
-import { documentCollaborationFlushProcessors } from './documentCollaborationFlush';
+import { combineQueueProcessors } from '@metorial/queue';
 import { documentCleanupProcessors } from './documentCleanup';
+import { documentCollaborationFlushProcessors } from './documentCollaborationFlush';
 import { documentDraftVersionFlushProcessors } from './documentDraftVersionFlush';
 import { documentFlushProcessors } from './documentFlush';
-import { documentLifecycleProcessors } from './lifecycle';
 import { documentVersionSyncProcessors } from './documentVersionSync';
+import { documentLifecycleProcessors } from './lifecycle';
 
 export * from './documentCleanup';
 export * from './documentCollaborationFlush';
 export * from './documentDraftVersionFlush';
 export * from './documentFlush';
-export * from './lifecycle';
 export * from './documentVersionSync';
+export * from './lifecycle';
 
 export let documentQueueProcessor = combineQueueProcessors([
   documentLifecycleProcessors,

@@ -6,8 +6,9 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
-import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { db, withTransaction } from '@metorial/db';
 import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
   skillMergeRequestCommentInclude,
@@ -39,7 +40,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async listComments(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId?: string;
     }
@@ -70,7 +71,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async createComment(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId?: string;
       inReplyToCommentId?: string;
@@ -84,7 +85,7 @@ class SkillMergeRequestCommentServiceImpl {
     }
 
     let actor = await actorService.getActorById({
-      tenant: d.tenant,
+      resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
     let item = d.itemId
@@ -142,7 +143,7 @@ class SkillMergeRequestCommentServiceImpl {
           skillMergeRequestOid: d.mergeRequest.oid,
           skillMergeRequestItemOid,
           inReplyToCommentOid: reply?.oid,
-          tenantActorOid: actor.oid,
+          resourceActorOid: actor.oid,
           body: d.body,
           path
         },
@@ -160,7 +161,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async updateComment(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
       actorId: string;
@@ -173,12 +174,12 @@ class SkillMergeRequestCommentServiceImpl {
     }
 
     let actor = await actorService.getActorById({
-      tenant: d.tenant,
+      resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
     let canManageComment =
-      d.comment.tenantActorOid === actor.oid ||
-      (d.canManageComments === true && actor.organizationActorId != null);
+      d.comment.resourceActorOid === actor.oid ||
+      (d.canManageComments === true && actor.organizationActorOid != null);
     if (!canManageComment) {
       throw new ServiceError(forbiddenError({ message: 'Cannot edit another actor comment' }));
     }
@@ -195,7 +196,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async deleteComment(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
       actorId: string;
@@ -203,12 +204,12 @@ class SkillMergeRequestCommentServiceImpl {
     }
   ) {
     let actor = await actorService.getActorById({
-      tenant: d.tenant,
+      resourceTenant: d.resourceTenant!,
       actorId: d.actorId
     });
     let canManageComment =
-      d.comment.tenantActorOid === actor.oid ||
-      (d.canManageComments === true && actor.organizationActorId != null);
+      d.comment.resourceActorOid === actor.oid ||
+      (d.canManageComments === true && actor.organizationActorOid != null);
     if (!canManageComment) {
       throw new ServiceError(
         forbiddenError({ message: 'Cannot delete another actor comment' })

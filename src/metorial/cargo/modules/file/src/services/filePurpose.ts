@@ -1,11 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, getId } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
+import { db } from '@metorial/db';
 
-export type CargoTenantEnvironment = {
-  tenant: { oid: bigint; id: string };
-  environment: { oid: bigint; id: string };
+export type CargoResourceScope = {
+  resourceTenant: { oid: bigint; id: string };
+  resourceGroup: { oid: bigint; id: string };
 };
 
 export let documentFilePurposeSlug = 'document';
@@ -31,7 +32,6 @@ class FilePurposeServiceImpl {
           slug: d.input.slug
         },
         create: {
-          oid: generated.oid,
           id: generated.id,
           slug: d.input.slug,
           name: d.input.name,
@@ -76,7 +76,6 @@ class FilePurposeServiceImpl {
 
     return await db.filePurpose.create({
       data: {
-        oid: generated.oid,
         id: d.input.id,
         slug: d.input.slug,
         name: d.input.name,

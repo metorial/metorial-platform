@@ -1,27 +1,27 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db } from '@metorial-cargo/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveDocumentParticipants,
   resolveDocuments,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { storeAccessService, storeReadPermission } from '@metorial-cargo/module-store';
+  resolveResourceActors
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
+import { db } from '@metorial/db';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 
 export let documentParticipantInclude = {
   document: true,
-  tenantActor: true
+  resourceActor: true
 } satisfies Prisma.DocumentParticipantInclude;
 
 class DocumentParticipantServiceImpl {
   async getDocumentParticipantById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       documentParticipantId: string;
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -31,8 +31,8 @@ class DocumentParticipantServiceImpl {
     let participant = await db.documentParticipant.findFirst({
       where: {
         document: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           file: {
             status: 'active'
           }
@@ -47,8 +47,8 @@ class DocumentParticipantServiceImpl {
     }
 
     await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document: participant.document,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -60,7 +60,7 @@ class DocumentParticipantServiceImpl {
   }
 
   async listDocumentParticipants(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       documentId: string;
       ids?: string[];
       actorIds?: string[];
@@ -74,8 +74,8 @@ class DocumentParticipantServiceImpl {
   ) {
     let document = await db.document.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.documentId,
         file: {
           status: 'active'
@@ -86,8 +86,8 @@ class DocumentParticipantServiceImpl {
     if (!document) throw new ServiceError(notFoundError('document', d.documentId));
 
     await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -100,7 +100,7 @@ class DocumentParticipantServiceImpl {
     });
     let participants = await resolveDocumentParticipants(d, d.ids);
     let documents = await resolveDocuments(d, [d.documentId]);
-    let actors = await resolveTenantActors(d, d.actorIds);
+    let actors = await resolveResourceActors(d, d.actorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -110,14 +110,14 @@ class DocumentParticipantServiceImpl {
             where: {
               oid: participants ? participants.in : undefined,
               document: {
-                tenantOid: d.tenant.oid,
-                environmentOid: d.environment.oid,
+                resourceTenantOid: d.resourceTenant.oid,
+                resourceGroupOid: d.resourceGroup.oid,
                 oid: documents ? documents.in : undefined,
                 file: {
                   status: 'active'
                 }
               },
-              tenantActorOid: actors ? actors.in : undefined,
+              resourceActorOid: actors ? actors.in : undefined,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
               lastEditedAt: d.lastEditedAt ? normalizeDateFilter(d.lastEditedAt) : undefined,
               lastViewedAt: d.lastViewedAt ? normalizeDateFilter(d.lastViewedAt) : undefined

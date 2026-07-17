@@ -1,26 +1,27 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type {
-  Prisma,
-  Skill,
-  SkillParticipantRole,
-  StoreParticipantPermissions,
-  TenantActor
-} from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
-  resolveSkillParticipants,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { storeReadPermission, storeWritePermission } from '@metorial-cargo/module-store';
+  resolveResourceActors,
+  resolveSkillParticipants
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { storeReadPermission, storeWritePermission } from '@metorial/cargo-module-store';
+import type {
+  Prisma,
+  ResourceActor,
+  Skill,
+  SkillParticipantRole,
+  StoreParticipantPermissions
+} from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 
 export let skillParticipantInclude = {
   skill: true,
-  tenantActor: true
+  resourceActor: true
 } satisfies Prisma.SkillParticipantInclude;
 
 export type SkillParticipantRecord = Prisma.SkillParticipantGetPayload<{
@@ -58,15 +59,15 @@ let getStoreBackedRole = (
 class SkillParticipantServiceImpl {
   private async upsertRoles(d: {
     skill: Pick<Skill, 'oid'>;
-    actor: Pick<TenantActor, 'oid'>;
+    actor: Pick<ResourceActor, 'oid'>;
     roles: SkillParticipantRole[];
   }) {
     return await withTransaction(async db => {
       let existing = await db.skillParticipant.findUnique({
         where: {
-          skillOid_tenantActorOid: {
+          skillOid_resourceActorOid: {
             skillOid: d.skill.oid,
-            tenantActorOid: d.actor.oid
+            resourceActorOid: d.actor.oid
           }
         }
       });
@@ -76,9 +77,9 @@ class SkillParticipantServiceImpl {
         if (sameRoles(existing.roles, nextRoles)) {
           return (await db.skillParticipant.findUnique({
             where: {
-              skillOid_tenantActorOid: {
+              skillOid_resourceActorOid: {
                 skillOid: d.skill.oid,
-                tenantActorOid: d.actor.oid
+                resourceActorOid: d.actor.oid
               }
             },
             include: skillParticipantInclude
@@ -103,7 +104,7 @@ class SkillParticipantServiceImpl {
           oid: generated.oid,
           id: generated.id,
           skillOid: d.skill.oid,
-          tenantActorOid: d.actor.oid,
+          resourceActorOid: d.actor.oid,
           roles: nextRoles
         },
         include: skillParticipantInclude
@@ -113,7 +114,7 @@ class SkillParticipantServiceImpl {
 
   async ensureSkillParticipantRoles(d: {
     skill: Pick<Skill, 'oid'>;
-    actor: Pick<TenantActor, 'oid'>;
+    actor: Pick<ResourceActor, 'oid'>;
     roles: SkillParticipantRole[];
   }) {
     return await this.upsertRoles({
@@ -127,10 +128,10 @@ class SkillParticipantServiceImpl {
     return await withTransaction(async db => {
       let storeParticipants = await db.storeParticipant.findMany({
         where: {
-          storeOid: d.skill.storeOid
+          storeOid: d.skill.storeOid!
         },
         include: {
-          tenantActor: true
+          resourceActor: true
         }
       });
       let existingParticipants = await db.skillParticipant.findMany({
@@ -141,7 +142,7 @@ class SkillParticipantServiceImpl {
       });
       let existingByActorOid = new Map(
         existingParticipants.map(participant => [
-          participant.tenantActorOid.toString(),
+          participant.resourceActorOid.toString(),
           participant
         ])
       );
@@ -152,9 +153,9 @@ class SkillParticipantServiceImpl {
         let storeRole = getStoreBackedRole(storeParticipant.permissions);
         if (!storeRole) continue;
 
-        syncedActorOids.add(storeParticipant.tenantActorOid.toString());
+        syncedActorOids.add(storeParticipant.resourceActorOid.toString());
 
-        let existing = existingByActorOid.get(storeParticipant.tenantActorOid.toString());
+        let existing = existingByActorOid.get(storeParticipant.resourceActorOid.toString());
         let nextRoles = sortRoles([
           ...withoutStoreBackedRoles(existing?.roles ?? []),
           storeRole
@@ -188,7 +189,7 @@ class SkillParticipantServiceImpl {
               oid: generated.oid,
               id: generated.id,
               skillOid: d.skill.oid,
-              tenantActorOid: storeParticipant.tenantActorOid,
+              resourceActorOid: storeParticipant.resourceActorOid,
               roles: [storeRole]
             },
             include: skillParticipantInclude
@@ -197,7 +198,7 @@ class SkillParticipantServiceImpl {
       }
 
       for (let participant of existingParticipants) {
-        if (syncedActorOids.has(participant.tenantActorOid.toString())) continue;
+        if (syncedActorOids.has(participant.resourceActorOid.toString())) continue;
         if (!participant.roles.some(role => storeBackedRoles.includes(role))) continue;
 
         let nextRoles = withoutStoreBackedRoles(participant.roles);
@@ -230,13 +231,13 @@ class SkillParticipantServiceImpl {
     });
   }
 
-  async syncAllSkillParticipantsFromStores(d: CargoTenantEnvironment) {
+  async syncAllSkillParticipantsFromStores(d: CargoResourceScope) {
     let skills = await withTransaction(
       async db =>
         await db.skill.findMany({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid
           },
           select: {
             oid: true,
@@ -252,7 +253,7 @@ class SkillParticipantServiceImpl {
   }
 
   async getSkillParticipantById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillParticipantId: string;
     }
   ) {
@@ -260,8 +261,8 @@ class SkillParticipantServiceImpl {
       where: {
         id: d.skillParticipantId,
         skill: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
         }
       },
       include: skillParticipantInclude
@@ -290,7 +291,7 @@ class SkillParticipantServiceImpl {
   }
 
   async listSkillParticipants(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       skillId: string;
       actorIds?: string[];
@@ -301,8 +302,8 @@ class SkillParticipantServiceImpl {
     if (d.skillId) {
       let skill = await db.skill.findFirst({
         where: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           id: d.skillId
         }
       });
@@ -314,7 +315,7 @@ class SkillParticipantServiceImpl {
       await this.syncAllSkillParticipantsFromStores(d);
     }
     let participants = await resolveSkillParticipants(d, d.ids);
-    let actors = await resolveTenantActors(d, d.actorIds);
+    let actors = await resolveResourceActors(d, d.actorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -324,11 +325,11 @@ class SkillParticipantServiceImpl {
             where: {
               oid: participants ? participants.in : undefined,
               skill: {
-                tenantOid: d.tenant.oid,
-                environmentOid: d.environment.oid,
+                resourceTenantOid: d.resourceTenant.oid,
+                resourceGroupOid: d.resourceGroup.oid,
                 id: d.skillId
               },
-              tenantActorOid: actors ? actors.in : undefined,
+              resourceActorOid: actors ? actors.in : undefined,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
               updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined
             },

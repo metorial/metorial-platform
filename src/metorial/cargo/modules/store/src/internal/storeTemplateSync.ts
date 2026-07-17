@@ -2,15 +2,16 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
-import { documentInclude, documentService } from '@metorial-cargo/module-doc';
+import { getId } from '@metorial/cargo-config/id';
+import { documentInclude, documentService } from '@metorial/cargo-module-doc';
 import {
   filePurposeService,
   fileService,
   getCargoFilesBucketName,
   getStorage
-} from '@metorial-cargo/module-file';
+} from '@metorial/cargo-module-file';
+import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { storeItemInclude } from '../services/storeItem';
 import { storeItemMutationService } from '../services/storeItemMutation';
 import { storeVersionService } from '../services/storeVersion';
@@ -18,8 +19,8 @@ import { storeVersionService } from '../services/storeVersion';
 let syncTargetBatchSize = 100;
 
 let storeTemplateSyncInclude = {
-  tenant: true,
-  environment: true,
+  resourceTenant: true,
+  resourceGroup: true,
   items: {
     orderBy: [
       {
@@ -256,7 +257,7 @@ class InternalStoreTemplateSyncServiceImpl {
 
     let limit = d.limit ?? syncTargetBatchSize;
 
-    if (storeTemplate.environmentOid) {
+    if (storeTemplate.resourceGroupOid) {
       if (d.cursor) {
         return {
           targets: [],
@@ -267,17 +268,17 @@ class InternalStoreTemplateSyncServiceImpl {
       return {
         targets: [
           {
-            tenant: storeTemplate.tenant!,
-            environment: storeTemplate.environment!
+            resourceTenant: storeTemplate.resourceTenant!,
+            resourceGroup: storeTemplate.resourceGroup!
           }
         ],
         nextCursor: undefined
       };
     }
 
-    let environments = await db.environment.findMany({
+    let environments = await db.resourceGroup.findMany({
       where: {
-        tenantOid: storeTemplate.tenantOid ?? undefined,
+        resourceTenantOid: storeTemplate.resourceTenantOid ?? undefined,
         id: d.cursor
           ? {
               gt: d.cursor
@@ -285,7 +286,7 @@ class InternalStoreTemplateSyncServiceImpl {
           : undefined
       },
       include: {
-        tenant: true
+        resourceTenant: true
       },
       orderBy: {
         id: 'asc'
@@ -294,9 +295,9 @@ class InternalStoreTemplateSyncServiceImpl {
     });
 
     return {
-      targets: environments.map(environment => ({
-        tenant: environment.tenant,
-        environment
+      targets: environments.map(resourceGroup => ({
+        resourceTenant: resourceGroup.resourceTenant,
+        resourceGroup
       })),
       nextCursor:
         environments.length === limit ? environments[environments.length - 1]!.id : undefined
@@ -305,15 +306,15 @@ class InternalStoreTemplateSyncServiceImpl {
 
   private async ensureBackingStore(d: {
     storeTemplate: StoreTemplateSyncRecord;
-    tenant: { oid: bigint; id: string };
-    environment: { oid: bigint; id: string };
+    resourceTenant: { oid: bigint; id: string };
+    resourceGroup: { oid: bigint; id: string };
   }) {
     return await withTransaction(async db => {
       let existing = await db.storeTemplateBacking.findFirst({
         where: {
           storeTemplateOid: d.storeTemplate.oid,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
         },
         include: {
           store: true
@@ -358,8 +359,8 @@ class InternalStoreTemplateSyncServiceImpl {
           name: d.storeTemplate.name,
           access: 'public_read',
           itemCount: 0,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           parentStoreTemplateOid: d.storeTemplate.oid,
           isReadOnly: true,
           isTemplateBacking: true
@@ -368,18 +369,18 @@ class InternalStoreTemplateSyncServiceImpl {
 
       let backing = await db.storeTemplateBacking.upsert({
         where: {
-          storeTemplateOid_tenantOid_environmentOid: {
+          storeTemplateOid_resourceTenantOid_resourceGroupOid: {
             storeTemplateOid: d.storeTemplate.oid,
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid
           }
         },
         create: {
           oid: backingIds.oid,
           id: backingIds.id,
           storeTemplateOid: d.storeTemplate.oid,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           storeOid: store.oid
         },
         update: {},
@@ -406,8 +407,8 @@ class InternalStoreTemplateSyncServiceImpl {
   }
 
   private async removeItems(d: {
-    tenant: { oid: bigint; id: string };
-    environment: { oid: bigint; id: string };
+    resourceTenant: { oid: bigint; id: string };
+    resourceGroup: { oid: bigint; id: string };
     store: Store;
     items: Array<{ id: string; path: string; kind: StoreItemKind }>;
   }) {
@@ -424,8 +425,8 @@ class InternalStoreTemplateSyncServiceImpl {
       if (!currentItem) continue;
 
       await storeItemMutationService.modifyStoreItems({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: d.store,
         operations: [
           {
@@ -439,8 +440,8 @@ class InternalStoreTemplateSyncServiceImpl {
   }
 
   private async upsertFileItem(d: {
-    tenant: { oid: bigint; id: string };
-    environment: { oid: bigint; id: string };
+    resourceTenant: { oid: bigint; id: string };
+    resourceGroup: { oid: bigint; id: string };
     store: Store;
     item: StoreTemplateSyncItem;
     existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
@@ -473,13 +474,13 @@ class InternalStoreTemplateSyncServiceImpl {
                   id: true
                 }
               },
-              tenant: true,
-              environment: true
+              resourceTenant: true,
+              resourceGroup: true
             }
           })
         : await fileService.createFile({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             purpose: filePurpose.id,
             storeId: d.item.fileStoreId!,
             input: {
@@ -495,8 +496,8 @@ class InternalStoreTemplateSyncServiceImpl {
           });
 
     await storeItemMutationService.attachTargetToStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       path: d.item.path,
       target: {
@@ -508,8 +509,8 @@ class InternalStoreTemplateSyncServiceImpl {
   }
 
   private async upsertDocumentItem(d: {
-    tenant: { oid: bigint; id: string };
-    environment: { oid: bigint; id: string };
+    resourceTenant: { oid: bigint; id: string };
+    resourceGroup: { oid: bigint; id: string };
     store: Store;
     item: StoreTemplateSyncItem;
     existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
@@ -548,8 +549,8 @@ class InternalStoreTemplateSyncServiceImpl {
           : currentDocument.maxVersionNumber;
         let version = contentIds
           ? await this.createDocumentVersion({
-              tenant: d.tenant,
-              environment: d.environment,
+              resourceTenant: d.resourceTenant,
+              resourceGroup: d.resourceGroup,
               document: currentDocument,
               contentOid: contentIds.oid,
               versionNumber: nextVersionNumber,
@@ -590,8 +591,8 @@ class InternalStoreTemplateSyncServiceImpl {
       });
 
       await storeItemMutationService.attachTargetToStore({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: d.store,
         path: d.item.path,
         target: {
@@ -608,8 +609,8 @@ class InternalStoreTemplateSyncServiceImpl {
     }
 
     let document = await documentService.createDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       input: {
         title,
         content,
@@ -622,8 +623,8 @@ class InternalStoreTemplateSyncServiceImpl {
     });
 
     await storeItemMutationService.attachTargetToStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       path: d.item.path,
       target: {
@@ -638,8 +639,8 @@ class InternalStoreTemplateSyncServiceImpl {
   }
 
   private async createDocumentVersion(d: {
-    tenant: { oid: bigint };
-    environment: { oid: bigint };
+    resourceTenant: { oid: bigint };
+    resourceGroup: { oid: bigint };
     document: { oid: bigint };
     contentOid: bigint;
     versionNumber: number;
@@ -653,8 +654,8 @@ class InternalStoreTemplateSyncServiceImpl {
           data: {
             oid: versionIds.oid,
             id: versionIds.id,
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             documentOid: d.document.oid,
             contentOid: d.contentOid,
             versionNumber: d.versionNumber,
@@ -668,8 +669,8 @@ class InternalStoreTemplateSyncServiceImpl {
 
   async syncStoreTemplateBackingStore(d: {
     storeTemplateId: string;
-    tenantId: string;
-    environmentId: string;
+    resourceTenantId: string;
+    resourceGroupId: string;
     updatedItemIds?: string[];
     forceFullReconcile?: boolean;
   }) {
@@ -678,29 +679,35 @@ class InternalStoreTemplateSyncServiceImpl {
 
     if (!storeTemplate.hash) return null;
 
-    let tenant = await db.tenant.findFirst({
+    let resourceTenant = await db.resourceTenant.findFirst({
       where: {
-        id: d.tenantId
+        id: d.resourceTenantId
       }
     });
-    if (!tenant) throw new ServiceError(notFoundError('tenant', d.tenantId));
+    if (!resourceTenant)
+      throw new ServiceError(notFoundError('resourceTenant', d.resourceTenantId));
 
-    let environment = await db.environment.findFirst({
+    let resourceGroup = await db.resourceGroup.findFirst({
       where: {
-        id: d.environmentId,
-        tenantOid: tenant.oid
+        id: d.resourceGroupId,
+        resourceTenantOid: resourceTenant.oid
       }
     });
-    if (!environment) throw new ServiceError(notFoundError('environment', d.environmentId));
+    if (!resourceGroup)
+      throw new ServiceError(notFoundError('resourceGroup', d.resourceGroupId));
 
-    if (storeTemplate.tenantOid && storeTemplate.tenantOid !== tenant.oid) return null;
-    if (storeTemplate.environmentOid && storeTemplate.environmentOid !== environment.oid)
+    if (
+      storeTemplate.resourceTenantOid &&
+      storeTemplate.resourceTenantOid !== resourceTenant.oid
+    )
+      return null;
+    if (storeTemplate.resourceGroupOid && storeTemplate.resourceGroupOid !== resourceGroup.oid)
       return null;
 
     let { backing, store } = await this.ensureBackingStore({
       storeTemplate,
-      tenant,
-      environment
+      resourceTenant,
+      resourceGroup
     });
 
     if (backing.lastSyncedHash === storeTemplate.hash && !d.forceFullReconcile) {
@@ -721,8 +728,8 @@ class InternalStoreTemplateSyncServiceImpl {
     let templatePaths = storeTemplate.items.map(item => item.path);
 
     await this.removeItems({
-      tenant,
-      environment,
+      resourceTenant,
+      resourceGroup,
       store,
       items: currentItems
         .filter(item => {
@@ -744,8 +751,8 @@ class InternalStoreTemplateSyncServiceImpl {
         if (item.path === '/') continue;
 
         await storeItemMutationService.modifyStoreItems({
-          tenant,
-          environment,
+          resourceTenant,
+          resourceGroup,
           store,
           operations: [
             {
@@ -761,8 +768,8 @@ class InternalStoreTemplateSyncServiceImpl {
       let existingItem = itemByPath.get(item.path);
       if (item.kind === 'file') {
         await this.upsertFileItem({
-          tenant,
-          environment,
+          resourceTenant,
+          resourceGroup,
           store,
           item,
           existingItem
@@ -771,8 +778,8 @@ class InternalStoreTemplateSyncServiceImpl {
       }
 
       await this.upsertDocumentItem({
-        tenant,
-        environment,
+        resourceTenant,
+        resourceGroup,
         store,
         item,
         existingItem
@@ -793,8 +800,8 @@ class InternalStoreTemplateSyncServiceImpl {
     });
 
     await this.removeItems({
-      tenant,
-      environment,
+      resourceTenant,
+      resourceGroup,
       store,
       items: latestItems.filter(item => {
         if (item.path === '/' || desiredPaths.has(item.path)) return false;

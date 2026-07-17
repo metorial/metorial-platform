@@ -1,12 +1,11 @@
-import { createQueue } from '@lowerdeck/queue';
-import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
+import { addAfterTransactionHook, db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
 let skillConfigurationLifecycleQueue = createQueue<{
   skillConfigurationId: string;
   event: LifecycleEvent;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/lifecycle/config',
   workerOpts: {
     concurrency: 10
@@ -35,7 +34,6 @@ export let skillConfigurationLifecycleQueueProcessor =
 let propagateSkillConfigurationDirtyQueue = createQueue<{
   skillConfigurationId: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/dirty/prop/config',
   workerOpts: {
     concurrency: 10
@@ -49,8 +47,8 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
       select: {
         id: true,
         isDefault: true,
-        tenantOid: true,
-        environmentOid: true
+        resourceTenantOid: true,
+        resourceGroupOid: true
       }
     });
     if (!skillConfiguration) return;
@@ -69,22 +67,22 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
         OR: [
           {
             skillPlugin: {
-              tenantOid: skillConfiguration.tenantOid,
-              environmentOid: skillConfiguration.environmentOid,
+              resourceTenantOid: skillConfiguration.resourceTenantOid,
+              resourceGroupOid: skillConfiguration.resourceGroupOid,
               ...configurationFilter
             }
           },
           {
             skillMarketplace: {
-              tenantOid: skillConfiguration.tenantOid,
-              environmentOid: skillConfiguration.environmentOid,
+              resourceTenantOid: skillConfiguration.resourceTenantOid,
+              resourceGroupOid: skillConfiguration.resourceGroupOid,
               ...configurationFilter
             }
           },
           {
             skillMarketplace: {
-              tenantOid: skillConfiguration.tenantOid,
-              environmentOid: skillConfiguration.environmentOid,
+              resourceTenantOid: skillConfiguration.resourceTenantOid,
+              resourceGroupOid: skillConfiguration.resourceGroupOid,
               plugins: {
                 some: configurationFilter
               }
@@ -92,8 +90,8 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
           },
           {
             skillMarketplace: {
-              tenantOid: skillConfiguration.tenantOid,
-              environmentOid: skillConfiguration.environmentOid,
+              resourceTenantOid: skillConfiguration.resourceTenantOid,
+              resourceGroupOid: skillConfiguration.resourceGroupOid,
               plugins: {
                 some: {
                   skillPlugin: {
@@ -105,8 +103,8 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
           },
           {
             skillPlugin: {
-              tenantOid: skillConfiguration.tenantOid,
-              environmentOid: skillConfiguration.environmentOid,
+              resourceTenantOid: skillConfiguration.resourceTenantOid,
+              resourceGroupOid: skillConfiguration.resourceGroupOid,
               skillPluginSkills: {
                 some: configurationFilter
               }
@@ -114,8 +112,8 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
           },
           {
             skillMarketplace: {
-              tenantOid: skillConfiguration.tenantOid,
-              environmentOid: skillConfiguration.environmentOid,
+              resourceTenantOid: skillConfiguration.resourceTenantOid,
+              resourceGroupOid: skillConfiguration.resourceGroupOid,
               plugins: {
                 some: {
                   skillPlugin: {

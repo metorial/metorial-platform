@@ -1,17 +1,15 @@
-import { createCron } from '@lowerdeck/cron';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { createCron } from '@metorial/cron';
+import { db } from '@metorial/db';
 import {
   composeFullMarkdown,
   yjsUpdateToDocumentSnapshot
 } from '@metorial/docs-editor-schema';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalDocumentCollaborationService } from '../internal';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
 import { documentInclude, documentService } from '../services/document';
 import { flushDocumentDraft } from './documentFlush';
-
-let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
 let flushDelayMs = 1500;
 
@@ -25,7 +23,6 @@ export let documentCollaborationFlushManyQueue = createQueue<{
   documentIds?: string[];
   offset?: number;
 }>({
-  redisUrl,
   name: 'cargo/doc/collaborationFlush/many',
   workerOpts: {
     concurrency: 1
@@ -36,7 +33,6 @@ export let documentCollaborationFlushQueue = createQueue<{
   documentId: string;
   queuedRevision?: number;
 }>({
-  redisUrl,
   name: 'cargo/doc/collaborationFlush/single',
   workerOpts: {
     concurrency: 5
@@ -81,8 +77,8 @@ export let flushDocumentCollaborationState = async (d: {
     },
     include: {
       ...documentInclude,
-      tenant: true,
-      environment: true
+      resourceTenant: true,
+      resourceGroup: true
     }
   });
   if (!currentDocument) {
@@ -123,8 +119,8 @@ export let flushDocumentCollaborationState = async (d: {
   });
 
   await documentService.updateDocument({
-    tenant: currentDocument.tenant,
-    environment: currentDocument.environment,
+    resourceTenant: currentDocument.resourceTenant,
+    resourceGroup: currentDocument.resourceGroup,
     document: currentDocument,
     input: {
       actorId: await internalDocumentCollaborationService.getActorId(d.documentId),
@@ -176,7 +172,6 @@ export let documentCollaborationFlushProcessor = documentCollaborationFlushQueue
 
 export let documentCollaborationFlushCron = createCron(
   {
-    redisUrl,
     name: 'cargo/doc/collaborationFlush/cron',
     cron: '*/1 * * * *'
   },

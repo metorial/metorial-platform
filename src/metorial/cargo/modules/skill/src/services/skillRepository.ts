@@ -1,8 +1,9 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, SkillRepository } from '@metorial-cargo/db';
-import { db, getId } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma } from '@metorial/db';
+import { db } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
 
 export let skillRepositoryInclude = {
@@ -59,7 +60,9 @@ export type EnrichedSkillRepositoryRecord = SkillRepositoryRecord & {
 
 type OriginObject<T> = Omit<T, 'object'> & { object: string };
 
-let normalizeOriginScmAccount = (account: OriginObject<OriginScmAccountRecord>): OriginScmAccountRecord => ({
+let normalizeOriginScmAccount = (
+  account: OriginObject<OriginScmAccountRecord>
+): OriginScmAccountRecord => ({
   ...account,
   object: 'origin#scmAccount'
 });
@@ -76,11 +79,11 @@ let normalizeOriginRepository = (
 
 class SkillRepositoryServiceImpl {
   async getOriginRepositories(
-    d: CargoTenantEnvironment & { repoIds: string[] }
+    d: CargoResourceScope & { repoIds: string[] }
   ): Promise<OriginRepositoryRecord[]> {
     if (d.repoIds.length === 0) return [];
 
-    let originTenant = await getOriginTenant(d.tenant);
+    let originTenant = await getOriginTenant(d.resourceTenant);
     let result = await origin.scmRepository.getMany({
       tenantId: originTenant.id,
       scmRepositoryIds: d.repoIds
@@ -90,11 +93,11 @@ class SkillRepositoryServiceImpl {
   }
 
   async getOriginRepository(
-    d: CargoTenantEnvironment & { repoId: string }
+    d: CargoResourceScope & { repoId: string }
   ): Promise<OriginRepositoryRecord> {
     let repositories = await this.getOriginRepositories({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       repoIds: [d.repoId]
     });
 
@@ -105,14 +108,16 @@ class SkillRepositoryServiceImpl {
   }
 
   async enrichSkillRepositories<T extends SkillRepositoryRecord>(
-    d: CargoTenantEnvironment & { skillRepositories: T[] }
+    d: CargoResourceScope & { skillRepositories: T[] }
   ): Promise<(T & { originRepository: OriginRepositoryRecord | null })[]> {
     let originRepositories = await this.getOriginRepositories({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       repoIds: d.skillRepositories.map(repository => repository.repoId)
     });
-    let originRepositoryById = new Map(originRepositories.map(repository => [repository.id, repository]));
+    let originRepositoryById = new Map(
+      originRepositories.map(repository => [repository.id, repository])
+    );
 
     return d.skillRepositories.map(repository => ({
       ...repository,
@@ -120,7 +125,7 @@ class SkillRepositoryServiceImpl {
     }));
   }
 
-  async ensureSkillRepositoryForRepo(d: CargoTenantEnvironment & { repoId: string }) {
+  async ensureSkillRepositoryForRepo(d: CargoResourceScope & { repoId: string }) {
     await this.getOriginRepository(d);
 
     let existing = await db.skillRepository.findUnique({
@@ -129,10 +134,13 @@ class SkillRepositoryServiceImpl {
     });
 
     if (existing) {
-      if (existing.tenantOid !== d.tenant.oid || existing.environmentOid !== d.environment.oid) {
+      if (
+        existing.resourceTenantOid !== d.resourceTenant.oid ||
+        existing.resourceGroupOid !== d.resourceGroup.oid
+      ) {
         throw new ServiceError(
           badRequestError({
-            message: 'Repository is already linked in another environment'
+            message: 'Repository is already linked in another resourceGroup'
           })
         );
       }
@@ -144,8 +152,8 @@ class SkillRepositoryServiceImpl {
       data: {
         ...getId('skillRepository'),
         repoId: d.repoId,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid
       },
       include: skillRepositoryInclude
     });
@@ -172,7 +180,10 @@ class SkillRepositoryServiceImpl {
     }
 
     let pluginLink = skillRepository.pluginRepository;
-    if (pluginLink && (!allowed?.skillPluginOid || pluginLink.skillPluginOid !== allowed.skillPluginOid)) {
+    if (
+      pluginLink &&
+      (!allowed?.skillPluginOid || pluginLink.skillPluginOid !== allowed.skillPluginOid)
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Repository is already linked to a plugin'
@@ -181,25 +192,26 @@ class SkillRepositoryServiceImpl {
     }
   }
 
-  async getSkillRepositoryById(d: CargoTenantEnvironment & { skillRepositoryId: string }) {
+  async getSkillRepositoryById(d: CargoResourceScope & { skillRepositoryId: string }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.skillRepositoryId
       },
       include: skillRepositoryInclude
     });
 
-    if (!skillRepository) throw new ServiceError(notFoundError('skill.repository', d.skillRepositoryId));
+    if (!skillRepository)
+      throw new ServiceError(notFoundError('skill.repository', d.skillRepositoryId));
     return skillRepository;
   }
 
-  async getSkillRepositoryByRepoId(d: CargoTenantEnvironment & { repoId: string }) {
+  async getSkillRepositoryByRepoId(d: CargoResourceScope & { repoId: string }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         repoId: d.repoId
       },
       include: skillRepositoryInclude

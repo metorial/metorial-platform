@@ -1,15 +1,10 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type {
-  Skill,
-  Store,
-  StoreDirectory,
-  StoreItemKind,
-  TenantActor
-} from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { fileLinkService, fileReferenceService } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
+import type { ResourceActor, Skill, Store, StoreDirectory, StoreItemKind } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import {
   listAncestorDirectoryPaths,
   normalizeStorePath,
@@ -412,7 +407,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async resolveStoreItemTarget(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       fileId?: string;
       documentId?: string;
       allowEmpty?: boolean;
@@ -433,8 +428,8 @@ class StoreItemMutationServiceImpl {
     if (d.documentId) {
       let document = await db.document.findFirst({
         where: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           id: d.documentId,
           file: {
             status: 'active'
@@ -462,8 +457,8 @@ class StoreItemMutationServiceImpl {
 
     let file = await db.file.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.fileId,
         status: 'active'
       },
@@ -487,7 +482,7 @@ class StoreItemMutationServiceImpl {
   }
 
   private async normalizeStoreItemOperation(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       operation: StoreItemOperationInput;
     }
   ): Promise<NormalizedStoreItemOperation> {
@@ -502,8 +497,8 @@ class StoreItemMutationServiceImpl {
 
     if (type === 'add') {
       let target = await this.resolveStoreItemTarget({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         fileId: operation.fileId,
         documentId: operation.documentId,
         allowEmpty: true
@@ -549,8 +544,8 @@ class StoreItemMutationServiceImpl {
       itemId: operation.itemId,
       path: operation.path,
       target: await this.resolveStoreItemTarget({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         fileId: operation.fileId,
         documentId: operation.documentId,
         allowEmpty: true
@@ -559,22 +554,22 @@ class StoreItemMutationServiceImpl {
   }
 
   private async createItemReference(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       itemId: string;
       target: ResolvedStoreItemTarget;
     }
   ) {
     return await withTransaction(async () => {
       let link = await fileLinkService.createFileLink({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         file: d.target.file,
         input: {}
       });
 
       return await fileReferenceService.upsertFileReference({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         fileLink: link,
         input: {
           entityType: 'store_item',
@@ -647,10 +642,10 @@ class StoreItemMutationServiceImpl {
   }
 
   private async ensureDirectoryItem(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       directory: StoreDirectory;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
     }
   ) {
     return await withTransaction(async client => {
@@ -687,7 +682,7 @@ class StoreItemMutationServiceImpl {
             data: {
               directoryOid: d.directory.oid,
               parentDirectoryOid: d.directory.parentDirectoryOid ?? null,
-              lastModifiedByTenantActorOid: d.actor ? d.actor.oid : undefined
+              lastModifiedByResourceActorOid: d.actor ? d.actor.oid : undefined
             },
             include: storeItemInclude
           })
@@ -706,7 +701,7 @@ class StoreItemMutationServiceImpl {
             storeOid: d.store.oid,
             directoryOid: d.directory.oid,
             parentDirectoryOid: d.directory.parentDirectoryOid ?? null,
-            lastModifiedByTenantActorOid: d.actor ? d.actor.oid : undefined
+            lastModifiedByResourceActorOid: d.actor ? d.actor.oid : undefined
           },
           include: storeItemInclude
         })
@@ -715,10 +710,10 @@ class StoreItemMutationServiceImpl {
   }
 
   private async ensureDirectoryHierarchy(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       path: NormalizedStorePath;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
       includeSelf?: boolean;
       explicitSelf?: boolean;
     }
@@ -737,8 +732,8 @@ class StoreItemMutationServiceImpl {
           isAutoCreated: !(d.explicitSelf && directoryPath === d.path.path)
         });
         let ensured = await this.ensureDirectoryItem({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store: d.store,
           directory,
           actor: d.actor
@@ -814,15 +809,15 @@ class StoreItemMutationServiceImpl {
   }
 
   private async ensureStoreRootDirectoryInTransaction(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
     }
   ) {
     return await withTransaction(async () => {
       let result = await this.ensureDirectoryHierarchy({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: d.store,
         path: normalizeStorePath({
           path: '/',
@@ -853,12 +848,12 @@ class StoreItemMutationServiceImpl {
   }
 
   private async updateContentStoreItem(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       item: StoreItemRecord;
       path: NormalizedStorePath;
       target?: ResolvedStoreItemTarget;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
     }
   ) {
     return await withTransaction(async client => {
@@ -910,8 +905,8 @@ class StoreItemMutationServiceImpl {
 
       if (targetChanged) {
         let reference = await this.createItemReference({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           itemId: d.item.id,
           target: d.target!
         });
@@ -928,7 +923,7 @@ class StoreItemMutationServiceImpl {
           path: nextPath,
           directoryOid: null,
           parentDirectoryOid: parentDirectory.oid,
-          lastModifiedByTenantActorOid: d.actor ? d.actor.oid : undefined,
+          lastModifiedByResourceActorOid: d.actor ? d.actor.oid : undefined,
           fileOid: targetChanged ? d.target!.file.oid : undefined,
           documentOid: targetChanged ? (d.target!.document?.oid ?? null) : undefined,
           referenceOid: targetChanged ? nextReferenceOid : undefined
@@ -945,11 +940,11 @@ class StoreItemMutationServiceImpl {
   }
 
   private async addContentStoreItem(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       path: NormalizedStorePath;
       target: ResolvedStoreItemTarget;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
     }
   ) {
     return await withTransaction(async client => {
@@ -981,8 +976,8 @@ class StoreItemMutationServiceImpl {
 
         return {
           item: await this.updateContentStoreItem({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store: d.store,
             item: existingItem,
             path: d.path,
@@ -995,8 +990,8 @@ class StoreItemMutationServiceImpl {
 
       let itemIds = getId('storeItem');
       let reference = await this.createItemReference({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         itemId: itemIds.id,
         target: d.target
       });
@@ -1014,7 +1009,7 @@ class StoreItemMutationServiceImpl {
             fileOid: d.target.file.oid,
             documentOid: d.target.document?.oid ?? null,
             referenceOid: reference.oid,
-            lastModifiedByTenantActorOid: d.actor ? d.actor.oid : undefined
+            lastModifiedByResourceActorOid: d.actor ? d.actor.oid : undefined
           }
         ],
         skipDuplicates: true
@@ -1057,8 +1052,8 @@ class StoreItemMutationServiceImpl {
 
       return {
         item: await this.updateContentStoreItem({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store: d.store,
           item: conflictingItem,
           path: d.path,
@@ -1162,11 +1157,11 @@ class StoreItemMutationServiceImpl {
   }
 
   private async moveDirectoryItem(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       item: StoreItemRecord;
       nextPath: NormalizedStorePath;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
     }
   ) {
     return await withTransaction(async client => {
@@ -1273,7 +1268,7 @@ class StoreItemMutationServiceImpl {
           path: d.nextPath.path,
           directoryOid: directory.oid,
           parentDirectoryOid: nextParentDirectory.oid,
-          lastModifiedByTenantActorOid: d.actor ? d.actor.oid : undefined
+          lastModifiedByResourceActorOid: d.actor ? d.actor.oid : undefined
         },
         include: storeItemInclude
       });
@@ -1286,11 +1281,11 @@ class StoreItemMutationServiceImpl {
   }
 
   async attachTargetToStore(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       path: string;
       target: ResolvedStoreItemTarget;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
       allowReadOnly?: boolean;
     }
   ) {
@@ -1320,8 +1315,8 @@ class StoreItemMutationServiceImpl {
       }
 
       let hierarchy = await this.ensureDirectoryHierarchy({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: d.store,
         path: normalizedPath,
         actor: d.actor
@@ -1329,8 +1324,8 @@ class StoreItemMutationServiceImpl {
       itemCountDelta += hierarchy.createdItemCount;
 
       let result = await this.addContentStoreItem({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: d.store,
         path: normalizedPath,
         target: d.target,
@@ -1384,9 +1379,9 @@ class StoreItemMutationServiceImpl {
   }
 
   async ensureStoreRootDirectory(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
     }
   ) {
     return await withTransaction(async client => {
@@ -1409,10 +1404,10 @@ class StoreItemMutationServiceImpl {
   }
 
   async modifyStoreItems(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       operations: StoreItemOperationInput[];
-      actor?: Pick<TenantActor, 'oid'>;
+      actor?: Pick<ResourceActor, 'oid'>;
       allowReadOnly?: boolean;
     }
   ) {
@@ -1431,8 +1426,8 @@ class StoreItemMutationServiceImpl {
     for (let operation of d.operations) {
       operations.push(
         await this.normalizeStoreItemOperation({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           operation
         })
       );
@@ -1471,8 +1466,8 @@ class StoreItemMutationServiceImpl {
 
           if (operation.kind === 'directory') {
             let hierarchy = await this.ensureDirectoryHierarchy({
-              tenant: d.tenant,
-              environment: d.environment,
+              resourceTenant: d.resourceTenant,
+              resourceGroup: d.resourceGroup,
               store: d.store,
               path: operation.path,
               actor: d.actor,
@@ -1498,8 +1493,8 @@ class StoreItemMutationServiceImpl {
           }
 
           let hierarchy = await this.ensureDirectoryHierarchy({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store: d.store,
             path: operation.path,
             actor: d.actor
@@ -1507,8 +1502,8 @@ class StoreItemMutationServiceImpl {
           itemCount += hierarchy.createdItemCount;
 
           let result = await this.addContentStoreItem({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store: d.store,
             path: operation.path,
             target: operation.target!,
@@ -1616,8 +1611,8 @@ class StoreItemMutationServiceImpl {
           }
 
           let hierarchy = await this.ensureDirectoryHierarchy({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store: d.store,
             path: nextPath,
             actor: d.actor
@@ -1625,8 +1620,8 @@ class StoreItemMutationServiceImpl {
           itemCount += hierarchy.createdItemCount;
 
           let movedItem = await this.moveDirectoryItem({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store: d.store,
             item,
             nextPath,
@@ -1675,8 +1670,8 @@ class StoreItemMutationServiceImpl {
             }).path
           : null;
         let hierarchy = await this.ensureDirectoryHierarchy({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store: d.store,
           path: nextPath,
           actor: d.actor
@@ -1684,8 +1679,8 @@ class StoreItemMutationServiceImpl {
         itemCount += hierarchy.createdItemCount;
 
         let updatedItem = await this.updateContentStoreItem({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store: d.store,
           item,
           path: nextPath,

@@ -1,6 +1,8 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, env, snowflake } from '@metorial-cargo/db';
+import { env } from '@metorial/cargo-config';
+import { snowflake } from '@metorial/cargo-config/id';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import path from 'path';
 import { BatchProcessor } from '../../lib/batchProcessor';
 import { CargoSkillLimitError } from '../../lib/limits';
@@ -61,7 +63,6 @@ export let syncProcessQueue = createQueue<{
   hasChanges?: boolean;
   skillRepositoryId?: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/process',
   workerOpts: {
     concurrency: 10
@@ -173,7 +174,12 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       hash = await serializer.getHash(input, initResult);
       hashRef.current = hash;
     } catch (error) {
-      if (await failSyncForLimitError({ skillDestinationSyncId: data.skillDestinationSyncId, error })) {
+      if (
+        await failSyncForLimitError({
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          error
+        })
+      ) {
         return false;
       }
 
@@ -186,7 +192,12 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       await serializer.apply(input, context, initResult);
       return 'applied' as const;
     } catch (error) {
-      if (await failSyncForLimitError({ skillDestinationSyncId: data.skillDestinationSyncId, error })) {
+      if (
+        await failSyncForLimitError({
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          error
+        })
+      ) {
         return false;
       }
 

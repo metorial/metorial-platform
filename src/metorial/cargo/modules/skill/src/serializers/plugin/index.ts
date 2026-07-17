@@ -1,7 +1,8 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
-import { db, env } from '@metorial-cargo/db';
+import { env } from '@metorial/cargo-config';
+import { db } from '@metorial/db';
 import semver from 'semver';
 import { internalImageService } from '../../internal/image';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
@@ -35,8 +36,8 @@ export let applyPlugin = createApplicator(
       skillPluginOid: input.skillPlugin.oid
     });
 
-    let tenant = await db.tenant.findFirstOrThrow({
-      where: { oid: input.skillPlugin.tenantOid }
+    let resourceTenant = await db.resourceTenant.findFirstOrThrow({
+      where: { oid: input.skillPlugin.resourceTenantOid! }
     });
     let agents = await db.skillAgent.findMany({
       where: {
@@ -52,8 +53,8 @@ export let applyPlugin = createApplicator(
         if (skill.skill.image?.type === 'file') image = skill.skill.image;
       }
     }
-    if (image?.type !== 'file' && tenant.image?.type === 'file') {
-      image = tenant.image;
+    if (image?.type !== 'file' && resourceTenant.image?.type === 'file') {
+      image = resourceTenant.image;
     }
     let legacySkillHashes = skills
       .map(skill =>
@@ -63,14 +64,17 @@ export let applyPlugin = createApplicator(
           skill.skill.oid,
           skill.updatedAt.getTime(),
           skill.skill.updatedAt.getTime(),
-          skill.skill.store.lastEditedAt.getTime()
+          skill.skill.store!.lastEditedAt.getTime()
         ].join(':')
       )
       .join('|');
     let legacyHash = await Hash.sha256(
-      [1, input.skillPlugin.oid, input.skillPlugin.updatedAt.getTime(), legacySkillHashes].join(
-        ':'
-      )
+      [
+        1,
+        input.skillPlugin.oid,
+        input.skillPlugin.updatedAt.getTime(),
+        legacySkillHashes
+      ].join(':')
     );
 
     // Hash only values that affect generated files. In particular, exclude
@@ -91,7 +95,7 @@ export let applyPlugin = createApplicator(
         standaloneMarketplace: input.skillMarketplace
           ? null
           : {
-              ownerName: tenant.organizationName ?? tenant.name
+              ownerName: resourceTenant.organizationName ?? resourceTenant.name
             },
         agents: agents.map(agent => ({
           slug: agent.slug,
@@ -103,7 +107,7 @@ export let applyPlugin = createApplicator(
 
     return {
       skills,
-      tenant,
+      resourceTenant,
       agents,
       image,
       hash,
@@ -113,7 +117,7 @@ export let applyPlugin = createApplicator(
   {
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { tenant, agents, image, hash, legacyHash }) => {
+    apply: async (input, context, { resourceTenant, agents, image, hash, legacyHash }) => {
       if (input.skillPlugin.versionHash !== hash) {
         let isHashMigration = input.skillPlugin.versionHash === legacyHash;
         let nextVersion = isHashMigration
@@ -171,10 +175,11 @@ export let applyPlugin = createApplicator(
 
       let baseInfo = {
         name: slugify(
-          (input.skillMarketplacePlugin?.pluginSlug ?? input.skillPlugin.name).replaceAll(
-            '_',
-            '-'
-          )
+          (
+            input.skillMarketplacePlugin?.pluginSlug ??
+            input.skillPlugin.name ??
+            input.skillPlugin.id
+          ).replaceAll('_', '-')
         ),
         description: input.skillPlugin.description,
         version: input.skillPlugin.version,
@@ -244,7 +249,7 @@ export let applyPlugin = createApplicator(
         let cursorAndClaudeMarketplace = json({
           name: baseInfo.name,
           owner: {
-            name: tenant.organizationName ?? tenant.name
+            name: resourceTenant.organizationName ?? resourceTenant.name
           },
           metadata: {
             description: 'Official WorkOS skills for AI coding agents',

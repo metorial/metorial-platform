@@ -1,4 +1,4 @@
-import type { SkillMergeRequestErrorCode } from '@metorial-cargo/db';
+import type { SkillMergeRequestErrorCode } from '@metorial/db';
 
 let mergeErrorMessages: Record<SkillMergeRequestErrorCode, string> = {
   target_changed:

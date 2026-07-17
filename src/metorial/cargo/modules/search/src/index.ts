@@ -1,7 +1,7 @@
 import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
-import { env } from './env';
+import { env } from '@metorial/cargo-config';
 
 let getIndexName = (suffix?: string) =>
   [env.service.VOYAGER_INDEX_PREFIX, 'cargo', suffix].filter(Boolean).join('_');

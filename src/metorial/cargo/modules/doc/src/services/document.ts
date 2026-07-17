@@ -6,24 +6,25 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma, StoreCloneType, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
   resolveFiles,
-  resolveStores,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { actorService, filePurposeService, fileService } from '@metorial-cargo/module-file';
+  resolveResourceActors,
+  resolveStores
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { actorService, filePurposeService, fileService } from '@metorial/cargo-module-file';
 import {
   storeAccessService,
   storeItemMutationService,
   storeReadPermission,
   storeWritePermission
-} from '@metorial-cargo/module-store';
+} from '@metorial/cargo-module-store';
+import type { Prisma, StoreCloneType, StoreParticipantPermissions } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { internalDocumentContentService } from '../internal/documentContent';
 import { internalDocumentContentStoreService } from '../internal/documentContentStore';
 import type { DocumentDraft } from '../internal/documentDraft';
@@ -39,7 +40,7 @@ let documentMimeType = 'text/markdown';
 export let documentInclude = {
   parentDocument: true,
   content: true,
-  createdByTenantActor: true,
+  createdByResourceActor: true,
   currentVersion: {
     include: {
       content: true
@@ -48,7 +49,7 @@ export let documentInclude = {
   file: {
     include: {
       purpose: true,
-      createdByTenantActor: true
+      createdByResourceActor: true
     }
   }
 } satisfies Prisma.DocumentInclude;
@@ -64,11 +65,11 @@ export type ResolvedDocumentRecord = Prisma.DocumentGetPayload<{
 };
 
 export type ScopedResolvedDocumentRecord = {
-  tenant: {
+  resourceTenant: {
     id: string;
     oid: bigint;
   };
-  environment: {
+  resourceGroup: {
     id: string;
     oid: bigint;
   };
@@ -105,7 +106,7 @@ class DocumentServiceImpl {
   }
 
   private async getDocumentRecord(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       documentId: string;
       includeDeleted?: boolean;
     }
@@ -114,8 +115,8 @@ class DocumentServiceImpl {
       async db => {
         let document = await db.document.findFirst({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             id: d.documentId,
             file: d.includeDeleted ? undefined : { status: 'active' }
           },
@@ -183,7 +184,7 @@ class DocumentServiceImpl {
   }
 
   async createDocument(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       internal?: {
         isReadOnly?: boolean;
         isTemplateBacking?: boolean;
@@ -208,7 +209,7 @@ class DocumentServiceImpl {
 
     let actor = d.input.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant,
           actorId: d.input.actorId
         })
       : undefined;
@@ -220,8 +221,8 @@ class DocumentServiceImpl {
       let contentIds = getId('documentContent');
 
       let file = await fileService.createFile({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         purpose: purpose.id,
         storeId: d.input.fileStoreId ?? getDocumentStoreId(documentIds.id),
         _isDocument: true,
@@ -246,8 +247,8 @@ class DocumentServiceImpl {
         data: {
           oid: documentIds.oid,
           id: documentIds.id,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           fileOid: file.oid,
           title: d.input.title,
           isReadOnly: d.internal?.isReadOnly ?? false,
@@ -255,14 +256,14 @@ class DocumentServiceImpl {
           isContentOwner: true,
           maxVersionNumber: 1,
           contentOid: contentIds.oid,
-          createdByTenantActorOid: actor?.oid
+          createdByResourceActorOid: actor?.oid
         },
         include: documentInclude
       });
 
       let version = await internalDocumentVersioningService.createVersion({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         document,
         versionNumber: 1,
         contentOid: contentIds.oid,
@@ -295,14 +296,14 @@ class DocumentServiceImpl {
 
       if (d.input.store) {
         let store = await storeAccessService.getStoreById({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           storeId: d.input.store.id
         });
 
         await storeAccessService.assertStoreAccessForStore({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store,
           actorId: d.input.actorId,
           defaultPermissions: d.input.defaultPermissions,
@@ -311,8 +312,8 @@ class DocumentServiceImpl {
         });
 
         await storeItemMutationService.attachTargetToStore({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store,
           path: d.input.store.path,
           target: {
@@ -332,7 +333,7 @@ class DocumentServiceImpl {
   }
 
   async getDocumentById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       documentId: string;
       includeDeleted?: boolean;
       actorId?: string;
@@ -342,8 +343,8 @@ class DocumentServiceImpl {
   ) {
     let document = await this.getDocumentRecord(d);
     let access = await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -365,13 +366,13 @@ class DocumentServiceImpl {
   }
 
   async getDocumentPermissions(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       document: {
         id: string;
         oid: bigint;
         fileOid: bigint;
         isReadOnly?: boolean;
-        createdByTenantActorOid?: bigint | null;
+        createdByResourceActorOid?: bigint | null;
       };
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -379,8 +380,8 @@ class DocumentServiceImpl {
     }
   ) {
     return await storeAccessService.getDocumentPermissions({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -410,13 +411,13 @@ class DocumentServiceImpl {
       },
       include: {
         ...documentInclude,
-        tenant: {
+        resourceTenant: {
           select: {
             id: true,
             oid: true
           }
         },
-        environment: {
+        resourceGroup: {
           select: {
             id: true,
             oid: true
@@ -429,17 +430,17 @@ class DocumentServiceImpl {
       throw new ServiceError(notFoundError('document', d.documentId));
     }
 
-    let { tenant, environment, ...document } = scopedDocument;
+    let { resourceTenant, resourceGroup, ...document } = scopedDocument;
 
     return {
-      tenant,
-      environment,
+      resourceTenant,
+      resourceGroup,
       document: await this.resolveDocument(document)
     } satisfies ScopedResolvedDocumentRecord;
   }
 
   async listDocuments(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       DocumentAccessInput & {
         ids?: string[];
         fileIds?: string[];
@@ -454,11 +455,11 @@ class DocumentServiceImpl {
     let files = await resolveFiles(d, d.fileIds);
     let stores = await resolveStores(d, d.storeIds);
     let parentDocuments = await resolveDocuments(d, d.parentDocumentIds);
-    let createdByActors = await resolveTenantActors(d, d.createdByActorIds);
+    let createdByActors = await resolveResourceActors(d, d.createdByActorIds);
 
     let where: Prisma.DocumentWhereInput = {
-      tenantOid: d.tenant.oid,
-      environmentOid: d.environment.oid,
+      resourceTenantOid: d.resourceTenant.oid,
+      resourceGroupOid: d.resourceGroup.oid,
       isTemplateBacking: false,
       file: {
         status: 'active'
@@ -476,7 +477,7 @@ class DocumentServiceImpl {
             }
           : undefined!,
         parentDocuments ? { parentDocumentOid: parentDocuments.in } : undefined!,
-        createdByActors ? { createdByTenantActorOid: createdByActors.in } : undefined!,
+        createdByActors ? { createdByResourceActorOid: createdByActors.in } : undefined!,
         d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
         d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
       ].filter(Boolean)
@@ -496,8 +497,8 @@ class DocumentServiceImpl {
     }
 
     let access = await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -513,7 +514,7 @@ class DocumentServiceImpl {
               ...where,
               OR: [
                 {
-                  createdByTenantActorOid: access.actor?.oid
+                  createdByResourceActorOid: access.actor?.oid
                 },
                 {
                   storeItems: {
@@ -533,7 +534,7 @@ class DocumentServiceImpl {
   }
 
   async updateDocument(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       document: ResolvedDocumentRecord;
       input: {
         title?: string;
@@ -553,8 +554,8 @@ class DocumentServiceImpl {
     }
 
     let access = await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.input.actorId,
       defaultPermissions: d.input.defaultPermissions,
@@ -658,7 +659,7 @@ class DocumentServiceImpl {
   }
 
   async cloneDocument(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       document: ResolvedDocumentRecord;
       input: {
         id?: string;
@@ -673,8 +674,8 @@ class DocumentServiceImpl {
     }
   ) {
     let access = await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.input.actorId,
       defaultPermissions: d.input.defaultPermissions,
@@ -683,7 +684,7 @@ class DocumentServiceImpl {
     });
     let creatorActor = d.input.creatorActorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant,
           actorId: d.input.creatorActorId
         })
       : access.actor;
@@ -713,8 +714,8 @@ class DocumentServiceImpl {
         : sourceContent;
 
       let file = await fileService.createFile({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         purpose: purpose.id,
         storeId: getDocumentStoreId(documentIds.id),
         _isDocument: true,
@@ -740,22 +741,22 @@ class DocumentServiceImpl {
         data: {
           oid: documentIds.oid,
           id: documentIds.id,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           fileOid: file.oid,
           title: nextTitle,
           isContentOwner: cloneType === 'duplicate',
           maxVersionNumber: 1,
           contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
           parentDocumentOid: cloneType === 'sync_until_change' ? d.document.oid : null,
-          createdByTenantActorOid: creatorActor?.oid
+          createdByResourceActorOid: creatorActor?.oid
         },
         include: documentInclude
       });
 
       let version = await internalDocumentVersioningService.createVersion({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         document,
         versionNumber: 1,
         contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
@@ -793,7 +794,7 @@ class DocumentServiceImpl {
   }
 
   async deleteDocument(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       document: ResolvedDocumentRecord;
       actorId?: string;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -801,8 +802,8 @@ class DocumentServiceImpl {
     }
   ) {
     await storeAccessService.assertStoreAccessForDocument({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       document: d.document,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -836,14 +837,14 @@ class DocumentServiceImpl {
       let docWithTenant = await db.document.findFirstOrThrow({
         where: { oid: d.document.oid },
         include: {
-          tenant: true,
-          environment: true
+          resourceTenant: true,
+          resourceGroup: true
         }
       });
 
       return await this.getDocumentRecord({
-        tenant: docWithTenant.tenant,
-        environment: docWithTenant.environment,
+        resourceTenant: docWithTenant.resourceTenant,
+        resourceGroup: docWithTenant.resourceGroup,
         documentId: d.document.id,
         includeDeleted: true
       });

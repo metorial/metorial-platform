@@ -1,16 +1,13 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
-import { storeVersionService } from '@metorial-cargo/module-store';
-
-let redisUrl = env.service.REDIS_URL;
+import { storeVersionService } from '@metorial/cargo-module-store';
+import { createCron } from '@metorial/cron';
+import { db } from '@metorial/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 let batchSize = 100;
 let dirtyAgeMs = 60 * 60 * 1000;
 
 export let storeVersionManyQueue = createQueue<{
   cursor?: string;
 }>({
-  redisUrl,
   name: 'cargo/store/version/many',
   workerOpts: {
     concurrency: 1
@@ -21,7 +18,6 @@ export let storeVersionSingleQueue = createQueue<{
   storeId: string;
   expectedDirtyAt: Date;
 }>({
-  redisUrl,
   name: 'cargo/store/version/single',
   workerOpts: {
     concurrency: 5
@@ -78,7 +74,6 @@ export let storeVersionSingleProcessor = storeVersionSingleQueue.process(async d
 
 export let storeVersionCron = createCron(
   {
-    redisUrl,
     name: 'cargo/store/version/cron',
     cron: '*/15 * * * *'
   },

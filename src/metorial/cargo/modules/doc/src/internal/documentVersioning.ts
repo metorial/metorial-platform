@@ -1,6 +1,7 @@
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
+import type { Prisma } from '@metorial/db';
+import { withTransaction } from '@metorial/db';
 import type { documentInclude } from '../services/document';
 
 type DocumentRecord = Prisma.DocumentGetPayload<{
@@ -8,8 +9,8 @@ type DocumentRecord = Prisma.DocumentGetPayload<{
 }>;
 
 type VersionContext = {
-  tenant: { oid: bigint };
-  environment: { oid: bigint };
+  resourceTenant: { oid: bigint };
+  resourceGroup: { oid: bigint };
 };
 
 let activeVersionWindowMs = 3 * 60 * 60 * 1000;
@@ -46,8 +47,8 @@ class InternalDocumentVersioningServiceImpl {
       return await db.documentVersion.create({
         data: {
           ...generated,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           documentOid: d.document.oid,
           versionNumber: d.versionNumber,
           contentOid: d.contentOid,

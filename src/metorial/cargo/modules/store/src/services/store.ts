@@ -2,27 +2,28 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Store, StoreAccess, StoreCloneType, TenantActor } from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
 import {
   normalizeDateFilter,
+  resolveResourceActors,
   resolveStores,
   resolveStoreTemplates,
-  resolveTenantActors,
   type DateFilter
-} from '@metorial-cargo/list-utils';
+} from '@metorial/cargo-list-utils';
 import {
   documentInclude,
   documentService,
   rewriteDocumentMarkdownTitle
-} from '@metorial-cargo/module-doc';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+} from '@metorial/cargo-module-doc';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
 import {
   filePurposeService,
   fileService,
   getCargoFilesBucketName,
   getStorage
-} from '@metorial-cargo/module-file';
+} from '@metorial/cargo-module-file';
+import type { ResourceActor, Store, StoreAccess, StoreCloneType } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { posix as pathPosix } from 'node:path';
 import { normalizeStorePath } from '../lib/storePath';
 import { enqueueStoreLifecycle } from '../queues/lifecycle';
@@ -39,7 +40,7 @@ import { storeTemplateService, type StoreTemplateRecord } from './storeTemplate'
 import { storeVersionService } from './storeVersion';
 
 type StoreServiceAccessInput = Omit<StoreAccessInput, 'actorId'> & {
-  actor?: TenantActor;
+  actor?: ResourceActor;
 };
 
 class StoreServiceImpl {
@@ -75,13 +76,13 @@ class StoreServiceImpl {
     );
   }
 
-  private async getStoreRecord(d: CargoTenantEnvironment & { storeId: string }) {
+  private async getStoreRecord(d: CargoResourceScope & { storeId: string }) {
     return await withTransaction(
       async db => {
         let store = await db.store.findFirst({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             id: d.storeId
           }
         });
@@ -95,25 +96,31 @@ class StoreServiceImpl {
   }
 
   private assertStoreTemplateCloneScope(
-    d: CargoTenantEnvironment & {
-      storeTemplate: Pick<StoreTemplateRecord, 'id' | 'tenantOid' | 'environmentOid'>;
+    d: CargoResourceScope & {
+      storeTemplate: Pick<
+        StoreTemplateRecord,
+        'id' | 'resourceTenantOid' | 'resourceGroupOid'
+      >;
     }
   ) {
-    if (d.storeTemplate.tenantOid && d.storeTemplate.tenantOid !== d.tenant.oid) {
+    if (
+      d.storeTemplate.resourceTenantOid &&
+      d.storeTemplate.resourceTenantOid !== d.resourceTenant.oid
+    ) {
       throw new ServiceError(
         badRequestError({
-          message: `Store template ${d.storeTemplate.id} can only be cloned within its linked tenant`
+          message: `Store template ${d.storeTemplate.id} can only be cloned within its linked resourceTenant`
         })
       );
     }
 
     if (
-      d.storeTemplate.environmentOid &&
-      d.storeTemplate.environmentOid !== d.environment.oid
+      d.storeTemplate.resourceGroupOid &&
+      d.storeTemplate.resourceGroupOid !== d.resourceGroup.oid
     ) {
       throw new ServiceError(
         badRequestError({
-          message: `Store template ${d.storeTemplate.id} can only be cloned within its linked environment`
+          message: `Store template ${d.storeTemplate.id} can only be cloned within its linked resourceGroup`
         })
       );
     }
@@ -148,10 +155,10 @@ class StoreServiceImpl {
   }
 
   private async instantiateStandaloneTemplateItems(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       store: Store;
       storeTemplate: StoreTemplateRecord;
-      actor?: TenantActor;
+      actor?: ResourceActor;
       documentTitleOverrides?: Record<string, string>;
     }
   ) {
@@ -170,8 +177,8 @@ class StoreServiceImpl {
         }
 
         await storeItemMutationService.modifyStoreItems({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store: d.store,
           operations: [
             {
@@ -198,8 +205,8 @@ class StoreServiceImpl {
           titleOverride ?? item.title ?? this.inferMarkdownTitle(documentContent) ?? name;
 
         await documentService.createDocument({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           input: {
             title,
             content: titleOverride
@@ -227,8 +234,8 @@ class StoreServiceImpl {
       );
 
       await fileService.createFile({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         purpose: filePurpose.id,
         storeId: fileStoreId,
         input: {
@@ -247,11 +254,11 @@ class StoreServiceImpl {
   }
 
   async createStore(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       input: {
         id?: string;
         name: string;
-        actor?: TenantActor;
+        actor?: ResourceActor;
         access?: StoreAccess;
         cloneType?: StoreCloneType;
         parentStore?: Store;
@@ -282,18 +289,18 @@ class StoreServiceImpl {
           }),
           cloneType: d.input.parentStore ? (d.input.cloneType ?? 'sync_until_change') : null,
           itemCount: 0,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           parentStoreOid: d.input.parentStore?.oid,
           parentStoreTemplateOid: d.input.parentStoreTemplate?.oid,
-          createdByTenantActorOid: d.input.actor?.oid,
+          createdByResourceActorOid: d.input.actor?.oid,
           lastEditedAt
         }
       });
 
       await storeItemMutationService.ensureStoreRootDirectory({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: createdStore
       });
 
@@ -316,12 +323,12 @@ class StoreServiceImpl {
   }
 
   async createStoreFromTemplate(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       input: {
         templateId: string;
         id?: string;
         name: string;
-        actor?: TenantActor;
+        actor?: ResourceActor;
         access?: StoreAccess;
         documentTitleOverrides?: Record<string, string>;
       };
@@ -332,21 +339,21 @@ class StoreServiceImpl {
     });
 
     this.assertStoreTemplateCloneScope({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       storeTemplate
     });
 
     if (storeTemplate.sourceStore?.id) {
       let sourceStore = await this.getStoreRecord({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         storeId: storeTemplate.sourceStore.id
       });
 
       return await this.cloneStore({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: sourceStore,
         actor: d.input.actor,
         input: {
@@ -363,8 +370,8 @@ class StoreServiceImpl {
     }
 
     let createdStore = await this.createStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       input: {
         id: d.input.id,
         name: d.input.name,
@@ -375,8 +382,8 @@ class StoreServiceImpl {
     });
 
     await this.instantiateStandaloneTemplateItems({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: createdStore,
       storeTemplate,
       actor: d.input.actor,
@@ -387,7 +394,7 @@ class StoreServiceImpl {
   }
 
   async listStores(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         ids?: string[];
         parentStoreIds?: string[];
@@ -402,15 +409,15 @@ class StoreServiceImpl {
     let stores = await resolveStores(d, d.ids);
     let parentStores = await resolveStores(d, d.parentStoreIds);
     let parentStoreTemplates = await resolveStoreTemplates(d, d.parentStoreTemplateIds);
-    let createdByActors = await resolveTenantActors(d, d.createdByActorIds);
+    let createdByActors = await resolveResourceActors(d, d.createdByActorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
         let accessibleStoreOids = d.actor
           ? (
               await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
-                tenant: d.tenant,
-                environment: d.environment,
+                resourceTenant: d.resourceTenant,
+                resourceGroup: d.resourceGroup,
                 actorId: d.actor.id,
                 defaultPermissions: d.defaultPermissions,
                 overridePermissions: d.overridePermissions,
@@ -422,8 +429,8 @@ class StoreServiceImpl {
         return await db.store.findMany({
           ...opts,
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             isTemplateBacking: false,
             AND: [
               stores ? { oid: stores.in } : undefined!,
@@ -431,7 +438,7 @@ class StoreServiceImpl {
               parentStoreTemplates
                 ? { parentStoreTemplateOid: parentStoreTemplates.in }
                 : undefined!,
-              createdByActors ? { createdByTenantActorOid: createdByActors.in } : undefined!,
+              createdByActors ? { createdByResourceActorOid: createdByActors.in } : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!,
               d.dirtyAt ? { dirtyAt: normalizeDateFilter(d.dirtyAt) } : undefined!,
@@ -447,15 +454,15 @@ class StoreServiceImpl {
   }
 
   async getStoreById(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         storeId: string;
       }
   ) {
     let store = await this.getStoreRecord(d);
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store,
       actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
@@ -467,14 +474,14 @@ class StoreServiceImpl {
   }
 
   async getStorePermissions(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
   ) {
     return await storeAccessService.getStorePermissions({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
@@ -483,7 +490,7 @@ class StoreServiceImpl {
   }
 
   async updateStore(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         input: {
@@ -505,8 +512,8 @@ class StoreServiceImpl {
     }
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
@@ -546,7 +553,7 @@ class StoreServiceImpl {
   }
 
   async cloneStore(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         input: {
@@ -560,8 +567,8 @@ class StoreServiceImpl {
       }
   ) {
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
@@ -572,8 +579,8 @@ class StoreServiceImpl {
     return await withTransaction(async db => {
       let cloneType = d.input.cloneType ?? 'sync_until_change';
       let clonedStore = await this.createStore({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         input: {
           id: d.input.id,
           name: d.input.name ?? d.store.name,
@@ -597,8 +604,8 @@ class StoreServiceImpl {
 
       for (let item of items) {
         await this.cloneStoreItemIntoStore({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           targetStore: clonedStore,
           item,
           actor: d.actor,
@@ -622,7 +629,7 @@ class StoreServiceImpl {
   }
 
   async deleteStore(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         allowLinkedSkillDelete?: boolean;
@@ -634,8 +641,8 @@ class StoreServiceImpl {
     });
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
@@ -723,7 +730,7 @@ class StoreServiceImpl {
   }
 
   async modifyStoreItems(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         store: Store;
         operations: StoreItemOperationInput[];
@@ -734,8 +741,8 @@ class StoreServiceImpl {
     });
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       actorId: d.actor?.id,
       defaultPermissions: d.defaultPermissions,
@@ -744,8 +751,8 @@ class StoreServiceImpl {
     });
 
     return await storeItemMutationService.modifyStoreItems({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: d.store,
       operations: d.operations,
       actor: d.actor
@@ -753,7 +760,7 @@ class StoreServiceImpl {
   }
 
   private async cloneStoreItemIntoStore(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreServiceAccessInput & {
         targetStore: Store;
         item: StoreItemRecord;
@@ -781,8 +788,8 @@ class StoreServiceImpl {
 
         if (sourceDirectory && !sourceDirectory.isAutoCreated) {
           await storeItemMutationService.modifyStoreItems({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store: d.targetStore,
             operations: [
               {
@@ -801,8 +808,8 @@ class StoreServiceImpl {
         let titleOverride = d.documentTitleOverrides?.[normalizedItemPath.path];
         let sourceDocument = await db.document.findFirst({
           where: {
-            tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
             id: d.item.document.id
           },
           include: documentInclude
@@ -813,8 +820,8 @@ class StoreServiceImpl {
         }
 
         let clonedDocument = await documentService.cloneDocument({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           document: sourceDocument,
           input: {
             title: titleOverride,
@@ -826,8 +833,8 @@ class StoreServiceImpl {
         });
 
         await storeItemMutationService.attachTargetToStore({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store: d.targetStore,
           path: normalizedItemPath.path,
           target: {
@@ -848,8 +855,8 @@ class StoreServiceImpl {
       }
 
       await storeItemMutationService.attachTargetToStore({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         store: d.targetStore,
         path: normalizedItemPath.path,
         target: {

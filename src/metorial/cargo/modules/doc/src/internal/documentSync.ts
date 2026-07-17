@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, withTransaction } from '@metorial-cargo/db';
-import { storeVersionService } from '@metorial-cargo/module-store';
+import { storeVersionService } from '@metorial/cargo-module-store';
+import { db, withTransaction } from '@metorial/db';
 import { enqueueDocumentLifecycle } from '../queues/lifecycle';
 import { documentInclude } from '../services/document';
 import { internalDocumentDraftService } from './documentDraft';
@@ -138,8 +138,8 @@ class InternalDocumentSyncServiceImpl {
           let childDocument = await db.document.findFirst({
             where: {
               id: d.childDocumentId,
-              tenantOid: parentVersion.tenantOid,
-              environmentOid: parentVersion.environmentOid,
+              resourceTenantOid: parentVersion.resourceTenantOid,
+              resourceGroupOid: parentVersion.resourceGroupOid,
               parentDocumentOid: parentVersion.documentOid,
               isContentOwner: false,
               file: {
@@ -166,11 +166,11 @@ class InternalDocumentSyncServiceImpl {
 
           let nextVersionNumber = childDocument.maxVersionNumber + 1;
           let nextVersion = await internalDocumentVersioningService.createVersion({
-            tenant: {
-              oid: parentVersion.tenantOid
+            resourceTenant: {
+              oid: parentVersion.resourceTenantOid
             },
-            environment: {
-              oid: parentVersion.environmentOid
+            resourceGroup: {
+              oid: parentVersion.resourceGroupOid
             },
             document: childDocument,
             versionNumber: nextVersionNumber,

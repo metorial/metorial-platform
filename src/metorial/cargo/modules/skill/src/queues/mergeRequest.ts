@@ -1,7 +1,7 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
-import type { SkillVersion } from '@metorial-cargo/db';
-import { db, env, withTransaction } from '@metorial-cargo/db';
+import { createCron } from '@metorial/cron';
+import type { SkillVersion } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import {
   createSkillMergeRequestMergeError,
   toSkillMergeRequestMergeError
@@ -14,13 +14,9 @@ import {
   skillMergeRequestInternalService,
   skillMergeRequestItemInclude
 } from '../services/skillMergeRequestInternal';
-
-let redisUrl = env.service.REDIS_URL;
-
 export let skillMergeRequestPerformQueue = createQueue<{
   skillMergeRequestId: string;
 }>({
-  redisUrl,
   name: 'cargo/skill/merge-request/perform',
   workerOpts: {
     concurrency: 5
@@ -43,7 +39,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
 
   if (!mergeRequest || mergeRequest.status !== 'merging') return null;
 
-  return await skillMergeTargetLock.usingLock(mergeRequest.targetSkill.store.id, async () => {
+  return await skillMergeTargetLock.usingLock(mergeRequest.targetSkill.store!.id, async () => {
     mergeRequest = await db.skillMergeRequest.findFirst({
       where: {
         id: d.skillMergeRequestId
@@ -90,7 +86,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         throw createSkillMergeRequestMergeError('unresolved_after_refresh');
       }
 
-      let mergeActorId = mergeRequest.mergeStartedByTenantActor?.id;
+      let mergeActorId = mergeRequest.mergeStartedByResourceActor?.id;
 
       if (!mergeRequest.preMergeTargetSkillVersionOid) {
         await db.skillMergeRequest.update({
@@ -103,16 +99,16 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         });
       }
 
-      let tenant = await db.tenant.findUniqueOrThrow({
-        where: { oid: mergeRequest.tenantOid }
+      let resourceTenant = await db.resourceTenant.findUniqueOrThrow({
+        where: { oid: mergeRequest.resourceTenantOid }
       });
-      let environment = await db.environment.findUniqueOrThrow({
-        where: { oid: mergeRequest.environmentOid }
+      let resourceGroup = await db.resourceGroup.findUniqueOrThrow({
+        where: { oid: mergeRequest.resourceGroupOid }
       });
 
       await skillMergeRequestApplyInternalService.applyResolvedItems({
-        tenant,
-        environment,
+        resourceTenant,
+        resourceGroup,
         mergeRequest,
         items,
         actorId: mergeActorId
@@ -153,7 +149,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
             mergeError: null,
             mergeErrorCode: null,
             mergedAt: new Date(),
-            mergedByTenantActorOid: activeMergeRequest.mergeStartedByTenantActorOid,
+            mergedByResourceActorOid: activeMergeRequest.mergeStartedByResourceActorOid,
             mergedTargetSkillVersionOid: mergedTargetVersion.oid,
             activePairKey: null
           },
@@ -177,7 +173,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
           database: tx,
           mergeRequestOid: activeMergeRequest.oid,
           type: 'merge_completed',
-          actorOid: activeMergeRequest.mergeStartedByTenantActorOid
+          actorOid: activeMergeRequest.mergeStartedByResourceActorOid
         });
         return merged;
       });
@@ -269,7 +265,7 @@ export let recoverStaleSkillMergeRequests = async () => {
   });
 
   for (let mergeRequest of staleRequests) {
-    await skillMergeTargetLock.usingLock(mergeRequest.targetSkill.store.id, async () => {
+    await skillMergeTargetLock.usingLock(mergeRequest.targetSkill.store!.id, async () => {
       let mergeError = createSkillMergeRequestMergeError('stale_merge_recovered');
       await withTransaction(async tx => {
         let recovered = await tx.skillMergeRequest.updateMany({
@@ -316,7 +312,6 @@ export let recoverStaleSkillMergeRequests = async () => {
 
 export let skillMergeRequestRecoveryCron = createCron(
   {
-    redisUrl,
     name: 'cargo/skill/merge-request/recovery/cron',
     cron: '*/5 * * * *'
   },

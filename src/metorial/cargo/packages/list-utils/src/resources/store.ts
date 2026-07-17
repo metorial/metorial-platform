@@ -1,4 +1,4 @@
-import { db } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
 import { createResolver } from '../resolver';
 
 export let resolveStores = createResolver(async ({ scope, ids }) =>
@@ -34,12 +34,12 @@ export let resolveStoreTemplates = createResolver(async ({ scope, ids }) =>
       id: { in: ids },
       OR: [
         {
-          tenantOid: scope.tenantOid,
-          environmentOid: scope.environmentOid
+          resourceTenantOid: scope.resourceTenantOid,
+          resourceGroupOid: scope.resourceGroupOid
         },
         {
-          tenantOid: null,
-          environmentOid: null
+          resourceTenantOid: null,
+          resourceGroupOid: null
         }
       ]
     },

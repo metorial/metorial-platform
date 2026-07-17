@@ -3,9 +3,10 @@ import { Hash } from '@lowerdeck/hash';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import type { Prisma, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { createSkillDestination } from '../internal/skillDestination';
 import type { LifecycleEvent } from '../queues/lifecycle/_ids';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
@@ -25,8 +26,8 @@ export type ManagedSkillPluginRecord = Prisma.ManagedSkillPluginGetPayload<{
 
 type SkillForManagedPlugin = Prisma.SkillGetPayload<{
   include: {
-    tenant: true;
-    environment: true;
+    resourceTenant: true;
+    resourceGroup: true;
   };
 }>;
 
@@ -119,7 +120,7 @@ class ManagedSkillPluginServiceImpl {
     values: ManagedSkillPluginValues
   ) {
     let destination = await createSkillDestination({
-      tenant: skill.tenant,
+      resourceTenant: skill.resourceTenant!,
       purpose: 'cargo.skill.managed-plugin'
     });
 
@@ -132,8 +133,10 @@ class ManagedSkillPluginServiceImpl {
           name: values.name,
           description: values.description,
           slug: values.slug,
-          tenantOid: skill.tenantOid,
-          environmentOid: skill.environmentOid,
+          resourceTenantOid: skill.resourceTenantOid,
+          resourceGroupOid: skill.resourceGroupOid,
+          organizationOid: skill.organizationOid,
+          instanceOid: skill.instanceOid,
           destinationOid: destination.oid
         }
       });
@@ -311,20 +314,20 @@ class ManagedSkillPluginServiceImpl {
   }
 
   async ensureManagedSkillPlugin(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillId: string;
     }
   ) {
     let skill = await db.skill.findFirst({
       where: {
         id: d.skillId,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         status: 'active'
       },
       include: {
-        tenant: true,
-        environment: true
+        resourceTenant: true,
+        resourceGroup: true
       }
     });
 
@@ -422,8 +425,8 @@ class ManagedSkillPluginServiceImpl {
         status: 'active'
       },
       include: {
-        tenant: true,
-        environment: true
+        resourceTenant: true,
+        resourceGroup: true
       }
     });
 

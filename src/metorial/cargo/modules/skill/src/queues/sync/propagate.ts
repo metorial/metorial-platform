@@ -1,16 +1,14 @@
 import { generatePlainId } from '@lowerdeck/id';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { db, env, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
+import { db, withTransaction } from '@metorial/db';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
+import { createSkillSyncBranchName, normalizeSkillSyncBranchName } from './_lib/branchName';
 import {
   appendSkillDestinationSyncLog,
   appendSkillDestinationSyncLogs,
   type SkillDestinationSyncLogEntry
 } from './_lib/logs';
-import {
-  createSkillSyncBranchName,
-  normalizeSkillSyncBranchName
-} from './_lib/branchName';
 import { syncFinishQueue } from './finish';
 
 let getPublicErrorMessage = (error: unknown) => {
@@ -77,7 +75,6 @@ export let syncPropagateStartQueue = createQueue<{
   skillDestinationSyncId: string;
   skillRepositoryId?: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/propagate/start',
   workerOpts: {
     concurrency: 10
@@ -195,7 +192,6 @@ export let syncPropagatePerformQueue = createQueue<{
   processedPropagationIds: string[];
   pendingPropagationIds: string[];
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/propagate/perform',
   workerOpts: {
     concurrency: 10
@@ -244,7 +240,7 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
         }
 
         let originTenant = await getOriginTenant({
-          oid: propagation.skillRepository.tenantOid,
+          oid: propagation.skillRepository.resourceTenantOid,
           id: sync.destination.id
         });
         let originRepositories = await origin.scmRepository.getMany({
@@ -324,7 +320,6 @@ export let syncPropagateWaitQueue = createQueue<{
   skillDestinationSyncId: string;
   pendingPropagationIds: string[];
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/propagate/wait',
   workerOpts: {
     concurrency: 10
@@ -362,7 +357,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
   }
 
   let originTenant = await getOriginTenant({
-    oid: propagations[0]!.skillRepository.tenantOid,
+    oid: propagations[0]!.skillRepository.resourceTenantOid,
     id: sync.destination.id
   });
 

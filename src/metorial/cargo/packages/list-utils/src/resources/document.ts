@@ -1,4 +1,4 @@
-import { db } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
 import { createResolver } from '../resolver';
 
 export let resolveDocuments = createResolver(async ({ scope, ids }) =>

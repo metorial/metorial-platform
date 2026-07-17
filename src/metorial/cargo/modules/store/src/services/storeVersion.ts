@@ -1,14 +1,15 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { db, getId, withTransaction, type TransactionDB } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
 import {
   normalizeDateFilter,
   resolveStoreVersions,
   type DateFilter
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma } from '@metorial/db';
+import { db, withTransaction, type TransactionDB } from '@metorial/db';
 import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
 
 let currentStoreVersionItemInclude = {
@@ -601,7 +602,7 @@ class StoreVersionServiceImpl {
   }
 
   async listStoreVersions(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         storeId: string;
         ids?: string[];
@@ -610,14 +611,14 @@ class StoreVersionServiceImpl {
       }
   ) {
     let store = await storeAccessService.getStoreById({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       storeId: d.storeId
     });
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -648,7 +649,7 @@ class StoreVersionServiceImpl {
   }
 
   async getStoreVersionById(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         storeVersionId: string;
       }
@@ -657,8 +658,8 @@ class StoreVersionServiceImpl {
       where: {
         id: d.storeVersionId,
         store: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
         }
       },
       include: storeVersionInclude
@@ -667,8 +668,8 @@ class StoreVersionServiceImpl {
     if (!version) throw new ServiceError(notFoundError('storeVersion', d.storeVersionId));
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store: version.store,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -680,20 +681,20 @@ class StoreVersionServiceImpl {
   }
 
   async getLatestStoreVersion(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         storeId: string;
       }
   ) {
     let store = await storeAccessService.getStoreById({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       storeId: d.storeId
     });
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       store,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -732,7 +733,7 @@ class StoreVersionServiceImpl {
   }
 
   async getResolvedStoreVersion(
-    d: CargoTenantEnvironment &
+    d: CargoResourceScope &
       StoreAccessInput & {
         storeId: string;
         storeVersionId: string;
@@ -743,8 +744,8 @@ class StoreVersionServiceImpl {
     }
 
     let version = await this.getStoreVersionById({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,

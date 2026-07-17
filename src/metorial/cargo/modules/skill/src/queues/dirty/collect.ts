@@ -1,11 +1,10 @@
-import { createCron } from '@lowerdeck/cron';
-import { createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { createCron } from '@metorial/cron';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { addMinutes } from 'date-fns';
 
 export let collectDirtySkillDestinationsCron = createCron(
   {
-    redisUrl: env.service.REDIS_URL,
     name: 'cargo/skill/dirty/col/cron',
     cron: '*/1 * * * *'
   },
@@ -17,7 +16,6 @@ export let collectDirtySkillDestinationsCron = createCron(
 let collectDirtySkillDestinationsManyQueue = createQueue<{
   cursor?: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/dirty/col/many',
   workerOpts: {
     concurrency: 1
@@ -52,7 +50,6 @@ export let collectDirtySkillDestinationsManyQueueProcessor =
 let collectDirtySkillDestinationsSingleQueue = createQueue<{
   destinationId: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/dirty/col/single',
   workerOpts: {
     concurrency: 5

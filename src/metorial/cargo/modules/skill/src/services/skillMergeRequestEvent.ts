@@ -1,19 +1,20 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { SkillMergeRequestEventType, TransactionDB } from '@metorial-cargo/db';
-import { db, getId, type Prisma } from '@metorial-cargo/db';
-import { type DateFilter, normalizeDateFilter } from '@metorial-cargo/list-utils';
-import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { storeAccessService, storeReadPermission } from '@metorial-cargo/module-store';
+import { getId } from '@metorial/cargo-config/id';
+import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
+import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import type { SkillMergeRequestEventType, TransactionDB } from '@metorial/db';
+import { db, type Prisma } from '@metorial/db';
 import type { SkillMergeRequestRecord } from './skillMergeRequestInternal';
 
 export let skillMergeRequestEventInclude = {
-  tenantActor: true,
+  resourceActor: true,
   comment: {
     include: {
       skillMergeRequestItem: true,
-      tenantActor: true,
+      resourceActor: true,
       inReplyToComment: true
     }
   }
@@ -42,7 +43,7 @@ class SkillMergeRequestEventServiceImpl {
         id: ids.id,
         type: d.type,
         skillMergeRequestOid: d.mergeRequestOid,
-        tenantActorOid: d.actorOid,
+        resourceActorOid: d.actorOid,
         commentOid: d.commentOid,
         errorCode: d.errorCode,
         errorMessage: d.errorMessage
@@ -52,22 +53,22 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   private async assertReadAccess(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
   ) {
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
       : undefined;
     let readable = async (store: SkillMergeRequestRecord['sourceSkill']['store']) =>
       await storeAccessService.assertStoreAccessForStore({
-        tenant: d.tenant,
-        environment: d.environment,
-        store,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
+        store: store!,
         actorId: actor?.id,
         requiredPermission: storeReadPermission
       });
@@ -83,7 +84,7 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   async listEvents(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       types?: SkillMergeRequestEventType[];
@@ -109,7 +110,7 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   async getEventById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       eventId: string;

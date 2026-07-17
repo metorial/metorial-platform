@@ -9,7 +9,7 @@ let mocks = vi.hoisted(() => ({
   createEvent: vi.fn()
 }));
 
-vi.mock('@metorial-cargo/db', () => ({
+vi.mock('@metorial/db', () => ({
   db: {
     skillMergeRequestComment: {
       findFirst: mocks.findComment
@@ -18,10 +18,6 @@ vi.mock('@metorial-cargo/db', () => ({
       findFirst: mocks.findItem
     }
   },
-  getId: () => ({
-    oid: 100n,
-    id: 'skmrc_reply'
-  }),
   withTransaction: async (callback: (tx: unknown) => unknown) =>
     callback({
       skillMergeRequestComment: {
@@ -30,7 +26,14 @@ vi.mock('@metorial-cargo/db', () => ({
     })
 }));
 
-vi.mock('@metorial-cargo/module-file', () => ({
+vi.mock('@metorial/cargo-config/id', () => ({
+  getId: () => ({
+    oid: 100n,
+    id: 'skmrc_reply'
+  })
+}));
+
+vi.mock('@metorial/cargo-module-file', () => ({
   actorService: {
     getActorById: mocks.getActor
   }
@@ -53,8 +56,8 @@ import { skillMergeRequestCommentService } from './skillMergeRequestComment';
 
 let mergeRequest = { oid: 1n } as any;
 let context = {
-  tenant: { oid: 2n },
-  environment: { oid: 3n },
+  resourceTenant: { oid: 2n },
+  resourceGroup: { oid: 3n },
   mergeRequest,
   actorId: 'act_test',
   body: 'A reply'

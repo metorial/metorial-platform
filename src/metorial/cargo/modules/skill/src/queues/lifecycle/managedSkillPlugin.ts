@@ -1,5 +1,4 @@
-import { createQueue } from '@lowerdeck/queue';
-import { env } from '@metorial-cargo/db';
+import { createQueue } from '@metorial/queue';
 import { managedSkillPluginService } from '../../services/managedSkillPlugin';
 import { getLifecycleJobId, type LifecycleEvent } from './_ids';
 
@@ -7,7 +6,6 @@ let managedSkillPluginLifecycleQueue = createQueue<{
   skillId: string;
   event: LifecycleEvent;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/lifecycle/managedPlugin',
   workerOpts: {
     concurrency: 10
@@ -23,8 +21,7 @@ export let enqueueManagedSkillPluginLifecycle = async (d: {
   });
 };
 
-export let managedSkillPluginLifecycleQueueProcessor = managedSkillPluginLifecycleQueue.process(
-  async data => {
+export let managedSkillPluginLifecycleQueueProcessor =
+  managedSkillPluginLifecycleQueue.process(async data => {
     await managedSkillPluginService.syncManagedSkillPluginForSkill(data);
-  }
-);
+  });

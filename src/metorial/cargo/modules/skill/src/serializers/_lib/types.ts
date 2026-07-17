@@ -5,7 +5,7 @@ import type {
   SkillMarketplacePlugin,
   SkillPlugin,
   SkillPluginSkill
-} from '@metorial-cargo/db';
+} from '@metorial/db';
 
 export type EnrichedSkillPluginSkill = SkillPluginSkill & {
   skill: Skill;

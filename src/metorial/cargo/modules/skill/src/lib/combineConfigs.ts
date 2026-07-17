@@ -1,4 +1,4 @@
-import type { SkillConfiguration } from '@metorial-cargo/db';
+import type { SkillConfiguration } from '@metorial/db';
 
 export let intersectStringArrays = (arrays: string[][]): string[] => {
   if (arrays.length === 0) return [];

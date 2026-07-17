@@ -1,7 +1,7 @@
 import { internalServerError, isServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
-import { db } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
@@ -239,8 +239,8 @@ let presentActor = (actor: any) => ({
   identifier: actor.identifier,
   type: actor.type,
   name: actor.name,
-  organizationActorId: actor.organizationActorId,
-  consumerId: actor.consumerId,
+  organizationActorOid: actor.organizationActorOid,
+  consumerOid: actor.consumerOid,
   createdAt: actor.createdAt
 });
 
@@ -271,7 +271,7 @@ let presentFile = (
   isReadOnly: file.isReadOnly,
   isTemplateBacking: file.isTemplateBacking,
   purpose: presentFilePurpose(file.purpose),
-  createdBy: file.createdByTenantActor ? presentActor(file.createdByTenantActor) : null,
+  createdBy: file.createdByResourceActor ? presentActor(file.createdByResourceActor) : null,
   signedDownloadUrl: undefined,
   createdAt: file.createdAt,
   updatedAt: opts?.resolvedUpdatedAt ?? file.updatedAt
@@ -305,8 +305,8 @@ let presentDocument = (document: any) => {
     content: document.resolvedContent ?? document.content.content,
     isReadOnly: document.isReadOnly,
     isTemplateBacking: document.isTemplateBacking,
-    createdBy: document.createdByTenantActor
-      ? presentActor(document.createdByTenantActor)
+    createdBy: document.createdByResourceActor
+      ? presentActor(document.createdByResourceActor)
       : null,
     createdAt: document.createdAt,
     updatedAt
@@ -321,7 +321,7 @@ let presentDocumentParticipant = (participant: any) => ({
   editCount: participant.editCount,
   lastEditedAt: participant.lastEditedAt,
   lastViewedAt: participant.lastViewedAt,
-  actor: presentActor(participant.tenantActor),
+  actor: presentActor(participant.resourceActor),
   createdAt: participant.createdAt
 });
 
@@ -388,7 +388,7 @@ let broadcastParticipantList = async (documentId: string) => {
               document: {
                 id: documentId
               },
-              tenantActor: {
+              resourceActor: {
                 id: {
                   in: actorIds
                 }
@@ -396,7 +396,7 @@ let broadcastParticipantList = async (documentId: string) => {
             },
             include: {
               document: true,
-              tenantActor: true
+              resourceActor: true
             },
             orderBy: [
               {
@@ -509,8 +509,8 @@ export let documentLiveApi = createHono()
       });
 
       await documentService.getDocumentById({
-        tenant: scopedDocument.tenant,
-        environment: scopedDocument.environment,
+        resourceTenant: scopedDocument.resourceTenant,
+        resourceGroup: scopedDocument.resourceGroup,
         documentId,
         actorId
       });
@@ -709,15 +709,15 @@ export let documentLiveApi = createHono()
             });
 
             await documentService.getDocumentById({
-              tenant: currentScopedDocument.tenant,
-              environment: currentScopedDocument.environment,
+              resourceTenant: currentScopedDocument.resourceTenant,
+              resourceGroup: currentScopedDocument.resourceGroup,
               documentId: session.documentId,
               actorId: session.actorId
             });
 
             let updatedDocument = await documentService.updateDocument({
-              tenant: currentScopedDocument.tenant,
-              environment: currentScopedDocument.environment,
+              resourceTenant: currentScopedDocument.resourceTenant,
+              resourceGroup: currentScopedDocument.resourceGroup,
               document: currentScopedDocument.document,
               input: {
                 actorId: session.actorId,

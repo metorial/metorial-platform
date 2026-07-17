@@ -1,13 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type {
-  SkillMergeRequestResolutionType,
-  SkillMergeRequestStatus
-} from '@metorial-cargo/db';
-import { db, Prisma, withTransaction } from '@metorial-cargo/db';
-import type { DateFilter } from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { actorService } from '@metorial-cargo/module-file';
+import type { DateFilter } from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { actorService } from '@metorial/cargo-module-file';
+import type { SkillMergeRequestResolutionType, SkillMergeRequestStatus } from '@metorial/db';
+import { db, Prisma, withTransaction } from '@metorial/db';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { enqueueSkillMergeRequestPerform } from '../queues/mergeRequest';
@@ -31,7 +28,7 @@ export type {
 
 class SkillMergeRequestServiceImpl {
   async createSkillMergeRequest(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       actorId?: string;
@@ -43,7 +40,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async listSkillMergeRequests(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       sourceSkillIds?: string[];
       targetSkillIds?: string[];
@@ -57,7 +54,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async getSkillMergeRequestById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillMergeRequestId: string;
       actorId?: string;
     }
@@ -72,7 +69,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async saveSkillMergeRequestItemResolution(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId: string;
       actorId?: string;
@@ -81,11 +78,11 @@ class SkillMergeRequestServiceImpl {
     }
   ) {
     return await skillMergeTargetLock.usingLock(
-      d.mergeRequest.targetSkill.store.id,
+      d.mergeRequest.targetSkill.store!.id,
       async () => {
         let mergeRequest = await skillMergeRequestInternalService.getRawSkillMergeRequestById({
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           skillMergeRequestId: d.mergeRequest.id
         });
         if (mergeRequest.status !== 'open') {
@@ -95,8 +92,8 @@ class SkillMergeRequestServiceImpl {
         }
 
         let access = await skillMergeRequestInternalService.assertTargetWrite({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           mergeRequest,
           actorId: d.actorId
         });
@@ -105,8 +102,8 @@ class SkillMergeRequestServiceImpl {
           itemId: d.itemId
         });
         await skillMergeRequestInternalService.validateItemResolution({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           mergeRequest,
           item,
           actorId: d.actorId,
@@ -129,7 +126,7 @@ class SkillMergeRequestServiceImpl {
               status: skillMergeRequestInternalService.getResolutionStatus(d.resolutionType),
               resolutionType: d.resolutionType,
               resolution: d.resolution ?? Prisma.JsonNull,
-              resolvedByTenantActorOid: access.actor?.oid,
+              resolvedByResourceActorOid: access.actor?.oid,
               resolvedAt: new Date()
             },
             include: skillMergeRequestItemInclude
@@ -155,7 +152,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async bulkSaveSkillMergeRequestItemResolutions(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       items: {
@@ -172,11 +169,11 @@ class SkillMergeRequestServiceImpl {
     }
 
     return await skillMergeTargetLock.usingLock(
-      d.mergeRequest.targetSkill.store.id,
+      d.mergeRequest.targetSkill.store!.id,
       async () => {
         let mergeRequest = await skillMergeRequestInternalService.getRawSkillMergeRequestById({
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           skillMergeRequestId: d.mergeRequest.id
         });
         if (mergeRequest.status !== 'open') {
@@ -186,8 +183,8 @@ class SkillMergeRequestServiceImpl {
         }
 
         let access = await skillMergeRequestInternalService.assertTargetWrite({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           mergeRequest,
           actorId: d.actorId
         });
@@ -203,8 +200,8 @@ class SkillMergeRequestServiceImpl {
         await Promise.all(
           items.map(({ item, input }) =>
             skillMergeRequestInternalService.validateItemResolution({
-              tenant: d.tenant,
-              environment: d.environment,
+              resourceTenant: d.resourceTenant!,
+              resourceGroup: d.resourceGroup,
               mergeRequest,
               item,
               actorId: d.actorId,
@@ -230,7 +227,7 @@ class SkillMergeRequestServiceImpl {
                 ),
                 resolutionType: input.resolutionType,
                 resolution: input.resolution ?? Prisma.JsonNull,
-                resolvedByTenantActorOid: access.actor?.oid,
+                resolvedByResourceActorOid: access.actor?.oid,
                 resolvedAt: new Date()
               }
             });
@@ -261,7 +258,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async performSkillMergeRequest(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
@@ -273,14 +270,14 @@ class SkillMergeRequestServiceImpl {
     }
 
     let access = await skillMergeRequestInternalService.assertTargetWrite({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
       actorId: d.actorId
     });
 
     let updated = await skillMergeTargetLock.usingLock(
-      d.mergeRequest.targetSkill.store.id,
+      d.mergeRequest.targetSkill.store!.id,
       async () =>
         await withTransaction(async tx => {
           let updated = await tx.skillMergeRequest.updateMany({
@@ -293,7 +290,7 @@ class SkillMergeRequestServiceImpl {
               mergeError: null,
               mergeErrorCode: null,
               mergeStartedAt: new Date(),
-              mergeStartedByTenantActorOid: access.actor?.oid
+              mergeStartedByResourceActorOid: access.actor?.oid
             }
           });
 
@@ -378,24 +375,24 @@ class SkillMergeRequestServiceImpl {
   }
 
   async closeSkillMergeRequest(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
   ) {
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
       : undefined;
 
     return await skillMergeTargetLock.usingLock(
-      d.mergeRequest.targetSkill.store.id,
+      d.mergeRequest.targetSkill.store!.id,
       async () => {
         let mergeRequest = await skillMergeRequestInternalService.getRawSkillMergeRequestById({
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           skillMergeRequestId: d.mergeRequest.id
         });
         if (mergeRequest.status !== 'open') {
@@ -411,8 +408,8 @@ class SkillMergeRequestServiceImpl {
 
         if (!canCloseAsRequester) {
           await skillMergeRequestInternalService.assertTargetWrite({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant!,
+            resourceGroup: d.resourceGroup,
             mergeRequest,
             actorId: d.actorId
           });
@@ -427,7 +424,7 @@ class SkillMergeRequestServiceImpl {
               status: 'closed',
               activePairKey: null,
               closedAt: new Date(),
-              closedByTenantActorOid: actor?.oid
+              closedByResourceActorOid: actor?.oid
             },
             include: skillMergeRequestInclude
           });
@@ -457,7 +454,7 @@ class SkillMergeRequestServiceImpl {
   }
 
   async rollbackSkillMergeRequest(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }

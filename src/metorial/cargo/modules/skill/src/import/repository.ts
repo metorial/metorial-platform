@@ -1,4 +1,4 @@
-import { env } from '@metorial-cargo/db';
+import { env } from '@metorial/cargo-config';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import { getOriginTenant, origin } from '../internal/skillDestination';
 import {
@@ -16,7 +16,7 @@ let maxCodeBucketMessageBytes = 3 * 1024 * 1024;
 export * from './publicRepository';
 
 export let acquirePublicRepository = async (d: {
-  tenant: { oid: bigint; id: string };
+  resourceTenant: { oid: bigint; id: string };
   repositoryUrl: string;
   ref?: string | null;
 }) => {
@@ -28,7 +28,7 @@ export let acquirePublicRepository = async (d: {
   if (files.some(file => file.content.byteLength > maxCodeBucketMessageBytes)) {
     throw new Error('Repository contains a file that is too large to import');
   }
-  let originTenant = await getOriginTenant(d.tenant);
+  let originTenant = await getOriginTenant(d.resourceTenant);
   let bucket = await origin.codeBucket.create({
     tenantId: originTenant.id,
     purpose: 'cargo.skill.import',
@@ -61,12 +61,12 @@ export let acquirePublicRepository = async (d: {
 };
 
 export let acquireOriginRepository = async (d: {
-  tenant: { oid: bigint; id: string };
+  resourceTenant: { oid: bigint; id: string };
   repositoryId: string;
   ref?: string | null;
   path?: string | null;
 }) => {
-  let originTenant = await getOriginTenant(d.tenant);
+  let originTenant = await getOriginTenant(d.resourceTenant);
   return await origin.codeBucket.createFromRepo({
     tenantId: originTenant.id,
     scmRepoId: d.repositoryId,
@@ -79,10 +79,10 @@ export let acquireOriginRepository = async (d: {
 };
 
 export let getImportCodeBucket = async (d: {
-  tenant: { oid: bigint; id: string };
+  resourceTenant: { oid: bigint; id: string };
   codeBucketId: string;
 }) => {
-  let originTenant = await getOriginTenant(d.tenant);
+  let originTenant = await getOriginTenant(d.resourceTenant);
   return await origin.codeBucket.get({
     tenantId: originTenant.id,
     codeBucketId: d.codeBucketId

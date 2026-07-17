@@ -1,7 +1,8 @@
 import { Service } from '@lowerdeck/service';
-import type { Prisma, TenantActor } from '@metorial-cargo/db';
-import { getId, withTransaction } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma, ResourceActor } from '@metorial/db';
+import { withTransaction } from '@metorial/db';
 import { documentInclude } from '../services/document';
 import { type DocumentDraft } from './documentDraft';
 import { internalDocumentParticipantService } from './documentParticipant';
@@ -61,7 +62,7 @@ class InternalDocumentContentServiceImpl {
   }
 
   private async writeDocumentContent(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       document: DocumentRecord;
       nextContent: string;
       listEditedAt?: Date;
@@ -172,8 +173,8 @@ class InternalDocumentContentServiceImpl {
         nextVersionNumber += 1;
 
         activeVersion = await internalDocumentVersioningService.createVersion({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           document: d.document,
           versionNumber: nextVersionNumber,
           contentOid: liveContentOid,
@@ -196,8 +197,8 @@ class InternalDocumentContentServiceImpl {
 
           if (!d.document.currentVersion) {
             activeVersion = await internalDocumentVersioningService.createVersion({
-              tenant: d.tenant,
-              environment: d.environment,
+              resourceTenant: d.resourceTenant,
+              resourceGroup: d.resourceGroup,
               document: d.document,
               versionNumber: d.document.maxVersionNumber + 1,
               contentOid: liveContentOid,
@@ -235,8 +236,8 @@ class InternalDocumentContentServiceImpl {
 
         if (!d.document.currentVersion) {
           activeVersion = await internalDocumentVersioningService.createVersion({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             document: d.document,
             versionNumber: d.document.maxVersionNumber + 1,
             contentOid: liveContentOid,
@@ -273,8 +274,8 @@ class InternalDocumentContentServiceImpl {
 
         if (!d.document.currentVersion) {
           activeVersion = await internalDocumentVersioningService.createVersion({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             document: d.document,
             versionNumber: d.document.maxVersionNumber + 1,
             contentOid: liveContentOid,
@@ -312,10 +313,10 @@ class InternalDocumentContentServiceImpl {
   }
 
   async persistDraftToDocument(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       document: DocumentRecord;
       draft: DocumentDraft;
-      actors: TenantActor[];
+      actors: ResourceActor[];
     }
   ) {
     return await withTransaction(async db => {
@@ -400,8 +401,8 @@ class InternalDocumentContentServiceImpl {
         let listEditedAt = new Date();
 
         let writeResult = await this.writeDocumentContent({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           document: d.document,
           nextContent,
           listEditedAt

@@ -1,4 +1,4 @@
-import type { Prisma, StoreItemKind } from '@metorial-cargo/db';
+import type { Prisma, StoreItemKind } from '@metorial/db';
 
 export let skillVersionSnapshotInclude = {
   storeVersion: {

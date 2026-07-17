@@ -1,14 +1,12 @@
-import { createCron } from '@lowerdeck/cron';
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { env, withTransaction } from '@metorial-cargo/db';
-import { storeVersionService } from '@metorial-cargo/module-store';
+import { storeVersionService } from '@metorial/cargo-module-store';
+import { createCron } from '@metorial/cron';
+import { withTransaction } from '@metorial/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalDocumentContentService, internalDocumentDraftService } from '../internal';
 import { documentInclude } from '../services/document';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 import { enqueueDocumentLifecycle } from './lifecycle';
-
-let redisUrl = env.service.REDIS_URL;
 let batchSize = 100;
 
 let ensureDocumentActive = (document: { file: { status: string } }) => {
@@ -35,7 +33,6 @@ export let documentFlushManyQueue = createQueue<{
   documentIds?: string[];
   offset?: number;
 }>({
-  redisUrl,
   name: 'cargo/doc/flush/many',
   workerOpts: {
     concurrency: 1
@@ -43,7 +40,6 @@ export let documentFlushManyQueue = createQueue<{
 });
 
 export let documentFlushQueue = createQueue<{ documentId: string; queuedRevision?: number }>({
-  redisUrl,
   name: 'cargo/doc/flush/single',
   workerOpts: {
     concurrency: 5
@@ -84,8 +80,8 @@ export let flushDocumentDraft = async (d: {
         },
         include: {
           ...documentInclude,
-          tenant: true,
-          environment: true
+          resourceTenant: true,
+          resourceGroup: true
         }
       });
       if (!currentDocument) {
@@ -96,9 +92,9 @@ export let flushDocumentDraft = async (d: {
 
       let actors =
         draft.actorIds.length > 0
-          ? await db.tenantActor.findMany({
+          ? await db.resourceActor.findMany({
               where: {
-                tenantOid: currentDocument.tenantOid,
+                resourceTenantOid: currentDocument.resourceTenantOid,
                 id: {
                   in: draft.actorIds
                 }
@@ -107,8 +103,8 @@ export let flushDocumentDraft = async (d: {
           : [];
 
       return await internalDocumentContentService.persistDraftToDocument({
-        tenant: currentDocument.tenant,
-        environment: currentDocument.environment,
+        resourceTenant: currentDocument.resourceTenant,
+        resourceGroup: currentDocument.resourceGroup,
         document: currentDocument,
         draft,
         actors
@@ -180,7 +176,6 @@ export let documentFlushProcessor = documentFlushQueue.process(async data => {
 
 export let documentFlushCron = createCron(
   {
-    redisUrl,
     name: 'cargo/doc/flush/cron',
     cron: '*/1 * * * *'
   },

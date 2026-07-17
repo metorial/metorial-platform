@@ -1,25 +1,25 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { db } from '@metorial-cargo/db';
 import {
   type DateFilter,
   normalizeDateFilter,
+  resolveResourceActors,
   resolveStoreParticipants,
-  resolveStores,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+  resolveStores
+} from '@metorial/cargo-list-utils';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma } from '@metorial/db';
+import { db } from '@metorial/db';
 
 export let storeParticipantInclude = {
   store: true,
-  tenantActor: true
+  resourceActor: true
 } satisfies Prisma.StoreParticipantInclude;
 
 class StoreParticipantServiceImpl {
   async getStoreParticipantById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       storeParticipantId: string;
     }
   ) {
@@ -27,8 +27,8 @@ class StoreParticipantServiceImpl {
       where: {
         id: d.storeParticipantId,
         store: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
         }
       },
       include: storeParticipantInclude
@@ -42,7 +42,7 @@ class StoreParticipantServiceImpl {
   }
 
   async listStoreParticipants(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       storeIds?: string[];
       actorIds?: string[];
@@ -51,7 +51,7 @@ class StoreParticipantServiceImpl {
   ) {
     let participants = await resolveStoreParticipants(d, d.ids);
     let stores = await resolveStores(d, d.storeIds);
-    let actors = await resolveTenantActors(d, d.actorIds);
+    let actors = await resolveResourceActors(d, d.actorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -61,11 +61,11 @@ class StoreParticipantServiceImpl {
             where: {
               oid: participants ? participants.in : undefined,
               store: {
-                tenantOid: d.tenant.oid,
-                environmentOid: d.environment.oid,
+                resourceTenantOid: d.resourceTenant.oid,
+                resourceGroupOid: d.resourceGroup.oid,
                 oid: stores ? stores.in : undefined
               },
-              tenantActorOid: actors ? actors.in : undefined,
+              resourceActorOid: actors ? actors.in : undefined,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined
             },
             include: storeParticipantInclude

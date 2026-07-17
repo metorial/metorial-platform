@@ -1,13 +1,14 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, getId, Prisma } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { actorService } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { actorService } from '@metorial/cargo-module-file';
 import {
   storeAccessService,
   storeReadPermission,
   storeWritePermission
-} from '@metorial-cargo/module-store';
+} from '@metorial/cargo-module-store';
+import { db, Prisma } from '@metorial/db';
 import {
   getCanonicalSkillPairKey,
   skillMergePairLock,
@@ -26,7 +27,7 @@ export let skillForkSyncInclude = {
       store: true
     }
   },
-  createdByTenantActor: true,
+  createdByResourceActor: true,
   generatedMergeRequest: true
 } satisfies Prisma.SkillForkSyncInclude;
 
@@ -36,7 +37,7 @@ export type SkillForkSyncRecord = Prisma.SkillForkSyncGetPayload<{
 
 class SkillForkSyncServiceImpl {
   async createSkillForkSync(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       forkSkillId: string;
       actorId?: string;
     }
@@ -44,8 +45,8 @@ class SkillForkSyncServiceImpl {
     let forkSkill = await db.skill.findFirst({
       where: {
         id: d.forkSkillId,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         status: 'active'
       },
       include: {
@@ -67,22 +68,22 @@ class SkillForkSyncServiceImpl {
     let upstreamSkill = forkSkill.parentSkill;
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
       : undefined;
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: upstreamSkill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: upstreamSkill.store!,
       actorId: d.actorId,
       requiredPermission: storeReadPermission
     });
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: forkSkill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: forkSkill.store!,
       actorId: d.actorId,
       requiredPermission: storeWritePermission
     });
@@ -91,7 +92,7 @@ class SkillForkSyncServiceImpl {
     let sync = await skillMergePairLock.usingLock(
       activePairKey,
       async () =>
-        await skillMergeTargetLock.usingLock(forkSkill.store.id, async () => {
+        await skillMergeTargetLock.usingLock(forkSkill.store!.id, async () => {
           let activeSync = await db.skillForkSync.findFirst({
             where: {
               activePairKey,
@@ -114,11 +115,11 @@ class SkillForkSyncServiceImpl {
               oid: ids.oid,
               id: ids.id,
               activePairKey,
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               forkSkillOid: forkSkill.oid,
               upstreamSkillOid: upstreamSkill.oid,
-              createdByTenantActorOid: actor?.oid
+              createdByResourceActorOid: actor?.oid
             },
             include: skillForkSyncInclude
           });
@@ -145,7 +146,7 @@ class SkillForkSyncServiceImpl {
   }
 
   async getSkillForkSyncById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillForkSyncId: string;
       actorId?: string;
     }
@@ -153,17 +154,17 @@ class SkillForkSyncServiceImpl {
     let sync = await db.skillForkSync.findFirst({
       where: {
         id: d.skillForkSyncId,
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid
       },
       include: skillForkSyncInclude
     });
     if (!sync) throw new ServiceError(notFoundError('skill.forkSync', d.skillForkSyncId));
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: sync.forkSkill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: sync.forkSkill.store!,
       actorId: d.actorId,
       requiredPermission: storeReadPermission
     });

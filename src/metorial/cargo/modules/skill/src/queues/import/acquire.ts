@@ -1,5 +1,5 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import {
   acquireOriginRepository,
   acquirePublicRepository,
@@ -10,7 +10,6 @@ import { skillImportDiscoverQueue } from './discover';
 let importTimeoutMs = 30 * 60 * 1000;
 
 export let skillImportAcquireQueue = createQueue<{ skillImportId: string }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/import/acquire',
   workerOpts: {
     concurrency: 3
@@ -24,8 +23,8 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
   let skillImport = await db.skillImport.findUnique({
     where: { id: data.skillImportId },
     include: {
-      tenant: true,
-      environment: true
+      resourceTenant: true,
+      resourceGroup: true
     }
   });
   if (!skillImport || ['completed', 'failed'].includes(skillImport.status)) return;
@@ -60,7 +59,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
       if (!skillImport.repositoryUrl) throw new Error('Public repository URL is missing');
       codeBucketId = (
         await acquirePublicRepository({
-          tenant: skillImport.tenant,
+          resourceTenant: skillImport.resourceTenant!,
           repositoryUrl: skillImport.repositoryUrl,
           ref: skillImport.ref
         })
@@ -72,7 +71,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
     } else if (!codeBucketId) {
       if (!skillImport.repositoryId) throw new Error('Origin repository ID is missing');
       let bucket = await acquireOriginRepository({
-        tenant: skillImport.tenant,
+        resourceTenant: skillImport.resourceTenant!,
         repositoryId: skillImport.repositoryId,
         ref: skillImport.ref,
         path: skillImport.path
@@ -86,7 +85,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
 
     if (skillImport.sourceType === 'origin_repository') {
       let bucket = await getImportCodeBucket({
-        tenant: skillImport.tenant,
+        resourceTenant: skillImport.resourceTenant!,
         codeBucketId
       });
       if (bucket.status === 'importing') {

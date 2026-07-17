@@ -1,14 +1,14 @@
 import { Service } from '@lowerdeck/service';
-import { db } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
 import { fileService } from './file';
 import { fileLinkService } from './fileLink';
-import type { CargoTenantEnvironment } from './filePurpose';
+import type { CargoResourceScope } from './filePurpose';
 import { filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 
 class ReconcileServiceImpl {
   private async reconcileReferencesForLink(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       link: { oid: bigint };
       inputs: Array<{
         id?: string;
@@ -22,8 +22,8 @@ class ReconcileServiceImpl {
     for (let referenceInput of d.inputs) {
       references.push(
         await fileReferenceService.upsertFileReference({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           fileLink: d.link as any,
           input: {
             id: referenceInput.id,
@@ -36,8 +36,8 @@ class ReconcileServiceImpl {
 
     await db.fileReference.deleteMany({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         fileLinkOid: d.link.oid,
         id: {
           notIn: references.map(reference => reference.id)
@@ -71,7 +71,7 @@ class ReconcileServiceImpl {
   }
 
   async reconcileFiles(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       inputs: Array<{
         id: string;
         storeId: string;
@@ -98,8 +98,8 @@ class ReconcileServiceImpl {
 
     for (let input of d.inputs) {
       let file = await fileService.createFile({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
         purpose: input.purpose,
         storeId: input.storeId,
         input: {
@@ -125,10 +125,10 @@ class ReconcileServiceImpl {
                 id: true
               }
             },
-            createdByTenantActor: true,
+            createdByResourceActor: true,
             purpose: true,
-            tenant: true,
-            environment: true
+            resourceTenant: true,
+            resourceGroup: true
           }
         });
       }
@@ -137,8 +137,8 @@ class ReconcileServiceImpl {
 
       for (let linkInput of input.links ?? []) {
         let link = await fileLinkService.createFileLink({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           file,
           input: {
             id: linkInput.id,
@@ -148,8 +148,8 @@ class ReconcileServiceImpl {
         });
 
         let references = await this.reconcileReferencesForLink({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           link,
           inputs: linkInput.references ?? []
         });
@@ -162,8 +162,8 @@ class ReconcileServiceImpl {
 
       await db.fileLink.deleteMany({
         where: {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           fileOid: file.oid,
           id: {
             notIn: links.map(linkItem => linkItem.link.id)

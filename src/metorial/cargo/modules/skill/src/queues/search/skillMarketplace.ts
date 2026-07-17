@@ -1,9 +1,8 @@
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial-cargo/module-search';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
+import { db } from '@metorial/db';
+import { createQueue, QueueRetryError } from '@metorial/queue';
 
 export let indexSkillMarketplaceQueue = createQueue<{ skillMarketplaceId: string }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/search/marketplace',
   workerOpts: {
     concurrency: 10
@@ -15,7 +14,7 @@ export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.proc
     let skillMarketplace = await db.skillMarketplace.findUnique({
       where: { id: data.skillMarketplaceId },
       include: {
-        tenant: true,
+        resourceTenant: true,
         plugins: {
           where: {
             status: 'active',
@@ -54,7 +53,7 @@ export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.proc
       sourceId: (await voyagerSource).id,
       indexId: voyagerIndex.skillMarketplace.id,
       documentId: skillMarketplace.id,
-      tenantIds: [skillMarketplace.tenant.id],
+      tenantIds: [skillMarketplace.resourceTenant!.id],
       fields: {
         skillMarketplaceId: skillMarketplace.id,
         skillPluginIds: skillMarketplace.plugins.map(item => item.skillPlugin.id)

@@ -2,7 +2,7 @@ import { delay } from '@lowerdeck/delay';
 import { generatePlainId } from '@lowerdeck/id';
 import { createRedisClient } from '@lowerdeck/redis';
 import { Service } from '@lowerdeck/service';
-import { env } from '@metorial-cargo/db';
+import { getConfig } from '@metorial/config';
 
 export type DocumentDraft = {
   documentId: string;
@@ -21,7 +21,7 @@ let dirtyDocumentsHash = 'cargo:document:dirty';
 let queuedDocumentsHash = 'cargo:document:queued';
 
 let redisFactory = createRedisClient({
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 let redisClientPromise: Promise<any> | undefined;
 

@@ -1,4 +1,4 @@
-import type { SkillDestinationItem } from '@metorial-cargo/db';
+import type { SkillDestinationItem } from '@metorial/db';
 
 export type SyncTask =
   | {

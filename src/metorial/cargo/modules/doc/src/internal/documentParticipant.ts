@@ -1,7 +1,8 @@
 import { Service } from '@lowerdeck/service';
-import type { Document, TenantActor } from '@metorial-cargo/db';
-import { getId, withTransaction } from '@metorial-cargo/db';
-import { storeAccessService } from '@metorial-cargo/module-store';
+import { getId } from '@metorial/cargo-config/id';
+import { storeAccessService } from '@metorial/cargo-module-store';
+import type { Document, ResourceActor } from '@metorial/db';
+import { withTransaction } from '@metorial/db';
 
 class InternalDocumentParticipantServiceImpl {
   private async upsertParticipant(d: {
@@ -16,16 +17,16 @@ class InternalDocumentParticipantServiceImpl {
 
       return await db.documentParticipant.upsert({
         where: {
-          documentOid_tenantActorOid: {
+          documentOid_resourceActorOid: {
             documentOid: d.document.oid,
-            tenantActorOid: d.actor.oid
+            resourceActorOid: d.actor.oid
           }
         },
         create: {
           ...id,
           role: d.mode === 'edit' ? 'editor' : 'viewer',
           documentOid: d.document.oid,
-          tenantActorOid: d.actor.oid,
+          resourceActorOid: d.actor.oid,
           lastViewedAt: now,
           lastEditedAt: d.mode === 'edit' ? now : undefined
         },
@@ -52,10 +53,10 @@ class InternalDocumentParticipantServiceImpl {
         document: d.document
       });
 
-      if (d.document.createdByTenantActorOid) {
-        let creator = await client.tenantActor.findFirst({
+      if (d.document.createdByResourceActorOid) {
+        let creator = await client.resourceActor.findFirst({
           where: {
-            oid: d.document.createdByTenantActorOid
+            oid: d.document.createdByResourceActorOid
           }
         });
 
@@ -70,7 +71,7 @@ class InternalDocumentParticipantServiceImpl {
       let actorsById = new Map<
         bigint,
         {
-          actor: TenantActor;
+          actor: ResourceActor;
           mode: 'view' | 'edit';
         }
       >();
@@ -104,7 +105,7 @@ class InternalDocumentParticipantServiceImpl {
       let existing = await db.documentVersionEditors.findFirst({
         where: {
           documentVersionOid: d.version.oid,
-          tenantActorOid: d.actor.oid
+          resourceActorOid: d.actor.oid
         }
       });
 
@@ -115,7 +116,7 @@ class InternalDocumentParticipantServiceImpl {
       await db.documentParticipant.updateMany({
         where: {
           documentOid: d.document.oid,
-          tenantActorOid: d.actor.oid
+          resourceActorOid: d.actor.oid
         },
         data: {
           editCount: {
@@ -128,7 +129,7 @@ class InternalDocumentParticipantServiceImpl {
         data: {
           ...generated,
           documentVersionOid: d.version.oid,
-          tenantActorOid: d.actor.oid
+          resourceActorOid: d.actor.oid
         }
       });
     });

@@ -1,9 +1,10 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { EntityImage, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db, env } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import { fileLinkService, fileReferenceService } from '@metorial-cargo/module-file';
+import { env } from '@metorial/cargo-config';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
+import type { EntityImage, StoreParticipantPermissions } from '@metorial/db';
+import { db } from '@metorial/db';
 
 export type GetImageFieldsParams = {
   id: string;
@@ -43,7 +44,7 @@ class InternalImageServiceImpl {
   }
 
   private async createImageEntityImage(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       entity: { id: string; type: string };
       fileId: string;
       actorId?: string;
@@ -53,8 +54,8 @@ class InternalImageServiceImpl {
   ): Promise<EntityImage> {
     let file = await db.file.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.fileId,
         status: 'active'
       },
@@ -72,16 +73,16 @@ class InternalImageServiceImpl {
     }
 
     let link = await fileLinkService.createFileLink({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       file,
       input: {
         actorId: d.actorId
       }
     });
     let ref = await fileReferenceService.upsertFileReference({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       fileLink: link,
       input: {
         entityId: d.entity.id,
@@ -99,7 +100,7 @@ class InternalImageServiceImpl {
   }
 
   async resolveImageEntityImage<ClearImage extends EntityImage | null>(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       entity: { id: string; type: string };
       imageFileId: string | null;
       clearedImage: ClearImage;
@@ -111,8 +112,8 @@ class InternalImageServiceImpl {
     if (d.imageFileId === null) return d.clearedImage;
 
     return await this.createImageEntityImage({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       entity: d.entity,
       fileId: d.imageFileId,
       actorId: d.actorId,

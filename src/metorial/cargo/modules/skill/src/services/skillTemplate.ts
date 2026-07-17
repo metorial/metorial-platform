@@ -1,32 +1,34 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { db, snowflake, withTransaction } from '@metorial-cargo/db';
+import { snowflake } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillTemplates,
   resolveStoreTemplates
-} from '@metorial-cargo/list-utils';
+} from '@metorial/cargo-list-utils';
+import { resolveInstanceResourceScope } from '@metorial/cargo-module-file';
 import type {
   RequiredStoreTemplateScope,
   StoreTemplateCreateInput,
   StoreTemplateScope,
   StoreTemplateUpdateInput
-} from '@metorial-cargo/module-store';
-import { storeService, storeTemplateService } from '@metorial-cargo/module-store';
+} from '@metorial/cargo-module-store';
+import { storeService, storeTemplateService } from '@metorial/cargo-module-store';
+import type { Prisma } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { skillService } from './skill';
 
 let skillTemplateSummaryInclude = {
   storeTemplate: {
     include: {
-      tenant: {
+      resourceTenant: {
         select: {
           id: true
         }
       },
-      environment: {
+      resourceGroup: {
         select: {
           id: true
         }
@@ -38,8 +40,8 @@ let skillTemplateSummaryInclude = {
       },
       backingStores: {
         select: {
-          tenantOid: true,
-          environmentOid: true,
+          resourceTenantOid: true,
+          resourceGroupOid: true,
           store: {
             select: {
               id: true
@@ -59,12 +61,12 @@ let skillTemplateSummaryInclude = {
 let skillTemplateInclude = {
   storeTemplate: {
     include: {
-      tenant: {
+      resourceTenant: {
         select: {
           id: true
         }
       },
-      environment: {
+      resourceGroup: {
         select: {
           id: true
         }
@@ -76,8 +78,8 @@ let skillTemplateInclude = {
       },
       backingStores: {
         select: {
-          tenantOid: true,
-          environmentOid: true,
+          resourceTenantOid: true,
+          resourceGroupOid: true,
           store: {
             select: {
               id: true
@@ -134,18 +136,18 @@ let isSystemIdentifierUniqueConstraintError = (error: any) => {
 
 class SkillTemplateServiceImpl {
   private getReadableStoreTemplateScopeWhere(d: {
-    tenant: { oid: bigint };
-    environment: { oid: bigint };
+    resourceTenant: { oid: bigint };
+    resourceGroup: { oid: bigint };
   }): Prisma.StoreTemplateWhereInput {
     return {
       OR: [
         {
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid
         },
         {
-          tenantOid: null,
-          environmentOid: null
+          resourceTenantOid: null,
+          resourceGroupOid: null
         }
       ]
     };
@@ -153,27 +155,27 @@ class SkillTemplateServiceImpl {
 
   private assertMatchingScope(d: {
     skillTemplate: SkillTemplateRecord;
-    tenant: { id: string };
-    environment: { id: string };
+    resourceTenant: { id: string };
+    resourceGroup: { id: string };
   }) {
     if (
-      d.skillTemplate.storeTemplate.tenant?.id !== d.tenant.id ||
-      d.skillTemplate.storeTemplate.environment?.id !== d.environment.id
+      d.skillTemplate.storeTemplate!.resourceTenant?.id !== d.resourceTenant!.id ||
+      d.skillTemplate.storeTemplate!.resourceGroup?.id !== d.resourceGroup.id
     ) {
       throw new ServiceError(
         badRequestError({
           message:
-            'Skill template updates and deletes are only allowed within the matching tenant and environment'
+            'Skill template updates and deletes are only allowed within the matching resourceTenant and resourceGroup'
         })
       );
     }
   }
 
   private assertRequiredScope(d: StoreTemplateScope): asserts d is RequiredStoreTemplateScope {
-    if (!d.tenant || !d.environment) {
+    if (!d.resourceTenant || !d.resourceGroup) {
       throw new ServiceError(
         badRequestError({
-          message: 'tenantId and environmentId are required'
+          message: 'resourceTenantId and resourceGroupId are required'
         })
       );
     }
@@ -181,18 +183,18 @@ class SkillTemplateServiceImpl {
 
   private async getSkillTemplateRecord(d: {
     skillTemplateId: string;
-    tenant?: { oid: bigint; id: string };
-    environment?: { oid: bigint; id: string };
+    resourceTenant?: { oid: bigint; id: string };
+    resourceGroup?: { oid: bigint; id: string };
   }) {
     let skillTemplate = await db.skillTemplate.findFirst({
       where: {
         id: d.skillTemplateId,
         storeTemplate:
-          d.tenant && d.environment
+          d.resourceTenant && d.resourceGroup
             ? {
                 is: this.getReadableStoreTemplateScopeWhere({
-                  tenant: d.tenant,
-                  environment: d.environment
+                  resourceTenant: d.resourceTenant!,
+                  resourceGroup: d.resourceGroup
                 })
               }
             : undefined
@@ -225,29 +227,29 @@ class SkillTemplateServiceImpl {
     skillTemplate: T,
     scope?: RequiredStoreTemplateScope
   ): SkillTemplateWithScopedStoreId<T> {
-    if (skillTemplate.storeTemplate.sourceStore?.id) {
+    if (skillTemplate.storeTemplate!.sourceStore?.id) {
       return {
         ...skillTemplate,
         storeTemplate: {
           ...skillTemplate.storeTemplate,
-          storeId: skillTemplate.storeTemplate.sourceStore.id
+          storeId: skillTemplate.storeTemplate!.sourceStore.id
         }
       } as SkillTemplateWithScopedStoreId<T>;
     }
 
     if (!scope) return skillTemplate as SkillTemplateWithScopedStoreId<T>;
 
-    let backing = skillTemplate.storeTemplate.backingStores.find(
+    let backing = skillTemplate.storeTemplate!.backingStores.find(
       backing =>
-        backing.tenantOid === scope.tenant.oid &&
-        backing.environmentOid === scope.environment.oid
+        backing.resourceTenantOid === scope.resourceTenant.oid &&
+        backing.resourceGroupOid === scope.resourceGroup.oid
     );
 
     return {
       ...skillTemplate,
       storeTemplate: {
         ...skillTemplate.storeTemplate,
-        storeId: backing?.store.id
+        storeId: backing?.store!.id
       }
     } as SkillTemplateWithScopedStoreId<T>;
   }
@@ -287,14 +289,14 @@ class SkillTemplateServiceImpl {
     this.assertRequiredScope(d);
 
     let skill = await skillService.getSkillById({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       skillId: d.input.skillId
     });
     let clonedStore = await storeService.cloneStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: skill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: skill.store!,
       input: {
         name: `Skill Template Store - ${d.input.name.trim()}`,
         access: 'public_read',
@@ -313,6 +315,13 @@ class SkillTemplateServiceImpl {
     }
   ) {
     let storeId = await this.resolveCreateStoreId(d);
+    let ownerScope =
+      d.resourceTenant && d.resourceGroup
+        ? await resolveInstanceResourceScope({
+            resourceTenant: d.resourceTenant!,
+            resourceGroup: d.resourceGroup
+          })
+        : {};
 
     return await withTransaction(async db => {
       let storeTemplate = await storeTemplateService.createStoreTemplate({
@@ -326,10 +335,15 @@ class SkillTemplateServiceImpl {
 
       return await db.skillTemplate.create({
         data: {
-          tenantOid: d.tenant?.oid,
-          environmentOid: d.environment?.oid,
+          resourceTenantOid: d.resourceTenant?.oid,
+          resourceGroupOid: d.resourceGroup?.oid,
           oid: snowflake.nextId(),
           id: d.input.id,
+          owner: d.resourceTenant ? 'tenant' : 'system',
+          slug: d.input.systemIdentifier ?? d.input.id,
+          name: d.input.name,
+          storeTemplateId: storeTemplate.id,
+          ...ownerScope,
           systemIdentifier: d.input.systemIdentifier ?? null,
           storeTemplateOid: storeTemplate.oid
         },
@@ -347,7 +361,7 @@ class SkillTemplateServiceImpl {
   }) {
     if (
       d.input.storeId !== undefined &&
-      d.skillTemplate.storeTemplate.sourceStore?.id !== d.input.storeId
+      d.skillTemplate.storeTemplate!.sourceStore?.id !== d.input.storeId
     ) {
       throw new ServiceError(
         badRequestError({
@@ -358,7 +372,7 @@ class SkillTemplateServiceImpl {
 
     return await withTransaction(async db => {
       let storeTemplate = await storeTemplateService.updateStoreTemplate({
-        storeTemplate: d.skillTemplate.storeTemplate,
+        storeTemplate: d.skillTemplate.storeTemplate!,
         skipScopeCheck: true,
         input: {
           name: d.input.name,
@@ -504,15 +518,15 @@ class SkillTemplateServiceImpl {
     }
   ) {
     let skillTemplate = await this.getSkillTemplateById({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       skillTemplateId: d.skillTemplateId
     });
 
     this.assertMatchingScope({
       skillTemplate,
-      tenant: d.tenant,
-      environment: d.environment
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup
     });
 
     return await this.updateSkillTemplateRecord({
@@ -530,14 +544,14 @@ class SkillTemplateServiceImpl {
 
     this.assertMatchingScope({
       skillTemplate,
-      tenant: d.tenant,
-      environment: d.environment
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup
     });
 
     await storeTemplateService.deleteStoreTemplate({
-      tenant: d.tenant,
-      environment: d.environment,
-      storeTemplateId: skillTemplate.storeTemplate.id
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      storeTemplateId: skillTemplate.storeTemplate!.id
     });
 
     return skillTemplate;

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createSkillSyncBranchName,
-  normalizeSkillSyncBranchName
-} from './branchName';
+import { createSkillSyncBranchName, normalizeSkillSyncBranchName } from './branchName';
 
 describe('skill sync branch names', () => {
   it('creates names accepted by restrictive GitLab push rules', () => {

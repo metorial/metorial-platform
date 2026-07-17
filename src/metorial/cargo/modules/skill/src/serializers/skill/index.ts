@@ -1,9 +1,9 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
-import type { Prisma } from '@metorial-cargo/db';
-import { db } from '@metorial-cargo/db';
-import { fileService } from '@metorial-cargo/module-file';
+import { fileService } from '@metorial/cargo-module-file';
+import type { Prisma } from '@metorial/db';
+import { db } from '@metorial/db';
 import PQueue from 'p-queue';
 import { parse, stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
@@ -114,7 +114,7 @@ export let applySkill = createApplicator(
   'skill',
   async input => {
     let skillStore = await db.store.findFirstOrThrow({
-      where: { oid: input.skill.storeOid }
+      where: { oid: input.skill.storeOid! }
     });
     await assertSkillStoreFileLimit({
       storeOid: skillStore.oid
@@ -122,8 +122,8 @@ export let applySkill = createApplicator(
 
     let defaultConfig = await db.skillConfiguration.findFirst({
       where: {
-        tenantOid: input.skill.tenantOid,
-        environmentOid: input.skill.environmentOid,
+        resourceTenantOid: input.skill.resourceTenantOid!,
+        resourceGroupOid: input.skill.resourceGroupOid!,
         isDefault: true
       }
     });

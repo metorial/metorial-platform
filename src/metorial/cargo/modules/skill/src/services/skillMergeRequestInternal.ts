@@ -1,31 +1,32 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { getId } from '@metorial/cargo-config/id';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveResourceActors,
+  resolveSkills
+} from '@metorial/cargo-list-utils';
+import {
+  flushDocumentCollaborationState,
+  flushDocumentDraft
+} from '@metorial/cargo-module-doc';
+import { actorService, type CargoResourceScope } from '@metorial/cargo-module-file';
+import {
+  storeAccessService,
+  storeReadPermission,
+  storeVersionService,
+  storeWritePermission
+} from '@metorial/cargo-module-store';
 import type {
   SkillMergeRequestChangeType,
   SkillMergeRequestDirection,
   SkillMergeRequestItemStatus,
   SkillMergeRequestResolutionType,
   SkillMergeRequestStatus
-} from '@metorial-cargo/db';
-import { db, getId, Prisma, withTransaction } from '@metorial-cargo/db';
-import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveSkills,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
-import {
-  flushDocumentCollaborationState,
-  flushDocumentDraft
-} from '@metorial-cargo/module-doc';
-import { actorService, type CargoTenantEnvironment } from '@metorial-cargo/module-file';
-import {
-  storeAccessService,
-  storeReadPermission,
-  storeVersionService,
-  storeWritePermission
-} from '@metorial-cargo/module-store';
+} from '@metorial/db';
+import { db, Prisma, withTransaction } from '@metorial/db';
 import {
   getCanonicalSkillPairKey,
   getSkillMergeRequestActivePairKey,
@@ -58,11 +59,11 @@ export let skillMergeRequestInclude = {
   preMergeTargetSkillVersion: true,
   mergedTargetSkillVersion: true,
   rollbackTargetSkillVersion: true,
-  createdByTenantActor: true,
-  mergeStartedByTenantActor: true,
-  mergedByTenantActor: true,
-  closedByTenantActor: true,
-  rolledBackByTenantActor: true,
+  createdByResourceActor: true,
+  mergeStartedByResourceActor: true,
+  mergedByResourceActor: true,
+  closedByResourceActor: true,
+  rolledBackByResourceActor: true,
   _count: {
     select: {
       items: true,
@@ -107,12 +108,12 @@ export let skillMergeRequestItemInclude = {
       content: true
     }
   },
-  resolvedByTenantActor: true
+  resolvedByResourceActor: true
 } satisfies Prisma.SkillMergeRequestItemInclude;
 
 export let skillMergeRequestCommentInclude = {
   skillMergeRequestItem: true,
-  tenantActor: true,
+  resourceActor: true,
   inReplyToComment: true
 } satisfies Prisma.SkillMergeRequestCommentInclude;
 
@@ -158,11 +159,11 @@ let getResolutionStatus = (
   resolutionType === 'skip' || resolutionType === 'keep_target' ? 'skipped' : 'resolved';
 
 class SkillMergeRequestInternalServiceImpl {
-  async getSkill(d: CargoTenantEnvironment & { skillId: string }) {
+  async getSkill(d: CargoResourceScope & { skillId: string }) {
     let skill = await db.skill.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.skillId,
         status: 'active'
       },
@@ -177,15 +178,15 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async getRawSkillMergeRequestById(d: {
-    tenantOid?: bigint;
-    environmentOid?: bigint;
+    resourceTenantOid?: bigint;
+    resourceGroupOid?: bigint;
     skillMergeRequestId: string;
   }) {
     let mergeRequest = await db.skillMergeRequest.findFirst({
       where: {
         id: d.skillMergeRequestId,
-        tenantOid: d.tenantOid,
-        environmentOid: d.environmentOid
+        resourceTenantOid: d.resourceTenantOid,
+        resourceGroupOid: d.resourceGroupOid
       },
       include: skillMergeRequestInclude
     });
@@ -256,12 +257,12 @@ class SkillMergeRequestInternalServiceImpl {
   async flushSkillForMergeSnapshot(d: { skill: SkillRecord }) {
     let documentItems = await db.storeItem.findMany({
       where: {
-        storeOid: d.skill.storeOid,
+        storeOid: d.skill.storeOid!,
         document: {
           isNot: null
         }
       },
-      select: {
+      include: {
         document: {
           select: {
             id: true
@@ -283,7 +284,7 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     let snapshot = await storeVersionService.createStoreVersionSnapshotNow({
-      storeId: d.skill.store.id
+      storeId: d.skill.store!.id
     });
 
     return await this.getSkillVersionForStoreVersion({
@@ -588,16 +589,16 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertReadEitherSkill(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
   ) {
     try {
       await storeAccessService.assertStoreAccessForStore({
-        tenant: d.tenant,
-        environment: d.environment,
-        store: d.mergeRequest.sourceSkill.store,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
+        store: d.mergeRequest.sourceSkill.store!,
         actorId: d.actorId,
         requiredPermission: storeReadPermission
       });
@@ -607,48 +608,48 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: d.mergeRequest.targetSkill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: d.mergeRequest.targetSkill.store!,
       actorId: d.actorId,
       requiredPermission: storeReadPermission
     });
   }
 
   async assertTargetWrite(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
     }
   ) {
     return await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: d.mergeRequest.targetSkill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: d.mergeRequest.targetSkill.store!,
       actorId: d.actorId,
       requiredPermission: storeWritePermission
     });
   }
 
   async canCloseAsRequester(d: { mergeRequest: SkillMergeRequestRecord; actorId?: string }) {
-    if (!d.actorId || !d.mergeRequest.createdByTenantActor) return !d.actorId;
-    return d.mergeRequest.createdByTenantActor.id === d.actorId;
+    if (!d.actorId || !d.mergeRequest.createdByResourceActor) return !d.actorId;
+    return d.mergeRequest.createdByResourceActor.id === d.actorId;
   }
 
   async getVisibleMergeRequestWhere(d: {
-    tenantOid: bigint;
-    environmentOid: bigint;
+    resourceTenantOid: bigint;
+    resourceGroupOid: bigint;
     actorOid?: bigint;
   }) {
     let readableStoreWhere: Prisma.StoreWhereInput = {
       OR: d.actorOid
         ? [
             { access: { in: ['public_read', 'public_write'] } },
-            { createdByTenantActorOid: d.actorOid },
+            { createdByResourceActorOid: d.actorOid },
             {
               storeParticipants: {
                 some: {
-                  tenantActorOid: d.actorOid,
+                  resourceActorOid: d.actorOid,
                   permissions: {
                     hasSome: [storeReadPermission, storeWritePermission]
                   }
@@ -660,8 +661,8 @@ class SkillMergeRequestInternalServiceImpl {
     };
 
     return {
-      tenantOid: d.tenantOid,
-      environmentOid: d.environmentOid,
+      resourceTenantOid: d.resourceTenantOid,
+      resourceGroupOid: d.resourceGroupOid,
       OR: [
         {
           sourceSkill: {
@@ -678,7 +679,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async createSkillMergeRequest(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       actorId?: string;
@@ -693,7 +694,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async createDirectedSkillMergeRequest(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       actorId?: string;
@@ -711,22 +712,22 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     let sourceSkill = await this.getSkill({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       skillId: d.sourceSkillId
     });
     let targetSkill = d.targetSkillId
       ? await this.getSkill({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           skillId: d.targetSkillId
         })
       : d.direction === 'fork_to_upstream'
         ? await db.skill.findFirst({
             where: {
               oid: sourceSkill.parentSkillOid ?? -1n,
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               status: 'active'
             },
             include: {
@@ -758,15 +759,15 @@ class SkillMergeRequestInternalServiceImpl {
 
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
       : undefined;
 
     await storeAccessService.assertStoreAccessForStore({
-      tenant: d.tenant,
-      environment: d.environment,
-      store: sourceSkill.store,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      store: sourceSkill.store!,
       actorId: d.actorId,
       requiredPermission: storeReadPermission
     });
@@ -777,207 +778,200 @@ class SkillMergeRequestInternalServiceImpl {
       targetSkill.oid,
       d.direction
     );
-    return await skillMergePairLock.usingLock(
-      pairKey,
-      async () => {
-        while (true) {
-          let mergingMergeRequest = await db.skillMergeRequest.findFirst({
-            where: {
-              status: 'merging',
-              OR: [
-                {
-                  sourceSkillOid: sourceSkill.oid,
-                  targetSkillOid: targetSkill.oid
-                },
-                {
-                  sourceSkillOid: targetSkill.oid,
-                  targetSkillOid: sourceSkill.oid
-                }
-              ]
-            },
-            select: {
-              id: true
-            }
-          });
-          if (!mergingMergeRequest) break;
+    return await skillMergePairLock.usingLock(pairKey, async () => {
+      while (true) {
+        let mergingMergeRequest = await db.skillMergeRequest.findFirst({
+          where: {
+            status: 'merging',
+            OR: [
+              {
+                sourceSkillOid: sourceSkill.oid,
+                targetSkillOid: targetSkill.oid
+              },
+              {
+                sourceSkillOid: targetSkill.oid,
+                targetSkillOid: sourceSkill.oid
+              }
+            ]
+          },
+          select: {
+            id: true
+          }
+        });
+        if (!mergingMergeRequest) break;
 
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      return await skillMergeTargetLock.usingLock(targetSkill.store!.id, async () => {
+        let existingActive = await db.skillMergeRequest.findMany({
+          where: {
+            status: 'open',
+            direction: d.direction,
+            OR: [
+              {
+                sourceSkillOid: sourceSkill.oid,
+                targetSkillOid: targetSkill.oid
+              },
+              {
+                sourceSkillOid: targetSkill.oid,
+                targetSkillOid: sourceSkill.oid
+              }
+            ]
+          }
+        });
+
+        let requestedSourceVersion = await this.flushSkillForMergeSnapshot({
+          skill: sourceSkill
+        });
+        let requestedTargetVersion = await this.flushSkillForMergeSnapshot({
+          skill: targetSkill
+        });
+        let mergeBases = await this.getMergeBases({
+          sourceSkill,
+          targetSkill,
+          direction: d.direction
+        });
+        let sourceBase = await this.getSkillVersionSnapshot(mergeBases.sourceBaseVersion.oid);
+        let targetBase = await this.getSkillVersionSnapshot(mergeBases.targetBaseVersion.oid);
+        let source = await this.getSkillVersionSnapshot(requestedSourceVersion.oid);
+        let target = await this.getSkillVersionSnapshot(requestedTargetVersion.oid);
+        let items = this.buildMergeItems({
+          mergeRequestOid: 0n,
+          sourceBase,
+          targetBase,
+          source,
+          target
+        });
+
+        if (items.length === 0) {
+          if (d.returnNullOnNoChanges) return null;
+          throw new ServiceError(
+            badRequestError({ message: 'The source skill has no changes to merge' })
+          );
         }
 
-        return await skillMergeTargetLock.usingLock(targetSkill.store.id, async () => {
-          let existingActive = await db.skillMergeRequest.findMany({
-            where: {
-              status: 'open',
-              direction: d.direction,
-              OR: [
-                {
-                  sourceSkillOid: sourceSkill.oid,
-                  targetSkillOid: targetSkill.oid
+        return await withTransaction(async tx => {
+          if (existingActive.length > 0) {
+            let closedAt = new Date();
+            for (let existingMergeRequest of existingActive) {
+              let closed = await tx.skillMergeRequest.updateMany({
+                where: {
+                  oid: existingMergeRequest.oid,
+                  status: 'open'
                 },
-                {
-                  sourceSkillOid: targetSkill.oid,
-                  targetSkillOid: sourceSkill.oid
+                data: {
+                  status: 'closed',
+                  activePairKey: null,
+                  closedAt,
+                  closedByResourceActorOid: actor?.oid
                 }
-              ]
+              });
+
+              if (closed.count !== 1) {
+                throw new ServiceError(
+                  badRequestError({ message: 'Active merge request is no longer replaceable' })
+                );
+              }
+
+              await tx.skillForkSync.updateMany({
+                where: {
+                  generatedMergeRequestOid: existingMergeRequest.oid,
+                  status: {
+                    in: ['pending', 'processing', 'action_required']
+                  }
+                },
+                data: {
+                  status: 'cancelled',
+                  activePairKey: null,
+                  cancelledAt: closedAt
+                }
+              });
+              await skillMergeRequestEventService.createEvent({
+                database: tx,
+                mergeRequestOid: existingMergeRequest.oid,
+                type: 'closed',
+                actorOid: actor?.oid
+              });
+            }
+          }
+
+          let existingSync = await tx.skillForkSync.findFirst({
+            where: {
+              activePairKey,
+              status: {
+                in: ['pending', 'processing', 'action_required']
+              }
             }
           });
-
-          let requestedSourceVersion = await this.flushSkillForMergeSnapshot({
-            skill: sourceSkill
-          });
-          let requestedTargetVersion = await this.flushSkillForMergeSnapshot({
-            skill: targetSkill
-          });
-          let mergeBases = await this.getMergeBases({
-            sourceSkill,
-            targetSkill,
-            direction: d.direction
-          });
-          let sourceBase = await this.getSkillVersionSnapshot(
-            mergeBases.sourceBaseVersion.oid
-          );
-          let targetBase = await this.getSkillVersionSnapshot(
-            mergeBases.targetBaseVersion.oid
-          );
-          let source = await this.getSkillVersionSnapshot(requestedSourceVersion.oid);
-          let target = await this.getSkillVersionSnapshot(requestedTargetVersion.oid);
-          let items = this.buildMergeItems({
-            mergeRequestOid: 0n,
-            sourceBase,
-            targetBase,
-            source,
-            target
-          });
-
-          if (items.length === 0) {
-            if (d.returnNullOnNoChanges) return null;
+          if (
+            d.direction === 'upstream_to_fork' &&
+            existingSync &&
+            existingSync.id !== d.skillForkSyncId
+          ) {
             throw new ServiceError(
-              badRequestError({ message: 'The source skill has no changes to merge' })
+              badRequestError({
+                message: 'An active fork synchronization already exists for this fork'
+              })
             );
           }
 
-          return await withTransaction(async tx => {
-            if (existingActive.length > 0) {
-              let closedAt = new Date();
-              for (let existingMergeRequest of existingActive) {
-                let closed = await tx.skillMergeRequest.updateMany({
-                  where: {
-                    oid: existingMergeRequest.oid,
-                    status: 'open'
-                  },
-                  data: {
-                    status: 'closed',
-                    activePairKey: null,
-                    closedAt,
-                    closedByTenantActorOid: actor?.oid
-                  }
-                });
-
-                if (closed.count !== 1) {
-                  throw new ServiceError(
-                    badRequestError({ message: 'Active merge request is no longer replaceable' })
-                  );
-                }
-
-                await tx.skillForkSync.updateMany({
-                  where: {
-                    generatedMergeRequestOid: existingMergeRequest.oid,
-                    status: {
-                      in: ['pending', 'processing', 'action_required']
-                    }
-                  },
-                  data: {
-                    status: 'cancelled',
-                    activePairKey: null,
-                    cancelledAt: closedAt
-                  }
-                });
-                await skillMergeRequestEventService.createEvent({
-                  database: tx,
-                  mergeRequestOid: existingMergeRequest.oid,
-                  type: 'closed',
-                  actorOid: actor?.oid
-                });
-              }
-            }
-
-            let existingSync = await tx.skillForkSync.findFirst({
-              where: {
-                activePairKey,
-                status: {
-                  in: ['pending', 'processing', 'action_required']
-                }
-              }
-            });
-            if (
-              d.direction === 'upstream_to_fork' &&
-              existingSync &&
-              existingSync.id !== d.skillForkSyncId
-            ) {
-              throw new ServiceError(
-                badRequestError({
-                  message: 'An active fork synchronization already exists for this fork'
-                })
-              );
-            }
-
-            let ids = getId('skillMergeRequest');
-            let mergeRequest = await tx.skillMergeRequest.create({
-              data: {
-                oid: ids.oid,
-                id: ids.id,
-                title: d.title,
-                description: d.description,
-                tenantOid: d.tenant.oid,
-                environmentOid: d.environment.oid,
-                sourceSkillOid: sourceSkill.oid,
-                targetSkillOid: targetSkill.oid,
-                direction: d.direction,
-                activePairKey,
-                baseSourceSkillVersionOid: mergeBases.sourceBaseVersion.oid,
-                baseTargetSkillVersionOid: mergeBases.targetBaseVersion.oid,
-                requestedSourceSkillVersionOid: requestedSourceVersion.oid,
-                requestedTargetSkillVersionOid: requestedTargetVersion.oid,
-                createdByTenantActorOid: actor?.oid,
-                baseStrategy: mergeBases.baseStrategy
-              },
-              include: skillMergeRequestInclude
-            });
-
-            await tx.skillMergeRequestItem.createMany({
-              data: items.map(item => ({ ...item, skillMergeRequestOid: mergeRequest.oid }))
-            });
-            await skillMergeRequestEventService.createEvent({
-              database: tx,
-              mergeRequestOid: mergeRequest.oid,
-              type: 'created',
-              actorOid: actor?.oid
-            });
-            if (d.skillForkSyncId) {
-              await tx.skillForkSync.update({
-                where: {
-                  id: d.skillForkSyncId
-                },
-                data: {
-                  generatedMergeRequestOid: mergeRequest.oid
-                }
-              });
-            }
-
-            return (await tx.skillMergeRequest.findUnique({
-              where: {
-                id: mergeRequest.id
-              },
-              include: skillMergeRequestInclude
-            }))!;
+          let ids = getId('skillMergeRequest');
+          let mergeRequest = await tx.skillMergeRequest.create({
+            data: {
+              oid: ids.oid,
+              id: ids.id,
+              title: d.title,
+              description: d.description,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
+              sourceSkillOid: sourceSkill.oid,
+              targetSkillOid: targetSkill.oid,
+              direction: d.direction,
+              activePairKey,
+              baseSourceSkillVersionOid: mergeBases.sourceBaseVersion.oid,
+              baseTargetSkillVersionOid: mergeBases.targetBaseVersion.oid,
+              requestedSourceSkillVersionOid: requestedSourceVersion.oid,
+              requestedTargetSkillVersionOid: requestedTargetVersion.oid,
+              createdByResourceActorOid: actor?.oid,
+              baseStrategy: mergeBases.baseStrategy
+            },
+            include: skillMergeRequestInclude
           });
+
+          await tx.skillMergeRequestItem.createMany({
+            data: items.map(item => ({ ...item, skillMergeRequestOid: mergeRequest.oid }))
+          });
+          await skillMergeRequestEventService.createEvent({
+            database: tx,
+            mergeRequestOid: mergeRequest.oid,
+            type: 'created',
+            actorOid: actor?.oid
+          });
+          if (d.skillForkSyncId) {
+            await tx.skillForkSync.update({
+              where: {
+                id: d.skillForkSyncId
+              },
+              data: {
+                generatedMergeRequestOid: mergeRequest.oid
+              }
+            });
+          }
+
+          return (await tx.skillMergeRequest.findUnique({
+            where: {
+              id: mergeRequest.id
+            },
+            include: skillMergeRequestInclude
+          }))!;
         });
-      }
-    );
+      });
+    });
   }
 
   async listSkillMergeRequests(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       sourceSkillIds?: string[];
       targetSkillIds?: string[];
@@ -989,18 +983,18 @@ class SkillMergeRequestInternalServiceImpl {
   ) {
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant!,
           actorId: d.actorId
         })
       : undefined;
     let visibleWhere = await this.getVisibleMergeRequestWhere({
-      tenantOid: d.tenant.oid,
-      environmentOid: d.environment.oid,
+      resourceTenantOid: d.resourceTenant.oid,
+      resourceGroupOid: d.resourceGroup.oid,
       actorOid: actor?.oid
     });
     let sourceSkills = await resolveSkills(d, d.sourceSkillIds);
     let targetSkills = await resolveSkills(d, d.targetSkillIds);
-    let createdByActors = await resolveTenantActors(d, d.createdByActorIds);
+    let createdByActors = await resolveResourceActors(d, d.createdByActorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -1014,7 +1008,9 @@ class SkillMergeRequestInternalServiceImpl {
                 sourceSkills ? { sourceSkillOid: sourceSkills.in } : undefined!,
                 targetSkills ? { targetSkillOid: targetSkills.in } : undefined!,
                 d.statuses ? { status: { in: d.statuses } } : undefined!,
-                createdByActors ? { createdByTenantActorOid: createdByActors.in } : undefined!,
+                createdByActors
+                  ? { createdByResourceActorOid: createdByActors.in }
+                  : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
               ].filter(Boolean)
             },
@@ -1028,20 +1024,20 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async getSkillMergeRequestById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillMergeRequestId: string;
       actorId?: string;
     }
   ) {
     let mergeRequest = await this.getRawSkillMergeRequestById({
-      tenantOid: d.tenant.oid,
-      environmentOid: d.environment.oid,
+      resourceTenantOid: d.resourceTenant.oid,
+      resourceGroupOid: d.resourceGroup.oid,
       skillMergeRequestId: d.skillMergeRequestId
     });
 
     await this.assertReadEitherSkill({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       mergeRequest,
       actorId: d.actorId
     });
@@ -1096,7 +1092,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertReadableReplacementFile(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       actorId?: string;
       fileId: string;
@@ -1106,8 +1102,8 @@ class SkillMergeRequestInternalServiceImpl {
       where: {
         id: d.fileId,
         status: 'active',
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid
       },
       include: {
         storeItems: {
@@ -1120,7 +1116,7 @@ class SkillMergeRequestInternalServiceImpl {
     if (!file) {
       throw new ServiceError(
         badRequestError({
-          message: `Replacement file must be active and belong to this tenant and environment`
+          message: `Replacement file must be active and belong to this resourceTenant and resourceGroup`
         })
       );
     }
@@ -1128,9 +1124,9 @@ class SkillMergeRequestInternalServiceImpl {
     for (let storeItem of file.storeItems) {
       try {
         await storeAccessService.assertStoreAccessForStore({
-          tenant: d.tenant,
-          environment: d.environment,
-          store: storeItem.store,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
+          store: storeItem.store!,
           actorId: d.actorId,
           requiredPermission: storeReadPermission
         });
@@ -1148,7 +1144,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async validateItemResolution(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
       actorId?: string;
@@ -1229,8 +1225,8 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     await this.assertReadableReplacementFile({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
       actorId: d.actorId,
       fileId: resolution.fileId

@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@metorial/queue';
 import { indexSkillMarketplaceQueueProcessor } from './skillMarketplace';
 import { indexSkillPluginQueueProcessor } from './skillPlugin';
 

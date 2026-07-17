@@ -1,5 +1,5 @@
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { addAfterTransactionHook, db, env } from '@metorial-cargo/db';
+import { addAfterTransactionHook, db } from '@metorial/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 
 type StoreLifecycleEvent = 'created' | 'updated' | 'archived' | 'contents-changed';
 
@@ -14,7 +14,6 @@ let storeLifecycleQueue = createQueue<{
   storeId: string;
   event: StoreLifecycleEvent;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/store/lifecycle/store',
   workerOpts: {
     concurrency: 10
@@ -42,7 +41,6 @@ export let storeLifecycleQueueProcessor = storeLifecycleQueue.process(async data
 let propagateStoreDirtyQueue = createQueue<{
   storeId: string;
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/store/lifecycle/store/propDirty',
   workerOpts: {
     concurrency: 10

@@ -7,17 +7,19 @@ import {
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { FileLink, Prisma } from '@metorial-cargo/db';
-import { db, env, getId, withTransaction } from '@metorial-cargo/db';
+import { env } from '@metorial/cargo-config';
+import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveFileLinks,
   resolveFiles,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
+  resolveResourceActors
+} from '@metorial/cargo-list-utils';
+import type { FileLink, Prisma } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { actorService } from './actor';
-import type { CargoTenantEnvironment } from './filePurpose';
+import type { CargoResourceScope } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 
 let include = {
@@ -31,8 +33,8 @@ let include = {
       purpose: true
     }
   },
-  tenant: true,
-  environment: true
+  resourceTenant: true,
+  resourceGroup: true
 } satisfies Prisma.FileLinkInclude;
 
 class FileLinkServiceImpl {
@@ -41,7 +43,7 @@ class FileLinkServiceImpl {
   }
 
   async createFileLink(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       file: {
         oid: bigint;
         id: string;
@@ -68,7 +70,7 @@ class FileLinkServiceImpl {
     return await withTransaction(async db => {
       let actor = d.input.actorId
         ? await actorService.getActorById({
-            tenant: d.tenant,
+            resourceTenant: d.resourceTenant,
             actorId: d.input.actorId
           })
         : undefined;
@@ -76,16 +78,16 @@ class FileLinkServiceImpl {
       let existing = d.input.id
         ? await db.fileLink.findFirst({
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               OR: [{ id: d.input.id }, ...(d.input.key ? [{ key: d.input.key }] : [])]
             }
           })
         : d.input.key
           ? await db.fileLink.findFirst({
               where: {
-                tenantOid: d.tenant.oid,
-                environmentOid: d.environment.oid,
+                resourceTenantOid: d.resourceTenant.oid,
+                resourceGroupOid: d.resourceGroup.oid,
                 key: d.input.key
               }
             })
@@ -100,7 +102,7 @@ class FileLinkServiceImpl {
             fileOid: d.file.oid,
             expiresAt: d.input.expiresAt,
             key: d.input.key ?? existing.key,
-            createdByTenantActorOid: existing.createdByTenantActorOid ?? actor?.oid
+            createdByResourceActorOid: existing.createdByResourceActorOid ?? actor?.oid
           },
           include
         });
@@ -114,10 +116,10 @@ class FileLinkServiceImpl {
           id: d.input.id ?? generated.id,
           key: d.input.key ?? this.getGeneratedKey(),
           fileOid: d.file.oid,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           expiresAt: d.input.expiresAt,
-          createdByTenantActorOid: actor?.oid
+          createdByResourceActorOid: actor?.oid
         },
         include
       });
@@ -146,7 +148,7 @@ class FileLinkServiceImpl {
   }
 
   async listFileLinks(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       fileId?: string[];
       fileIds?: string[];
@@ -158,13 +160,13 @@ class FileLinkServiceImpl {
   ) {
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant,
           actorId: d.actorId
         })
       : undefined;
     let fileLinks = await resolveFileLinks(d, d.ids);
     let files = await resolveFiles(d, d.fileIds ?? d.fileId);
-    let actors = await resolveTenantActors(d, d.actorIds);
+    let actors = await resolveResourceActors(d, d.actorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -173,9 +175,9 @@ class FileLinkServiceImpl {
             ...opts,
             where: {
               oid: fileLinks ? fileLinks.in : undefined,
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
-              createdByTenantActorOid: actors ? actors.in : actor?.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
+              createdByResourceActorOid: actors ? actors.in : actor?.oid,
               file: {
                 status: 'active',
                 oid: files ? files.in : undefined
@@ -192,24 +194,24 @@ class FileLinkServiceImpl {
   }
 
   async getFileLinkById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       fileLinkId: string;
       actorId?: string;
     }
   ) {
     let actor = d.actorId
       ? await actorService.getActorById({
-          tenant: d.tenant,
+          resourceTenant: d.resourceTenant,
           actorId: d.actorId
         })
       : undefined;
 
     let fileLink = await db.fileLink.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.fileLinkId,
-        createdByTenantActorOid: actor?.oid
+        createdByResourceActorOid: actor?.oid
       },
       include
     });

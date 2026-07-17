@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@metorial/queue';
 import { storeLifecycleProcessors } from './lifecycle';
 import { storeCleanupProcessors } from './storeCleanup';
 import { storeTemplateSyncProcessors } from './storeTemplateSync';

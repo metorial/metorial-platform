@@ -1,6 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
 import { verifySignedFileDownloadKey } from '../lib/signedDownloadUrl';
 
 class FileDownloadServiceImpl {

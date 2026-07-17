@@ -1,4 +1,4 @@
-import { combineQueueProcessors } from '@lowerdeck/queue';
+import { combineQueueProcessors } from '@metorial/queue';
 import {
   collectDirtySkillDestinationsCron,
   collectDirtySkillDestinationsManyQueueProcessor,
@@ -10,7 +10,17 @@ import {
   flushDirtySkillDestinationsSingleQueueProcessor
 } from './dirty/flush';
 import { skillExportQueueProcessor } from './export';
+import { skillForkSyncQueueProcessor } from './forkSync';
+import { skillImportAcquireQueueProcessor } from './import/acquire';
+import { skillImportDiscoverQueueProcessor } from './import/discover';
+import { skillImportFinishQueueProcessor } from './import/finish';
+import { skillImportItemQueueProcessor } from './import/item';
+import { skillImportRecoveryCron } from './import/recovery';
 import { lifecycleQueues } from './lifecycle';
+import {
+  skillMergeRequestPerformQueueProcessor,
+  skillMergeRequestRecoveryCron
+} from './mergeRequest';
 import { searchQueues } from './search';
 import { skillDestinationSyncCleanupCron } from './sync/cleanup';
 import { syncCollectQueueProcessor } from './sync/collect';
@@ -22,16 +32,6 @@ import {
   syncPropagateWaitQueueProcessor
 } from './sync/propagate';
 import { syncStartQueueProcessor } from './sync/start';
-import {
-  skillMergeRequestPerformQueueProcessor,
-  skillMergeRequestRecoveryCron
-} from './mergeRequest';
-import { skillForkSyncQueueProcessor } from './forkSync';
-import { skillImportAcquireQueueProcessor } from './import/acquire';
-import { skillImportDiscoverQueueProcessor } from './import/discover';
-import { skillImportFinishQueueProcessor } from './import/finish';
-import { skillImportItemQueueProcessor } from './import/item';
-import { skillImportRecoveryCron } from './import/recovery';
 
 export let skillQueueProcessor = combineQueueProcessors([
   lifecycleQueues,
@@ -61,9 +61,9 @@ export let skillQueueProcessor = combineQueueProcessors([
   skillImportRecoveryCron
 ]);
 
-export * from './lifecycle';
-export * from './search';
 export * from './export';
-export * from './mergeRequest';
 export * from './forkSync';
 export * from './import/acquire';
+export * from './lifecycle';
+export * from './mergeRequest';
+export * from './search';

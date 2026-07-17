@@ -1,10 +1,9 @@
-import { createCron } from '@lowerdeck/cron';
-import { db, env } from '@metorial-cargo/db';
+import { createCron } from '@metorial/cron';
+import { db } from '@metorial/db';
 import { subDays } from 'date-fns';
 
 export let skillDestinationSyncCleanupCron = createCron(
   {
-    redisUrl: env.service.REDIS_URL,
     name: 'cargo/skill/sync/cleanup/cron',
     cron: '0 0 * * *'
   },

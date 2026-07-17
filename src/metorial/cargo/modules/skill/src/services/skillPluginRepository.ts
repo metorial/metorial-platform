@@ -1,9 +1,10 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Prisma } from '@metorial-cargo/db';
-import { db, getId } from '@metorial-cargo/db';
-import type { CargoTenantEnvironment } from '@metorial-cargo/module-file';
+import { getId } from '@metorial/cargo-config/id';
+import type { CargoResourceScope } from '@metorial/cargo-module-file';
+import type { Prisma } from '@metorial/db';
+import { db } from '@metorial/db';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
 import {
   type EnrichedSkillRepositoryRecord,
@@ -30,11 +31,11 @@ export type EnrichedSkillPluginRepositoryRecord = Omit<
 };
 
 class SkillPluginRepositoryServiceImpl {
-  private async getPlugin(d: CargoTenantEnvironment & { skillPluginId: string }) {
+  private async getPlugin(d: CargoResourceScope & { skillPluginId: string }) {
     let plugin = await db.skillPlugin.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.skillPluginId,
         status: 'active',
         isManaged: false
@@ -46,13 +47,13 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   private async enrichRepositories<T extends SkillPluginRepositoryRecord>(
-    d: CargoTenantEnvironment & { repositories: T[] }
+    d: CargoResourceScope & { repositories: T[] }
   ): Promise<
     (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
   > {
     let enrichedSkillRepositories = await skillRepositoryService.enrichSkillRepositories({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       skillRepositories: d.repositories.map(repository => repository.skillRepository)
     });
     let skillRepositoryByOid = new Map(
@@ -66,7 +67,7 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   async listSkillPluginRepositories(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillPluginId: string;
     }
   ) {
@@ -83,8 +84,8 @@ class SkillPluginRepositoryServiceImpl {
         });
 
         return await this.enrichRepositories({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
           repositories
         });
       })
@@ -92,7 +93,7 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   async getSkillPluginRepositoryById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillPluginId: string;
       skillPluginRepositoryId: string;
     }
@@ -113,8 +114,8 @@ class SkillPluginRepositoryServiceImpl {
     }
 
     let [enriched] = await this.enrichRepositories({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       repositories: [repository]
     });
 
@@ -122,15 +123,15 @@ class SkillPluginRepositoryServiceImpl {
   }
 
   async createSkillPluginRepository(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillPluginId: string;
       repoId: string;
     }
   ) {
     let plugin = await this.getPlugin(d);
     let skillRepository = await skillRepositoryService.ensureSkillRepositoryForRepo({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       repoId: d.repoId
     });
 
@@ -147,8 +148,8 @@ class SkillPluginRepositoryServiceImpl {
     });
     if (existing) {
       let [enriched] = await this.enrichRepositories({
-        tenant: d.tenant,
-        environment: d.environment,
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
         repositories: [existing]
       });
       return enriched!;
@@ -164,19 +165,19 @@ class SkillPluginRepositoryServiceImpl {
     });
 
     await forceSkillDestinationSync({
-      destination: { oid: plugin.destinationOid }
+      destination: { oid: plugin.destinationOid! }
     });
 
     let [enriched] = await this.enrichRepositories({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
       repositories: [repository]
     });
     return enriched!;
   }
 
   async deleteSkillPluginRepository(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       skillPluginId: string;
       skillPluginRepositoryId: string;
     }

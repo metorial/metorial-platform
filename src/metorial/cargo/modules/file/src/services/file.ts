@@ -4,11 +4,10 @@ import {
   notFoundError,
   ServiceError
 } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { generatePlainId } from '@lowerdeck/id';
-import type { File, Prisma, StoreParticipantPermissions } from '@metorial-cargo/db';
-import { db, getId, withTransaction } from '@metorial-cargo/db';
+import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -17,22 +16,24 @@ import {
   resolveFilePurposes,
   resolveFileReferences,
   resolveFiles,
-  resolveStores,
-  resolveTenantActors
-} from '@metorial-cargo/list-utils';
+  resolveResourceActors,
+  resolveStores
+} from '@metorial/cargo-list-utils';
 import {
   internalDocumentContentStoreService,
   internalDocumentDraftService
-} from '@metorial-cargo/module-doc';
+} from '@metorial/cargo-module-doc';
 import {
   storeAccessService,
   storeItemMutationService,
   storeReadPermission,
   storeWritePermission
-} from '@metorial-cargo/module-store';
+} from '@metorial/cargo-module-store';
+import type { File, Prisma, StoreParticipantPermissions } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { actorService } from './actor';
-import type { CargoTenantEnvironment } from './filePurpose';
+import type { CargoResourceScope } from './filePurpose';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 
@@ -43,9 +44,9 @@ let include = {
       id: true
     }
   },
-  createdByTenantActor: true,
-  tenant: true,
-  environment: true
+  createdByResourceActor: true,
+  resourceTenant: true,
+  resourceGroup: true
 } satisfies Prisma.FileInclude;
 
 type FileRecord = Prisma.FileGetPayload<{
@@ -110,7 +111,7 @@ class FileServiceImpl {
   }
 
   async createFile(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       purpose: string;
       storeId: string;
       _isDocument?: boolean;
@@ -150,7 +151,7 @@ class FileServiceImpl {
 
       let actor = d.input.actorId
         ? await actorService.getActorById({
-            tenant: d.tenant,
+            resourceTenant: d.resourceTenant,
             actorId: d.input.actorId
           })
         : undefined;
@@ -158,8 +159,8 @@ class FileServiceImpl {
       let existing = d.input.id
         ? await db.file.findFirst({
             where: {
-              tenantOid: d.tenant.oid,
-              environmentOid: d.environment.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
               id: d.input.id
             }
           })
@@ -181,21 +182,21 @@ class FileServiceImpl {
             purposeOid: purpose.oid,
             isReadOnly: d.internal?.isReadOnly ?? existing.isReadOnly,
             isTemplateBacking: d.internal?.isTemplateBacking ?? existing.isTemplateBacking,
-            createdByTenantActorOid: existing.createdByTenantActorOid ?? actor?.oid
+            createdByResourceActorOid: existing.createdByResourceActorOid ?? actor?.oid
           },
           include
         });
 
         if (d.input.store) {
           let store = await storeAccessService.getStoreById({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             storeId: d.input.store.id
           });
 
           await storeAccessService.assertStoreAccessForStore({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store,
             actorId: d.input.actorId,
             defaultPermissions: d.input.defaultPermissions,
@@ -204,8 +205,8 @@ class FileServiceImpl {
           });
 
           await storeItemMutationService.attachTargetToStore({
-            tenant: d.tenant,
-            environment: d.environment,
+            resourceTenant: d.resourceTenant,
+            resourceGroup: d.resourceGroup,
             store,
             path: d.input.store.path,
             target: {
@@ -226,8 +227,8 @@ class FileServiceImpl {
         data: {
           oid: generated.oid,
           id: d.input.id ?? generated.id,
-          tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid,
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
           purposeOid: purpose.oid,
           storeId: d.storeId,
           fileName: d.input.name,
@@ -237,21 +238,21 @@ class FileServiceImpl {
           expiresAt: d.input.expiresAt,
           isReadOnly: d.internal?.isReadOnly ?? false,
           isTemplateBacking: d.internal?.isTemplateBacking ?? false,
-          createdByTenantActorOid: actor?.oid
+          createdByResourceActorOid: actor?.oid
         },
         include
       });
 
       if (d.input.store) {
         let store = await storeAccessService.getStoreById({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           storeId: d.input.store.id
         });
 
         await storeAccessService.assertStoreAccessForStore({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store,
           actorId: d.input.actorId,
           defaultPermissions: d.input.defaultPermissions,
@@ -260,8 +261,8 @@ class FileServiceImpl {
         });
 
         await storeItemMutationService.attachTargetToStore({
-          tenant: d.tenant,
-          environment: d.environment,
+          resourceTenant: d.resourceTenant,
+          resourceGroup: d.resourceGroup,
           store,
           path: d.input.store.path,
           target: {
@@ -278,14 +279,14 @@ class FileServiceImpl {
   }
 
   async getFileById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       fileId: string;
     } & FileAccessInput
   ) {
     let file = await db.file.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.fileId
       },
       include
@@ -294,8 +295,8 @@ class FileServiceImpl {
     if (!file) throw new ServiceError(notFoundError('file', d.fileId));
 
     await storeAccessService.assertStoreAccessForFile({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       file,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
@@ -320,7 +321,7 @@ class FileServiceImpl {
   }
 
   async createUploadedFile(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       purpose: string;
       file: Blob;
       input: {
@@ -339,8 +340,8 @@ class FileServiceImpl {
     await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
 
     return await this.createFile({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       purpose: d.purpose,
       storeId,
       internal: {
@@ -359,7 +360,7 @@ class FileServiceImpl {
   }
 
   async createUploadedFileFromByteStream(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       purpose: string;
       content: AsyncIterable<Uint8Array>;
       input: {
@@ -390,8 +391,8 @@ class FileServiceImpl {
     );
 
     return await this.createFile({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       purpose: d.purpose,
       storeId,
       internal: {
@@ -442,14 +443,14 @@ class FileServiceImpl {
   }
 
   async deleteFileById(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       fileId: string;
     } & FileAccessInput
   ) {
     let file = await db.file.findFirst({
       where: {
-        tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid,
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
         id: d.fileId
       },
       include
@@ -459,11 +460,11 @@ class FileServiceImpl {
 
     if (d.actorId) {
       let actor = await actorService.getActorById({
-        tenant: d.tenant,
+        resourceTenant: d.resourceTenant,
         actorId: d.actorId
       });
 
-      if (!actor.organizationActorId && file.createdByTenantActorOid !== actor.oid) {
+      if (!actor.organizationActorOid && file.createdByResourceActorOid !== actor.oid) {
         throw new ServiceError(
           forbiddenError({
             message: `Only the creating actor can delete file ${file.id}`
@@ -543,7 +544,7 @@ class FileServiceImpl {
   }
 
   async listFiles(
-    d: CargoTenantEnvironment & {
+    d: CargoResourceScope & {
       ids?: string[];
       purpose?: string[];
       storeIds?: string[];
@@ -563,11 +564,11 @@ class FileServiceImpl {
     let documents = await resolveDocuments(d, d.documentIds);
     let fileLinks = await resolveFileLinks(d, d.fileLinkIds);
     let fileReferences = await resolveFileReferences(d, d.fileReferenceIds);
-    let createdByActors = await resolveTenantActors(d, d.createdByActorIds);
+    let createdByActors = await resolveResourceActors(d, d.createdByActorIds);
 
     let where: Prisma.FileWhereInput = {
-      tenantOid: d.tenant.oid,
-      environmentOid: d.environment.oid,
+      resourceTenantOid: d.resourceTenant.oid,
+      resourceGroupOid: d.resourceGroup.oid,
       status: d.includeDeleted ? undefined : 'active',
       isTemplateBacking: false,
       AND: [
@@ -597,7 +598,7 @@ class FileServiceImpl {
               }
             }
           : undefined!,
-        createdByActors ? { createdByTenantActorOid: createdByActors.in } : undefined!,
+        createdByActors ? { createdByResourceActorOid: createdByActors.in } : undefined!,
         d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
         d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!,
         d.expiresAt ? { expiresAt: normalizeDateFilter(d.expiresAt) } : undefined!
@@ -622,8 +623,8 @@ class FileServiceImpl {
     }
 
     let access = await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
-      tenant: d.tenant,
-      environment: d.environment,
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
       actorId: d.actorId,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -641,7 +642,7 @@ class FileServiceImpl {
                   ...where,
                   OR: [
                     {
-                      createdByTenantActorOid: access.actor?.oid
+                      createdByResourceActorOid: access.actor?.oid
                     },
                     {
                       storeItems: {

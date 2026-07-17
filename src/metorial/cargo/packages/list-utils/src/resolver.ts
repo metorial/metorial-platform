@@ -1,25 +1,26 @@
 export type CargoListSelector = {
-  tenant: {
+  resourceTenant: {
     oid: bigint;
   };
-  environment: {
+  resourceGroup: {
     oid: bigint;
   };
 };
 
 export type CargoListScope = {
-  tenantOid: bigint;
-  environmentOid: bigint;
+  resourceTenantOid: bigint;
+  resourceGroupOid: bigint;
 };
 
-let getSelectors = (oids: bigint[]) => ({
+let getSelectors = <O extends number | bigint>(oids: O[]) => ({
   oids,
   in: { in: oids },
   oidIn: { oid: { in: oids } }
 });
 
-export let createResolver =
-  <R extends { oid: bigint }>(
+let createResolverForOid =
+  <O extends number | bigint>() =>
+  <R extends { oid: O }>(
     cb: (d: {
       selector: CargoListSelector;
       scope: CargoListScope;
@@ -35,10 +36,13 @@ export let createResolver =
       ids,
       selector,
       scope: {
-        tenantOid: selector.tenant.oid,
-        environmentOid: selector.environment.oid
+        resourceTenantOid: selector.resourceTenant.oid,
+        resourceGroupOid: selector.resourceGroup.oid
       }
     });
 
     return getSelectors(res.map(r => r.oid));
   };
+
+export let createResolver = createResolverForOid<bigint>();
+export let createNumberResolver = createResolverForOid<number>();

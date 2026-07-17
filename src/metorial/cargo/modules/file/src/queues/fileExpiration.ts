@@ -1,15 +1,12 @@
-import { createCron } from '@lowerdeck/cron';
-import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { db, env, withTransaction } from '@metorial-cargo/db';
-import { internalDocumentDraftService } from '@metorial-cargo/module-doc';
-
-let redisUrl = env.service.REDIS_URL;
+import { internalDocumentDraftService } from '@metorial/cargo-module-doc';
+import { createCron } from '@metorial/cron';
+import { db, withTransaction } from '@metorial/db';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 let batchSize = 100;
 
 export let fileExpirationManyQueue = createQueue<{
   cursor?: string;
 }>({
-  redisUrl,
   name: 'cargo/file/expiration/many',
   workerOpts: {
     concurrency: 1
@@ -19,7 +16,6 @@ export let fileExpirationManyQueue = createQueue<{
 export let fileExpirationSingleQueue = createQueue<{
   fileId: string;
 }>({
-  redisUrl,
   name: 'cargo/file/expiration/single',
   workerOpts: {
     concurrency: 1
@@ -171,7 +167,6 @@ export let fileExpirationSingleProcessor = fileExpirationSingleQueue.process(asy
 
 export let fileExpirationCron = createCron(
   {
-    redisUrl,
     name: 'cargo/file/expiration/cron',
     cron: '0 * * * *'
   },

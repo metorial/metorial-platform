@@ -1,12 +1,11 @@
-import { createQueue } from '@lowerdeck/queue';
-import { db, env } from '@metorial-cargo/db';
+import { db } from '@metorial/db';
+import { createQueue } from '@metorial/queue';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 
 export let syncFinishQueue = createQueue<{
   skillDestinationSyncId: string;
   status?: 'completed' | 'canceled';
 }>({
-  redisUrl: env.service.REDIS_URL,
   name: 'cargo/skill/sync/finish',
   workerOpts: {
     concurrency: 10
