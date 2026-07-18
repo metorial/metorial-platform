@@ -335,11 +335,6 @@ let getPluginTableRow = (p: {
           <Text size="2" weight="strong">
             {title}
           </Text>
-          {description && (
-            <Text size="2" color="gray600">
-              <Description>{description}</Description>
-            </Text>
-          )}
         </EntityText>
       </EntityName>,
       <Slug>{p.item.identifier}</Slug>,

@@ -382,6 +382,13 @@ class ConsumerSkillServiceImpl {
         consumerProfile: d.consumerProfile,
         skill: d.skill
       });
+
+      await this.syncConsumerSkillParticipantProjection({
+        instance: d.instance,
+        skill: d.skill,
+        consumerProfile: d.consumerProfile,
+        permission: d.permission
+      });
       return;
     }
 
@@ -406,6 +413,161 @@ class ConsumerSkillServiceImpl {
           type: 'consumer_access',
           consumerAccessId: consumerAccess.id
         }
+      });
+    }
+
+    await this.syncConsumerSkillParticipantProjection({
+      instance: d.instance,
+      skill: d.skill,
+      consumerProfile: d.consumerProfile,
+      permission: d.permission
+    });
+  }
+
+  private async syncConsumerSkillParticipantProjection(d: {
+    instance: Pick<Instance, 'id'>;
+    skill: Skill;
+    consumerProfile: Pick<ConsumerProfile, 'consumerOid'>;
+    permission: SkillSharePermission;
+  }) {
+    let [{ scope, skill }, { actor }] = await Promise.all([
+      this.getNativeSkillContext({
+        instance: d.instance,
+        skill: d.skill
+      }),
+      this.getConsumerActor({
+        instance: d.instance,
+        consumerProfile: d.consumerProfile
+      })
+    ]);
+
+    await skillService.upsertSkillActor({
+      ...scope,
+      skill,
+      actorId: actor.id,
+      permissions: getContentPermissionsForShare(d.permission),
+      overridePermissions: true
+    });
+  }
+
+  async reconcileSkillShareParticipants(d: { instance: Instance; skill: Skill }) {
+    let { scope, skill } = await this.getNativeSkillContext({
+      instance: d.instance,
+      skill: d.skill
+    });
+    let consumerAccesses = await db.consumerAccess.findMany({
+      where: {
+        type: 'skill',
+        skillOid: d.skill.oid,
+        consumerGroup: {
+          personalOwner: {
+            is: {
+              status: 'active'
+            }
+          }
+        }
+      },
+      include: {
+        consumerGroup: {
+          include: {
+            personalOwner: true
+          }
+        }
+      }
+    });
+    let accessTagOids = consumerAccesses.map(access => access.consumerGroup.accessTagOid);
+    let writeAccessTagEntities = accessTagOids.length
+      ? await db.accessTagEntity.findMany({
+          where: {
+            skillOid: d.skill.oid,
+            accessTagOid: {
+              in: accessTagOids
+            },
+            accessTagPolicy: {
+              roles: {
+                hasSome: [...consumerSkillWriteRoles]
+              }
+            }
+          },
+          select: {
+            accessTagOid: true
+          }
+        })
+      : [];
+    let writeAccessTagOids = new Set(
+      writeAccessTagEntities.map(entity => entity.accessTagOid.toString())
+    );
+    let permissionByConsumerOid = new Map<bigint, Exclude<SkillSharePermission, 'none'>>();
+
+    for (let access of consumerAccesses) {
+      let profile = access.consumerGroup.personalOwner;
+      if (!profile) continue;
+
+      let permission: Exclude<SkillSharePermission, 'none'> = writeAccessTagOids.has(
+        access.consumerGroup.accessTagOid.toString()
+      )
+        ? 'write'
+        : 'read';
+      let existing = permissionByConsumerOid.get(profile.consumerOid);
+      if (existing != 'write') {
+        permissionByConsumerOid.set(profile.consumerOid, permission);
+      }
+    }
+
+    let consumerStoreParticipants = await db.storeParticipant.findMany({
+      where: {
+        storeOid: skill.storeOid!,
+        resourceActor: {
+          consumerOid: {
+            not: null
+          }
+        }
+      },
+      include: {
+        resourceActor: true
+      }
+    });
+    let participantByConsumerOid = new Map(
+      consumerStoreParticipants
+        .filter(participant => participant.resourceActor.consumerOid != null)
+        .map(participant => [participant.resourceActor.consumerOid!, participant])
+    );
+
+    for (let [consumerOid, permission] of permissionByConsumerOid) {
+      let permissions = getContentPermissionsForShare(permission);
+      let existing = participantByConsumerOid.get(consumerOid);
+      participantByConsumerOid.delete(consumerOid);
+      if (
+        existing &&
+        existing.permissions.length == permissions.length &&
+        permissions.every(item => existing.permissions.includes(item))
+      ) {
+        continue;
+      }
+      let actor =
+        existing?.resourceActor ??
+        (await resourceActorService.ensureConsumerActor({
+          resourceTenant: scope.resourceTenant,
+          consumerOid
+        }));
+
+      await skillService.upsertSkillActor({
+        ...scope,
+        skill,
+        actorId: actor.id,
+        permissions,
+        overridePermissions: true
+      });
+    }
+
+    for (let participant of participantByConsumerOid.values()) {
+      if (participant.permissions.length == 0) continue;
+      await skillService.upsertSkillActor({
+        ...scope,
+        skill,
+        actorId: participant.resourceActor.id,
+        permissions: [],
+        overridePermissions: true
       });
     }
   }

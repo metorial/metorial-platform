@@ -1,7 +1,9 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { slugify } from '@lowerdeck/slugify';
 import { snowflake } from '@metorial/cargo-config/id';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import {
@@ -126,7 +128,6 @@ class SkillServiceImpl {
       parentSkillCloneType?: 'fork' | 'duplicate';
       input: {
         id: string;
-        slug?: string | null;
         actorId?: string;
         name: string;
         description?: string | null;
@@ -215,7 +216,7 @@ class SkillServiceImpl {
           id: d.input.id,
           status: 'active',
           name: d.input.name,
-          slug: d.input.slug ?? null,
+          slug: `${slugify(d.input.name)}-${generatePlainId(5).toLowerCase()}`,
           description: d.input.description,
           metadata: d.input.metadata as any,
 

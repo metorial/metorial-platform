@@ -1071,6 +1071,7 @@ let MergeReviewDialog = ({
       ])
     )
   );
+  let contentsRef = useRef(contents);
   let [replacementFiles, setReplacementFiles] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       plan.items.map(entry => [
@@ -1097,7 +1098,10 @@ let MergeReviewDialog = ({
       let resolution =
         resolutionType == 'edit_document'
           ? {
-              content: contents[entry.item.id],
+              // CodeMirror emits its change before React has necessarily committed the
+              // corresponding state update. Read the ref so the request always contains
+              // the editor's most recent text.
+              content: contentsRef.current[entry.item.id],
               title: entry.source?.documentTitle ?? entry.target?.documentTitle ?? undefined
             }
           : resolutionType == 'replace_file'
@@ -1198,9 +1202,10 @@ let MergeReviewDialog = ({
                         <MergeEditor
                           original={entry.documentMerge?.targetContent ?? ''}
                           value={contents[item.id] ?? ''}
-                          onChange={value =>
-                            setContents(current => ({ ...current, [item.id]: value }))
-                          }
+                          onChange={value => {
+                            contentsRef.current = { ...contentsRef.current, [item.id]: value };
+                            setContents(current => ({ ...current, [item.id]: value }));
+                          }}
                           height="440px"
                         />
                       ) : entry.documentMerge ? (

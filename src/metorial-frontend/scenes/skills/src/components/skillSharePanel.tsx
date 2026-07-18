@@ -202,12 +202,15 @@ let getSkillItems = (skills: SkillSharePanelSkill[]) =>
   skills.map(skill => ({ id: skill.id, label: getSkillLabel(skill) }));
 
 let getParticipantPermission = (roles: string[]): 'read' | 'write' =>
-  roles.some(role => role == 'creator' || role == 'editor' || role == 'forker')
+  roles.some(role => role == 'creator' || role == 'editor')
     ? 'write'
     : 'read';
 
 let canParticipantWrite = (roles: string[]) =>
-  roles.some(role => role == 'creator' || role == 'editor' || role == 'forker');
+  roles.some(role => role == 'creator' || role == 'editor');
+
+let hasParticipantAccess = (roles: string[]) =>
+  roles.some(role => role == 'editor' || role == 'viewer');
 
 let filterBySearch = (value: string, search: string) =>
   value.toLowerCase().includes(search.trim().toLowerCase());
@@ -243,6 +246,10 @@ export let SkillSharePanelContent = (p: {
     limit: 100,
     order: 'asc'
   });
+  let accessibleParticipants = useMemo(
+    () => (participants.data?.items ?? []).filter(participant => hasParticipantAccess(participant.roles)),
+    [participants.data?.items]
+  );
   let consumerProfiles = usePortalConsumerProfiles(p.instanceId, activePortalId, {
     limit: 100,
     order: 'asc',
@@ -305,11 +312,11 @@ export let SkillSharePanelContent = (p: {
   let currentConsumerParticipant = useMemo(() => {
     if (mode != 'portal' || !p.context?.currentConsumerId) return null;
     return (
-      (participants.data?.items ?? []).find(
+      accessibleParticipants.find(
         participant => participant.actor.consumer?.id == p.context?.currentConsumerId
       ) ?? null
     );
-  }, [mode, p.context, participants.data?.items]);
+  }, [accessibleParticipants, mode, p.context]);
   let canManageAccess =
     mode == 'dashboard' ||
     (!!currentConsumerParticipant && canParticipantWrite(currentConsumerParticipant.roles));
@@ -332,7 +339,7 @@ export let SkillSharePanelContent = (p: {
 
   let participantAccountKeys = useMemo(() => {
     let set = new Set<string>();
-    for (let participant of participants.data?.items ?? []) {
+    for (let participant of accessibleParticipants) {
       let consumerProfile = participant.actor.consumer?.id
         ? profileByConsumerId.get(participant.actor.consumer.id)
         : null;
@@ -342,7 +349,7 @@ export let SkillSharePanelContent = (p: {
       if (member) set.add(`member:${member.id}`);
     }
     return set;
-  }, [memberByActorId, participants.data?.items, profileByConsumerId]);
+  }, [accessibleParticipants, memberByActorId, profileByConsumerId]);
 
   let accountCandidates = useMemo<AccountCandidate[]>(() => {
     let candidates: AccountCandidate[] = [];
@@ -703,7 +710,7 @@ export let SkillSharePanelContent = (p: {
               ) : (
                 <>
                   <RowList>
-                    {(participants.data?.items ?? []).map(participant => {
+                    {accessibleParticipants.map(participant => {
                       let participantPermission = getParticipantPermission(participant.roles);
                       let isCreator = participant.roles.includes('creator');
                       let consumerProfileId = participant.actor.consumer?.id
@@ -766,7 +773,7 @@ export let SkillSharePanelContent = (p: {
                       );
                     })}
                     {!participants.isLoading &&
-                      (participants.data?.items ?? []).length == 0 && (
+                      accessibleParticipants.length == 0 && (
                         <EmptyState>
                           <Text size="2" color="gray600">
                             No accounts have access yet.

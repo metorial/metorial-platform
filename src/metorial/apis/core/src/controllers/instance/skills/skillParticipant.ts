@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillParticipantService } from '@metorial/cargo-module-skill';
+import { consumerSkillService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -18,6 +19,10 @@ export let skillParticipantGroup = skillGroup.use(async ctx => {
     throw new Error('skillParticipantId is required');
   }
 
+  await consumerSkillService.reconcileSkillShareParticipants({
+    instance: ctx.instance,
+    skill: ctx.skill.localSkill
+  });
   let skillParticipant = await skillParticipantService.getSkillParticipantById({
     skillParticipantId: ctx.params.skillParticipantId,
     ...(await getInstanceCargoAccess(ctx))
@@ -47,6 +52,10 @@ export let skillParticipantController = Controller.create(
       .outputList(skillParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
+        await consumerSkillService.reconcileSkillShareParticipants({
+          instance: ctx.instance,
+          skill: ctx.skill.localSkill
+        });
         let paginator = await skillParticipantService.listSkillParticipants({
           skillId: ctx.skill.id,
           ...(await getInstanceCargoAccess(ctx))

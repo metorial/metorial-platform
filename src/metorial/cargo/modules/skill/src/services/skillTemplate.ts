@@ -137,6 +137,18 @@ export type SkillTemplateUpsertInput = Omit<SkillTemplateCreateInput, 'skillId'>
   systemIdentifier: string;
 };
 
+let getPlainSkillTemplateItems = (): NonNullable<StoreTemplateCreateInput['items']> => [
+  {
+    path: '/SKILL.md',
+    type: 'document',
+    content:
+      '# Skill Template\n\nSet the scene, define the problem and task.\n\n## Prerequisites\n\n1. ...\n\n## Instructions\n\n1. ...\n\n## References\n',
+    encoding: 'utf-8'
+  },
+  { path: '/references/', type: 'directory' },
+  { path: '/assets/', type: 'directory' }
+];
+
 let isSystemIdentifierUniqueConstraintError = (error: any) => {
   if (error?.code !== 'P2002') return false;
 
@@ -154,17 +166,7 @@ class SkillTemplateServiceImpl {
         id: await ID.generateId('skillTemplate'),
         systemIdentifier: 'plain',
         name: 'Plain',
-        items: [
-          {
-            path: '/SKILL.md',
-            type: 'document',
-            content:
-              '# Skill Template\n\nSet the scene, define the problem and task.\n\n## Prerequisites\n\n1. ...\n\n## Instructions\n\n1. ...\n\n## References\n',
-            encoding: 'utf-8'
-          },
-          { path: '/references/', type: 'directory' },
-          { path: '/assets/', type: 'directory' }
-        ]
+        items: getPlainSkillTemplateItems()
       }
     });
   }
@@ -305,7 +307,7 @@ class SkillTemplateServiceImpl {
       d.items !== undefined
     ].filter(Boolean).length;
 
-    if (sourceCount !== 1) {
+    if (sourceCount > 1) {
       throw new ServiceError(
         badRequestError({
           message:
@@ -322,19 +324,34 @@ class SkillTemplateServiceImpl {
   ) {
     this.assertCreateSourceInput(d.input);
 
-    if (!d.input.skillId) {
+    if (d.input.storeId || d.input.items !== undefined) {
       return d.input.storeId;
     }
 
     this.assertRequiredScope(d);
 
+    if (!d.input.skillId) {
+      let plainTemplate = await this.ensurePlainSkillTemplate();
+      let store = await storeService.createStoreFromTemplate({
+        resourceTenant: d.resourceTenant,
+        resourceGroup: d.resourceGroup,
+        input: {
+          templateId: plainTemplate.storeTemplate!.id,
+          name: `Skill Template Store - ${d.input.name.trim()}`,
+          access: 'public_read'
+        }
+      });
+
+      return store.id;
+    }
+
     let skill = await skillService.getSkillById({
-      resourceTenant: d.resourceTenant!,
+      resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       skillId: d.input.skillId
     });
     let clonedStore = await storeService.cloneStore({
-      resourceTenant: d.resourceTenant!,
+      resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store: skill.store!,
       input: {
@@ -384,6 +401,7 @@ class SkillTemplateServiceImpl {
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata as any,
+          storeId,
           storeTemplateId: storeTemplate.id,
           ...ownerScope,
           systemIdentifier: d.input.systemIdentifier ?? null,
@@ -699,17 +717,19 @@ class SkillTemplateServiceImpl {
       resourceGroup: d.resourceGroup
     });
 
-    await storeTemplateService.deleteStoreTemplate({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
-      storeTemplateId: skillTemplate.storeTemplate!.id
-    });
-    await enqueueSkillTemplateLifecycle({
-      skillTemplateId: skillTemplate.id,
-      event: 'archived'
-    });
+    return await withTransaction(async db => {
+      let archived = await db.skillTemplate.update({
+        where: { oid: skillTemplate.oid },
+        data: { status: 'archived' },
+        include: skillTemplateInclude
+      });
+      await enqueueSkillTemplateLifecycle({
+        skillTemplateId: archived.id,
+        event: 'archived'
+      });
 
-    return skillTemplate;
+      return this.withScopedStoreId(archived, d);
+    });
   }
 }
 

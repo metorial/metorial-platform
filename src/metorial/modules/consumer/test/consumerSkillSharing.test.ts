@@ -23,6 +23,12 @@ let {
     consumerAccess: {
       findMany: vi.fn()
     },
+    accessTagEntity: {
+      findMany: vi.fn()
+    },
+    storeParticipant: {
+      findMany: vi.fn()
+    },
     organizationMember: {
       findMany: vi.fn()
     },
@@ -134,6 +140,8 @@ describe('consumer skill sharing', () => {
 
     db.consumerGroup.findUniqueOrThrow.mockResolvedValue(personalConsumerGroup);
     db.consumerAccess.findMany.mockResolvedValue([]);
+    db.accessTagEntity.findMany.mockResolvedValue([]);
+    db.storeParticipant.findMany.mockResolvedValue([]);
     createConsumerAccessMock.mockResolvedValue({
       id: 'consumer_access_1',
       consumerGroup: personalConsumerGroup
@@ -152,7 +160,7 @@ describe('consumer skill sharing', () => {
     });
   });
 
-  it('shares consumer read access through access tags without materializing a participant', async () => {
+  it('shares consumer read access and projects a viewer participant', async () => {
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
 
     await consumerSkillService.shareSkill({
@@ -180,10 +188,16 @@ describe('consumer skill sharing', () => {
         subject: { consumerGroup: personalConsumerGroup }
       })
     );
-    expect(upsertSkillActorMock).not.toHaveBeenCalled();
+    expect(upsertSkillActorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'resource_actor_consumer',
+        permissions: ['content_read'],
+        overridePermissions: true
+      })
+    );
   });
 
-  it('grants direct consumer write access through the scoped access policy', async () => {
+  it('grants direct consumer write access and projects an editor participant', async () => {
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
 
     await consumerSkillService.shareSkill({
@@ -204,10 +218,16 @@ describe('consumer skill sharing', () => {
       })
     );
     expect(revokeAccessMock).not.toHaveBeenCalled();
-    expect(upsertSkillActorMock).not.toHaveBeenCalled();
+    expect(upsertSkillActorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'resource_actor_consumer',
+        permissions: ['content_read', 'content_write'],
+        overridePermissions: true
+      })
+    );
   });
 
-  it('revokes consumer access by deleting the personal-group access record', async () => {
+  it('revokes consumer access and clears the participant projection', async () => {
     let access = { oid: 50n };
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
     db.consumerAccess.findMany.mockResolvedValue([access]);
@@ -226,7 +246,59 @@ describe('consumer skill sharing', () => {
       organization,
       consumerAccess: access
     });
-    expect(upsertSkillActorMock).not.toHaveBeenCalled();
+    expect(upsertSkillActorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'resource_actor_consumer',
+        permissions: [],
+        overridePermissions: true
+      })
+    );
+  });
+
+  it('reconciles existing consumer shares from scoped access policies', async () => {
+    db.consumerAccess.findMany.mockResolvedValue([
+      {
+        id: 'consumer_access_1',
+        consumerGroup: {
+          ...personalConsumerGroup,
+          personalOwner: targetProfile
+        }
+      }
+    ]);
+    db.accessTagEntity.findMany.mockResolvedValue([
+      {
+        accessTagOid: personalConsumerGroup.accessTagOid
+      }
+    ]);
+    db.storeParticipant.findMany.mockResolvedValue([
+      {
+        permissions: ['content_read'],
+        resourceActor: {
+          consumerOid: 999n,
+          id: 'stale_consumer_actor'
+        }
+      }
+    ]);
+
+    await consumerSkillService.reconcileSkillShareParticipants({
+      instance: instance as any,
+      skill: skill as any
+    });
+
+    expect(upsertSkillActorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'resource_actor_consumer',
+        permissions: ['content_read', 'content_write'],
+        overridePermissions: true
+      })
+    );
+    expect(upsertSkillActorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'stale_consumer_actor',
+        permissions: [],
+        overridePermissions: true
+      })
+    );
   });
 
   it('blocks consumer shares to profiles outside shared groups', async () => {
