@@ -1,12 +1,9 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
-import {
-  db,
-  type Consumer,
-  type OrganizationActor,
-  type OrganizationMember
-} from '@metorial/db';
+import { type Consumer, type OrganizationActor, type OrganizationMember } from '@metorial/db';
 import type { AnyAccessTagSelector } from '@metorial/module-access';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import {
+  resolveResourceScopeForOwner,
+  resourceActorService
+} from '@metorial/module-resource-tenant';
 
 let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
 
@@ -47,35 +44,24 @@ export let getInstanceCargoActorInput = (ctx: InstanceCargoAccessContext) => {
 };
 
 export let getInstanceCargoAccess = async (ctx: InstanceCargoAccessContext) => {
-  let instance = await db.instance.findUnique({
-    where: {
+  let scope = await resolveResourceScopeForOwner({
+    type: 'instance',
+    instance: {
       id: ctx.instance.id
-    },
-    include: {
-      resourceTenant: true,
-      resourceGroup: true
     }
   });
-
-  if (!instance?.resourceTenant || !instance.resourceGroup) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'The instance is not linked to a Cargo resource scope'
-      })
-    );
-  }
 
   let actorInput = getInstanceCargoActorInput(ctx);
   let actor = actorInput
     ? await resourceActorService.upsertActor({
-        resourceTenant: instance.resourceTenant,
+        resourceTenant: scope.resourceTenant,
         input: actorInput
       })
     : undefined;
 
   return {
-    resourceTenant: instance.resourceTenant,
-    resourceGroup: instance.resourceGroup,
+    resourceTenant: scope.resourceTenant,
+    resourceGroup: scope.resourceGroup,
     actor,
     actorId: actor?.id,
     accessTags: hasInstanceConsumerAccess(ctx) ? ctx.accessTags : undefined,

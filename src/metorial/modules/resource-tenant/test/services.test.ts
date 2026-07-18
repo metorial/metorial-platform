@@ -17,6 +17,7 @@ let mocks = vi.hoisted(() => ({
   },
   resourceActor: {
     create: vi.fn(),
+    upsert: vi.fn(),
     update: vi.fn(),
     findFirst: vi.fn()
   },
@@ -146,13 +147,13 @@ describe('resource tenant services', () => {
     });
   });
 
-  it('creates and looks up actors within their tenant', async () => {
-    mocks.resourceActor.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+  it('atomically upserts and looks up actors within their tenant', async () => {
+    mocks.resourceActor.findFirst.mockResolvedValueOnce({
       oid: 3n,
       id: 'crg_ta_1'
     });
     mocks.generateId.mockResolvedValue('crg_ta_1');
-    mocks.resourceActor.create.mockResolvedValue({ oid: 3n, id: 'crg_ta_1' });
+    mocks.resourceActor.upsert.mockResolvedValue({ oid: 3n, id: 'crg_ta_1' });
 
     await resourceActorService.upsertActor({
       resourceTenant: { oid: 1n, id: 'crg_tn_1' },
@@ -166,8 +167,20 @@ describe('resource tenant services', () => {
       actorId: 'crg_ta_1'
     });
 
-    expect(mocks.resourceActor.create).toHaveBeenCalledWith({
-      data: {
+    expect(mocks.resourceActor.upsert).toHaveBeenCalledWith({
+      where: {
+        resourceTenantOid_identifier: {
+          resourceTenantOid: 1n,
+          identifier: 'actor-one'
+        }
+      },
+      update: {
+        type: undefined,
+        name: 'Actor One',
+        organizationActorOid: undefined,
+        consumerOid: undefined
+      },
+      create: {
         id: 'crg_ta_1',
         resourceTenantOid: 1n,
         identifier: 'actor-one',
@@ -181,6 +194,43 @@ describe('resource tenant services', () => {
       where: {
         resourceTenantOid: 1n,
         OR: [{ id: 'crg_ta_1' }, { identifier: 'crg_ta_1' }]
+      }
+    });
+  });
+
+  it('preserves explicit actor ID compatibility', async () => {
+    mocks.resourceActor.findFirst.mockResolvedValue({
+      oid: 3n,
+      id: 'crg_ta_1',
+      type: 'system'
+    });
+    mocks.resourceActor.update.mockResolvedValue({ oid: 3n, id: 'crg_ta_1' });
+
+    await resourceActorService.upsertActor({
+      resourceTenant: { oid: 1n, id: 'crg_tn_1' },
+      input: {
+        id: 'crg_ta_1',
+        identifier: 'actor-one',
+        name: 'Actor One'
+      }
+    });
+
+    expect(mocks.resourceActor.findFirst).toHaveBeenCalledWith({
+      where: {
+        resourceTenantOid: 1n,
+        OR: [{ id: 'crg_ta_1' }, { identifier: 'actor-one' }]
+      }
+    });
+    expect(mocks.resourceActor.update).toHaveBeenCalledWith({
+      where: {
+        id: 'crg_ta_1'
+      },
+      data: {
+        identifier: 'actor-one',
+        type: 'system',
+        name: 'Actor One',
+        organizationActorOid: undefined,
+        consumerOid: undefined
       }
     });
   });
@@ -216,5 +266,129 @@ describe('resource tenant services', () => {
     });
 
     expect(mocks.user.update).not.toHaveBeenCalled();
+  });
+
+  it('provisions and links a missing instance scope', async () => {
+    let resourceTenant = { oid: 1n, id: 'crg_tn_1' };
+    let resourceGroup = {
+      oid: 2n,
+      id: 'crg_en_1',
+      resourceTenant
+    };
+
+    mocks.instance.findUnique
+      .mockResolvedValueOnce({
+        resourceTenantOid: null,
+        resourceGroupOid: null
+      })
+      .mockResolvedValueOnce({
+        oid: 3n,
+        id: 'ins_1',
+        name: 'Production',
+        type: 'production',
+        projectOid: 4n,
+        project: {
+          oid: 4n,
+          name: 'Project One'
+        }
+      });
+    mocks.resourceTenant.upsert.mockResolvedValue(resourceTenant);
+    mocks.resourceGroup.findFirst.mockResolvedValue(null);
+    mocks.resourceGroup.upsert.mockResolvedValue(resourceGroup);
+    mocks.generateId.mockResolvedValueOnce('crg_tn_1').mockResolvedValueOnce('crg_en_1');
+
+    await expect(
+      resolveResourceScopeForOwner({
+        type: 'instance',
+        instance: { id: 'ins_1' }
+      })
+    ).resolves.toEqual({
+      resourceTenant,
+      resourceGroup
+    });
+
+    expect(mocks.resourceTenant.upsert).toHaveBeenCalledWith({
+      where: {
+        identifier: 'mte-pro-4'
+      },
+      update: {
+        name: 'Project One'
+      },
+      create: {
+        id: 'crg_tn_1',
+        identifier: 'mte-pro-4',
+        name: 'Project One'
+      }
+    });
+    expect(mocks.resourceGroup.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          resourceTenantOid_identifier: {
+            resourceTenantOid: 1n,
+            identifier: 'mte-ins-3'
+          }
+        }
+      })
+    );
+    expect(mocks.project.update).toHaveBeenCalledWith({
+      where: { oid: 4n },
+      data: { resourceTenantOid: 1n }
+    });
+    expect(mocks.instance.update).toHaveBeenCalledWith({
+      where: { oid: 3n },
+      data: {
+        resourceTenantOid: 1n,
+        resourceGroupOid: 2n
+      }
+    });
+  });
+
+  it('repairs a dangling instance scope link', async () => {
+    let resourceTenant = { oid: 10n, id: 'crg_tn_10' };
+    let resourceGroup = {
+      oid: 20n,
+      id: 'crg_en_20',
+      resourceTenant
+    };
+
+    mocks.instance.findUnique
+      .mockResolvedValueOnce({
+        resourceTenantOid: 90n,
+        resourceGroupOid: 91n
+      })
+      .mockResolvedValueOnce({
+        oid: 30n,
+        id: 'ins_30',
+        name: 'Development',
+        type: 'development',
+        projectOid: 40n,
+        project: {
+          oid: 40n,
+          name: 'Project Forty'
+        }
+      });
+    mocks.resourceTenant.findUnique.mockResolvedValue(null);
+    mocks.resourceGroup.findFirst.mockResolvedValue(null);
+    mocks.resourceTenant.upsert.mockResolvedValue(resourceTenant);
+    mocks.resourceGroup.upsert.mockResolvedValue(resourceGroup);
+    mocks.generateId.mockResolvedValueOnce('crg_tn_10').mockResolvedValueOnce('crg_en_20');
+
+    await expect(
+      resolveResourceScopeForOwner({
+        type: 'instance',
+        instance: { id: 'ins_30' }
+      })
+    ).resolves.toEqual({
+      resourceTenant,
+      resourceGroup
+    });
+
+    expect(mocks.instance.update).toHaveBeenCalledWith({
+      where: { oid: 30n },
+      data: {
+        resourceTenantOid: 10n,
+        resourceGroupOid: 20n
+      }
+    });
   });
 });

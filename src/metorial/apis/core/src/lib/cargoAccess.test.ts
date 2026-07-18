@@ -1,20 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { findInstanceMock, upsertActorMock } = vi.hoisted(() => ({
-  findInstanceMock: vi.fn(),
+let { resolveResourceScopeMock, upsertActorMock } = vi.hoisted(() => ({
+  resolveResourceScopeMock: vi.fn(),
   upsertActorMock: vi.fn()
 }));
 
 vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveResourceScopeForOwner: resolveResourceScopeMock,
   resourceActorService: {
     upsertActor: upsertActorMock
-  }
-}));
-vi.mock('@metorial/db', () => ({
-  db: {
-    instance: {
-      findUnique: findInstanceMock
-    }
   }
 }));
 
@@ -23,6 +17,10 @@ import {
   getInstanceCargoActorInput,
   hasInstanceConsumerAccess
 } from './cargoAccess';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('cargoAccess', () => {
   it('treats consumer-only requests as consumer-scoped', () => {
@@ -97,9 +95,9 @@ describe('cargoAccess', () => {
     });
   });
 
-  it('passes consumer access tags into native Cargo authorization', async () => {
+  it('lazily resolves the instance scope and passes consumer access tags', async () => {
     let accessTags = [{ accessTagOid: 3n }];
-    findInstanceMock.mockResolvedValue({
+    resolveResourceScopeMock.mockResolvedValue({
       resourceTenant: { oid: 4n, id: 'rtn_1' },
       resourceGroup: { oid: 5n, id: 'rgr_1' }
     });
@@ -120,6 +118,18 @@ describe('cargoAccess', () => {
       accessTags
     });
 
+    expect(resolveResourceScopeMock).toHaveBeenCalledWith({
+      type: 'instance',
+      instance: { id: 'ins_1' }
+    });
+    expect(upsertActorMock).toHaveBeenCalledWith({
+      resourceTenant: { oid: 4n, id: 'rtn_1' },
+      input: {
+        identifier: 'mte-con-con_1',
+        name: 'Portal Consumer',
+        consumerOid: 1n
+      }
+    });
     expect(access).toEqual({
       resourceTenant: { oid: 4n, id: 'rtn_1' },
       resourceGroup: { oid: 5n, id: 'rgr_1' },
@@ -128,6 +138,38 @@ describe('cargoAccess', () => {
       accessTags,
       defaultPermissions: undefined,
       overridePermissions: undefined
+    });
+  });
+
+  it('preserves full Cargo access for organization members', async () => {
+    resolveResourceScopeMock.mockResolvedValue({
+      resourceTenant: { oid: 4n, id: 'rtn_1' },
+      resourceGroup: { oid: 5n, id: 'rgr_1' }
+    });
+    upsertActorMock.mockResolvedValue({
+      oid: 6n,
+      id: 'rac_1'
+    });
+
+    let access = await getInstanceCargoAccess({
+      instance: { id: 'ins_1' },
+      member: {
+        actor: {
+          oid: 2n,
+          id: 'ora_1',
+          name: 'Organization Actor'
+        }
+      } as any
+    });
+
+    expect(access).toEqual({
+      resourceTenant: { oid: 4n, id: 'rtn_1' },
+      resourceGroup: { oid: 5n, id: 'rgr_1' },
+      actor: { oid: 6n, id: 'rac_1' },
+      actorId: 'rac_1',
+      accessTags: undefined,
+      defaultPermissions: ['content_read', 'content_write'],
+      overridePermissions: true
     });
   });
 });

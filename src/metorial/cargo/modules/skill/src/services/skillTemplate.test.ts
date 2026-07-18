@@ -31,6 +31,10 @@ vi.mock('@metorial/cargo-config/id', () => ({
   }
 }));
 
+vi.mock('@lowerdeck/id', () => ({
+  generatePlainId: vi.fn(() => 'ABCDE')
+}));
+
 vi.mock('@metorial/cargo-module-search', () => ({
   voyager: {},
   voyagerIndex: {},
@@ -154,6 +158,7 @@ describe('skillTemplateService.createSkillTemplate', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           id: 'skt_1',
+          slug: 'my-skill-template-abcde',
           storeId: 'str_1',
           storeTemplateId: 'stt_1'
         })

@@ -96,6 +96,11 @@ export type SkillTemplateResource = Prisma.SkillTemplateGetPayload<{
   items: SkillTemplateItemResource[];
 };
 
+type SkillTemplateHydrationInput = {
+  id: string;
+  storeTemplate?: unknown;
+};
+
 class SkillResourceServiceImpl {
   async ensureDelegatedSkill(skill: { id: string }) {
     let record = await db.skill.findUnique({
@@ -375,7 +380,7 @@ class SkillResourceServiceImpl {
   }
 
   async hydrateSkillTemplates(
-    templates: Array<{ id: string }>
+    templates: SkillTemplateHydrationInput[]
   ): Promise<SkillTemplateResource[]> {
     if (!templates.length) return [];
     let records = await db.skillTemplate.findMany({
@@ -387,10 +392,13 @@ class SkillResourceServiceImpl {
     });
     let byId = new Map(records.map(template => [template.id, template]));
     let ordered = templates
-      .map(template => byId.get(template.id))
-      .filter((template): template is NonNullable<typeof template> => !!template);
+      .map(input => {
+        let template = byId.get(input.id);
+        return template ? { input, template } : null;
+      })
+      .filter((item): item is NonNullable<typeof item> => !!item);
     return await Promise.all(
-      ordered.map(async template => {
+      ordered.map(async ({ input, template }) => {
         let items: SkillTemplateItemResource[] = [];
         if (template.instance) {
           let [hydrated] = await subspaceSkillTemplateService.hydrateResources({
@@ -399,16 +407,31 @@ class SkillResourceServiceImpl {
           });
           items = hydrated?.items ?? [];
         }
-        return {
+        let scopedStoreTemplate =
+          input.storeTemplate && typeof input.storeTemplate === 'object'
+            ? (input.storeTemplate as { storeId?: string | null })
+            : undefined;
+        let hasScopedStoreId =
+          !!scopedStoreTemplate &&
+          Object.prototype.hasOwnProperty.call(scopedStoreTemplate, 'storeId');
+        let storeId = hasScopedStoreId
+          ? (scopedStoreTemplate?.storeId ?? null)
+          : template.storeId;
+        let localSkillTemplate = {
           ...template,
-          localSkillTemplate: template,
+          storeId
+        };
+
+        return {
+          ...localSkillTemplate,
+          localSkillTemplate,
           items
         };
       })
     );
   }
 
-  async hydrateSkillTemplate(template: { id: string }) {
+  async hydrateSkillTemplate(template: SkillTemplateHydrationInput) {
     return (await this.hydrateSkillTemplates([template]))[0]!;
   }
 }

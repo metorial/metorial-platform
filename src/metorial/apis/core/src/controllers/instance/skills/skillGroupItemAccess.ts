@@ -1,6 +1,7 @@
-import { ConsumerGroup, ConsumerProfile, db, Instance } from '@metorial/db';
+import { ConsumerGroup, ConsumerProfile, Instance } from '@metorial/db';
 import { skillService } from '@metorial/cargo-module-skill';
 import { consumerSkillService } from '@metorial/module-consumer';
+import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
 
 export let assertConsumerCanWriteSkillGroupItem = async (d: {
   instance: Instance;
@@ -10,16 +11,16 @@ export let assertConsumerCanWriteSkillGroupItem = async (d: {
 }) => {
   if (!d.consumerProfile) return;
 
-  let instance = await db.instance.findUniqueOrThrow({
-    where: { id: d.instance.id },
-    include: { resourceTenant: true, resourceGroup: true }
+  let scope = await resolveResourceScopeForOwner({
+    type: 'instance',
+    instance: {
+      id: d.instance.id
+    }
   });
-  if (!instance.resourceTenant || !instance.resourceGroup) {
-    throw new Error('Instance has no Cargo resource scope');
-  }
+
   let skill = await skillService.getSkillById({
-    resourceTenant: instance.resourceTenant,
-    resourceGroup: instance.resourceGroup,
+    resourceTenant: scope.resourceTenant,
+    resourceGroup: scope.resourceGroup,
     skillId: d.skillId,
     allowDeleted: true,
     consumerProfileOid: d.consumerProfile.oid

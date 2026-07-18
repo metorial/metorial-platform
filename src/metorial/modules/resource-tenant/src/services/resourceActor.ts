@@ -16,6 +16,32 @@ class ResourceActorServiceImpl {
       };
     }
   ) {
+    if (!d.input.id) {
+      return await db.resourceActor.upsert({
+        where: {
+          resourceTenantOid_identifier: {
+            resourceTenantOid: d.resourceTenant.oid,
+            identifier: d.input.identifier
+          }
+        },
+        update: {
+          type: d.input.type,
+          name: d.input.name,
+          organizationActorOid: d.input.organizationActorOid,
+          consumerOid: d.input.consumerOid
+        },
+        create: {
+          id: await ID.generateId('resourceActor'),
+          resourceTenantOid: d.resourceTenant.oid,
+          identifier: d.input.identifier,
+          type: d.input.type ?? 'external',
+          name: d.input.name,
+          organizationActorOid: d.input.organizationActorOid,
+          consumerOid: d.input.consumerOid
+        }
+      });
+    }
+
     let existing = d.input.id
       ? await db.resourceActor.findFirst({
           where: {
@@ -23,12 +49,7 @@ class ResourceActorServiceImpl {
             OR: [{ id: d.input.id }, { identifier: d.input.identifier }]
           }
         })
-      : await db.resourceActor.findFirst({
-          where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            identifier: d.input.identifier
-          }
-        });
+      : undefined;
 
     if (existing) {
       return await db.resourceActor.update({
