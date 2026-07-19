@@ -10,8 +10,6 @@ import {
   resolveStoreItems
 } from '@metorial/cargo-list-utils';
 import { documentService } from '@metorial/cargo-module-doc';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resourceActorService } from '@metorial/module-resource-tenant';
 import {
   type StoreAccessInput,
   storeAccessService,
@@ -20,6 +18,8 @@ import {
 } from '@metorial/cargo-module-store';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import type { SkillRecord } from './skill';
 
 export let skillAgentInclude = {
