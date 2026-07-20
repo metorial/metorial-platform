@@ -12,7 +12,7 @@ use crate::{
     manifest::{self, LoadedManifest},
     process,
     root::ProjectRoot,
-    turbo,
+    turbo, workspace,
 };
 
 pub async fn run(
@@ -23,7 +23,8 @@ pub async fn run(
     stop_docker: bool,
     dry_run: bool,
 ) -> Result<()> {
-    let manifests = manifest::discover(&project.root)?;
+    let mut manifests = manifest::discover(&project.root)?;
+    workspace::configure_manifests(project, &mut manifests)?;
     let selected = manifest::select(&manifests, selectors, &project.kind)?;
     if selected.is_empty() {
         bail!("no control.toml manifests or run commands were selected");
@@ -34,14 +35,18 @@ pub async fn run(
         let packages = turbo::plan(&selected, &project.root, &root_env)?;
         println!("root: {}", project.root.display());
         if !no_prepare {
-            println!("prepare: bun run prisma:generate");
-            println!("prepare: bun run prisma:push");
+            println!("prepare: turbo run prisma:generate");
+            println!("prepare: turbo run prisma:push");
             println!("prepare: bun run build");
         }
         for loaded in &selected {
             let cwd = loaded.path.parent().unwrap_or(&project.root);
-            for command in &loaded.manifest.prepare {
-                println!("prepare [{}]: {command}", manifest_name(loaded));
+            for script in &loaded.manifest.prepare {
+                println!(
+                    "prepare [{}]: turbo run {script} --filter={}",
+                    manifest_name(loaded),
+                    package_filter(loaded)
+                );
             }
             for (name, run) in &loaded.manifest.run {
                 println!("dev [{}:{name}]: {}", cwd.display(), run.command);
@@ -119,7 +124,7 @@ pub async fn run(
         format!("--concurrency={}", packages.len() + 1),
     ];
     args.extend(turbo::filters(&packages));
-    let (program, command_args) = turbo_command(&project.root, args);
+    let (program, command_args) = turbo::command(&project.root, args);
     let mut turbo_env = root_env.clone();
     turbo_env.insert("TURBO_GLOBAL_WARNING_DISABLED".into(), "1".into());
     let mut child =
@@ -162,7 +167,8 @@ pub async fn run_prepare(
     selectors: &[String],
     no_docker: bool,
 ) -> Result<()> {
-    let manifests = manifest::discover(&project.root)?;
+    let mut manifests = manifest::discover(&project.root)?;
+    workspace::configure_manifests(project, &mut manifests)?;
     let selected = manifest::select(&manifests, selectors, &project.kind)?;
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
@@ -207,43 +213,75 @@ async fn prepare_workspace(
     selected: &[&LoadedManifest],
     env: &BTreeMap<String, String>,
 ) -> Result<()> {
-    // Global turbo tasks (cached) before any package-local prepare commands.
-    for (label, command) in [
-        ("Generating Prisma clients", "bun run prisma:generate"),
-        ("Pushing Prisma schemas", "bun run prisma:push"),
-        ("Building packages", "bun run build"),
+    // Workspace-wide turbo tasks (cached) before package-local prepare scripts.
+    for (label, task, concurrency) in [
+        ("Generating Prisma clients", "prisma:generate", Some(3_u32)),
+        ("Pushing Prisma schemas", "prisma:push", Some(3)),
     ] {
         println!("{label}");
-        if let Err(error) = process::shell(command, &project.root, env).await {
+        if let Err(error) = run_turbo_task(&project.root, env, task, &[], concurrency).await {
             if process::is_interrupted(&error) {
                 return Err(error);
             }
-            return Err(error).wrap_err_with(|| format!("{command} failed"));
+            return Err(error).wrap_err_with(|| format!("turbo run {task} failed"));
         }
     }
-    prepare_commands(&project.root, selected, env).await
+    // Root `build` script applies workspace filters (enterprise vs OSS).
+    println!("Building packages");
+    if let Err(error) =
+        process::run("bun", &["run".into(), "build".into()], &project.root, env).await
+    {
+        if process::is_interrupted(&error) {
+            return Err(error);
+        }
+        return Err(error).wrap_err("bun run build failed");
+    }
+    prepare_scripts(&project.root, selected, env).await
 }
 
-async fn prepare_commands(
+async fn prepare_scripts(
     root: &Path,
     manifests: &[&LoadedManifest],
     env: &BTreeMap<String, String>,
 ) -> Result<()> {
     for loaded in manifests {
-        let cwd = loaded.path.parent().unwrap_or(root);
+        let filter = package_filter(loaded);
         let manifest_env = environment::all_for_manifest(loaded, env)?;
-        for command in &loaded.manifest.prepare {
-            println!("Preparing [{}]: {command}", manifest_name(loaded));
-            if let Err(error) = process::shell(command, cwd, &manifest_env).await {
+        for script in &loaded.manifest.prepare {
+            println!("Preparing [{filter}]: turbo run {script}");
+            if let Err(error) = run_turbo_task(
+                root,
+                &manifest_env,
+                script,
+                std::slice::from_ref(&filter),
+                None,
+            )
+            .await
+            {
                 if process::is_interrupted(&error) {
                     return Err(error);
                 }
-                return Err(error)
-                    .wrap_err_with(|| format!("prepare command failed in {}", cwd.display()));
+                return Err(error).wrap_err_with(|| {
+                    format!("prepare script {script:?} failed for package {filter}")
+                });
             }
         }
     }
     Ok(())
+}
+
+async fn run_turbo_task(
+    root: &Path,
+    env: &BTreeMap<String, String>,
+    task: &str,
+    package_filters: &[String],
+    concurrency: Option<u32>,
+) -> Result<()> {
+    let args = turbo::run_args(task, package_filters, concurrency);
+    let (program, command_args) = turbo::command(root, args);
+    let mut turbo_env = env.clone();
+    turbo_env.insert("TURBO_GLOBAL_WARNING_DISABLED".into(), "1".into());
+    process::run(&program, &command_args, root, &turbo_env).await
 }
 
 async fn cleanup(
@@ -275,23 +313,16 @@ async fn cleanup(
 }
 
 fn manifest_name(loaded: &LoadedManifest) -> String {
+    package_filter(loaded)
+}
+
+fn package_filter(loaded: &LoadedManifest) -> String {
     loaded
         .manifest
         .package
         .as_ref()
         .map(|package| package.name.clone())
         .unwrap_or_else(|| loaded.path.display().to_string())
-}
-
-fn turbo_command(root: &Path, args: Vec<String>) -> (String, Vec<String>) {
-    let local = root.join("node_modules/.bin/turbo");
-    if local.is_file() {
-        (local.to_string_lossy().into(), args)
-    } else {
-        let mut bun_args = vec!["x".into(), "turbo".into()];
-        bun_args.extend(args);
-        ("bun".into(), bun_args)
-    }
 }
 
 fn spinner(message: &str) -> ProgressBar {

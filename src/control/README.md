@@ -32,10 +32,10 @@ target/release/control prepare --no-docker
 target/release/control env
 target/release/control cleanup --dry-run
 target/release/control docker stop
-target/release/control workspace create feature/my-change
+target/release/control workspace create feature/my-change --runtime=docker
 target/release/control workspace list
 target/release/control workspace remove feature/my-change
-target/release/control workspace dev
+target/release/control workspace start
 target/release/control workspace stop feature/my-change
 ```
 
@@ -58,7 +58,7 @@ mode = "both"
 # Strings are literals. `true` inherits the key from root env.json or the
 # process environment when present.
 [dev]
-prepare = ["bun run frontend:build"]
+prepare = ["frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
@@ -86,27 +86,35 @@ stop = true
 paths = ["dist", ".cache"]
 ```
 
-Workspace-wide Prisma generation, schema push, and `bun run build` are always
-run by Control before package-local `prepare` commands (via the root
-`prisma:generate`, `prisma:push`, and `build` scripts, which use Turbo for
-caching). Root `control.toml` files may still declare `mode` so they participate
-in selection; they no longer need a `prepare = ["bun run build"]` entry.
+Workspace-wide Prisma generation and schema push are always run by Control via
+Turbo (`prisma:generate`, `prisma:push`) before package-local `prepare` scripts.
+The root `build` script is then run (also Turbo, with enterprise/OSS filters).
+Root `control.toml` files may still declare `mode` so they participate in
+selection; they no longer need a `prepare = ["build"]` entry.
 
-Package-local `prepare` should only contain package-specific steps (for example
-`frontend:build` or `admin:build`), not Prisma or the global build.
+Package-local `prepare` entries are package.json script names (for example
+`frontend:build` or `admin:build`). Control runs each as
+`turbo run <script> --filter=<package>` so Turbo caching applies. Do not put
+Prisma or the global build in package-local prepare.
 
 The repository's `name`/`group`/`dev` schema is preferred. An extended schema
 is also accepted for external projects: `[package]`, `[env]`,
 `[postgres.NAME]`, `[mongo.NAME]`, `[run.NAME]`, and `[groups]`. Detailed
 environment values can use `{ from = "TOKEN", default = "" }`.
 
-Commands are intentionally shell strings. Control invokes `/bin/sh -eu -c` on
-Unix and `cmd.exe /D /S /C` on Windows.
+`run` and `cleanup` commands are intentionally shell strings. Control invokes
+`/bin/sh -eu -c` on Unix and `cmd.exe /D /S /C` on Windows. Package-local
+`prepare` entries are npm script names, not shell commands.
 
 Literal, inherited, and default environment values support the strict
 `{{HOSTNAME}}` template. It resolves from `METORIAL_HOSTNAME` and unknown or
-unclosed templates are errors. Native development defaults it to `localhost`;
-Docker workspaces use their branch-derived `<branch>.localhost` hostname.
+unclosed templates are errors. Dependency URLs can use
+`{{CONTROL_PORT_POSTGRES}}`, `{{CONTROL_PORT_MONGO}}`,
+`{{CONTROL_PORT_REDIS}}`, `{{CONTROL_PORT_NATS}}`,
+`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
+checkouts receive the standard development ports; host workspaces receive their
+persisted allocation. Native development defaults the hostname to `localhost`;
+workspaces use their branch-derived `<branch>.localhost` hostname.
 
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
@@ -116,10 +124,10 @@ environment.
 databases idempotently, writes package-local `.env` files, then prepares the
 workspace in this order:
 
-1. `bun run prisma:generate` (Turbo, all packages)
-2. `bun run prisma:push` (Turbo, all packages)
-3. `bun run build` (Turbo via the root build script)
-4. package-local `control.toml` prepare commands
+1. `turbo run prisma:generate` (all packages)
+2. `turbo run prisma:push` (all packages)
+3. `bun run build` (Turbo via the root build script, with workspace filters)
+4. package-local `control.toml` prepare scripts via `turbo run <script> --filter=<package>`
 
 It then generates an isolated `.control/dev` Turbo workspace with one mirror
 package per run command and invokes Turbo directly with explicit filters.
@@ -136,31 +144,67 @@ MongoDB follows the same rule using `mongosh`; an empty database receives a
 sequence without starting Turbo or any application processes. It starts
 declared dependencies unless `--no-docker` is passed.
 
-`control workspace create BRANCH` creates a sibling worktree. Enterprise mode
-creates the enterprise worktree and a paired OSS worktree at its `oss/` path.
-It then starts a persistent Ubuntu development container and a private
-dependency stack. The first initialization runs `bun install`, builds Control,
-and runs `control prepare --no-docker` inside the container (prisma generate,
-prisma push, build, and package prepare). After setup it opens `/workspace`
-through VS Code's Dev Containers extension unless `--no-open` is passed.
+`control workspace create BRANCH --runtime=host|docker` creates a sibling
+worktree. The runtime flag is required and is stored in
+`.control/workspace.json`. Enterprise mode creates the enterprise worktree and
+a paired OSS worktree at its `oss/` path. Both runtimes run `bun install`, build
+Control, and run the normal preparation sequence during first initialization.
 Application services are not started.
+
+Docker workspaces perform setup inside a persistent Ubuntu development
+container. Host workspaces perform setup directly on the host and generate an
+isolated dependency stack at `.control/services.docker-compose.yml`. Its
+Postgres, MongoDB, Redis, NATS, and etcd host ports are allocated once and
+persisted in workspace metadata. Containers, networks, volumes, and ports are
+therefore independent between host workspaces. Application ports declared by
+`[[dev.expose]]` remain fixed, so multiple host workspaces cannot run the same
+application service concurrently.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
 `control workspace remove BRANCH` removes the matching worktree, including the
 paired OSS worktree in enterprise mode.
 
-## Docker workspaces
+## Workspace runtimes
+
+Create a workspace by choosing its execution runtime:
+
+```sh
+control workspace create feature/docker-change --runtime=docker
+control workspace create feature/host-change --runtime=host
+```
+
+Existing workspace metadata without a runtime is treated as `docker`.
+
+For a host workspace, `workspace start` starts its generated dependency stack,
+ensures host setup is current, and opens the local worktree in VS Code.
+`workspace dev` and `workspace shell` execute from the worktree on the host.
+`workspace stop` retains dependency data, while `workspace stop --volumes`
+removes it. `--rebuild` is Docker-only. Host mode requires Bun, Cargo, Docker,
+and the `code` shell command to be installed locally.
+
+When a new host workspace is created, Control starts the source checkout's
+`dev_services` Postgres service and clones every non-template user database into
+the workspace's isolated Postgres volume. The snapshot is installed once,
+before Prisma and package preparation; subsequent starts preserve
+workspace-local database changes. A dump or restore failure aborts workspace
+creation and removes the incomplete workspace. Docker workspaces do not clone
+the source databases.
+
+### Docker workspaces
 
 Prerequisites are Docker, VS Code's `code` shell command, and the
 `ms-vscode-remote.remote-containers` Dev Containers extension.
 
 ```sh
-control workspace dev
 control workspace start
+control workspace connect
+control workspace start feature/my-change
+control workspace start --rebuild
+control workspace start --no-open
+control workspace connect feature/my-change
+control workspace dev
 control workspace dev feature/my-change
-control workspace dev --rebuild
-control workspace dev --no-open
 control workspace shell
 control workspace shell feature/my-change
 control workspace stop
@@ -170,18 +214,19 @@ control workspace status
 control workspace status feature/my-change
 ```
 
-Pass a branch name to `dev`/`start`, `shell`, `stop`, or `status` to target that
-workspace from the source checkout (or any other worktree). Omit it to operate
-on the current checkout.
+Pass a branch name to `start`/`connect`, `dev`, `shell`, `stop`, or `status` to
+target that workspace from the source checkout (or any other worktree). Omit it
+to operate on the current checkout.
 
 The command builds an Ubuntu 24.04 image containing zsh, Bun 1.2.15, Node.js
 22/npm, the globally installed `total-control` launcher, Go 1.25, Rust 1.91.1,
 Air, and native build tools. It bind mounts the worktree at `/workspace`.
-`workspace dev` and its `workspace start` alias start the dependency stack and
-idle container, open a VS Code window attached to the named container, and
-return. Start the desired application services manually from VS Code's zsh
-terminal with `control dev`. Control detects the workspace container and reuses
-its managed dependencies instead of trying to launch Docker there.
+`workspace start` and its `workspace connect` alias start the dependency stack
+and idle container, open a VS Code window attached to the named container, and
+return. `workspace dev` ensures the container is running and then executes
+`bun control` inside it (so you can start application services with the Control
+CLI from the host). Control detects the workspace container and reuses its
+managed dependencies instead of trying to launch Docker there.
 
 VS Code installs the server version matching the host editor on first attach.
 The server directory is a workspace-scoped persistent volume, so normal
@@ -222,6 +267,6 @@ host — including Tailscale MagicDNS — and injected into the container with
 
 Every workspace owns persistent Postgres, MongoDB, Redis, NATS, and etcd
 services. `workspace stop` stops both the workspace container and dependencies
-without removing containers or volumes. `workspace dev` or `workspace start`
+without removing containers or volumes. `workspace start` or `workspace connect`
 resumes them. `workspace stop --volumes` explicitly removes the container,
 compiler/dependency/VS Code volumes, and dependency data.

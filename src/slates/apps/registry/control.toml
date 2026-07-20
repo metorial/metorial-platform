@@ -2,7 +2,7 @@ name = "@metorial/slates-registry"
 group = "oss"
 
 [dev]
-prepare = ["bun run admin:build"]
+prepare = ["admin:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
@@ -20,7 +20,7 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:36379/0"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
 OBJECT_STORAGE_URL = "http://services:52010"
 PACKAGE_BUCKET_NAME = "package-bucket"
 NPM_REGISTRY_URL = "https://registry.npmjs.org"

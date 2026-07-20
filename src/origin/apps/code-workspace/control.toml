@@ -2,7 +2,7 @@ name = "@metorial/code-workspace"
 group = "oss"
 
 [dev]
-prepare = ["./setup.sh"]
+prepare = ["setup_vscode"]
 run = ["vite --port 3302 --host 0.0.0.0"]
 
 [[dev.expose]]

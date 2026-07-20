@@ -263,6 +263,31 @@ pub fn filters(packages: &[TurboPackage]) -> Vec<String> {
         .collect()
 }
 
+/// Resolve the Turbo binary: local `node_modules/.bin/turbo` when present, else `bun x turbo`.
+pub fn command(root: &Path, args: Vec<String>) -> (String, Vec<String>) {
+    let local = root.join("node_modules/.bin/turbo");
+    if local.is_file() {
+        (local.to_string_lossy().into(), args)
+    } else {
+        let mut bun_args = vec!["x".into(), "turbo".into()];
+        bun_args.extend(args);
+        ("bun".into(), bun_args)
+    }
+}
+
+/// Build `turbo run <task> --ui=stream ...` args, optionally filtered to packages.
+pub fn run_args(task: &str, package_filters: &[String], concurrency: Option<u32>) -> Vec<String> {
+    let mut args = vec!["run".into(), task.into(), "--ui=stream".into()];
+    if let Some(concurrency) = concurrency {
+        args.push(format!("--concurrency={concurrency}"));
+    }
+    for package in package_filters {
+        args.push("--filter".into());
+        args.push(package.clone());
+    }
+    args
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -309,11 +334,7 @@ mod tests {
         let temp = tempdir().unwrap();
         let manifest = temp.path().join("control.toml");
         fs::write(temp.path().join("package.json"), "{}").unwrap();
-        fs::write(
-            &manifest,
-            "name='@metorial/api'\n[dev]\nrun=['bun dev']",
-        )
-        .unwrap();
+        fs::write(&manifest, "name='@metorial/api'\n[dev]\nrun=['bun dev']").unwrap();
         let loaded = load(&manifest).unwrap();
         let packages = plan(&[&loaded], temp.path(), &BTreeMap::new()).unwrap();
         assert_eq!(packages.len(), 1);
@@ -321,5 +342,28 @@ mod tests {
         let workspace = temp.path().join(".control/dev");
         generate(&workspace, &packages).unwrap();
         assert!(workspace.join("packages/api/package.json").is_file());
+    }
+
+    #[test]
+    fn run_args_include_task_filters_and_concurrency() {
+        assert_eq!(
+            run_args("frontend:build", &["@metorial/ares".into()], None),
+            vec![
+                "run".to_string(),
+                "frontend:build".to_string(),
+                "--ui=stream".to_string(),
+                "--filter".to_string(),
+                "@metorial/ares".to_string(),
+            ]
+        );
+        assert_eq!(
+            run_args("prisma:generate", &[], Some(3)),
+            vec![
+                "run".to_string(),
+                "prisma:generate".to_string(),
+                "--ui=stream".to_string(),
+                "--concurrency=3".to_string(),
+            ]
+        );
     }
 }

@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, fmt, path::Path, process::Stdio, time::Duration};
 
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::process::{Child, Command};
 
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(15);
@@ -109,6 +109,130 @@ pub async fn run_with_input(
         );
     }
     Ok(())
+}
+
+pub async fn pipe(
+    source_program: &str,
+    source_args: &[String],
+    target_program: &str,
+    target_args: &[String],
+    cwd: &Path,
+    env: &BTreeMap<String, String>,
+) -> Result<()> {
+    let mut source_command = command(source_program, source_args, cwd, env);
+    isolate(&mut source_command);
+    let mut source = source_command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not launch {source_program}"))?;
+    let source_pid = source.id();
+
+    let mut target_command = command(target_program, target_args, cwd, env);
+    isolate(&mut target_command);
+    let mut target = match target_command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+    {
+        Ok(target) => target,
+        Err(error) => {
+            cancel_child_tree(&mut source).await;
+            return Err(error)
+                .into_diagnostic()
+                .wrap_err_with(|| format!("could not launch {target_program}"));
+        }
+    };
+    let target_pid = target.id();
+
+    let mut source_stdout = source
+        .stdout
+        .take()
+        .expect("source stdout was configured as piped");
+    let mut source_stderr = source
+        .stderr
+        .take()
+        .expect("source stderr was configured as piped");
+    let mut target_stdin = target
+        .stdin
+        .take()
+        .expect("target stdin was configured as piped");
+    let mut target_stderr = target
+        .stderr
+        .take()
+        .expect("target stderr was configured as piped");
+
+    let transfer = async move {
+        let copy = async move {
+            tokio::io::copy(&mut source_stdout, &mut target_stdin)
+                .await
+                .into_diagnostic()
+                .wrap_err("could not stream piped process output")?;
+            target_stdin
+                .shutdown()
+                .await
+                .into_diagnostic()
+                .wrap_err("could not close piped process input")?;
+            drop(target_stdin);
+            Ok::<_, miette::Report>(())
+        };
+        let source_errors = async {
+            let mut output = Vec::new();
+            source_stderr
+                .read_to_end(&mut output)
+                .await
+                .into_diagnostic()?;
+            Ok::<_, miette::Report>(output)
+        };
+        let target_errors = async {
+            let mut output = Vec::new();
+            target_stderr
+                .read_to_end(&mut output)
+                .await
+                .into_diagnostic()?;
+            Ok::<_, miette::Report>(output)
+        };
+        let (copy, source_errors, target_errors) = tokio::join!(copy, source_errors, target_errors);
+        let source_status = source.wait().await.into_diagnostic()?;
+        let target_status = target.wait().await.into_diagnostic()?;
+        copy?;
+        let source_errors = source_errors?;
+        let target_errors = target_errors?;
+        if !source_status.success() {
+            bail!(
+                "{source_program} failed: {}",
+                String::from_utf8_lossy(&source_errors).trim()
+            );
+        }
+        if !target_status.success() {
+            bail!(
+                "{target_program} failed: {}",
+                String::from_utf8_lossy(&target_errors).trim()
+            );
+        }
+        Ok(())
+    };
+    tokio::pin!(transfer);
+    tokio::select! {
+        biased;
+        signal = tokio::signal::ctrl_c() => {
+            signal.into_diagnostic()?;
+            if let Some(pid) = source_pid {
+                force_kill_process_group(pid).await;
+            }
+            if let Some(pid) = target_pid {
+                force_kill_process_group(pid).await;
+            }
+            let _ = transfer.await;
+            Err(Interrupted.into())
+        }
+        result = &mut transfer => result,
+    }
 }
 
 async fn captured_output(child: Child) -> Result<std::process::Output> {
@@ -341,5 +465,65 @@ fn shell_invocation(script: &str) -> (&'static str, Vec<String>) {
     #[cfg(not(windows))]
     {
         ("/bin/sh", vec!["-eu".into(), "-c".into(), script.into()])
+    }
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn pipes_binary_output_between_processes() {
+        let temp = tempdir().unwrap();
+        pipe(
+            "/bin/sh",
+            &["-c".into(), "printf '\\001\\002\\003data'".into()],
+            "/bin/sh",
+            &["-c".into(), "cat > output.bin".into()],
+            temp.path(),
+            &Default::default(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            std::fs::read(temp.path().join("output.bin")).unwrap(),
+            b"\x01\x02\x03data"
+        );
+    }
+
+    #[tokio::test]
+    async fn reports_a_failing_pipe_target() {
+        let temp = tempdir().unwrap();
+        let error = pipe(
+            "/bin/sh",
+            &["-c".into(), "printf data".into()],
+            "/bin/sh",
+            &[
+                "-c".into(),
+                "cat >/dev/null; echo restore-failed >&2; exit 7".into(),
+            ],
+            temp.path(),
+            &Default::default(),
+        )
+        .await
+        .unwrap_err();
+        assert!(format!("{error:?}").contains("restore-failed"));
+    }
+
+    #[tokio::test]
+    async fn reports_a_failing_pipe_source() {
+        let temp = tempdir().unwrap();
+        let error = pipe(
+            "/bin/sh",
+            &["-c".into(), "echo dump-failed >&2; exit 9".into()],
+            "/bin/sh",
+            &["-c".into(), "cat >/dev/null".into()],
+            temp.path(),
+            &Default::default(),
+        )
+        .await
+        .unwrap_err();
+        assert!(format!("{error:?}").contains("dump-failed"));
     }
 }

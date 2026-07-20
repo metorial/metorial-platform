@@ -60,6 +60,12 @@
         "VITE_*"
       ]
     },
+    "admin:build": {
+      "dependsOn": [
+        "^build",
+        "^admin:build"
+      ]
+    },
     "deploy:only": {
       "env": [
         "SENTRY_AUTH_TOKEN",

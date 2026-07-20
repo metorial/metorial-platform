@@ -85,6 +85,8 @@ entryPoints:
     address: ':52040'
   port-52041:
     address: ':52041'
+  port-52042:
+    address: ':52042'
   port-52045:
     address: ':52045'
   port-52046:

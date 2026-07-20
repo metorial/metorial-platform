@@ -41,6 +41,7 @@ const URL_COMPONENT: &AsciiSet = &CONTROLS
 use crate::{
     manifest::{EnvSpec, EnvValue, LoadedManifest, Mongo, Postgres},
     root::{ProjectRoot, RootKind},
+    workspace::{self, WorkspaceRuntime},
 };
 
 pub fn root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String>> {
@@ -83,6 +84,36 @@ pub fn root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String
         "NODE_ENV".into(),
         env::var("NODE_ENV").unwrap_or_else(|_| "development".into()),
     );
+    for (key, value) in [
+        ("CONTROL_PORT_POSTGRES", 35432),
+        ("CONTROL_PORT_MONGO", 32707),
+        ("CONTROL_PORT_REDIS", 36379),
+        ("CONTROL_PORT_NATS", 34222),
+        ("CONTROL_PORT_ETCD_CLIENT", 32379),
+        ("CONTROL_PORT_ETCD_PEER", 32380),
+    ] {
+        output
+            .entry(key.into())
+            .or_insert_with(|| value.to_string());
+    }
+    if let Some(metadata) = workspace::metadata_if_present(&project.root)?
+        && metadata.runtime == WorkspaceRuntime::Host
+    {
+        let ports = metadata
+            .service_ports
+            .ok_or_else(|| miette::miette!("host workspace metadata is missing service_ports"))?;
+        output.insert("METORIAL_HOSTNAME".into(), metadata.hostname);
+        for (key, value) in [
+            ("CONTROL_PORT_POSTGRES", ports.postgres),
+            ("CONTROL_PORT_MONGO", ports.mongo),
+            ("CONTROL_PORT_REDIS", ports.redis),
+            ("CONTROL_PORT_NATS", ports.nats),
+            ("CONTROL_PORT_ETCD_CLIENT", ports.etcd_client),
+            ("CONTROL_PORT_ETCD_PEER", ports.etcd_peer),
+        ] {
+            output.insert(key.into(), value.to_string());
+        }
+    }
     Ok(output)
 }
 
@@ -130,10 +161,34 @@ pub fn resolve(
             EnvValue::Detailed(spec) => resolve_spec(key, spec, root_values)?,
         };
         if let Some(resolved) = resolved {
-            output.insert(key.clone(), interpolate(&resolved, root_values)?);
+            let interpolated = interpolate(&resolved, root_values)?;
+            output.insert(
+                key.clone(),
+                remap_legacy_dependency_ports(&interpolated, root_values),
+            );
         }
     }
     Ok(output)
+}
+
+fn remap_legacy_dependency_ports(value: &str, root_values: &BTreeMap<String, String>) -> String {
+    let mut output = value.to_string();
+    for (default, key) in [
+        (35432, "CONTROL_PORT_POSTGRES"),
+        (32707, "CONTROL_PORT_MONGO"),
+        (36379, "CONTROL_PORT_REDIS"),
+        (34222, "CONTROL_PORT_NATS"),
+        (32379, "CONTROL_PORT_ETCD_CLIENT"),
+        (32380, "CONTROL_PORT_ETCD_PEER"),
+    ] {
+        let Some(port) = root_values.get(key) else {
+            continue;
+        };
+        for host in ["localhost", "127.0.0.1"] {
+            output = output.replace(&format!("{host}:{default}"), &format!("{host}:{port}"));
+        }
+    }
+    output
 }
 
 fn interpolate(value: &str, root_values: &BTreeMap<String, String>) -> Result<String> {
@@ -146,15 +201,19 @@ fn interpolate(value: &str, root_values: &BTreeMap<String, String>) -> Result<St
             bail!("unresolved environment template in {value:?}");
         };
         let template = &remaining[..end];
-        match template {
-            "HOSTNAME" => {
-                let hostname = lookup("METORIAL_HOSTNAME", root_values).ok_or_else(|| {
-                    miette::miette!("environment template HOSTNAME is unresolved")
-                })?;
-                output.push_str(&hostname);
-            }
+        let key = match template {
+            "HOSTNAME" => "METORIAL_HOSTNAME",
+            "CONTROL_PORT_POSTGRES"
+            | "CONTROL_PORT_MONGO"
+            | "CONTROL_PORT_REDIS"
+            | "CONTROL_PORT_NATS"
+            | "CONTROL_PORT_ETCD_CLIENT"
+            | "CONTROL_PORT_ETCD_PEER" => template,
             _ => bail!("unknown environment template {template:?} in {value:?}"),
-        }
+        };
+        let resolved = lookup(key, root_values)
+            .ok_or_else(|| miette::miette!("environment template {template} is unresolved"))?;
+        output.push_str(&resolved);
         remaining = &remaining[end + 2..];
     }
     output.push_str(remaining);
@@ -437,5 +496,42 @@ mod tests {
             EnvValue::Literal("https://{{HOSTNAME}}:4310".into()),
         )]);
         assert!(resolve(&values, &BTreeMap::new()).is_err());
+    }
+
+    #[test]
+    fn interpolates_named_dependency_ports() {
+        let values = BTreeMap::from([(
+            "REDIS_URL".into(),
+            EnvValue::Literal("redis://localhost:{{CONTROL_PORT_REDIS}}/0".into()),
+        )]);
+        let roots = BTreeMap::from([("CONTROL_PORT_REDIS".into(), "45678".into())]);
+        assert_eq!(
+            resolve(&values, &roots).unwrap()["REDIS_URL"],
+            "redis://localhost:45678/0"
+        );
+    }
+
+    #[test]
+    fn remaps_legacy_local_dependency_urls_for_host_workspaces() {
+        let values = BTreeMap::from([
+            (
+                "DATABASE_URL".into(),
+                EnvValue::Literal("postgresql://postgres@127.0.0.1:35432/app".into()),
+            ),
+            (
+                "REDIS_URL".into(),
+                EnvValue::Literal("redis://localhost:36379/0".into()),
+            ),
+        ]);
+        let roots = BTreeMap::from([
+            ("CONTROL_PORT_POSTGRES".into(), "41001".into()),
+            ("CONTROL_PORT_REDIS".into(), "41003".into()),
+        ]);
+        let resolved = resolve(&values, &roots).unwrap();
+        assert_eq!(
+            resolved["DATABASE_URL"],
+            "postgresql://postgres@127.0.0.1:41001/app"
+        );
+        assert_eq!(resolved["REDIS_URL"], "redis://localhost:41003/0");
     }
 }

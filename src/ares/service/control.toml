@@ -2,7 +2,7 @@ name = "@metorial/ares"
 group = "oss"
 
 [dev]
-prepare = ["bun run frontend:build"]
+prepare = ["frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
@@ -23,7 +23,7 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:36379/0"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
 RELAY_URL = "http://services:52110/metorial-relay"
 ARES_AUTH_URL = "http://{{HOSTNAME}}:52120"
 ARES_ADMIN_URL = "http://{{HOSTNAME}}:52121"

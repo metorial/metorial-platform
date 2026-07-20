@@ -125,7 +125,11 @@ fn add_db_project(
 
 fn compose_prefix(compose: &Path) -> Vec<String> {
     let mut args = vec!["compose".into()];
-    if compose.file_name().and_then(|name| name.to_str()) == Some("services.docker-compose.yml") {
+    if compose.file_name().and_then(|name| name.to_str()) == Some("services.docker-compose.yml")
+        && !compose
+            .components()
+            .any(|component| component.as_os_str() == ".control")
+    {
         args.extend(["--project-name".into(), "dev_services".into()]);
     }
     args.extend(["--file".into(), compose.to_string_lossy().into()]);

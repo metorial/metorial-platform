@@ -2,7 +2,7 @@ name = "@metorial-subspace/app-public"
 group = "oss"
 
 [dev]
-prepare = ["bun run frontend:build"]
+prepare = ["frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
@@ -14,7 +14,7 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:36379/0"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
 NATS_URL = "nats://localhost:34222"
 PUBLIC_SERVICE_URL = "http://{{HOSTNAME}}:52071"
 SHUTTLE_URL = "http://localhost:52080/metorial-shuttle"

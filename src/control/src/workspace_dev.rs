@@ -38,6 +38,29 @@ pub async fn open(project: &ProjectRoot) -> Result<()> {
     open_vscode(project, &metadata).await
 }
 
+/// Ensure the workspace container is running, then exec `bun control` inside it.
+pub async fn control(project: &ProjectRoot) -> Result<()> {
+    let running = ensure_running(project, false).await?;
+    bootstrap(project, &running).await?;
+    process::run(
+        "docker",
+        &[
+            "exec".into(),
+            "--interactive".into(),
+            "--tty".into(),
+            "--workdir".into(),
+            "/workspace".into(),
+            running.name,
+            "bun".into(),
+            "control".into(),
+        ],
+        &project.root,
+        &running.environment,
+    )
+    .await
+    .wrap_err("workspace `bun control` exited unsuccessfully")
+}
+
 pub async fn shell(project: &ProjectRoot) -> Result<()> {
     let running = ensure_running(project, false).await?;
     bootstrap(project, &running).await?;
@@ -68,12 +91,7 @@ pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
     {
         docker_run(
             &project.root,
-            vec![
-                "stop".into(),
-                "--timeout".into(),
-                "20".into(),
-                name.clone(),
-            ],
+            vec!["stop".into(), "--timeout".into(), "20".into(), name.clone()],
             &environment,
         )
         .await
@@ -131,6 +149,7 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
     let metadata = workspace::metadata(project).await?;
     println!("workspace: {}", metadata.id);
     println!("branch: {}", metadata.branch);
+    println!("runtime: docker");
     println!("hostname: {}", metadata.hostname);
     let container_status = inspect_value(
         &project.root,
@@ -515,10 +534,7 @@ fn hosts_markdown(metadata: &WorkspaceMetadata, manifests: &[&LoadedManifest]) -
         lines.push("_No `[[dev.expose]]` ports declared._".into());
     } else {
         for (port, name) in entries {
-            lines.push(format!(
-                "- `{name}` — http://{}:{port}",
-                metadata.hostname
-            ));
+            lines.push(format!("- `{name}` — http://{}:{port}", metadata.hostname));
         }
     }
     lines.push(String::new());
@@ -797,6 +813,8 @@ mod tests {
             hostname: "feature-auth.localhost".into(),
             branch: "feature/auth".into(),
             source_root: "/code/metorial".into(),
+            runtime: crate::workspace::WorkspaceRuntime::Docker,
+            service_ports: None,
         }
     }
 
@@ -840,9 +858,9 @@ mod tests {
         let selected = manifests.iter().collect::<Vec<_>>();
         let markdown = hosts_markdown(&metadata, &selected);
         assert!(markdown.contains("Hostname: `feature-auth.localhost`"));
-        assert!(markdown.contains(
-            "Port 80 redirects to port 4300: http://feature-auth.localhost/"
-        ));
+        assert!(
+            markdown.contains("Port 80 redirects to port 4300: http://feature-auth.localhost/")
+        );
         assert!(markdown.contains("- `@metorial/dashboard` — http://feature-auth.localhost:4300"));
         assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4310"));
         assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4318"));

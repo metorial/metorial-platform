@@ -562,7 +562,7 @@ mod tests {
                 name = "@metorial/api"
                 group = "oss"
                 [dev]
-                prepare = ["bun generate"]
+                prepare = ["generate"]
                 run = ["bun dev"]
                 [[dev.expose]]
                 port = 4310
