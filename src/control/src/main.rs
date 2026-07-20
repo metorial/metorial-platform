@@ -18,7 +18,7 @@ use miette::{IntoDiagnostic, Result, bail};
 #[command(
     name = "control",
     version,
-    about = "Total Control. Full Dominion. All the Power.",
+    about = "Total Control. Full Dominion. All the Power."
 )]
 struct Cli {
     /// Start root detection at this directory.

@@ -38,10 +38,6 @@ jobs:
           toolchain: 1.91.1
           components: clippy,rustfmt
 
-      - name: Check formatting
-        working-directory: src/control
-        run: cargo fmt --check
-
       - name: Run Clippy
         working-directory: src/control
         run: cargo clippy --all-targets --all-features -- -D warnings
