@@ -21,7 +21,12 @@ import {
 } from '../lib/limits';
 import { enqueueSkillMarketplacePluginLifecycle } from '../queues/lifecycle';
 import type { SkillMarketplaceRecord } from './skillMarketplace';
-import { assertPluginIsNotManaged, skillPluginInclude } from './skillPlugin';
+import { skillConfigurationService } from './skillConfiguration';
+import {
+  assertPluginIsNotManaged,
+  skillPluginInclude,
+  skillPluginService
+} from './skillPlugin';
 
 export let skillMarketplacePluginInclude = {
   skillConfiguration: {
@@ -59,49 +64,6 @@ let getMarketplacePluginSlug = createSlugGenerator(
 );
 
 class SkillMarketplacePluginServiceImpl {
-  private async getSkillConfigurationOid(
-    d: ResourceScope & {
-      skillConfigurationId: string | null | undefined;
-    }
-  ) {
-    if (d.skillConfigurationId === undefined) return undefined;
-    if (d.skillConfigurationId === null) return null;
-
-    let skillConfiguration = await db.skillConfiguration.findFirst({
-      where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        id: d.skillConfigurationId
-      },
-      select: {
-        oid: true
-      }
-    });
-    if (!skillConfiguration) {
-      throw new ServiceError(notFoundError('skill.configuration', d.skillConfigurationId));
-    }
-
-    return skillConfiguration.oid;
-  }
-
-  private async getSkillPlugin(
-    d: ResourceScope & {
-      skillPluginId: string;
-    }
-  ) {
-    let skillPlugin = await db.skillPlugin.findFirst({
-      where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        id: d.skillPluginId
-      },
-      include: skillPluginInclude
-    });
-    if (!skillPlugin) throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
-
-    return skillPlugin;
-  }
-
   private async getSkillMarketplacePluginRecord(
     d: ResourceScope & {
       skillMarketplacePluginId: string;
@@ -206,7 +168,7 @@ class SkillMarketplacePluginServiceImpl {
       };
     }
   ) {
-    let skillPlugin = await this.getSkillPlugin({
+    let skillPlugin = await skillPluginService.getSkillPluginById({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       skillPluginId: d.input.skillPluginId
@@ -229,11 +191,18 @@ class SkillMarketplacePluginServiceImpl {
       },
       { skillMarketplaceId: d.skillMarketplace.id }
     );
-    let skillConfigurationOid = await this.getSkillConfigurationOid({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
-      skillConfigurationId: d.input.skillConfigurationId
-    });
+    let skillConfigurationOid =
+      d.input.skillConfigurationId === undefined
+        ? undefined
+        : d.input.skillConfigurationId === null
+          ? null
+          : (
+              await skillConfigurationService.getSkillConfigurationById({
+                resourceTenant: d.resourceTenant,
+                resourceGroup: d.resourceGroup,
+                skillConfigurationId: d.input.skillConfigurationId
+              })
+            ).oid;
 
     return await withTransaction(async db => {
       let matches = await db.skillMarketplacePlugin.findMany({

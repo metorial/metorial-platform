@@ -30,6 +30,11 @@ import {
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle';
+import { skillConfigurationService } from './skillConfiguration';
+import {
+  getSkillMarketplaceAccessWhere,
+  type SkillMarketplaceAccessInput
+} from './skillMarketplaceAccess';
 
 let skillInclude = {
   store: true,
@@ -133,31 +138,6 @@ class SkillPluginServiceImpl {
     );
   }
 
-  private async getSkillConfigurationOid(
-    d: ResourceScope & {
-      skillConfigurationId: string | null | undefined;
-    }
-  ) {
-    if (d.skillConfigurationId === undefined) return undefined;
-    if (d.skillConfigurationId === null) return null;
-
-    let skillConfiguration = await db.skillConfiguration.findFirst({
-      where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        id: d.skillConfigurationId
-      },
-      select: {
-        oid: true
-      }
-    });
-    if (!skillConfiguration) {
-      throw new ServiceError(notFoundError('skill.configuration', d.skillConfigurationId));
-    }
-
-    return skillConfiguration.oid;
-  }
-
   private async getSkillPluginRecord(
     d: ResourceScope & {
       skillPluginId: string;
@@ -194,8 +174,9 @@ class SkillPluginServiceImpl {
       category?: string;
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
-    }
+    } & SkillMarketplaceAccessInput
   ) {
+    let marketplaceAccessWhere = await getSkillMarketplaceAccessWhere(d);
     let skillPlugins = await resolveSkillPlugins(d, d.ids);
     let skillMarketplaces = await resolveSkillMarketplaces(d, d.skillMarketplaceIds);
     let skillMarketplacePlugins = await resolveSkillMarketplacePlugins(
@@ -246,12 +227,27 @@ class SkillPluginServiceImpl {
                       }
                     }
                   : undefined!,
+                marketplaceAccessWhere
+                  ? {
+                      skillMarketplacePlugins: {
+                        some: {
+                          status: activeMarketplacePluginStatus,
+                          skillMarketplace: {
+                            resourceTenantOid: d.resourceTenant.oid,
+                            resourceGroupOid: d.resourceGroup.oid,
+                            status: 'active',
+                            AND: [marketplaceAccessWhere]
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
                 { status: { in: statuses } },
                 d.category ? { category: d.category } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
-              ].filter(Boolean)
+              ].filter(Boolean) as Prisma.SkillPluginWhereInput[]
             },
             include: skillPluginInclude
           })
@@ -300,11 +296,18 @@ class SkillPluginServiceImpl {
   ) {
     this.assertName(d.input.name);
 
-    let skillConfigurationOid = await this.getSkillConfigurationOid({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
-      skillConfigurationId: d.input.skillConfigurationId
-    });
+    let skillConfigurationOid =
+      d.input.skillConfigurationId === undefined
+        ? undefined
+        : d.input.skillConfigurationId === null
+          ? null
+          : (
+              await skillConfigurationService.getSkillConfigurationById({
+                resourceTenant: d.resourceTenant,
+                resourceGroup: d.resourceGroup,
+                skillConfigurationId: d.input.skillConfigurationId
+              })
+            ).oid;
     let ownerScope = await resolveInstanceResourceScope(d);
 
     return await withTransaction(async db => {
@@ -373,11 +376,18 @@ class SkillPluginServiceImpl {
 
     if (d.input.name !== undefined) this.assertName(d.input.name);
 
-    let skillConfigurationOid = await this.getSkillConfigurationOid({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
-      skillConfigurationId: d.input.skillConfigurationId
-    });
+    let skillConfigurationOid =
+      d.input.skillConfigurationId === undefined
+        ? undefined
+        : d.input.skillConfigurationId === null
+          ? null
+          : (
+              await skillConfigurationService.getSkillConfigurationById({
+                resourceTenant: d.resourceTenant,
+                resourceGroup: d.resourceGroup,
+                skillConfigurationId: d.input.skillConfigurationId
+              })
+            ).oid;
     let nextImage = d.input.image;
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({

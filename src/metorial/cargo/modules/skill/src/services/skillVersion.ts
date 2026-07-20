@@ -10,6 +10,7 @@ import {
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
+import type { SkillRecord } from './skill';
 
 let skillVersionInclude = {
   skill: {
@@ -127,33 +128,14 @@ let toSkillVersionSnapshot = (version: SkillVersionSnapshotRecord): SkillVersion
 });
 
 class SkillVersionServiceImpl {
-  private async getSkill(d: ResourceScope & { skillId: string }) {
-    let skill = await db.skill.findFirst({
-      where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        id: d.skillId
-      },
-      select: {
-        oid: true,
-        id: true
-      }
-    });
-
-    if (!skill) throw new ServiceError(notFoundError('skill', d.skillId));
-
-    return skill;
-  }
-
   async listSkillVersions(
     d: ResourceScope & {
-      skillId: string;
+      skill: SkillRecord;
       ids?: string[];
       storeVersionIds?: string[];
       createdAt?: DateFilter;
     }
   ) {
-    let skill = await this.getSkill(d);
     let skillVersions = await resolveSkillVersions(d, d.ids);
     let storeVersions = await resolveStoreVersions(d, d.storeVersionIds);
 
@@ -163,7 +145,7 @@ class SkillVersionServiceImpl {
           await db.skillVersion.findMany({
             ...opts,
             where: {
-              skillOid: skill.oid,
+              skillOid: d.skill.oid,
               oid: skillVersions ? skillVersions.in : undefined,
               storeVersionOid: storeVersions ? storeVersions.in : undefined,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined
@@ -179,12 +161,14 @@ class SkillVersionServiceImpl {
 
   async getSkillVersionById(
     d: ResourceScope & {
+      skill: SkillRecord;
       skillVersionId: string;
     }
   ) {
     let version = await db.skillVersion.findFirst({
       where: {
         id: d.skillVersionId,
+        skillOid: d.skill.oid,
         skill: {
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid
@@ -200,7 +184,7 @@ class SkillVersionServiceImpl {
 
   async getSkillVersionSnapshot(
     d: ResourceScope & {
-      skillId: string;
+      skill: SkillRecord;
       skillVersionId: string;
     }
   ) {
@@ -210,7 +194,7 @@ class SkillVersionServiceImpl {
         skill: {
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid,
-          id: d.skillId
+          oid: d.skill.oid
         }
       },
       include: skillVersionSnapshotInclude

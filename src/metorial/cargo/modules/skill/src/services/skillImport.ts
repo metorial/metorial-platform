@@ -2,9 +2,9 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import { resourceActorService } from '@metorial/module-resource-tenant';
 import { type ResourceScope } from '@metorial/module-resource-tenant';
-import type { Prisma, SkillImportStatus } from '@metorial/db';
+import { assertResourceActorScope } from '@metorial/module-access';
+import type { Prisma, ResourceActor, SkillImportStatus } from '@metorial/db';
 import { db } from '@metorial/db';
 import { parsePublicRepositoryUrl } from '../import/publicRepository';
 import { skillImportAcquireQueue } from '../queues/import/acquire';
@@ -46,26 +46,17 @@ export type CreateSkillImportInput =
     };
 
 class SkillImportServiceImpl {
-  private async getCreatorOid(d: {
-    resourceTenant: { oid: bigint; id: string };
-    actorId?: string;
-  }) {
-    if (!d.actorId) return undefined;
-    return (
-      await resourceActorService.getActorById({
-        resourceTenant: d.resourceTenant!,
-        actorId: d.actorId
-      })
-    ).oid;
-  }
-
   async createSkillImport(
     d: ResourceScope & {
-      actorId?: string;
+      actor?: ResourceActor;
       input: CreateSkillImportInput;
     }
   ) {
-    let creatorResourceActorOid = await this.getCreatorOid(d);
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
+    let creatorResourceActorOid = d.actor?.oid;
     let repositoryName: string;
 
     if (d.input.type === 'public') {
@@ -108,12 +99,16 @@ class SkillImportServiceImpl {
 
   async listSkillImports(
     d: ResourceScope & {
-      actorId?: string;
+      actor?: ResourceActor;
       ids?: string[];
       statuses?: SkillImportStatus[];
     }
   ) {
-    let creatorResourceActorOid = await this.getCreatorOid(d);
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
+    let creatorResourceActorOid = d.actor?.oid;
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -134,11 +129,15 @@ class SkillImportServiceImpl {
 
   async getSkillImportById(
     d: ResourceScope & {
-      actorId?: string;
+      actor?: ResourceActor;
       skillImportId: string;
     }
   ) {
-    let creatorResourceActorOid = await this.getCreatorOid(d);
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
+    let creatorResourceActorOid = d.actor?.oid;
     let skillImport = await db.skillImport.findFirst({
       where: {
         id: d.skillImportId,

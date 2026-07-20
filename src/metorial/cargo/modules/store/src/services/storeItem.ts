@@ -92,13 +92,10 @@ class StoreItemServiceImpl {
   }
 
   async getStoreItemById(
-    d: ResourceScope & {
+    d: ResourceScope &
+      StoreAccessInput & {
       itemId: string;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
+      }
   ) {
     let item = await db.storeItem.findFirst({
       where: {
@@ -117,8 +114,7 @@ class StoreItemServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       item,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -128,7 +124,8 @@ class StoreItemServiceImpl {
   }
 
   async listStoreItems(
-    d: ResourceScope & {
+    d: ResourceScope &
+      StoreAccessInput & {
       ids?: string[];
       storeId: string;
       fileIds?: string[];
@@ -140,11 +137,7 @@ class StoreItemServiceImpl {
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
       types?: StoreItemKind[];
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
+      }
   ) {
     let types = d.types ?? ['file', 'document'];
     let items = await resolveStoreItems(d, d.ids);
@@ -155,13 +148,12 @@ class StoreItemServiceImpl {
     let parentDirectories = await resolveStoreDirectories(d, d.parentDirectoryIds);
     let lastModifiedByActors = await resolveResourceActors(d, d.lastModifiedByActorIds);
 
-    let accessibleStoreOids = d.actorId
+    let accessibleStoreOids = d.authorization.type === 'restricted'
       ? (
           await storeAccessService.resolveAccessibleStoreOids({
             resourceTenant: d.resourceTenant,
             resourceGroup: d.resourceGroup,
-            actorId: d.actorId,
-            accessTags: d.accessTags,
+            authorization: d.authorization,
             defaultPermissions: d.defaultPermissions,
             overridePermissions: d.overridePermissions,
             requiredPermission: storeReadPermission,

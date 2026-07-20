@@ -1,10 +1,15 @@
-import { badRequestError, forbiddenError, notFoundError, ServiceError
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import { resourceActorService } from '@metorial/module-resource-tenant';
 import { type ResourceScope } from '@metorial/module-resource-tenant';
+import { assertResourceActorScope } from '@metorial/module-access';
+import type { ResourceActor } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
@@ -72,19 +77,20 @@ class SkillMergeRequestCommentServiceImpl {
       mergeRequest: SkillMergeRequestRecord;
       itemId?: string;
       inReplyToCommentId?: string;
-      actorId: string;
+      actor: ResourceActor;
       body: string;
       path?: string | null;
     }
   ) {
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
     if (!d.body.trim()) {
       throw new ServiceError(badRequestError({ message: 'Comment body cannot be empty' }));
     }
 
-    let actor = await resourceActorService.getActorById({
-      resourceTenant: d.resourceTenant!,
-      actorId: d.actorId
-    });
+    let actor = d.actor;
     let item = d.itemId
       ? await skillMergeRequestInternalService.getSkillMergeRequestItemById({
           mergeRequest: d.mergeRequest,
@@ -161,19 +167,20 @@ class SkillMergeRequestCommentServiceImpl {
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
-      actorId: string;
+      actor: ResourceActor;
       body: string;
       canManageComments?: boolean;
     }
   ) {
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
     if (!d.body.trim()) {
       throw new ServiceError(badRequestError({ message: 'Comment body cannot be empty' }));
     }
 
-    let actor = await resourceActorService.getActorById({
-      resourceTenant: d.resourceTenant!,
-      actorId: d.actorId
-    });
+    let actor = d.actor;
     let canManageComment =
       d.comment.resourceActorOid === actor.oid ||
       (d.canManageComments === true && actor.organizationActorOid != null);
@@ -196,14 +203,15 @@ class SkillMergeRequestCommentServiceImpl {
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
-      actorId: string;
+      actor: ResourceActor;
       canManageComments?: boolean;
     }
   ) {
-    let actor = await resourceActorService.getActorById({
-      resourceTenant: d.resourceTenant!,
-      actorId: d.actorId
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
     });
+    let actor = d.actor;
     let canManageComment =
       d.comment.resourceActorOid === actor.oid ||
       (d.canManageComments === true && actor.organizationActorOid != null);

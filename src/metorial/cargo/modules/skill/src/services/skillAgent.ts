@@ -11,7 +11,6 @@ import {
 } from '@metorial/cargo-list-utils';
 import { documentService } from '@metorial/cargo-module-doc';
 import {
-  type StoreAccessInput,
   storeAccessService,
   storeService,
   storeWritePermission
@@ -19,7 +18,7 @@ import {
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import type { SkillRecord } from './skill';
 
 export let skillAgentInclude = {
@@ -110,8 +109,7 @@ class SkillAgentServiceImpl {
         name: string;
         description?: string | null;
         content?: string;
-        actorId?: string;
-        accessTags?: StoreAccessInput['accessTags'];
+        authorization: ResourceAuthorization;
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
       };
@@ -128,14 +126,14 @@ class SkillAgentServiceImpl {
     }
 
     let input = this.normalizeCreateName(d.input.name);
+    let authorization = d.input.authorization;
     let document = await documentService.createDocument({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       input: {
         title: input.name,
         content: d.input.content ?? '',
-        actorId: d.input.actorId,
-        accessTags: d.input.accessTags,
+        authorization,
         store: {
           id: d.skill.store!.id,
           path: input.path
@@ -231,8 +229,7 @@ class SkillAgentServiceImpl {
   async updateSkillAgent(
     d: ResourceScope & {
       skillAgent: SkillAgentRecord;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
       input: {
@@ -262,12 +259,12 @@ class SkillAgentServiceImpl {
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       store: d.skillAgent.skill.store!,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
     });
+    let authorization = d.authorization;
 
     await db.skillAgent.update({
       where: {
@@ -282,7 +279,8 @@ class SkillAgentServiceImpl {
     let fullDocument = await documentService.getDocumentById({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
-      documentId: d.skillAgent.document.id
+      documentId: d.skillAgent.document.id,
+      authorization
     });
 
     await documentService.updateDocument({
@@ -291,7 +289,7 @@ class SkillAgentServiceImpl {
       document: fullDocument,
       input: {
         title: name ?? d.skillAgent.name,
-        actorId: d.actorId,
+        authorization,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions
       }
@@ -307,18 +305,12 @@ class SkillAgentServiceImpl {
   async deleteSkillAgent(
     d: ResourceScope & {
       skillAgent: SkillAgentRecord;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
   ) {
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant!,
-          actorId: d.actorId
-        })
-      : undefined;
+    let actor = d.authorization.resourceActor;
 
     if (d.skillAgent.storeItem) {
       await storeService.modifyStoreItems({
@@ -332,7 +324,7 @@ class SkillAgentServiceImpl {
           }
         ],
         actor,
-        accessTags: d.accessTags,
+        authorization: d.authorization,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions
       });

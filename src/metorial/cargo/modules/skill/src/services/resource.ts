@@ -1,5 +1,9 @@
 import { Service } from '@lowerdeck/service';
-import { db, type Prisma, type ResourceActor } from '@metorial/db';
+import { db, type Prisma } from '@metorial/db';
+import {
+  resourceActorPresentationInclude,
+  type ResourceActorPresentationRecord
+} from '@metorial/module-resource-tenant';
 import {
   subspaceSkillService,
   subspaceSkillItemService,
@@ -17,7 +21,9 @@ let skillResourceInclude = {
   store: true,
   parentSkill: {
     include: {
-      createdByResourceActor: true
+      createdByResourceActor: {
+        include: resourceActorPresentationInclude
+      }
     }
   },
   parentSkillTemplate: {
@@ -27,12 +33,16 @@ let skillResourceInclude = {
     include: {
       skill: {
         include: {
-          createdByResourceActor: true
+          createdByResourceActor: {
+            include: resourceActorPresentationInclude
+          }
         }
       }
     }
   },
-  createdByResourceActor: true,
+  createdByResourceActor: {
+    include: resourceActorPresentationInclude
+  },
   instance: true
 } satisfies Prisma.SkillInclude;
 
@@ -45,12 +55,12 @@ export type SkillResource = SkillResourceBase & {
   hierarchy: {
     type: 'root' | 'fork' | 'duplicated';
     parentSkillId: string | null;
-    creator: ResourceActor | null;
+    creator: ResourceActorPresentationRecord | null;
     fork: {
       id: string;
       parentSkillId: string;
-      creator: ResourceActor | null;
-      originalCreator: ResourceActor | null;
+      creator: ResourceActorPresentationRecord | null;
+      originalCreator: ResourceActorPresentationRecord | null;
       createdAt: Date;
     } | null;
     entity: {

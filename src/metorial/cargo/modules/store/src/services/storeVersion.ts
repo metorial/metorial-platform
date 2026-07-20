@@ -620,7 +620,7 @@ class StoreVersionServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store,
-      actorId: d.actorId,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -671,7 +671,7 @@ class StoreVersionServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store: version.store,
-      actorId: d.actorId,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -696,7 +696,7 @@ class StoreVersionServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store,
-      actorId: d.actorId,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -746,7 +746,7 @@ class StoreVersionServiceImpl {
     let version = await this.getStoreVersionById({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
-      actorId: d.actorId,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       storeVersionId: d.storeVersionId

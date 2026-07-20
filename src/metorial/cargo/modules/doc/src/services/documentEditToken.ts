@@ -16,6 +16,7 @@ export type DocumentEditToken = {
 };
 
 export type DocumentEditAccessActor = {
+  resourceActorId?: string;
   identifier?: string;
   name: string;
   organizationActorOid?: bigint;
@@ -74,6 +75,7 @@ class DocumentEditTokenServiceImpl {
           ? {
               identifier: d.accessActor.identifier,
               name: d.accessActor.name,
+              resourceActorId: d.accessActor.resourceActorId,
               organizationActorOid: d.accessActor.organizationActorOid?.toString(),
               consumerOid: d.accessActor.consumerOid?.toString()
             }
@@ -148,6 +150,7 @@ class DocumentEditTokenServiceImpl {
         ? {
             identifier: claims.accessActor.identifier,
             name: claims.accessActor.name,
+            resourceActorId: claims.accessActor.resourceActorId,
             organizationActorOid: claims.accessActor.organizationActorOid
               ? BigInt(claims.accessActor.organizationActorOid)
               : undefined,

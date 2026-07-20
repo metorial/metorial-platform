@@ -2,8 +2,11 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { DateFilter } from '@metorial/cargo-list-utils';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resourceActorService } from '@metorial/module-resource-tenant';
-import type { SkillMergeRequestResolutionType, SkillMergeRequestStatus } from '@metorial/db';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import type {
+  SkillMergeRequestResolutionType,
+  SkillMergeRequestStatus
+} from '@metorial/db';
 import { db, Prisma, withTransaction } from '@metorial/db';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
@@ -31,7 +34,7 @@ class SkillMergeRequestServiceImpl {
     d: ResourceScope & {
       sourceSkillId: string;
       targetSkillId?: string;
-      actorId?: string;
+      authorization: ResourceAuthorization;
       title: string;
       description?: string | null;
     }
@@ -47,7 +50,7 @@ class SkillMergeRequestServiceImpl {
       statuses?: SkillMergeRequestStatus[];
       createdByActorIds?: string[];
       createdAt?: DateFilter;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     return await skillMergeRequestInternalService.listSkillMergeRequests(d);
@@ -56,7 +59,7 @@ class SkillMergeRequestServiceImpl {
   async getSkillMergeRequestById(
     d: ResourceScope & {
       skillMergeRequestId: string;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     return await skillMergeRequestInternalService.getSkillMergeRequestById(d);
@@ -72,7 +75,7 @@ class SkillMergeRequestServiceImpl {
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId: string;
-      actorId?: string;
+      authorization: ResourceAuthorization;
       resolutionType: SkillMergeRequestResolutionType;
       resolution?: Prisma.InputJsonValue | null;
     }
@@ -95,7 +98,7 @@ class SkillMergeRequestServiceImpl {
           resourceTenant: d.resourceTenant!,
           resourceGroup: d.resourceGroup,
           mergeRequest,
-          actorId: d.actorId
+          authorization: d.authorization
         });
         let item = await skillMergeRequestInternalService.getSkillMergeRequestItemById({
           mergeRequest,
@@ -106,7 +109,7 @@ class SkillMergeRequestServiceImpl {
           resourceGroup: d.resourceGroup,
           mergeRequest,
           item,
-          actorId: d.actorId,
+          authorization: d.authorization,
           resolutionType: d.resolutionType,
           resolution: d.resolution
         });
@@ -154,7 +157,7 @@ class SkillMergeRequestServiceImpl {
   async bulkSaveSkillMergeRequestItemResolutions(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
       items: {
         itemId: string;
         resolutionType: SkillMergeRequestResolutionType;
@@ -186,7 +189,7 @@ class SkillMergeRequestServiceImpl {
           resourceTenant: d.resourceTenant!,
           resourceGroup: d.resourceGroup,
           mergeRequest,
-          actorId: d.actorId
+          authorization: d.authorization
         });
         let items = await Promise.all(
           d.items.map(async input => ({
@@ -204,7 +207,7 @@ class SkillMergeRequestServiceImpl {
               resourceGroup: d.resourceGroup,
               mergeRequest,
               item,
-              actorId: d.actorId,
+              authorization: d.authorization,
               resolutionType: input.resolutionType,
               resolution: input.resolution
             })
@@ -260,7 +263,7 @@ class SkillMergeRequestServiceImpl {
   async performSkillMergeRequest(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     if (d.mergeRequest.status !== 'open') {
@@ -273,7 +276,7 @@ class SkillMergeRequestServiceImpl {
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
-      actorId: d.actorId
+      authorization: d.authorization
     });
 
     let updated = await skillMergeTargetLock.usingLock(
@@ -377,15 +380,10 @@ class SkillMergeRequestServiceImpl {
   async closeSkillMergeRequest(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant!,
-          actorId: d.actorId
-        })
-      : undefined;
+    let actor = d.authorization.resourceActor;
 
     return await skillMergeTargetLock.usingLock(
       d.mergeRequest.targetSkill.store!.id,
@@ -403,7 +401,7 @@ class SkillMergeRequestServiceImpl {
 
         let canCloseAsRequester = await skillMergeRequestInternalService.canCloseAsRequester({
           mergeRequest,
-          actorId: d.actorId
+          authorization: d.authorization
         });
 
         if (!canCloseAsRequester) {
@@ -411,7 +409,7 @@ class SkillMergeRequestServiceImpl {
             resourceTenant: d.resourceTenant!,
             resourceGroup: d.resourceGroup,
             mergeRequest,
-            actorId: d.actorId
+            authorization: d.authorization
           });
         }
 
@@ -456,7 +454,7 @@ class SkillMergeRequestServiceImpl {
   async rollbackSkillMergeRequest(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     return await skillMergeRequestApplyInternalService.rollbackSkillMergeRequest(d);

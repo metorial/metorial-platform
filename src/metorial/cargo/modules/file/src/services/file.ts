@@ -24,7 +24,6 @@ import {
   internalDocumentDraftService
 } from '@metorial/cargo-module-doc';
 import {
-  type StoreAccessInput,
   storeAccessService,
   storeItemMutationService,
   storeReadPermission,
@@ -33,10 +32,13 @@ import {
 import type { File, Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { getCargoFilesBucketName, getStorage } from '../storage';
-import { resourceActorService } from '@metorial/module-resource-tenant';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 
 let include = {
   purpose: true,
@@ -45,7 +47,9 @@ let include = {
       id: true
     }
   },
-  createdByResourceActor: true,
+  createdByResourceActor: {
+    include: resourceActorPresentationInclude
+  },
   resourceTenant: true,
   resourceGroup: true
 } satisfies Prisma.FileInclude;
@@ -54,8 +58,7 @@ type FileRecord = Prisma.FileGetPayload<{
   include: typeof include;
 }>;
 type FileAccessInput = {
-  actorId?: string;
-  accessTags?: StoreAccessInput['accessTags'];
+  authorization: ResourceAuthorization;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
@@ -129,8 +132,7 @@ class FileServiceImpl {
         size: number;
         title?: string;
         expiresAt?: Date;
-        actorId?: string;
-        accessTags?: StoreAccessInput['accessTags'];
+        authorization: ResourceAuthorization;
         store?: {
           id: string;
           path: string;
@@ -152,12 +154,7 @@ class FileServiceImpl {
         );
       }
 
-      let actor = d.input.actorId
-        ? await resourceActorService.getActorById({
-            resourceTenant: d.resourceTenant,
-            actorId: d.input.actorId
-          })
-        : undefined;
+      let actor = d.input.authorization.resourceActor;
 
       let existing = d.input.id
         ? await db.file.findFirst({
@@ -201,8 +198,7 @@ class FileServiceImpl {
             resourceTenant: d.resourceTenant,
             resourceGroup: d.resourceGroup,
             store,
-            actorId: d.input.actorId,
-            accessTags: d.input.accessTags,
+            authorization: d.input.authorization,
             defaultPermissions: d.input.defaultPermissions,
             overridePermissions: d.input.overridePermissions,
             requiredPermission: storeWritePermission
@@ -258,8 +254,7 @@ class FileServiceImpl {
           resourceTenant: d.resourceTenant,
           resourceGroup: d.resourceGroup,
           store,
-          actorId: d.input.actorId,
-          accessTags: d.input.accessTags,
+          authorization: d.input.authorization,
           defaultPermissions: d.input.defaultPermissions,
           overridePermissions: d.input.overridePermissions,
           requiredPermission: storeWritePermission
@@ -303,8 +298,7 @@ class FileServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       file,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -336,7 +330,7 @@ class FileServiceImpl {
         mimeType?: string;
         title?: string;
         expiresAt?: Date;
-        actorId?: string;
+        authorization: ResourceAuthorization;
       };
     }
   ) {
@@ -360,7 +354,7 @@ class FileServiceImpl {
         size: d.file.size,
         title: d.input.title,
         expiresAt: d.input.expiresAt,
-        actorId: d.input.actorId
+        authorization: d.input.authorization
       }
     });
   }
@@ -375,7 +369,7 @@ class FileServiceImpl {
         mimeType?: string;
         title?: string;
         expiresAt?: Date;
-        actorId?: string;
+        authorization: ResourceAuthorization;
       };
     }
   ) {
@@ -411,7 +405,7 @@ class FileServiceImpl {
         size,
         title: d.input.title,
         expiresAt: d.input.expiresAt,
-        actorId: d.input.actorId
+        authorization: d.input.authorization
       }
     });
   }
@@ -464,13 +458,11 @@ class FileServiceImpl {
 
     if (!file) throw new ServiceError(notFoundError('file', d.fileId));
 
-    if (d.actorId) {
-      let actor = await resourceActorService.getActorById({
-        resourceTenant: d.resourceTenant,
-        actorId: d.actorId
-      });
-
-      if (!actor.organizationActorOid && file.createdByResourceActorOid !== actor.oid) {
+    if (d.authorization.resourceActor) {
+      if (
+        !d.authorization.resourceActor.organizationActorOid &&
+        file.createdByResourceActorOid !== d.authorization.resourceActor.oid
+      ) {
         throw new ServiceError(
           forbiddenError({
             message: `Only the creating actor can delete file ${file.id}`
@@ -611,7 +603,7 @@ class FileServiceImpl {
       ].filter(Boolean)
     };
 
-    if (!d.actorId) {
+    if (d.authorization.type === 'privileged') {
       return Paginator.create(({ prisma }) =>
         prisma(
           async opts =>
@@ -631,8 +623,7 @@ class FileServiceImpl {
     let access = await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission

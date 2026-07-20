@@ -2,7 +2,7 @@ import { documentService } from '@metorial/cargo-module-doc';
 import { filePurposeService, fileService } from '@metorial/cargo-module-file';
 import { type ResourceScope } from '@metorial/module-resource-tenant';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
-import type { Prisma } from '@metorial/db';
+import type { Prisma, ResourceActor } from '@metorial/db';
 import { posix as path } from 'node:path';
 import { parse } from 'yaml';
 import { skillService } from '../services/skill';
@@ -55,7 +55,7 @@ export let materializeImportedSkill = async (
     skillId: string;
     rootPath: string;
     repositoryName?: string | null;
-    actorId?: string;
+    actor?: ResourceActor;
     onSkillCreated?: (
       skill: Awaited<ReturnType<typeof skillService.createSkill>>
     ) => void | Promise<void>;
@@ -105,7 +105,10 @@ export let materializeImportedSkill = async (
     resourceGroup: d.resourceGroup,
     input: {
       id: d.skillId,
-      actorId: d.actorId,
+      authorization: {
+        type: 'privileged',
+        resourceActor: d.actor
+      },
       name: metadata.name,
       description: metadata.description,
       clientName: metadata.name,
@@ -132,7 +135,10 @@ export let materializeImportedSkill = async (
               ? metadata.name
               : titleForMarkdown(file.relativePath, content),
           content,
-          actorId: d.actorId,
+          authorization: {
+            type: 'privileged',
+            resourceActor: d.actor
+          },
           store: {
             id: skill.store!.id,
             path: file.relativePath
@@ -153,7 +159,10 @@ export let materializeImportedSkill = async (
         name: path.basename(file.relativePath),
         title: path.basename(file.relativePath),
         mimeType: file.contentType || 'application/octet-stream',
-        actorId: d.actorId
+        authorization: {
+          type: 'privileged',
+          resourceActor: d.actor
+        }
       }
     });
     await storeItemMutationService.attachTargetToStore({

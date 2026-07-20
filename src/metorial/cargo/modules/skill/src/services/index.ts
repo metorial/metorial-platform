@@ -9,6 +9,7 @@ export * from './skillExport';
 export * from './skillForkSync';
 export * from './skillImport';
 export * from './skillMarketplace';
+export * from './skillMarketplaceAccess';
 export * from './skillMarketplacePlugin';
 export * from './skillMarketplaceRepository';
 export * from './skillMergeRequest';

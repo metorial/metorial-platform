@@ -33,16 +33,8 @@ import { skillService } from './skill';
 let skillTemplateSummaryInclude = {
   storeTemplate: {
     include: {
-      resourceTenant: {
-        select: {
-          id: true
-        }
-      },
-      resourceGroup: {
-        select: {
-          id: true
-        }
-      },
+      resourceTenant: true,
+      resourceGroup: true,
       sourceStore: {
         select: {
           id: true
@@ -71,16 +63,8 @@ let skillTemplateSummaryInclude = {
 let skillTemplateInclude = {
   storeTemplate: {
     include: {
-      resourceTenant: {
-        select: {
-          id: true
-        }
-      },
-      resourceGroup: {
-        select: {
-          id: true
-        }
-      },
+      resourceTenant: true,
+      resourceGroup: true,
       sourceStore: {
         select: {
           id: true
@@ -337,6 +321,7 @@ class SkillTemplateServiceImpl {
       let store = await storeService.createStoreFromTemplate({
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
+        authorization: { type: 'privileged' },
         input: {
           templateId: plainTemplate.storeTemplate!.id,
           name: `Skill Template Store - ${d.input.name.trim()}`,
@@ -355,6 +340,7 @@ class SkillTemplateServiceImpl {
     let clonedStore = await storeService.cloneStore({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
+      authorization: { type: 'privileged' },
       store: skill.store!,
       input: {
         name: `Skill Template Store - ${d.input.name.trim()}`,

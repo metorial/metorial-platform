@@ -6,6 +6,7 @@ import {
   yjsUpdateToDocumentSnapshot
 } from '@metorial/docs-editor-schema';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import { internalDocumentCollaborationService } from '../internal';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
 import { documentInclude, documentService } from '../services/document';
@@ -118,12 +119,25 @@ export let flushDocumentCollaborationState = async (d: {
     body: snapshot.body
   });
 
+  let actorId = await internalDocumentCollaborationService.getActorId(d.documentId);
+  let actor = actorId
+    ? await resourceActorService
+        .getActorById({
+          resourceTenant: currentDocument.resourceTenant,
+          actorId
+        })
+        .catch(() => undefined)
+    : undefined;
+
   await documentService.updateDocument({
     resourceTenant: currentDocument.resourceTenant,
     resourceGroup: currentDocument.resourceGroup,
     document: currentDocument,
     input: {
-      actorId: await internalDocumentCollaborationService.getActorId(d.documentId),
+      authorization: {
+        type: 'privileged',
+        resourceActor: actor
+      },
       title,
       content
     }

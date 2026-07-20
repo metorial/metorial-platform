@@ -16,9 +16,9 @@ import {
   resolveFiles,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import type { FileLink, Prisma } from '@metorial/db';
+import type { FileLink, Prisma, ResourceActor } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import { assertResourceActorScope } from '@metorial/module-access';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { fileReferenceService } from './fileReference';
 
@@ -55,10 +55,14 @@ class FileLinkServiceImpl {
         id?: string;
         key?: string;
         expiresAt?: Date;
-        actorId?: string;
+        actor?: ResourceActor;
       };
     }
   ) {
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.input.actor
+    });
     if (!d.file.purpose.canHaveLinks) {
       throw new ServiceError(
         forbiddenError({
@@ -68,12 +72,7 @@ class FileLinkServiceImpl {
     }
 
     return await withTransaction(async db => {
-      let actor = d.input.actorId
-        ? await resourceActorService.getActorById({
-            resourceTenant: d.resourceTenant,
-            actorId: d.input.actorId
-          })
-        : undefined;
+      let actor = d.input.actor;
 
       let existing = d.input.id
         ? await db.fileLink.findFirst({
@@ -152,18 +151,16 @@ class FileLinkServiceImpl {
       ids?: string[];
       fileId?: string[];
       fileIds?: string[];
-      actorId?: string;
+      actor?: ResourceActor;
       actorIds?: string[];
       createdAt?: DateFilter;
       expiresAt?: DateFilter;
     }
   ) {
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant,
-          actorId: d.actorId
-        })
-      : undefined;
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
     let fileLinks = await resolveFileLinks(d, d.ids);
     let files = await resolveFiles(d, d.fileIds ?? d.fileId);
     let actors = await resolveResourceActors(d, d.actorIds);
@@ -177,7 +174,7 @@ class FileLinkServiceImpl {
               oid: fileLinks ? fileLinks.in : undefined,
               resourceTenantOid: d.resourceTenant.oid,
               resourceGroupOid: d.resourceGroup.oid,
-              createdByResourceActorOid: actors ? actors.in : actor?.oid,
+              createdByResourceActorOid: actors ? actors.in : d.actor?.oid,
               file: {
                 status: 'active',
                 oid: files ? files.in : undefined
@@ -196,22 +193,19 @@ class FileLinkServiceImpl {
   async getFileLinkById(
     d: ResourceScope & {
       fileLinkId: string;
-      actorId?: string;
+      actor?: ResourceActor;
     }
   ) {
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant,
-          actorId: d.actorId
-        })
-      : undefined;
-
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
     let fileLink = await db.fileLink.findFirst({
       where: {
         resourceTenantOid: d.resourceTenant.oid,
         resourceGroupOid: d.resourceGroup.oid,
         id: d.fileLinkId,
-        createdByResourceActorOid: actor?.oid
+        createdByResourceActorOid: d.actor?.oid
       },
       include
     });

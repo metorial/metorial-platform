@@ -86,7 +86,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         throw createSkillMergeRequestMergeError('unresolved_after_refresh');
       }
 
-      let mergeActorId = mergeRequest.mergeStartedByResourceActor?.id;
+      let mergeActor = mergeRequest.mergeStartedByResourceActor ?? undefined;
 
       if (!mergeRequest.preMergeTargetSkillVersionOid) {
         await db.skillMergeRequest.update({
@@ -111,7 +111,7 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         resourceGroup,
         mergeRequest,
         items,
-        actorId: mergeActorId
+        actor: mergeActor
       });
 
       let mergedTargetVersion =

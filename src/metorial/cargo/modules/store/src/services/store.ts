@@ -24,6 +24,7 @@ import {
 } from '@metorial/cargo-module-file';
 import type { ResourceActor, Store, StoreAccess, StoreCloneType } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import { assertResourceActorScope } from '@metorial/module-access';
 import { posix as pathPosix } from 'node:path';
 import { normalizeStorePath } from '../lib/storePath';
 import { enqueueStoreLifecycle } from '../queues/lifecycle';
@@ -39,7 +40,7 @@ import { storeItemMutationService, type StoreItemOperationInput } from './storeI
 import { storeTemplateService, type StoreTemplateRecord } from './storeTemplate';
 import { storeVersionService } from './storeVersion';
 
-type StoreServiceAccessInput = Omit<StoreAccessInput, 'actorId'> & {
+type StoreServiceAccessInput = StoreAccessInput & {
   actor?: ResourceActor;
 };
 
@@ -212,7 +213,10 @@ class StoreServiceImpl {
             content: titleOverride
               ? rewriteDocumentMarkdownTitle(documentContent, titleOverride)
               : documentContent,
-            actorId: d.actor?.id,
+            authorization: {
+              type: 'privileged',
+              resourceActor: d.actor
+            },
             store: {
               id: d.store.id,
               path: item.path
@@ -243,7 +247,10 @@ class StoreServiceImpl {
           mimeType,
           size: content.length,
           title: name,
-          actorId: d.actor?.id,
+          authorization: {
+            type: 'privileged',
+            resourceActor: d.actor
+          },
           store: {
             id: d.store.id,
             path: item.path
@@ -266,6 +273,10 @@ class StoreServiceImpl {
       };
     }
   ) {
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.input.actor
+    });
     if (d.input.cloneType && !d.input.parentStore) {
       throw new ServiceError(
         badRequestError({
@@ -323,17 +334,22 @@ class StoreServiceImpl {
   }
 
   async createStoreFromTemplate(
-    d: ResourceScope & {
-      input: {
-        templateId: string;
-        id?: string;
-        name: string;
-        actor?: ResourceActor;
-        access?: StoreAccess;
-        documentTitleOverrides?: Record<string, string>;
-      };
-    }
+    d: ResourceScope &
+      StoreAccessInput & {
+        input: {
+          templateId: string;
+          id?: string;
+          name: string;
+          actor?: ResourceActor;
+          access?: StoreAccess;
+          documentTitleOverrides?: Record<string, string>;
+        };
+      }
   ) {
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.input.actor
+    });
     let storeTemplate = await storeTemplateService.getStoreTemplateByIdUnsafe({
       storeTemplateId: d.input.templateId
     });
@@ -356,6 +372,7 @@ class StoreServiceImpl {
         resourceGroup: d.resourceGroup,
         store: sourceStore,
         actor: d.input.actor,
+        authorization: d.authorization,
         input: {
           id: d.input.id,
           name: d.input.name,
@@ -413,18 +430,19 @@ class StoreServiceImpl {
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        let accessibleStoreOids = d.actor
-          ? (
-              await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
-                actorId: d.actor.id,
-                defaultPermissions: d.defaultPermissions,
-                overridePermissions: d.overridePermissions,
-                requiredPermission: storeReadPermission
-              })
-            ).accessibleStoreOids
-          : undefined;
+        let accessibleStoreOids =
+          d.authorization.type === 'restricted'
+            ? (
+                await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
+                  resourceTenant: d.resourceTenant,
+                  resourceGroup: d.resourceGroup,
+                  authorization: d.authorization,
+                  defaultPermissions: d.defaultPermissions,
+                  overridePermissions: d.overridePermissions,
+                  requiredPermission: storeReadPermission
+                })
+              ).accessibleStoreOids
+            : undefined;
 
         return await db.store.findMany({
           ...opts,
@@ -464,8 +482,7 @@ class StoreServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store,
-      actorId: d.actor?.id,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -484,8 +501,7 @@ class StoreServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store: d.store,
-      actorId: d.actor?.id,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions
     });
@@ -517,8 +533,7 @@ class StoreServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store: d.store,
-      actorId: d.actor?.id,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -573,8 +588,7 @@ class StoreServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store: d.store,
-      actorId: d.actor?.id,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -613,6 +627,7 @@ class StoreServiceImpl {
           targetStore: clonedStore,
           item,
           actor: d.actor,
+          authorization: d.authorization,
           defaultPermissions: d.defaultPermissions,
           overridePermissions: d.overridePermissions,
           cloneType,
@@ -648,8 +663,7 @@ class StoreServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store: d.store,
-      actorId: d.actor?.id,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -749,8 +763,7 @@ class StoreServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       store: d.store,
-      actorId: d.actor?.id,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
@@ -833,8 +846,11 @@ class StoreServiceImpl {
             title: titleOverride,
             cloneType: d.cloneType,
             rewriteContentTitle: titleOverride !== undefined,
-            actorId: d.actor?.id,
-            creatorActorId: d.actor?.id
+            authorization: {
+              type: 'privileged',
+              resourceActor: d.actor
+            },
+            creatorActor: d.actor
           }
         });
 

@@ -57,7 +57,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         await skillService.archiveSkill({
           resourceTenant: item.skillImport.resourceTenant!,
           resourceGroup: item.skillImport.resourceGroup,
-          skill: cleanupSkill
+          skill: cleanupSkill,
+          authorization: { type: 'privileged' }
         });
       }
       await db.skillImportItem.updateMany({
@@ -98,7 +99,7 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
       skillId: item.targetSkillId,
       rootPath: item.path,
       repositoryName: item.skillImport.repositoryName,
-      actorId: item.skillImport.creatorResourceActor?.id,
+      actor: item.skillImport.creatorResourceActor ?? undefined,
       onSkillCreated: async skill => {
         createdSkill = skill;
         let linked = await db.skillImportItem.updateMany({
@@ -132,7 +133,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
       await skillService.archiveSkill({
         resourceTenant: item.skillImport.resourceTenant!,
         resourceGroup: item.skillImport.resourceGroup,
-        skill: createdSkill
+        skill: createdSkill,
+        authorization: { type: 'privileged' }
       });
     }
   } catch (error) {
@@ -142,7 +144,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         await skillService.archiveSkill({
           resourceTenant: item.skillImport.resourceTenant!,
           resourceGroup: item.skillImport.resourceGroup,
-          skill: createdSkill
+          skill: createdSkill,
+          authorization: { type: 'privileged' }
         });
         cleanupSucceeded = true;
       } catch {

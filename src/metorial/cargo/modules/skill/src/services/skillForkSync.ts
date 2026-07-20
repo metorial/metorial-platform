@@ -2,7 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import {
   storeAccessService,
   storeReadPermission,
@@ -39,7 +39,7 @@ class SkillForkSyncServiceImpl {
   async createSkillForkSync(
     d: ResourceScope & {
       forkSkillId: string;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     let forkSkill = await db.skill.findFirst({
@@ -66,25 +66,20 @@ class SkillForkSyncServiceImpl {
     }
 
     let upstreamSkill = forkSkill.parentSkill;
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant!,
-          actorId: d.actorId
-        })
-      : undefined;
+    let actor = d.authorization.resourceActor;
 
     await storeAccessService.assertStoreAccessForStore({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       store: upstreamSkill.store!,
-      actorId: d.actorId,
+      authorization: d.authorization,
       requiredPermission: storeReadPermission
     });
     await storeAccessService.assertStoreAccessForStore({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       store: forkSkill.store!,
-      actorId: d.actorId,
+      authorization: d.authorization,
       requiredPermission: storeWritePermission
     });
 
@@ -148,7 +143,7 @@ class SkillForkSyncServiceImpl {
   async getSkillForkSyncById(
     d: ResourceScope & {
       skillForkSyncId: string;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     let sync = await db.skillForkSync.findFirst({
@@ -165,7 +160,7 @@ class SkillForkSyncServiceImpl {
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       store: sync.forkSkill.store!,
-      actorId: d.actorId,
+      authorization: d.authorization,
       requiredPermission: storeReadPermission
     });
     return sync;

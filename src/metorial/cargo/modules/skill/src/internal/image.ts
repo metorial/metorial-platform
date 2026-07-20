@@ -3,7 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
-import type { EntityImage, StoreParticipantPermissions } from '@metorial/db';
+import type { EntityImage, ResourceActor, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 
 export type GetImageFieldsParams = {
@@ -47,7 +47,7 @@ class InternalImageServiceImpl {
     d: ResourceScope & {
       entity: { id: string; type: string };
       fileId: string;
-      actorId?: string;
+      actor?: ResourceActor;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -77,7 +77,7 @@ class InternalImageServiceImpl {
       resourceGroup: d.resourceGroup,
       file,
       input: {
-        actorId: d.actorId
+        actor: d.actor
       }
     });
     let ref = await fileReferenceService.upsertFileReference({
@@ -104,7 +104,7 @@ class InternalImageServiceImpl {
       entity: { id: string; type: string };
       imageFileId: string | null;
       clearedImage: ClearImage;
-      actorId?: string;
+      actor?: ResourceActor;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -116,7 +116,7 @@ class InternalImageServiceImpl {
       resourceGroup: d.resourceGroup,
       entity: d.entity,
       fileId: d.imageFileId,
-      actorId: d.actorId,
+      actor: d.actor,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions
     });

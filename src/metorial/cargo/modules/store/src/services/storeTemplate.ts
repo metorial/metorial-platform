@@ -10,16 +10,14 @@ import {
 } from '@metorial/cargo-list-utils';
 import type { Prisma } from '@metorial/db';
 import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { normalizeStorePath } from '../lib/storePath';
 import {
   storeTemplateItemsUpdatedQueue,
   storeTemplateItemUpdatedQueue
 } from '../queues/storeTemplateSync';
 
-export type StoreTemplateScope = {
-  resourceTenant?: { oid: bigint; id: string };
-  resourceGroup?: { oid: bigint; id: string };
-};
+export type StoreTemplateScope = Partial<ResourceScope>;
 
 export type RequiredStoreTemplateScope = {
   resourceTenant: NonNullable<StoreTemplateScope['resourceTenant']>;
@@ -48,16 +46,8 @@ export type StoreTemplateUpdateInput = {
 };
 
 let storeTemplateSummaryInclude = {
-  resourceTenant: {
-    select: {
-      id: true
-    }
-  },
-  resourceGroup: {
-    select: {
-      id: true
-    }
-  },
+  resourceTenant: true,
+  resourceGroup: true,
   sourceStore: {
     select: {
       id: true
@@ -82,16 +72,8 @@ let storeTemplateSummaryInclude = {
 } satisfies Prisma.StoreTemplateInclude;
 
 let storeTemplateInclude = {
-  resourceTenant: {
-    select: {
-      id: true
-    }
-  },
-  resourceGroup: {
-    select: {
-      id: true
-    }
-  },
+  resourceTenant: true,
+  resourceGroup: true,
   sourceStore: {
     select: {
       id: true
@@ -134,18 +116,8 @@ export type StoreTemplateWithScopedStoreId<T> = T & {
 
 type SourceStoreRecord = Prisma.StoreGetPayload<{
   include: {
-    resourceTenant: {
-      select: {
-        oid: true;
-        id: true;
-      };
-    };
-    resourceGroup: {
-      select: {
-        oid: true;
-        id: true;
-      };
-    };
+    resourceTenant: true;
+    resourceGroup: true;
   };
 }>;
 
@@ -175,18 +147,8 @@ class StoreTemplateServiceImpl {
         id: d.storeId
       },
       include: {
-        resourceTenant: {
-          select: {
-            oid: true,
-            id: true
-          }
-        },
-        resourceGroup: {
-          select: {
-            oid: true,
-            id: true
-          }
-        }
+        resourceTenant: true,
+        resourceGroup: true
       }
     });
 
@@ -617,11 +579,9 @@ class StoreTemplateServiceImpl {
     return await this.getStoreTemplateRecord(d);
   }
 
-  async updateStoreTemplate(d: {
+  async updateStoreTemplate(d: StoreTemplateScope & {
     storeTemplate: StoreTemplateRecord;
     input: StoreTemplateUpdateInput;
-    resourceTenant?: { oid: bigint; id: string };
-    resourceGroup?: { oid: bigint; id: string };
     skipScopeCheck?: true;
   }) {
     if (!d.skipScopeCheck) {
@@ -760,10 +720,8 @@ class StoreTemplateServiceImpl {
     });
   }
 
-  async deleteStoreTemplate(d: {
+  async deleteStoreTemplate(d: StoreTemplateScope & {
     storeTemplateId: string;
-    resourceTenant?: { oid: bigint; id: string };
-    resourceGroup?: { oid: bigint; id: string };
     skipScopeCheck?: true;
   }) {
     if (!d.skipScopeCheck) {

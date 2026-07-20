@@ -2,6 +2,7 @@ import { internalServerError, isServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
 import { db, type StoreParticipantPermissions } from '@metorial/db';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
@@ -532,12 +533,20 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
       let scopedDocument = await documentService.getScopedDocumentById({
         documentId
       });
+      let resourceActor = await resourceActorService.getActorById({
+        resourceTenant: scopedDocument.resourceTenant,
+        actorId
+      });
+      let authorization = {
+        type: 'privileged' as const,
+        resourceActor
+      };
 
       await documentService.getDocumentById({
         resourceTenant: scopedDocument.resourceTenant,
         resourceGroup: scopedDocument.resourceGroup,
         documentId,
-        actorId,
+        authorization,
         defaultPermissions,
         overridePermissions
       });
@@ -741,7 +750,7 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
               resourceTenant: currentScopedDocument.resourceTenant,
               resourceGroup: currentScopedDocument.resourceGroup,
               documentId: session.documentId,
-              actorId: session.actorId,
+              authorization,
               defaultPermissions: session.defaultPermissions,
               overridePermissions: session.overridePermissions
             });
@@ -751,7 +760,7 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
               resourceGroup: currentScopedDocument.resourceGroup,
               document: currentScopedDocument.document,
               input: {
-                actorId: session.actorId,
+                authorization,
                 title: parsed.data.title,
                 content:
                   parsed.type === 'document_update' || parsed.type === 'document_snapshot_save'

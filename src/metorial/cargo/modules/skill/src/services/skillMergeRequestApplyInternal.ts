@@ -1,12 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
-  documentAuthoritativeWriteService, documentService
+  documentAuthoritativeWriteService,
+  documentService
 } from '@metorial/cargo-module-doc';
-import { resourceActorService } from '@metorial/module-resource-tenant';
 import { type ResourceScope } from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
-import type { Store } from '@metorial/db';
+import type { ResourceActor, Store } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
@@ -74,7 +75,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
-      actorId?: string;
+      actor?: ResourceActor;
       title: string;
       content: string;
     }
@@ -89,7 +90,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         resourceTenant: d.resourceTenant!,
         resourceGroup: d.resourceGroup,
         documentId: targetItem.document.id,
-        actorId: d.actorId
+        authorization: { type: 'privileged', resourceActor: d.actor }
       });
 
       await documentAuthoritativeWriteService.applyDocumentContent({
@@ -99,7 +100,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         input: {
           title: d.title,
           content: d.content,
-          actorId: d.actorId
+          authorization: { type: 'privileged', resourceActor: d.actor }
         }
       });
       return;
@@ -112,7 +113,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         input: {
           title: d.title,
           content: d.content,
-          actorId: d.actorId,
+          authorization: { type: 'privileged', resourceActor: d.actor },
           store: {
             id: d.mergeRequest.targetSkill.store!.id,
             path: d.item.path
@@ -128,7 +129,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       input: {
         title: d.title,
         content: d.content,
-        actorId: d.actorId
+        authorization: { type: 'privileged', resourceActor: d.actor }
       }
     });
 
@@ -136,12 +137,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       store: d.mergeRequest.targetSkill.store!,
-      actor: d.actorId
-        ? await resourceActorService.getActorById({
-            resourceTenant: d.resourceTenant!,
-            actorId: d.actorId
-          })
-        : undefined,
+      actor: d.actor,
       operations: [
         {
           type: 'modify',
@@ -156,15 +152,10 @@ class SkillMergeRequestApplyInternalServiceImpl {
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
-      actorId?: string;
+      actor?: ResourceActor;
     }
   ) {
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant!,
-          actorId: d.actorId
-        })
-      : undefined;
+    let actor = d.actor;
     let resolution = this.getResolutionContent({ item: d.item });
     let resolutionType = d.item.resolutionType;
 
@@ -204,7 +195,10 @@ class SkillMergeRequestApplyInternalServiceImpl {
           resourceTenant: d.resourceTenant!,
           resourceGroup: d.resourceGroup,
           mergeRequest: d.mergeRequest,
-          actorId: d.actorId,
+          authorization: {
+            type: 'privileged',
+            resourceActor: d.actor
+          },
           fileId
         });
       }
@@ -262,7 +256,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
       item: d.item,
-      actorId: d.actorId,
+      actor: d.actor,
       title,
       content
     });
@@ -272,7 +266,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       items: SkillMergeRequestItemRecord[];
-      actorId?: string;
+      actor?: ResourceActor;
     }
   ) {
     let items = [...d.items].sort((left, right) => {
@@ -302,7 +296,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         resourceGroup: d.resourceGroup,
         mergeRequest: d.mergeRequest,
         item,
-        actorId: d.actorId
+        actor: d.actor
       });
     }
   }
@@ -377,7 +371,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SnapshotItem;
-      actorId?: string;
+      actor?: ResourceActor;
     }
   ) {
     let syntheticItem = {
@@ -416,14 +410,14 @@ class SkillMergeRequestApplyInternalServiceImpl {
       resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
       item: syntheticItem,
-      actorId: d.actorId
+      actor: d.actor
     });
   }
 
   private async rollbackSkillMergeRequestUnlocked(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     if (
@@ -442,7 +436,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
       mergeRequest: d.mergeRequest,
-      actorId: d.actorId
+      authorization: d.authorization
     });
     let preMerge = await skillMergeRequestInternalService.getSkillVersionSnapshot(
       d.mergeRequest.preMergeTargetSkillVersionOid
@@ -453,12 +447,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
     let current = await skillMergeRequestInternalService.getSkillVersionSnapshot(
       currentVersion.oid
     );
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant!,
-          actorId: d.actorId
-        })
-      : undefined;
+    let actor = d.authorization.resourceActor;
 
     for (let path of [...current.itemsByPath.keys()].sort().reverse()) {
       if (preMerge.itemsByPath.has(path)) continue;
@@ -493,7 +482,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
         resourceGroup: d.resourceGroup,
         mergeRequest: d.mergeRequest,
         item,
-        actorId: d.actorId
+        actor
       });
     }
 
@@ -526,7 +515,7 @@ class SkillMergeRequestApplyInternalServiceImpl {
   async rollbackSkillMergeRequest(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
     return await skillMergeTargetLock.usingLock(

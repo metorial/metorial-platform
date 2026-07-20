@@ -2,12 +2,21 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
 import { getId, snowflake } from '@metorial/cargo-config/id';
-import { fileLinkService, filePurposeService, fileReferenceService, fileService } from '@metorial/cargo-module-file';
-import { resourceActorService } from '@metorial/module-resource-tenant';
-import { type ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  fileLinkService,
+  filePurposeService,
+  fileReferenceService,
+  fileService
+} from '@metorial/cargo-module-file';
+import { assertResourceActorScope } from '@metorial/module-access';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import type {
   Prisma,
+  ResourceActor,
   SkillDestination,
   SkillExportStatus,
   SkillExportTarget
@@ -39,7 +48,9 @@ let fileInclude = {
       id: true
     }
   },
-  createdByResourceActor: true,
+  createdByResourceActor: {
+    include: resourceActorPresentationInclude
+  },
   resourceTenant: true,
   resourceGroup: true
 } satisfies Prisma.FileInclude;
@@ -89,7 +100,9 @@ export let skillExportInclude = {
   fileReference: {
     include: fileReferenceInclude
   },
-  creatorResourceActor: true
+  creatorResourceActor: {
+    include: resourceActorPresentationInclude
+  }
 } satisfies Prisma.SkillExportInclude;
 
 export type SkillExportRecord = Prisma.SkillExportGetPayload<{
@@ -153,23 +166,14 @@ let isReusableExportFile = (d: {
 };
 
 class SkillExportServiceImpl {
-  private async getActorOid(
-    d: Pick<ResourceScope, 'resourceTenant'> & { actorId?: string }
-  ) {
-    if (!d.actorId) return undefined;
-
-    return (
-      await resourceActorService.getActorById({
-        resourceTenant: d.resourceTenant!,
-        actorId: d.actorId
-      })
-    ).oid;
+  private getActorOid(d: { actor?: ResourceActor }) {
+    return d.actor?.oid;
   }
 
   private async getExportById(
-    d: ResourceScope & { skillExportId: string; actorId?: string }
+    d: ResourceScope & { skillExportId: string; actor?: ResourceActor }
   ) {
-    let creatorResourceActorOid = await this.getActorOid(d);
+    let creatorResourceActorOid = this.getActorOid(d);
 
     let skillExport = await db.skillExport.findFirst({
       where: {
@@ -394,7 +398,8 @@ class SkillExportServiceImpl {
         name: d.target.fileName,
         title: d.target.fileName,
         mimeType: 'application/zip',
-        expiresAt
+        expiresAt,
+        authorization: { type: 'privileged' }
       }
     });
 
@@ -462,11 +467,15 @@ class SkillExportServiceImpl {
   async createSkillExport(
     d: ResourceScope & {
       input: CreateSkillExportInput;
-      actorId?: string;
+      actor?: ResourceActor;
     }
   ) {
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
     let target = await this.resolveTarget(d);
-    let creatorResourceActorOid = await this.getActorOid(d);
+    let creatorResourceActorOid = this.getActorOid(d);
     let exportRef = await this.upsertExportRef({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,
@@ -498,10 +507,14 @@ class SkillExportServiceImpl {
       ids?: string[];
       targets?: SkillExportTarget[];
       statuses?: SkillExportStatus[];
-      actorId?: string;
+      actor?: ResourceActor;
     }
   ) {
-    let creatorResourceActorOid = await this.getActorOid(d);
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
+    let creatorResourceActorOid = this.getActorOid(d);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -523,8 +536,12 @@ class SkillExportServiceImpl {
   }
 
   async getSkillExportById(
-    d: ResourceScope & { skillExportId: string; actorId?: string }
+    d: ResourceScope & { skillExportId: string; actor?: ResourceActor }
   ) {
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
+    });
     return await this.getExportById(d);
   }
 
