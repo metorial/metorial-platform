@@ -289,8 +289,14 @@ fn normalize(manifest: &mut Manifest, path: &Path) -> Result<()> {
             .into_iter()
             .enumerate()
         {
+            // Primary script is "dev" so mirrors are named `api`, not `api-run-1`.
+            let key = if index == 0 {
+                "dev".into()
+            } else {
+                format!("{}", index + 1)
+            };
             manifest.run.insert(
-                format!("run-{}", index + 1),
+                key,
                 Run {
                     command,
                     cwd: None,
@@ -572,6 +578,7 @@ mod tests {
         let loaded = load(&path).unwrap();
         assert_eq!(loaded.manifest.package.unwrap().name, "@metorial/api");
         assert_eq!(loaded.manifest.run.len(), 1);
+        assert!(loaded.manifest.run.contains_key("dev"));
         assert_eq!(loaded.manifest.expose, vec![Exposure { port: 4310 }]);
         assert_eq!(loaded.manifest.postgres["DATABASE_URL"].port, 35432);
     }

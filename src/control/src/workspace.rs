@@ -22,6 +22,14 @@ pub struct WorkspaceMetadata {
     pub source_root: PathBuf,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListedWorkspace {
+    pub branch: String,
+    pub path: PathBuf,
+    pub id: Option<String>,
+    pub hostname: Option<String>,
+}
+
 pub fn validate_branch(branch: &str) -> Result<()> {
     if branch.is_empty()
         || branch.starts_with('-')
@@ -120,6 +128,7 @@ pub async fn create(project: &ProjectRoot, branch: &str, open_code: bool) -> Res
         },
     )?;
     println!("created workspace {}", target.display());
+    prepare_workspace(project, &target).await?;
     if open_code {
         match Command::new("code").arg(&target).status() {
             Ok(status) if status.success() => {}
@@ -130,15 +139,106 @@ pub async fn create(project: &ProjectRoot, branch: &str, open_code: bool) -> Res
     Ok(target)
 }
 
+async fn prepare_workspace(project: &ProjectRoot, target: &Path) -> Result<()> {
+    println!("Installing dependencies");
+    process::run("bun", &["install".into()], target, &Default::default())
+        .await
+        .wrap_err_with(|| format!("bun install failed in {}", target.display()))?;
+
+    let control_manifest = match project.kind {
+        RootKind::Enterprise => target.join("oss/src/control/Cargo.toml"),
+        RootKind::Standalone => target.join("src/control/Cargo.toml"),
+    };
+    println!("Building control");
+    process::run(
+        "cargo",
+        &[
+            "build".into(),
+            "--manifest-path".into(),
+            control_manifest.to_string_lossy().into(),
+        ],
+        target,
+        &Default::default(),
+    )
+    .await
+    .wrap_err_with(|| {
+        format!(
+            "could not build control from {}",
+            control_manifest.display()
+        )
+    })?;
+    Ok(())
+}
+
+pub async fn list(project: &ProjectRoot) -> Result<Vec<ListedWorkspace>> {
+    let source = source_root(project).await?;
+    let mut workspaces = Vec::new();
+    for worktree in list_worktrees(&project.root).await? {
+        if same_path(&worktree.path, &source) {
+            continue;
+        }
+        let Some(branch) = worktree.branch else {
+            continue;
+        };
+        let metadata = read_metadata_file(&worktree.path).ok().flatten();
+        workspaces.push(ListedWorkspace {
+            branch,
+            path: worktree.path,
+            id: metadata.as_ref().map(|metadata| metadata.id.clone()),
+            hostname: metadata.as_ref().map(|metadata| metadata.hostname.clone()),
+        });
+    }
+    workspaces.sort_by(|left, right| left.branch.cmp(&right.branch));
+    Ok(workspaces)
+}
+
+pub async fn remove(project: &ProjectRoot, branch: &str) -> Result<()> {
+    validate_branch(branch)?;
+    let source = source_root(project).await?;
+    let worktree = list_worktrees(&project.root)
+        .await?
+        .into_iter()
+        .find(|worktree| worktree.branch.as_deref() == Some(branch))
+        .ok_or_else(|| miette::miette!("no workspace found for branch {branch:?}"))?;
+
+    if same_path(&worktree.path, &source) {
+        bail!("cannot remove the source checkout");
+    }
+
+    let cwd = std::env::current_dir().into_diagnostic()?;
+    if same_path(&worktree.path, &cwd) || cwd.starts_with(&worktree.path) {
+        bail!(
+            "cannot remove the workspace you are currently in; run from the source checkout at {}",
+            source.display()
+        );
+    }
+
+    if project.kind == RootKind::Enterprise || source.join("oss/package.json").is_file() {
+        let oss_repo = if project.kind == RootKind::Enterprise {
+            project.oss.clone()
+        } else {
+            source.join("oss")
+        };
+        let target_oss = worktree.path.join("oss");
+        if target_oss.exists() {
+            remove_worktree(&oss_repo, &target_oss)
+                .await
+                .wrap_err_with(|| {
+                    format!("could not remove OSS worktree {}", target_oss.display())
+                })?;
+        }
+    }
+
+    remove_worktree(&source, &worktree.path)
+        .await
+        .wrap_err_with(|| format!("could not remove worktree {}", worktree.path.display()))?;
+    println!("removed workspace {}", worktree.path.display());
+    Ok(())
+}
+
 pub async fn metadata(project: &ProjectRoot) -> Result<WorkspaceMetadata> {
-    let path = metadata_path(&project.root);
-    if path.is_file() {
-        let contents = fs::read_to_string(&path)
-            .into_diagnostic()
-            .wrap_err_with(|| format!("could not read {}", path.display()))?;
-        return serde_json::from_str(&contents)
-            .into_diagnostic()
-            .wrap_err_with(|| format!("invalid {}", path.display()));
+    if let Some(metadata) = read_metadata_file(&project.root)? {
+        return Ok(metadata);
     }
 
     let branch = process::output("git", &["branch", "--show-current"], &project.root)
@@ -154,25 +254,7 @@ pub async fn metadata(project: &ProjectRoot) -> Result<WorkspaceMetadata> {
     } else {
         branch
     };
-    let common_git = process::output("git", &["rev-parse", "--git-common-dir"], &project.root)
-        .await
-        .ok()
-        .map(PathBuf::from)
-        .map(|path| {
-            if path.is_absolute() {
-                path
-            } else {
-                project.root.join(path)
-            }
-        })
-        .and_then(|path| path.canonicalize().ok());
-    let source_root = common_git
-        .as_deref()
-        .filter(|path| path.file_name().and_then(|name| name.to_str()) == Some(".git"))
-        .and_then(Path::parent)
-        .filter(|path| path.join("package.json").is_file())
-        .unwrap_or(&project.root)
-        .to_path_buf();
+    let source_root = source_root(project).await?;
     let metadata = WorkspaceMetadata {
         id: workspace_id(&project.root, &branch),
         hostname: workspace_hostname(&project.root, &branch),
@@ -198,6 +280,96 @@ fn write_metadata(root: &Path, metadata: &WorkspaceMetadata) -> Result<()> {
     fs::write(&path, contents)
         .into_diagnostic()
         .wrap_err_with(|| format!("could not write {}", path.display()))
+}
+
+fn read_metadata_file(root: &Path) -> Result<Option<WorkspaceMetadata>> {
+    let path = metadata_path(root);
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let contents = fs::read_to_string(&path)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not read {}", path.display()))?;
+    let metadata = serde_json::from_str(&contents)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("invalid {}", path.display()))?;
+    Ok(Some(metadata))
+}
+
+async fn source_root(project: &ProjectRoot) -> Result<PathBuf> {
+    if let Some(metadata) = read_metadata_file(&project.root)? {
+        return Ok(metadata.source_root);
+    }
+
+    let common_git = process::output("git", &["rev-parse", "--git-common-dir"], &project.root)
+        .await
+        .ok()
+        .map(PathBuf::from)
+        .map(|path| {
+            if path.is_absolute() {
+                path
+            } else {
+                project.root.join(path)
+            }
+        })
+        .and_then(|path| path.canonicalize().ok());
+    Ok(common_git
+        .as_deref()
+        .filter(|path| path.file_name().and_then(|name| name.to_str()) == Some(".git"))
+        .and_then(Path::parent)
+        .filter(|path| path.join("package.json").is_file())
+        .unwrap_or(&project.root)
+        .to_path_buf())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GitWorktree {
+    path: PathBuf,
+    branch: Option<String>,
+}
+
+async fn list_worktrees(repo: &Path) -> Result<Vec<GitWorktree>> {
+    let output = process::output("git", &["worktree", "list", "--porcelain"], repo)
+        .await
+        .wrap_err_with(|| format!("could not list worktrees for {}", repo.display()))?;
+    Ok(parse_worktree_list(&output))
+}
+
+fn parse_worktree_list(output: &str) -> Vec<GitWorktree> {
+    let mut worktrees = Vec::new();
+    let mut path: Option<PathBuf> = None;
+    let mut branch: Option<String> = None;
+
+    for line in output.lines().chain(std::iter::once("")) {
+        if line.is_empty() {
+            if let Some(path) = path.take() {
+                worktrees.push(GitWorktree {
+                    path,
+                    branch: branch.take(),
+                });
+            } else {
+                branch = None;
+            }
+            continue;
+        }
+        if let Some(value) = line.strip_prefix("worktree ") {
+            if let Some(path) = path.take() {
+                worktrees.push(GitWorktree {
+                    path,
+                    branch: branch.take(),
+                });
+            }
+            path = Some(PathBuf::from(value));
+        } else if let Some(value) = line.strip_prefix("branch refs/heads/") {
+            branch = Some(value.to_string());
+        }
+    }
+    worktrees
+}
+
+fn same_path(left: &Path, right: &Path) -> bool {
+    left.canonicalize().unwrap_or_else(|_| left.to_path_buf())
+        == right.canonicalize().unwrap_or_else(|_| right.to_path_buf())
 }
 
 pub fn workspace_id(root: &Path, branch: &str) -> String {
@@ -311,6 +483,40 @@ mod tests {
         assert!(
             workspace_hostname(Path::new("/code/metorial"), "Feature/CLI")
                 .starts_with("feature-cli-")
+        );
+    }
+
+    #[test]
+    fn parses_porcelain_worktree_list() {
+        let worktrees = parse_worktree_list(
+            "worktree /code/metorial\n\
+             HEAD abc\n\
+             branch refs/heads/dev\n\
+             \n\
+             worktree /code/metorial-feature-cli\n\
+             HEAD def\n\
+             branch refs/heads/feature/cli\n\
+             \n\
+             worktree /tmp/detached\n\
+             HEAD ghi\n\
+             detached\n",
+        );
+        assert_eq!(
+            worktrees,
+            vec![
+                GitWorktree {
+                    path: PathBuf::from("/code/metorial"),
+                    branch: Some("dev".into()),
+                },
+                GitWorktree {
+                    path: PathBuf::from("/code/metorial-feature-cli"),
+                    branch: Some("feature/cli".into()),
+                },
+                GitWorktree {
+                    path: PathBuf::from("/tmp/detached"),
+                    branch: None,
+                },
+            ]
         );
     }
 }

@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, env, fs, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
@@ -227,15 +231,7 @@ pub fn write_for_manifest(
     let path = directory.join(".env");
     let temporary = directory.join(".env.control.tmp");
     let values = all_for_manifest(loaded, root_values)?;
-    let mut contents = values
-        .iter()
-        .map(|(key, value)| format!("{key}=\"{}\"", escape_dotenv(value)))
-        .collect::<Vec<_>>()
-        .join("\n");
-    contents.push('\n');
-    fs::write(&temporary, contents)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not write {}", temporary.display()))?;
+    write_dotenv(&temporary, &values)?;
     if path.exists() {
         fs::remove_file(&path)
             .into_diagnostic()
@@ -245,6 +241,37 @@ pub fn write_for_manifest(
         .into_diagnostic()
         .wrap_err_with(|| format!("could not install {}", path.display()))?;
     Ok(path)
+}
+
+pub fn write_dotenv(path: &Path, values: &BTreeMap<String, String>) -> Result<()> {
+    let mut contents = values
+        .iter()
+        .map(|(key, value)| format!("{key}={}", format_dotenv_value(value)))
+        .collect::<Vec<_>>()
+        .join("\n");
+    contents.push('\n');
+    fs::write(path, contents)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not write {}", path.display()))
+}
+
+fn format_dotenv_value(value: &str) -> String {
+    // Bun's `--env-file` does not unescape `\"` inside double-quoted values, so
+    // JSON (and anything else with `"`) must use single quotes to round-trip.
+    let needs_quotes = value.is_empty()
+        || value.bytes().any(|byte| {
+            matches!(
+                byte,
+                b' ' | b'\t' | b'\n' | b'\r' | b'#' | b'=' | b'"' | b'\'' | b'`' | b'$'
+            )
+        });
+    if !needs_quotes {
+        return value.to_string();
+    }
+    if !value.contains('\'') && !value.contains('\n') && !value.contains('\r') {
+        return format!("'{value}'");
+    }
+    format!("\"{}\"", escape_dotenv(value))
 }
 
 fn escape_dotenv(value: &str) -> String {
@@ -326,7 +353,20 @@ mod tests {
         .unwrap();
         let loaded = load(&temp.path().join("control.toml")).unwrap();
         let path = write_for_manifest(&loaded, &BTreeMap::new()).unwrap();
-        assert_eq!(fs::read_to_string(path).unwrap(), "LITERAL=\"a\\\"b\"\n");
+        assert_eq!(fs::read_to_string(path).unwrap(), "LITERAL='a\"b'\n");
+    }
+
+    #[test]
+    fn writes_json_env_values_with_single_quotes_for_bun() {
+        let json = r#"{"local1":{"federationApi":"http://localhost:4321"}}"#;
+        let values = BTreeMap::from([("VITE_FEDERATION_INSTANCES".into(), json.into())]);
+        let temp = tempdir().unwrap();
+        let path = temp.path().join(".env");
+        write_dotenv(&path, &values).unwrap();
+        assert_eq!(
+            fs::read_to_string(path).unwrap(),
+            format!("VITE_FEDERATION_INSTANCES='{json}'\n")
+        );
     }
 
     #[test]

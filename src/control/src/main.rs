@@ -31,6 +31,7 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Start selected development services.
+    #[command(visible_alias = "start")]
     Dev {
         /// Package names or group names. All packages are selected when omitted.
         selectors: Vec<String>,
@@ -90,6 +91,12 @@ enum WorkspaceCommand {
         /// Do not open the resulting workspace with VS Code/Cursor's `code` command.
         #[arg(long)]
         no_open: bool,
+    },
+    /// List branch workspaces for this repository.
+    List,
+    /// Remove a branch workspace worktree.
+    Remove {
+        branch: String,
     },
     /// Run this workspace in its Docker development container.
     Dev {
@@ -195,6 +202,25 @@ async fn main() -> Result<()> {
                 workspace::create(&project, &branch, !no_open).await?;
                 Ok(())
             }
+            (Some(WorkspaceCommand::List), None) => {
+                let workspaces = workspace::list(&project).await?;
+                if workspaces.is_empty() {
+                    println!("no workspaces");
+                    return Ok(());
+                }
+                for entry in workspaces {
+                    match (&entry.id, &entry.hostname) {
+                        (Some(id), Some(hostname)) => {
+                            println!("{}\t{}\t{}\t{}", entry.branch, entry.path.display(), id, hostname)
+                        }
+                        _ => println!("{}\t{}", entry.branch, entry.path.display()),
+                    }
+                }
+                Ok(())
+            }
+            (Some(WorkspaceCommand::Remove { branch }), None) => {
+                workspace::remove(&project, &branch).await
+            }
             (
                 Some(WorkspaceCommand::Dev {
                     selectors,
@@ -265,6 +291,48 @@ mod tests {
                 no_open: true,
                 command: None,
             } if branch == "feature/control"
+        ));
+
+        let create =
+            Cli::try_parse_from(["control", "workspace", "create", "feature/cli"]).unwrap();
+        assert!(matches!(
+            create.command,
+            Commands::Workspace {
+                command: Some(WorkspaceCommand::Create { branch, no_open: false }),
+                ..
+            } if branch == "feature/cli"
+        ));
+
+        let list = Cli::try_parse_from(["control", "workspace", "list"]).unwrap();
+        assert!(matches!(
+            list.command,
+            Commands::Workspace {
+                command: Some(WorkspaceCommand::List),
+                ..
+            }
+        ));
+
+        let remove =
+            Cli::try_parse_from(["control", "workspace", "remove", "feature/cli"]).unwrap();
+        assert!(matches!(
+            remove.command,
+            Commands::Workspace {
+                command: Some(WorkspaceCommand::Remove { branch }),
+                ..
+            } if branch == "feature/cli"
+        ));
+    }
+
+    #[test]
+    fn start_is_an_alias_for_dev() {
+        let start = Cli::try_parse_from(["control", "start", "--no-docker", "backend"]).unwrap();
+        assert!(matches!(
+            start.command,
+            Commands::Dev {
+                no_docker: true,
+                selectors,
+                ..
+            } if selectors == ["backend"]
         ));
     }
 }

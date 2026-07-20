@@ -31,7 +31,9 @@ target/release/control dev backend
 target/release/control env
 target/release/control cleanup --dry-run
 target/release/control docker stop
-target/release/control workspace feature/my-change
+target/release/control workspace create feature/my-change
+target/release/control workspace list
+target/release/control workspace remove feature/my-change
 target/release/control workspace dev
 ```
 
@@ -111,13 +113,17 @@ For Postgres, database creation uses `docker compose exec` when `compose` and
 MongoDB follows the same rule using `mongosh`; an empty database receives a
 `__control` collection so that it persists.
 
-`control workspace` creates a sibling worktree. Enterprise mode creates the
-enterprise worktree and a paired OSS worktree at its `oss/` path. Failures are
-rolled back best-effort. The command then attempts to open the path using
-`code`, unless `--no-open` is passed.
+`control workspace create BRANCH` creates a sibling worktree. Enterprise mode
+creates the enterprise worktree and a paired OSS worktree at its `oss/` path.
+Failures are rolled back best-effort. After creation it runs `bun install` and
+builds the workspace's Control binary, then attempts to open the path using
+`code`, unless `--no-open` is passed. The original `control workspace BRANCH`
+syntax remains supported.
 
-The explicit form is `control workspace create BRANCH`; the original
-`control workspace BRANCH` syntax remains supported.
+`control workspace list` prints linked worktrees for the repository (branch,
+path, and workspace identity when metadata is present).
+`control workspace remove BRANCH` removes the matching worktree, including the
+paired OSS worktree in enterprise mode.
 
 ## Docker workspaces
 

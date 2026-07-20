@@ -176,7 +176,7 @@ pub fn generate(workspace: &Path, packages: &[TurboPackage]) -> Result<()> {
                     .collect(),
             },
         );
-        write_environment(&directory.join(".env"), &package.environment)?;
+        environment::write_dotenv(&directory.join(".env"), &package.environment)?;
         write_runner(&directory.join("run.mjs"), &package.cwd, &package.command)?;
     }
     write_json(
@@ -200,27 +200,6 @@ pub fn generate(workspace: &Path, packages: &[TurboPackage]) -> Result<()> {
 
 fn write_json(path: &Path, value: &impl Serialize) -> Result<()> {
     let mut text = serde_json::to_string_pretty(value).into_diagnostic()?;
-    text.push('\n');
-    fs::write(path, text)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not write {}", path.display()))
-}
-
-fn write_environment(path: &Path, values: &BTreeMap<String, String>) -> Result<()> {
-    let mut text = values
-        .iter()
-        .map(|(key, value)| {
-            format!(
-                "{key}=\"{}\"",
-                value
-                    .replace('\\', "\\\\")
-                    .replace('"', "\\\"")
-                    .replace('\r', "\\r")
-                    .replace('\n', "\\n")
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
     text.push('\n');
     fs::write(path, text)
         .into_diagnostic()
@@ -265,7 +244,12 @@ fn turbo_package_name(package_name: &str, run_name: &str) -> String {
     let package_name = package_name
         .strip_prefix("metorial-")
         .unwrap_or(&package_name);
-    sanitize(&format!("{package_name}-{run_name}"))
+    let run_name = sanitize(run_name);
+    if run_name.is_empty() || run_name == "dev" {
+        package_name.to_string()
+    } else {
+        sanitize(&format!("{package_name}-{run_name}"))
+    }
 }
 
 pub fn filters(packages: &[TurboPackage]) -> Vec<String> {
@@ -318,5 +302,24 @@ mod tests {
                 .unwrap()
                 .contains("sensitive")
         );
+    }
+
+    #[test]
+    fn repository_schema_mirrors_omit_run_suffix() {
+        let temp = tempdir().unwrap();
+        let manifest = temp.path().join("control.toml");
+        fs::write(temp.path().join("package.json"), "{}").unwrap();
+        fs::write(
+            &manifest,
+            "name='@metorial/api'\n[dev]\nrun=['bun dev']",
+        )
+        .unwrap();
+        let loaded = load(&manifest).unwrap();
+        let packages = plan(&[&loaded], temp.path(), &BTreeMap::new()).unwrap();
+        assert_eq!(packages.len(), 1);
+        assert_eq!(packages[0].name, "api");
+        let workspace = temp.path().join(".control/dev");
+        generate(&workspace, &packages).unwrap();
+        assert!(workspace.join("packages/api/package.json").is_file());
     }
 }

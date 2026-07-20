@@ -48,14 +48,13 @@ pub async fn run(
     let projects = if no_docker {
         Vec::new()
     } else {
-        let services_spinner = spinner("Waiting for development services");
+        println!("Starting development services");
         match docker::start(&project.root, &selected, &root_env).await {
             Ok(projects) => {
-                services_spinner.finish_with_message("Development services ready");
+                println!("Development services ready");
                 projects
             }
             Err(error) => {
-                services_spinner.finish_and_clear();
                 if process::is_interrupted(&error) {
                     return Ok(());
                 }

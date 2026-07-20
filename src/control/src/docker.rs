@@ -29,7 +29,7 @@ pub async fn start(
             "60".into(),
         ]);
         args.extend(services.iter().cloned());
-        if let Err(error) = process::run_quiet("docker", &args, root, environment).await {
+        if let Err(error) = process::run("docker", &args, root, environment).await {
             stop(root, &projects[..=index], environment).await;
             return Err(error);
         }

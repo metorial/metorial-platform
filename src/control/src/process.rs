@@ -56,7 +56,10 @@ pub async fn run_quiet(
 ) -> Result<()> {
     let mut command = command(program, args, cwd, env);
     isolate(&mut command);
+    // Null stdin: isolate() creates a new process group, so an inherited TTY
+    // causes SIGTTIN (docker compose exec stops and control hangs forever).
     let child = command
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true)
