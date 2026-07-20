@@ -46,6 +46,7 @@ model SkillMarketplace {
 
   consumerAccesses       ConsumerAccess[]             @relation("ConsumerAccessSkillMarketplace")
   consumerAccessListings ConsumerAccessListing[]
+  accessTagEntities      AccessTagEntity[]
   plugins                SkillMarketplacePlugin[]
   skillDestinationItems  SkillDestinationItem[]
   repositories           SkillMarketplaceRepository[]

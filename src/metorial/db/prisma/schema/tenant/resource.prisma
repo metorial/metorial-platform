@@ -112,6 +112,9 @@ model ResourceActor {
   consumerOid BigInt?
   consumer    Consumer? @relation(fields: [consumerOid], references: [oid], onDelete: SetNull)
 
+  consumerProfileOid BigInt?
+  consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -138,6 +141,10 @@ model ResourceActor {
   lastModifiedStoreItems    StoreItem[]
 
   @@unique([resourceTenantOid, identifier])
-  @@index([organizationActorOid])
+  // Promoted to a unique index only after the one-shot actor reconciliation
+  // reports zero duplicate/unresolved organization actors.
+  @@index([resourceTenantOid, organizationActorOid])
+  @@unique([resourceTenantOid, consumerProfileOid])
   @@index([consumerOid])
+  @@index([consumerProfileOid])
 }

@@ -1,0 +1,77 @@
+model ResourceAuthorizationMigrationRun {
+  runId String @id
+
+  status       String @default("pending")
+  currentPhase String?
+  attempt      Int    @default(0)
+  leaseOwner   String?
+  leaseExpiresAt DateTime?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+  failure     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  phases    ResourceAuthorizationMigrationPhase[]
+  artifacts ResourceAuthorizationMigrationArtifact[]
+}
+
+model ResourceAuthorizationMigrationPhase {
+  runId String
+  run   ResourceAuthorizationMigrationRun @relation(fields: [runId], references: [runId], onDelete: Cascade)
+
+  phase  String
+  status String @default("pending")
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+  failure     Json?
+  details     Json?
+
+  @@id([runId, phase])
+  @@index([runId, status])
+}
+
+/// Immutable evidence produced by the one-shot resource authorization job.
+/// `recordKey` is a deterministic, phase-specific identity, making retries
+/// idempotent without overwriting evidence from an earlier stage.
+model ResourceAuthorizationMigrationArtifact {
+  oid BigInt @id @default(autoincrement())
+
+  runId String
+  run   ResourceAuthorizationMigrationRun @relation(fields: [runId], references: [runId], onDelete: Cascade)
+
+  stage          String
+  kind           String
+  recordKey      String
+  classification String
+  payload        Json
+
+  createdAt DateTime @default(now())
+
+  approvals ResourceAuthorizationMigrationApproval[]
+
+  @@unique([runId, oid])
+  @@unique([runId, stage, kind, recordKey])
+  @@index([runId, stage, kind, classification])
+}
+
+model ResourceAuthorizationMigrationApproval {
+  oid BigInt @id @default(autoincrement())
+
+  runId String
+  artifactOid BigInt
+  artifact    ResourceAuthorizationMigrationArtifact @relation(fields: [runId, artifactOid], references: [runId, oid], onDelete: Cascade)
+
+  classification String
+  reason         String
+  approvedBy     String
+  approvedAt     DateTime @default(now())
+
+  @@unique([runId, artifactOid])
+  @@index([runId, classification])
+}
