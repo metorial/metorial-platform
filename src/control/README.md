@@ -57,7 +57,7 @@ mode = "both"
 # Strings are literals. `true` inherits the key from root env.json or the
 # process environment when present.
 [dev]
-prepare = ["bun run prisma:generate", "bun run frontend:build"]
+prepare = ["bun run frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
@@ -85,15 +85,14 @@ stop = true
 paths = ["dist", ".cache"]
 ```
 
-Workspace-wide setup (library builds, shared codegen) can use a root
-`control.toml` with only `mode` and top-level `prepare` — no `name`/`package`.
-Those manifests are always prepared, including when package/group filters are
-passed:
+Workspace-wide Prisma generation, schema push, and `bun run build` are always
+run by Control before package-local `prepare` commands (via the root
+`prisma:generate`, `prisma:push`, and `build` scripts, which use Turbo for
+caching). Root `control.toml` files may still declare `mode` so they participate
+in selection; they no longer need a `prepare = ["bun run build"]` entry.
 
-```toml
-mode = "enterprise"
-prepare = ["bun run build"]
-```
+Package-local `prepare` should only contain package-specific steps (for example
+`frontend:build` or `admin:build`), not Prisma or the global build.
 
 The repository's `name`/`group`/`dev` schema is preferred. An extended schema
 is also accepted for external projects: `[package]`, `[env]`,
@@ -106,35 +105,44 @@ Unix and `cmd.exe /D /S /C` on Windows.
 Literal, inherited, and default environment values support the strict
 `{{HOSTNAME}}` template. It resolves from `METORIAL_HOSTNAME` and unknown or
 unclosed templates are errors. Native development defaults it to `localhost`;
-Docker workspaces use their stable `<workspace>.localhost` hostname.
+Docker workspaces use their branch-derived `<branch>.localhost` hostname.
 
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
 environment.
 
 `control dev` starts Compose projects, waits for declared databases, creates
-databases idempotently, writes package-local `.env` files, performs preparation
-in manifest order, and generates
-an isolated `.control/dev` Turbo workspace with one mirror package per run
-command. It then invokes Turbo directly with explicit filters. Ctrl-C
-terminates Turbo and performs configured Docker cleanup.
+databases idempotently, writes package-local `.env` files, then prepares the
+workspace in this order:
+
+1. `bun run prisma:generate` (Turbo, all packages)
+2. `bun run prisma:push` (Turbo, all packages)
+3. `bun run build` (Turbo via the root build script)
+4. package-local `control.toml` prepare commands
+
+It then generates an isolated `.control/dev` Turbo workspace with one mirror
+package per run command and invokes Turbo directly with explicit filters.
+Ctrl-C terminates Turbo and performs configured Docker cleanup. Because prepare
+pushes every Prisma schema, dependency services cover the full workspace even
+when only a subset of applications are started.
 
 For Postgres, database creation uses `docker compose exec` when `compose` and
 `service` are supplied, otherwise the local `pg_isready` and `psql` clients.
 MongoDB follows the same rule using `mongosh`; an empty database receives a
 `__control` collection so that it persists.
 
-`control prepare` writes selected package environment files and runs
-`control.toml` prepare commands without starting Turbo or any application
-processes. It starts declared dependencies unless `--no-docker` is passed.
+`control prepare` writes environment files and runs the same preparation
+sequence without starting Turbo or any application processes. It starts
+declared dependencies unless `--no-docker` is passed.
 
 `control workspace create BRANCH` creates a sibling worktree. Enterprise mode
 creates the enterprise worktree and a paired OSS worktree at its `oss/` path.
 It then starts a persistent Ubuntu development container and a private
-dependency stack. The first initialization runs `bun install`, `bun run build`,
-builds Control, and runs `control prepare --no-docker` inside the container.
-After setup it opens `/workspace` through VS Code's Dev Containers extension
-unless `--no-open` is passed. Application services are not started.
+dependency stack. The first initialization runs `bun install`, builds Control,
+and runs `control prepare --no-docker` inside the container (prisma generate,
+prisma push, build, and package prepare). After setup it opens `/workspace`
+through VS Code's Dev Containers extension unless `--no-open` is passed.
+Application services are not started.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
@@ -176,13 +184,17 @@ editor and container see the same output. The source checkout's `env.json` is
 mounted read-only when a worktree does not provide its own override.
 
 A single global Traefik container owns the declared HTTP ports and routes each
-request by host header. A workspace named `feature-auth-1234abcd` therefore
-uses URLs such as:
+request by host header. A workspace for branch `feature/auth` therefore uses
+URLs such as:
 
 ```text
-http://feature-auth-1234abcd.localhost:4310
-http://feature-auth-1234abcd.localhost:4300
+http://feature-auth.localhost:4310
+http://feature-auth.localhost:4300
 ```
+
+On start, Control writes `HOST.md` at the workspace root (visible inside the
+container as `/workspace/HOST.md`) listing every exposed HTTP endpoint for that
+hostname, grouped by package.
 
 `.localhost` resolves without host-file changes on supported systems. Every
 HTTP listener that should be reachable from the host must have a

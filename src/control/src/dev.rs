@@ -28,10 +28,16 @@ pub async fn run(
     if selected.is_empty() {
         bail!("no control.toml manifests or run commands were selected");
     }
+    let all = manifest::select(&manifests, &[], &project.kind)?;
     let root_env = environment::root_environment(project)?;
     if dry_run {
         let packages = turbo::plan(&selected, &project.root, &root_env)?;
         println!("root: {}", project.root.display());
+        if !no_prepare {
+            println!("prepare: bun run prisma:generate");
+            println!("prepare: bun run prisma:push");
+            println!("prepare: bun run build");
+        }
         for loaded in &selected {
             let cwd = loaded.path.parent().unwrap_or(&project.root);
             for command in &loaded.manifest.prepare {
@@ -45,11 +51,14 @@ pub async fn run(
         return Ok(());
     }
 
+    // Prepare runs prisma:push for every package, so dependency services must
+    // cover the full workspace even when only a subset of apps will run.
+    let docker_manifests = if no_prepare { &selected } else { &all };
     let projects = if no_docker {
         Vec::new()
     } else {
         println!("Starting development services");
-        match docker::start(&project.root, &selected, &root_env).await {
+        match docker::start(&project.root, docker_manifests, &root_env).await {
             Ok(projects) => {
                 println!("Development services ready");
                 projects
@@ -63,7 +72,7 @@ pub async fn run(
         }
     };
 
-    let prepared = prepare_selected(project, &selected, &root_env, no_prepare).await;
+    let prepared = prepare_selected(project, &all, &selected, &root_env, no_prepare).await;
     if let Err(error) = prepared {
         docker::stop(&project.root, &projects, &root_env).await;
         if process::is_interrupted(&error) {
@@ -151,25 +160,30 @@ pub async fn run_prepare(
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
     }
+    let all = manifest::select(&manifests, &[], &project.kind)?;
     let root_env = environment::root_environment(project)?;
     if !no_docker {
         println!("Starting development services");
-        docker::start(&project.root, &selected, &root_env)
+        docker::start(&project.root, &all, &root_env)
             .await
             .wrap_err("Docker startup failed")?;
         println!("Development services ready");
     }
-    prepare_selected(project, &selected, &root_env, false).await
+    prepare_selected(project, &all, &selected, &root_env, false).await
 }
 
 async fn prepare_selected(
     project: &ProjectRoot,
-    manifests: &[&LoadedManifest],
+    all: &[&LoadedManifest],
+    selected: &[&LoadedManifest],
     env: &BTreeMap<String, String>,
     skip_commands: bool,
 ) -> Result<()> {
     let environment_spinner = spinner("Preparing development environment");
-    for loaded in manifests {
+    // Always write every package `.env` when preparing so turbo `prisma:push`
+    // can reach every schema; with `--no-prepare` only write selected ones.
+    let env_targets = if skip_commands { selected } else { all };
+    for loaded in env_targets {
         if environment::has_values(loaded) {
             environment::write_for_manifest(loaded, env)?;
         }
@@ -178,10 +192,32 @@ async fn prepare_selected(
     if skip_commands {
         return Ok(());
     }
-    prepare(&project.root, manifests, env).await
+    prepare_workspace(project, selected, env).await
 }
 
-async fn prepare(
+async fn prepare_workspace(
+    project: &ProjectRoot,
+    selected: &[&LoadedManifest],
+    env: &BTreeMap<String, String>,
+) -> Result<()> {
+    // Global turbo tasks (cached) before any package-local prepare commands.
+    for (label, command) in [
+        ("Generating Prisma clients", "bun run prisma:generate"),
+        ("Pushing Prisma schemas", "bun run prisma:push"),
+        ("Building packages", "bun run build"),
+    ] {
+        println!("{label}");
+        if let Err(error) = process::shell(command, &project.root, env).await {
+            if process::is_interrupted(&error) {
+                return Err(error);
+            }
+            return Err(error).wrap_err_with(|| format!("{command} failed"));
+        }
+    }
+    prepare_commands(&project.root, selected, env).await
+}
+
+async fn prepare_commands(
     root: &Path,
     manifests: &[&LoadedManifest],
     env: &BTreeMap<String, String>,

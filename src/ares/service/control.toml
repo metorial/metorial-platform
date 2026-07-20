@@ -2,11 +2,7 @@ name = "@metorial/ares"
 group = "oss"
 
 [dev]
-prepare = [
-  "bun run prisma:generate",
-  "bun run prisma:push",
-  "bun run frontend:build",
-]
+prepare = ["bun run frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]

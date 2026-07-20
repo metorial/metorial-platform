@@ -2,11 +2,7 @@ name = "@metorial/slates"
 group = "oss"
 
 [dev]
-prepare = [
-  "bun run prisma:generate",
-  "bun run prisma:push",
-  "bun run admin:build",
-]
+prepare = ["bun run admin:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]

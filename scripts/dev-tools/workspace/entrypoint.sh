@@ -30,15 +30,13 @@ setup_workspace() {
   fi
 
   enter_workspace
-  echo "Installing container dependencies"
-  bun install --verbose
-  echo "Building workspace packages"
-  bun run build
+  echo "Installing container dependencies. This will take a few minutes..."
+  bun install
   local manifest
   manifest="$(control_manifest)"
   echo "Building Control"
   cargo build --manifest-path "${manifest}"
-  echo "Running Control prepare tasks"
+  echo "Running Control prepare (prisma generate, prisma push, build, package prepare)"
   cargo run --quiet --manifest-path "${manifest}" -- prepare --no-docker
   printf '%s\n' "${version}" >"${marker}"
   echo "Workspace setup complete"

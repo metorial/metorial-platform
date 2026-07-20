@@ -68,7 +68,12 @@ pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
     {
         docker_run(
             &project.root,
-            vec!["stop".into(), "--time".into(), "20".into(), name.clone()],
+            vec![
+                "stop".into(),
+                "--timeout".into(),
+                "20".into(),
+                name.clone(),
+            ],
             &environment,
         )
         .await
@@ -230,8 +235,9 @@ async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningW
     )
     .await
     .wrap_err("could not start workspace container")?;
+    write_hosts_file(project, &metadata, &selected)?;
     println!("workspace hostname: {}", metadata.hostname);
-    for port in ports {
+    for port in &ports {
         println!("  http://{}:{port}", metadata.hostname);
     }
     Ok(RunningWorkspace {
@@ -469,6 +475,63 @@ fn exposed_ports(manifests: &[&LoadedManifest]) -> BTreeSet<u16> {
         .collect()
 }
 
+fn manifest_name(loaded: &LoadedManifest) -> String {
+    loaded
+        .manifest
+        .package
+        .as_ref()
+        .map(|package| package.name.clone())
+        .unwrap_or_else(|| loaded.path.display().to_string())
+}
+
+fn hosts_markdown(metadata: &WorkspaceMetadata, manifests: &[&LoadedManifest]) -> String {
+    let mut entries = manifests
+        .iter()
+        .flat_map(|loaded| {
+            let name = manifest_name(loaded);
+            loaded
+                .manifest
+                .expose
+                .iter()
+                .map(move |exposure| (exposure.port, name.clone()))
+        })
+        .collect::<Vec<_>>();
+    entries.sort_by(|left, right| left.0.cmp(&right.0).then(left.1.cmp(&right.1)));
+
+    let mut lines = vec![
+        "# Workspace hosts".into(),
+        String::new(),
+        format!("Hostname: `{}`", metadata.hostname),
+        String::new(),
+        "## Exposed HTTP endpoints".into(),
+        String::new(),
+    ];
+    if entries.is_empty() {
+        lines.push("_No `[[dev.expose]]` ports declared._".into());
+    } else {
+        for (port, name) in entries {
+            lines.push(format!(
+                "- `{name}` — http://{}:{port}",
+                metadata.hostname
+            ));
+        }
+    }
+    lines.push(String::new());
+    lines.join("\n")
+}
+
+fn write_hosts_file(
+    project: &ProjectRoot,
+    metadata: &WorkspaceMetadata,
+    manifests: &[&LoadedManifest],
+) -> Result<()> {
+    let path = project.root.join("HOST.md");
+    fs::write(&path, hosts_markdown(metadata, manifests))
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not write {}", path.display()))?;
+    Ok(())
+}
+
 fn proxy_label_args(metadata: &WorkspaceMetadata, ports: &BTreeSet<u16>) -> Vec<String> {
     let mut args = Vec::new();
     for port in ports {
@@ -629,7 +692,7 @@ fn services_project(metadata: &WorkspaceMetadata) -> String {
 }
 
 fn container_name(metadata: &WorkspaceMetadata) -> String {
-    format!("control-ws-{}", metadata.id)
+    format!("metorial-ws-{}", metadata.id)
 }
 
 fn resolve_services_host() -> Result<String> {
@@ -721,11 +784,12 @@ async fn docker_quiet(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::manifest::{Exposure, Manifest, Package};
 
     fn metadata() -> WorkspaceMetadata {
         WorkspaceMetadata {
-            id: "feature-auth-deadbeef".into(),
-            hostname: "feature-auth-deadbeef.localhost".into(),
+            id: "feature-auth".into(),
+            hostname: "feature-auth.localhost".into(),
             branch: "feature/auth".into(),
             source_root: "/code/metorial".into(),
         }
@@ -734,23 +798,56 @@ mod tests {
     #[test]
     fn generates_stable_resource_names_and_volumes() {
         let metadata = metadata();
-        assert_eq!(
-            container_name(&metadata),
-            "control-ws-feature-auth-deadbeef"
-        );
-        assert_eq!(
-            services_project(&metadata),
-            "control_ws_feature_auth_deadbeef"
-        );
+        assert_eq!(container_name(&metadata), "metorial-ws-feature-auth");
+        assert_eq!(services_project(&metadata), "control_ws_feature_auth");
         let volumes = workspace_volumes(&metadata);
-        assert!(volumes.contains(&"control-feature-auth-deadbeef-state".into()));
-        assert!(volumes.contains(&"control-feature-auth-deadbeef-vscode-server".into()));
+        assert!(volumes.contains(&"control-feature-auth-state".into()));
+        assert!(volumes.contains(&"control-feature-auth-vscode-server".into()));
+    }
+
+    #[test]
+    fn writes_hosts_markdown_from_workspace_hostname() {
+        let metadata = metadata();
+        let manifests = [
+            LoadedManifest {
+                path: "apps/dashboard/control.toml".into(),
+                manifest: Manifest {
+                    package: Some(Package {
+                        name: "@metorial/dashboard".into(),
+                        groups: vec![],
+                    }),
+                    expose: vec![Exposure { port: 4300 }],
+                    ..Default::default()
+                },
+            },
+            LoadedManifest {
+                path: "services/api/control.toml".into(),
+                manifest: Manifest {
+                    package: Some(Package {
+                        name: "@metorial/core-api".into(),
+                        groups: vec![],
+                    }),
+                    expose: vec![Exposure { port: 4310 }, Exposure { port: 4318 }],
+                    ..Default::default()
+                },
+            },
+        ];
+        let selected = manifests.iter().collect::<Vec<_>>();
+        let markdown = hosts_markdown(&metadata, &selected);
+        assert!(markdown.contains("Hostname: `feature-auth.localhost`"));
+        assert!(markdown.contains("- `@metorial/dashboard` — http://feature-auth.localhost:4300"));
+        assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4310"));
+        assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4318"));
+        assert!(
+            markdown.find("4300").unwrap() < markdown.find("4310").unwrap(),
+            "endpoints should be sorted by port"
+        );
     }
 
     #[test]
     fn encodes_vscode_attached_container_uri() {
-        let uri = vscode_uri("control-ws-test", "/workspace");
-        let descriptor = serde_json::json!({ "containerName": "control-ws-test" }).to_string();
+        let uri = vscode_uri("metorial-ws-test", "/workspace");
+        let descriptor = serde_json::json!({ "containerName": "metorial-ws-test" }).to_string();
         let hex = descriptor
             .as_bytes()
             .iter()

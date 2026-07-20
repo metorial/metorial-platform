@@ -1,7 +1,5 @@
 use std::{
-    collections::hash_map::DefaultHasher,
     fs,
-    hash::{Hash, Hasher},
     path::{Path, PathBuf},
 };
 
@@ -122,8 +120,8 @@ pub async fn create(project: &ProjectRoot, branch: &str, open_code: bool) -> Res
         write_metadata(
             &target,
             &WorkspaceMetadata {
-                id: workspace_id(&target, branch),
-                hostname: workspace_hostname(&target, branch),
+                id: workspace_id(branch),
+                hostname: workspace_hostname(branch),
                 branch: branch.into(),
                 source_root: project.root.clone(),
             },
@@ -273,8 +271,8 @@ pub async fn metadata(project: &ProjectRoot) -> Result<WorkspaceMetadata> {
     };
     let source_root = source_root(project).await?;
     let metadata = WorkspaceMetadata {
-        id: workspace_id(&project.root, &branch),
-        hostname: workspace_hostname(&project.root, &branch),
+        id: workspace_id(&branch),
+        hostname: workspace_hostname(&branch),
         branch,
         source_root,
     };
@@ -389,20 +387,19 @@ fn same_path(left: &Path, right: &Path) -> bool {
         == right.canonicalize().unwrap_or_else(|_| right.to_path_buf())
 }
 
-pub fn workspace_id(root: &Path, branch: &str) -> String {
-    let mut hasher = DefaultHasher::new();
-    root.canonicalize()
-        .unwrap_or_else(|_| root.to_path_buf())
-        .hash(&mut hasher);
+pub fn workspace_id(branch: &str) -> String {
     let mut slug = branch_slug(branch).to_ascii_lowercase().replace('_', "-");
     slug.truncate(45);
     let slug = slug.trim_matches('-');
-    let slug = if slug.is_empty() { "workspace" } else { slug };
-    format!("{}-{:08x}", slug, hasher.finish() as u32)
+    if slug.is_empty() {
+        "workspace".into()
+    } else {
+        slug.to_string()
+    }
 }
 
-pub fn workspace_hostname(root: &Path, branch: &str) -> String {
-    format!("{}.localhost", workspace_id(root, branch))
+pub fn workspace_hostname(branch: &str) -> String {
+    format!("{}.localhost", workspace_id(branch))
 }
 
 async fn add_worktree(repo: &Path, target: &Path, branch: &str) -> Result<bool> {
@@ -493,14 +490,8 @@ mod tests {
             workspace_path(Path::new("/code/metorial"), "feature/cli"),
             Path::new("/code/metorial-feature-cli")
         );
-        assert_eq!(
-            workspace_id(Path::new("/code/metorial"), "Feature/CLI"),
-            workspace_id(Path::new("/code/metorial"), "Feature/CLI")
-        );
-        assert!(
-            workspace_hostname(Path::new("/code/metorial"), "Feature/CLI")
-                .starts_with("feature-cli-")
-        );
+        assert_eq!(workspace_id("Feature/CLI"), "feature-cli");
+        assert_eq!(workspace_hostname("Feature/CLI"), "feature-cli.localhost");
     }
 
     #[test]

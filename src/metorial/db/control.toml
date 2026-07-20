@@ -1,9 +1,6 @@
 name = "@metorial/db"
 group = "oss"
 
-[dev]
-prepare = ["bun run prisma:generate", "bun run prisma:push"]
-
 [dev.env]
 METORIAL_ENV = "development"
 METORIAL_SOURCE = "oss"

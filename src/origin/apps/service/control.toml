@@ -3,7 +3,6 @@ group = "oss"
 mode = "enterprise"
 
 [dev]
-prepare = ["bun run prisma:generate", "bun run prisma:push"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
