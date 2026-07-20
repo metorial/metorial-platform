@@ -103,6 +103,8 @@ enum WorkspaceCommand {
     /// Start this workspace and open it in VS Code.
     #[command(visible_alias = "start")]
     Dev {
+        /// Branch workspace to target. Defaults to the current checkout.
+        branch: Option<String>,
         /// Rebuild the development image even when its content tag already exists.
         #[arg(long)]
         rebuild: bool,
@@ -111,15 +113,23 @@ enum WorkspaceCommand {
         no_open: bool,
     },
     /// Open an interactive zsh shell in this workspace.
-    Shell,
+    Shell {
+        /// Branch workspace to target. Defaults to the current checkout.
+        branch: Option<String>,
+    },
     /// Stop this workspace's development container and dependency services.
     Stop {
+        /// Branch workspace to target. Defaults to the current checkout.
+        branch: Option<String>,
         /// Remove all persistent workspace and dependency volumes.
         #[arg(long)]
         volumes: bool,
     },
     /// Print this workspace's stable identity and container state.
-    Status,
+    Status {
+        /// Branch workspace to target. Defaults to the current checkout.
+        branch: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -223,12 +233,26 @@ async fn main() -> Result<()> {
                 Ok(())
             }
             WorkspaceCommand::Remove { branch } => workspace::remove(&project, &branch).await,
-            WorkspaceCommand::Dev { rebuild, no_open } => {
-                workspace_dev::run(&project, rebuild, !no_open).await
+            WorkspaceCommand::Dev {
+                branch,
+                rebuild,
+                no_open,
+            } => {
+                let target = workspace::resolve(&project, branch.as_deref()).await?;
+                workspace_dev::run(&target, rebuild, !no_open).await
             }
-            WorkspaceCommand::Shell => workspace_dev::shell(&project).await,
-            WorkspaceCommand::Stop { volumes } => workspace_dev::stop(&project, volumes).await,
-            WorkspaceCommand::Status => workspace_dev::status(&project).await,
+            WorkspaceCommand::Shell { branch } => {
+                let target = workspace::resolve(&project, branch.as_deref()).await?;
+                workspace_dev::shell(&target).await
+            }
+            WorkspaceCommand::Stop { branch, volumes } => {
+                let target = workspace::resolve(&project, branch.as_deref()).await?;
+                workspace_dev::stop(&target, volumes).await
+            }
+            WorkspaceCommand::Status { branch } => {
+                let target = workspace::resolve(&project, branch.as_deref()).await?;
+                workspace_dev::status(&target).await
+            },
         },
         Commands::Docker {
             command: DockerCommand::Stop { selectors },
@@ -254,10 +278,30 @@ mod tests {
             dev.command,
             Commands::Workspace {
                 command: WorkspaceCommand::Dev {
+                    branch: None,
                     rebuild: true,
                     no_open: false,
                 },
             }
+        ));
+
+        let targeted = Cli::try_parse_from([
+            "control",
+            "workspace",
+            "dev",
+            "feature/cli",
+            "--no-open",
+        ])
+        .unwrap();
+        assert!(matches!(
+            targeted.command,
+            Commands::Workspace {
+                command: WorkspaceCommand::Dev {
+                    branch: Some(branch),
+                    rebuild: false,
+                    no_open: true,
+                },
+            } if branch == "feature/cli"
         ));
 
         assert!(
@@ -277,8 +321,17 @@ mod tests {
         assert!(matches!(
             shell.command,
             Commands::Workspace {
-                command: WorkspaceCommand::Shell,
+                command: WorkspaceCommand::Shell { branch: None },
             }
+        ));
+
+        let shell_branch =
+            Cli::try_parse_from(["control", "workspace", "shell", "feature/cli"]).unwrap();
+        assert!(matches!(
+            shell_branch.command,
+            Commands::Workspace {
+                command: WorkspaceCommand::Shell { branch: Some(branch) },
+            } if branch == "feature/cli"
         ));
 
         let list = Cli::try_parse_from(["control", "workspace", "list"]).unwrap();
@@ -295,6 +348,27 @@ mod tests {
             remove.command,
             Commands::Workspace {
                 command: WorkspaceCommand::Remove { branch },
+            } if branch == "feature/cli"
+        ));
+
+        let stop =
+            Cli::try_parse_from(["control", "workspace", "stop", "feature/cli", "--volumes"])
+                .unwrap();
+        assert!(matches!(
+            stop.command,
+            Commands::Workspace {
+                command: WorkspaceCommand::Stop {
+                    branch: Some(branch),
+                    volumes: true,
+                },
+            } if branch == "feature/cli"
+        ));
+
+        let status = Cli::try_parse_from(["control", "workspace", "status", "feature/cli"]).unwrap();
+        assert!(matches!(
+            status.command,
+            Commands::Workspace {
+                command: WorkspaceCommand::Status { branch: Some(branch) },
             } if branch == "feature/cli"
         ));
     }

@@ -54,7 +54,14 @@ pub async fn run(
     // Prepare runs prisma:push for every package, so dependency services must
     // cover the full workspace even when only a subset of apps will run.
     let docker_manifests = if no_prepare { &selected } else { &all };
-    let projects = if no_docker {
+    let workspace_id = std::env::var("CONTROL_WORKSPACE_ID")
+        .ok()
+        .filter(|value| !value.trim().is_empty());
+    let start_docker = should_start_docker(no_docker, workspace_id.as_deref());
+    if workspace_id.is_some() && !no_docker {
+        println!("Using workspace-managed development services");
+    }
+    let projects = if !start_docker {
         Vec::new()
     } else {
         println!("Starting development services");
@@ -298,4 +305,28 @@ fn spinner(message: &str) -> ProgressBar {
     spinner
 }
 
+fn should_start_docker(no_docker: bool, workspace_id: Option<&str>) -> bool {
+    !no_docker && workspace_id.is_none()
+}
+
 use miette::IntoDiagnostic;
+
+#[cfg(test)]
+mod tests {
+    use super::should_start_docker;
+
+    #[test]
+    fn starts_docker_for_native_development() {
+        assert!(should_start_docker(false, None));
+    }
+
+    #[test]
+    fn skips_docker_when_explicitly_disabled() {
+        assert!(!should_start_docker(true, None));
+    }
+
+    #[test]
+    fn skips_docker_in_a_managed_workspace() {
+        assert!(!should_start_docker(false, Some("feature-auth")));
+    }
+}

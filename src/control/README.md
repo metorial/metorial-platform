@@ -36,6 +36,7 @@ target/release/control workspace create feature/my-change
 target/release/control workspace list
 target/release/control workspace remove feature/my-change
 target/release/control workspace dev
+target/release/control workspace stop feature/my-change
 ```
 
 Pass `--root PATH` to start project detection somewhere other than the current
@@ -157,20 +158,30 @@ Prerequisites are Docker, VS Code's `code` shell command, and the
 ```sh
 control workspace dev
 control workspace start
+control workspace dev feature/my-change
 control workspace dev --rebuild
 control workspace dev --no-open
 control workspace shell
+control workspace shell feature/my-change
 control workspace stop
+control workspace stop feature/my-change
 control workspace stop --volumes
 control workspace status
+control workspace status feature/my-change
 ```
 
+Pass a branch name to `dev`/`start`, `shell`, `stop`, or `status` to target that
+workspace from the source checkout (or any other worktree). Omit it to operate
+on the current checkout.
+
 The command builds an Ubuntu 24.04 image containing zsh, Bun 1.2.15, Node.js
-22/npm, Go 1.25, Rust 1.91.1, Air, and native build tools. It bind mounts the
-worktree at `/workspace`. `workspace dev` and its `workspace start` alias start
-the dependency stack and idle container, open a VS Code window attached to the
-named container, and return. Start the desired application services manually
-from VS Code's zsh terminal, for example with `control dev --no-docker`.
+22/npm, the globally installed `total-control` launcher, Go 1.25, Rust 1.91.1,
+Air, and native build tools. It bind mounts the worktree at `/workspace`.
+`workspace dev` and its `workspace start` alias start the dependency stack and
+idle container, open a VS Code window attached to the named container, and
+return. Start the desired application services manually from VS Code's zsh
+terminal with `control dev`. Control detects the workspace container and reuses
+its managed dependencies instead of trying to launch Docker there.
 
 VS Code installs the server version matching the host editor on first attach.
 The server directory is a workspace-scoped persistent volume, so normal

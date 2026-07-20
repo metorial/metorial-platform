@@ -204,11 +204,7 @@ pub async fn list(project: &ProjectRoot) -> Result<Vec<ListedWorkspace>> {
 pub async fn remove(project: &ProjectRoot, branch: &str) -> Result<()> {
     validate_branch(branch)?;
     let source = source_root(project).await?;
-    let worktree = list_worktrees(&project.root)
-        .await?
-        .into_iter()
-        .find(|worktree| worktree.branch.as_deref() == Some(branch))
-        .ok_or_else(|| miette::miette!("no workspace found for branch {branch:?}"))?;
+    let worktree = find_worktree(project, branch).await?;
 
     if same_path(&worktree.path, &source) {
         bail!("cannot remove the source checkout");
@@ -249,6 +245,39 @@ pub async fn remove(project: &ProjectRoot, branch: &str) -> Result<()> {
         .wrap_err_with(|| format!("could not remove worktree {}", worktree.path.display()))?;
     println!("removed workspace {}", worktree.path.display());
     Ok(())
+}
+
+/// Resolve the project for workspace lifecycle commands.
+///
+/// With no branch, operates on the current checkout. With a branch, finds that
+/// branch's worktree (from the source repository) and returns its project root.
+pub async fn resolve(project: &ProjectRoot, branch: Option<&str>) -> Result<ProjectRoot> {
+    let Some(branch) = branch else {
+        return Ok(project.clone());
+    };
+    validate_branch(branch)?;
+    let source = source_root(project).await?;
+    let worktree = find_worktree(project, branch).await?;
+    if same_path(&worktree.path, &source) {
+        bail!(
+            "branch {branch:?} is the source checkout, not a workspace; \
+             omit the branch name to operate on the current directory"
+        );
+    }
+    root::detect(&worktree.path).wrap_err_with(|| {
+        format!(
+            "could not detect a Metorial project in workspace {}",
+            worktree.path.display()
+        )
+    })
+}
+
+async fn find_worktree(project: &ProjectRoot, branch: &str) -> Result<GitWorktree> {
+    list_worktrees(&project.root)
+        .await?
+        .into_iter()
+        .find(|worktree| worktree.branch.as_deref() == Some(branch))
+        .ok_or_else(|| miette::miette!("no workspace found for branch {branch:?}"))
 }
 
 pub async fn metadata(project: &ProjectRoot) -> Result<WorkspaceMetadata> {
