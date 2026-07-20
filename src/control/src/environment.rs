@@ -1,0 +1,401 @@
+use std::{collections::BTreeMap, env, fs, path::PathBuf};
+
+use miette::{IntoDiagnostic, Result, WrapErr, bail};
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
+use serde_json::Value;
+const URL_COMPONENT: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'!')
+    .add(b'"')
+    .add(b'#')
+    .add(b'$')
+    .add(b'%')
+    .add(b'&')
+    .add(b'\'')
+    .add(b'(')
+    .add(b')')
+    .add(b'*')
+    .add(b'+')
+    .add(b',')
+    .add(b'/')
+    .add(b':')
+    .add(b';')
+    .add(b'<')
+    .add(b'=')
+    .add(b'>')
+    .add(b'?')
+    .add(b'@')
+    .add(b'[')
+    .add(b'\\')
+    .add(b']')
+    .add(b'^')
+    .add(b'`')
+    .add(b'{')
+    .add(b'|')
+    .add(b'}');
+
+use crate::{
+    manifest::{EnvSpec, EnvValue, LoadedManifest, Mongo, Postgres},
+    root::{ProjectRoot, RootKind},
+};
+
+pub fn root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String>> {
+    let mut output = BTreeMap::new();
+    let path = project.root.join("env.json");
+    if path.exists() {
+        let text = fs::read_to_string(&path)
+            .into_diagnostic()
+            .wrap_err_with(|| format!("could not read {}", path.display()))?;
+        let value: Value = serde_json::from_str(&text)
+            .into_diagnostic()
+            .wrap_err_with(|| format!("invalid {}", path.display()))?;
+        let object = value
+            .as_object()
+            .ok_or_else(|| miette::miette!("{} must contain a JSON object", path.display()))?;
+        flatten_json("", object, &mut output)?;
+    }
+    output.insert(
+        "METORIAL_ENV".into(),
+        env::var("METORIAL_ENV").unwrap_or_else(|_| "development".into()),
+    );
+    output.insert(
+        "METORIAL_SOURCE".into(),
+        match project.kind {
+            RootKind::Enterprise => "enterprise",
+            RootKind::Standalone => "oss",
+        }
+        .into(),
+    );
+    output.insert(
+        "IS_ENTERPRISE".into(),
+        matches!(project.kind, RootKind::Enterprise).to_string(),
+    );
+    let hostname = env::var("METORIAL_HOSTNAME")
+        .ok()
+        .or_else(|| output.get("METORIAL_HOSTNAME").cloned())
+        .unwrap_or_else(|| "localhost".into());
+    output.insert("METORIAL_HOSTNAME".into(), hostname);
+    output.insert(
+        "NODE_ENV".into(),
+        env::var("NODE_ENV").unwrap_or_else(|_| "development".into()),
+    );
+    Ok(output)
+}
+
+fn flatten_json(
+    prefix: &str,
+    object: &serde_json::Map<String, Value>,
+    output: &mut BTreeMap<String, String>,
+) -> Result<()> {
+    for (key, value) in object {
+        let name = if prefix.is_empty() {
+            key.clone()
+        } else {
+            format!("{prefix}_{key}")
+        };
+        match value {
+            Value::String(value) => {
+                output.insert(name, value.clone());
+            }
+            Value::Number(value) => {
+                output.insert(name, value.to_string());
+            }
+            Value::Bool(value) => {
+                output.insert(name, value.to_string());
+            }
+            Value::Object(value) => flatten_json(&name, value, output)?,
+            Value::Null => {}
+            _ => bail!("env.json value {name:?} must be scalar or an object"),
+        }
+    }
+    Ok(())
+}
+
+pub fn resolve(
+    values: &BTreeMap<String, EnvValue>,
+    root_values: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, String>> {
+    let mut output = BTreeMap::new();
+    for (key, value) in values {
+        let resolved = match value {
+            EnvValue::Literal(value) => Some(value.clone()),
+            // A boolean declaration inherits the key when available. This matches the
+            // previous env generator, where optional credentials were omitted.
+            EnvValue::Lookup(true) => lookup(key, root_values),
+            EnvValue::Lookup(false) => unreachable!("manifest validation rejects false"),
+            EnvValue::Detailed(spec) => resolve_spec(key, spec, root_values)?,
+        };
+        if let Some(resolved) = resolved {
+            output.insert(key.clone(), interpolate(&resolved, root_values)?);
+        }
+    }
+    Ok(output)
+}
+
+fn interpolate(value: &str, root_values: &BTreeMap<String, String>) -> Result<String> {
+    let mut output = String::with_capacity(value.len());
+    let mut remaining = value;
+    while let Some(start) = remaining.find("{{") {
+        output.push_str(&remaining[..start]);
+        remaining = &remaining[start + 2..];
+        let Some(end) = remaining.find("}}") else {
+            bail!("unresolved environment template in {value:?}");
+        };
+        let template = &remaining[..end];
+        match template {
+            "HOSTNAME" => {
+                let hostname = lookup("METORIAL_HOSTNAME", root_values).ok_or_else(|| {
+                    miette::miette!("environment template HOSTNAME is unresolved")
+                })?;
+                output.push_str(&hostname);
+            }
+            _ => bail!("unknown environment template {template:?} in {value:?}"),
+        }
+        remaining = &remaining[end + 2..];
+    }
+    output.push_str(remaining);
+    if output.contains("{{") {
+        bail!("unresolved environment template in {value:?}");
+    }
+    Ok(output)
+}
+
+fn resolve_spec(
+    key: &str,
+    spec: &EnvSpec,
+    root_values: &BTreeMap<String, String>,
+) -> Result<Option<String>> {
+    if let Some(value) = &spec.value {
+        return Ok(Some(value.clone()));
+    }
+    let source = spec.from.as_deref().unwrap_or(key);
+    if let Some(value) = lookup(source, root_values) {
+        return Ok(Some(value));
+    }
+    if let Some(value) = &spec.default {
+        return Ok(Some(value.clone()));
+    }
+    if spec.required {
+        bail!("required environment variable {source} is missing");
+    }
+    Ok(None)
+}
+
+fn lookup(key: &str, root_values: &BTreeMap<String, String>) -> Option<String> {
+    root_values.get(key).cloned().or_else(|| env::var(key).ok())
+}
+
+pub fn all_for_manifest(
+    loaded: &LoadedManifest,
+    root_values: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, String>> {
+    let mut output = resolve(&loaded.manifest.env, root_values)?;
+    for key in [
+        "METORIAL_ENV",
+        "METORIAL_SOURCE",
+        "IS_ENTERPRISE",
+        "METORIAL_HOSTNAME",
+        "NODE_ENV",
+    ] {
+        if let Some(value) = root_values.get(key) {
+            output.insert(key.into(), value.clone());
+        }
+    }
+    for (name, db) in &loaded.manifest.postgres {
+        output.insert(name.clone(), postgres_url(db));
+    }
+    for (name, db) in &loaded.manifest.mongo {
+        output.insert(name.clone(), mongo_url(db));
+    }
+    Ok(output)
+}
+
+pub fn has_values(loaded: &LoadedManifest) -> bool {
+    !loaded.manifest.env.is_empty()
+        || !loaded.manifest.postgres.is_empty()
+        || !loaded.manifest.mongo.is_empty()
+}
+
+pub fn write_for_manifest(
+    loaded: &LoadedManifest,
+    root_values: &BTreeMap<String, String>,
+) -> Result<PathBuf> {
+    let directory = loaded
+        .path
+        .parent()
+        .ok_or_else(|| miette::miette!("{} has no parent directory", loaded.path.display()))?;
+    let path = directory.join(".env");
+    let temporary = directory.join(".env.control.tmp");
+    let values = all_for_manifest(loaded, root_values)?;
+    let mut contents = values
+        .iter()
+        .map(|(key, value)| format!("{key}=\"{}\"", escape_dotenv(value)))
+        .collect::<Vec<_>>()
+        .join("\n");
+    contents.push('\n');
+    fs::write(&temporary, contents)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not write {}", temporary.display()))?;
+    if path.exists() {
+        fs::remove_file(&path)
+            .into_diagnostic()
+            .wrap_err_with(|| format!("could not replace {}", path.display()))?;
+    }
+    fs::rename(&temporary, &path)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not install {}", path.display()))?;
+    Ok(path)
+}
+
+fn escape_dotenv(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\r', "\\r")
+        .replace('\n', "\\n")
+}
+
+fn encode(value: &str) -> String {
+    utf8_percent_encode(value, URL_COMPONENT).to_string()
+}
+
+pub fn postgres_url(db: &Postgres) -> String {
+    format!(
+        "postgresql://{}:{}@{}:{}/{}",
+        encode(&db.user),
+        encode(&db.password),
+        db.host,
+        db.port,
+        encode(&db.database)
+    )
+}
+
+pub fn mongo_url(db: &Mongo) -> String {
+    let auth = match (&db.user, &db.password) {
+        (Some(user), Some(password)) => format!("{}:{}@", encode(user), encode(password)),
+        (Some(user), None) => format!("{}@", encode(user)),
+        _ => String::new(),
+    };
+    let query = db
+        .auth_source
+        .as_ref()
+        .map(|source| format!("?authSource={}", encode(source)))
+        .unwrap_or_default();
+    format!(
+        "mongodb://{auth}{}:{}/{}{query}",
+        db.host,
+        db.port,
+        encode(&db.database)
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::manifest::load;
+
+    #[test]
+    fn generates_encoded_database_urls() {
+        let pg = Postgres {
+            host: "localhost".into(),
+            port: 5432,
+            user: "user".into(),
+            password: "a b".into(),
+            database: "my-db".into(),
+            service: None,
+            compose: None,
+        };
+        assert_eq!(
+            postgres_url(&pg),
+            "postgresql://user:a%20b@localhost:5432/my-db"
+        );
+    }
+
+    #[test]
+    fn writes_dotenv_without_requiring_missing_optional_lookups() {
+        let temp = tempdir().unwrap();
+        fs::write(temp.path().join("package.json"), "{}").unwrap();
+        fs::write(
+            temp.path().join("control.toml"),
+            "name='example'\n[dev.env]\nLITERAL='a\"b'\nOPTIONAL=true",
+        )
+        .unwrap();
+        let loaded = load(&temp.path().join("control.toml")).unwrap();
+        let path = write_for_manifest(&loaded, &BTreeMap::new()).unwrap();
+        assert_eq!(fs::read_to_string(path).unwrap(), "LITERAL=\"a\\\"b\"\n");
+    }
+
+    #[test]
+    fn interpolates_hostname_after_resolving_every_env_value_form() {
+        let values = BTreeMap::from([
+            (
+                "LITERAL".into(),
+                EnvValue::Literal("https://{{HOSTNAME}}:4310".into()),
+            ),
+            (
+                "VALUE".into(),
+                EnvValue::Detailed(EnvSpec {
+                    value: Some("https://{{HOSTNAME}}:4318".into()),
+                    from: None,
+                    default: None,
+                    required: false,
+                }),
+            ),
+            (
+                "DEFAULT".into(),
+                EnvValue::Detailed(EnvSpec {
+                    value: None,
+                    from: Some("MISSING".into()),
+                    default: Some("https://{{HOSTNAME}}:4300".into()),
+                    required: false,
+                }),
+            ),
+            (
+                "FROM".into(),
+                EnvValue::Detailed(EnvSpec {
+                    value: None,
+                    from: Some("SOURCE".into()),
+                    default: None,
+                    required: true,
+                }),
+            ),
+            (
+                "JSON".into(),
+                EnvValue::Literal(r#"{"nested":{"host":"{{HOSTNAME}}"}}"#.into()),
+            ),
+        ]);
+        let roots = BTreeMap::from([
+            ("METORIAL_HOSTNAME".into(), "dev.example.test".into()),
+            ("SOURCE".into(), "https://{{HOSTNAME}}:4321".into()),
+        ]);
+
+        let resolved = resolve(&values, &roots).unwrap();
+        assert_eq!(resolved["LITERAL"], "https://dev.example.test:4310");
+        assert_eq!(resolved["VALUE"], "https://dev.example.test:4318");
+        assert_eq!(resolved["DEFAULT"], "https://dev.example.test:4300");
+        assert_eq!(resolved["FROM"], "https://dev.example.test:4321");
+        assert_eq!(
+            resolved["JSON"],
+            r#"{"nested":{"host":"dev.example.test"}}"#
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_and_unresolved_templates() {
+        let roots = BTreeMap::from([("METORIAL_HOSTNAME".into(), "localhost".into())]);
+        for value in ["https://{{UNKNOWN}}:4310", "https://{{HOSTNAME:4310"] {
+            let values = BTreeMap::from([("URL".into(), EnvValue::Literal(value.to_string()))]);
+            assert!(resolve(&values, &roots).is_err(), "{value}");
+        }
+
+        let values = BTreeMap::from([(
+            "URL".into(),
+            EnvValue::Literal("https://{{HOSTNAME}}:4310".into()),
+        )]);
+        assert!(resolve(&values, &BTreeMap::new()).is_err());
+    }
+}

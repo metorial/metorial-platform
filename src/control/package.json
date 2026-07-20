@@ -1,0 +1,23 @@
+{
+  "name": "total-control",
+  "version": "0.1.0",
+  "description": "Run the Control CLI from any directory in a Metorial checkout",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "control": "./bin/control.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "cargo build --release",
+    "dev": "cargo run --",
+    "test": "cargo test && node --test",
+    "lint": "cargo clippy --all-targets --all-features -- -D warnings",
+    "format": "cargo fmt --all"
+  }
+}
