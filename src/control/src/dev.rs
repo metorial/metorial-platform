@@ -63,24 +63,7 @@ pub async fn run(
         }
     };
 
-    let environment_spinner = spinner("Preparing development environment");
-    for loaded in &selected {
-        if !environment::has_values(loaded) {
-            continue;
-        }
-        if let Err(error) = environment::write_for_manifest(loaded, &root_env) {
-            environment_spinner.finish_and_clear();
-            docker::stop(&project.root, &projects, &root_env).await;
-            return Err(error);
-        }
-    }
-    environment_spinner.finish_and_clear();
-
-    let prepared = if no_prepare {
-        Ok(())
-    } else {
-        prepare(&project.root, &selected, &root_env).await
-    };
+    let prepared = prepare_selected(project, &selected, &root_env, no_prepare).await;
     if let Err(error) = prepared {
         docker::stop(&project.root, &projects, &root_env).await;
         if process::is_interrupted(&error) {
@@ -156,6 +139,46 @@ pub async fn run(
         (Ok(()), Err(error)) => Err(error),
         (Ok(()), Ok(())) => Ok(()),
     }
+}
+
+pub async fn run_prepare(
+    project: &ProjectRoot,
+    selectors: &[String],
+    no_docker: bool,
+) -> Result<()> {
+    let manifests = manifest::discover(&project.root)?;
+    let selected = manifest::select(&manifests, selectors, &project.kind)?;
+    if selected.is_empty() {
+        bail!("no control.toml manifests were selected");
+    }
+    let root_env = environment::root_environment(project)?;
+    if !no_docker {
+        println!("Starting development services");
+        docker::start(&project.root, &selected, &root_env)
+            .await
+            .wrap_err("Docker startup failed")?;
+        println!("Development services ready");
+    }
+    prepare_selected(project, &selected, &root_env, false).await
+}
+
+async fn prepare_selected(
+    project: &ProjectRoot,
+    manifests: &[&LoadedManifest],
+    env: &BTreeMap<String, String>,
+    skip_commands: bool,
+) -> Result<()> {
+    let environment_spinner = spinner("Preparing development environment");
+    for loaded in manifests {
+        if environment::has_values(loaded) {
+            environment::write_for_manifest(loaded, env)?;
+        }
+    }
+    environment_spinner.finish_and_clear();
+    if skip_commands {
+        return Ok(());
+    }
+    prepare(&project.root, manifests, env).await
 }
 
 async fn prepare(

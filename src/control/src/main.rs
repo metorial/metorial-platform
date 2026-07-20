@@ -46,6 +46,14 @@ enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Write environment files and run preparation without starting applications.
+    Prepare {
+        /// Package names or group names. All packages are selected when omitted.
+        selectors: Vec<String>,
+        /// Do not start declared Docker dependency services.
+        #[arg(long)]
+        no_docker: bool,
+    },
     /// Write resolved development environment files.
     Env {
         selectors: Vec<String>,
@@ -84,35 +92,29 @@ enum WorkspaceCommand {
     /// Create a branch worktree (paired enterprise and OSS worktrees when applicable).
     Create {
         branch: String,
-        /// Do not open the resulting workspace with VS Code/Cursor's `code` command.
+        /// Do not open the resulting workspace with VS Code.
         #[arg(long)]
         no_open: bool,
     },
     /// List branch workspaces for this repository.
     List,
     /// Remove a branch workspace worktree.
-    Remove {
-        branch: String,
-    },
-    /// Run this workspace in its Docker development container.
+    Remove { branch: String },
+    /// Start this workspace and open it in VS Code.
+    #[command(visible_alias = "start")]
     Dev {
-        /// Package names or group names. All packages are selected when omitted.
-        selectors: Vec<String>,
-        /// Give this workspace persistent private Postgres, MongoDB, Redis, NATS, and etcd.
-        #[arg(long)]
-        isolated_services: bool,
         /// Rebuild the development image even when its content tag already exists.
         #[arg(long)]
         rebuild: bool,
-        /// Skip manifest preparation commands.
+        /// Do not open VS Code after starting the workspace.
         #[arg(long)]
-        no_prepare: bool,
+        no_open: bool,
     },
-    /// Stop this workspace's development container and optional private services.
+    /// Open an interactive zsh shell in this workspace.
+    Shell,
+    /// Stop this workspace's development container and dependency services.
     Stop {
-        #[arg(long)]
-        services: bool,
-        /// Remove private service volumes as well. Implies --services.
+        /// Remove all persistent workspace and dependency volumes.
         #[arg(long)]
         volumes: bool,
     },
@@ -147,6 +149,10 @@ async fn main() -> Result<()> {
             )
             .await
         }
+        Commands::Prepare {
+            selectors,
+            no_docker,
+        } => dev::run_prepare(&project, &selectors, no_docker).await,
         Commands::Env { selectors, json } => {
             let manifests = manifest::discover(&project.root)?;
             let selected = manifest::select(&manifests, &selectors, &project.kind)?;
@@ -203,7 +209,13 @@ async fn main() -> Result<()> {
                 for entry in workspaces {
                     match (&entry.id, &entry.hostname) {
                         (Some(id), Some(hostname)) => {
-                            println!("{}\t{}\t{}\t{}", entry.branch, entry.path.display(), id, hostname)
+                            println!(
+                                "{}\t{}\t{}\t{}",
+                                entry.branch,
+                                entry.path.display(),
+                                id,
+                                hostname
+                            )
                         }
                         _ => println!("{}\t{}", entry.branch, entry.path.display()),
                     }
@@ -211,18 +223,11 @@ async fn main() -> Result<()> {
                 Ok(())
             }
             WorkspaceCommand::Remove { branch } => workspace::remove(&project, &branch).await,
-            WorkspaceCommand::Dev {
-                selectors,
-                isolated_services,
-                rebuild,
-                no_prepare,
-            } => {
-                workspace_dev::run(&project, &selectors, isolated_services, rebuild, no_prepare)
-                    .await
+            WorkspaceCommand::Dev { rebuild, no_open } => {
+                workspace_dev::run(&project, rebuild, !no_open).await
             }
-            WorkspaceCommand::Stop { services, volumes } => {
-                workspace_dev::stop(&project, services || volumes, volumes).await
-            }
+            WorkspaceCommand::Shell => workspace_dev::shell(&project).await,
+            WorkspaceCommand::Stop { volumes } => workspace_dev::stop(&project, volumes).await,
             WorkspaceCommand::Status => workspace_dev::status(&project).await,
         },
         Commands::Docker {
@@ -244,20 +249,13 @@ mod tests {
 
     #[test]
     fn parses_workspace_subcommands() {
-        let dev = Cli::try_parse_from([
-            "control",
-            "workspace",
-            "dev",
-            "--isolated-services",
-            "backend",
-        ])
-        .unwrap();
+        let dev = Cli::try_parse_from(["control", "workspace", "start", "--rebuild"]).unwrap();
         assert!(matches!(
             dev.command,
             Commands::Workspace {
                 command: WorkspaceCommand::Dev {
-                    isolated_services: true,
-                    ..
+                    rebuild: true,
+                    no_open: false,
                 },
             }
         ));
@@ -273,6 +271,14 @@ mod tests {
             Commands::Workspace {
                 command: WorkspaceCommand::Create { branch, no_open: false },
             } if branch == "feature/cli"
+        ));
+
+        let shell = Cli::try_parse_from(["control", "workspace", "shell"]).unwrap();
+        assert!(matches!(
+            shell.command,
+            Commands::Workspace {
+                command: WorkspaceCommand::Shell,
+            }
         ));
 
         let list = Cli::try_parse_from(["control", "workspace", "list"]).unwrap();
@@ -302,6 +308,19 @@ mod tests {
                 no_docker: true,
                 selectors,
                 ..
+            } if selectors == ["backend"]
+        ));
+    }
+
+    #[test]
+    fn parses_prepare_without_docker() {
+        let prepare =
+            Cli::try_parse_from(["control", "prepare", "--no-docker", "backend"]).unwrap();
+        assert!(matches!(
+            prepare.command,
+            Commands::Prepare {
+                no_docker: true,
+                selectors,
             } if selectors == ["backend"]
         ));
     }

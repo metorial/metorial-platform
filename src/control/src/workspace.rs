@@ -3,7 +3,6 @@ use std::{
     fs,
     hash::{Hash, Hasher},
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
@@ -11,7 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     process,
-    root::{ProjectRoot, RootKind},
+    root::{self, ProjectRoot, RootKind},
+    workspace_dev,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -118,73 +118,45 @@ pub async fn create(project: &ProjectRoot, branch: &str, open_code: bool) -> Res
         return Err(error).wrap_err("workspace creation rolled back");
     }
 
-    write_metadata(
-        &target,
-        &WorkspaceMetadata {
-            id: workspace_id(&target, branch),
-            hostname: workspace_hostname(&target, branch),
-            branch: branch.into(),
-            source_root: project.root.clone(),
-        },
-    )?;
-    println!("created workspace {}", target.display());
-    prepare_workspace(project, &target).await?;
-    if open_code {
-        match Command::new("code").arg(&target).status() {
-            Ok(status) if status.success() => {}
-            Ok(status) => eprintln!("warning: code exited with {status}"),
-            Err(error) => eprintln!("warning: could not launch code: {error}"),
+    let initialization = async {
+        write_metadata(
+            &target,
+            &WorkspaceMetadata {
+                id: workspace_id(&target, branch),
+                hostname: workspace_hostname(&target, branch),
+                branch: branch.into(),
+                source_root: project.root.clone(),
+            },
+        )?;
+        println!("created workspace {}", target.display());
+        copy_env_json(&project.root, &target)?;
+        let workspace_project = root::detect(&target)?;
+        workspace_dev::initialize(&workspace_project, false).await
+    }
+    .await;
+    if let Err(error) = initialization {
+        if let Ok(workspace_project) = root::detect(&target) {
+            let _ = workspace_dev::stop(&workspace_project, true).await;
         }
+        if project.kind == RootKind::Enterprise {
+            let _ = remove_worktree(&project.oss, &target.join("oss")).await;
+            if oss_branch_created {
+                let _ = delete_branch(&project.oss, branch).await;
+            }
+        }
+        let _ = remove_worktree(&project.root, &target).await;
+        if root_branch_created {
+            let _ = delete_branch(&project.root, branch).await;
+        }
+        return Err(error).wrap_err("workspace initialization failed and was rolled back");
+    }
+    if open_code {
+        let workspace_project = root::detect(&target)?;
+        workspace_dev::open(&workspace_project)
+            .await
+            .wrap_err("workspace was created, but VS Code could not be opened")?;
     }
     Ok(target)
-}
-
-async fn prepare_workspace(project: &ProjectRoot, target: &Path) -> Result<()> {
-    copy_env_json(&project.root, target)?;
-
-    println!("Installing dependencies");
-    process::run(
-        "bun",
-        &["install".into(), "--verbose".into()],
-        target,
-        &Default::default(),
-    )
-    .await
-    .wrap_err_with(|| format!("bun install failed in {}", target.display()))?;
-
-    println!("Building packages");
-    process::run(
-        "bun",
-        &["run".into(), "build".into()],
-        target,
-        &Default::default(),
-    )
-    .await
-    .wrap_err_with(|| format!("bun run build failed in {}", target.display()))?;
-
-    let control_manifest = match project.kind {
-        RootKind::Enterprise => target.join("oss/src/control/Cargo.toml"),
-        RootKind::Standalone => target.join("src/control/Cargo.toml"),
-    };
-    println!("Building control");
-    process::run(
-        "cargo",
-        &[
-            "build".into(),
-            "--manifest-path".into(),
-            control_manifest.to_string_lossy().into(),
-        ],
-        target,
-        &Default::default(),
-    )
-    .await
-    .wrap_err_with(|| {
-        format!(
-            "could not build control from {}",
-            control_manifest.display()
-        )
-    })?;
-    Ok(())
 }
 
 fn copy_env_json(source_root: &Path, target: &Path) -> Result<()> {
@@ -250,6 +222,12 @@ pub async fn remove(project: &ProjectRoot, branch: &str) -> Result<()> {
             "cannot remove the workspace you are currently in; run from the source checkout at {}",
             source.display()
         );
+    }
+
+    if let Ok(workspace_project) = root::detect(&worktree.path)
+        && let Err(error) = workspace_dev::stop(&workspace_project, true).await
+    {
+        eprintln!("warning: could not remove workspace Docker resources: {error:?}");
     }
 
     if project.kind == RootKind::Enterprise || source.join("oss/package.json").is_file() {

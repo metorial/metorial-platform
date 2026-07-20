@@ -28,6 +28,7 @@ Use `npx total-control <command>` when you do not want a global install.
 cargo build --release
 target/release/control --help
 target/release/control dev backend
+target/release/control prepare --no-docker
 target/release/control env
 target/release/control cleanup --dry-run
 target/release/control docker stop
@@ -123,13 +124,17 @@ For Postgres, database creation uses `docker compose exec` when `compose` and
 MongoDB follows the same rule using `mongosh`; an empty database receives a
 `__control` collection so that it persists.
 
+`control prepare` writes selected package environment files and runs
+`control.toml` prepare commands without starting Turbo or any application
+processes. It starts declared dependencies unless `--no-docker` is passed.
+
 `control workspace create BRANCH` creates a sibling worktree. Enterprise mode
 creates the enterprise worktree and a paired OSS worktree at its `oss/` path.
-Failures are rolled back best-effort. After creation it copies `env.json` from
-the source checkout when present, runs `bun install`, builds the workspace's
-Control binary, then attempts to open the path using `code`, unless
-`--no-open` is passed. Package builds and codegen are declared in
-`control.toml` `prepare` and run when you start development.
+It then starts a persistent Ubuntu development container and a private
+dependency stack. The first initialization runs `bun install`, `bun run build`,
+builds Control, and runs `control prepare --no-docker` inside the container.
+After setup it opens `/workspace` through VS Code's Dev Containers extension
+unless `--no-open` is passed. Application services are not started.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
@@ -138,36 +143,37 @@ paired OSS worktree in enterprise mode.
 
 ## Docker workspaces
 
-Run a complete worktree in one development container:
+Prerequisites are Docker, VS Code's `code` shell command, and the
+`ms-vscode-remote.remote-containers` Dev Containers extension.
 
 ```sh
 control workspace dev
-control workspace dev backend
-control workspace dev --isolated-services
+control workspace start
 control workspace dev --rebuild
+control workspace dev --no-open
+control workspace shell
 control workspace stop
-control workspace stop --services
 control workspace stop --volumes
 control workspace status
 ```
 
-The command builds a pinned Debian toolchain image containing Bun 1.2.15,
-Node.js 22/npm, Go 1.25, Rust 1.91.1, Air, and native build tools. It bind
-mounts the worktree at `/workspace` and then runs the normal manifest/Turbo
-pipeline with Docker provisioning disabled inside the container. Turbo, Prisma,
-Vite, and TypeScript come from the repository lockfile rather than global
-installations.
+The command builds an Ubuntu 24.04 image containing zsh, Bun 1.2.15, Node.js
+22/npm, Go 1.25, Rust 1.91.1, Air, and native build tools. It bind mounts the
+worktree at `/workspace`. `workspace dev` and its `workspace start` alias start
+the dependency stack and idle container, open a VS Code window attached to the
+named container, and return. Start the desired application services manually
+from VS Code's zsh terminal, for example with `control dev --no-docker`.
 
-Dependency and compiler caches are persistent, workspace-scoped Docker
-volumes. A private `node_modules` volume keeps Linux dependencies separate from
-the host's Darwin install; the container entrypoint runs `bun install` and then
-the normal Control prepare/Turbo pipeline. Package builds, Prisma generation,
-and embedded frontend/admin builds are declared in `control.toml` `prepare`
-(workspace-wide manifests without a package name are always selected). Generated
+VS Code installs the server version matching the host editor on first attach.
+The server directory is a workspace-scoped persistent volume, so normal
+container replacement does not require another download.
+
+Dependency and compiler caches, setup state, and the VS Code server are
+persistent, workspace-scoped Docker volumes. A private `node_modules` volume
+keeps Linux dependencies separate from the host's Darwin install. Generated
 `.env`, `.control`, Prisma, and frontend files remain in the worktree so the
 editor and container see the same output. The source checkout's `env.json` is
-mounted read-only when a worktree does not provide its own override. Docker
-image builds stream plain progress to the terminal.
+mounted read-only when a worktree does not provide its own override.
 
 A single global Traefik container owns the declared HTTP ports and routes each
 request by host header. A workspace named `feature-auth-1234abcd` therefore
@@ -187,9 +193,8 @@ The hostname `services` (object storage, relay, and similar) is resolved on the
 host — including Tailscale MagicDNS — and injected into the container with
 `--add-host`. Override with `CONTROL_SERVICES_HOST` when needed.
 
-By default, Docker workspaces share the normal global Postgres, MongoDB,
-Redis, NATS, and etcd services. `--isolated-services` creates a private
-Compose project and persistent volumes for all five. Stopping development
-removes only the application container; `workspace stop --services` stops the
-private services, and `workspace stop --volumes` explicitly deletes their
-data.
+Every workspace owns persistent Postgres, MongoDB, Redis, NATS, and etcd
+services. `workspace stop` stops both the workspace container and dependencies
+without removing containers or volumes. `workspace dev` or `workspace start`
+resumes them. `workspace stop --volumes` explicitly removes the container,
+compiler/dependency/VS Code volumes, and dependency data.

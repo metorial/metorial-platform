@@ -8,7 +8,7 @@ use std::{
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
 
 use crate::{
-    docker, environment,
+    environment,
     manifest::{self, LoadedManifest},
     process,
     root::ProjectRoot,
@@ -17,55 +17,284 @@ use crate::{
 
 const PROXY_PROJECT: &str = "control_proxy";
 const PROXY_NETWORK: &str = "control_proxy";
-const GLOBAL_SERVICES_NETWORK: &str = "control_services";
+const SETUP_VERSION: &str = "v1";
+const VSCODE_EXTENSION: &str = "ms-vscode-remote.remote-containers";
 
-pub async fn run(
-    project: &ProjectRoot,
-    selectors: &[String],
-    isolated_services: bool,
-    rebuild: bool,
-    no_prepare: bool,
-) -> Result<()> {
+pub async fn initialize(project: &ProjectRoot, rebuild: bool) -> Result<()> {
+    let running = ensure_running(project, rebuild).await?;
+    bootstrap(project, &running).await
+}
+
+pub async fn run(project: &ProjectRoot, rebuild: bool, open_code: bool) -> Result<()> {
+    initialize(project, rebuild).await?;
+    if open_code {
+        open(project).await?;
+    }
+    Ok(())
+}
+
+pub async fn open(project: &ProjectRoot) -> Result<()> {
+    let metadata = workspace::metadata(project).await?;
+    open_vscode(project, &metadata).await
+}
+
+pub async fn shell(project: &ProjectRoot) -> Result<()> {
+    let running = ensure_running(project, false).await?;
+    bootstrap(project, &running).await?;
+    process::run(
+        "docker",
+        &[
+            "exec".into(),
+            "--interactive".into(),
+            "--tty".into(),
+            running.name,
+            "zsh".into(),
+            "-l".into(),
+        ],
+        &project.root,
+        &running.environment,
+    )
+    .await
+    .wrap_err("workspace shell exited unsuccessfully")
+}
+
+pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
+    let metadata = workspace::metadata(project).await?;
+    let environment = workspace_environment(project, &metadata)?;
+    let name = container_name(&metadata);
+    if inspect_value(&project.root, &name, "{{.Id}}")
+        .await
+        .is_some()
+    {
+        docker_run(
+            &project.root,
+            vec!["stop".into(), "--time".into(), "20".into(), name.clone()],
+            &environment,
+        )
+        .await
+        .wrap_err("could not stop workspace container")?;
+    }
+
+    let assets = workspace_assets(project, &metadata);
+    let mut compose = compose_args(
+        &assets.join("services.docker-compose.yml"),
+        &services_project(&metadata),
+    );
+    if volumes {
+        if inspect_value(&project.root, &name, "{{.Id}}")
+            .await
+            .is_some()
+        {
+            docker_run(
+                &project.root,
+                vec!["rm".into(), "--force".into(), name],
+                &environment,
+            )
+            .await
+            .wrap_err("could not remove workspace container")?;
+        }
+        compose.extend(["down".into(), "--volumes".into()]);
+        docker_run(&project.root, compose, &environment).await?;
+        for volume in workspace_volumes(&metadata) {
+            if docker_quiet(
+                &project.root,
+                vec!["volume".into(), "inspect".into(), volume.clone()],
+                &environment,
+            )
+            .await
+            .is_ok()
+            {
+                docker_run(
+                    &project.root,
+                    vec!["volume".into(), "rm".into(), volume],
+                    &environment,
+                )
+                .await
+                .wrap_err("could not remove a workspace volume")?;
+            }
+        }
+        println!("stopped workspace and removed its persistent data");
+    } else {
+        compose.push("stop".into());
+        docker_run(&project.root, compose, &environment).await?;
+        println!("stopped workspace; persistent data was retained");
+    }
+    Ok(())
+}
+
+pub async fn status(project: &ProjectRoot) -> Result<()> {
+    let metadata = workspace::metadata(project).await?;
+    println!("workspace: {}", metadata.id);
+    println!("branch: {}", metadata.branch);
+    println!("hostname: {}", metadata.hostname);
+    let container_status = inspect_value(
+        &project.root,
+        &container_name(&metadata),
+        "{{.State.Status}}",
+    )
+    .await
+    .unwrap_or_else(|| "not created".into());
+    println!("container: {container_status}");
+    let assets = workspace_assets(project, &metadata);
+    let mut args = compose_args(
+        &assets.join("services.docker-compose.yml"),
+        &services_project(&metadata),
+    );
+    args.extend([
+        "ps".into(),
+        "--status".into(),
+        "running".into(),
+        "--quiet".into(),
+    ]);
+    let running_services = output_args("docker", &args, &project.root)
+        .await
+        .unwrap_or_default()
+        .lines()
+        .count();
+    println!("dependencies: {running_services}/5 running");
+    let marker = format!("/control-state/bootstrap-{SETUP_VERSION}");
+    if container_status == "running" {
+        let initialized = docker_quiet(
+            &project.root,
+            vec![
+                "exec".into(),
+                container_name(&metadata),
+                "test".into(),
+                "-f".into(),
+                marker,
+            ],
+            &Default::default(),
+        )
+        .await
+        .is_ok();
+        println!("initialized: {}", if initialized { "yes" } else { "no" });
+    } else {
+        println!("initialized: unknown (container is not running)");
+    }
+    Ok(())
+}
+
+struct RunningWorkspace {
+    name: String,
+    image: String,
+    environment: BTreeMap<String, String>,
+}
+
+async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningWorkspace> {
     let metadata = workspace::metadata(project).await?;
     let manifests = manifest::discover(&project.root)?;
-    let selected = manifest::select(&manifests, selectors, &project.kind)?;
+    let selected = manifest::select(&manifests, &[], &project.kind)?;
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
     }
     let ports = exposed_ports(&selected);
-
     let assets = workspace_assets(project, &metadata);
     ensure_proxy(&project.root, &assets).await?;
-    let root_env = workspace_environment(project, &metadata)?;
-    let service_network = if isolated_services {
-        Some(start_isolated_services(project, &metadata, &selected, &assets, &root_env).await?)
-    } else {
-        let projects = docker::start(&project.root, &selected, &root_env)
-            .await
-            .wrap_err("could not start shared development services")?;
-        (!projects.is_empty()).then(|| GLOBAL_SERVICES_NETWORK.into())
-    };
+    let environment = workspace_environment(project, &metadata)?;
+    let service_network =
+        start_services(project, &metadata, &selected, &assets, &environment).await?;
     let image = ensure_image(&project.root, &assets, rebuild).await?;
     let name = container_name(&metadata);
+
+    let existing_image = inspect_value(&project.root, &name, "{{.Config.Image}}").await;
+    if existing_image
+        .as_deref()
+        .is_some_and(|value| value != image)
+    {
+        docker_run(
+            &project.root,
+            vec!["rm".into(), "--force".into(), name.clone()],
+            &environment,
+        )
+        .await
+        .wrap_err("could not replace an outdated workspace container")?;
+    }
+    if existing_image.as_deref() != Some(image.as_str()) {
+        create_container(
+            project,
+            &metadata,
+            &assets,
+            &environment,
+            &image,
+            &name,
+            &ports,
+        )
+        .await?;
+    }
+    ensure_network_connection(&project.root, &name, &service_network, &environment).await?;
+
+    docker_run(
+        &project.root,
+        vec!["start".into(), name.clone()],
+        &environment,
+    )
+    .await
+    .wrap_err("could not start workspace container")?;
+    println!("workspace hostname: {}", metadata.hostname);
+    for port in ports {
+        println!("  http://{}:{port}", metadata.hostname);
+    }
+    Ok(RunningWorkspace {
+        name,
+        image,
+        environment,
+    })
+}
+
+async fn ensure_network_connection(
+    root: &Path,
+    container: &str,
+    network: &str,
+    environment: &BTreeMap<String, String>,
+) -> Result<()> {
+    let networks = inspect_value(root, container, "{{json .NetworkSettings.Networks}}")
+        .await
+        .ok_or_else(|| miette::miette!("could not inspect workspace container networks"))?;
+    if !has_network(&networks, network)? {
+        docker_run(
+            root,
+            vec![
+                "network".into(),
+                "connect".into(),
+                network.into(),
+                container.into(),
+            ],
+            environment,
+        )
+        .await
+        .wrap_err("could not attach workspace to its dependency network")?;
+    }
+    Ok(())
+}
+
+fn has_network(networks: &str, network: &str) -> Result<bool> {
+    let networks: serde_json::Value = serde_json::from_str(networks)
+        .into_diagnostic()
+        .wrap_err("Docker returned invalid container network data")?;
+    Ok(networks.get(network).is_some())
+}
+
+async fn create_container(
+    project: &ProjectRoot,
+    metadata: &WorkspaceMetadata,
+    _assets: &Path,
+    environment: &BTreeMap<String, String>,
+    image: &str,
+    name: &str,
+    ports: &BTreeSet<u16>,
+) -> Result<()> {
+    let services_host = resolve_services_host()?;
     let mut git_directories = BTreeSet::new();
     git_directories.insert(git_common_directory(&project.root).await?);
     if project.oss != project.root {
         git_directories.insert(git_common_directory(&project.oss).await?);
     }
-
-    let _ = docker_quiet(
-        &project.root,
-        vec!["rm".into(), "--force".into(), name.clone()],
-        &root_env,
-    )
-    .await;
-    let services_host = resolve_services_host()?;
-    println!("Routing services hostname to {services_host}");
+    let volumes = workspace_volumes(metadata);
     let mut args = vec![
         "create".into(),
         "--init".into(),
         "--name".into(),
-        name.clone(),
+        name.into(),
         "--hostname".into(),
         metadata.hostname.clone(),
         "--network".into(),
@@ -90,36 +319,35 @@ pub async fn run(
         "CONTROL_SERVICE_NATS=nats-1:4222".into(),
         "--env".into(),
         "CONTROL_SERVICE_ETCD=etcd:2379".into(),
+        "--env".into(),
+        "CARGO_TARGET_DIR=/control-cache/cargo-target".into(),
+        "--env".into(),
+        "SHELL=/bin/zsh".into(),
         "--volume".into(),
         format!("{}:/workspace", project.root.display()),
         "--volume".into(),
-        format!(
-            "control-{}-node-modules:/workspace/node_modules",
-            metadata.id
-        ),
+        format!("{}:/workspace/node_modules", volumes[0]),
         "--volume".into(),
-        format!("control-{}-bun-cache:/root/.bun/install/cache", metadata.id),
+        format!("{}:/root/.bun/install/cache", volumes[1]),
         "--volume".into(),
-        format!(
-            "control-{}-cargo-target:/control-cache/cargo-target",
-            metadata.id
-        ),
+        format!("{}:/control-cache/cargo-target", volumes[2]),
         "--volume".into(),
-        format!("control-{}-cargo-registry:/opt/cargo/registry", metadata.id),
+        format!("{}:/opt/cargo/registry", volumes[3]),
         "--volume".into(),
-        format!("control-{}-go-build:/root/.cache/go-build", metadata.id),
+        format!("{}:/root/.cache/go-build", volumes[4]),
         "--volume".into(),
-        format!("control-{}-go-mod:/opt/go/pkg/mod", metadata.id),
-        "--env".into(),
-        "CARGO_TARGET_DIR=/control-cache/cargo-target".into(),
+        format!("{}:/opt/go/pkg/mod", volumes[5]),
+        "--volume".into(),
+        format!("{}:/control-state", volumes[6]),
+        "--volume".into(),
+        format!("{}:/root/.vscode-server", volumes[7]),
         "--label".into(),
         "traefik.enable=true".into(),
         "--label".into(),
         format!("traefik.docker.network={PROXY_NETWORK}"),
+        "--label".into(),
+        format!("control.workspace={}", metadata.id),
     ];
-    if rebuild {
-        args.extend(["--env".into(), "CONTROL_FORCE_BOOTSTRAP=1".into()]);
-    }
     for directory in git_directories {
         args.extend([
             "--volume".into(),
@@ -135,87 +363,82 @@ pub async fn run(
             ]);
         }
     }
-    args.extend(proxy_label_args(&metadata, &ports));
-    args.push(image);
-    args.extend(["dev".into(), "--no-docker".into()]);
-    if no_prepare {
-        args.push("--no-prepare".into());
-    }
-    args.extend(selectors.iter().cloned());
-    docker_run(&project.root, args, &root_env)
+    args.extend(proxy_label_args(metadata, ports));
+    args.push(image.into());
+    docker_run(&project.root, args, environment)
         .await
-        .wrap_err("could not create workspace development container")?;
-    if let Some(service_network) = service_network {
-        docker_run(
-            &project.root,
-            vec![
-                "network".into(),
-                "connect".into(),
-                service_network,
-                name.clone(),
-            ],
-            &root_env,
-        )
-        .await
-        .wrap_err("could not attach workspace to development services")?;
-    }
-
-    println!("workspace hostname: {}", metadata.hostname);
-    for port in ports {
-        println!("  http://{}:{port}", metadata.hostname);
-    }
-    attach(&project.root, &name, &root_env).await
+        .wrap_err("could not create workspace development container")
 }
 
-pub async fn stop(project: &ProjectRoot, services: bool, volumes: bool) -> Result<()> {
-    let metadata = workspace::metadata(project).await?;
-    let environment = workspace_environment(project, &metadata)?;
-    let name = container_name(&metadata);
-    let _ = docker_quiet(
+async fn bootstrap(project: &ProjectRoot, running: &RunningWorkspace) -> Result<()> {
+    println!("Ensuring workspace setup is complete");
+    docker_run(
         &project.root,
-        vec!["rm".into(), "--force".into(), name],
-        &environment,
+        vec![
+            "exec".into(),
+            running.name.clone(),
+            "/usr/local/bin/workspace-entrypoint".into(),
+            "setup".into(),
+            format!("{SETUP_VERSION}-{}", running.image),
+        ],
+        &running.environment,
     )
-    .await;
-    if services {
-        let assets = workspace_assets(project, &metadata);
-        let mut args = compose_args(
-            &assets.join("services.docker-compose.yml"),
-            &services_project(&metadata),
-        );
-        args.push("down".into());
-        if volumes {
-            args.push("--volumes".into());
-        }
-        docker_run(&project.root, args, &environment).await?;
-    }
-    Ok(())
+    .await
+    .wrap_err("workspace setup failed")
 }
 
-pub async fn status(project: &ProjectRoot) -> Result<()> {
-    let metadata = workspace::metadata(project).await?;
-    let environment = workspace_environment(project, &metadata)?;
-    println!("workspace: {}", metadata.id);
-    println!("branch: {}", metadata.branch);
-    println!("hostname: {}", metadata.hostname);
-    let args = vec![
-        "inspect".into(),
-        "--format".into(),
-        "{{.State.Status}}".into(),
-        container_name(&metadata),
-    ];
-    match docker_run(&project.root, args, &environment).await {
-        Ok(()) => Ok(()),
-        Err(_) => {
-            println!("container: stopped");
-            Ok(())
-        }
+async fn open_vscode(project: &ProjectRoot, metadata: &WorkspaceMetadata) -> Result<()> {
+    let extensions = process::output("code", &["--list-extensions"], &project.root)
+        .await
+        .wrap_err(
+            "VS Code's `code` command is required; install it from VS Code's Command Palette",
+        )?;
+    if !extensions
+        .lines()
+        .any(|extension| extension.eq_ignore_ascii_case(VSCODE_EXTENSION))
+    {
+        bail!(
+            "VS Code extension `{VSCODE_EXTENSION}` is required; install the Dev Containers extension"
+        );
     }
+    let uri = vscode_uri(&container_name(metadata), "/workspace");
+    process::run(
+        "code",
+        &["--new-window".into(), "--folder-uri".into(), uri],
+        &project.root,
+        &Default::default(),
+    )
+    .await
+    .wrap_err("could not open the workspace in VS Code")
+}
+
+fn vscode_uri(container: &str, folder: &str) -> String {
+    let descriptor = serde_json::json!({ "containerName": container }).to_string();
+    let hex = descriptor
+        .as_bytes()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("vscode-remote://attached-container+{hex}{folder}")
+}
+
+fn workspace_volumes(metadata: &WorkspaceMetadata) -> Vec<String> {
+    [
+        "node-modules",
+        "bun-cache",
+        "cargo-target",
+        "cargo-registry",
+        "go-build",
+        "go-mod",
+        "state",
+        "vscode-server",
+    ]
+    .into_iter()
+    .map(|suffix| format!("control-{}-{suffix}", metadata.id))
+    .collect()
 }
 
 fn workspace_assets(project: &ProjectRoot, metadata: &WorkspaceMetadata) -> PathBuf {
-    // Prefer the source checkout so worktrees reuse current Control Docker assets
-    // instead of a stale copy from when the worktree was created.
     for root in [&metadata.source_root, &project.root, &project.oss] {
         for candidate in [
             root.join("oss/scripts/dev-tools/workspace"),
@@ -268,8 +491,7 @@ fn proxy_label_args(metadata: &WorkspaceMetadata, ports: &BTreeSet<u16>) -> Vec<
 }
 
 async fn ensure_proxy(root: &Path, assets: &Path) -> Result<()> {
-    let compose = assets.join("proxy.docker-compose.yml");
-    let args = compose_args(&compose, PROXY_PROJECT)
+    let args = compose_args(&assets.join("proxy.docker-compose.yml"), PROXY_PROJECT)
         .into_iter()
         .chain(["up".into(), "--detach".into(), "--wait".into()])
         .collect();
@@ -282,14 +504,8 @@ async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<Strin
     let dockerfile = assets.join("Dockerfile");
     let entrypoint = assets.join("entrypoint.sh");
     let mut hasher = DefaultHasher::new();
-    fs::read(&dockerfile)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not read {}", dockerfile.display()))?
-        .hash(&mut hasher);
-    fs::read(&entrypoint)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not read {}", entrypoint.display()))?
-        .hash(&mut hasher);
+    fs::read(&dockerfile).into_diagnostic()?.hash(&mut hasher);
+    fs::read(&entrypoint).into_diagnostic()?.hash(&mut hasher);
     let image = format!("metorial-control-dev:{:016x}", hasher.finish());
     if !rebuild
         && docker_quiet(
@@ -300,7 +516,6 @@ async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<Strin
         .await
         .is_ok()
     {
-        println!("Using development image {image}");
         return Ok(image);
     }
     println!("Building development image {image}");
@@ -323,7 +538,7 @@ async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<Strin
     Ok(image)
 }
 
-async fn start_isolated_services(
+async fn start_services(
     project: &ProjectRoot,
     metadata: &WorkspaceMetadata,
     manifests: &[&LoadedManifest],
@@ -343,7 +558,7 @@ async fn start_isolated_services(
         ])
         .collect();
     docker_run(&project.root, args, environment).await?;
-    provision_isolated_databases(
+    provision_databases(
         &project.root,
         &compose,
         &project_name,
@@ -354,7 +569,7 @@ async fn start_isolated_services(
     Ok(format!("{project_name}_workspace-services"))
 }
 
-async fn provision_isolated_databases(
+async fn provision_databases(
     root: &Path,
     compose: &Path,
     project_name: &str,
@@ -409,35 +624,6 @@ async fn provision_isolated_databases(
     Ok(())
 }
 
-async fn attach(root: &Path, name: &str, environment: &BTreeMap<String, String>) -> Result<()> {
-    let args = vec![
-        "start".into(),
-        "--attach".into(),
-        "--interactive".into(),
-        name.into(),
-    ];
-    let mut child = process::spawn("docker", &args, root, environment, false)?;
-    tokio::select! {
-        signal = tokio::signal::ctrl_c() => {
-            signal.into_diagnostic()?;
-            eprintln!("\nreceived interrupt; stopping workspace container");
-            let _ = docker_quiet(root, vec![
-                "stop".into(), "--timeout".into(), "20".into(), name.into()
-            ], environment).await;
-            let _ = child.wait().await;
-            Ok(())
-        }
-        status = child.wait() => {
-            let status = status.into_diagnostic()?;
-            if status.success() {
-                Ok(())
-            } else {
-                bail!("workspace development container exited with {status}")
-            }
-        }
-    }
-}
-
 fn services_project(metadata: &WorkspaceMetadata) -> String {
     format!("control_ws_{}", metadata.id.replace('-', "_"))
 }
@@ -447,15 +633,12 @@ fn container_name(metadata: &WorkspaceMetadata) -> String {
 }
 
 fn resolve_services_host() -> Result<String> {
-    if let Ok(value) = std::env::var("CONTROL_SERVICES_HOST") {
-        let value = value.trim();
-        if !value.is_empty() {
-            return Ok(value.to_string());
-        }
+    if let Ok(value) = std::env::var("CONTROL_SERVICES_HOST")
+        && !value.trim().is_empty()
+    {
+        return Ok(value.trim().to_string());
     }
-
     use std::net::{IpAddr, ToSocketAddrs};
-
     let addresses = ("services", 0)
         .to_socket_addrs()
         .into_diagnostic()
@@ -468,25 +651,16 @@ fn resolve_services_host() -> Result<String> {
             _ => None,
         })
         .collect::<Vec<_>>();
-
-    // Prefer Tailscale CGNAT (100.64.0.0/10) when MagicDNS returns multiple answers.
     if let Some(ip) = addresses.iter().find(|ip| {
         let octets = ip.octets();
         octets[0] == 100 && (64..128).contains(&octets[1])
     }) {
         return Ok(ip.to_string());
     }
-
     addresses
-        .into_iter()
-        .next()
-        .map(|ip| ip.to_string())
-        .ok_or_else(|| {
-            miette::miette!(
-                "hostname `services` did not resolve to a non-loopback IPv4 address \
-                 (override with CONTROL_SERVICES_HOST)"
-            )
-        })
+        .first()
+        .map(ToString::to_string)
+        .ok_or_else(|| miette::miette!("hostname `services` has no non-loopback IPv4 address"))
 }
 
 fn compose_args(compose: &Path, project: &str) -> Vec<String> {
@@ -515,6 +689,17 @@ async fn git_common_directory(repository: &Path) -> Result<PathBuf> {
         repository.join(path)
     };
     Ok(path.canonicalize().unwrap_or(path))
+}
+
+async fn inspect_value(root: &Path, name: &str, format: &str) -> Option<String> {
+    process::output("docker", &["inspect", "--format", format, name], root)
+        .await
+        .ok()
+}
+
+async fn output_args(program: &str, args: &[String], root: &Path) -> Result<String> {
+    let refs = args.iter().map(String::as_str).collect::<Vec<_>>();
+    process::output(program, &refs, root).await
 }
 
 async fn docker_run(
@@ -547,7 +732,7 @@ mod tests {
     }
 
     #[test]
-    fn generates_stable_container_service_and_proxy_names() {
+    fn generates_stable_resource_names_and_volumes() {
         let metadata = metadata();
         assert_eq!(
             container_name(&metadata),
@@ -557,18 +742,31 @@ mod tests {
             services_project(&metadata),
             "control_ws_feature_auth_deadbeef"
         );
+        let volumes = workspace_volumes(&metadata);
+        assert!(volumes.contains(&"control-feature-auth-deadbeef-state".into()));
+        assert!(volumes.contains(&"control-feature-auth-deadbeef-vscode-server".into()));
+    }
 
-        let labels = proxy_label_args(&metadata, &BTreeSet::from([4310]));
-        assert!(labels.contains(
-            &"traefik.http.routers.feature-auth-deadbeef-4310.rule=Host(`feature-auth-deadbeef.localhost`)"
-                .into()
-        ));
-        assert!(
-            labels.contains(
-                &"traefik.http.services.feature-auth-deadbeef-4310.loadbalancer.server.port=4310"
-                    .into()
-            )
+    #[test]
+    fn encodes_vscode_attached_container_uri() {
+        let uri = vscode_uri("control-ws-test", "/workspace");
+        let descriptor = serde_json::json!({ "containerName": "control-ws-test" }).to_string();
+        let hex = descriptor
+            .as_bytes()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        assert_eq!(
+            uri,
+            format!("vscode-remote://attached-container+{hex}/workspace")
         );
+    }
+
+    #[test]
+    fn detects_when_a_container_needs_dependency_network_attachment() {
+        let networks = r#"{"control_proxy":{"NetworkID":"one"}}"#;
+        assert!(has_network(networks, "control_proxy").unwrap());
+        assert!(!has_network(networks, "control_ws_test_workspace-services").unwrap());
     }
 
     #[test]
@@ -583,16 +781,9 @@ mod tests {
             manifests.extend(manifest::discover(enterprise).unwrap());
         }
         let ports = exposed_ports(&manifests.iter().collect::<Vec<_>>());
-
         for port in ports {
-            assert!(
-                compose.contains(&format!("'{port}:{port}'")),
-                "proxy does not publish {port}"
-            );
-            assert!(
-                traefik.contains(&format!("port-{port}:")),
-                "proxy has no entrypoint for {port}"
-            );
+            assert!(compose.contains(&format!("'{port}:{port}'")));
+            assert!(traefik.contains(&format!("port-{port}:")));
         }
     }
 }

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { findControlManifest } from '../bin/control.mjs';
+import { findControlManifest } from '../bin-files/control.mjs';
 
 let withTemporaryDirectory = callback => {
   let directory = mkdtempSync(join(tmpdir(), 'total-control-'));

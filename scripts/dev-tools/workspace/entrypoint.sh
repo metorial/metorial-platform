@@ -4,10 +4,54 @@ set -euo pipefail
 
 workspace="${CONTROL_WORKSPACE_PATH:-/workspace}"
 
-if [[ -d "${workspace}" ]]; then
+enter_workspace() {
   cd "${workspace}"
   git config --global --add safe.directory "${workspace}" >/dev/null 2>&1 || true
   git config --global --add safe.directory "${workspace}/oss" >/dev/null 2>&1 || true
+}
+
+control_manifest() {
+  if [[ -f "${workspace}/oss/src/control/Cargo.toml" ]]; then
+    printf '%s\n' "${workspace}/oss/src/control/Cargo.toml"
+  elif [[ -f "${workspace}/src/control/Cargo.toml" ]]; then
+    printf '%s\n' "${workspace}/src/control/Cargo.toml"
+  else
+    echo "Could not find the Control Cargo.toml in ${workspace}" >&2
+    return 1
+  fi
+}
+
+setup_workspace() {
+  local version="${1:?setup version is required}"
+  local marker="/control-state/bootstrap-v1"
+  if [[ -f "${marker}" ]] && [[ "$(cat "${marker}")" == "${version}" ]]; then
+    echo "Workspace setup is already current"
+    return
+  fi
+
+  enter_workspace
+  echo "Installing container dependencies"
+  bun install --verbose
+  echo "Building workspace packages"
+  bun run build
+  local manifest
+  manifest="$(control_manifest)"
+  echo "Building Control"
+  cargo build --manifest-path "${manifest}"
+  echo "Running Control prepare tasks"
+  cargo run --quiet --manifest-path "${manifest}" -- prepare --no-docker
+  printf '%s\n' "${version}" >"${marker}"
+  echo "Workspace setup complete"
+}
+
+if [[ "${1:-}" == "setup" ]]; then
+  shift
+  setup_workspace "$@"
+  exit 0
+fi
+
+if [[ -d "${workspace}" ]]; then
+  enter_workspace
 fi
 
 forward_port() {
@@ -41,14 +85,6 @@ fi
 
 if [[ "$#" -eq 0 ]]; then
   set -- sleep infinity
-fi
-
-if [[ "$1" == "dev" ]]; then
-  # Linux node_modules live in a workspace volume; install is platform-generic.
-  # Package builds and codegen come from control.toml prepare steps.
-  echo "Installing container dependencies"
-  bun install --verbose
-  exec cargo run --quiet --manifest-path ./oss/src/control/Cargo.toml -- "$@"
 fi
 
 exec "$@"

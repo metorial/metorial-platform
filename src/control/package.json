@@ -5,10 +5,10 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "control": "./bin/control.mjs"
+    "control": "./bin-files/control.mjs"
   },
   "files": [
-    "bin"
+    "bin-files"
   ],
   "engines": {
     "node": ">=18"
