@@ -19,6 +19,8 @@ import {
   OrganizationActor,
   OrganizationMember,
   Project,
+  ResourceGroup,
+  ResourceTenant,
   Sandbox,
   User,
   withTransaction
@@ -330,7 +332,9 @@ class InstanceService {
         include: {
           organization: true,
           project: true,
-          sandbox: true
+          sandbox: true,
+          resourceTenant: true,
+          resourceGroup: true
         }
       });
 
@@ -398,7 +402,9 @@ class InstanceService {
         include: {
           organization: true,
           project: true,
-          sandbox: true
+          sandbox: true,
+          resourceTenant: true,
+          resourceGroup: true
         }
       });
 
@@ -476,7 +482,11 @@ class InstanceService {
   }
 
   async deleteInstance(d: {
-    instance: Instance & { project: Project };
+    instance: Instance & {
+      project: Project;
+      resourceTenant: ResourceTenant | null;
+      resourceGroup: ResourceGroup | null;
+    };
     organization: Organization;
     performedBy: OrganizationActor;
     context: Context;
@@ -514,7 +524,9 @@ class InstanceService {
       include: {
         organization: true,
         project: true,
-        sandbox: true
+        sandbox: true,
+        resourceTenant: true,
+        resourceGroup: true
       }
     });
     if (!instance) throw new ServiceError(notFoundError('instance', d.instanceId));
@@ -686,13 +698,19 @@ class InstanceService {
                 status: 'active'
               },
               include: {
-                actor: true
+                actor: {
+                  include: {
+                    resourceActors: true
+                  }
+                }
               }
             }
           }
         },
         project: true,
-        sandbox: true
+        sandbox: true,
+        resourceTenant: true,
+        resourceGroup: true
       }
     });
     let member = instance?.organization.members[0];

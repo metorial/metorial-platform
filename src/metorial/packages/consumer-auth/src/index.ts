@@ -20,6 +20,7 @@ export let consumerSessionInclude = {
   consumerProfile: {
     include: {
       consumer: true,
+      resourceActors: true,
       surface: {
         include: {
           portal: true

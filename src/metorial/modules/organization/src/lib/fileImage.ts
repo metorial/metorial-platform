@@ -24,7 +24,8 @@ export let resolveFileImage = async <ClearImage extends EntityImage | null>(d: {
   let scope = await resolveResourceScopeForOwner(d.owner);
   let file = await fileService.getFileById({
     ...scope,
-    fileId: d.imageFileId
+    fileId: d.imageFileId,
+    authorization: { type: 'privileged' }
   });
   let link = await fileLinkService.createFileLink({
     ...scope,
