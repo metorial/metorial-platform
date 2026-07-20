@@ -1,6 +1,5 @@
 import { v } from '@lowerdeck/validation';
 import { getSignedFileDownloadUrl } from '@metorial/cargo-module-file';
-import { db } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { fileType } from '../../types';
 import {
@@ -9,36 +8,26 @@ import {
 } from './documentParticipant';
 
 export let v1FilePresenter = Presenter.create(fileType)
-  .presenter(async ({ file }, opts) => {
-    let createdBy =
-      file.createdByResourceActor ??
-      (file.createdByResourceActorOid
-        ? await db.resourceActor.findUnique({
-            where: {
-              oid: file.createdByResourceActorOid
-            }
-          })
-        : null);
+  .presenter(async ({ file }, opts) => ({
+    object: 'file',
 
-    return {
-      object: 'file',
+    id: file.id,
+    status: file.status,
 
-      id: file.id,
-      status: file.status,
+    file_name: file.fileName,
+    file_size: file.fileSize,
+    file_type: file.fileType,
 
-      file_name: file.fileName,
-      file_size: file.fileSize,
-      file_type: file.fileType,
+    title: file.title,
 
-      title: file.title,
+    purpose: file.purpose.slug,
+    created_by: file.createdByResourceActor
+      ? await presentDocumentParticipantActor(file.createdByResourceActor, opts)
+      : null,
 
-      purpose: file.purpose.slug,
-      created_by: createdBy ? await presentDocumentParticipantActor(createdBy, opts) : null,
-
-      created_at: file.createdAt,
-      updated_at: file.updatedAt
-    };
-  })
+    created_at: file.createdAt,
+    updated_at: file.updatedAt
+  }))
   .schema(
     v.object({
       object: v.literal('file', { description: "String representing the object's type" }),

@@ -140,9 +140,13 @@ export let skillGroupItemController = Controller.create(
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
           instance: ctx.instance,
+          resourceTenant: ctx.resourceTenant,
+          resourceGroup: ctx.resourceGroup,
+          skillGroupId: ctx.skillGroup.id,
           skillId: ctx.body.skill_id,
           consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups
+          accessTags: ctx.accessTags,
+          authorization: (await getInstanceCargoAccess(ctx)).authorization
         });
 
         let access = await getInstanceCargoAccess(ctx);
@@ -178,9 +182,13 @@ export let skillGroupItemController = Controller.create(
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
           instance: ctx.instance,
+          resourceTenant: ctx.resourceTenant,
+          resourceGroup: ctx.resourceGroup,
+          skillGroupId: ctx.skillGroup.id,
           skillId: ctx.skillGroupItem.skill.id,
           consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups
+          accessTags: ctx.accessTags,
+          authorization: (await getInstanceCargoAccess(ctx)).authorization
         });
 
         let access = await getInstanceCargoAccess(ctx);

@@ -1,4 +1,3 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import type { Instance, Organization } from '@metorial/db';
@@ -23,7 +22,7 @@ type SkillVersionContext = Parameters<typeof getInstanceCargoAccess>[0] & {
 };
 
 let getSkillVersionInput = async (ctx: SkillVersionContext) => ({
-  skillId: ctx.skill.id,
+  skill: ctx.skill,
   ...(await getInstanceCargoAccess(ctx))
 });
 
@@ -36,10 +35,6 @@ export let skillVersionGroup = skillGroup.use(async ctx => {
     ...(await getSkillVersionInput(ctx)),
     skillVersionId: ctx.params.skillVersionId
   });
-
-  if (skillVersion.skill.id !== ctx.skill.id) {
-    throw new ServiceError(notFoundError('skill.version', ctx.params.skillVersionId));
-  }
 
   return { skillVersion };
 });

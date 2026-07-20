@@ -108,7 +108,7 @@ export let fileLinkController = Controller.create(
           resourceGroup: access.resourceGroup,
           input: {
             expiresAt: ctx.body.expires_at,
-            actorId: access.actorId
+            actor: access.actor
           }
         });
 

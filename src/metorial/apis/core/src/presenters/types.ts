@@ -56,7 +56,6 @@ import {
   Prisma,
   Profile,
   Project,
-  ResourceActor,
   Sandbox,
   ProviderTemplate,
   Secret,
@@ -98,6 +97,10 @@ import {
   UserStatus,
   UserType
 } from '@metorial/db';
+import {
+  resourceActorPresentationInclude,
+  type ResourceActorPresentationRecord
+} from '@metorial/module-resource-tenant';
 import type {
   AssistantConversationItemWithMessage,
   AssistantConversationWithAssistant,
@@ -512,7 +515,7 @@ export let serviceAccountCredentialType = PresentableType.create<{
 export let fileType = PresentableType.create<{
   file: File & {
     purpose: Prisma.FilePurposeGetPayload<{}>;
-    createdByResourceActor?: ResourceActor | null;
+    createdByResourceActor?: ResourceActorPresentationRecord | null;
     effectiveStoreId?: string;
     signedDownloadUrl?: string;
   };
@@ -537,7 +540,7 @@ export let documentType = PresentableType.create<{
       };
     };
   }> & {
-    createdByResourceActor?: ResourceActor | null;
+    createdByResourceActor?: ResourceActorPresentationRecord | null;
     resolvedTitle?: string;
     resolvedContent?: string;
   };
@@ -571,7 +574,9 @@ export let documentVersionType = PresentableType.create<{
       content: true;
       documentVersionEditors: {
         include: {
-          resourceActor: true;
+          resourceActor: {
+            include: typeof resourceActorPresentationInclude;
+          };
         };
       };
     };
@@ -581,7 +586,7 @@ export let documentVersionType = PresentableType.create<{
 export let documentParticipantType = PresentableType.create<{
   documentParticipant: DocumentParticipant & {
     document: Document;
-    resourceActor: ResourceActor;
+    resourceActor: ResourceActorPresentationRecord;
   };
 }>()('documentParticipant');
 
@@ -689,7 +694,7 @@ export let storeItemListType = PresentableType.create<{
 export let storeParticipantType = PresentableType.create<{
   storeParticipant: StoreParticipant & {
     store: Store;
-    resourceActor: ResourceActor;
+    resourceActor: ResourceActorPresentationRecord;
   };
 }>()('storeParticipant');
 
@@ -726,7 +731,9 @@ export let skillExportType = PresentableType.create<{
       | (Prisma.FileGetPayload<{
           include: {
             purpose: true;
-            createdByResourceActor: true;
+            createdByResourceActor: {
+              include: typeof resourceActorPresentationInclude;
+            };
           };
         }> & {
           effectiveStoreId?: string;
@@ -734,7 +741,7 @@ export let skillExportType = PresentableType.create<{
         })
       | null;
     fileLink: (FileLink & { file: File }) | null;
-    creatorResourceActor: ResourceActor | null;
+    creatorResourceActor: ResourceActorPresentationRecord | null;
   };
 }>()('skillExport');
 
@@ -954,7 +961,7 @@ export let skillSyncType = PresentableType.create<{
 export let skillParticipantType = PresentableType.create<{
   skillParticipant: SkillParticipant & {
     skill: Skill;
-    resourceActor: ResourceActor;
+    resourceActor: ResourceActorPresentationRecord;
   };
 }>()('skillParticipant');
 
@@ -1012,7 +1019,9 @@ export let skillMergeRequestType = PresentableType.create<{
       preMergeTargetSkillVersion: true;
       mergedTargetSkillVersion: true;
       rollbackTargetSkillVersion: true;
-      createdByResourceActor: true;
+      createdByResourceActor: {
+        include: typeof resourceActorPresentationInclude;
+      };
       _count: {
         select: {
           items: true;
@@ -1026,25 +1035,25 @@ export let skillMergeRequestType = PresentableType.create<{
 export let skillMergeRequestItemType = PresentableType.create<{
   skillMergeRequestItem: SkillMergeRequestItem & {
     skillMergeRequest: SkillMergeRequest;
-    resolvedByResourceActor: ResourceActor | null;
+    resolvedByResourceActor: ResourceActorPresentationRecord | null;
   };
 }>()('skillMergeRequestItem');
 
 export let skillMergeRequestCommentType = PresentableType.create<{
   skillMergeRequestComment: SkillMergeRequestComment & {
     skillMergeRequestItem: SkillMergeRequestItem | null;
-    resourceActor: ResourceActor;
+    resourceActor: ResourceActorPresentationRecord;
     inReplyToComment: SkillMergeRequestComment | null;
   };
 }>()('skillMergeRequestComment');
 
 export let skillMergeRequestEventType = PresentableType.create<{
   skillMergeRequestEvent: SkillMergeRequestEvent & {
-    resourceActor: ResourceActor | null;
+    resourceActor: ResourceActorPresentationRecord | null;
     comment:
       | (SkillMergeRequestComment & {
           skillMergeRequestItem: SkillMergeRequestItem | null;
-          resourceActor: ResourceActor;
+          resourceActor: ResourceActorPresentationRecord;
           inReplyToComment: SkillMergeRequestComment | null;
         })
       | null;
@@ -1063,7 +1072,9 @@ export let skillMergePlanType = PresentableType.create<{
         preMergeTargetSkillVersion: true;
         mergedTargetSkillVersion: true;
         rollbackTargetSkillVersion: true;
-        createdByResourceActor: true;
+        createdByResourceActor: {
+          include: typeof resourceActorPresentationInclude;
+        };
         _count: {
           select: {
             items: true;
@@ -1075,7 +1086,7 @@ export let skillMergePlanType = PresentableType.create<{
     items: {
       item: SkillMergeRequestItem & {
         skillMergeRequest: SkillMergeRequest;
-        resolvedByResourceActor: ResourceActor | null;
+        resolvedByResourceActor: ResourceActorPresentationRecord | null;
       };
       base?: {
         kind: 'file' | 'document' | 'directory';

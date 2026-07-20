@@ -11,10 +11,7 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillPluginPresenter } from '../../../presenters';
-import {
-  getConsumerAccessibleSkillMarketplaceIds,
-  getReadSkillMarketplaceFilter
-} from './_marketplaceAccess';
+import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write'] as const;
@@ -28,46 +25,43 @@ let skillPluginInput = {
   skill_configuration_id: v.optional(v.nullable(v.string()))
 };
 
-export let getSkillPluginAccess = (
-  ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
-) => getInstanceCargoAccess(ctx);
+export let getSkillPluginAccess = (ctx: Parameters<typeof getInstanceCargoAccess>[0] & any) =>
+  getInstanceCargoAccess(ctx);
 
-export let skillPluginGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
-  if (!ctx.params.skillPluginId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'skillPluginId is required',
-        description: 'The skillPluginId path parameter is required.'
-      })
-    );
-  }
-
-  if (hasInstanceConsumerAccess(ctx)) {
-    let accessibleMarketplaceIds = await getConsumerAccessibleSkillMarketplaceIds({
-      instance: ctx.instance,
-      consumerGroups: ctx.consumerGroups
-    });
-    let paginator = await skillPluginService.listSkillPlugins({
-      ...(await getSkillPluginAccess(ctx)),
-      ids: [ctx.params.skillPluginId],
-      skillMarketplaceIds: accessibleMarketplaceIds
-    });
-    let list = await paginator.run({ limit: 1 });
-    let skillPlugin = list.items[0];
-    if (!skillPlugin) {
-      throw new ServiceError(notFoundError('skill.plugin', ctx.params.skillPluginId));
+export let skillPluginGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillPluginId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skillPluginId is required',
+          description: 'The skillPluginId path parameter is required.'
+        })
+      );
     }
 
+    if (hasInstanceConsumerAccess(ctx)) {
+      let paginator = await skillPluginService.listSkillPlugins({
+        ...(await getSkillPluginAccess(ctx)),
+        ids: [ctx.params.skillPluginId],
+        ...getSkillMarketplaceAccessInput(ctx)
+      });
+      let list = await paginator.run({ limit: 1 });
+      let skillPlugin = list.items[0];
+      if (!skillPlugin) {
+        throw new ServiceError(notFoundError('skill.plugin', ctx.params.skillPluginId));
+      }
+
+      return { skillPlugin };
+    }
+
+    let skillPlugin = await skillPluginService.getSkillPluginById({
+      ...(await getSkillPluginAccess(ctx)),
+      skillPluginId: ctx.params.skillPluginId
+    });
+
     return { skillPlugin };
-  }
-
-  let skillPlugin = await skillPluginService.getSkillPluginById({
-    ...(await getSkillPluginAccess(ctx)),
-    skillPluginId: ctx.params.skillPluginId
   });
-
-  return { skillPlugin };
-});
 
 export let skillPluginController = Controller.create(
   {
@@ -105,19 +99,11 @@ export let skillPluginController = Controller.create(
         )
       )
       .do(async ctx => {
-        let marketplaceFilter = await getReadSkillMarketplaceFilter(ctx);
-        let queryMarketplaceIds = normalizeArrayParam(ctx.query.skill_marketplace_id);
-        let skillMarketplaceIds =
-          marketplaceFilter == null
-            ? queryMarketplaceIds
-            : queryMarketplaceIds?.length
-              ? queryMarketplaceIds.filter(id => marketplaceFilter.includes(id))
-              : marketplaceFilter;
-
         let paginator = await skillPluginService.listSkillPlugins({
           ...(await getSkillPluginAccess(ctx)),
+          ...getSkillMarketplaceAccessInput(ctx),
           ids: normalizeArrayParam(ctx.query.id),
-          skillMarketplaceIds,
+          skillMarketplaceIds: normalizeArrayParam(ctx.query.skill_marketplace_id),
           statuses: normalizeArrayParam(ctx.query.status),
           category: ctx.query.category,
           search: ctx.query.search,

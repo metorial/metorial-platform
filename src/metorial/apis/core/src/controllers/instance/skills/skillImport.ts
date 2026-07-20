@@ -71,7 +71,7 @@ export let skillImportGroup = instanceGroup
     let skillImport = await skillImportService.getSkillImportById({
       ...(await getAccess(ctx)),
       skillImportId: ctx.params.skillImportId,
-      actorId: undefined
+      actor: undefined
     });
 
     return { skillImport };
@@ -107,7 +107,7 @@ export let skillImportController = Controller.create(
           ...(await getAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           statuses: normalizeArrayParam(ctx.query.status),
-          actorId: undefined
+          actor: undefined
         });
         let list = await paginator.run(ctx.query);
 

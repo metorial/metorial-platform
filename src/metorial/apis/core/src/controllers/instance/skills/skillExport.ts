@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   skillExportService,
+  skillMarketplaceService,
   skillPluginService,
   skillService
 } from '@metorial/cargo-module-skill';
@@ -14,10 +15,7 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillExportPresenter } from '../../../presenters';
-import {
-  assertConsumerCanAccessSkillMarketplace,
-  getConsumerAccessibleSkillMarketplaceIds
-} from './_marketplaceAccess';
+import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 import { getSkillPluginAccess } from './skillPlugin';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
@@ -25,25 +23,27 @@ let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as cons
 let targetValidator = v.enumOf(['skill', 'plugin', 'marketplace']);
 let statusValidator = v.enumOf(['pending', 'completed', 'failed']);
 
-export let skillExportGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
-  if (!ctx.params.skillExportId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'skillExportId is required',
-        description: 'The skillExportId path parameter is required.'
-      })
-    );
-  }
+export let skillExportGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillExportId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skillExportId is required',
+          description: 'The skillExportId path parameter is required.'
+        })
+      );
+    }
 
-  let access = await getSkillPluginAccess(ctx);
-  let skillExport = await skillExportService.getSkillExportById({
-    ...access,
-    skillExportId: ctx.params.skillExportId,
-    actorId: hasInstanceConsumerAccess(ctx) ? access.actorId : undefined
+    let access = await getSkillPluginAccess(ctx);
+    let skillExport = await skillExportService.getSkillExportById({
+      ...access,
+      skillExportId: ctx.params.skillExportId,
+      actor: hasInstanceConsumerAccess(ctx) ? access.actor : undefined
+    });
+
+    return { skillExport };
   });
-
-  return { skillExport };
-});
 
 let getCreateInput = (body: {
   target: 'skill' | 'plugin' | 'marketplace';
@@ -98,18 +98,19 @@ let assertConsumerCanCreateExport = async (
   }
 
   if (input.target === 'marketplace') {
-    await assertConsumerCanAccessSkillMarketplace(ctx, input.skillMarketplaceId);
+    let access = await getSkillPluginAccess(ctx);
+    await skillMarketplaceService.getSkillMarketplaceById({
+      ...access,
+      ...getSkillMarketplaceAccessInput(ctx),
+      skillMarketplaceId: input.skillMarketplaceId
+    });
     return;
   }
 
-  let accessibleMarketplaceIds = await getConsumerAccessibleSkillMarketplaceIds({
-    instance: ctx.instance,
-    consumerGroups: ctx.consumerGroups
-  });
   let paginator = await skillPluginService.listSkillPlugins({
     ...(await getSkillPluginAccess(ctx)),
     ids: [input.skillPluginId],
-    skillMarketplaceIds: accessibleMarketplaceIds
+    ...getSkillMarketplaceAccessInput(ctx)
   });
   let list = await paginator.run({ limit: 1 });
   if (!list.items[0]) {
@@ -149,7 +150,7 @@ export let skillExportController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           targets: normalizeArrayParam(ctx.query.target),
           statuses: normalizeArrayParam(ctx.query.status),
-          actorId: hasInstanceConsumerAccess(ctx) ? access.actorId : undefined
+          actor: hasInstanceConsumerAccess(ctx) ? access.actor : undefined
         });
         let list = await paginator.run(ctx.query);
 

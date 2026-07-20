@@ -11,10 +11,7 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillMarketplacePresenter } from '../../../presenters';
-import {
-  assertConsumerCanAccessSkillMarketplace,
-  getReadSkillMarketplaceFilter
-} from './_marketplaceAccess';
+import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write'] as const;
@@ -30,25 +27,26 @@ export let getSkillMarketplaceAccess = (
   ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
 ) => getInstanceCargoAccess(ctx);
 
-export let skillMarketplaceGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
-  if (!ctx.params.skillMarketplaceId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'skillMarketplaceId is required',
-        description: 'The skillMarketplaceId path parameter is required.'
-      })
-    );
-  }
+export let skillMarketplaceGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillMarketplaceId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skillMarketplaceId is required',
+          description: 'The skillMarketplaceId path parameter is required.'
+        })
+      );
+    }
 
-  await assertConsumerCanAccessSkillMarketplace(ctx, ctx.params.skillMarketplaceId);
+    let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
+      ...(await getSkillMarketplaceAccess(ctx)),
+      skillMarketplaceId: ctx.params.skillMarketplaceId,
+      ...getSkillMarketplaceAccessInput(ctx)
+    });
 
-  let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
-    ...(await getSkillMarketplaceAccess(ctx)),
-    skillMarketplaceId: ctx.params.skillMarketplaceId
+    return { skillMarketplace };
   });
-
-  return { skillMarketplace };
-});
 
 export let skillMarketplaceController = Controller.create(
   {
@@ -84,18 +82,10 @@ export let skillMarketplaceController = Controller.create(
         )
       )
       .do(async ctx => {
-        let marketplaceFilter = await getReadSkillMarketplaceFilter(ctx);
-        let queryIds = normalizeArrayParam(ctx.query.id);
-        let ids =
-          marketplaceFilter == null
-            ? queryIds
-            : queryIds?.length
-              ? queryIds.filter(id => marketplaceFilter.includes(id))
-              : marketplaceFilter;
-
         let paginator = await skillMarketplaceService.listSkillMarketplaces({
           ...(await getSkillMarketplaceAccess(ctx)),
-          ids,
+          ...getSkillMarketplaceAccessInput(ctx),
+          ids: normalizeArrayParam(ctx.query.id),
           statuses: normalizeArrayParam(ctx.query.status),
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
           search: ctx.query.search,

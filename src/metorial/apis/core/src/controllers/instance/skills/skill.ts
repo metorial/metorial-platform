@@ -224,7 +224,7 @@ export let skillController = Controller.create(
                 parentSkillTemplate: template,
                 input: {
                   id: await ID.generateId('skill'),
-                  actorId: access.actorId,
+                  authorization: access.authorization,
                   name: input.name,
                   description: input.description,
                   clientName: input.clientName,
@@ -280,6 +280,7 @@ export let skillController = Controller.create(
       )
       .output(skillPresenter)
       .do(async ctx => {
+        let access = await getInstanceCargoAccess(ctx);
         let input = {
           name: ctx.body.name,
           description: ctx.body.description,
@@ -291,37 +292,16 @@ export let skillController = Controller.create(
           metadata: ctx.body.metadata,
           imageFileId: ctx.body.image_file_id
         };
-        let skill = ctx.consumerProfile
-          ? await (async () => {
-              let updated = await consumerSkillService.updateConsumerSkill({
-                organization: ctx.organization,
-                instance: ctx.instance,
-                consumerProfile: ctx.consumerProfile,
-                skillId: ctx.skill.id,
-                input
-              });
-              return await skillResourceService.hydrateSkill(updated);
-            })()
-          : await (async () => {
-              let access = await getInstanceCargoAccess(ctx);
-              let localSkill = await skillService.getSkillById({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
-                skillId: ctx.skill.id,
-                allowDeleted: true
-              });
-              let updated = await skillService.updateSkill({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
-                skill: localSkill,
-                actorId: access.actorId,
-                accessTags: access.accessTags,
-                defaultPermissions: access.defaultPermissions,
-                overridePermissions: access.overridePermissions,
-                input: input as any
-              });
-              return await skillResourceService.hydrateSkill(updated);
-            })();
+        let updated = await skillService.updateSkill({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
+          skill: ctx.skill.localSkill,
+          authorization: access.authorization,
+          defaultPermissions: access.defaultPermissions,
+          overridePermissions: access.overridePermissions,
+          input: input as any
+        });
+        let skill = await skillResourceService.hydrateSkill(updated);
 
         return skillPresenter.present({ skill });
       }),
@@ -336,35 +316,16 @@ export let skillController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPresenter)
       .do(async ctx => {
-        let skill = ctx.consumerProfile
-          ? await (async () => {
-              let archived = await consumerSkillService.deleteConsumerSkill({
-                organization: ctx.organization,
-                instance: ctx.instance,
-                consumerProfile: ctx.consumerProfile,
-                skillId: ctx.skill.id
-              });
-              return await skillResourceService.hydrateSkill(archived);
-            })()
-          : await (async () => {
-              let access = await getInstanceCargoAccess(ctx);
-              let localSkill = await skillService.getSkillById({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
-                skillId: ctx.skill.id,
-                allowDeleted: true
-              });
-              let archived = await skillService.archiveSkill({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
-                skill: localSkill,
-                actorId: access.actorId,
-                accessTags: access.accessTags,
-                defaultPermissions: access.defaultPermissions,
-                overridePermissions: access.overridePermissions
-              });
-              return await skillResourceService.hydrateSkill(archived);
-            })();
+        let access = await getInstanceCargoAccess(ctx);
+        let archived = await skillService.archiveSkill({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
+          skill: ctx.skill.localSkill,
+          authorization: access.authorization,
+          defaultPermissions: access.defaultPermissions,
+          overridePermissions: access.overridePermissions
+        });
+        let skill = await skillResourceService.hydrateSkill(archived);
 
         return skillPresenter.present({ skill });
       }),
@@ -435,7 +396,7 @@ export let skillController = Controller.create(
                 parentSkillCloneType: 'duplicate',
                 input: {
                   id: await ID.generateId('skill'),
-                  actorId: access.actorId,
+                  authorization: access.authorization,
                   ...input
                 }
               });
@@ -487,7 +448,15 @@ export let skillController = Controller.create(
         description: 'Shares a skill with consumers or organization members.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
+      .use(
+        checkAccess({
+          possibleScopes: [
+            'instance.skill:write',
+            'instance.skill:manage_access',
+            'consumer#instance.skill:manage_access'
+          ]
+        })
+      )
       .use(requireConsumerTokenForPublishableKey())
       .body(
         'default',
@@ -554,7 +523,7 @@ export let skillController = Controller.create(
           parentSkillCloneType: 'duplicate',
           input: {
             id: await ID.generateId('skill'),
-            actorId: access.actorId,
+            authorization: access.authorization,
             name: ctx.body.name,
             description: ctx.body.description,
             clientName: ctx.body.client_name,

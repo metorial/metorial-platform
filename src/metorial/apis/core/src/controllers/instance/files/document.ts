@@ -101,8 +101,7 @@ export let documentController = Controller.create(
           input: {
             title: ctx.body.title,
             content: ctx.body.content,
-            actorId: access.actorId,
-            accessTags: access.accessTags,
+            authorization: access.authorization,
             defaultPermissions: access.defaultPermissions,
             overridePermissions: access.overridePermissions
           }
@@ -214,8 +213,7 @@ export let documentController = Controller.create(
           input: {
             title: ctx.body.title,
             content: ctx.body.content,
-            actorId: access.actorId,
-            accessTags: access.accessTags,
+            authorization: access.authorization,
             defaultPermissions: access.defaultPermissions,
             overridePermissions: access.overridePermissions
           }
@@ -269,9 +267,8 @@ export let documentController = Controller.create(
           input: {
             id: ctx.body.target_document_id,
             title: ctx.body.title,
-            actorId: access.actorId,
-            creatorActorId: access.actorId,
-            accessTags: access.accessTags,
+            authorization: access.authorization,
+            creatorActor: access.actor,
             defaultPermissions: access.defaultPermissions,
             overridePermissions: access.overridePermissions
           }

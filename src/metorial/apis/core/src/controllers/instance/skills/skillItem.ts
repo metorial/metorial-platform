@@ -1,12 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { ConsumerProfile, Skill } from '@metorial/db';
-import { consumerSkillService } from '@metorial/module-consumer';
-import { skillResourceService } from '@metorial/cargo-module-skill';
+import { skillResourceService, skillService } from '@metorial/cargo-module-skill';
 import { subspaceSkillItemService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
@@ -55,17 +54,21 @@ export let skillItemGroup = skillGroup.use(async ctx => {
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let skillWriteScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
-let assertConsumerCanWriteSkillItems = async (ctx: {
-  consumerProfile?: ConsumerProfile;
+let assertConsumerCanWriteSkillItems = async (ctx: Parameters<
+  typeof getInstanceCargoAccess
+>[0] & {
   skill: {
-    localSkill: Skill;
+    localSkill: Parameters<typeof skillService.assertSkillWriteAccess>[0]['skill'];
   };
 }) => {
   if (!ctx.consumerProfile) return;
 
-  await consumerSkillService.assertConsumerCanWriteSkill({
+  let access = await getInstanceCargoAccess(ctx);
+  await skillService.assertSkillWriteAccess({
+    resourceTenant: access.resourceTenant,
+    resourceGroup: access.resourceGroup,
     skill: ctx.skill.localSkill,
-    consumerProfile: ctx.consumerProfile
+    authorization: access.authorization
   });
 };
 
