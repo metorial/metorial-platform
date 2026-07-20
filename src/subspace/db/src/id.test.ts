@@ -86,6 +86,61 @@ describe('Snowflake worker leases', () => {
     expect(redis.store.get(lease.key)).toBe('process-b');
   });
 
+  it('does not fatal when renew races with release', async () => {
+    let redis = new FakeRedis();
+    let fatals: Error[] = [];
+    let lease = await createSnowflakeWorkerLease({
+      redis,
+      ownerId: 'process-a',
+      keyPrefix: 'test:snowflake-worker',
+      startWorkerId: 11,
+      ttlMs: 50,
+      renewIntervalMs: 10,
+      fatal: error => {
+        fatals.push(error);
+      }
+    });
+
+    await lease.release();
+    await Bun.sleep(40);
+
+    expect(fatals).toEqual([]);
+    expect(await lease.renew()).toBe(true);
+  });
+
+  it('does not fatal when redis closes during shutdown renew', async () => {
+    let redis = new FakeRedis();
+    let fatals: Error[] = [];
+    let originalEval = redis.eval.bind(redis);
+
+    redis.eval = async (script: string, numKeys: number, key: string, ownerId: string) => {
+      if (script.includes('pexpire')) {
+        await Bun.sleep(20);
+        throw new Error('Connection is closed.');
+      }
+
+      return originalEval(script, numKeys, key, ownerId);
+    };
+
+    let lease = await createSnowflakeWorkerLease({
+      redis,
+      ownerId: 'process-a',
+      keyPrefix: 'test:snowflake-worker',
+      startWorkerId: 12,
+      ttlMs: 50,
+      renewIntervalMs: 5,
+      fatal: error => {
+        fatals.push(error);
+      }
+    });
+
+    await Bun.sleep(10);
+    await lease.release();
+    await Bun.sleep(40);
+
+    expect(fatals).toEqual([]);
+  });
+
   it('generates unique IDs from separately leased workers', async () => {
     let redis = new FakeRedis();
     let first = await createSnowflakeWorkerLease({

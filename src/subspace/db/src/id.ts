@@ -352,9 +352,11 @@ export let createSnowflakeWorkerLease = async (
   let generator = createSnowflake(claimed.workerId);
 
   let lease = {} as SnowflakeWorkerLease;
+  let renewInFlight: Promise<boolean> | null = null;
   let deactivateLease = () => {
     lease.released = true;
     if (lease.renewInterval) clearInterval(lease.renewInterval);
+    lease.renewInterval = null;
     if (activeLease === lease) {
       activeLease = null;
       activeSnowflake = null;
@@ -371,8 +373,25 @@ export let createSnowflakeWorkerLease = async (
     released: false,
     renewInterval: null,
     renew: async () => {
-      let result = await redis.eval(renewScript, 1, claimed.key, ownerId, ttlMs);
-      return Number(result) === 1;
+      // Shutdown can race an in-flight renew (key deleted / redis closed).
+      // Treat that as a successful no-op so we don't fatal during clean exit.
+      if (lease.released) return true;
+      if (renewInFlight) return renewInFlight;
+
+      renewInFlight = (async () => {
+        try {
+          if (lease.released) return true;
+
+          let result = await redis.eval(renewScript, 1, claimed.key, ownerId, String(ttlMs));
+          if (lease.released) return true;
+
+          return Number(result) === 1;
+        } finally {
+          renewInFlight = null;
+        }
+      })();
+
+      return renewInFlight;
     },
     release: async () => {
       if (lease.released) return;
@@ -394,12 +413,14 @@ export let createSnowflakeWorkerLease = async (
       void lease
         .renew()
         .then(renewed => {
-          if (renewed) return;
+          if (lease.released || renewed) return;
 
           deactivateLease();
           fatal(new Error(`Lost Snowflake worker ID lease for worker ${claimed.workerId}`));
         })
         .catch(error => {
+          if (lease.released) return;
+
           deactivateLease();
           fatal(error instanceof Error ? error : new Error(String(error)));
         });
