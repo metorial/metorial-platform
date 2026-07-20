@@ -1,11 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { db } from '@metorial/db';
+import { db, ResourceGroup, ResourceTenant } from '@metorial/db';
 import { resourceGroupService } from './resourceGroup';
 import { resourceTenantService } from './resourceTenant';
 
 export type ResourceScope = {
-  resourceTenant: { oid: bigint; id: string };
-  resourceGroup: { oid: bigint; id: string };
+  resourceTenant: ResourceTenant;
+  resourceGroup: ResourceGroup;
 };
 
 export type ResourceScopeOwner =
@@ -179,15 +179,13 @@ export let resolveResourceScopeForOwner = async (
 
   let [resourceTenant, resourceGroup] = await Promise.all([
     db.resourceTenant.findUnique({
-      where: { oid: linkedScope.resourceTenantOid },
-      select: { oid: true, id: true }
+      where: { oid: linkedScope.resourceTenantOid }
     }),
     db.resourceGroup.findFirst({
       where: {
         oid: linkedScope.resourceGroupOid,
         resourceTenantOid: linkedScope.resourceTenantOid
-      },
-      select: { oid: true, id: true }
+      }
     })
   ]);
 

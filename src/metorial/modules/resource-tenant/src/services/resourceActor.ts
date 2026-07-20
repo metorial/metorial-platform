@@ -1,7 +1,50 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID } from '@metorial/db';
+import { db, ID, type Prisma } from '@metorial/db';
 import type { ResourceScope } from './resourceScope';
+
+export let resourceActorPresentationInclude = {
+  organizationActor: {
+    include: {
+      organization: true,
+      member: true,
+      teams: {
+        include: {
+          team: true
+        }
+      }
+    }
+  },
+  consumerProfile: {
+    include: {
+      consumer: {
+        include: {
+          instanceConsumers: {
+            include: {
+              consumer: true
+            }
+          }
+        }
+      },
+      organizationMember: true,
+      surface: true
+    }
+  },
+  consumer: {
+    include: {
+      instanceConsumers: {
+        include: {
+          consumer: true
+        }
+      },
+      organizationMember: true
+    }
+  }
+} satisfies Prisma.ResourceActorInclude;
+
+export type ResourceActorPresentationRecord = Prisma.ResourceActorGetPayload<{
+  include: typeof resourceActorPresentationInclude;
+}>;
 
 class ResourceActorServiceImpl {
   async upsertActor(
@@ -13,6 +56,7 @@ class ResourceActorServiceImpl {
         name: string;
         organizationActorOid?: bigint;
         consumerOid?: bigint;
+        consumerProfileOid?: bigint;
       };
     }
   ) {
@@ -28,7 +72,8 @@ class ResourceActorServiceImpl {
           type: d.input.type,
           name: d.input.name,
           organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid
+          consumerOid: d.input.consumerOid,
+          consumerProfileOid: d.input.consumerProfileOid
         },
         create: {
           id: await ID.generateId('resourceActor'),
@@ -37,7 +82,8 @@ class ResourceActorServiceImpl {
           type: d.input.type ?? 'external',
           name: d.input.name,
           organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid
+          consumerOid: d.input.consumerOid,
+          consumerProfileOid: d.input.consumerProfileOid
         }
       });
     }
@@ -61,7 +107,8 @@ class ResourceActorServiceImpl {
           type: d.input.type ?? existing.type,
           name: d.input.name,
           organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid
+          consumerOid: d.input.consumerOid,
+          consumerProfileOid: d.input.consumerProfileOid
         }
       });
     }
@@ -74,7 +121,8 @@ class ResourceActorServiceImpl {
         type: d.input.type ?? 'external',
         name: d.input.name,
         organizationActorOid: d.input.organizationActorOid,
-        consumerOid: d.input.consumerOid
+        consumerOid: d.input.consumerOid,
+        consumerProfileOid: d.input.consumerProfileOid
       }
     });
   }
@@ -152,6 +200,48 @@ class ResourceActorServiceImpl {
         identifier: `mte-con-${consumer.id}`,
         name: consumer.name,
         consumerOid: consumer.oid
+      }
+    });
+  }
+
+  async ensureConsumerProfileActor(
+    d: Pick<ResourceScope, 'resourceTenant'> & {
+      consumerProfileOid?: bigint;
+      consumerProfile?: {
+        oid: bigint;
+      };
+    }
+  ) {
+    let consumerProfileOid = d.consumerProfileOid ?? d.consumerProfile?.oid;
+    if (!consumerProfileOid) {
+      throw new ServiceError(notFoundError('consumerProfile'));
+    }
+
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        oid: consumerProfileOid,
+        instance: {
+          resourceTenantOid: d.resourceTenant.oid
+        }
+      },
+      select: {
+        oid: true,
+        id: true,
+        name: true,
+        consumerOid: true
+      }
+    });
+    if (!consumerProfile) {
+      throw new ServiceError(notFoundError('consumerProfile', consumerProfileOid.toString()));
+    }
+
+    return await this.upsertActor({
+      resourceTenant: d.resourceTenant,
+      input: {
+        identifier: `mte-cpf-${consumerProfile.id}`,
+        name: consumerProfile.name,
+        consumerOid: consumerProfile.consumerOid,
+        consumerProfileOid: consumerProfile.oid
       }
     });
   }

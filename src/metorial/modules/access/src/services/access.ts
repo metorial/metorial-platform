@@ -1,11 +1,24 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, Organization, OrganizationMember, Project } from '@metorial/db';
+import {
+  db,
+  Organization,
+  OrganizationActor,
+  OrganizationMember,
+  Project,
+  ResourceActor,
+  ResourceGroup,
+  ResourceTenant
+} from '@metorial/db';
 import {
   effectiveAccessService,
   instanceService,
   organizationService
 } from '@metorial/module-organization';
+import {
+  resolveResourceScopeForOwner,
+  resourceActorService
+} from '@metorial/module-resource-tenant';
 import { Scope } from '../definitions';
 import { AuthInfo } from './authentication';
 
@@ -24,6 +37,42 @@ type TargetAccessFilter = {
 };
 
 class AccessService {
+  private async getResourceScopeForOwner(
+    owner: Parameters<typeof resolveResourceScopeForOwner>[0],
+    included?: {
+      resourceTenant?: ResourceTenant | null;
+      resourceGroup?: ResourceGroup | null;
+    }
+  ) {
+    if (
+      included?.resourceTenant &&
+      included.resourceGroup &&
+      included.resourceGroup.resourceTenantOid == included.resourceTenant.oid
+    ) {
+      return {
+        resourceTenant: included.resourceTenant,
+        resourceGroup: included.resourceGroup
+      };
+    }
+
+    return await resolveResourceScopeForOwner(owner);
+  }
+
+  private async getOrganizationResourceActor(d: {
+    resourceTenant: ResourceTenant;
+    actor: OrganizationActor & { resourceActors?: ResourceActor[] };
+  }) {
+    let includedActor = d.actor.resourceActors?.find(
+      actor => actor.resourceTenantOid == d.resourceTenant.oid
+    );
+    if (includedActor) return includedActor;
+
+    return await resourceActorService.ensureOrganizationActor({
+      resourceTenant: d.resourceTenant,
+      organizationActorOid: d.actor.oid
+    });
+  }
+
   private async getServiceAccountForAuth(d: { authInfo: AuthInfo }) {
     if (
       d.authInfo.type != 'machine' ||
@@ -361,6 +410,17 @@ class AccessService {
       if (!hasAccess) {
         throw new ServiceError(notFoundError('instance', d.instanceId));
       }
+      let resourceScope = await this.getResourceScopeForOwner(
+        {
+          type: 'instance',
+          instance: res.instance
+        },
+        res.instance
+      );
+      let resourceActor = await this.getOrganizationResourceActor({
+        resourceTenant: resourceScope.resourceTenant,
+        actor: res.actor
+      });
 
       return {
         type: 'user' as const,
@@ -368,7 +428,9 @@ class AccessService {
         organization: res.organization,
         actor: res.actor,
         project: res.project,
-        member: res.member
+        member: res.member,
+        ...resourceScope,
+        resourceActor
       };
     }
 
@@ -386,6 +448,11 @@ class AccessService {
         },
         organization: d.authInfo.restrictions.organization,
         project: instance.project,
+        resourceTenant: d.authInfo.restrictions.resourceTenant,
+        resourceGroup: d.authInfo.restrictions.resourceGroup,
+        resourceActor: undefined,
+        actor: undefined,
+        member: undefined,
         accessTagGrants: d.authInfo.restrictions.accessTagGrants
       };
     }
@@ -409,6 +476,17 @@ class AccessService {
         if (!hasAccess) {
           throw new ServiceError(notFoundError('instance', d.instanceId));
         }
+        let resourceScope = await this.getResourceScopeForOwner(
+          {
+            type: 'instance',
+            instance
+          },
+          instance
+        );
+        let resourceActor = await this.getOrganizationResourceActor({
+          resourceTenant: resourceScope.resourceTenant,
+          actor: d.authInfo.restrictions.actor
+        });
 
         return {
           type: 'user' as const,
@@ -416,7 +494,9 @@ class AccessService {
           organization: instance.organization,
           actor: d.authInfo.restrictions.actor,
           project: instance.project,
-          member
+          member,
+          ...resourceScope,
+          resourceActor
         };
       }
 
@@ -436,6 +516,17 @@ class AccessService {
       if (!hasAccess) {
         throw new ServiceError(notFoundError('instance', d.instanceId));
       }
+      let resourceScope = await this.getResourceScopeForOwner(
+        {
+          type: 'instance',
+          instance
+        },
+        instance
+      );
+      let resourceActor = await this.getOrganizationResourceActor({
+        resourceTenant: resourceScope.resourceTenant,
+        actor: d.authInfo.restrictions.actor
+      });
 
       return {
         type: 'user' as const,
@@ -443,7 +534,9 @@ class AccessService {
         organization: instance.organization,
         actor: d.authInfo.restrictions.actor,
         project: instance.project,
-        member: undefined
+        member: undefined,
+        ...resourceScope,
+        resourceActor
       };
     }
 
@@ -461,7 +554,10 @@ class AccessService {
         },
         organization: d.authInfo.restrictions.organization,
         actor: d.authInfo.restrictions.actor,
-        project: instance.project
+        project: instance.project,
+        resourceTenant: d.authInfo.restrictions.resourceTenant,
+        resourceGroup: d.authInfo.restrictions.resourceGroup,
+        resourceActor: d.authInfo.restrictions.resourceActor
       };
     }
 

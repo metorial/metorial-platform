@@ -71,6 +71,27 @@ vi.mock('@metorial/db', () => ({
   db: mocks.db
 }));
 
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveResourceScopeForOwner: vi.fn(async () => ({
+    resourceTenant: { oid: 100n, id: 'rtn-test' },
+    resourceGroup: { oid: 101n, id: 'rgr-test', resourceTenantOid: 100n }
+  })),
+  resourceActorService: {
+    ensureOrganizationActor: vi.fn(async () => ({
+      oid: 102n,
+      id: 'rac-organization',
+      resourceTenantOid: 100n,
+      organizationActorOid: 1n
+    })),
+    ensureConsumerProfileActor: vi.fn(async () => ({
+      oid: 103n,
+      id: 'rac-profile',
+      resourceTenantOid: 100n,
+      consumerProfileOid: 1n
+    }))
+  }
+}));
+
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { machineAccessAuthService } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';

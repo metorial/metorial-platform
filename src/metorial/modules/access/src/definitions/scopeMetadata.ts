@@ -336,6 +336,10 @@ let scopeActionMetadata: Record<string, { name: string; description: string }> =
     name: 'Write',
     description: 'It allows creating, updating, and deleting data.'
   },
+  manage_access: {
+    name: 'Manage access',
+    description: 'It allows granting, changing, and revoking access to a resource.'
+  },
   export: {
     name: 'Export',
     description: 'It allows exporting data out of the platform.'

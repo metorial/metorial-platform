@@ -82,8 +82,10 @@ describe('definitions', () => {
     it('should contain instance skill scopes', () => {
       expect(scopes).toContain('instance.skill:read');
       expect(scopes).toContain('instance.skill:write');
+      expect(scopes).toContain('instance.skill:manage_access');
       expect(scopes).toContain('consumer#instance.skill:read');
       expect(scopes).toContain('consumer#instance.skill:write');
+      expect(scopes).toContain('consumer#instance.skill:manage_access');
     });
 
     it('should contain instance.session scopes', () => {
@@ -312,6 +314,9 @@ describe('definitions', () => {
       );
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.skill:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill:manage_access'
       );
     });
   });
