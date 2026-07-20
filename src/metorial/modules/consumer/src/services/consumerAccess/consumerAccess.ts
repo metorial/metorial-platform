@@ -834,6 +834,21 @@ class ConsumerAccessServiceImpl {
             consumerAccessId: consumerAccess.id
           }
         });
+      } else if (d.access.type == 'skill_marketplace') {
+        await consumerAccessPolicyService.grantAccess({
+          organization: d.organization,
+          permission: 'skill_read',
+          subject: {
+            consumerGroup: d.consumerGroup
+          },
+          resource: {
+            skillMarketplace: d.access.skillMarketplace
+          },
+          policyScope: {
+            type: 'consumer_access',
+            consumerAccessId: consumerAccess.id
+          }
+        });
       }
 
       await this.upsertSharedListing({
@@ -892,12 +907,10 @@ class ConsumerAccessServiceImpl {
         });
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-          if (d.consumerAccess.type != 'skill_marketplace') {
-            await consumerAccessPolicyService.revokeAccessForConsumerAccess({
-              organization: d.organization,
-              consumerAccess: d.consumerAccess
-            });
-          }
+          await consumerAccessPolicyService.revokeAccessForConsumerAccess({
+            organization: d.organization,
+            consumerAccess: d.consumerAccess
+          });
 
           return d.consumerAccess;
         }
@@ -905,12 +918,10 @@ class ConsumerAccessServiceImpl {
         throw error;
       }
 
-      if (consumerAccess.type != 'skill_marketplace') {
-        await consumerAccessPolicyService.revokeAccessForConsumerAccess({
-          organization: d.organization,
-          consumerAccess
-        });
-      }
+      await consumerAccessPolicyService.revokeAccessForConsumerAccess({
+        organization: d.organization,
+        consumerAccess
+      });
 
       return consumerAccess;
     });
