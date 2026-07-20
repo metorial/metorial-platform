@@ -1,0 +1,2 @@
+# Always prepared: global-router and others import the generated Prisma client.
+prepare = ["bun run prisma:generate"]

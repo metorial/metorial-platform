@@ -34,7 +34,7 @@ pub async fn run(
     }
     let ports = exposed_ports(&selected);
 
-    let assets = workspace_assets(project);
+    let assets = workspace_assets(project, &metadata);
     ensure_proxy(&project.root, &assets).await?;
     let root_env = workspace_environment(project, &metadata)?;
     let service_network = if isolated_services {
@@ -59,6 +59,8 @@ pub async fn run(
         &root_env,
     )
     .await;
+    let services_host = resolve_services_host()?;
+    println!("Routing services hostname to {services_host}");
     let mut args = vec![
         "create".into(),
         "--init".into(),
@@ -73,7 +75,7 @@ pub async fn run(
         "--add-host".into(),
         format!("{}:127.0.0.1", metadata.hostname),
         "--add-host".into(),
-        "services:127.0.0.1".into(),
+        format!("services:{services_host}"),
         "--env".into(),
         format!("METORIAL_HOSTNAME={}", metadata.hostname),
         "--env".into(),
@@ -115,6 +117,9 @@ pub async fn run(
         "--label".into(),
         format!("traefik.docker.network={PROXY_NETWORK}"),
     ];
+    if rebuild {
+        args.extend(["--env".into(), "CONTROL_FORCE_BOOTSTRAP=1".into()]);
+    }
     for directory in git_directories {
         args.extend([
             "--volume".into(),
@@ -173,7 +178,7 @@ pub async fn stop(project: &ProjectRoot, services: bool, volumes: bool) -> Resul
     )
     .await;
     if services {
-        let assets = workspace_assets(project);
+        let assets = workspace_assets(project, &metadata);
         let mut args = compose_args(
             &assets.join("services.docker-compose.yml"),
             &services_project(&metadata),
@@ -208,7 +213,19 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
     }
 }
 
-fn workspace_assets(project: &ProjectRoot) -> PathBuf {
+fn workspace_assets(project: &ProjectRoot, metadata: &WorkspaceMetadata) -> PathBuf {
+    // Prefer the source checkout so worktrees reuse current Control Docker assets
+    // instead of a stale copy from when the worktree was created.
+    for root in [&metadata.source_root, &project.root, &project.oss] {
+        for candidate in [
+            root.join("oss/scripts/dev-tools/workspace"),
+            root.join("scripts/dev-tools/workspace"),
+        ] {
+            if candidate.is_dir() {
+                return candidate;
+            }
+        }
+    }
     project.oss.join("scripts/dev-tools/workspace")
 }
 
@@ -283,12 +300,16 @@ async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<Strin
         .await
         .is_ok()
     {
+        println!("Using development image {image}");
         return Ok(image);
     }
+    println!("Building development image {image}");
     docker_run(
         root,
         vec![
             "build".into(),
+            "--progress".into(),
+            "plain".into(),
             "--tag".into(),
             image.clone(),
             "--file".into(),
@@ -297,7 +318,8 @@ async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<Strin
         ],
         &Default::default(),
     )
-    .await?;
+    .await
+    .wrap_err("could not build the workspace development image")?;
     Ok(image)
 }
 
@@ -422,6 +444,49 @@ fn services_project(metadata: &WorkspaceMetadata) -> String {
 
 fn container_name(metadata: &WorkspaceMetadata) -> String {
     format!("control-ws-{}", metadata.id)
+}
+
+fn resolve_services_host() -> Result<String> {
+    if let Ok(value) = std::env::var("CONTROL_SERVICES_HOST") {
+        let value = value.trim();
+        if !value.is_empty() {
+            return Ok(value.to_string());
+        }
+    }
+
+    use std::net::{IpAddr, ToSocketAddrs};
+
+    let addresses = ("services", 0)
+        .to_socket_addrs()
+        .into_diagnostic()
+        .wrap_err(
+            "could not resolve hostname `services` for the workspace container \
+             (override with CONTROL_SERVICES_HOST)",
+        )?
+        .filter_map(|address| match address.ip() {
+            IpAddr::V4(ip) if !ip.is_loopback() => Some(ip),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    // Prefer Tailscale CGNAT (100.64.0.0/10) when MagicDNS returns multiple answers.
+    if let Some(ip) = addresses.iter().find(|ip| {
+        let octets = ip.octets();
+        octets[0] == 100 && (64..128).contains(&octets[1])
+    }) {
+        return Ok(ip.to_string());
+    }
+
+    addresses
+        .into_iter()
+        .next()
+        .map(|ip| ip.to_string())
+        .ok_or_else(|| {
+            miette::miette!(
+                "hostname `services` did not resolve to a non-loopback IPv4 address \
+                 (override with CONTROL_SERVICES_HOST)"
+            )
+        })
 }
 
 fn compose_args(compose: &Path, project: &str) -> Vec<String> {

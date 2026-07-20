@@ -1,0 +1,3 @@
+# Workspace-wide preparation for standalone OSS checkouts.
+mode = "oss"
+prepare = ["bun run build"]

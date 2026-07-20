@@ -44,7 +44,18 @@ if [[ "$#" -eq 0 ]]; then
 fi
 
 if [[ "$1" == "dev" ]]; then
-  bun install
+  echo "Installing container dependencies"
+  bun install --verbose
+
+  # Host node_modules are Darwin; this volume holds Linux packages. Build once
+  # (or when --rebuild forces CONTROL_FORCE_BOOTSTRAP) so workspace packages exist.
+  if [[ "${CONTROL_FORCE_BOOTSTRAP:-}" == "1" || ! -f node_modules/.control-built ]]; then
+    echo "Building workspace packages"
+    bun run build
+    mkdir -p node_modules
+    date -u +%Y-%m-%dT%H:%M:%SZ >node_modules/.control-built
+  fi
+
   exec cargo run --quiet --manifest-path ./oss/src/control/Cargo.toml -- "$@"
 fi
 
