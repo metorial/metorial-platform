@@ -1,0 +1,18 @@
+name = "@metorial-subspace/db"
+group = "oss"
+
+[dev]
+prepare = ["bun run prisma:generate", "bun run prisma:push"]
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+PUBLIC_SERVICE_URL = "http://{{HOSTNAME}}:52071"
+
+[dev.db.main]
+name = "subspace"
+engine = "postgres"
+env = "DATABASE_URL"

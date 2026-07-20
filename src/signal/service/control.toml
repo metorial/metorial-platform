@@ -1,0 +1,24 @@
+name = "@metorial/signal"
+group = "oss"
+
+[dev]
+prepare = ["bun run prisma:generate", "bun run prisma:push"]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52050
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:36379/0"
+OBJECT_STORAGE_URL = "http://services:52010"
+LOGS_BUCKET_NAME = "signal-logs"
+
+[dev.db.main]
+name = "signal"
+engine = "postgres"
+env = "DATABASE_URL"

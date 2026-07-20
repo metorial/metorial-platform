@@ -1,0 +1,22 @@
+name = "@metorial/relay"
+group = "oss"
+
+[dev]
+prepare = ["bun run prisma:generate", "bun run prisma:push"]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52110
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:36379/0"
+
+[dev.db.main]
+name = "relay"
+engine = "postgres"
+env = "DATABASE_URL"
