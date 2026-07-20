@@ -461,6 +461,13 @@
         "typescript": "^5",
       },
     },
+    "src/control": {
+      "name": "total-control",
+      "version": "0.1.0",
+      "bin": {
+        "control": "./bin/control.mjs",
+      },
+    },
     "src/forge/clients/forge": {
       "name": "@metorial-platform-systems/forge-client",
       "version": "1.0.4",
@@ -2284,6 +2291,7 @@
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/module-access": "^1.0.0",
         "@metorial/module-resource-tenant": "^1.0.0",
         "@metorial/queue": "^1.0.0",
       },
@@ -9688,6 +9696,8 @@
     "token-types": ["token-types@6.1.2", "", { "dependencies": { "@borewit/text-codec": "^0.2.1", "@tokenizer/token": "^0.3.0", "ieee754": "^1.2.1" } }, "sha512-dRXchy+C0IgK8WPC6xvCHFRIWYUbqqdEIKPaKo/AcTUNzwLTK6AH7RjdLWsEZcAN/TBdtfUw3PYEgPr5VPr6ww=="],
 
     "toposort": ["toposort@2.0.2", "", {}, "sha512-0a5EOkAUp8D4moMi2W8ZF8jcga7BgZd91O/yabJCFY8az+XSzeGyTKs0Aoo897iV1Nj6guFq8orWDS96z91oGg=="],
+
+    "total-control": ["total-control@workspace:src/control"],
 
     "totalist": ["totalist@3.0.1", "", {}, "sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ=="],
 

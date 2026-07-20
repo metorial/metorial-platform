@@ -6,7 +6,17 @@ services:
       - '32380:2380'
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
+    volumes:
+      - etcd_1:/bitnami/etcd
+    networks:
+      - control-services
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'etcdctl', 'endpoint', 'health']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   mongodb:
     image: mongo:latest
@@ -18,6 +28,18 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongo
       MONGO_INITDB_ROOT_PASSWORD: mongo
+    networks:
+      - control-services
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "mongosh --quiet --username mongo --password mongo --authenticationDatabase admin --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
 
   redis-db:
     image: redis:latest
@@ -25,7 +47,15 @@ services:
       - '36379:6379'
     volumes:
       - redis_2:/data
+    networks:
+      - control-services
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
 
   # meilisearch:
   #   image: getmeili/meilisearch:v1.14
@@ -47,13 +77,24 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
     command: postgres -c 'max_connections=1000'
+    networks:
+      - control-services
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   nats-1:
     image: nats
     command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --http_port 8222'
     ports:
       - '34222:4222'
+    networks:
+      - control-services
+    restart: unless-stopped
 
   # minio:
   #   image: minio/minio:latest
@@ -105,8 +146,13 @@ services:
   #   restart: unless-stopped
 
 volumes:
+  etcd_1:
   mongodb_1:
   redis_2:
   meilisearch_1:
   pg_v2_1:
   open_search_1:
+
+networks:
+  control-services:
+    name: control_services

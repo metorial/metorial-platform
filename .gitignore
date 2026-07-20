@@ -184,3 +184,5 @@ bin
 .DS_Store
 
 env.json
+.control/
+src/control/target/
