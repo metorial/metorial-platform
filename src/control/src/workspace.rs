@@ -157,7 +157,10 @@ pub async fn create(
             &target,
             &WorkspaceMetadata {
                 id: workspace_id(branch),
-                hostname: workspace_hostname(branch),
+                hostname: match runtime {
+                    WorkspaceRuntime::Host => "localhost".into(),
+                    WorkspaceRuntime::Docker => workspace_hostname(branch),
+                },
                 branch: branch.into(),
                 source_root: project.root.clone(),
                 runtime,

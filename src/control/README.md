@@ -115,7 +115,8 @@ unclosed templates are errors. Dependency URLs can use
 `{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
 checkouts receive the standard development ports; host workspaces receive their
 persisted allocation. Native development defaults the hostname to `localhost`;
-workspaces use their branch-derived `<branch>.localhost` hostname.
+host workspaces always use `localhost`, while Docker workspaces use their
+branch-derived `<branch>.localhost` hostname.
 
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated

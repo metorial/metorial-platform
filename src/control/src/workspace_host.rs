@@ -139,7 +139,7 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
     println!("workspace: {}", metadata.id);
     println!("branch: {}", metadata.branch);
     println!("runtime: host");
-    println!("hostname: {}", metadata.hostname);
+    println!("hostname: localhost");
     println!("postgres: localhost:{}", ports.postgres);
     println!("mongo: localhost:{}", ports.mongo);
     println!("redis: localhost:{}", ports.redis);

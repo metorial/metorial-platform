@@ -102,7 +102,7 @@ pub fn root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String
         let ports = metadata
             .service_ports
             .ok_or_else(|| miette::miette!("host workspace metadata is missing service_ports"))?;
-        output.insert("METORIAL_HOSTNAME".into(), metadata.hostname);
+        output.insert("METORIAL_HOSTNAME".into(), "localhost".into());
         for (key, value) in [
             ("CONTROL_PORT_POSTGRES", ports.postgres),
             ("CONTROL_PORT_MONGO", ports.mongo),
@@ -533,5 +533,39 @@ mod tests {
             "postgresql://postgres@127.0.0.1:41001/app"
         );
         assert_eq!(resolved["REDIS_URL"], "redis://localhost:41003/0");
+    }
+
+    #[test]
+    fn host_workspaces_always_use_localhost() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join(".control")).unwrap();
+        fs::write(
+            temp.path().join(".control/workspace.json"),
+            r#"{
+                "id": "feature-auth",
+                "hostname": "feature-auth.localhost",
+                "branch": "feature/auth",
+                "source_root": "/code/metorial",
+                "runtime": "host",
+                "service_ports": {
+                    "postgres": 41001,
+                    "mongo": 41002,
+                    "redis": 41003,
+                    "nats": 41004,
+                    "etcd_client": 41005,
+                    "etcd_peer": 41006
+                }
+            }"#,
+        )
+        .unwrap();
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        assert_eq!(
+            root_environment(&project).unwrap()["METORIAL_HOSTNAME"],
+            "localhost"
+        );
     }
 }
