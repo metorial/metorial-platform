@@ -43,8 +43,26 @@ vi.mock('@metorial/cargo-module-store', () => ({
 import { skillParticipantService } from './skillParticipant';
 
 let scope = {
-  resourceTenant: { oid: 1n, id: 'rtn_1' },
-  resourceGroup: { oid: 2n, id: 'rgr_1' }
+  resourceTenant: {
+    oid: 1n,
+    id: 'rtn_1',
+    identifier: 'tenant',
+    name: 'Tenant',
+    image: null,
+    organizationName: null,
+    createdAt: new Date(0),
+    updatedAt: new Date(0)
+  },
+  resourceGroup: {
+    oid: 2n,
+    id: 'rgr_1',
+    identifier: 'instance',
+    name: 'Instance',
+    type: 'production' as const,
+    resourceTenantOid: 1n,
+    createdAt: new Date(0),
+    updatedAt: new Date(0)
+  }
 };
 let skill = {
   oid: 3n,

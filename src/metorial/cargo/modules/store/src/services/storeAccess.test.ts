@@ -1,19 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, getAccessTagFilterMock, getActorByIdMock } = vi.hoisted(() => ({
+let {
+  db,
+  getAccessTagFilterMock,
+  authorizationModeMock,
+  isLegacyEnabledMock,
+  revokeMigratedPoliciesMock
+} = vi.hoisted(() => ({
   db: {
     store: {
       findMany: vi.fn()
     },
     storeParticipant: {
-      findMany: vi.fn()
+      findMany: vi.fn(),
+      update: vi.fn()
     },
     skill: {
       findMany: vi.fn()
     }
   },
   getAccessTagFilterMock: vi.fn(),
-  getActorByIdMock: vi.fn()
+  authorizationModeMock: vi.fn(),
+  isLegacyEnabledMock: vi.fn(),
+  revokeMigratedPoliciesMock: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -27,26 +36,29 @@ vi.mock('@metorial/cargo-config/id', () => ({
 vi.mock('@metorial/module-access', () => ({
   consumerSkillReadRoles: ['consumer#instance.skill:read'],
   consumerSkillWriteRoles: ['consumer#instance.skill:write'],
+  assertResourceAuthorizationScope: vi.fn(),
+  getResourceAuthorizationMode: authorizationModeMock,
+  isLegacyResourceAuthorizationEnabled: isLegacyEnabledMock,
+  revokeMigratedResourceAccessPolicies: revokeMigratedPoliciesMock,
   accessTagService: {
     getAccessTagFilter: getAccessTagFilterMock
   }
 }));
 
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resourceActorService: {
-    getActorById: getActorByIdMock
-  }
-}));
-
 import { storeAccessService, storeReadPermission, storeWritePermission } from './storeAccess';
 
-let scope = {
+let scope: any = {
   resourceTenant: { oid: 1n, id: 'rtn_1' },
   resourceGroup: { oid: 2n, id: 'rgr_1' }
 };
-let actor = { oid: 3n, id: 'rac_1' };
+let actor: any = { oid: 3n, id: 'rac_1' };
 let store = { oid: 4n, id: 'store_1', access: 'private' };
 let accessTags = [{ accessTagOid: 5n }];
+let authorization: any = {
+  type: 'restricted',
+  resourceActor: actor,
+  accessTags
+};
 let accessTagFilter = {
   some: {
     accessTagOid: { in: [5n] },
@@ -61,8 +73,9 @@ let accessTagFilter = {
 describe('native consumer skill store access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authorizationModeMock.mockReturnValue('both');
+    isLegacyEnabledMock.mockReturnValue(true);
 
-    getActorByIdMock.mockResolvedValue(actor);
     getAccessTagFilterMock.mockImplementation(async ({ roles }) => ({
       ...accessTagFilter,
       some: {
@@ -84,8 +97,7 @@ describe('native consumer skill store access', () => {
   it('allows reads inherited from an active skill group', async () => {
     let result = await storeAccessService.resolveAccessibleStoreOids({
       ...scope,
-      actorId: actor.id,
-      accessTags,
+      authorization,
       requiredPermission: storeReadPermission,
       storeOids: [store.oid]
     });
@@ -112,11 +124,36 @@ describe('native consumer skill store access', () => {
     );
   });
 
+  it('revokes migrated participant grants when permissions are overridden', async () => {
+    let participant = {
+      id: 'stp_1',
+      storeOid: store.oid,
+      resourceActorOid: actor.oid,
+      permissions: [storeReadPermission]
+    };
+    db.storeParticipant.findMany.mockResolvedValue([participant]);
+    db.storeParticipant.update.mockResolvedValue({
+      ...participant,
+      permissions: []
+    });
+
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor,
+      permissions: [],
+      overridePermissions: true
+    });
+
+    expect(revokeMigratedPoliciesMock).toHaveBeenCalledWith({
+      sourceType: 'store_participant',
+      sourceId: participant.id
+    });
+  });
+
   it('does not turn a skill-group read grant into write access', async () => {
     await storeAccessService.resolveAccessibleStoreOids({
       ...scope,
-      actorId: actor.id,
-      accessTags,
+      authorization,
       requiredPermission: storeWritePermission,
       storeOids: [store.oid]
     });
@@ -141,6 +178,8 @@ describe('native consumer skill store access', () => {
   });
 
   it('ignores stale consumer participants after an access-tag grant is revoked', async () => {
+    authorizationModeMock.mockReturnValue('canonical');
+    isLegacyEnabledMock.mockReturnValue(false);
     db.storeParticipant.findMany.mockResolvedValue([
       {
         storeOid: store.oid,
@@ -155,8 +194,7 @@ describe('native consumer skill store access', () => {
 
     let result = await storeAccessService.resolveAccessibleStoreOids({
       ...scope,
-      actorId: actor.id,
-      accessTags,
+      authorization,
       requiredPermission: storeReadPermission,
       storeOids: [store.oid]
     });
@@ -176,8 +214,7 @@ describe('native consumer skill store access', () => {
 
     let result = await storeAccessService.resolveAccessibleStoreOids({
       ...scope,
-      actorId: actor.id,
-      accessTags,
+      authorization,
       requiredPermission: storeReadPermission,
       storeOids: [store.oid]
     });
@@ -186,15 +223,17 @@ describe('native consumer skill store access', () => {
   });
 
   it('recognizes legacy consumer ownership through the native actor link', async () => {
-    getActorByIdMock.mockResolvedValue({
-      ...actor,
-      consumerOid: 20n
-    });
+    authorization = {
+      ...authorization,
+      resourceActor: {
+        ...actor,
+        consumerOid: 20n
+      }
+    };
 
     await storeAccessService.resolveAccessibleStoreOids({
       ...scope,
-      actorId: actor.id,
-      accessTags,
+      authorization,
       requiredPermission: storeWritePermission,
       storeOids: [store.oid]
     });

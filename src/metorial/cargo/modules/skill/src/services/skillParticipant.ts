@@ -8,7 +8,10 @@ import {
   resolveResourceActors,
   resolveSkillParticipants
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
 import { storeReadPermission, storeWritePermission } from '@metorial/cargo-module-store';
 import type {
   Prisma,
@@ -21,7 +24,9 @@ import { db, withTransaction } from '@metorial/db';
 
 export let skillParticipantInclude = {
   skill: true,
-  resourceActor: true
+  resourceActor: {
+    include: resourceActorPresentationInclude
+  }
 } satisfies Prisma.SkillParticipantInclude;
 
 export type SkillParticipantRecord = Prisma.SkillParticipantGetPayload<{

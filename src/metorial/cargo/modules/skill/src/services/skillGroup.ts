@@ -124,6 +124,7 @@ class SkillGroupServiceImpl {
         description?: string | null;
         metadata?: Prisma.InputJsonValue | null;
         skillIds?: string[];
+        allowConsumerSkillAssignment?: boolean;
       };
     }
   ) {
@@ -143,6 +144,7 @@ class SkillGroupServiceImpl {
           name: d.input.name.trim(),
           description: d.input.description,
           metadata: d.input.metadata as any,
+          allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment,
           organizationOid: owner.organizationOid!,
           instanceOid: owner.instanceOid!
         }
@@ -175,6 +177,7 @@ class SkillGroupServiceImpl {
         description?: string | null;
         metadata?: Prisma.InputJsonValue | null;
         skillIds?: string[];
+        allowConsumerSkillAssignment?: boolean;
       };
     }
   ) {
@@ -195,7 +198,8 @@ class SkillGroupServiceImpl {
         data: {
           name: d.input.name?.trim(),
           description: d.input.description,
-          metadata: d.input.metadata as any
+          metadata: d.input.metadata as any,
+          allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment
         }
       });
       if (skills) {

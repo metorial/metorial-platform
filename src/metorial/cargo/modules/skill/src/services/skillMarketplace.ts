@@ -23,7 +23,12 @@ import {
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
 import { enqueueSkillMarketplaceLifecycle } from '../queues/lifecycle';
+import { skillConfigurationService } from './skillConfiguration';
 import { skillPluginInclude } from './skillPlugin';
+import {
+  getSkillMarketplaceAccessWhere,
+  type SkillMarketplaceAccessInput
+} from './skillMarketplaceAccess';
 
 export let skillMarketplaceInclude = {
   destination: {
@@ -103,43 +108,21 @@ class SkillMarketplaceServiceImpl {
     );
   }
 
-  private async getSkillConfigurationOid(
-    d: ResourceScope & {
-      skillConfigurationId: string | null | undefined;
-    }
-  ) {
-    if (d.skillConfigurationId === undefined) return undefined;
-    if (d.skillConfigurationId === null) return null;
-
-    let skillConfiguration = await db.skillConfiguration.findFirst({
-      where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        id: d.skillConfigurationId
-      },
-      select: {
-        oid: true
-      }
-    });
-    if (!skillConfiguration) {
-      throw new ServiceError(notFoundError('skill.configuration', d.skillConfigurationId));
-    }
-
-    return skillConfiguration.oid;
-  }
-
   private async getSkillMarketplaceRecord(
     d: ResourceScope & {
       skillMarketplaceId: string;
-    }
+    } & SkillMarketplaceAccessInput
   ) {
+    let accessWhere = await getSkillMarketplaceAccessWhere(d);
     return await withTransaction(
       async db => {
         let skillMarketplace = await db.skillMarketplace.findFirst({
           where: {
             resourceTenantOid: d.resourceTenant.oid,
             resourceGroupOid: d.resourceGroup.oid,
-            id: d.skillMarketplaceId
+            id: d.skillMarketplaceId,
+            status: accessWhere ? 'active' : undefined,
+            AND: accessWhere ? [accessWhere] : undefined
           },
           include: skillMarketplaceInclude
         });
@@ -162,8 +145,9 @@ class SkillMarketplaceServiceImpl {
       search?: string;
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
-    }
+    } & SkillMarketplaceAccessInput
   ) {
+    let accessWhere = await getSkillMarketplaceAccessWhere(d);
     let skillMarketplaces = await resolveSkillMarketplaces(d, d.ids);
     let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
     let statuses: SkillMarketplaceStatus[] = d.statuses?.length ? d.statuses : ['active'];
@@ -178,6 +162,15 @@ class SkillMarketplaceServiceImpl {
           query: d.search
         })
       : null;
+    let filters: Prisma.SkillMarketplaceWhereInput[] = [
+      skillMarketplaces ? { oid: skillMarketplaces.in } : undefined,
+      skillConfigurations ? { skillConfigurationOid: skillConfigurations.in } : undefined,
+      { status: { in: statuses } },
+      search ? { id: { in: search.map(r => r.documentId) } } : undefined,
+      d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined,
+      d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined,
+      accessWhere
+    ].filter((filter): filter is Prisma.SkillMarketplaceWhereInput => filter !== undefined);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -187,16 +180,7 @@ class SkillMarketplaceServiceImpl {
             where: {
               resourceTenantOid: d.resourceTenant.oid,
               resourceGroupOid: d.resourceGroup.oid,
-              AND: [
-                skillMarketplaces ? { oid: skillMarketplaces.in } : undefined!,
-                skillConfigurations
-                  ? { skillConfigurationOid: skillConfigurations.in }
-                  : undefined!,
-                { status: { in: statuses } },
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
-                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
-              ].filter(Boolean)
+              AND: filters
             },
             include: skillMarketplaceInclude
           })
@@ -207,7 +191,7 @@ class SkillMarketplaceServiceImpl {
   async getSkillMarketplaceById(
     d: ResourceScope & {
       skillMarketplaceId: string;
-    }
+    } & SkillMarketplaceAccessInput
   ) {
     return await this.getSkillMarketplaceRecord(d);
   }
@@ -226,11 +210,18 @@ class SkillMarketplaceServiceImpl {
   ) {
     this.assertName(d.input.name);
 
-    let skillConfigurationOid = await this.getSkillConfigurationOid({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
-      skillConfigurationId: d.input.skillConfigurationId
-    });
+    let skillConfigurationOid =
+      d.input.skillConfigurationId === undefined
+        ? undefined
+        : d.input.skillConfigurationId === null
+          ? null
+          : (
+              await skillConfigurationService.getSkillConfigurationById({
+                resourceTenant: d.resourceTenant,
+                resourceGroup: d.resourceGroup,
+                skillConfigurationId: d.input.skillConfigurationId
+              })
+            ).oid;
     let ownerScope = await resolveInstanceResourceScope(d);
 
     return await withTransaction(async db => {
@@ -297,11 +288,18 @@ class SkillMarketplaceServiceImpl {
 
     if (d.input.name !== undefined) this.assertName(d.input.name);
 
-    let skillConfigurationOid = await this.getSkillConfigurationOid({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
-      skillConfigurationId: d.input.skillConfigurationId
-    });
+    let skillConfigurationOid =
+      d.input.skillConfigurationId === undefined
+        ? undefined
+        : d.input.skillConfigurationId === null
+          ? null
+          : (
+              await skillConfigurationService.getSkillConfigurationById({
+                resourceTenant: d.resourceTenant,
+                resourceGroup: d.resourceGroup,
+                skillConfigurationId: d.input.skillConfigurationId
+              })
+            ).oid;
     let nextImage = d.input.image;
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({
