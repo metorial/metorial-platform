@@ -44,7 +44,10 @@ if [[ "$#" -eq 0 ]]; then
 fi
 
 if [[ "$1" == "dev" ]]; then
-  bun install
+  # Linux node_modules live in a workspace volume; install is platform-generic.
+  # Package builds and codegen come from control.toml prepare steps.
+  echo "Installing container dependencies"
+  bun install --verbose
   exec cargo run --quiet --manifest-path ./oss/src/control/Cargo.toml -- "$@"
 fi
 

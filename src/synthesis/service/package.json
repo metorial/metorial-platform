@@ -17,7 +17,7 @@
     "prisma:generate": "bun run db:generate",
     "prisma:push": "bun run db:push:dev",
     "db:generate": "bun prisma generate --config ./prisma.config.ts",
-    "db:push:dev": "sh -c 'set -a; [ -f .env ] && . .env; set +a; bun prisma db push --config ./prisma.config.ts --accept-data-loss'",
+    "db:push:dev": "sh -c 'set -a; [ -f ./.env ] && . ./.env; set +a; bun prisma db push --config ./prisma.config.ts --accept-data-loss'",
     "test": "bunx vitest run --passWithNoTests",
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit"

@@ -12,7 +12,7 @@ mod workspace_dev;
 use std::{env, path::PathBuf};
 
 use clap::{Parser, Subcommand};
-use miette::{IntoDiagnostic, Result, bail};
+use miette::{IntoDiagnostic, Result};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -63,12 +63,8 @@ enum Commands {
     },
     /// Create and run branch workspaces.
     Workspace {
-        /// Backwards-compatible alias for `control workspace create BRANCH`.
-        branch: Option<String>,
-        #[arg(long)]
-        no_open: bool,
         #[command(subcommand)]
-        command: Option<WorkspaceCommand>,
+        command: WorkspaceCommand,
     },
     /// Manage declared Docker Compose services.
     Docker {
@@ -193,16 +189,12 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
-        Commands::Workspace {
-            branch,
-            no_open,
-            command,
-        } => match (command, branch) {
-            (Some(WorkspaceCommand::Create { branch, no_open }), None) => {
+        Commands::Workspace { command } => match command {
+            WorkspaceCommand::Create { branch, no_open } => {
                 workspace::create(&project, &branch, !no_open).await?;
                 Ok(())
             }
-            (Some(WorkspaceCommand::List), None) => {
+            WorkspaceCommand::List => {
                 let workspaces = workspace::list(&project).await?;
                 if workspaces.is_empty() {
                     println!("no workspaces");
@@ -218,31 +210,20 @@ async fn main() -> Result<()> {
                 }
                 Ok(())
             }
-            (Some(WorkspaceCommand::Remove { branch }), None) => {
-                workspace::remove(&project, &branch).await
-            }
-            (
-                Some(WorkspaceCommand::Dev {
-                    selectors,
-                    isolated_services,
-                    rebuild,
-                    no_prepare,
-                }),
-                None,
-            ) => {
+            WorkspaceCommand::Remove { branch } => workspace::remove(&project, &branch).await,
+            WorkspaceCommand::Dev {
+                selectors,
+                isolated_services,
+                rebuild,
+                no_prepare,
+            } => {
                 workspace_dev::run(&project, &selectors, isolated_services, rebuild, no_prepare)
                     .await
             }
-            (Some(WorkspaceCommand::Stop { services, volumes }), None) => {
+            WorkspaceCommand::Stop { services, volumes } => {
                 workspace_dev::stop(&project, services || volumes, volumes).await
             }
-            (Some(WorkspaceCommand::Status), None) => workspace_dev::status(&project).await,
-            (None, Some(branch)) => {
-                workspace::create(&project, &branch, !no_open).await?;
-                Ok(())
-            }
-            (None, None) => bail!("expected a workspace subcommand or branch name"),
-            (Some(_), Some(_)) => bail!("branch cannot be combined with a workspace subcommand"),
+            WorkspaceCommand::Status => workspace_dev::status(&project).await,
         },
         Commands::Docker {
             command: DockerCommand::Stop { selectors },
@@ -262,7 +243,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_workspace_dev_and_legacy_create_forms() {
+    fn parses_workspace_subcommands() {
         let dev = Cli::try_parse_from([
             "control",
             "workspace",
@@ -274,32 +255,23 @@ mod tests {
         assert!(matches!(
             dev.command,
             Commands::Workspace {
-                command: Some(WorkspaceCommand::Dev {
+                command: WorkspaceCommand::Dev {
                     isolated_services: true,
                     ..
-                }),
-                ..
+                },
             }
         ));
 
-        let legacy =
-            Cli::try_parse_from(["control", "workspace", "feature/control", "--no-open"]).unwrap();
-        assert!(matches!(
-            legacy.command,
-            Commands::Workspace {
-                branch: Some(branch),
-                no_open: true,
-                command: None,
-            } if branch == "feature/control"
-        ));
+        assert!(
+            Cli::try_parse_from(["control", "workspace", "feature/control", "--no-open"]).is_err()
+        );
 
         let create =
             Cli::try_parse_from(["control", "workspace", "create", "feature/cli"]).unwrap();
         assert!(matches!(
             create.command,
             Commands::Workspace {
-                command: Some(WorkspaceCommand::Create { branch, no_open: false }),
-                ..
+                command: WorkspaceCommand::Create { branch, no_open: false },
             } if branch == "feature/cli"
         ));
 
@@ -307,8 +279,7 @@ mod tests {
         assert!(matches!(
             list.command,
             Commands::Workspace {
-                command: Some(WorkspaceCommand::List),
-                ..
+                command: WorkspaceCommand::List,
             }
         ));
 
@@ -317,8 +288,7 @@ mod tests {
         assert!(matches!(
             remove.command,
             Commands::Workspace {
-                command: Some(WorkspaceCommand::Remove { branch }),
-                ..
+                command: WorkspaceCommand::Remove { branch },
             } if branch == "feature/cli"
         ));
     }

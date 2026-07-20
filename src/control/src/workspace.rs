@@ -140,10 +140,17 @@ pub async fn create(project: &ProjectRoot, branch: &str, open_code: bool) -> Res
 }
 
 async fn prepare_workspace(project: &ProjectRoot, target: &Path) -> Result<()> {
+    copy_env_json(&project.root, target)?;
+
     println!("Installing dependencies");
-    process::run("bun", &["install".into()], target, &Default::default())
-        .await
-        .wrap_err_with(|| format!("bun install failed in {}", target.display()))?;
+    process::run(
+        "bun",
+        &["install".into(), "--verbose".into()],
+        target,
+        &Default::default(),
+    )
+    .await
+    .wrap_err_with(|| format!("bun install failed in {}", target.display()))?;
 
     let control_manifest = match project.kind {
         RootKind::Enterprise => target.join("oss/src/control/Cargo.toml"),
@@ -167,6 +174,28 @@ async fn prepare_workspace(project: &ProjectRoot, target: &Path) -> Result<()> {
             control_manifest.display()
         )
     })?;
+    Ok(())
+}
+
+fn copy_env_json(source_root: &Path, target: &Path) -> Result<()> {
+    let source = source_root.join("env.json");
+    if !source.is_file() {
+        return Ok(());
+    }
+    let destination = target.join("env.json");
+    if destination.exists() {
+        return Ok(());
+    }
+    fs::copy(&source, &destination)
+        .into_diagnostic()
+        .wrap_err_with(|| {
+            format!(
+                "could not copy {} to {}",
+                source.display(),
+                destination.display()
+            )
+        })?;
+    println!("copied env.json");
     Ok(())
 }
 

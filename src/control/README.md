@@ -56,7 +56,7 @@ mode = "both"
 # Strings are literals. `true` inherits the key from root env.json or the
 # process environment when present.
 [dev]
-prepare = ["bun run prisma:generate"]
+prepare = ["bun run prisma:generate", "bun run frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
@@ -82,6 +82,16 @@ stop = true
 [cleanup]
 # Relative to this manifest and confined to the detected project root.
 paths = ["dist", ".cache"]
+```
+
+Workspace-wide setup (library builds, shared codegen) can use a root
+`control.toml` with only `mode` and top-level `prepare` — no `name`/`package`.
+Those manifests are always prepared, including when package/group filters are
+passed:
+
+```toml
+mode = "enterprise"
+prepare = ["bun run build"]
 ```
 
 The repository's `name`/`group`/`dev` schema is preferred. An extended schema
@@ -115,10 +125,11 @@ MongoDB follows the same rule using `mongosh`; an empty database receives a
 
 `control workspace create BRANCH` creates a sibling worktree. Enterprise mode
 creates the enterprise worktree and a paired OSS worktree at its `oss/` path.
-Failures are rolled back best-effort. After creation it runs `bun install` and
-builds the workspace's Control binary, then attempts to open the path using
-`code`, unless `--no-open` is passed. The original `control workspace BRANCH`
-syntax remains supported.
+Failures are rolled back best-effort. After creation it copies `env.json` from
+the source checkout when present, runs `bun install`, builds the workspace's
+Control binary, then attempts to open the path using `code`, unless
+`--no-open` is passed. Package builds and codegen are declared in
+`control.toml` `prepare` and run when you start development.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
@@ -142,16 +153,21 @@ control workspace status
 
 The command builds a pinned Debian toolchain image containing Bun 1.2.15,
 Node.js 22/npm, Go 1.25, Rust 1.91.1, Air, and native build tools. It bind
-mounts the worktree at `/workspace`, runs `bun install`, and then runs the
-normal manifest/Turbo pipeline with Docker provisioning disabled inside the
-container. Turbo, Prisma, Vite, and TypeScript come from the repository
-lockfile rather than global installations.
+mounts the worktree at `/workspace` and then runs the normal manifest/Turbo
+pipeline with Docker provisioning disabled inside the container. Turbo, Prisma,
+Vite, and TypeScript come from the repository lockfile rather than global
+installations.
 
 Dependency and compiler caches are persistent, workspace-scoped Docker
-volumes. Generated `.env`, `.control`, Prisma, and frontend files remain in the
-worktree so the editor and container see the same output. The source
-checkout's `env.json` is mounted read-only when a worktree does not provide its
-own override.
+volumes. A private `node_modules` volume keeps Linux dependencies separate from
+the host's Darwin install; the container entrypoint runs `bun install` and then
+the normal Control prepare/Turbo pipeline. Package builds, Prisma generation,
+and embedded frontend/admin builds are declared in `control.toml` `prepare`
+(workspace-wide manifests without a package name are always selected). Generated
+`.env`, `.control`, Prisma, and frontend files remain in the worktree so the
+editor and container see the same output. The source checkout's `env.json` is
+mounted read-only when a worktree does not provide its own override. Docker
+image builds stream plain progress to the terminal.
 
 A single global Traefik container owns the declared HTTP ports and routes each
 request by host header. A workspace named `feature-auth-1234abcd` therefore
@@ -166,6 +182,10 @@ http://feature-auth-1234abcd.localhost:4300
 HTTP listener that should be reachable from the host must have a
 `[[dev.expose]]` declaration and bind to `0.0.0.0`. Non-HTTP ports remain
 internal to the all-in-one container.
+
+The hostname `services` (object storage, relay, and similar) is resolved on the
+host — including Tailscale MagicDNS — and injected into the container with
+`--add-host`. Override with `CONTROL_SERVICES_HOST` when needed.
 
 By default, Docker workspaces share the normal global Postgres, MongoDB,
 Redis, NATS, and etcd services. `--isolated-services` creates a private

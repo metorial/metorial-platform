@@ -19,7 +19,7 @@ ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
 DEFAULT_PROVIDER = "local"
 OBJECT_STORAGE_URL = "http://services:52010"
 BUNDLE_BUCKET_NAME = "function-bay-bundles"
-FORGE_API_URL = "http://{{HOSTNAME}}:52020/metorial-forge"
+FORGE_API_URL = "http://localhost:52020/metorial-forge"
 
 [dev.db.main]
 name = "function-bay"

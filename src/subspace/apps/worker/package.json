@@ -4,7 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start:dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
+    "enterprise:dev": "bun run dev",
+    "start:dev": "bun run dev",
     "start": "bun ./src/server.ts",
     "check-types": "tsc --noEmit -p tsconfig.json",
     "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite --external bun --transpile-only && bun run sentry:sourcemaps:if-token",
