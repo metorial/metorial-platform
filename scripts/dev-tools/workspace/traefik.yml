@@ -21,6 +21,14 @@ providers:
 entryPoints:
   health:
     address: ':8082'
+  port-80:
+    address: ':80'
+    http:
+      redirections:
+        entryPoint:
+          to: port-4300
+          scheme: http
+          permanent: false
   port-3103:
     address: ':3103'
   port-3300:

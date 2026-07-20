@@ -192,6 +192,10 @@ http://feature-auth.localhost:4310
 http://feature-auth.localhost:4300
 ```
 
+Port 80 on the workspace hostname redirects to the same host on port 4300, so
+`http://feature-auth.localhost/` is equivalent to
+`http://feature-auth.localhost:4300/`.
+
 On start, Control writes `HOST.md` at the workspace root (visible inside the
 container as `/workspace/HOST.md`) listing every exposed HTTP endpoint for that
 hostname, grouped by package.

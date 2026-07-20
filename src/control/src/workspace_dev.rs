@@ -503,6 +503,11 @@ fn hosts_markdown(metadata: &WorkspaceMetadata, manifests: &[&LoadedManifest]) -
         String::new(),
         format!("Hostname: `{}`", metadata.hostname),
         String::new(),
+        format!(
+            "Port 80 redirects to port 4300: http://{}/",
+            metadata.hostname
+        ),
+        String::new(),
         "## Exposed HTTP endpoints".into(),
         String::new(),
     ];
@@ -835,6 +840,9 @@ mod tests {
         let selected = manifests.iter().collect::<Vec<_>>();
         let markdown = hosts_markdown(&metadata, &selected);
         assert!(markdown.contains("Hostname: `feature-auth.localhost`"));
+        assert!(markdown.contains(
+            "Port 80 redirects to port 4300: http://feature-auth.localhost/"
+        ));
         assert!(markdown.contains("- `@metorial/dashboard` — http://feature-auth.localhost:4300"));
         assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4310"));
         assert!(markdown.contains("- `@metorial/core-api` — http://feature-auth.localhost:4318"));
@@ -842,6 +850,18 @@ mod tests {
             markdown.find("4300").unwrap() < markdown.find("4310").unwrap(),
             "endpoints should be sorted by port"
         );
+    }
+
+    #[test]
+    fn proxy_redirects_port_80_to_4300() {
+        let oss = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let assets = oss.join("scripts/dev-tools/workspace");
+        let compose = fs::read_to_string(assets.join("proxy.docker-compose.yml")).unwrap();
+        let traefik = fs::read_to_string(assets.join("traefik.yml")).unwrap();
+        assert!(compose.contains("'80:80'"));
+        assert!(traefik.contains("port-80:"));
+        assert!(traefik.contains("to: port-4300"));
+        assert!(traefik.contains("scheme: http"));
     }
 
     #[test]
