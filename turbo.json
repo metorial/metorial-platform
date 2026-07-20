@@ -66,6 +66,9 @@
         "^admin:build"
       ]
     },
+    "setup_vscode": {
+      "cache": false
+    },
     "deploy:only": {
       "env": [
         "SENTRY_AUTH_TOKEN",

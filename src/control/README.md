@@ -94,7 +94,8 @@ selection; they no longer need a `prepare = ["build"]` entry.
 
 Package-local `prepare` entries are package.json script names (for example
 `frontend:build` or `admin:build`). Control runs each as
-`turbo run <script> --filter=<package>` so Turbo caching applies. Do not put
+`turbo run <script> --filter=<package>` so Turbo caching applies. Each prepare
+script must also be declared under `tasks` in the root `turbo.json`. Do not put
 Prisma or the global build in package-local prepare.
 
 The repository's `name`/`group`/`dev` schema is preferred. An extended schema
