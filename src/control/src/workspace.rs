@@ -152,6 +152,16 @@ async fn prepare_workspace(project: &ProjectRoot, target: &Path) -> Result<()> {
     .await
     .wrap_err_with(|| format!("bun install failed in {}", target.display()))?;
 
+    println!("Building packages");
+    process::run(
+        "bun",
+        &["run".into(), "build".into()],
+        target,
+        &Default::default(),
+    )
+    .await
+    .wrap_err_with(|| format!("bun run build failed in {}", target.display()))?;
+
     let control_manifest = match project.kind {
         RootKind::Enterprise => target.join("oss/src/control/Cargo.toml"),
         RootKind::Standalone => target.join("src/control/Cargo.toml"),

@@ -117,6 +117,9 @@ pub async fn run(
         "--label".into(),
         format!("traefik.docker.network={PROXY_NETWORK}"),
     ];
+    if rebuild {
+        args.extend(["--env".into(), "CONTROL_FORCE_BOOTSTRAP=1".into()]);
+    }
     for directory in git_directories {
         args.extend([
             "--volume".into(),
