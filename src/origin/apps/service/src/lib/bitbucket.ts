@@ -39,6 +39,12 @@ export type BitbucketPullRequest = {
   version?: number;
 };
 
+export type BitbucketPullRequestStatus = BitbucketPullRequest & {
+  approvals: number;
+  changesRequested: number;
+  mergeability: 'mergeable' | 'blocked' | 'conflicting' | 'unknown';
+};
+
 let tokenRefreshes = new Map<bigint, Promise<BitbucketCredentials>>();
 
 let isDataCenter = (backend: ScmBackend) => backend.type === 'bitbucket_data_center';
@@ -264,9 +270,9 @@ export class BitbucketClient {
     limit: number;
   }): Promise<{ repositories: BitbucketRepository[]; nextCursor?: string }> {
     if (!isDataCenter(this.backend)) {
-      let path = i.cursor ?? (i.accountSlug
-        ? `repositories/${encodeURIComponent(i.accountSlug)}`
-        : 'repositories');
+      let path =
+        i.cursor ??
+        (i.accountSlug ? `repositories/${encodeURIComponent(i.accountSlug)}` : 'repositories');
       let page = await this.request<{ values: any[]; next?: string }>(path, {
         query: i.cursor ? undefined : { pagelen: i.limit, role: 'member' }
       });
@@ -278,11 +284,11 @@ export class BitbucketClient {
 
     let start = i.cursor ? Number(i.cursor) : 0;
     if (!Number.isInteger(start) || start < 0) {
-      throw new ServiceError(badRequestError({ message: 'Invalid Bitbucket repository cursor' }));
+      throw new ServiceError(
+        badRequestError({ message: 'Invalid Bitbucket repository cursor' })
+      );
     }
-    let path = i.accountSlug
-      ? `projects/${encodeURIComponent(i.accountSlug)}/repos`
-      : 'repos';
+    let path = i.accountSlug ? `projects/${encodeURIComponent(i.accountSlug)}/repos` : 'repos';
     let page = await this.request<{
       values: any[];
       isLastPage: boolean;
@@ -290,7 +296,8 @@ export class BitbucketClient {
     }>(path, { query: { limit: i.limit, start } });
     return {
       repositories: page.values.map(repo => this.normalizeDataCenterRepository(repo)),
-      nextCursor: page.isLastPage || page.nextPageStart == null ? undefined : String(page.nextPageStart)
+      nextCursor:
+        page.isLastPage || page.nextPageStart == null ? undefined : String(page.nextPageStart)
     };
   }
 
@@ -367,7 +374,17 @@ export class BitbucketClient {
             url: i.url,
             active: true,
             secret: i.secret,
-            events: ['repo:push']
+            events: [
+              'repo:push',
+              'pullrequest:created',
+              'pullrequest:updated',
+              'pullrequest:approved',
+              'pullrequest:unapproved',
+              'pullrequest:fulfilled',
+              'pullrequest:rejected',
+              'repo:commit_status_created',
+              'repo:commit_status_updated'
+            ]
           }
         }
       );
@@ -382,7 +399,14 @@ export class BitbucketClient {
           url: i.url,
           active: true,
           secret: i.secret,
-          events: ['repo:refs_changed']
+          events: [
+            'repo:refs_changed',
+            'pr:opened',
+            'pr:modified',
+            'pr:reviewer:approved',
+            'pr:merged',
+            'pr:declined'
+          ]
         }
       }
     );
@@ -411,6 +435,50 @@ export class BitbucketClient {
       ? `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/hooks/${encodeURIComponent(webhookId)}`
       : `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/webhooks/${encodeURIComponent(webhookId)}`;
     await this.request(path, { method: 'DELETE' });
+  }
+
+  async updateWebhook(i: {
+    repositoryId: string;
+    webhookId: string;
+    url: string;
+    secret: string;
+  }) {
+    let [owner, repo] = i.repositoryId.split('/');
+    if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
+    let dataCenter = isDataCenter(this.backend);
+    let path = !dataCenter
+      ? `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/hooks/${encodeURIComponent(i.webhookId)}`
+      : `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/webhooks/${encodeURIComponent(i.webhookId)}`;
+    await this.request(path, {
+      method: 'PUT',
+      body: {
+        description: 'Metorial repository sync',
+        name: 'Metorial repository sync',
+        url: i.url,
+        active: true,
+        secret: i.secret,
+        events: !dataCenter
+          ? [
+              'repo:push',
+              'pullrequest:created',
+              'pullrequest:updated',
+              'pullrequest:approved',
+              'pullrequest:unapproved',
+              'pullrequest:fulfilled',
+              'pullrequest:rejected',
+              'repo:commit_status_created',
+              'repo:commit_status_updated'
+            ]
+          : [
+              'repo:refs_changed',
+              'pr:opened',
+              'pr:modified',
+              'pr:reviewer:approved',
+              'pr:merged',
+              'pr:declined'
+            ]
+      }
+    });
   }
 
   async getBranch(repositoryId: string, branch: string) {
@@ -609,10 +677,70 @@ export class BitbucketClient {
     };
   }
 
-  async getCiState(
+  async getPullRequestStatus(
+    repositoryId: string,
+    id: string
+  ): Promise<BitbucketPullRequestStatus> {
+    let [owner, repo] = repositoryId.split('/');
+    if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
+    let dataCenter = isDataCenter(this.backend);
+    let path = !dataCenter
+      ? `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pullrequests/${encodeURIComponent(id)}`
+      : `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/pull-requests/${encodeURIComponent(id)}`;
+    let pr = await this.request<any>(path);
+    let participants = pr.participants ?? pr.reviewers ?? [];
+    let properties = pr.properties ?? {};
+    let conflicted =
+      properties.mergeResult?.outcome === 'CONFLICTED' ||
+      properties.conflicted === true ||
+      (pr.merge_commit == null && pr.reason === 'CONFLICTING');
+    let blocked =
+      properties.mergeResult?.outcome === 'VETOED' ||
+      properties.openTaskCount > 0 ||
+      pr.task_count > 0;
+
+    return {
+      id: pr.id.toString(),
+      url: !dataCenter ? pr.links.html.href : pr.links.self[0].href,
+      state: pr.state,
+      mergeSha: pr.merge_commit?.hash ?? properties.mergeCommit?.id,
+      version: pr.version,
+      approvals: participants.filter((participant: any) => participant.approved === true)
+        .length,
+      changesRequested: participants.filter(
+        (participant: any) =>
+          participant.status === 'NEEDS_WORK' || participant.state === 'changes_requested'
+      ).length,
+      mergeability: conflicted ? 'conflicting' : blocked ? 'blocked' : 'unknown'
+    };
+  }
+
+  async declinePullRequest(repositoryId: string, id: string) {
+    let existing = await this.getPullRequest(repositoryId, id);
+    if (!['OPEN'].includes(existing.state.toUpperCase())) return;
+    let [owner, repo] = repositoryId.split('/');
+    if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
+    let path = !isDataCenter(this.backend)
+      ? `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pullrequests/${encodeURIComponent(id)}/decline`
+      : `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/pull-requests/${encodeURIComponent(id)}/decline`;
+    await this.request(path, {
+      method: 'POST',
+      query: isDataCenter(this.backend) ? { version: existing.version } : undefined,
+      body: {}
+    });
+  }
+
+  async getCiChecks(
     repositoryId: string,
     commit: string
-  ): Promise<'pending' | 'success' | 'failed'> {
+  ): Promise<
+    {
+      name: string;
+      status: 'pending' | 'success' | 'failed' | 'unknown';
+      url: string | null;
+      summary: string | null;
+    }[]
+  > {
     let [owner, repo] = repositoryId.split('/');
     if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
     let statuses: any[];
@@ -625,15 +753,30 @@ export class BitbucketClient {
         `${trimSlash(this.backend.webUrl)}/rest/build-status/1.0/commits/${encodeURIComponent(commit)}`
       );
     }
-    if (statuses.length === 0) return 'success';
-    let states = statuses.map(status => String(status.state ?? status.status).toUpperCase());
-    if (states.some(state => ['FAILED', 'ERROR', 'STOPPED', 'CANCELLED'].includes(state))) {
-      return 'failed';
+    return statuses.map(status => {
+      let state = String(status.state ?? status.status).toUpperCase();
+      return {
+        name: String(status.name ?? status.key ?? 'Build check'),
+        status: ['FAILED', 'ERROR', 'STOPPED', 'CANCELLED'].includes(state)
+          ? 'failed'
+          : ['SUCCESSFUL', 'SUCCESS', 'COMPLETED'].includes(state)
+            ? 'success'
+            : ['INPROGRESS', 'IN_PROGRESS', 'PENDING'].includes(state)
+              ? 'pending'
+              : 'unknown',
+        url: typeof status.url === 'string' ? status.url : null,
+        summary: typeof status.description === 'string' ? status.description : null
+      };
+    });
+  }
+
+  async getCiState(repositoryId: string, commit: string) {
+    let checks = await this.getCiChecks(repositoryId, commit);
+    if (checks.some(check => check.status === 'failed')) return 'failed' as const;
+    if (checks.some(check => ['pending', 'unknown'].includes(check.status))) {
+      return 'pending' as const;
     }
-    if (states.some(state => !['SUCCESSFUL', 'SUCCESS', 'COMPLETED'].includes(state))) {
-      return 'pending';
-    }
-    return 'success';
+    return 'success' as const;
   }
 
   async mergePullRequest(repositoryId: string, id: string): Promise<BitbucketPullRequest> {

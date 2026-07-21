@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createGitLabClientWithInstallation } from './gitlab';
 import {
+  closeRepositorySyncPullRequest,
   createRepositorySyncBranch,
   getRepositorySyncCiState,
+  getRepositorySyncStatusSnapshot,
   mergeRepositorySyncPullRequest
 } from './scmRepositorySyncProvider';
 
@@ -22,6 +24,7 @@ let createSync = (overrides: Record<string, unknown> = {}) =>
     branchName: 'metorial/sync-marketplace-8',
     baseBranch: 'main',
     providerPrId: '42',
+    providerPrUrl: 'https://gitlab.example/project/-/merge_requests/42',
     repo: {
       id: 'repo_123',
       provider: 'gitlab',
@@ -64,11 +67,19 @@ describe('GitLab repository sync', () => {
         create: vi.fn()
       },
       MergeRequests: {
+        edit: vi.fn(),
         merge: vi.fn(),
-        show: vi.fn()
+        show: vi.fn().mockResolvedValue({
+          state: 'opened',
+          sha: 'source_sha'
+        })
       },
       Pipelines: {
         all: vi.fn()
+      },
+      MergeRequestApprovals: {
+        showConfiguration: vi.fn(),
+        showApprovalState: vi.fn()
       }
     };
     createGitLabClient.mockReset();
@@ -234,6 +245,7 @@ describe('GitLab repository sync', () => {
     });
 
     expect(gitlab.MergeRequests.merge).toHaveBeenCalledWith(123, 42, {
+      sha: 'source_sha',
       shouldRemoveSourceBranch: true
     });
     expect(gitlab.Branches.remove).not.toHaveBeenCalled();
@@ -259,16 +271,107 @@ describe('GitLab repository sync', () => {
     await expect(getRepositorySyncCiState(createSync())).resolves.toBe('success');
   });
 
+  it('normalizes GitLab checks, approvals, and mergeability into a provider-neutral snapshot', async () => {
+    gitlab.Pipelines.all.mockResolvedValue([{ id: 1, status: 'success' }]);
+    gitlab.MergeRequests.show.mockResolvedValue({
+      state: 'opened',
+      detailed_merge_status: 'not_approved'
+    });
+    gitlab.MergeRequestApprovals.showConfiguration.mockResolvedValue({
+      approvals_required: 2,
+      approved_by: [{ user: { id: 1 } }]
+    });
+    gitlab.MergeRequestApprovals.showApprovalState.mockResolvedValue({
+      rules: [{ approvals_required: 2, approved: false, approved_by: [{ id: 1 }] }]
+    });
+
+    await expect(getRepositorySyncStatusSnapshot(createSync())).resolves.toMatchObject({
+      version: 1,
+      provider: 'gitlab',
+      pullRequest: { id: '42', state: 'open' },
+      checks: {
+        state: 'success',
+        total: 1,
+        successful: 1,
+        pending: 0,
+        failed: 0,
+        items: [
+          {
+            name: 'Pipeline 1',
+            status: 'success',
+            url: null,
+            summary: 'Pipeline is success.'
+          }
+        ]
+      },
+      review: { state: 'pending', approvals: 1, requiredApprovals: 2 },
+      mergeability: { state: 'blocked', reason: 'not_approved' }
+    });
+    expect(gitlab.MergeRequestApprovals.showConfiguration).toHaveBeenCalledWith(123, {
+      mergerequestIId: 42
+    });
+    expect(gitlab.MergeRequestApprovals.showApprovalState).toHaveBeenCalledWith(123, 42);
+  });
+
+  it('keeps a GitLab pipeline waiting for manual jobs in a pending state', async () => {
+    gitlab.Pipelines.all.mockResolvedValue([{ id: 1, status: 'manual' }]);
+    gitlab.MergeRequests.show.mockResolvedValue({
+      state: 'opened',
+      detailed_merge_status: 'mergeable'
+    });
+
+    await expect(getRepositorySyncStatusSnapshot(createSync())).resolves.toMatchObject({
+      checks: {
+        state: 'pending',
+        pending: 1,
+        items: [{ status: 'pending', summary: 'Pipeline is manual.' }]
+      }
+    });
+  });
+
+  it('retries transient GitLab approval API failures instead of merging blindly', async () => {
+    gitlab.Pipelines.all.mockResolvedValue([{ id: 1, status: 'success' }]);
+    gitlab.MergeRequests.show.mockResolvedValue({
+      state: 'opened',
+      detailed_merge_status: 'mergeable'
+    });
+    gitlab.MergeRequestApprovals.showConfiguration.mockRejectedValue({
+      cause: { response: { statusCode: 500 } }
+    });
+
+    await expect(getRepositorySyncStatusSnapshot(createSync())).rejects.toMatchObject({
+      cause: { response: { statusCode: 500 } }
+    });
+  });
+
   it('treats a 405 as success when GitLab already merged the merge request', async () => {
     gitlab.MergeRequests.merge.mockRejectedValue({ cause: { response: { statusCode: 405 } } });
-    gitlab.MergeRequests.show.mockResolvedValue({
-      state: 'merged',
-      merge_commit_sha: 'merge_sha'
-    });
+    gitlab.MergeRequests.show
+      .mockResolvedValueOnce({ state: 'opened', sha: 'source_sha' })
+      .mockResolvedValueOnce({
+        state: 'merged',
+        merge_commit_sha: 'merge_sha'
+      });
 
     await expect(mergeRepositorySyncPullRequest(createSync())).resolves.toEqual({
       mergeSha: 'merge_sha'
     });
+  });
+
+  it('closes a superseded open GitLab merge request', async () => {
+    gitlab.MergeRequests.show.mockResolvedValue({ state: 'opened' });
+
+    await expect(closeRepositorySyncPullRequest(createSync())).resolves.toBe('closed');
+    expect(gitlab.MergeRequests.edit).toHaveBeenCalledWith(123, 42, {
+      stateEvent: 'close'
+    });
+  });
+
+  it('preserves a superseded merge request that was already merged', async () => {
+    gitlab.MergeRequests.show.mockResolvedValue({ state: 'merged' });
+
+    await expect(closeRepositorySyncPullRequest(createSync())).resolves.toBe('merged');
+    expect(gitlab.MergeRequests.edit).not.toHaveBeenCalled();
   });
 
   it('propagates merge failures', async () => {
@@ -276,5 +379,15 @@ describe('GitLab repository sync', () => {
     gitlab.MergeRequests.merge.mockRejectedValue(error);
 
     await expect(mergeRepositorySyncPullRequest(createSync())).rejects.toBe(error);
+  });
+
+  it('marks GitLab merge permission failures as actionable', async () => {
+    let error = Object.assign(new Error('401 Unauthorized'), { status: 401 });
+    gitlab.MergeRequests.merge.mockRejectedValue(error);
+
+    await expect(mergeRepositorySyncPullRequest(createSync())).rejects.toBe(error);
+    expect((error as { scmMergePermissionDenied?: boolean }).scmMergePermissionDenied).toBe(
+      true
+    );
   });
 });

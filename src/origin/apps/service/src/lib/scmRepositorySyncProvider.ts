@@ -14,6 +14,7 @@ import {
   isRetryableScmProviderError,
   wrapScmProviderError
 } from './scmProviderError';
+import type { RepositorySyncStatusSnapshot } from '../services/repositorySyncState';
 
 type SyncWithRepo = ScmRepositorySync & {
   repo: ScmRepository & {
@@ -24,6 +25,7 @@ type SyncWithRepo = ScmRepositorySync & {
 };
 
 export type RepositorySyncCiState = 'pending' | 'success' | 'failed';
+export type { RepositorySyncStatusSnapshot } from '../services/repositorySyncState';
 
 let getGitHubClient = async (repo: SyncWithRepo['repo']) => {
   if (!repo.installation.externalInstallationId) {
@@ -37,10 +39,47 @@ let getGitHubClient = async (repo: SyncWithRepo['repo']) => {
 };
 
 let getGitLabClient = async (repo: SyncWithRepo['repo']) =>
-  (await createGitLabClientWithInstallation(repo.installation)) as any;
+  createGitLabClientWithInstallation(repo.installation);
+
+type GitLabClient = Awaited<ReturnType<typeof getGitLabClient>>;
+
+type GitLabMergeRequestStatus = {
+  state: string;
+  detailed_merge_status?: string;
+  detailedMergeStatus?: string;
+  merge_status?: string;
+  merge_error?: string | null;
+  has_conflicts?: boolean;
+  blocking_discussions_resolved?: boolean;
+  draft?: boolean;
+  merge_commit_sha?: string | null;
+  squash_commit_sha?: string | null;
+  sha?: string | null;
+  diff_refs?: { head_sha?: string | null };
+};
+
+let getGitLabMergeRequest = async (
+  gitlab: GitLabClient,
+  projectId: number,
+  mergeRequestIid: number
+): Promise<GitLabMergeRequestStatus> =>
+  (await gitlab.MergeRequests.show(projectId, mergeRequestIid, {
+    withMergeStatusRecheck: true
+  } as NonNullable<Parameters<GitLabClient['MergeRequests']['show']>[2]> & {
+    withMergeStatusRecheck: boolean;
+  })) as unknown as GitLabMergeRequestStatus;
 
 let getBitbucketClient = async (repo: SyncWithRepo['repo']) =>
   createBitbucketClientWithInstallation(repo.installation);
+
+let collectGitHubPages = async <T>(loadPage: (page: number) => Promise<T[]>) => {
+  let items: T[] = [];
+  for (let page = 1; ; page++) {
+    let next = await loadPage(page);
+    items.push(...next);
+    if (next.length < 100) return items;
+  }
+};
 
 let isGitHubEmptyRepositoryError = (e: any) =>
   e.status === 409 &&
@@ -70,7 +109,7 @@ let logGitLabSyncDebug = (message: string, d: Record<string, unknown>) => {
 };
 
 let logGitLabSyncError = (message: string, e: any, d: Record<string, unknown>) => {
-  console.error(
+  console.log(
     JSON.stringify({
       event: 'gitlab_repository_sync',
       level: 'error',
@@ -84,7 +123,8 @@ let logGitLabSyncError = (message: string, e: any, d: Record<string, unknown>) =
 let normalizeGitLabBranch = (value: unknown) => {
   if (typeof value !== 'string') return undefined;
   let normalized = value.trim();
-  if (!normalized || ['null', 'undefined'].includes(normalized.toLowerCase())) return undefined;
+  if (!normalized || ['null', 'undefined'].includes(normalized.toLowerCase()))
+    return undefined;
   return normalized;
 };
 
@@ -155,7 +195,9 @@ let initializeEmptyGitLabRepository = async (d: {
   context: Record<string, unknown>;
   onLog?: (message: string) => Promise<void>;
 }) => {
-  await d.onLog?.(`GitLab repository is empty; initializing default branch "${d.branchName}".`);
+  await d.onLog?.(
+    `GitLab repository is empty; initializing default branch "${d.branchName}".`
+  );
   logGitLabSyncDebug('initializing empty repository', {
     ...d.context,
     baseBranch: d.branchName
@@ -173,7 +215,9 @@ let initializeEmptyGitLabRepository = async (d: {
     } catch (error) {
       let branch = await getGitLabBranchOrNull(d.gitlab, d.projectId, d.branchName);
       if (branch) {
-        await d.onLog?.(`GitLab default branch "${d.branchName}" was initialized concurrently.`);
+        await d.onLog?.(
+          `GitLab default branch "${d.branchName}" was initialized concurrently.`
+        );
         return branch;
       }
 
@@ -541,8 +585,7 @@ export let createRepositorySyncBranch = async (
     }
 
     let liveBaseBranch = getGitLabProjectDefaultBranch(project);
-    let baseBranchName =
-      liveBaseBranch ?? normalizeGitLabBranch(sync.baseBranch) ?? 'main';
+    let baseBranchName = liveBaseBranch ?? normalizeGitLabBranch(sync.baseBranch) ?? 'main';
     let baseBranch;
 
     if (!liveBaseBranch) {
@@ -1065,9 +1108,439 @@ export let createRepositorySyncPullRequest = async (
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
 };
 
+export let closeRepositorySyncPullRequest = async (sync: SyncWithRepo) => {
+  if (!sync.providerPrId) return 'missing' as const;
+
+  if (sync.repo.provider === 'github') {
+    let octokit = await getGitHubClient(sync.repo);
+    try {
+      let pr = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+        owner: sync.repo.externalOwner,
+        repo: sync.repo.externalName,
+        pull_number: parseInt(sync.providerPrId)
+      });
+      if (pr.data.merged) return 'merged' as const;
+      if (pr.data.state !== 'open') return 'already_closed' as const;
+      await octokit.request('PATCH /repos/{owner}/{repo}/pulls/{pull_number}', {
+        owner: sync.repo.externalOwner,
+        repo: sync.repo.externalName,
+        pull_number: parseInt(sync.providerPrId),
+        state: 'closed'
+      });
+      return 'closed' as const;
+    } catch (error) {
+      if (getScmProviderErrorStatus(error) !== 404) throw error;
+      return 'missing' as const;
+    }
+  }
+
+  if (sync.repo.provider === 'gitlab') {
+    let gitlab = await getGitLabClient(sync.repo);
+    let projectId = parseInt(sync.repo.externalId);
+    try {
+      let mergeRequest = await gitlab.MergeRequests.show(
+        projectId,
+        parseInt(sync.providerPrId)
+      );
+      if (mergeRequest.state === 'merged') return 'merged' as const;
+      if (mergeRequest.state !== 'opened') return 'already_closed' as const;
+      await gitlab.MergeRequests.edit(projectId, parseInt(sync.providerPrId), {
+        stateEvent: 'close'
+      });
+      return 'closed' as const;
+    } catch (error) {
+      if (getScmProviderErrorStatus(error) !== 404) throw error;
+      return 'missing' as const;
+    }
+  }
+
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    try {
+      let pullRequest = await client.getPullRequestStatus(
+        sync.repo.externalId,
+        sync.providerPrId
+      );
+      let state = pullRequest.state.toUpperCase();
+      if (['MERGED', 'FULFILLED'].includes(state)) return 'merged' as const;
+      if (state !== 'OPEN') return 'already_closed' as const;
+      await client.declinePullRequest(sync.repo.externalId, sync.providerPrId);
+      return 'closed' as const;
+    } catch (error) {
+      if (getScmProviderErrorStatus(error) !== 404) throw error;
+      return 'missing' as const;
+    }
+  }
+
+  throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
+};
+
+export let getRepositorySyncStatusSnapshot = async (
+  sync: SyncWithRepo,
+  options?: { allowMissingPullRequestMetadata?: boolean }
+): Promise<RepositorySyncStatusSnapshot> => {
+  if (!sync.providerPrId || !sync.providerPrUrl) {
+    if (options?.allowMissingPullRequestMetadata) {
+      sync = {
+        ...sync,
+        providerPrId: sync.providerPrId ?? '0',
+        providerPrUrl: sync.providerPrUrl ?? ''
+      };
+    } else {
+      throw new ServiceError(
+        badRequestError({ message: 'Pull request has not been created' })
+      );
+    }
+  }
+
+  let providerPrId = sync.providerPrId!;
+  let providerPrUrl = sync.providerPrUrl!;
+  let observedAt = new Date().toISOString();
+
+  if (sync.repo.provider === 'github') {
+    let octokit = await getGitHubClient(sync.repo);
+    let [pr, statusItems, runItems, reviewItems] = await Promise.all([
+      octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+        owner: sync.repo.externalOwner,
+        repo: sync.repo.externalName,
+        pull_number: parseInt(providerPrId)
+      }),
+      collectGitHubPages<any>(async page => {
+        let response = await octokit.request(
+          'GET /repos/{owner}/{repo}/commits/{ref}/status',
+          {
+            owner: sync.repo.externalOwner,
+            repo: sync.repo.externalName,
+            ref: sync.branchName,
+            per_page: 100,
+            page
+          }
+        );
+        return response.data.statuses ?? [];
+      }),
+      collectGitHubPages<any>(async page => {
+        let response = await octokit.request(
+          'GET /repos/{owner}/{repo}/commits/{ref}/check-runs',
+          {
+            owner: sync.repo.externalOwner,
+            repo: sync.repo.externalName,
+            ref: sync.branchName,
+            per_page: 100,
+            page
+          } as any
+        );
+        return response.data.check_runs ?? [];
+      }),
+      collectGitHubPages<any>(async page => {
+        let response = await octokit.request(
+          'GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
+          {
+            owner: sync.repo.externalOwner,
+            repo: sync.repo.externalName,
+            pull_number: parseInt(providerPrId),
+            per_page: 100,
+            page
+          }
+        );
+        return response.data as any[];
+      })
+    ]);
+    let checkItems: RepositorySyncStatusSnapshot['checks']['items'] = [
+      ...statusItems.map((item: any) => ({
+        name: item.context ?? 'Commit status',
+        status: ['failure', 'error'].includes(item.state)
+          ? ('failed' as const)
+          : item.state === 'success'
+            ? ('success' as const)
+            : item.state === 'pending'
+              ? ('pending' as const)
+              : ('unknown' as const),
+        url: item.target_url ?? null,
+        summary: item.description ?? null
+      })),
+      ...runItems.map((item: any) => ({
+        name: item.name ?? 'Check run',
+        status: [
+          'failure',
+          'timed_out',
+          'cancelled',
+          'action_required',
+          'startup_failure'
+        ].includes(item.conclusion)
+          ? ('failed' as const)
+          : item.status === 'completed'
+            ? ('success' as const)
+            : ('pending' as const),
+        url: item.details_url ?? item.html_url ?? null,
+        summary: item.output?.summary ?? null
+      }))
+    ];
+    let checkStates = checkItems.map(item => item.status);
+    let failed = checkStates.filter(state => state === 'failed').length;
+    let pending = checkStates.filter(state => state === 'pending').length;
+    let successful = checkStates.filter(state => state === 'success').length;
+    let latestReviews = new Map<string, string>();
+    for (let review of reviewItems) {
+      let reviewer = review.user?.id?.toString();
+      if (reviewer) latestReviews.set(reviewer, String(review.state).toUpperCase());
+    }
+    let approvals = [...latestReviews.values()].filter(state => state === 'APPROVED').length;
+    let changesRequested = [...latestReviews.values()].filter(
+      state => state === 'CHANGES_REQUESTED'
+    ).length;
+    let requiredApprovals: number | undefined;
+    try {
+      let protection = await octokit.request(
+        'GET /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews',
+        {
+          owner: sync.repo.externalOwner,
+          repo: sync.repo.externalName,
+          branch: sync.baseBranch
+        }
+      );
+      requiredApprovals = protection.data.required_approving_review_count;
+    } catch (error) {
+      if (![403, 404].includes(getScmProviderErrorStatus(error) ?? 0)) throw error;
+    }
+    let mergeableState = (pr.data as any).mergeable_state;
+    let mergeability: RepositorySyncStatusSnapshot['mergeability'] =
+      pr.data.mergeable == null
+        ? { state: 'checking', reason: mergeableState }
+        : pr.data.mergeable === false
+          ? { state: 'conflicting', reason: mergeableState }
+          : ['blocked', 'draft'].includes(mergeableState)
+            ? { state: 'blocked', reason: mergeableState }
+            : { state: 'mergeable', reason: mergeableState };
+
+    return {
+      version: 1,
+      provider: 'github',
+      pullRequest: {
+        id: providerPrId,
+        url: providerPrUrl,
+        state: pr.data.merged ? 'merged' : pr.data.state === 'open' ? 'open' : 'closed',
+        mergeSha: pr.data.merge_commit_sha ?? null
+      },
+      checks: {
+        state: failed ? 'failed' : pending ? 'pending' : 'success',
+        total: checkStates.length,
+        successful,
+        pending,
+        failed,
+        items: checkItems
+      },
+      review: {
+        state: changesRequested
+          ? 'changes_requested'
+          : requiredApprovals != null && approvals < requiredApprovals
+            ? 'pending'
+            : approvals
+              ? 'approved'
+              : mergeability.state === 'blocked' && mergeableState === 'blocked'
+                ? 'pending'
+                : 'not_required',
+        approvals,
+        changesRequested,
+        requiredApprovals
+      },
+      mergeability,
+      observedAt
+    };
+  }
+
+  if (sync.repo.provider === 'gitlab') {
+    let gitlab = await getGitLabClient(sync.repo);
+    let projectId = parseInt(sync.repo.externalId);
+    let [mergeRequest, pipelines] = await Promise.all([
+      getGitLabMergeRequest(gitlab, projectId, parseInt(providerPrId)),
+      gitlab.Pipelines.all(projectId, { ref: sync.branchName, perPage: 1 })
+    ]);
+    let pipeline = pipelines[0];
+    let pipelineState = typeof pipeline?.status === 'string' ? pipeline.status : undefined;
+    let failed = ['failed', 'canceled'].includes(pipelineState ?? '') ? 1 : 0;
+    let pending =
+      pipeline &&
+      !['success', 'skipped', 'failed', 'canceled'].includes(pipelineState ?? '')
+        ? 1
+        : 0;
+    let successful = pipeline && !failed && !pending ? 1 : 0;
+    let checkItems: RepositorySyncStatusSnapshot['checks']['items'] = pipeline
+      ? [
+          {
+            name:
+              typeof pipeline.name === 'string' ? pipeline.name : `Pipeline ${pipeline.id}`,
+            status: failed ? 'failed' : pending ? 'pending' : 'success',
+            url: pipeline.web_url ?? null,
+            summary: pipelineState ? `Pipeline is ${pipelineState}.` : null
+          }
+        ]
+      : [];
+    let detailed =
+      mergeRequest.detailed_merge_status ?? mergeRequest.detailedMergeStatus ?? 'unknown';
+    let approvals = 0;
+    let approvalsRequired = 0;
+    let approvalRulesPending = false;
+    try {
+      let approval = await gitlab.MergeRequestApprovals.showConfiguration(projectId, {
+        mergerequestIId: parseInt(providerPrId)
+      });
+      approvals = approval?.approved_by?.length ?? 0;
+      approvalsRequired = approval?.approvals_required ?? 0;
+    } catch (error) {
+      if (![403, 404].includes(getScmProviderErrorStatus(error) ?? 0)) throw error;
+      // Approval APIs are unavailable on some GitLab editions.
+    }
+    try {
+      let approvalState = await gitlab.MergeRequestApprovals.showApprovalState(
+        projectId,
+        parseInt(providerPrId)
+      );
+      let rules = (Array.isArray(approvalState?.rules) ? approvalState.rules : []) as {
+        approvals_required?: number;
+        approved?: boolean;
+        approved_by?: unknown[];
+      }[];
+      approvalRulesPending = rules.some(
+        rule => (rule.approvals_required ?? 0) > 0 && rule.approved !== true
+      );
+      approvalsRequired = Math.max(
+        approvalsRequired,
+        ...rules.map(rule => rule.approvals_required ?? 0)
+      );
+      approvals = Math.max(
+        approvals,
+        ...rules.map(rule => (Array.isArray(rule.approved_by) ? rule.approved_by.length : 0))
+      );
+    } catch (error) {
+      if (![403, 404].includes(getScmProviderErrorStatus(error) ?? 0)) throw error;
+      // Approval-state APIs are unavailable on some GitLab editions.
+    }
+    let reviewState: RepositorySyncStatusSnapshot['review']['state'] =
+      approvalRulesPending || approvalsRequired > approvals || detailed === 'not_approved'
+        ? 'pending'
+        : approvals
+          ? 'approved'
+          : 'not_required';
+    let mergeability: RepositorySyncStatusSnapshot['mergeability'] = [
+      'unchecked',
+      'checking',
+      'preparing',
+      'approvals_syncing',
+      'unknown'
+    ].includes(detailed)
+      ? { state: 'checking', reason: detailed }
+      : ['conflict', 'cannot_be_merged', 'need_rebase'].includes(detailed)
+        ? { state: 'conflicting', reason: detailed }
+        : detailed === 'mergeable'
+          ? { state: 'mergeable', reason: detailed }
+          : { state: 'blocked', reason: detailed };
+
+    return {
+      version: 1,
+      provider: 'gitlab',
+      pullRequest: {
+        id: providerPrId,
+        url: providerPrUrl,
+        state:
+          mergeRequest.state === 'merged'
+            ? 'merged'
+            : mergeRequest.state === 'opened'
+              ? 'open'
+              : 'closed',
+        mergeSha:
+          mergeRequest.merge_commit_sha ?? mergeRequest.squash_commit_sha ?? null
+      },
+      checks: {
+        state: failed ? 'failed' : pending ? 'pending' : 'success',
+        total: pipeline ? 1 : 0,
+        successful,
+        pending,
+        failed,
+        items: checkItems
+      },
+      review: {
+        state: reviewState,
+        approvals,
+        changesRequested: 0,
+        requiredApprovals: approvalsRequired
+      },
+      mergeability,
+      observedAt
+    };
+  }
+
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    let [branchSha, pr] = await Promise.all([
+      client.getBranch(sync.repo.externalId, sync.branchName),
+      client.getPullRequestStatus(sync.repo.externalId, providerPrId)
+    ]);
+    let checkItems = await client.getCiChecks(sync.repo.externalId, branchSha);
+    let failed = checkItems.filter(check => check.status === 'failed').length;
+    let pending = checkItems.filter(check =>
+      ['pending', 'unknown'].includes(check.status)
+    ).length;
+    let successful = checkItems.filter(check => check.status === 'success').length;
+    let ciState: RepositorySyncStatusSnapshot['checks']['state'] = failed
+      ? 'failed'
+      : pending
+        ? 'pending'
+        : 'success';
+    let state = pr.state.toUpperCase();
+    return {
+      version: 1,
+      provider: 'bitbucket',
+      pullRequest: {
+        id: providerPrId,
+        url: providerPrUrl,
+        state: ['MERGED', 'FULFILLED'].includes(state)
+          ? 'merged'
+          : state === 'OPEN'
+            ? 'open'
+            : 'closed',
+        mergeSha: pr.mergeSha ?? null
+      },
+      checks: {
+        state: ciState,
+        total: checkItems.length,
+        successful,
+        pending,
+        failed,
+        items: checkItems
+      },
+      review: {
+        state: pr.changesRequested
+          ? 'changes_requested'
+          : pr.approvals
+            ? 'approved'
+            : 'unknown',
+        approvals: pr.approvals,
+        changesRequested: pr.changesRequested
+      },
+      mergeability: { state: pr.mergeability },
+      observedAt
+    };
+  }
+
+  throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
+};
+
 export let getRepositorySyncCiState = async (
   sync: SyncWithRepo
 ): Promise<RepositorySyncCiState> => {
+  let snapshot = await getRepositorySyncStatusSnapshot(sync, {
+    allowMissingPullRequestMetadata: true
+  });
+  if (snapshot.checks.state === 'failed' || snapshot.mergeability.state === 'conflicting')
+    return 'failed';
+  if (
+    snapshot.checks.state === 'pending' ||
+    snapshot.checks.state === 'unknown' ||
+    ['checking', 'blocked', 'unknown'].includes(snapshot.mergeability.state)
+  )
+    return 'pending';
+  return 'success';
+  /*
   if (sync.repo.provider === 'github') {
     let octokit = await getGitHubClient(sync.repo);
 
@@ -1162,12 +1635,10 @@ export let getRepositorySyncCiState = async (
           ref: sync.branchName,
           perPage: 1
         }),
-        gitlab.MergeRequests.show(
+        getGitLabMergeRequest(
+          gitlab,
           parseInt(sync.repo.externalId),
-          parseInt(sync.providerPrId!),
-          {
-            withMergeStatusRecheck: true
-          }
+          parseInt(sync.providerPrId!)
         )
       ]);
     } catch (e: any) {
@@ -1237,6 +1708,7 @@ export let getRepositorySyncCiState = async (
   }
 
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
+  */
 };
 
 export let mergeRepositorySyncPullRequest = async (
@@ -1338,11 +1810,29 @@ export let mergeRepositorySyncPullRequest = async (
 
   if (sync.repo.provider === 'gitlab') {
     let gitlab = await getGitLabClient(sync.repo);
+    let mergeRequestBeforeMerge = await getGitLabMergeRequest(
+      gitlab,
+      parseInt(sync.repo.externalId),
+      parseInt(sync.providerPrId)
+    );
+    if (mergeRequestBeforeMerge.state === 'merged') {
+      return {
+        mergeSha:
+          mergeRequestBeforeMerge.merge_commit_sha ??
+          mergeRequestBeforeMerge.squash_commit_sha ??
+          undefined
+      };
+    }
+    let sourceSha = mergeRequestBeforeMerge.sha ?? mergeRequestBeforeMerge.diff_refs?.head_sha;
+    if (!sourceSha) {
+      throw new Error('GitLab did not return the merge request source SHA');
+    }
     logGitLabSyncDebug('merging merge request', {
       syncId: sync.id,
       repoId: sync.repo.id,
       projectId: sync.repo.externalId,
-      providerPrId: sync.providerPrId
+      providerPrId: sync.providerPrId,
+      sourceSha
     });
 
     let merge;
@@ -1350,24 +1840,76 @@ export let mergeRepositorySyncPullRequest = async (
       merge = await gitlab.MergeRequests.merge(
         parseInt(sync.repo.externalId),
         parseInt(sync.providerPrId),
-        { shouldRemoveSourceBranch: sync.branchName !== sync.baseBranch }
+        {
+          sha: sourceSha,
+          shouldRemoveSourceBranch: sync.branchName !== sync.baseBranch
+        }
       );
     } catch (e: any) {
+      let authenticatedUser:
+        | { id: number | string | undefined; username: string | undefined }
+        | undefined;
+      let authenticatedUserError;
+      try {
+        let user = await gitlab.Users.showCurrentUser();
+        authenticatedUser = {
+          id: user.id,
+          username: user.username
+        };
+      } catch (identityError) {
+        authenticatedUserError = getScmProviderErrorDetails(identityError);
+      }
+
+      let mergeRequest: GitLabMergeRequestStatus | undefined;
+      let mergeRequestError;
+      try {
+        mergeRequest = await getGitLabMergeRequest(
+          gitlab,
+          parseInt(sync.repo.externalId),
+          parseInt(sync.providerPrId)
+        );
+      } catch (statusError) {
+        mergeRequestError = getScmProviderErrorDetails(statusError);
+      }
+
       logGitLabSyncError('failed to merge merge request', e, {
         syncId: sync.id,
         repoId: sync.repo.id,
         projectId: sync.repo.externalId,
-        providerPrId: sync.providerPrId
+        providerPrId: sync.providerPrId,
+        authenticatedUser,
+        authenticatedUserError,
+        mergeRequest: mergeRequest
+          ? {
+              state: mergeRequest.state,
+              detailedMergeStatus:
+                mergeRequest.detailed_merge_status ?? mergeRequest.detailedMergeStatus,
+              mergeStatus: mergeRequest.merge_status,
+              mergeError: mergeRequest.merge_error,
+              hasConflicts: mergeRequest.has_conflicts,
+              blockingDiscussionsResolved: mergeRequest.blocking_discussions_resolved,
+              draft: mergeRequest.draft
+            }
+          : undefined,
+        mergeRequestError
       });
 
-      if (getScmProviderErrorStatus(e) === 405) {
-        let mergeRequest = await gitlab.MergeRequests.show(
-          parseInt(sync.repo.externalId),
-          parseInt(sync.providerPrId)
-        );
-        if (mergeRequest.state === 'merged') {
-          return { mergeSha: mergeRequest.merge_commit_sha ?? mergeRequest.squash_commit_sha };
-        }
+      if (mergeRequest?.state === 'merged') {
+        return {
+          mergeSha:
+            mergeRequest.merge_commit_sha ?? mergeRequest.squash_commit_sha ?? undefined
+        };
+      }
+
+      if (
+        e &&
+        typeof e === 'object' &&
+        [401, 403].includes(getScmProviderErrorStatus(e) ?? 0)
+      ) {
+        Object.defineProperty(e, 'scmMergePermissionDenied', {
+          value: true,
+          enumerable: false
+        });
       }
 
       throw e;

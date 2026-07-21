@@ -6,6 +6,7 @@ import { ID } from '../../id';
 import { createBitbucketClientWithInstallation } from '../../lib/bitbucket';
 import { createGitHubInstallationClient } from '../../lib/githubApp';
 import { createGitLabClientWithInstallation } from '../../lib/gitlab';
+import { getScmProviderErrorStatus } from '../../lib/scmProviderError';
 
 export let createRepoWebhookQueue = createQueue<{ repoId: string }>({
   name: 'ori/rep/wh-cr',
@@ -82,7 +83,55 @@ export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(asyn
   let existingWebhook = await db.scmRepositoryWebhook.findUnique({
     where: { repoOid: repo.oid }
   });
-  if (existingWebhook) return;
+  if (existingWebhook) {
+    try {
+      if (repo.provider === 'github') {
+        if (!repo.installation.externalInstallationId) throw new Error('Installation ID not found');
+        let octokit = await createGitHubInstallationClient(
+          repo.installation.externalInstallationId,
+          repo.installation.backend
+        );
+        await octokit.request('PATCH /repos/{owner}/{repo}/hooks/{hook_id}', {
+          owner: repo.externalOwner,
+          repo: repo.externalName,
+          hook_id: parseInt(existingWebhook.externalId),
+          active: true,
+          config: {
+            url: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/gh/${existingWebhook.id}`,
+            content_type: 'json',
+            secret: existingWebhook.signingSecret,
+            insecure_ssl: '0'
+          },
+          events: ['push', 'status', 'check_run', 'check_suite', 'pull_request', 'pull_request_review']
+        });
+      } else if (repo.provider === 'gitlab') {
+        let gitlab = await createGitLabClientWithInstallation(repo.installation);
+        await gitlab.ProjectHooks.edit(
+          parseInt(repo.externalId),
+          parseInt(existingWebhook.externalId),
+          `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/gl/${existingWebhook.id}`,
+          {
+            pushEvents: true,
+            mergeRequestsEvents: true,
+            pipelineEvents: true,
+            token: existingWebhook.signingSecret
+          }
+        );
+      } else {
+        let client = await createBitbucketClientWithInstallation(repo.installation);
+        await client.updateWebhook({
+          repositoryId: repo.externalId,
+          webhookId: existingWebhook.externalId,
+          url: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/bb/${existingWebhook.id}`,
+          secret: existingWebhook.signingSecret
+        });
+      }
+      return;
+    } catch (error) {
+      if (getScmProviderErrorStatus(error) !== 404) throw error;
+      await db.scmRepositoryWebhook.delete({ where: { oid: existingWebhook.oid } });
+    }
+  }
 
   if (isLocalOrPrivateWebhookUrl(env.service.ORIGIN_SERVICE_PUBLIC_URL)) {
     console.warn(
@@ -114,7 +163,7 @@ export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(asyn
           secret,
           insecure_ssl: '0'
         },
-        events: ['push'],
+        events: ['push', 'status', 'check_run', 'check_suite', 'pull_request', 'pull_request_review'],
         active: true
       });
 
@@ -152,6 +201,8 @@ export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(asyn
         `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/gl/${webhookId}`,
         {
           pushEvents: true,
+          mergeRequestsEvents: true,
+          pipelineEvents: true,
           token: secret
         }
       );

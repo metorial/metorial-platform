@@ -10,6 +10,7 @@ enum ScmRepositorySyncStatus {
   syncing_contents
   creating_pr
   waiting_for_ci
+  waiting_for_review
   merging
   merged
   failed
@@ -110,6 +111,8 @@ model ScmRepositorySync {
 
   errorMessage String?
   ciState      String?
+  /// [RepositorySyncStatusSnapshot]
+  statusSnapshot Json?
   attemptCount Int     @default(0)
 
   /// [SyncLogEntry]
@@ -128,6 +131,8 @@ model ScmRepositorySync {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  changeNotifications ChangeNotification[] @relation("RepositorySyncChangeNotifications")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -135,6 +140,7 @@ model ScmRepositorySync {
   @@index([repoOid])
   @@index([codeBucketOid])
   @@index([status])
+  @@index([status, nextPollAt])
 }
 
 model ScmInstallation {
