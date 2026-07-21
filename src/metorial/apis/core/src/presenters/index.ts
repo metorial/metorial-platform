@@ -211,6 +211,7 @@ import {
   v1SkillPluginSkillPresenter,
   v1SkillPresenter,
   v1SkillSyncPresenter,
+  v1SkillSyncRepositoryChecksPresenter,
   v1SkillTemplateItemPresenter,
   v1SkillTemplatePresenter,
   v1SkillVersionPresenter,
@@ -417,6 +418,7 @@ import {
   skillPluginSkillType,
   skillPluginType,
   skillSyncType,
+  skillSyncRepositoryChecksType,
   skillTemplateItemType,
   skillTemplateType,
   skillType,
@@ -755,6 +757,14 @@ export let skillSyncPresenter = declarePresenter(skillSyncType, {
   mt_2025_01_01_dashboard: v1SkillSyncPresenter,
   mt_2026_01_01_magnetar: v1SkillSyncPresenter
 });
+
+export let skillSyncRepositoryChecksPresenter = declarePresenter(
+  skillSyncRepositoryChecksType,
+  {
+    mt_2025_01_01_dashboard: v1SkillSyncRepositoryChecksPresenter,
+    mt_2026_01_01_magnetar: v1SkillSyncRepositoryChecksPresenter
+  }
+);
 
 export let skillParticipantPresenter = declarePresenter(skillParticipantType, {
   mt_2025_01_01_dashboard: v1SkillParticipantPresenter,
