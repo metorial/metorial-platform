@@ -20,6 +20,7 @@
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/hono": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",

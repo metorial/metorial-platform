@@ -164,7 +164,6 @@ class InternalDocumentSyncServiceImpl {
             };
           }
 
-          let nextVersionNumber = childDocument.maxVersionNumber + 1;
           let nextVersion = await internalDocumentVersioningService.createVersion({
             resourceTenant: {
               oid: parentVersion.resourceTenantOid
@@ -173,7 +172,6 @@ class InternalDocumentSyncServiceImpl {
               oid: parentVersion.resourceGroupOid
             },
             document: childDocument,
-            versionNumber: nextVersionNumber,
             contentOid: parentVersion.contentOid,
             previousVersionOid: currentVersion?.oid,
             listEditedAt: parentVersion.listEditedAt ?? new Date()
@@ -195,7 +193,6 @@ class InternalDocumentSyncServiceImpl {
             data: {
               contentOid: parentVersion.contentOid,
               currentVersionOid: nextVersion.oid,
-              maxVersionNumber: nextVersionNumber,
               isContentOwner: false
             },
             include: documentInclude

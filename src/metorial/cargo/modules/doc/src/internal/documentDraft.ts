@@ -1,5 +1,4 @@
-import { delay } from '@lowerdeck/delay';
-import { generatePlainId } from '@lowerdeck/id';
+import { createLock } from '@lowerdeck/lock';
 import { createRedisClient } from '@lowerdeck/redis';
 import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
@@ -14,12 +13,13 @@ export type DocumentDraft = {
   flushAfter: string;
 };
 let draftTtlSeconds = 7 * 24 * 60 * 60;
-let lockTtlMs = 15000;
-let maxLockAttempts = 100;
-let lockRetryDelayMs = 25;
 let dirtyDocumentsHash = 'cargo:document:dirty';
 let queuedDocumentsHash = 'cargo:document:queued';
 
+let documentLock = createLock({
+  name: 'cargo/doc/document',
+  redisUrl: getConfig().redisUrl
+});
 let redisFactory = createRedisClient({
   redisUrl: getConfig().redisUrl
 });
@@ -66,8 +66,7 @@ let clearDocumentMarkersUpToRevisionScriptSha = getRedis().then(redis =>
 );
 
 let draftKeys = (documentId: string) => ({
-  draft: `cargo:document:draft:${documentId}`,
-  lock: `cargo:document:draft:${documentId}:lock`
+  draft: `cargo:document:draft:${documentId}`
 });
 
 class InternalDocumentDraftServiceImpl {
@@ -135,30 +134,7 @@ class InternalDocumentDraftServiceImpl {
   }
 
   async withDocumentLock<T>(documentId: string, cb: () => Promise<T>) {
-    let redis = await getRedis();
-    let token = generatePlainId(16);
-    let keys = draftKeys(documentId);
-
-    for (let attempt = 0; attempt < maxLockAttempts; attempt++) {
-      let locked = await redis.set(keys.lock, token, {
-        PX: lockTtlMs,
-        NX: true
-      });
-      if (locked === 'OK') {
-        try {
-          return await cb();
-        } finally {
-          let currentToken = await redis.get(keys.lock);
-          if (currentToken === token) {
-            await redis.del(keys.lock);
-          }
-        }
-      }
-
-      await delay(lockRetryDelayMs);
-    }
-
-    throw new Error(`Timed out waiting for document draft lock: ${documentId}`);
+    return await documentLock.usingLock(documentId, async () => await cb());
   }
 }
 

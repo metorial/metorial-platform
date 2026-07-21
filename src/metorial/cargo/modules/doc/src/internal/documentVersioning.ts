@@ -34,8 +34,7 @@ class InternalDocumentVersioningServiceImpl {
 
   async createVersion(
     d: VersionContext & {
-      document: { oid: bigint };
-      versionNumber: number;
+      document: { oid: bigint; maxVersionNumber: number };
       contentOid: bigint;
       previousVersionOid?: bigint | null;
       listEditedAt?: Date;
@@ -43,14 +42,36 @@ class InternalDocumentVersioningServiceImpl {
   ) {
     return await withTransaction(async db => {
       let generated = getId('documentVersion');
+      let aggregate = await db.documentVersion.aggregate({
+        where: {
+          documentOid: d.document.oid
+        },
+        _max: {
+          versionNumber: true
+        }
+      });
+      let actualMaxVersionNumber = aggregate._max.versionNumber ?? 0;
 
-      return await db.documentVersion.create({
+      if (d.document.maxVersionNumber !== actualMaxVersionNumber) {
+        await db.document.update({
+          where: {
+            oid: d.document.oid
+          },
+          data: {
+            maxVersionNumber: actualMaxVersionNumber
+          }
+        });
+      }
+
+      let nextVersionNumber = actualMaxVersionNumber + 1;
+
+      let version = await db.documentVersion.create({
         data: {
           ...generated,
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid,
           documentOid: d.document.oid,
-          versionNumber: d.versionNumber,
+          versionNumber: nextVersionNumber,
           contentOid: d.contentOid,
           previousVersionOid: d.previousVersionOid ?? null,
           listEditedAt: d.listEditedAt
@@ -59,6 +80,17 @@ class InternalDocumentVersioningServiceImpl {
           content: true
         }
       });
+
+      await db.document.update({
+        where: {
+          oid: d.document.oid
+        },
+        data: {
+          maxVersionNumber: nextVersionNumber
+        }
+      });
+
+      return version;
     });
   }
 }
