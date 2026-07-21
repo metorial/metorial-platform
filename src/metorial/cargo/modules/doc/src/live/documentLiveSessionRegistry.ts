@@ -4,6 +4,7 @@ import { documentLiveInstanceId } from './documentLiveBus';
 import {
   type DocumentLiveSessionState,
   filterActiveSessions,
+  normalizeSessionState,
   parseSessionState
 } from './documentLiveSessionRegistryUtils';
 
@@ -30,10 +31,7 @@ export let upsertLiveSession = async (
 ) => {
   let redis = await getRedis();
   let key = sessionsKey(session.documentId);
-  let state: DocumentLiveSessionState = {
-    ...session,
-    instanceId: session.instanceId ?? documentLiveInstanceId
-  };
+  let state = normalizeSessionState(session, documentLiveInstanceId);
 
   await redis.hSet(key, state.id, JSON.stringify(state));
   await redis.expire(key, Math.ceil((timeoutMs * 2) / 1000));
@@ -86,5 +84,6 @@ export let shouldPublishParticipantPayload = async (
 
 export let __documentLiveSessionRegistryTestUtils = {
   filterActiveSessions,
+  normalizeSessionState,
   parseSessionState
 };
