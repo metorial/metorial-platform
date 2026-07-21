@@ -4,14 +4,26 @@ export type DashboardInstanceSkillsSyncsListOutput = {
   items: {
     object: 'skill.sync';
     id: string;
-    status: 'pending' | 'completed' | 'failed' | 'processing' | 'canceled';
+    status:
+      | 'pending'
+      | 'completed'
+      | 'failed'
+      | 'processing'
+      | 'waiting_for_review'
+      | 'canceled';
     skillMarketplaceId: string | null;
     skillPluginId: string | null;
     logs: { timestamp: Date; message: string }[];
     repositoryPropagations: {
       object: 'skill.sync_repository_propagation';
       id: string;
-      status: 'pending' | 'processing' | 'completed' | 'failed' | 'canceled';
+      status:
+        | 'pending'
+        | 'processing'
+        | 'waiting_for_review'
+        | 'completed'
+        | 'failed'
+        | 'canceled';
       repoId: string;
       branchName: string;
       prName: string;
@@ -39,14 +51,8 @@ export let mapDashboardInstanceSkillsSyncsListOutput =
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
-          skillMarketplaceId: mtMap.objectField(
-            'skill_marketplace_id',
-            mtMap.passthrough()
-          ),
-          skillPluginId: mtMap.objectField(
-            'skill_plugin_id',
-            mtMap.passthrough()
-          ),
+          skillMarketplaceId: mtMap.objectField('skill_marketplace_id', mtMap.passthrough()),
+          skillPluginId: mtMap.objectField('skill_plugin_id', mtMap.passthrough()),
           logs: mtMap.objectField(
             'logs',
             mtMap.array(
@@ -64,23 +70,11 @@ export let mapDashboardInstanceSkillsSyncsListOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
-                branchName: mtMap.objectField(
-                  'branch_name',
-                  mtMap.passthrough()
-                ),
+                branchName: mtMap.objectField('branch_name', mtMap.passthrough()),
                 prName: mtMap.objectField('pr_name', mtMap.passthrough()),
-                prDescription: mtMap.objectField(
-                  'pr_description',
-                  mtMap.passthrough()
-                ),
-                commitMessage: mtMap.objectField(
-                  'commit_message',
-                  mtMap.passthrough()
-                ),
-                errorMessage: mtMap.objectField(
-                  'error_message',
-                  mtMap.passthrough()
-                ),
+                prDescription: mtMap.objectField('pr_description', mtMap.passthrough()),
+                commitMessage: mtMap.objectField('commit_message', mtMap.passthrough()),
+                errorMessage: mtMap.objectField('error_message', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date()),
                 startedAt: mtMap.objectField('started_at', mtMap.date()),
@@ -97,10 +91,7 @@ export let mapDashboardInstanceSkillsSyncsListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -121,8 +112,9 @@ export type DashboardInstanceSkillsSyncsListQuery = {
     | 'completed'
     | 'failed'
     | 'processing'
+    | 'waiting_for_review'
     | 'canceled'
-    | ('pending' | 'completed' | 'failed' | 'processing' | 'canceled')[]
+    | ('pending' | 'completed' | 'failed' | 'processing' | 'waiting_for_review' | 'canceled')[]
     | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
@@ -180,4 +172,3 @@ export let mapDashboardInstanceSkillsSyncsListQuery = mtMap.union([
     })
   )
 ]);
-

@@ -3,14 +3,26 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type DashboardInstanceSkillsSyncsGetOutput = {
   object: 'skill.sync';
   id: string;
-  status: 'pending' | 'completed' | 'failed' | 'processing' | 'canceled';
+  status:
+    | 'pending'
+    | 'completed'
+    | 'failed'
+    | 'processing'
+    | 'waiting_for_review'
+    | 'canceled';
   skillMarketplaceId: string | null;
   skillPluginId: string | null;
   logs: { timestamp: Date; message: string }[];
   repositoryPropagations: {
     object: 'skill.sync_repository_propagation';
     id: string;
-    status: 'pending' | 'processing' | 'completed' | 'failed' | 'canceled';
+    status:
+      | 'pending'
+      | 'processing'
+      | 'waiting_for_review'
+      | 'completed'
+      | 'failed'
+      | 'canceled';
     repoId: string;
     branchName: string;
     prName: string;
@@ -32,10 +44,7 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    skillMarketplaceId: mtMap.objectField(
-      'skill_marketplace_id',
-      mtMap.passthrough()
-    ),
+    skillMarketplaceId: mtMap.objectField('skill_marketplace_id', mtMap.passthrough()),
     skillPluginId: mtMap.objectField('skill_plugin_id', mtMap.passthrough()),
     logs: mtMap.objectField(
       'logs',
@@ -56,14 +65,8 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
           repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
           branchName: mtMap.objectField('branch_name', mtMap.passthrough()),
           prName: mtMap.objectField('pr_name', mtMap.passthrough()),
-          prDescription: mtMap.objectField(
-            'pr_description',
-            mtMap.passthrough()
-          ),
-          commitMessage: mtMap.objectField(
-            'commit_message',
-            mtMap.passthrough()
-          ),
+          prDescription: mtMap.objectField('pr_description', mtMap.passthrough()),
+          commitMessage: mtMap.objectField('commit_message', mtMap.passthrough()),
           errorMessage: mtMap.objectField('error_message', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),
@@ -76,4 +79,3 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
     startedAt: mtMap.objectField('started_at', mtMap.date()),
     completedAt: mtMap.objectField('completed_at', mtMap.date())
   });
-
