@@ -9,6 +9,7 @@ import {
   useSkillMarketplaceRepositories,
   useSkillPluginRepositories,
   useSkillSync,
+  useSkillSyncRepositoryChecks,
   useSkillSyncs
 } from '@metorial/state';
 import {
@@ -24,25 +25,37 @@ import {
 import { ID, Table } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useInterval } from 'react-use';
 import styled from 'styled-components';
 import { RouterPanel } from '../../scenes/routerPanel';
 
 type SkillSync = DashboardInstanceSkillsSyncsGetOutput;
 type SkillRepository = SkillMarketplaceRepository | SkillPluginRepository;
 type RepositoryPropagation = SkillSync['repositoryPropagations'][number];
+type RepositoryCheck = NonNullable<
+  ReturnType<typeof useSkillSyncRepositoryChecks>['data']
+>['items'][number];
 
 let statusColor = (status: SkillSync['status']): 'blue' | 'gray' | 'red' | 'orange' =>
   status === 'completed'
     ? 'blue'
     : status === 'failed' || status === 'canceled'
       ? 'red'
-      : status === 'pending' || status === 'processing'
+      : status === 'pending' || status === 'processing' || status === 'waiting_for_review'
         ? 'orange'
         : 'gray';
 
+let statusLabel = (status: SkillSync['status']) =>
+  ({
+    pending: 'Queued',
+    processing: 'Syncing',
+    waiting_for_review: 'Action required',
+    completed: 'Completed',
+    failed: 'Failed',
+    canceled: 'Canceled'
+  })[status] ?? status;
+
 let SkillSyncStatusBadge = ({ status }: { status: SkillSync['status'] }) => (
-  <Badge color={statusColor(status)}>{status}</Badge>
+  <Badge color={statusColor(status)}>{statusLabel(status)}</Badge>
 );
 
 let getRepositoryId = (repository: SkillRepository) => repository.repoId;
@@ -58,6 +71,12 @@ let getRepositoryLabel = (repository: SkillRepository) => {
     r.repository?.url?.match(/[:/]([^/:]+)\/[^/]+?$/)?.[1];
 
   return owner ? `${owner}/${name}` : name;
+};
+
+let getRepositoryUrl = (repository: SkillRepository) => {
+  let r = repository as any;
+  let url = r.repository?.url ?? r.url;
+  return typeof url === 'string' ? url : null;
 };
 
 let getErrorMessage = (value: unknown) => {
@@ -76,11 +95,14 @@ let getRepositoryError = (
 ) => {
   let r = repository as any;
   let p = propagation as any;
+  let propagationError = propagation && ['failed', 'canceled'].includes(propagation.status);
   return (
-    getErrorMessage(p?.error) ??
-    getErrorMessage(p?.lastError) ??
-    getErrorMessage(p?.syncError) ??
-    getErrorMessage(p?.errorMessage) ??
+    (propagationError
+      ? (getErrorMessage(p?.error) ??
+        getErrorMessage(p?.lastError) ??
+        getErrorMessage(p?.syncError) ??
+        getErrorMessage(p?.errorMessage))
+      : null) ??
     getErrorMessage(r?.error) ??
     getErrorMessage(r?.lastError) ??
     getErrorMessage(r?.syncError) ??
@@ -88,11 +110,136 @@ let getRepositoryError = (
   );
 };
 
-let RepositorySyncStatus = ({ propagation }: { propagation?: RepositoryPropagation }) =>
+let getPullRequestsUrl = (repositoryCheck: RepositoryCheck) => {
+  if (repositoryCheck.pullRequestUrl) return repositoryCheck.pullRequestUrl;
+  if (!repositoryCheck.repositoryUrl) return null;
+  let repositoryUrl = repositoryCheck.repositoryUrl
+    .replace(/\.git\/?$/, '')
+    .replace(/\/+$/, '');
+  if (repositoryCheck.provider === 'github') return `${repositoryUrl}/pulls`;
+  if (repositoryCheck.provider === 'gitlab') return `${repositoryUrl}/-/merge_requests`;
+  if (repositoryCheck.provider === 'bitbucket') return `${repositoryUrl}/pull-requests`;
+  return null;
+};
+
+let getRepositoryActionMessage = (repositoryCheck: RepositoryCheck) => {
+  let checksFailed = repositoryCheck.blockers.includes('checks_failed');
+  let reviewRequired = repositoryCheck.blockers.includes('reviews_required');
+  let reviewMessage =
+    repositoryCheck.reviewStatus === 'changes_requested'
+      ? 'Changes were requested. Update the pull request to continue.'
+      : repositoryCheck.requiredReviewCount != null &&
+          repositoryCheck.requiredReviewCount > 0 &&
+          repositoryCheck.approvedReviewCount != null
+        ? `Review required (${repositoryCheck.approvedReviewCount}/${repositoryCheck.requiredReviewCount} approvals).`
+        : 'Review required. Approve the pull request to continue.';
+  if (checksFailed && reviewRequired) {
+    return `Checks failed. ${reviewMessage}`;
+  }
+  if (checksFailed) {
+    return 'Checks failed. Fix or rerun them in the repository. We’ll continue automatically.';
+  }
+  if (reviewRequired) return reviewMessage;
+  if (repositoryCheck.blockers.includes('merge_conflict')) {
+    return 'This pull request has conflicts. Resolve them to continue.';
+  }
+  if (repositoryCheck.blockers.includes('merge_permission_required')) {
+    return 'The connected GitLab user can’t merge into this branch. Grant merge access to continue.';
+  }
+  if (repositoryCheck.blockers.includes('merge_blocked')) {
+    return 'Repository rules are blocking this pull request. Open it for details.';
+  }
+  if (repositoryCheck.blockers.includes('provider_unavailable')) {
+    return 'We couldn’t update the pull request. We’ll retry automatically.';
+  }
+  return repositoryCheck.errorMessage ?? 'Repository action is required to continue.';
+};
+
+let RepositoryAction = ({ repositoryCheck }: { repositoryCheck: RepositoryCheck }) => {
+  let actionableBlockers = [
+    'checks_failed',
+    'reviews_required',
+    'merge_conflict',
+    'merge_permission_required',
+    'merge_blocked',
+    'provider_unavailable'
+  ];
+  if (
+    repositoryCheck.status !== 'waiting_for_review' &&
+    !repositoryCheck.blockers.some(blocker => actionableBlockers.includes(blocker))
+  ) {
+    return null;
+  }
+  let pullRequestsUrl = getPullRequestsUrl(repositoryCheck);
+  let relevantChecks = repositoryCheck.checks.filter(check =>
+    ['failed', 'failure', 'pending', 'running', 'in_progress'].includes(check.status)
+  );
+  let visibleChecks = relevantChecks.slice(0, 5);
+
+  return (
+    <Callout color="orange">
+      <RepositoryActionContent>
+        <div>
+          <Text size="2" weight="strong">
+            {repositoryCheck.repositoryName}
+          </Text>
+          <Text size="2">{getRepositoryActionMessage(repositoryCheck)}</Text>
+          {visibleChecks.length > 0 && (
+            <CheckList>
+              {visibleChecks.map(check => (
+                <li key={`${check.name}:${check.status}`}>
+                  {check.url ? (
+                    <ExternalLink href={check.url} target="_blank" rel="noopener noreferrer">
+                      {check.name}
+                    </ExternalLink>
+                  ) : (
+                    check.name
+                  )}{' '}
+                  — {check.status}
+                </li>
+              ))}
+              {relevantChecks.length > visibleChecks.length && (
+                <li>{relevantChecks.length - visibleChecks.length} more checks</li>
+              )}
+            </CheckList>
+          )}
+        </div>
+        <RepositoryLinks>
+          {pullRequestsUrl && (
+            <ExternalLink href={pullRequestsUrl} target="_blank" rel="noopener noreferrer">
+              Open {repositoryCheck.provider === 'gitlab' ? 'merge request' : 'pull request'}
+            </ExternalLink>
+          )}
+          {repositoryCheck.repositoryUrl && (
+            <ExternalLink
+              href={repositoryCheck.repositoryUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open repository
+            </ExternalLink>
+          )}
+        </RepositoryLinks>
+      </RepositoryActionContent>
+    </Callout>
+  );
+};
+
+let RepositorySyncStatus = ({
+  propagation,
+  syncStatus
+}: {
+  propagation?: RepositoryPropagation;
+  syncStatus: SkillSync['status'];
+}) =>
   propagation ? (
     <SkillSyncStatusBadge status={propagation.status} />
   ) : (
-    <Badge color="gray">Not queued</Badge>
+    <Badge color="gray">
+      {['pending', 'processing', 'waiting_for_review'].includes(syncStatus)
+        ? 'Not queued'
+        : 'Skipped'}
+    </Badge>
   );
 
 export let SkillSyncsTable = ({
@@ -113,10 +260,6 @@ export let SkillSyncsTable = ({
       : null
   );
   let [_, setSearchParams] = useSearchParams();
-
-  useInterval(() => {
-    syncs.refetch();
-  }, 10_000);
 
   return (
     <>
@@ -174,12 +317,31 @@ let SyncDuration = ({ sync }: { sync: SkillSync }) => {
 let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
   let instance = useCurrentInstance();
   let sync = useSkillSync(instance.data?.id, syncId);
+  let repositoryChecks = useSkillSyncRepositoryChecks(instance.data?.id, syncId);
+  let repositoryChecksRefetchRef = useRef(repositoryChecks.refetch);
+  repositoryChecksRefetchRef.current = repositoryChecks.refetch;
+  let wasActiveRef = useRef(false);
   let repos1 = useSkillMarketplaceRepositories(
     instance.data?.id,
     sync.data?.skillMarketplaceId
   );
   let repos2 = useSkillPluginRepositories(instance.data?.id, sync.data?.skillPluginId);
   let reposLoader = sync.data?.skillMarketplaceId ? repos1 : repos2;
+
+  useEffect(() => {
+    let active = Boolean(
+      sync.data?.status &&
+        ['pending', 'processing', 'waiting_for_review'].includes(sync.data.status)
+    );
+    if (!active) {
+      if (wasActiveRef.current) repositoryChecksRefetchRef.current();
+      wasActiveRef.current = false;
+      return;
+    }
+    wasActiveRef.current = true;
+    let id = setInterval(() => repositoryChecksRefetchRef.current(), 5_000);
+    return () => clearInterval(id);
+  }, [sync.data?.status]);
 
   return renderWithLoader({ sync })(({ sync }) => {
     let repositories = reposLoader.data?.items ?? [];
@@ -266,8 +428,22 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
               data={[
                 ...repositoryRows.map(({ repository, propagation }) => ({
                   data: [
-                    getRepositoryLabel(repository),
-                    <RepositorySyncStatus propagation={propagation} />,
+                    getRepositoryUrl(repository) ? (
+                      <ExternalLink
+                        href={getRepositoryUrl(repository)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={event => event.stopPropagation()}
+                      >
+                        {getRepositoryLabel(repository)}
+                      </ExternalLink>
+                    ) : (
+                      getRepositoryLabel(repository)
+                    ),
+                    <RepositorySyncStatus
+                      propagation={propagation}
+                      syncStatus={sync.data.status}
+                    />,
                     propagation?.branchName ?? 'N/A',
                     propagation?.prName ?? 'N/A',
                     propagation?.completedAt ? (
@@ -292,6 +468,29 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
                 }))
               ]}
             />
+
+            {repositoryChecks.error && (
+              <>
+                <Spacer height={10} />
+                <Text size="2" color="gray600">
+                  We couldn’t load repository checks. Syncing will continue in the background.
+                </Text>
+              </>
+            )}
+
+            {repositoryChecks.data?.items.length ? (
+              <>
+                <Spacer height={10} />
+                <RepositoryActions>
+                  {repositoryChecks.data.items.map(repositoryCheck => (
+                    <RepositoryAction
+                      key={repositoryCheck.propagationId}
+                      repositoryCheck={repositoryCheck}
+                    />
+                  ))}
+                </RepositoryActions>
+              </>
+            ) : null}
 
             {repositoryErrors.length > 0 && (
               <>
@@ -381,4 +580,42 @@ let LogTimestamp = styled.div`
 let LogMessage = styled.div`
   font-size: 13px;
   white-space: pre-wrap;
+`;
+
+let RepositoryActions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+let RepositoryActionContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+`;
+
+let RepositoryLinks = styled.div`
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 12px;
+`;
+
+let ExternalLink = styled.a`
+  color: ${theme.colors.blue800};
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+let CheckList = styled.ul`
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: ${theme.colors.gray700};
+  font-size: 13px;
 `;

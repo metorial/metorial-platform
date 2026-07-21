@@ -43,7 +43,7 @@ export let useSkillSyncs = (
   );
 
   let hasActiveSyncs = data.data?.items.some(sync =>
-    ['pending', 'processing'].includes(sync.status)
+    ['pending', 'processing', 'waiting_for_review'].includes(sync.status)
   );
   let refetchRef = useRef(data.refetch);
   refetchRef.current = data.refetch;
@@ -68,9 +68,13 @@ export let useSkillSync = (
   instanceId: string | null | undefined,
   skillSyncId: string | null | undefined
 ) => {
-  let data = skillSyncLoader.use(instanceId && skillSyncId ? { instanceId, skillSyncId } : null);
+  let data = skillSyncLoader.use(
+    instanceId && skillSyncId ? { instanceId, skillSyncId } : null
+  );
 
-  let isActive = data.data?.status ? ['pending', 'processing'].includes(data.data.status) : false;
+  let isActive = data.data?.status
+    ? ['pending', 'processing', 'waiting_for_review'].includes(data.data.status)
+    : false;
   let refetchRef = useRef(data.refetch);
   refetchRef.current = data.refetch;
   useEffect(() => {
@@ -81,3 +85,19 @@ export let useSkillSync = (
 
   return data;
 };
+
+export let skillSyncRepositoryChecksLoader = createLoader({
+  name: 'skillSyncRepositoryChecks',
+  parents: [skillSyncLoader],
+  fetch: (i: { instanceId: string; skillSyncId: string }) =>
+    withAuth(sdk => sdk.skillSyncs.repositoryChecks(i.instanceId, i.skillSyncId)),
+  mutators: {}
+});
+
+export let useSkillSyncRepositoryChecks = (
+  instanceId: string | null | undefined,
+  skillSyncId: string | null | undefined
+) =>
+  skillSyncRepositoryChecksLoader.use(
+    instanceId && skillSyncId ? { instanceId, skillSyncId } : null
+  );
