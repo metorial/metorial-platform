@@ -178,6 +178,7 @@ export let documentController = Controller.create(
           documentId: ctx.document.id,
           instanceId: ctx.instance.id,
           organizationId: ctx.organization.id,
+          accessTags: cargoAccess.accessTags,
           accessActor: getInstanceCargoActorInput(ctx),
           defaultPermissions: cargoAccess.defaultPermissions,
           overridePermissions: cargoAccess.overridePermissions
