@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  updateMany: vi.fn()
+  updateMany: vi.fn(),
+  findUnique: vi.fn(),
+  updateState: vi.fn()
 }));
 
 vi.mock('../../../db', () => ({
   db: {
     scmRepositorySync: {
-      updateMany: mocks.updateMany
+      updateMany: mocks.updateMany,
+      findUnique: mocks.findUnique
     }
   }
+}));
+vi.mock('../../../services/repositorySyncState', () => ({
+  isTerminalRepositorySyncStatus: () => false,
+  transitionRepositorySyncState: mocks.updateState
 }));
 
 import { logRepositorySyncQueueError, markRepositorySyncFailed } from './_lib';
@@ -18,6 +25,10 @@ describe('repository sync failure diagnostics', () => {
   beforeEach(() => {
     mocks.updateMany.mockReset();
     mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.findUnique.mockReset();
+    mocks.findUnique.mockResolvedValue({ status: 'waiting_for_ci' });
+    mocks.updateState.mockReset();
+    mocks.updateState.mockResolvedValue({});
     vi.restoreAllMocks();
   });
 
@@ -36,15 +47,15 @@ describe('repository sync failure diagnostics', () => {
 
     await markRepositorySyncFailed('sync_123', error);
 
-    expect(mocks.updateMany).toHaveBeenCalledWith(
+    expect(mocks.updateState).toHaveBeenCalledWith(
+      'sync_123',
+      'waiting_for_ci',
       expect.objectContaining({
-        data: expect.objectContaining({
-          status: 'failed',
-          errorMessage: 'GitLab could not create the update branch: the request was rejected.'
-        })
+        status: 'failed',
+        errorMessage: 'GitLab could not create the update branch: the request was rejected.'
       })
     );
-    expect(JSON.stringify(mocks.updateMany.mock.calls)).not.toContain('internal.js');
+    expect(JSON.stringify(mocks.updateState.mock.calls)).not.toContain('internal.js');
   });
 
   it('logs structured provider details without serializing the stack', () => {

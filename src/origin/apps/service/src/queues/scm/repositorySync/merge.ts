@@ -1,12 +1,24 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
-import { mergeRepositorySyncPullRequest } from '../../../lib/scmRepositorySyncProvider';
+import {
+  getScmProviderErrorDetails,
+  getScmProviderErrorStatus
+} from '../../../lib/scmProviderError';
+import {
+  getRepositorySyncStatusSnapshot,
+  mergeRepositorySyncPullRequest
+} from '../../../lib/scmRepositorySyncProvider';
+import {
+  classifyRepositorySyncSnapshot,
+  type RepositorySyncStatusSnapshot,
+  transitionRepositorySyncState
+} from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
+  getRepositorySyncErrorMessage,
   logRepositorySyncQueueError,
-  logRepositorySyncQueueEvent,
-  markRepositorySyncFailed
+  logRepositorySyncQueueEvent
 } from './_lib';
 
 export let mergeRepositorySyncQueue = createQueue<{ syncId: string }>({
@@ -20,7 +32,22 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       syncId: data.syncId,
       expectedStatus: 'merging'
     });
-
+    let claimed = await db.scmRepositorySync.updateMany({
+      where: {
+        id: data.syncId,
+        status: 'merging',
+        OR: [{ nextPollAt: null }, { nextPollAt: { lte: new Date() } }]
+      },
+      data: {
+        nextPollAt: new Date(Date.now() + 5 * 60_000)
+      }
+    });
+    if (claimed.count === 0) {
+      logRepositorySyncQueueEvent('merge', 'skipped sync because it is already claimed', {
+        syncId: data.syncId
+      });
+      return;
+    }
     let sync = await db.scmRepositorySync.findFirst({
       where: {
         id: data.syncId,
@@ -51,6 +78,47 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       return;
     }
 
+    let snapshot = await getRepositorySyncStatusSnapshot(sync);
+    if (snapshot.pullRequest.state === 'merged') {
+      await transitionRepositorySyncState(sync.id, 'merging', {
+        status: 'merged',
+        statusSnapshot: snapshot,
+        providerMergeSha: snapshot.pullRequest.mergeSha ?? sync.providerMergeSha,
+        completedAt: new Date(),
+        attemptCount: 0,
+        nextPollAt: null
+      });
+      return;
+    }
+    if (snapshot.pullRequest.state === 'closed') {
+      await transitionRepositorySyncState(sync.id, 'merging', {
+        status: 'cancelled',
+        statusSnapshot: snapshot,
+        completedAt: new Date(),
+        nextPollAt: null,
+        errorMessage: 'Pull request was closed before it could be merged'
+      });
+      return;
+    }
+    let status = classifyRepositorySyncSnapshot(snapshot, true);
+    if (status !== 'merging') {
+      let delay = 30_000;
+      let updated = await transitionRepositorySyncState(sync.id, 'merging', {
+        status,
+        statusSnapshot: snapshot,
+        lastPolledAt: new Date(),
+        attemptCount: 0,
+        nextPollAt: new Date(Date.now() + delay)
+      });
+      if (!updated) return;
+      let { waitForCiRepositorySyncQueue } = await import('./waitForCi');
+      await waitForCiRepositorySyncQueue.add(
+        { syncId: sync.id },
+        { delay, id: `${sync.id}:merge-recheck` }
+      );
+      return;
+    }
+
     logRepositorySyncQueueEvent('merge', 'merging provider pull request', {
       syncId: sync.id,
       repoId: sync.repo.id,
@@ -59,9 +127,7 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       repo: sync.repo.externalName,
       providerPrId: sync.providerPrId
     });
-    await appendRepositorySyncLog(sync.id, 'Merging the pull request.');
     let merge = await mergeRepositorySyncPullRequest(sync);
-    await appendRepositorySyncLog(sync.id, 'Pull request merged.');
     logRepositorySyncQueueEvent('merge', 'provider pull request merged', {
       syncId: sync.id,
       repoId: sync.repo.id,
@@ -69,14 +135,14 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       mergeSha: merge.mergeSha
     });
 
-    await db.scmRepositorySync.update({
-      where: { oid: sync.oid },
-      data: {
-        status: 'merged',
-        providerMergeSha: merge.mergeSha,
-        completedAt: new Date()
-      }
+    let updated = await transitionRepositorySyncState(sync.id, 'merging', {
+      status: 'merged',
+      providerMergeSha: merge.mergeSha,
+      completedAt: new Date(),
+      attemptCount: 0,
+      nextPollAt: null
     });
+    if (!updated) return;
     await appendRepositorySyncLog(sync.id, 'Repository update completed.');
     logRepositorySyncQueueEvent('merge', 'marked sync merged', {
       syncId: sync.id,
@@ -86,6 +152,83 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
     logRepositorySyncQueueError('merge', 'failed while processing queue item', e, {
       syncId: data.syncId
     });
-    await markRepositorySyncFailed(data.syncId, e);
+    let current = await db.scmRepositorySync.findUnique({ where: { id: data.syncId } });
+    if (current?.status === 'merging') {
+      let previousSnapshot = current.statusSnapshot as RepositorySyncStatusSnapshot | null;
+      let providerError = getScmProviderErrorDetails(e);
+      let mergePermissionRequired = Boolean(
+        (e as { scmMergePermissionDenied?: boolean })?.scmMergePermissionDenied
+      );
+      let providerReportedBlocker =
+        previousSnapshot?.review.state === 'pending' ||
+        previousSnapshot?.review.state === 'changes_requested' ||
+        previousSnapshot?.mergeability.state === 'blocked' ||
+        previousSnapshot?.mergeability.state === 'conflicting' ||
+        providerError.classification === 'protected_branch';
+      let mergeBlocked =
+        mergePermissionRequired ||
+        ([405, 409, 422].includes(getScmProviderErrorStatus(e) ?? 0) &&
+          providerReportedBlocker);
+      let delay = mergeBlocked
+        ? 60_000
+        : Math.min(20_000 * 2 ** Math.min(current.attemptCount, 10), 15 * 60_000);
+      let statusSnapshot =
+        mergeBlocked && previousSnapshot
+          ? {
+              ...previousSnapshot,
+              mergeability: {
+                state: 'blocked' as const,
+                reason: mergePermissionRequired
+                  ? 'merge_permission_required'
+                  : 'merge_rejected'
+              },
+              observedAt: new Date().toISOString()
+            }
+          : previousSnapshot;
+      console.log(
+        JSON.stringify({
+          event: 'repository_sync_merge_retry',
+          level: 'error',
+          syncId: current.id,
+          repoOid: current.repoOid.toString(),
+          providerPrId: current.providerPrId,
+          mergeBlocked,
+          mergePermissionRequired,
+          retryInMs: delay,
+          providerError,
+          observedStatus: previousSnapshot
+            ? {
+                checks: previousSnapshot.checks.state,
+                review: previousSnapshot.review.state,
+                mergeability: previousSnapshot.mergeability
+              }
+            : null
+        })
+      );
+      let updated = await transitionRepositorySyncState(data.syncId, 'merging', {
+        status: mergeBlocked ? 'waiting_for_review' : 'waiting_for_ci',
+        ...(statusSnapshot ? { statusSnapshot } : {}),
+        errorMessage: mergeBlocked ? null : getRepositorySyncErrorMessage(e),
+        nextPollAt: new Date(Date.now() + delay),
+        attemptCount: { increment: 1 }
+      });
+      if (!updated) return;
+      let retryMessage = mergeBlocked
+        ? mergePermissionRequired
+          ? 'The connected GitLab user does not have permission to merge.'
+          : 'Repository rules are blocking the merge.'
+        : 'Automatic merge was unavailable; retrying.';
+      let alreadyLogged = Array.isArray(current.logs)
+        ? current.logs.some(log => Array.isArray(log) && log[1] === retryMessage)
+        : false;
+      if (!alreadyLogged) {
+        await appendRepositorySyncLog(data.syncId, retryMessage);
+      }
+      let { waitForCiRepositorySyncQueue } = await import('./waitForCi');
+      await waitForCiRepositorySyncQueue.add(
+        { syncId: data.syncId },
+        { delay, id: `${data.syncId}:merge-retry:${current.attemptCount + 1}` }
+      );
+    }
   }
 });

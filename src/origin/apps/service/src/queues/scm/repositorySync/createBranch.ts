@@ -2,6 +2,7 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { createRepositorySyncBranch } from '../../../lib/scmRepositorySyncProvider';
+import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
   logRepositorySyncQueueError,
@@ -76,19 +77,15 @@ export let createBranchRepositorySyncQueueProcessor = createBranchRepositorySync
       });
 
       let baseBranch = branchResult?.baseBranch ?? sync.baseBranch;
-      await db.$transaction([
-        db.scmRepository.update({
-          where: { oid: sync.repo.oid },
-          data: { defaultBranch: baseBranch }
-        }),
-        db.scmRepositorySync.update({
-          where: { oid: sync.oid },
-          data: {
-            baseBranch,
-            status: 'syncing_contents'
-          }
-        })
-      ]);
+      await db.scmRepository.update({
+        where: { oid: sync.repo.oid },
+        data: { defaultBranch: baseBranch }
+      });
+      let updated = await transitionRepositorySyncState(sync.id, 'creating_branch', {
+        baseBranch,
+        status: 'syncing_contents'
+      });
+      if (!updated) return;
       logRepositorySyncQueueEvent('createBranch', 'transitioned sync to syncing_contents', {
         syncId: sync.id
       });

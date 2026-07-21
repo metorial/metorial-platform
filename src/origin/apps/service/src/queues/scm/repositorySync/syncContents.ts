@@ -3,6 +3,7 @@ import { db } from '../../../db';
 import { env } from '../../../env';
 import { cleanupRepositorySyncBranchIfNoChanges } from '../../../lib/scmRepositorySyncProvider';
 import { codeBucketService } from '../../../services';
+import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
   logRepositorySyncQueueError,
@@ -85,14 +86,12 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
 
       let branchChanges = await cleanupRepositorySyncBranchIfNoChanges(sync);
       if (!branchChanges.hasChanges) {
-        await db.scmRepositorySync.update({
-          where: { oid: sync.oid },
-          data: {
-            status: 'complete_no_changes',
-            errorMessage: null,
-            completedAt: new Date()
-          }
+        let updated = await transitionRepositorySyncState(sync.id, 'syncing_contents', {
+          status: 'complete_no_changes',
+          errorMessage: null,
+          completedAt: new Date()
         });
+        if (!updated) return;
 
         await appendRepositorySyncLog(sync.id, 'No file changes were needed.');
         logRepositorySyncQueueEvent('syncContents', 'completed sync with no changes', {
@@ -116,12 +115,10 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
       });
 
       await appendRepositorySyncLog(sync.id, 'File changes are ready for review.');
-      await db.scmRepositorySync.update({
-        where: { oid: sync.oid },
-        data: {
-          status: 'creating_pr'
-        }
+      let updated = await transitionRepositorySyncState(sync.id, 'syncing_contents', {
+        status: 'creating_pr'
       });
+      if (!updated) return;
       logRepositorySyncQueueEvent('syncContents', 'transitioned sync to creating_pr', {
         syncId: sync.id
       });

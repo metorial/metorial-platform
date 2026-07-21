@@ -1,5 +1,9 @@
 import { db } from '../../../db';
 import { getScmProviderLogDetails } from '../../../lib/scmProviderError';
+import {
+  isTerminalRepositorySyncStatus,
+  transitionRepositorySyncState
+} from '../../../services/repositorySyncState';
 
 export type RepositorySyncLogEntry = [number, string];
 
@@ -76,21 +80,15 @@ export let getRepositorySyncErrorMessage = (error: unknown) => {
 export let markRepositorySyncFailed = async (syncId: string, error: unknown) => {
   let message = getRepositorySyncErrorMessage(error);
 
-  await db.scmRepositorySync.updateMany({
-    where: {
-      id: syncId,
-      status: {
-        notIn: ['merged', 'failed', 'cancelled', 'complete_unmerged', 'complete_no_changes']
-      }
-    },
-    data: {
-      status: 'failed',
-      errorMessage: message,
-      completedAt: new Date(),
-      attemptCount: { increment: 1 },
-      logs: {
-        push: [Date.now(), 'Repository update failed.'] satisfies RepositorySyncLogEntry
-      }
+  let sync = await db.scmRepositorySync.findUnique({ where: { id: syncId } });
+  if (!sync || isTerminalRepositorySyncStatus(sync.status)) return;
+  await transitionRepositorySyncState(syncId, sync.status, {
+    status: 'failed',
+    errorMessage: message,
+    completedAt: new Date(),
+    attemptCount: { increment: 1 },
+    logs: {
+      push: [Date.now(), 'Repository update failed.'] satisfies RepositorySyncLogEntry
     }
   });
 };
