@@ -51,7 +51,7 @@ export let skillPluginInclude = {
       syncs: {
         where: {
           status: {
-            in: ['pending', 'processing']
+            in: ['pending', 'processing', 'waiting_for_review']
           }
         }
       }

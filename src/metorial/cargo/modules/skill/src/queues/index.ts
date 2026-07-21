@@ -25,6 +25,12 @@ import { searchQueues } from './search';
 import { skillDestinationSyncCleanupCron } from './sync/cleanup';
 import { syncCollectQueueProcessor } from './sync/collect';
 import { syncFinishQueueProcessor } from './sync/finish';
+import {
+  originChangeFanoutQueueProcessor,
+  originChangePollQueueProcessor,
+  originChangePollWatchdogCron,
+  originChangeRepairCron
+} from './sync/originChanges';
 import { syncProcessQueueProcessor } from './sync/process';
 import {
   syncPropagatePerformQueueProcessor,
@@ -48,6 +54,10 @@ export let skillQueueProcessor = combineQueueProcessors([
   syncPropagateStartQueueProcessor,
   syncPropagatePerformQueueProcessor,
   syncPropagateWaitQueueProcessor,
+  originChangeFanoutQueueProcessor,
+  originChangePollQueueProcessor,
+  originChangePollWatchdogCron,
+  originChangeRepairCron,
   syncFinishQueueProcessor,
   skillDestinationSyncCleanupCron,
   skillExportQueueProcessor,

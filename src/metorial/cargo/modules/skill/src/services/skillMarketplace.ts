@@ -31,7 +31,7 @@ export let skillMarketplaceInclude = {
       syncs: {
         where: {
           status: {
-            in: ['pending', 'processing']
+            in: ['pending', 'processing', 'waiting_for_review']
           }
         }
       }

@@ -49,12 +49,14 @@ enum SkillDestinationSyncStatus {
   completed
   failed
   processing
+  waiting_for_review
   canceled
 }
 
 enum SkillDestinationSyncRepositoryPropagationStatus {
   pending
   processing
+  waiting_for_review
   completed
   failed
   canceled
@@ -111,4 +113,18 @@ model SkillDestinationSyncRepositoryPropagation {
   @@unique([skillDestinationSyncOid, skillRepositoryOid])
   @@index([status])
   @@index([originSyncId])
+}
+
+model SkillOriginChangeNotificationCursor {
+  consumer String @id
+
+  cursor String?
+
+  leaseId    String?
+  leaseUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([leaseUntil])
 }

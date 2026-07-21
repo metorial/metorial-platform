@@ -58,26 +58,6 @@ EXTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 INTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 
 [dev.db.main]
-name = "metorial-oss"
+name = "metorial-enterprise"
 engine = "postgres"
 env = "DATABASE_URL"
-
-[dev.db.subspace]
-name = "subspace"
-engine = "postgres"
-env = "SUBSPACE_DATABASE_URL"
-
-[dev.db.cargo]
-name = "cargo"
-engine = "postgres"
-env = "CARGO_DATABASE_URL"
-
-[dev.db.global]
-name = "metorial-oss-global"
-engine = "postgres"
-env = "GLOBAL_DATABASE_URL"
-
-[dev.db.usage]
-name = "metorial-usage"
-engine = "mongodb"
-env = "USAGE_MONGO_URL"

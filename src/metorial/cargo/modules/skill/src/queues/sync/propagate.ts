@@ -4,11 +4,7 @@ import { db, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
 import { createSkillSyncBranchName, normalizeSkillSyncBranchName } from './_lib/branchName';
-import {
-  appendSkillDestinationSyncLog,
-  appendSkillDestinationSyncLogs,
-  type SkillDestinationSyncLogEntry
-} from './_lib/logs';
+import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncFinishQueue } from './finish';
 
 let getPublicErrorMessage = (error: unknown) => {
@@ -53,23 +49,6 @@ let failSync = async (d: { skillDestinationSyncId: string; error: unknown }) => 
 let formatRepositoryName = (
   repository?: { externalOwner: string; externalName: string } | null
 ) => (repository ? `${repository.externalOwner}/${repository.externalName}` : 'repository');
-
-let normalizeOriginLogs = (logs: unknown, prefix: string): SkillDestinationSyncLogEntry[] => {
-  if (!Array.isArray(logs)) return [];
-
-  return logs.flatMap(log => {
-    if (
-      Array.isArray(log) &&
-      typeof log[0] === 'number' &&
-      Number.isFinite(log[0]) &&
-      typeof log[1] === 'string'
-    ) {
-      return [[log[0], `${prefix}: ${log[1]}`] satisfies SkillDestinationSyncLogEntry];
-    }
-
-    return [];
-  });
-};
 
 export let syncPropagateStartQueue = createQueue<{
   skillDestinationSyncId: string;
@@ -333,7 +312,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
       destination: true
     }
   });
-  if (!sync || sync.status !== 'processing') return;
+  if (!sync || !['processing', 'waiting_for_review'].includes(sync.status)) return;
 
   let propagations = await db.skillDestinationSyncRepositoryPropagation.findMany({
     where: {
@@ -376,74 +355,192 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
     originRepositories.repositories.map(repository => [repository.id, repository])
   );
 
-  let pendingPropagationIds: string[] = [];
-  let copiedLogs: SkillDestinationSyncLogEntry[] = [];
-  let failed = false;
-
   for (let propagation of propagations) {
-    if (!propagation.originSyncId) {
-      pendingPropagationIds.push(propagation.id);
-      continue;
-    }
+    if (!propagation.originSyncId) continue;
 
     let originSync = originSyncById.get(propagation.originSyncId);
-    if (!originSync) {
-      pendingPropagationIds.push(propagation.id);
-      continue;
-    }
+    if (!originSync) continue;
 
     let repositoryName = formatRepositoryName(
       originRepositoryById.get(propagation.skillRepository.repoId)
     );
-    copiedLogs.push(...normalizeOriginLogs(originSync.logs, repositoryName));
-
     if (
       originSync.status === 'merged' ||
       originSync.status === 'complete_unmerged' ||
       originSync.status === 'complete_no_changes'
     ) {
-      await db.skillDestinationSyncRepositoryPropagation.update({
-        where: { oid: propagation.oid },
+      let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({
+        where: {
+          oid: propagation.oid,
+          status: { in: ['processing', 'waiting_for_review'] }
+        },
         data: {
           status: 'completed',
           completedAt: new Date()
         }
       });
-      await appendSkillDestinationSyncLog(
-        data.skillDestinationSyncId,
-        `Repository update completed for ${repositoryName}.`
-      );
+      if (updated.count > 0) {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Repository update completed for ${repositoryName}.`
+        );
+      }
       continue;
     }
 
-    if (originSync.status === 'failed' || originSync.status === 'cancelled') {
-      failed = true;
-      await db.skillDestinationSyncRepositoryPropagation.update({
-        where: { oid: propagation.oid },
+    if (originSync.status === 'failed') {
+      let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({
+        where: {
+          oid: propagation.oid,
+          status: { in: ['processing', 'waiting_for_review'] }
+        },
         data: {
           status: 'failed',
           errorMessage: originSync.errorMessage ?? `Origin sync ${originSync.status}`,
           completedAt: new Date()
         }
       });
-      await appendSkillDestinationSyncLog(
-        data.skillDestinationSyncId,
-        `Repository update failed for ${repositoryName}.`
-      );
+      if (updated.count > 0) {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Repository update failed for ${repositoryName}.`
+        );
+      }
       continue;
     }
 
-    pendingPropagationIds.push(propagation.id);
+    if (originSync.status === 'cancelled') {
+      let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({
+        where: {
+          oid: propagation.oid,
+          status: { in: ['processing', 'waiting_for_review'] }
+        },
+        data: {
+          status: 'canceled',
+          errorMessage: originSync.errorMessage,
+          completedAt: new Date()
+        }
+      });
+      if (updated.count > 0) {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Repository update canceled for ${repositoryName}.`
+        );
+      }
+      continue;
+    }
+
+    let nextStatus =
+      originSync.status === 'waiting_for_review'
+        ? ('waiting_for_review' as const)
+        : ('processing' as const);
+    let providerUnavailable = Boolean(originSync.errorMessage);
+    let nextErrorMessage = providerUnavailable
+      ? 'Repository update is temporarily unavailable.'
+      : null;
+    if (propagation.status !== nextStatus || propagation.errorMessage !== nextErrorMessage) {
+      let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({
+        where: {
+          oid: propagation.oid,
+          status: propagation.status,
+          errorMessage: propagation.errorMessage
+        },
+        data: {
+          status: nextStatus,
+          errorMessage: nextErrorMessage
+        }
+      });
+      if (updated.count === 0) continue;
+
+      console.log(
+        JSON.stringify({
+          event: 'cargo_skill_repository_sync_reconciled',
+          level: providerUnavailable ? 'warn' : 'info',
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          propagationId: propagation.id,
+          repository: repositoryName,
+          provider: originRepositoryById.get(propagation.skillRepository.repoId)?.provider,
+          originSyncId: originSync.id,
+          originStatus: originSync.status,
+          previousStatus: propagation.status,
+          status: nextStatus,
+          originError: originSync.errorMessage
+        })
+      );
+
+      if (providerUnavailable) {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `${repositoryName}: Repository update was temporarily unavailable; retrying.`
+        );
+      } else if (propagation.errorMessage) {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `${repositoryName}: Repository status is available again.`
+        );
+      } else if (nextStatus === 'waiting_for_review') {
+        let snapshot = originSync.statusSnapshot as
+          | {
+              checks?: {
+                state?: string;
+                items?: { name?: string; status?: string }[];
+              };
+              review?: { state?: string };
+              mergeability?: { state?: string; reason?: string };
+            }
+          | null
+          | undefined;
+        let checksFailed = snapshot?.checks?.state === 'failed';
+        let failedChecks = (snapshot?.checks?.items ?? [])
+          .filter(check => check.status === 'failed')
+          .flatMap(check => (check.name ? [check.name] : []))
+          .slice(0, 3);
+        let reviewRequired = ['pending', 'changes_requested'].includes(
+          snapshot?.review?.state ?? ''
+        );
+        let hasConflict = snapshot?.mergeability?.state === 'conflicting';
+        let mergePermissionRequired =
+          snapshot?.mergeability?.reason === 'merge_permission_required';
+        let failedChecksMessage = failedChecks.length
+          ? `Checks failed: ${failedChecks.join(', ')}.`
+          : 'Repository checks failed.';
+        let message =
+          checksFailed && reviewRequired
+            ? `${failedChecksMessage} Review is required.`
+            : checksFailed
+              ? failedChecksMessage
+              : mergePermissionRequired
+                ? 'The connected GitLab user does not have permission to merge.'
+                : hasConflict
+                  ? 'Pull request has merge conflicts.'
+                  : reviewRequired
+                    ? snapshot?.review?.state === 'changes_requested'
+                      ? 'Review changes were requested.'
+                      : 'Review required.'
+                    : 'Repository action required.';
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `${repositoryName}: ${message}`
+        );
+      } else {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `${repositoryName}: Repository requirements changed; continuing sync.`
+        );
+      }
+    }
   }
 
-  await appendSkillDestinationSyncLogs({
-    skillDestinationSyncId: data.skillDestinationSyncId,
-    logs: copiedLogs
+  let allPropagations = await db.skillDestinationSyncRepositoryPropagation.findMany({
+    where: { skillDestinationSyncOid: sync.oid },
+    select: { status: true }
   });
-
-  if (failed) {
+  if (allPropagations.some(propagation => propagation.status === 'failed')) {
     await db.skillDestinationSync.updateMany({
-      where: { oid: sync.oid, status: 'processing' },
+      where: {
+        oid: sync.oid,
+        status: { in: ['processing', 'waiting_for_review'] }
+      },
       data: {
         status: 'failed',
         completedAt: new Date()
@@ -452,17 +549,37 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
     return;
   }
 
-  if (pendingPropagationIds.length === 0) {
+  if (
+    allPropagations.length > 0 &&
+    allPropagations.every(propagation => propagation.status === 'completed')
+  ) {
     await syncFinishQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId
     });
-  } else {
-    await syncPropagateWaitQueue.add(
-      {
-        skillDestinationSyncId: data.skillDestinationSyncId,
-        pendingPropagationIds
-      },
-      { delay: 60_000 }
-    );
+    return;
   }
+
+  if (
+    allPropagations.length > 0 &&
+    allPropagations.every(propagation =>
+      ['completed', 'canceled'].includes(propagation.status)
+    )
+  ) {
+    await syncFinishQueue.add({
+      skillDestinationSyncId: data.skillDestinationSyncId,
+      status: 'canceled'
+    });
+    return;
+  }
+
+  let status = allPropagations.some(propagation => propagation.status === 'waiting_for_review')
+    ? ('waiting_for_review' as const)
+    : ('processing' as const);
+  await db.skillDestinationSync.updateMany({
+    where: {
+      oid: sync.oid,
+      status: { in: ['processing', 'waiting_for_review'] }
+    },
+    data: { status }
+  });
 });
