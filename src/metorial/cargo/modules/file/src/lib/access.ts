@@ -3,6 +3,7 @@ import {
   resolveResourceScopeForOwner,
   type ResourceScopeOwner
 } from '@metorial/module-resource-tenant';
+import type { AnyAccessTagSelector } from '@metorial/module-access';
 
 let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
 
@@ -21,6 +22,7 @@ export type InstanceCargoAccessContext = {
       name: string;
     };
   };
+  accessTags?: AnyAccessTagSelector;
 };
 
 export type CargoAccessActor = {
@@ -36,6 +38,7 @@ export type CargoStoreAccess = 'private' | 'public_read' | 'public_write';
 export type CargoAccessInput = {
   owner: ResourceScopeOwner;
   accessActor?: CargoAccessActor;
+  accessTags?: AnyAccessTagSelector;
   defaultPermissions?: CargoStorePermission[];
   overridePermissions?: boolean;
 };
@@ -59,7 +62,8 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
         identifier: `mte-con-${ctx.consumerProfile.consumer.id}`,
         name: ctx.consumerProfile.consumer.name,
         consumerOid: ctx.consumerProfile.consumer.oid
-      }
+      },
+      accessTags: ctx.accessTags
     };
   }
 
@@ -95,6 +99,7 @@ export let resolveCargoAccess = async (d: CargoAccessInput) => {
   return {
     scope,
     actorId: actor?.id,
+    accessTags: d.accessTags,
     defaultPermissions: d.defaultPermissions,
     overridePermissions: d.overridePermissions
   };

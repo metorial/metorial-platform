@@ -275,6 +275,7 @@ let createDocumentsLiveHandler = (
                 ...access.scope,
                 documentId,
                 actorId: access.actorId,
+                accessTags: access.accessTags,
                 defaultPermissions: access.defaultPermissions,
                 overridePermissions: access.overridePermissions
               });
@@ -282,6 +283,7 @@ let createDocumentsLiveHandler = (
                 ...access.scope,
                 document,
                 actorId: access.actorId,
+                accessTags: access.accessTags,
                 defaultPermissions: access.defaultPermissions,
                 overridePermissions: access.overridePermissions
               });
@@ -289,6 +291,7 @@ let createDocumentsLiveHandler = (
               return {
                 documentId,
                 actorId: access.actorId,
+                accessTags: access.accessTags,
                 defaultPermissions: access.defaultPermissions,
                 overridePermissions: access.overridePermissions,
                 canWrite:

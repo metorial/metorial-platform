@@ -9,6 +9,20 @@ export type DocumentLiveSessionState = {
   awarenessUpdate?: string;
 };
 
+export let normalizeSessionState = (
+  session: Omit<DocumentLiveSessionState, 'instanceId'> & { instanceId?: string },
+  defaultInstanceId: string
+): DocumentLiveSessionState => ({
+  id: session.id,
+  documentId: session.documentId,
+  actorId: session.actorId,
+  canWrite: session.canWrite,
+  instanceId: session.instanceId ?? defaultInstanceId,
+  lastPingAt: session.lastPingAt,
+  awarenessClientId: session.awarenessClientId,
+  awarenessUpdate: session.awarenessUpdate
+});
+
 export let parseSessionState = (raw: string | undefined | null) => {
   if (!raw) return null;
 
