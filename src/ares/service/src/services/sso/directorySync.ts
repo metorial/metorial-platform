@@ -138,6 +138,22 @@ let upsertUserProfileFromDirectoryUser = async (d: {
     reconciliationScimOperationId: d.scimOperationId
   });
 
+  if (!d.userPayload.active) {
+    await ssoGroupRoleService.replaceUserProfileGroups({
+      connection: directory.connection,
+      userProfile: profile,
+      groups: []
+    });
+
+    profile = await db.ssoUserProfile.update({
+      where: { oid: profile.oid },
+      data: {
+        groups: [],
+        isGroupRoleMemberReconciled: true
+      }
+    });
+  }
+
   if (d.syncRoles) {
     let roles = d.userPayload.roles ?? [];
 
@@ -705,6 +721,16 @@ class SsoDirectorySyncServiceImpl {
       data: { deprovisionedAt: new Date() }
     });
 
+    let connection = await db.ssoConnection.findUniqueOrThrow({
+      where: { oid: d.directory.connectionOid }
+    });
+
+    await ssoGroupRoleService.replaceUserProfileGroups({
+      connection,
+      userProfile: link.userProfile,
+      groups: []
+    });
+
     if (link.userProfile.ownerDirectoryOid === d.directory.oid) {
       await db.ssoUserProfile.update({
         where: { oid: link.userProfile.oid },
@@ -716,32 +742,31 @@ class SsoDirectorySyncServiceImpl {
         }
       });
 
-      let connection = await db.ssoConnection.findUniqueOrThrow({
-        where: { oid: d.directory.connectionOid }
-      });
-
-      await ssoGroupRoleService.replaceUserProfileGroups({
-        connection,
-        userProfile: link.userProfile,
-        groups: []
-      });
       await ssoGroupRoleService.replaceUserProfileRoles({
         connection,
         userProfile: link.userProfile,
         roles: []
       });
       await ssoGroupRoleService.reconcileDirectoryRoles({ directory: d.directory });
-
-      let user = await db.ssoUser.findUnique({
-        where: { oid: link.userProfile.userOid }
+    } else {
+      await db.ssoUserProfile.update({
+        where: { oid: link.userProfile.oid },
+        data: {
+          groups: [],
+          isGroupRoleMemberReconciled: true
+        }
       });
-      if (user) {
-        await reconcileSingleSsoUserQueue.add({
-          ssoUserId: user.id,
-          source: 'directory_user_deleted',
-          scimOperationId: d.scimOperationId
-        });
-      }
+    }
+
+    let user = await db.ssoUser.findUnique({
+      where: { oid: link.userProfile.userOid }
+    });
+    if (user) {
+      await reconcileSingleSsoUserQueue.add({
+        ssoUserId: user.id,
+        source: 'directory_user_deleted',
+        scimOperationId: d.scimOperationId
+      });
     }
   }
 

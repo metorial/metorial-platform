@@ -5,18 +5,21 @@ let { db, reconcileSingleSsoUserQueue, ssoGroupRoleService } = vi.hoisted(() => 
     ssoDirectory: { findUnique: vi.fn() },
     ssoConnectionGroup: { findFirst: vi.fn(), delete: vi.fn() },
     ssoGroup: { deleteMany: vi.fn() },
-    ssoDirectoryUserProfile: { findMany: vi.fn() },
+    ssoDirectoryUserProfile: { findFirst: vi.fn(), findMany: vi.fn() },
     ssoUserProfileGroup: {
       findMany: vi.fn(),
       delete: vi.fn(),
       upsert: vi.fn()
     },
-    ssoUserProfile: { update: vi.fn() }
+    ssoUserProfile: { findFirst: vi.fn(), update: vi.fn() }
   },
   reconcileSingleSsoUserQueue: { add: vi.fn() },
   ssoGroupRoleService: {
     upsertGroup: vi.fn(),
-    linkDirectoryGroup: vi.fn()
+    linkDirectoryGroup: vi.fn(),
+    reconcileDirectoryRoles: vi.fn(),
+    replaceUserProfileGroups: vi.fn(),
+    replaceUserProfileRoles: vi.fn()
   }
 }));
 
@@ -47,10 +50,15 @@ vi.mock('./groupRole', () => ({
 }));
 
 vi.mock('./identity', () => ({
-  ssoIdentityService: {}
+  ssoIdentityService: {
+    upsertUser: vi.fn(),
+    linkDirectoryUserProfile: vi.fn(),
+    setUserOwnerProfile: vi.fn()
+  }
 }));
 
 import { ssoDirectorySyncService } from './directorySync';
+import { ssoIdentityService } from './identity';
 
 let directory = {
   oid: 1n,
@@ -145,6 +153,52 @@ describe('SCIM directory group membership replacement', () => {
     });
 
     replaceDirectoryGroupMembers.mockRestore();
+  });
+
+  it('removes every connection group when a SCIM user is deprovisioned', async () => {
+    let profile = {
+      oid: 20n,
+      userOid: 30n,
+      ownerDirectoryOid: directory.oid
+    };
+    let user = { oid: profile.userOid, id: 'user_1' };
+    let directoryWithConnection = {
+      ...directory,
+      connection: { oid: directory.connectionOid, tenant: { oid: 4n } }
+    };
+    db.ssoDirectory.findUnique.mockResolvedValue(directoryWithConnection);
+    db.ssoDirectoryUserProfile.findFirst.mockResolvedValue({
+      userProfile: profile
+    });
+    db.ssoUserProfile.update.mockResolvedValue(profile);
+    vi.mocked(ssoIdentityService.upsertUser).mockResolvedValue(user as any);
+
+    await ssoDirectorySyncService.syncUserFromDirectoryEvent({
+      directory,
+      event: {
+        event: 'user.updated',
+        data: {
+          id: 'external_1',
+          email: 'user@example.com',
+          first_name: 'User',
+          last_name: 'Example',
+          active: false
+        }
+      } as any
+    });
+
+    expect(ssoGroupRoleService.replaceUserProfileGroups).toHaveBeenCalledWith({
+      connection: directoryWithConnection.connection,
+      userProfile: profile,
+      groups: []
+    });
+    expect(db.ssoUserProfile.update).toHaveBeenCalledWith({
+      where: { oid: profile.oid },
+      data: {
+        groups: [],
+        isGroupRoleMemberReconciled: true
+      }
+    });
   });
 
   it('merges and removes an existing directory-only UUID group', async () => {
