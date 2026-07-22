@@ -2,6 +2,7 @@ import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
   SkillMarketplaceEditorScene,
+  SkillMarketplaceRepositoriesSettingsBox,
   SkillMarketplaceRepositoriesSettingsContentScene,
   SkillMarketplaceRepositoryAccessSettings,
   useSkillMarketplaceRepositoriesManager
@@ -32,7 +33,7 @@ let showRepositoryAccessSettings = (
 ) =>
   showModal(({ close, dialogProps }) => (
     <Dialog.Wrapper {...dialogProps} width={520}>
-      <Dialog.Title>Repository Access Settings</Dialog.Title>
+      <Dialog.Title>Repository Sync Settings</Dialog.Title>
       <Dialog.Description>
         Choose how marketplace changes are written to linked repositories.
       </Dialog.Description>
@@ -173,7 +174,9 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
     if (synced) await syncs.refetch();
   };
 
-  if (repositories.length === 0) return null;
+  if (repositories.length === 0) {
+    return <SkillMarketplaceRepositoriesSettingsBox {...settingsProps} />;
+  }
 
   return (
     <Box
@@ -189,12 +192,14 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
           <Menu
             items={[
               { id: 'link', label: 'Link Repository' },
-              { id: 'access', label: 'Repository Access Settings' },
+              { id: 'access', label: 'Repository Sync Settings' },
               { id: 'manage', label: 'Manage Repositories' },
-              { id: 'preview', label: 'Show Preview' },
-              { id: 'history', label: 'Sync History' }
+              { id: 'preview', label: 'Content Preview' },
+              { id: 'history', label: 'Sync History' },
+              { id: 'force_sync', label: 'Force Sync' }
             ]}
             onItemClick={item => {
+              if (item === 'force_sync') forceSync();
               if (item === 'link') repositoryManager.openPicker();
               if (item === 'access') {
                 showRepositoryAccessSettings(settingsProps, syncs.refetch);
@@ -204,9 +209,7 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
               if (item === 'history') openSyncHistory();
             }}
           >
-            <Button size="2" variant="outline" iconRight={<RiMore2Line />}>
-              Menu
-            </Button>
+            <Button size="2" variant="outline" iconRight={<RiMore2Line />} />
           </Menu>
         </Flex>
       }
@@ -224,7 +227,9 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
         return (
           <>
             <Text size="2">{getSyncStatusMessage(latestSync, repositories)}</Text>
+
             <Spacer height={16} />
+
             <SkillSyncDetails
               syncId={latestSync.id}
               compact

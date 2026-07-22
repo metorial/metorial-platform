@@ -47,7 +47,7 @@ let statusColor = (status: SkillSync['status']): 'blue' | 'gray' | 'red' | 'oran
 
 let statusLabel = (status: SkillSync['status']) =>
   ({
-    pending: 'Queued',
+    pending: 'Pending',
     processing: 'Syncing',
     waiting_for_review: 'Action required',
     completed: 'Completed',
@@ -126,7 +126,7 @@ let getPullRequestsUrl = (repositoryCheck: RepositoryCheck) => {
 let getRepositoryActionMessage = (repositoryCheck: RepositoryCheck) => {
   if (repositoryCheck.repositoryAccessMode === 'default_branch') {
     if (repositoryCheck.errorMessage) return repositoryCheck.errorMessage;
-    return 'We couldn’t reach the repository provider. We’ll retry automatically.';
+    return `We couldn't reach the repository provider. We'll retry automatically.`;
   }
   let checksFailed = repositoryCheck.blockers.includes('checks_failed');
   let reviewRequired = repositoryCheck.blockers.includes('reviews_required');
@@ -142,20 +142,20 @@ let getRepositoryActionMessage = (repositoryCheck: RepositoryCheck) => {
     return `Checks failed. ${reviewMessage}`;
   }
   if (checksFailed) {
-    return 'Checks failed. Fix or rerun them in the repository. We’ll continue automatically.';
+    return `Checks failed. Fix or rerun them in the repository. We'll continue automatically.`;
   }
   if (reviewRequired) return reviewMessage;
   if (repositoryCheck.blockers.includes('merge_conflict')) {
     return 'This pull request has conflicts. Resolve them to continue.';
   }
   if (repositoryCheck.blockers.includes('merge_permission_required')) {
-    return 'The connected GitLab user can’t merge into this branch. Grant merge access to continue.';
+    return `The connected GitLab user can't merge into this branch. Grant merge access to continue.`;
   }
   if (repositoryCheck.blockers.includes('merge_blocked')) {
-    return 'Repository rules are blocking this pull request. Open it for details.';
+    return `Repository rules are blocking this pull request. Open it for details.`;
   }
   if (repositoryCheck.blockers.includes('provider_unavailable')) {
-    return 'We couldn’t update the pull request. We’ll retry automatically.';
+    return `We couldn't update the pull request. We'll retry automatically.`;
   }
   return repositoryCheck.errorMessage ?? 'Repository action is required to continue.';
 };
@@ -243,14 +243,10 @@ let RepositorySyncStatus = ({
   propagation?: RepositoryPropagation;
   syncStatus: SkillSync['status'];
 }) =>
-  propagation ? (
-    <SkillSyncStatusBadge status={propagation.status} />
+  propagation || ['pending', 'processing', 'waiting_for_review'].includes(syncStatus) ? (
+    <SkillSyncStatusBadge status={propagation?.status ?? 'pending'} />
   ) : (
-    <Badge color="gray">
-      {['pending', 'processing', 'waiting_for_review'].includes(syncStatus)
-        ? 'Not queued'
-        : 'Skipped'}
-    </Badge>
+    <Badge color="gray">Skipped</Badge>
   );
 
 export let SkillSyncsTable = ({
@@ -463,8 +459,8 @@ export let SkillSyncDetails = ({
             <Table
               headers={
                 compact
-                  ? ['Repository', 'Status', 'Branch', 'Via']
-                  : ['Repository', 'Status', 'Branch', 'Via', 'Completed']
+                  ? ['Repository', 'Status', 'Branch']
+                  : ['Repository', 'Status', 'Branch', 'Completed']
               }
               data={[
                 ...repositoryRows.map(({ repository, propagation }) => {
@@ -493,7 +489,7 @@ export let SkillSyncDetails = ({
                         syncStatus={sync.data.status}
                       />,
                       repositoryCheck?.targetBranch ?? propagation?.branchName ?? 'N/A',
-                      isDirectPush ? 'Direct push' : (propagation?.prName ?? 'N/A'),
+                      // isDirectPush ? 'Direct push' : (propagation?.prName ?? 'N/A'),
                       ...(compact
                         ? []
                         : [
@@ -533,7 +529,7 @@ export let SkillSyncDetails = ({
               <>
                 <Spacer height={10} />
                 <Text size="2" color="gray600">
-                  We couldn’t load repository checks. Syncing will continue in the background.
+                  We couldn't load repository checks. Syncing will continue in the background.
                 </Text>
               </>
             )}
@@ -575,10 +571,10 @@ export let SkillSyncDetails = ({
           ['processing', 'failed'].includes(sync.data.status)) ? (
           <>
             <Spacer height={20} />
-            <Text size="3" weight="strong">
+            <Text size="2" weight="strong">
               Logs
             </Text>
-            <Spacer height={10} />
+            <Spacer height={6} />
             <SkillSyncLogs logs={sync.data.logs} />
           </>
         ) : null}

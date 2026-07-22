@@ -19,6 +19,7 @@ import type {
 } from './skillMarketplaceSettings';
 export { SkillMarketplaceRepositoryAccessSettings } from './skillMarketplaceSettings';
 export {
+  SkillMarketplaceRepositoriesSettingsBox,
   SkillMarketplaceRepositoriesSettingsContent,
   SkillMarketplaceRepositoriesSettingsContentScene,
   useSkillMarketplaceRepositoriesManager
