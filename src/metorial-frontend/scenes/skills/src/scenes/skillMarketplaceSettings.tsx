@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { useSkillMarketplace, useSkillPlugin } from '@metorial/state';
-import { Button, Input, Spacer, confirm } from '@metorial/ui';
+import { Button, Input, Select, Spacer, Text, confirm } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { ResourceImageUploader } from '../components/skillImageUploader';
@@ -18,7 +18,7 @@ let PageStack = styled.div`
 let FormStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 `;
 
 let ActionsRow = styled.div`
@@ -34,6 +34,7 @@ export let SkillMarketplaceSettingsScene = (p: {
   let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
   let imageUpdateMutator = marketplace.updateMutator();
   let generalUpdateMutator = marketplace.updateMutator();
+  let repositoryAccessUpdateMutator = marketplace.updateMutator();
   let deleteMutator = marketplace.deleteMutator();
 
   let form = useForm({
@@ -52,6 +53,39 @@ export let SkillMarketplaceSettingsScene = (p: {
       yup.object({
         name: yup.string().trim().required('Name is required'),
         description: yup.string().ensure()
+      })
+  });
+  let repositoryAccessForm = useForm({
+    initialValues: {
+      repositoryAccessMode: marketplace.data?.repositoryAccessMode ?? 'pull_request'
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      let update = async () => {
+        await repositoryAccessUpdateMutator.mutate({
+          repositoryAccessMode: values.repositoryAccessMode
+        });
+      };
+      if (
+        marketplace.data?.repositoryAccessMode !== 'default_branch' &&
+        values.repositoryAccessMode === 'default_branch'
+      ) {
+        confirm({
+          title: 'Push directly to default branches?',
+          description: 'Future marketplace syncs will write without a pull/merge request.',
+          confirmText: 'Use Default Branch',
+          onConfirm: update
+        });
+        return;
+      }
+      await update();
+    },
+    schema: yup =>
+      yup.object({
+        repositoryAccessMode: yup
+          .mixed<'pull_request' | 'default_branch'>()
+          .oneOf(['pull_request', 'default_branch'])
+          .required()
       })
   });
 
@@ -103,6 +137,43 @@ export let SkillMarketplaceSettingsScene = (p: {
             </ActionsRow>
 
             <generalUpdateMutator.RenderError />
+          </FormStack>
+        </form>
+      </Box>
+
+      <Box
+        title="Repository Access"
+        description="Choose how marketplace changes are written to linked repositories."
+      >
+        <form onSubmit={repositoryAccessForm.handleSubmit}>
+          <FormStack>
+            <Select
+              label="Access mode"
+              value={repositoryAccessForm.values.repositoryAccessMode}
+              items={[
+                { id: 'pull_request', label: 'Pull/merge request (recommended)' },
+                { id: 'default_branch', label: 'Default branch' }
+              ]}
+              onChange={value =>
+                repositoryAccessForm.setFieldValue('repositoryAccessMode', value)
+              }
+            />
+            <Text color="gray600" size="2">
+              {repositoryAccessForm.values.repositoryAccessMode === 'default_branch'
+                ? `Push directly to each repository's default branch. Checks and reviews are skipped, and repository rules may block the sync.`
+                : 'Create a pull/merge request and merge after required checks and reviews pass.'}
+            </Text>
+            <ActionsRow>
+              <Button
+                loading={repositoryAccessUpdateMutator.isLoading}
+                size="2"
+                success={repositoryAccessUpdateMutator.isSuccess}
+                type="submit"
+              >
+                Save
+              </Button>
+            </ActionsRow>
+            <repositoryAccessUpdateMutator.RenderError />
           </FormStack>
         </form>
       </Box>
