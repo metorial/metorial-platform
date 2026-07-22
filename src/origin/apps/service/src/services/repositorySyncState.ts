@@ -47,6 +47,30 @@ let stableSnapshot = (snapshot: RepositorySyncStatusSnapshot | null | undefined)
 let materialHash = (value: unknown) =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
+export let getRepositorySyncMaterialSnapshotHash = (snapshot: RepositorySyncStatusSnapshot) =>
+  materialHash(stableSnapshot(snapshot));
+
+export let claimRepositorySyncMergeAttempt = async (
+  syncId: string,
+  snapshot: RepositorySyncStatusSnapshot
+) => {
+  let snapshotHash = getRepositorySyncMaterialSnapshotHash(snapshot);
+  let claimed = await db.scmRepositorySync.updateMany({
+    where: {
+      id: syncId,
+      status: 'merging',
+      NOT: { mergeAttemptSnapshotHashes: { has: snapshotHash } }
+    },
+    data: {
+      mergeAttemptSnapshotHashes: { push: snapshotHash },
+      statusSnapshot: snapshot,
+      lastPolledAt: new Date()
+    }
+  });
+
+  return claimed.count > 0;
+};
+
 let updateRepositorySyncStateInTransaction = async (
   syncId: string,
   data: Prisma.ScmRepositorySyncUpdateInput,
@@ -115,26 +139,44 @@ export let isTerminalRepositorySyncStatus = (status: ScmRepositorySyncStatus) =>
     'complete_no_changes'
   ].includes(status);
 
+export type RepositorySyncPolicy = {
+  enableAutoMerge: boolean;
+  forceMergeOrPush: boolean;
+  mergeBeforeChecksPass: boolean;
+};
+
 export let classifyRepositorySyncSnapshot = (
   snapshot: RepositorySyncStatusSnapshot,
-  enableAutoMerge: boolean
+  policy: RepositorySyncPolicy
 ): ScmRepositorySyncStatus => {
   if (snapshot.pullRequest.state === 'merged') return 'merged';
   if (snapshot.pullRequest.state === 'closed') return 'cancelled';
-  if (snapshot.checks.state === 'failed' || snapshot.mergeability.state === 'conflicting')
+  if (snapshot.mergeability.state === 'conflicting') return 'waiting_for_review';
+  if (!policy.enableAutoMerge) return 'waiting_for_review';
+
+  let checksPending =
+    snapshot.checks.state === 'pending' || snapshot.checks.state === 'unknown';
+  let reviewBlocked =
+    snapshot.review.state === 'pending' || snapshot.review.state === 'changes_requested';
+  if (reviewBlocked && !policy.forceMergeOrPush) return 'waiting_for_review';
+
+  let providerBlocked = snapshot.mergeability.state === 'blocked';
+  let providerBlockMayOnlyBeChecks =
+    policy.mergeBeforeChecksPass && checksPending && snapshot.mergeability.reason !== 'draft';
+  if (providerBlocked && !policy.forceMergeOrPush && !providerBlockMayOnlyBeChecks)
     return 'waiting_for_review';
-  if (
-    snapshot.review.state === 'pending' ||
-    snapshot.review.state === 'changes_requested' ||
-    snapshot.mergeability.state === 'blocked'
-  )
+
+  if (snapshot.checks.state === 'failed' && !policy.forceMergeOrPush)
     return 'waiting_for_review';
+  if (checksPending && !policy.mergeBeforeChecksPass) return 'waiting_for_ci';
+  let mayAttemptWhileMergeabilitySettles =
+    (checksPending && policy.mergeBeforeChecksPass) ||
+    (!checksPending && policy.forceMergeOrPush);
   if (
-    snapshot.checks.state === 'pending' ||
-    snapshot.checks.state === 'unknown' ||
-    snapshot.mergeability.state === 'checking' ||
-    (snapshot.mergeability.state === 'unknown' && snapshot.provider !== 'bitbucket')
+    !mayAttemptWhileMergeabilitySettles &&
+    (snapshot.mergeability.state === 'checking' ||
+      (snapshot.mergeability.state === 'unknown' && snapshot.provider !== 'bitbucket'))
   )
     return 'waiting_for_ci';
-  return enableAutoMerge ? 'merging' : 'waiting_for_review';
+  return 'merging';
 };

@@ -10,6 +10,7 @@ import {
   mergeRepositorySyncPullRequest
 } from '../../../lib/scmRepositorySyncProvider';
 import {
+  claimRepositorySyncMergeAttempt,
   classifyRepositorySyncSnapshot,
   type RepositorySyncStatusSnapshot,
   transitionRepositorySyncState
@@ -121,7 +122,11 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       });
       return;
     }
-    let status = classifyRepositorySyncSnapshot(snapshot, true);
+    let status = classifyRepositorySyncSnapshot(snapshot, {
+      enableAutoMerge: sync.enableAutoMerge,
+      forceMergeOrPush: sync.forceMergeOrPush,
+      mergeBeforeChecksPass: sync.mergeBeforeChecksPass
+    });
     if (status !== 'merging') {
       let delay = 30_000;
       let updated = await transitionRepositorySyncState(sync.id, 'merging', {
@@ -136,6 +141,29 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       await waitForCiRepositorySyncQueue.add(
         { syncId: sync.id },
         { delay, id: `${sync.id}:merge-recheck` }
+      );
+      return;
+    }
+
+    let attemptClaimed = await claimRepositorySyncMergeAttempt(sync.id, snapshot);
+    if (!attemptClaimed) {
+      let delay = 30_000;
+      let updated = await transitionRepositorySyncState(sync.id, 'merging', {
+        status: 'waiting_for_ci',
+        statusSnapshot: snapshot,
+        lastPolledAt: new Date(),
+        nextPollAt: new Date(Date.now() + delay)
+      });
+      if (!updated) return;
+      let { waitForCiRepositorySyncQueue } = await import('./waitForCi');
+      await waitForCiRepositorySyncQueue.add(
+        { syncId: sync.id },
+        { delay, id: `${sync.id}:merge-snapshot-recheck:${Date.now()}` }
+      );
+      logRepositorySyncQueueEvent(
+        'merge',
+        'skipped provider merge already attempted for unchanged snapshot',
+        { syncId: sync.id, providerPrId: sync.providerPrId }
       );
       return;
     }
@@ -186,8 +214,12 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
         previousSnapshot?.mergeability.state === 'blocked' ||
         previousSnapshot?.mergeability.state === 'conflicting' ||
         providerError.classification === 'protected_branch';
+      let permissionRefused =
+        providerError.classification === 'permission_denied' ||
+        providerError.classification === 'protected_branch';
       let mergeBlocked =
         mergePermissionRequired ||
+        permissionRefused ||
         ([405, 409, 422].includes(getScmProviderErrorStatus(e) ?? 0) &&
           providerReportedBlocker);
       let delay = mergeBlocked
@@ -230,6 +262,7 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
         status: mergeBlocked ? 'waiting_for_review' : 'waiting_for_ci',
         ...(statusSnapshot ? { statusSnapshot } : {}),
         errorMessage: mergeBlocked ? null : getRepositorySyncErrorMessage(e),
+        mergeAttemptSnapshotHashes: mergeBlocked ? undefined : [],
         nextPollAt: new Date(Date.now() + delay),
         attemptCount: { increment: 1 }
       });

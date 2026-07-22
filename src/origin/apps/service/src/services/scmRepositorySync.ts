@@ -52,6 +52,8 @@ class scmRepositorySyncServiceImpl {
     commitMessage?: string;
     prDescription?: string;
     enableAutoMerge?: boolean;
+    forceMergeOrPush?: boolean;
+    mergeBeforeChecksPass?: boolean;
   }) {
     let repositoryAccessMode = d.repositoryAccessMode ?? 'pull_request';
     let branchName =
@@ -60,6 +62,11 @@ class scmRepositorySyncServiceImpl {
         : (d.branchName?.trim() ?? '');
     let title = (d.commitMessage ?? d.prName ?? '').trim();
     let requestKey = d.requestKey?.trim() || undefined;
+    let baseBranch = d.repo.defaultBranch ?? 'main';
+    let description = d.prDescription ?? null;
+    let enableAutoMerge = d.enableAutoMerge ?? true;
+    let forceMergeOrPush = d.forceMergeOrPush ?? false;
+    let mergeBeforeChecksPass = d.mergeBeforeChecksPass ?? false;
 
     if (repositoryAccessMode === 'pull_request' && !branchName) {
       throw new ServiceError(badRequestError({ message: 'Branch name is required' }));
@@ -90,10 +97,12 @@ class scmRepositorySyncServiceImpl {
       repositoryAccessMode,
       requestKey,
       branchName,
-      baseBranch: d.repo.defaultBranch ?? 'main',
+      baseBranch,
       title,
-      description: d.prDescription,
-      enableAutoMerge: d.enableAutoMerge ?? true
+      description,
+      enableAutoMerge,
+      forceMergeOrPush,
+      mergeBeforeChecksPass
     };
     let sync = requestKey
       ? await db.scmRepositorySync.upsert({
@@ -111,7 +120,13 @@ class scmRepositorySyncServiceImpl {
     if (
       sync.repoOid !== d.repo.oid ||
       sync.codeBucketOid !== d.codeBucket.oid ||
-      sync.repositoryAccessMode !== repositoryAccessMode
+      sync.repositoryAccessMode !== repositoryAccessMode ||
+      (repositoryAccessMode === 'pull_request' && sync.branchName !== branchName) ||
+      sync.title !== title ||
+      sync.description !== description ||
+      sync.enableAutoMerge !== enableAutoMerge ||
+      sync.forceMergeOrPush !== forceMergeOrPush ||
+      sync.mergeBeforeChecksPass !== mergeBeforeChecksPass
     ) {
       throw new ServiceError(
         badRequestError({ message: 'Repository sync request key was already used' })
@@ -143,7 +158,11 @@ class scmRepositorySyncServiceImpl {
 
     let snapshot = await getRepositorySyncStatusSnapshot(sync);
     let now = new Date();
-    let status = classifyRepositorySyncSnapshot(snapshot, sync.enableAutoMerge);
+    let status = classifyRepositorySyncSnapshot(snapshot, {
+      enableAutoMerge: sync.enableAutoMerge,
+      forceMergeOrPush: sync.forceMergeOrPush,
+      mergeBeforeChecksPass: sync.mergeBeforeChecksPass
+    });
 
     let completed = [
       'merged',
@@ -161,7 +180,7 @@ class scmRepositorySyncServiceImpl {
       ciState: snapshot.checks.state,
       lastPolledAt: now,
       attemptCount: 0,
-      nextPollAt: completed ? null : new Date(now.getTime() + 30_000),
+      nextPollAt: completed || status === 'merging' ? null : new Date(now.getTime() + 30_000),
       completedAt: completed ? (sync.completedAt ?? now) : null,
       errorMessage:
         status === 'cancelled' ? 'Pull request was closed before it could be merged' : null

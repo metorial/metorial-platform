@@ -2,7 +2,10 @@ import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { getRepositorySyncStatusSnapshot } from '../../../lib/scmRepositorySyncProvider';
-import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
+import {
+  classifyRepositorySyncSnapshot,
+  transitionRepositorySyncState
+} from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
   getRepositorySyncErrorMessage,
@@ -72,6 +75,11 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         mergeability?: { state?: string };
       } | null;
       let ciState = snapshot.checks.state;
+      let classifiedStatus = classifyRepositorySyncSnapshot(snapshot, {
+        enableAutoMerge: sync.enableAutoMerge,
+        forceMergeOrPush: sync.forceMergeOrPush,
+        mergeBeforeChecksPass: sync.mergeBeforeChecksPass
+      });
       let now = new Date();
       logRepositorySyncQueueEvent('waitForCi', 'provider CI state loaded', {
         syncId: sync.id,
@@ -108,12 +116,7 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         return;
       }
 
-      if (
-        ciState === 'pending' ||
-        ciState === 'unknown' ||
-        snapshot.mergeability.state === 'checking' ||
-        (snapshot.mergeability.state === 'unknown' && snapshot.provider !== 'bitbucket')
-      ) {
+      if (classifiedStatus === 'waiting_for_ci') {
         let delay = index < 10 ? 20_000 : index < 100 ? 60_000 : 15 * 60_000;
         let nextPollAt = new Date(now.getTime() + delay);
 
@@ -138,7 +141,7 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         return;
       }
 
-      if (ciState === 'failed') {
+      if (classifiedStatus === 'waiting_for_review' && ciState === 'failed') {
         let delay = index < 10 ? 20_000 : index < 100 ? 60_000 : 15 * 60_000;
         let updated = await transitionRepositorySyncState(sync.id, sync.status, {
           status: 'waiting_for_review',
@@ -168,9 +171,10 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
       }
 
       if (
-        snapshot.review.state === 'pending' ||
-        snapshot.review.state === 'changes_requested' ||
-        snapshot.mergeability.state === 'blocked'
+        classifiedStatus === 'waiting_for_review' &&
+        (snapshot.review.state === 'pending' ||
+          snapshot.review.state === 'changes_requested' ||
+          snapshot.mergeability.state === 'blocked')
       ) {
         let delay = index < 10 ? 20_000 : 60_000;
         let updated = await transitionRepositorySyncState(sync.id, sync.status, {
@@ -247,7 +251,23 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         errorMessage: null
       });
       if (!updated) return;
-      await appendRepositorySyncLog(sync.id, 'Checks passed.');
+      let isEarlyAttempt =
+        sync.mergeBeforeChecksPass &&
+        (snapshot.checks.state === 'pending' || snapshot.checks.state === 'unknown');
+      let isOverrideAttempt =
+        sync.forceMergeOrPush &&
+        (snapshot.checks.state === 'failed' ||
+          snapshot.review.state === 'pending' ||
+          snapshot.review.state === 'changes_requested' ||
+          snapshot.mergeability.state === 'blocked');
+      await appendRepositorySyncLog(
+        sync.id,
+        isEarlyAttempt
+          ? 'Trying to merge before checks finish.'
+          : isOverrideAttempt
+            ? 'Trying an override merge.'
+            : 'Checks passed.'
+      );
       logRepositorySyncQueueEvent('waitForCi', 'CI succeeded; transitioned sync to merging', {
         syncId: sync.id,
         ciState

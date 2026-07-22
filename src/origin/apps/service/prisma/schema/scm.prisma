@@ -115,11 +115,14 @@ model ScmRepositorySync {
   title       String
   description String?
 
-  enableAutoMerge Boolean @default(true)
+  enableAutoMerge       Boolean @default(true)
+  forceMergeOrPush      Boolean @default(false)
+  mergeBeforeChecksPass Boolean @default(false)
 
-  providerPrId     String?
-  providerPrUrl    String?
-  providerMergeSha String?
+  providerPrId               String?
+  providerPrUrl              String?
+  providerMergeSha           String?
+  mergeAttemptSnapshotHashes String[] @default([])
 
   errorMessage   String?
   ciState        String?
@@ -215,8 +218,8 @@ model ScmRepositoryWebhook {
   repoOid BigInt        @unique
   repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
 
-  externalId    String
-  signingSecret String
+  externalId       String
+  signingSecret    String
   registeredEvents ScmRepositoryWebhookEvent[] @default([])
 
   createdAt DateTime @default(now())

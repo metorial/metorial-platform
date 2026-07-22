@@ -415,6 +415,49 @@ describe('GitLab repository sync', () => {
   });
 });
 
+describe('GitHub repository sync', () => {
+  it('pins a merge to the current pull request source SHA', async () => {
+    let request = vi.fn(async (route: string, input: Record<string, unknown>) => {
+      if (route === 'GET /repos/{owner}/{repo}/pulls/{pull_number}') {
+        return {
+          data: {
+            merged: false,
+            merge_commit_sha: null,
+            head: { sha: 'source_sha' }
+          }
+        };
+      }
+      if (route === 'PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge') {
+        expect(input).toMatchObject({ pull_number: 42, sha: 'source_sha' });
+        return { data: { sha: 'merge_sha' } };
+      }
+      if (route === 'DELETE /repos/{owner}/{repo}/git/refs/{ref}') {
+        return { data: {} };
+      }
+      throw new Error(`Unexpected GitHub route: ${route}`);
+    });
+    createGitHubClient.mockResolvedValue({ request } as any);
+
+    await expect(
+      mergeRepositorySyncPullRequest(
+        createSync({
+          providerPrUrl: 'https://github.com/metorial/skills/pull/42',
+          repo: {
+            id: 'repo_gh',
+            provider: 'github',
+            externalOwner: 'metorial',
+            externalName: 'skills',
+            installation: {
+              externalInstallationId: '123',
+              backend: {}
+            }
+          }
+        })
+      )
+    ).resolves.toEqual({ mergeSha: 'merge_sha' });
+  });
+});
+
 describe('direct push default branch preparation', () => {
   it('uses the live GitHub default branch', async () => {
     let request = vi.fn(async (route: string) => {

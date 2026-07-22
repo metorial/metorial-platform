@@ -198,7 +198,9 @@ export let scmRepositoryController = app.controller({
         prName: v.optional(v.string()),
         prDescription: v.optional(v.string()),
         commitMessage: v.optional(v.string()),
-        enableAutoMerge: v.optional(v.boolean())
+        enableAutoMerge: v.optional(v.boolean()),
+        forceMergeOrPush: v.optional(v.boolean()),
+        mergeBeforeChecksPass: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -217,7 +219,9 @@ export let scmRepositoryController = app.controller({
         prName: ctx.input.prName,
         prDescription: ctx.input.prDescription,
         commitMessage: ctx.input.commitMessage,
-        enableAutoMerge: ctx.input.enableAutoMerge
+        enableAutoMerge: ctx.input.enableAutoMerge,
+        forceMergeOrPush: ctx.input.forceMergeOrPush,
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
       });
 
       return scmRepositorySyncPresenter(sync);
@@ -233,7 +237,9 @@ export let scmRepositoryController = app.controller({
         branchName: v.string(),
         prName: v.string(),
         prDescription: v.optional(v.string()),
-        enableAutoMerge: v.optional(v.boolean())
+        enableAutoMerge: v.optional(v.boolean()),
+        forceMergeOrPush: v.optional(v.boolean()),
+        mergeBeforeChecksPass: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -250,7 +256,9 @@ export let scmRepositoryController = app.controller({
         branchName: ctx.input.branchName,
         prName: ctx.input.prName,
         prDescription: ctx.input.prDescription,
-        enableAutoMerge: ctx.input.enableAutoMerge
+        enableAutoMerge: ctx.input.enableAutoMerge,
+        forceMergeOrPush: ctx.input.forceMergeOrPush,
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
       });
 
       return scmRepositorySyncPresenter(sync);

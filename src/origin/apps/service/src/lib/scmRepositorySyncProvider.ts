@@ -1825,6 +1825,18 @@ export let mergeRepositorySyncPullRequest = async (
 
   if (sync.repo.provider === 'github') {
     let octokit = await getGitHubClient(sync.repo);
+    let pullRequest = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+      owner: sync.repo.externalOwner,
+      repo: sync.repo.externalName,
+      pull_number: parseInt(sync.providerPrId)
+    });
+    if (pullRequest.data.merged) {
+      return { mergeSha: pullRequest.data.merge_commit_sha ?? undefined };
+    }
+    let sourceSha = pullRequest.data.head.sha;
+    if (!sourceSha) {
+      throw new Error('GitHub did not return the pull request source SHA');
+    }
 
     logGitHubSyncDebug('merging pull request', {
       syncId: sync.id,
@@ -1839,7 +1851,8 @@ export let mergeRepositorySyncPullRequest = async (
       merge = await octokit.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
         owner: sync.repo.externalOwner,
         repo: sync.repo.externalName,
-        pull_number: parseInt(sync.providerPrId)
+        pull_number: parseInt(sync.providerPrId),
+        sha: sourceSha
       });
     } catch (e: any) {
       logGitHubSyncError('failed to merge pull request', e, {
