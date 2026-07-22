@@ -3,6 +3,9 @@ import { Snowflake } from '@lowerdeck/snowflake';
 
 export let ID = createIdGenerator({
   emailIdentity: idType.sorted('eid'),
+  inbox: idType.sorted('inb'),
+  incomingEmail: idType.sorted('ie'),
+  incomingEmailThread: idType.sorted('iet'),
   outgoingEmail: idType.sorted('oe'),
   outgoingEmailDestination: idType.sorted('oed'),
   outgoingEmailSend: idType.sorted('oes'),

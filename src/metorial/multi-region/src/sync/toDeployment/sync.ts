@@ -188,37 +188,10 @@ export let syncToDeploymentQueueProcessor = syncToDeploymentQueue.process(async 
     let accountDomains = await globalDB.accountDomain.findMany({
       where: {
         id: { gt: accountDomainCursor },
-        OR: [
-          { updatedAt: timeRange },
-          {
-            verifications: {
-              some: {
-                OR: [
-                  { createdAt: timeRange },
-                  { updatedAt: timeRange },
-                  {
-                    statusChanges: {
-                      some: {
-                        createdAt: timeRange
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        ]
+        updatedAt: timeRange
       },
       orderBy: { id: 'asc' },
-      take: 100,
-      include: {
-        verifications: {
-          include: {
-            statusChanges: true
-          }
-        },
-        statusChanges: true
-      }
+      take: 100
     });
     if (accountDomains.length === 0) break;
 

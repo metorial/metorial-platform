@@ -1,20 +1,9 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import {
-  AccountDomain,
-  AccountDomainVerification,
-  AccountDomainVerificationStatusChange
-} from '../../db';
-
-type AccountDomainWithVerificationData = AccountDomain & {
-  verifications: (AccountDomainVerification & {
-    statusChanges: AccountDomainVerificationStatusChange[];
-  })[];
-  statusChanges: AccountDomainVerificationStatusChange[];
-};
+import { AccountDomain } from '../../db';
 
 export let syncAccountDomainToDeploymentQueue = createQueue<{
-  accountDomain: AccountDomainWithVerificationData;
+  accountDomain: AccountDomain;
 }>({
   name: 'global/sync/to-deployment/account-domain'
 });
@@ -28,11 +17,6 @@ export let syncAccountDomainToDeploymentQueueProcessor =
     });
     if (!localAccount) return;
 
-    let verificationIds = accountDomain.verifications.map(verification => verification.id);
-    let statusChangeIds = accountDomain.verifications.flatMap(verification =>
-      verification.statusChanges.map(statusChange => statusChange.id)
-    );
-
     await db.$transaction(async tx => {
       await tx.accountDomain.upsert({
         where: { id: accountDomain.id },
@@ -41,10 +25,10 @@ export let syncAccountDomainToDeploymentQueueProcessor =
           domain: accountDomain.domain,
           status: accountDomain.status,
           verificationStatus: accountDomain.verificationStatus,
-          isFixedToVerified: accountDomain.isFixedToVerified,
+          isFixedToVerified: false,
           accountOid: localAccount.oid,
-          lastCheckedAt: accountDomain.lastCheckedAt,
-          lastManualCheckAt: accountDomain.lastManualCheckAt,
+          lastCheckedAt: null,
+          lastManualCheckAt: null,
           createdAt: accountDomain.createdAt,
           updatedAt: accountDomain.updatedAt
         },
@@ -54,10 +38,10 @@ export let syncAccountDomainToDeploymentQueueProcessor =
           domain: accountDomain.domain,
           status: accountDomain.status,
           verificationStatus: accountDomain.verificationStatus,
-          isFixedToVerified: accountDomain.isFixedToVerified,
+          isFixedToVerified: false,
           accountOid: localAccount.oid,
-          lastCheckedAt: accountDomain.lastCheckedAt,
-          lastManualCheckAt: accountDomain.lastManualCheckAt,
+          lastCheckedAt: null,
+          lastManualCheckAt: null,
           createdAt: accountDomain.createdAt,
           updatedAt: accountDomain.updatedAt
         }

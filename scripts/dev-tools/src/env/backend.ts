@@ -64,6 +64,11 @@ export let backendEnv: Env = [
     isEnterprise: true
   },
   {
+    key: 'HYPERPLANE_DATABASE_URL',
+    defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}-hyperplane`,
+    isEnterprise: true
+  },
+  {
     key: 'FEDERATION_CORE_DATABASE_URL',
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}-federation`,
     isEnterprise: true
