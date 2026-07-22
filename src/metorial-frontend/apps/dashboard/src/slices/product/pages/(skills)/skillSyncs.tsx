@@ -28,6 +28,7 @@ import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { RouterPanel } from '../../scenes/routerPanel';
+import { getRepositoryActionMessage } from './skillSyncMessages';
 
 type SkillSync = DashboardInstanceSkillsSyncsGetOutput;
 type SkillRepository = SkillMarketplaceRepository | SkillPluginRepository;
@@ -123,43 +124,6 @@ let getPullRequestsUrl = (repositoryCheck: RepositoryCheck) => {
   return null;
 };
 
-let getRepositoryActionMessage = (repositoryCheck: RepositoryCheck) => {
-  if (repositoryCheck.repositoryAccessMode === 'default_branch') {
-    if (repositoryCheck.errorMessage) return repositoryCheck.errorMessage;
-    return `We couldn't update the default branch. We'll retry automatically.`;
-  }
-  let checksFailed = repositoryCheck.blockers.includes('checks_failed');
-  let reviewRequired = repositoryCheck.blockers.includes('reviews_required');
-  let reviewMessage =
-    repositoryCheck.reviewStatus === 'changes_requested'
-      ? 'Changes were requested. Update the pull request to continue.'
-      : repositoryCheck.requiredReviewCount != null &&
-          repositoryCheck.requiredReviewCount > 0 &&
-          repositoryCheck.approvedReviewCount != null
-        ? `Review required (${repositoryCheck.approvedReviewCount}/${repositoryCheck.requiredReviewCount} approvals).`
-        : 'Review required. Approve the pull request to continue.';
-  if (checksFailed && reviewRequired) {
-    return `Checks failed. ${reviewMessage}`;
-  }
-  if (checksFailed) {
-    return `Checks failed. Fix or rerun them in the repository. We'll continue automatically.`;
-  }
-  if (reviewRequired) return reviewMessage;
-  if (repositoryCheck.blockers.includes('merge_conflict')) {
-    return 'This pull request has conflicts. Resolve them to continue.';
-  }
-  if (repositoryCheck.blockers.includes('merge_permission_required')) {
-    return `The connected GitLab user can't merge into this branch. Grant merge access to continue.`;
-  }
-  if (repositoryCheck.blockers.includes('merge_blocked')) {
-    return `Repository rules are blocking this pull request. Open it for details.`;
-  }
-  if (repositoryCheck.blockers.includes('provider_unavailable')) {
-    return `We couldn't update the pull request. We'll retry automatically.`;
-  }
-  return repositoryCheck.errorMessage ?? 'Repository action is required to continue.';
-};
-
 let RepositoryAction = ({ repositoryCheck }: { repositoryCheck: RepositoryCheck }) => {
   let isDirectPush = repositoryCheck.repositoryAccessMode === 'default_branch';
   let actionableBlockers = [
@@ -177,6 +141,8 @@ let RepositoryAction = ({ repositoryCheck }: { repositoryCheck: RepositoryCheck 
         repositoryCheck.blockers.includes('provider_unavailable'))
     ) &&
     repositoryCheck.status !== 'waiting_for_review' &&
+    repositoryCheck.overrideAttemptStatus !== 'attempting' &&
+    repositoryCheck.overrideAttemptStatus !== 'refused' &&
     !repositoryCheck.blockers.some(blocker => actionableBlockers.includes(blocker))
   ) {
     return null;
