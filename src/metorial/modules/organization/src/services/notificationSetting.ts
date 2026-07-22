@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getTimezone } from '@lowerdeck/timezone';
-import { db, Organization, OrganizationMember } from '@metorial/db';
+import { db, Organization, OrganizationMember, withTransaction } from '@metorial/db';
 import {
   OrganizationNotificationTypeIdentifier,
   OrganizationNotificationTypes
@@ -115,18 +115,28 @@ class OrganizationNotificationSettingService {
     }
 
     let setting = await getOrCreateOrganizationNotificationDigestSetting(i);
-    if (setting.timezone.toLowerCase() == i.timezone.toLowerCase()) return setting;
+    let timezoneChanged = setting.timezone.toLowerCase() != i.timezone.toLowerCase();
+    let updated = await withTransaction(async tx => {
+      await tx.user.update({
+        where: { oid: i.member.userOid },
+        data: { timezone: i.timezone }
+      });
 
-    let updated = await db.organizationNotificationDigestSetting.update({
-      where: { id: setting.id },
-      data: { timezone: i.timezone }
+      if (!timezoneChanged) return setting;
+
+      return tx.organizationNotificationDigestSetting.update({
+        where: { id: setting.id },
+        data: { timezone: i.timezone }
+      });
     });
 
-    await rescheduleOrganizationNotificationDigest({
-      member: i.member,
-      organization: i.organization,
-      setting: updated
-    });
+    if (timezoneChanged) {
+      await rescheduleOrganizationNotificationDigest({
+        member: i.member,
+        organization: i.organization,
+        setting: updated
+      });
+    }
 
     return updated;
   }

@@ -113,7 +113,7 @@ let createOrganizationNotificationDigestCron = createCron(
   }
 );
 
-let flushOrganizationNotificationDigestProcessor =
+export let flushOrganizationNotificationDigestProcessor =
   flushOrganizationNotificationDigestQueue.process(async ({ memberId, organizationId }) => {
     let now = new Date();
     let member = await db.organizationMember.findFirst({
@@ -196,7 +196,7 @@ let flushOrganizationNotificationDigestProcessor =
     }
   });
 
-let sendOrganizationNotificationDigestProcessor =
+export let sendOrganizationNotificationDigestProcessor =
   sendOrganizationNotificationDigestQueue.process(async ({ digestId }) => {
     let digest = await db.organizationNotificationEmailDigest.findUnique({
       where: { id: digestId },

@@ -19,6 +19,7 @@ model User {
   name      String
   firstName String?
   lastName  String?
+  timezone  String?
 
   /// [EntityImage]
   image Json

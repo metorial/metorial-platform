@@ -73,7 +73,8 @@ describe('notificationService', () => {
         organizationOid: 1n,
         typeOid: 10n,
         onlyForMemberIds: [],
-        notForMemberIds: []
+        notForMemberIds: [],
+        onlyForMemberRoles: []
       }),
       include: { type: true }
     });
