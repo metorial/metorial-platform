@@ -16,13 +16,28 @@ export type NormalizedSlatePackage = {
   isPrebuilt?: boolean;
 };
 
+// AWS Lambda caps function timeouts at 900 seconds and Function Bay passes the
+// value through unclamped, so out-of-range manifests must be rejected at publish
+// time instead of failing the deployment later.
+let timeoutValidation = v.optional(
+  v.number({
+    modifiers: [
+      v.integer({ message: 'Timeout must be a whole number of seconds.' }),
+      v.minValue(1, { message: 'Timeout must be at least 1 second.' }),
+      v.maxValue(900, {
+        message: 'Timeout must be at most 900 seconds (the AWS Lambda maximum).'
+      })
+    ]
+  })
+);
+
 let rawSlateJsonValidation = v.object({
   name: v.string(),
   description: v.optional(v.string()),
   categories: v.optional(v.array(v.string())),
   skills: v.optional(v.array(v.string())),
   logoUrl: v.optional(v.string()),
-  timeout: v.optional(v.number({}))
+  timeout: timeoutValidation
 });
 
 let packageJsonValidation = v.object({
@@ -68,7 +83,7 @@ export let slateJsonValidation = v.object({
   categories: v.optional(v.array(v.string())),
   skills: v.optional(v.array(v.string())),
   logoUrl: v.optional(v.string()),
-  timeout: v.optional(v.number({}))
+  timeout: timeoutValidation
 });
 
 let parseJsonFile = <T>(d: {

@@ -11,6 +11,7 @@ export let subspaceAdminProviderTelemetryService = createSubspacePublicService(
     'listErrorGroups',
     'getErrorGroup',
     'listRuns',
+    'listToolCalls',
     'getRunLogs',
     'listAuthLogs',
     'listProviderVersionDeployments',
