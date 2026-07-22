@@ -6,6 +6,7 @@ export * from './account';
 export * from './authBootstrap';
 export * from './effectiveAccess';
 export * from './instance';
+export * from './notification';
 export * from './organization';
 export * from './organizationActor';
 export * from './organizationInvite';
