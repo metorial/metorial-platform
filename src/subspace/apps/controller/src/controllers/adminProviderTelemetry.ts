@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '@metorial-subspace/db';
+import { db, type Prisma } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {
   adminProviderTelemetryErrorGroupService,
@@ -554,7 +554,22 @@ let presentAdminRun = (run: any) => ({
   completed_at: run.completedAt
 });
 
-let presentAdminToolCall = (message: any) => ({
+let adminToolCallInclude = {
+  session: { select: { id: true } },
+  sessionProvider: { include: { provider: true } },
+  providerRun: { include: { providerVersion: true } },
+  toolCall: { include: { tool: true } },
+  error: { include: { group: true } },
+  tenant: true,
+  environment: true
+} satisfies Prisma.SessionMessageInclude;
+
+type AdminToolCallMessage = Omit<
+  Prisma.SessionMessageGetPayload<{ include: typeof adminToolCallInclude }>,
+  'input' | 'output'
+>;
+
+let presentAdminToolCall = (message: AdminToolCallMessage) => ({
   object: 'admin.tool_call',
   id: message.id,
   status: message.status,
@@ -1045,15 +1060,7 @@ export let adminProviderTelemetryController = app.controller({
                   createdAt: { gte: scope.from, lte: scope.to }
                 },
                 omit: { input: true, output: true },
-                include: {
-                  session: { select: { id: true } },
-                  sessionProvider: { include: { provider: true } },
-                  providerRun: { include: { providerVersion: true } },
-                  toolCall: { include: { tool: true } },
-                  error: { include: { group: true } },
-                  tenant: true,
-                  environment: true
-                }
+                include: adminToolCallInclude
               })
           ),
         { defaultOrder: 'desc' }
