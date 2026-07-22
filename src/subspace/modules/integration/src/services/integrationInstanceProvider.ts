@@ -637,35 +637,37 @@ class integrationInstanceProviderServiceImpl {
           }
         }
 
-        let integrationInstanceProvider = existing
-          ? await db.integrationInstanceProvider.update({
-              where: { oid: existing.oid },
-              data: {
-                status: 'active',
-                archivedAt: null,
-                isParentDeleted: false,
-                name: materialProvider.name,
-                description: materialProvider.description,
-                metadata: materialProvider.metadata,
-                integrationVersionOid: materialProvider.integration.currentVersion!.oid
-              }
-            })
-          : await db.integrationInstanceProvider.create({
-              data: {
-                ...getId('integrationInstanceProvider'),
-                status: 'active',
-                name: materialProvider.name,
-                description: materialProvider.description,
-                metadata: materialProvider.metadata,
-                integrationOid: d.integrationInstance.integrationOid,
-                integrationInstanceOid: d.integrationInstance.oid,
-                integrationProviderOid: integrationProvider.oid,
-                integrationVersionOid: materialProvider.integration.currentVersion!.oid,
-                tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
-                environmentOid: d.environment.oid
-              }
-            });
+        let integrationInstanceProvider = await db.integrationInstanceProvider.upsert({
+          where: {
+            integrationInstanceOid_integrationProviderOid: {
+              integrationInstanceOid: d.integrationInstance.oid,
+              integrationProviderOid: integrationProvider.oid
+            }
+          },
+          create: {
+            ...getId('integrationInstanceProvider'),
+            status: 'active',
+            name: materialProvider.name,
+            description: materialProvider.description,
+            metadata: materialProvider.metadata,
+            integrationOid: d.integrationInstance.integrationOid,
+            integrationInstanceOid: d.integrationInstance.oid,
+            integrationProviderOid: integrationProvider.oid,
+            integrationVersionOid: materialProvider.integration.currentVersion!.oid,
+            tenantOid: d.tenant.oid,
+            solutionOid: d.solution.oid,
+            environmentOid: d.environment.oid
+          },
+          update: {
+            status: 'active',
+            archivedAt: null,
+            isParentDeleted: false,
+            name: materialProvider.name,
+            description: materialProvider.description,
+            metadata: materialProvider.metadata,
+            integrationVersionOid: materialProvider.integration.currentVersion!.oid
+          }
+        });
 
         if (!isInheritedSharedConfig && d.input[idx]!.lockProviderResources) {
           let configUpdate = await db.providerConfig.updateMany({
