@@ -1,8 +1,9 @@
-import { getSentry } from '@lowerdeck/sentry';
+import { api } from './api';
+import { websocket } from './api/metorialIntegrationProtocol';
 
-export async function startConnectionServer() {
-  let Sentry = getSentry();
-  let { api } = await import('./api');
-  let { websocket } = await import('./api/metorialIntegrationProtocol');
-  return { fetch: api.fetch, websocket, Sentry };
-}
+Bun.serve({
+  fetch: api.fetch,
+  websocket,
+  port: 52072,
+  idleTimeout: 0
+});
