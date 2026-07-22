@@ -105,6 +105,7 @@ model SessionMessage {
   @@index([status])
   @@index([type])
   @@index([source])
+  @@index([methodOrToolKey, createdAt])
 }
 
 model SessionMessageStorageBucket {
