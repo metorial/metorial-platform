@@ -57,7 +57,7 @@ export let createTemplateSender = <Data>(
     send: async (i: { data: Data; to: string[] }) => {
       let rendered = await template.render(i.data);
 
-      await relay.email.send({
+      return await relay.email.send({
         type: 'email',
         to: i.to,
         template: i.data as any,
