@@ -20,8 +20,10 @@ import {
   OAuthToken,
   Organization,
   OrganizationActor,
+  OrganizationConfig,
   OrganizationInvite,
   OrganizationInviteJoin,
+  OrganizationLayout,
   OrganizationMember,
   Portal,
   Project,
@@ -231,6 +233,11 @@ export interface FabricEvents {
   'organization.member.updated:after': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
   'organization.member.deleted:before': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
   'organization.member.deleted:after': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
+
+  'organization.config.updated:before': { organization: Organization; user: User; config: OrganizationConfig; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
+  'organization.config.updated:after': { organization: Organization; user: User; config: OrganizationConfig; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
+  'organization.layout.updated:before': { organization: Organization; user: User; layout: OrganizationLayout; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
+  'organization.layout.updated:after': { organization: Organization; user: User; layout: OrganizationLayout; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
 
   'organization.invitation.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
   'organization.invitation.created:after': { organization: Organization, invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };

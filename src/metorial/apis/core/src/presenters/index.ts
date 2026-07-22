@@ -115,7 +115,9 @@ import {
   v1OAuthInstallationPresenter,
   v1OAuthScopePermissionsPresenter,
   v1OrganizationActorPresenter,
+  v1OrganizationConfigPresenter,
   v1OrganizationInvitePresenter,
+  v1OrganizationLayoutPresenter,
   v1OrganizationMemberPresenter,
   v1OrganizationPresenter,
   v1PortalAuthAppPresenter,
@@ -326,7 +328,9 @@ import {
   oauthInstallationType,
   oauthScopePermissionsType,
   organizationActorType,
+  organizationConfigType,
   organizationInviteType,
+  organizationLayoutType,
   organizationMemberType,
   organizationType,
   portalAuthAppType,
@@ -575,6 +579,16 @@ export let portalAuthAppPresenter = declarePresenter(portalAuthAppType, {
 export let organizationPresenter = declarePresenter(organizationType, {
   mt_2025_01_01_dashboard: v1OrganizationPresenter,
   mt_2026_01_01_magnetar: v1OrganizationPresenter
+});
+
+export let organizationConfigPresenter = declarePresenter(organizationConfigType, {
+  mt_2025_01_01_dashboard: v1OrganizationConfigPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationConfigPresenter
+});
+
+export let organizationLayoutPresenter = declarePresenter(organizationLayoutType, {
+  mt_2025_01_01_dashboard: v1OrganizationLayoutPresenter,
+  mt_2026_01_01_magnetar: v1OrganizationLayoutPresenter
 });
 
 export let projectPresenter = declarePresenter(projectType, {

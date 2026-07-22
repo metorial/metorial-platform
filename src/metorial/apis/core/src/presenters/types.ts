@@ -50,7 +50,11 @@ import {
   OAuthInstallation,
   Organization,
   OrganizationActor,
+  OrganizationConfig,
+  OrganizationConfigType,
   OrganizationInvite,
+  OrganizationLayout,
+  OrganizationLayoutType,
   OrganizationMember,
   Portal,
   Prisma,
@@ -257,6 +261,22 @@ export let userType = PresentableType.create<{
 export let projectType = PresentableType.create<{
   project: Project & { organization: Organization };
 }>()('project');
+
+export let organizationConfigType = PresentableType.create<{
+  config: OrganizationConfig & {
+    type: OrganizationConfigType;
+    user: User | null;
+    organization: Organization | null;
+  };
+}>()('organization_config');
+
+export let organizationLayoutType = PresentableType.create<{
+  layout: OrganizationLayout & {
+    type: OrganizationLayoutType;
+    user: User | null;
+    organization: Organization | null;
+  };
+}>()('organization_layout');
 
 export let projectRetentionType = PresentableType.create<{
   project: Project;
