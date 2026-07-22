@@ -1,29 +1,29 @@
-enum OrganizationConfigOwnership {
+enum OrganizationLayoutOwnership {
   user
   organization
   user_organization
 }
 
-model OrganizationConfigType {
+model OrganizationLayoutType {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   identifier String                      @unique
   name       String
-  ownership  OrganizationConfigOwnership
+  ownership  OrganizationLayoutOwnership
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  configs OrganizationConfig[]
+  layouts OrganizationLayout[]
 }
 
-model OrganizationConfig {
+model OrganizationLayout {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   typeOid BigInt
-  type    OrganizationConfigType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+  type    OrganizationLayoutType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
 
   targetHash String
 
@@ -33,7 +33,7 @@ model OrganizationConfig {
   organizationOid BigInt?
   organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  /// [OrganizationConfigValue]
+  /// [OrganizationLayoutValue]
   value Json
 
   createdAt DateTime @default(now())

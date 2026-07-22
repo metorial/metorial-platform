@@ -52,7 +52,8 @@ model Organization {
   members                        OrganizationMember[]
   actors                         OrganizationActor[]
   instances                      Instance[]
-  userConfigs                    OrganizationUserConfig[]
+  configs                        OrganizationConfig[]
+  layouts                        OrganizationLayout[]
   projects                       Project[]
   machineAccesses                MachineAccess[]
   files                          File[]
@@ -93,6 +94,7 @@ model Organization {
   workspace                      Workspace?
   accounts                       Account[]                       @relation("AccountOwnerOrganization")
   sites                          Site[]
+
   @@index([authVersion])
   @@index([previousSlugs])
 }

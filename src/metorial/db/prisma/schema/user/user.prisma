@@ -46,6 +46,8 @@ model User {
 
   sessions                UserSession[]
   members                 OrganizationMember[]
+  organizationConfigs     OrganizationConfig[]
+  organizationLayouts     OrganizationLayout[]
   access                  MachineAccess[]
   files                   File[]
   profile                 Profile?

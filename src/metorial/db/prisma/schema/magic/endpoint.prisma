@@ -8,10 +8,10 @@ model MagicMcpEndpoint {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status               MagicMcpEndpointStatus
-  isConsumerReconciled Boolean                @default(false)
-  hasSubspaceBacking   Boolean                @default(false)
-  isSubspaceBackingReconciling Boolean        @default(false)
+  status                       MagicMcpEndpointStatus
+  isConsumerReconciled         Boolean                @default(false)
+  hasSubspaceBacking           Boolean                @default(false)
+  isSubspaceBackingReconciling Boolean                @default(false)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
