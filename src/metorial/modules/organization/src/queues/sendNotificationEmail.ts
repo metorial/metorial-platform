@@ -1,6 +1,7 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { sendOrganizationNotificationEmail } from '../email/notification';
+import { getOrCreateOrganizationNotificationSetting } from '../lib/notificationSettings';
 
 export let sendOrganizationNotificationEmailQueue = createQueue<{
   destinationId: string;
@@ -25,19 +26,49 @@ export let sendOrganizationNotificationEmailProcessor =
       }
     });
     if (!destination) throw new QueueRetryError();
-    if (destination.emailId || !destination.notification.type.sendEmail) return;
-    if (!destination.member.actor.email) return;
+    if (destination.emailId || destination.emailStatus != 'pending') return;
+    if (destination.notification.type.severity != 'alert') return;
+
+    let now = new Date();
+    let notification = destination.notification;
+    let isEligible =
+      destination.member.status == 'active' &&
+      (!notification.validUntil || notification.validUntil > now) &&
+      (!notification.onlyForMemberRoles.length ||
+        notification.onlyForMemberRoles.includes(destination.member.role));
+    let setting = isEligible
+      ? await getOrCreateOrganizationNotificationSetting({
+          member: destination.member,
+          organization: notification.organization,
+          type: notification.type
+        })
+      : null;
+
+    if (!isEligible || !setting?.emailEnabled || !destination.member.actor.email) {
+      await db.organizationNotificationDestination.update({
+        where: { id: destination.id },
+        data: {
+          emailStatus: 'disabled',
+          emailSendAfter: null
+        }
+      });
+      return;
+    }
 
     let email = await sendOrganizationNotificationEmail.send({
       to: [destination.member.actor.email],
       data: {
-        organization: destination.notification.organization,
-        notification: destination.notification
+        organization: notification.organization,
+        notification
       }
     });
 
     await db.organizationNotificationDestination.update({
       where: { id: destination.id },
-      data: { emailId: email.id }
+      data: {
+        emailStatus: 'sent',
+        emailId: email.id,
+        emailSentAt: new Date()
+      }
     });
   });

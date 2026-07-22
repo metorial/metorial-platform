@@ -17,6 +17,7 @@ model OrganizationNotificationType {
   createdAt DateTime @default(now())
 
   organizationNotifications OrganizationNotification[]
+  settings                  OrganizationNotificationSetting[]
 }
 
 enum OrganizationNotificationStatus {
@@ -39,8 +40,9 @@ model OrganizationNotification {
   typeOid BigInt
   type    OrganizationNotificationType @relation(fields: [typeOid], references: [oid])
 
-  onlyForMemberIds String[] @default([])
-  notForMemberIds  String[] @default([])
+  onlyForMemberIds   String[]                 @default([])
+  notForMemberIds    String[]                 @default([])
+  onlyForMemberRoles OrganizationMemberRole[] @default([])
 
   message String
   title   String
@@ -67,6 +69,19 @@ enum OrganizationNotificationDestinationStatus {
   archived
 }
 
+enum OrganizationNotificationEmailStatus {
+  disabled
+  pending
+  batched
+  sent
+}
+
+enum OrganizationNotificationEmailDigestStatus {
+  pending
+  sent
+  skipped
+}
+
 model OrganizationNotificationDestination {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -79,7 +94,13 @@ model OrganizationNotificationDestination {
   notificationOid BigInt
   notification    OrganizationNotification @relation(fields: [notificationOid], references: [oid])
 
-  emailId String?
+  emailStatus    OrganizationNotificationEmailStatus @default(disabled)
+  emailSendAfter DateTime?
+  emailId        String?
+  emailSentAt    DateTime?
+
+  emailDigestOid BigInt?
+  emailDigest    OrganizationNotificationEmailDigest? @relation(fields: [emailDigestOid], references: [oid], onDelete: SetNull)
 
   readAt     DateTime?
   archivedAt DateTime?
@@ -89,4 +110,73 @@ model OrganizationNotificationDestination {
   @@unique([memberOid, notificationOid])
   @@index([memberOid, status, createdAt])
   @@index([notificationOid])
+  @@index([emailStatus, emailSendAfter])
+  @@index([emailDigestOid])
+}
+
+model OrganizationNotificationSetting {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  typeOid BigInt
+  type    OrganizationNotificationType @relation(fields: [typeOid], references: [oid], onDelete: Cascade)
+
+  emailEnabled Boolean
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userOid, organizationOid, typeOid])
+  @@index([organizationOid, userOid])
+  @@index([typeOid])
+}
+
+model OrganizationNotificationDigestSetting {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  timeMinutes Int    @default(480)
+  timezone    String @default("America/Los_Angeles")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userOid, organizationOid])
+  @@index([organizationOid, userOid])
+}
+
+model OrganizationNotificationEmailDigest {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OrganizationNotificationEmailDigestStatus @default(pending)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  memberOid BigInt
+  member    OrganizationMember @relation(fields: [memberOid], references: [oid], onDelete: Cascade)
+
+  scheduledFor DateTime
+  emailId      String?
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  destinations OrganizationNotificationDestination[]
+
+  @@index([status, scheduledFor])
+  @@index([memberOid, createdAt])
 }
