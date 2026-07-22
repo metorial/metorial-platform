@@ -1044,6 +1044,7 @@ export let adminProviderTelemetryController = app.controller({
                 where: {
                   methodOrToolKey: toolKeys.length ? { in: toolKeys } : { not: null },
                   sessionProviderOid: { not: null },
+                  OR: [{ toolCall: { isNot: null } }, { source: 'client' }],
                   status: ctx.input.statuses ? { in: ctx.input.statuses } : undefined,
                   failureReason: ctx.input.failureReasons
                     ? { in: ctx.input.failureReasons }
