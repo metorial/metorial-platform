@@ -6,6 +6,14 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { useParams } from 'react-router-dom';
+import styled from 'styled-components';
+import { SkillMarketplaceRepositorySyncBox } from './repositorySync';
+
+let PageStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
 
 export let SkillMarketplacePage = () => {
   let organization = useCurrentOrganization();
@@ -14,20 +22,23 @@ export let SkillMarketplacePage = () => {
   let { skillMarketplaceId } = useParams();
 
   return (
-    <SkillMarketplacePluginsScene
-      instanceId={instance.data?.id}
-      skillMarketplaceId={skillMarketplaceId}
-      getSkillPluginPath={skillPluginId =>
-        Paths.instance.skillPlugin(
-          organization.data,
-          project.data,
-          instance.data,
-          skillPluginId
-        )
-      }
-      getSkillPath={skillId =>
-        Paths.instance.skill(organization.data, project.data, instance.data, skillId)
-      }
-    />
+    <PageStack>
+      <SkillMarketplaceRepositorySyncBox skillMarketplaceId={skillMarketplaceId} />
+      <SkillMarketplacePluginsScene
+        instanceId={instance.data?.id}
+        skillMarketplaceId={skillMarketplaceId}
+        getSkillPluginPath={skillPluginId =>
+          Paths.instance.skillPlugin(
+            organization.data,
+            project.data,
+            instance.data,
+            skillPluginId
+          )
+        }
+        getSkillPath={skillId =>
+          Paths.instance.skill(organization.data, project.data, instance.data, skillId)
+        }
+      />
+    </PageStack>
   );
 };

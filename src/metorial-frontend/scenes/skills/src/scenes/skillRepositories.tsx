@@ -1,5 +1,4 @@
 import { renderWithPagination } from '@metorial/data-hooks';
-import { useGetPathWithPrefix } from '@metorial/microfrontend';
 import { showScmRepositoryPicker } from '@metorial/scene-scm';
 import {
   type SkillMarketplaceRepository,
@@ -55,6 +54,12 @@ let Actions = styled.div`
   justify-content: flex-end;
 `;
 
+let ContentActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+`;
+
 let formatRepoProvider = (provider: 'github' | 'gitlab' | 'bitbucket' | undefined) => {
   if (provider === 'github') return 'GitHub';
   if (provider === 'gitlab') return 'GitLab';
@@ -76,7 +81,6 @@ let getRepositoryLabel = (url: string | null | undefined, fallback: string) => {
 let useManageSourceControl = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let getPath = useGetPathWithPrefix();
 
   return () => {
     if (!organization.data || !project.data) return;
@@ -202,6 +206,33 @@ export let SkillMarketplaceRepositoriesSettingsBox = (p: {
   instanceId: string | null | undefined;
   skillMarketplaceId: string | null | undefined;
 }) => {
+  let manager = useSkillMarketplaceRepositoriesManager(p);
+
+  return (
+    <Box
+      title="Repositories"
+      description="Link repositories used to source and sync this skill resource."
+      rightActions={
+        <Button
+          size="2"
+          iconLeft={<RiAddLine />}
+          onClick={manager.openPicker}
+          variant="outline"
+        >
+          Link Repository
+        </Button>
+      }
+    >
+      <SkillMarketplaceRepositoriesSettingsContent manager={manager} />
+    </Box>
+  );
+};
+
+export let useSkillMarketplaceRepositoriesManager = (p: {
+  instanceId: string | null | undefined;
+  skillMarketplaceId: string | null | undefined;
+  onChange?: () => void | Promise<void>;
+}) => {
   let manageSourceControl = useManageSourceControl();
   let repositories = useSkillMarketplaceRepositories(p.instanceId, p.skillMarketplaceId, {
     order: 'asc'
@@ -233,7 +264,10 @@ export let SkillMarketplaceRepositoriesSettingsBox = (p: {
           skillMarketplaceId: p.skillMarketplaceId!,
           repoId: repo.id
         });
-        if (created) await repositories.refetch();
+        if (created) {
+          await repositories.refetch();
+          await p.onChange?.();
+        }
       }
     });
   };
@@ -246,17 +280,81 @@ export let SkillMarketplaceRepositoriesSettingsBox = (p: {
       skillMarketplaceId: p.skillMarketplaceId,
       skillMarketplaceRepositoryId: repository.id
     });
-    if (deleted) await repositories.refetch();
+    if (deleted) {
+      await repositories.refetch();
+      await p.onChange?.();
+    }
   };
 
+  return {
+    repositories,
+    createRepository,
+    deleteRepository,
+    openPicker,
+    removeRepository
+  };
+};
+
+export let SkillMarketplaceRepositoriesSettingsContent = (p: {
+  manager: ReturnType<typeof useSkillMarketplaceRepositoriesManager>;
+  showLinkAction?: boolean;
+}) => {
+  let manager = p.manager;
+
   return (
-    <RepositoriesBox
-      repositories={repositories}
-      createError={<createRepository.RenderError />}
-      deleteError={<deleteRepository.RenderError />}
-      isDeleting={deleteRepository.isLoading}
-      onOpenPicker={openPicker}
-      onRemove={repository => removeRepository(repository as SkillMarketplaceRepository)}
+    <>
+      {p.showLinkAction && (
+        <ContentActions>
+          <Button
+            size="2"
+            iconLeft={<RiAddLine />}
+            onClick={manager.openPicker}
+            variant="outline"
+          >
+            Link Repository
+          </Button>
+        </ContentActions>
+      )}
+
+      {renderWithPagination(manager.repositories, { hidePaginationWhenUnavailable: true })(
+        repositories =>
+          repositories.data.items.length === 0 ? (
+            <EmptyState>
+              <Text color="gray600" size="2">
+                No repositories are linked yet.
+              </Text>
+            </EmptyState>
+          ) : (
+            <Table
+              headers={['Repository', 'Provider', 'Branch', 'Visibility', 'Linked', '']}
+              data={repositories.data.items.map(repository =>
+                getRepositoryTableRow({
+                  repository,
+                  isDeleting: manager.deleteRepository.isLoading,
+                  onRemove: () => manager.removeRepository(repository)
+                })
+              )}
+            />
+          )
+      )}
+
+      <manager.createRepository.RenderError />
+      <manager.deleteRepository.RenderError />
+    </>
+  );
+};
+
+export let SkillMarketplaceRepositoriesSettingsContentScene = (p: {
+  instanceId: string | null | undefined;
+  skillMarketplaceId: string | null | undefined;
+  showLinkAction?: boolean;
+  onChange?: () => void | Promise<void>;
+}) => {
+  let manager = useSkillMarketplaceRepositoriesManager(p);
+  return (
+    <SkillMarketplaceRepositoriesSettingsContent
+      manager={manager}
+      showLinkAction={p.showLinkAction}
     />
   );
 };

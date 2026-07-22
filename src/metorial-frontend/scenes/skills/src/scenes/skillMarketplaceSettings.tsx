@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { useSkillMarketplace, useSkillPlugin } from '@metorial/state';
-import { Button, Input, Select, Spacer, Text, confirm } from '@metorial/ui';
+import { Button, Callout, Input, Select, Spacer, Text, confirm } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { ResourceImageUploader } from '../components/skillImageUploader';
@@ -26,45 +26,25 @@ let ActionsRow = styled.div`
   justify-content: flex-end;
 `;
 
-export let SkillMarketplaceSettingsScene = (p: {
+export let SkillMarketplaceRepositoryAccessSettings = (p: {
   instanceId: string | null | undefined;
   skillMarketplaceId: string | null | undefined;
-  onDeleteSuccess?: () => void;
+  boxed?: boolean;
+  onSaveSuccess?: () => void | Promise<void>;
 }) => {
   let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
-  let imageUpdateMutator = marketplace.updateMutator();
-  let generalUpdateMutator = marketplace.updateMutator();
-  let repositoryAccessUpdateMutator = marketplace.updateMutator();
-  let deleteMutator = marketplace.deleteMutator();
-
+  let updateMutator = marketplace.updateMutator();
   let form = useForm({
-    initialValues: {
-      name: marketplace.data?.name ?? '',
-      description: marketplace.data?.description ?? ''
-    },
-    updateInitialValues: true,
-    onSubmit: async values => {
-      await generalUpdateMutator.mutate({
-        name: values.name.trim(),
-        description: values.description.trim() || undefined
-      });
-    },
-    schema: yup =>
-      yup.object({
-        name: yup.string().trim().required('Name is required'),
-        description: yup.string().ensure()
-      })
-  });
-  let repositoryAccessForm = useForm({
     initialValues: {
       repositoryAccessMode: marketplace.data?.repositoryAccessMode ?? 'pull_request'
     },
     updateInitialValues: true,
     onSubmit: async values => {
       let update = async () => {
-        await repositoryAccessUpdateMutator.mutate({
+        let [updated] = await updateMutator.mutate({
           repositoryAccessMode: values.repositoryAccessMode
         });
+        if (updated) await p.onSaveSuccess?.();
       };
       if (
         marketplace.data?.repositoryAccessMode !== 'default_branch' &&
@@ -89,8 +69,107 @@ export let SkillMarketplaceSettingsScene = (p: {
       })
   });
 
+  return renderWithLoader({ marketplace })(() => {
+    let content = (
+      <form onSubmit={form.handleSubmit}>
+        <FormStack>
+          <Select
+            label="Access Mode"
+            value={form.values.repositoryAccessMode}
+            items={[
+              { id: 'pull_request', label: 'Pull/merge request (recommended)' },
+              { id: 'default_branch', label: 'Default branch' }
+            ]}
+            onChange={value => form.setFieldValue('repositoryAccessMode', value)}
+          />
+          <Text color="gray600" size="2">
+            {form.values.repositoryAccessMode === 'default_branch'
+              ? `Push directly to each repository's default branch. Checks and reviews are skipped, and repository rules may block the sync.`
+              : 'Create a pull/merge request and merge after required checks and reviews pass.'}
+          </Text>
+          <ActionsRow>
+            <Button
+              loading={updateMutator.isLoading}
+              size="2"
+              success={updateMutator.isSuccess}
+              type="submit"
+            >
+              Save
+            </Button>
+          </ActionsRow>
+          <updateMutator.RenderError />
+        </FormStack>
+      </form>
+    );
+
+    return p.boxed === false ? (
+      content
+    ) : (
+      <Box
+        title="Repository Access"
+        description="Choose how marketplace changes are written to linked repositories."
+      >
+        {content}
+      </Box>
+    );
+  });
+};
+
+export let SkillMarketplaceSettingsScene = (p: {
+  instanceId: string | null | undefined;
+  skillMarketplaceId: string | null | undefined;
+  onDeleteSuccess?: () => void;
+}) => {
+  let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
+  let syncMarketplace = marketplace.syncMutator();
+
+  let imageUpdateMutator = marketplace.updateMutator();
+  let generalUpdateMutator = marketplace.updateMutator();
+  let deleteMutator = marketplace.deleteMutator();
+
+  let form = useForm({
+    initialValues: {
+      name: marketplace.data?.name ?? '',
+      description: marketplace.data?.description ?? ''
+    },
+    updateInitialValues: true,
+    onSubmit: async values => {
+      await generalUpdateMutator.mutate({
+        name: values.name.trim(),
+        description: values.description.trim() || undefined
+      });
+    },
+    schema: yup =>
+      yup.object({
+        name: yup.string().trim().required('Name is required'),
+        description: yup.string().ensure()
+      })
+  });
+
   return renderWithLoader({ marketplace })(({ marketplace }) => (
     <PageStack>
+      {marketplace.data?.syncStatus !== 'synced' && (
+        <>
+          <Callout color="blue">
+            <span>
+              <strong>Upcoming changes:</strong> Plugins, skills, or configurations linked to
+              this marketplace have changed. Metorial is processing these changes and updating
+              the marketplace. This can take a few minutes.
+            </span>
+            {marketplace.data?.syncStatus === 'pending' && (
+              <Button
+                size="2"
+                loading={syncMarketplace.isLoading}
+                onClick={() => syncMarketplace.mutate({})}
+                style={{ marginLeft: 16 }}
+              >
+                Sync Now
+              </Button>
+            )}
+          </Callout>
+        </>
+      )}
+
       {p.instanceId && (
         <Box
           title="Marketplace Image"
@@ -141,42 +220,10 @@ export let SkillMarketplaceSettingsScene = (p: {
         </form>
       </Box>
 
-      <Box
-        title="Repository Access"
-        description="Choose how marketplace changes are written to linked repositories."
-      >
-        <form onSubmit={repositoryAccessForm.handleSubmit}>
-          <FormStack>
-            <Select
-              label="Access mode"
-              value={repositoryAccessForm.values.repositoryAccessMode}
-              items={[
-                { id: 'pull_request', label: 'Pull/merge request (recommended)' },
-                { id: 'default_branch', label: 'Default branch' }
-              ]}
-              onChange={value =>
-                repositoryAccessForm.setFieldValue('repositoryAccessMode', value)
-              }
-            />
-            <Text color="gray600" size="2">
-              {repositoryAccessForm.values.repositoryAccessMode === 'default_branch'
-                ? `Push directly to each repository's default branch. Checks and reviews are skipped, and repository rules may block the sync.`
-                : 'Create a pull/merge request and merge after required checks and reviews pass.'}
-            </Text>
-            <ActionsRow>
-              <Button
-                loading={repositoryAccessUpdateMutator.isLoading}
-                size="2"
-                success={repositoryAccessUpdateMutator.isSuccess}
-                type="submit"
-              >
-                Save
-              </Button>
-            </ActionsRow>
-            <repositoryAccessUpdateMutator.RenderError />
-          </FormStack>
-        </form>
-      </Box>
+      <SkillMarketplaceRepositoryAccessSettings
+        instanceId={p.instanceId}
+        skillMarketplaceId={p.skillMarketplaceId}
+      />
 
       <SkillMarketplaceRepositoriesSettingsBox
         instanceId={p.instanceId}

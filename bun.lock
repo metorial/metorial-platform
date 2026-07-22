@@ -1476,6 +1476,7 @@
         "react-use": "^17.5.1",
         "reactflow": "^11.11.4",
         "remark-gfm": "^4.0.1",
+        "shleemy": "^1.2.2",
         "styled-components": "^6.1.13",
         "tiptap-markdown": "^0.9.0",
       },

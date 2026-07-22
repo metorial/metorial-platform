@@ -55,7 +55,7 @@ let statusLabel = (status: SkillSync['status']) =>
     canceled: 'Canceled'
   })[status] ?? status;
 
-let SkillSyncStatusBadge = ({ status }: { status: SkillSync['status'] }) => (
+export let SkillSyncStatusBadge = ({ status }: { status: SkillSync['status'] }) => (
   <Badge color={statusColor(status)}>{statusLabel(status)}</Badge>
 );
 
@@ -325,9 +325,19 @@ let SyncDuration = ({ sync }: { sync: SkillSync }) => {
   return <span>{Math.max(0, Math.round(durationMs / 1000))}s</span>;
 };
 
-let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
+export let SkillSyncDetails = ({
+  syncId,
+  compact = false,
+  logs = 'always',
+  pollInterval
+}: {
+  syncId: string;
+  compact?: boolean;
+  logs?: 'always' | 'active-or-failed' | 'never';
+  pollInterval?: number | null;
+}) => {
   let instance = useCurrentInstance();
-  let sync = useSkillSync(instance.data?.id, syncId);
+  let sync = useSkillSync(instance.data?.id, syncId, { pollInterval });
   let repositoryChecks = useSkillSyncRepositoryChecks(instance.data?.id, syncId);
   let repositoryChecksRefetchRef = useRef(repositoryChecks.refetch);
   repositoryChecksRefetchRef.current = repositoryChecks.refetch;
@@ -402,29 +412,35 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
 
     return (
       <>
-        <Attributes
-          itemWidth="320px"
-          attributes={[
-            { label: 'Sync ID', content: <ID id={sync.data.id} /> },
-            { label: 'Status', content: <SkillSyncStatusBadge status={sync.data.status} /> },
-            {
-              label: 'Started',
-              content: sync.data.startedAt ? <RenderDate date={sync.data.startedAt} /> : 'N/A'
-            },
-            {
-              label: 'Completed',
-              content: sync.data.completedAt ? (
-                <RenderDate date={sync.data.completedAt} />
-              ) : (
-                'N/A'
-              )
-            }
-          ]}
-        />
+        {!compact && (
+          <Attributes
+            itemWidth="320px"
+            attributes={[
+              { label: 'Sync ID', content: <ID id={sync.data.id} /> },
+              { label: 'Status', content: <SkillSyncStatusBadge status={sync.data.status} /> },
+              {
+                label: 'Started',
+                content: sync.data.startedAt ? (
+                  <RenderDate date={sync.data.startedAt} />
+                ) : (
+                  'N/A'
+                )
+              },
+              {
+                label: 'Completed',
+                content: sync.data.completedAt ? (
+                  <RenderDate date={sync.data.completedAt} />
+                ) : (
+                  'N/A'
+                )
+              }
+            ]}
+          />
+        )}
 
         {shouldShowRepositories && (
           <>
-            <Spacer height={20} />
+            {!compact && <Spacer height={20} />}
 
             {reposLoader.error && (
               <>
@@ -445,7 +461,11 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
             )}
 
             <Table
-              headers={['Repository', 'Status', 'Branch', 'Via', 'Completed']}
+              headers={
+                compact
+                  ? ['Repository', 'Status', 'Branch', 'Via']
+                  : ['Repository', 'Status', 'Branch', 'Via', 'Completed']
+              }
               data={[
                 ...repositoryRows.map(({ repository, propagation }) => {
                   let repositoryCheck = repositoryCheckByRepositoryId.get(
@@ -474,11 +494,15 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
                       />,
                       repositoryCheck?.targetBranch ?? propagation?.branchName ?? 'N/A',
                       isDirectPush ? 'Direct push' : (propagation?.prName ?? 'N/A'),
-                      propagation?.completedAt ? (
-                        <RenderDate date={propagation.completedAt} />
-                      ) : (
-                        'N/A'
-                      )
+                      ...(compact
+                        ? []
+                        : [
+                            propagation?.completedAt ? (
+                              <RenderDate date={propagation.completedAt} />
+                            ) : (
+                              'N/A'
+                            )
+                          ])
                     ]
                   };
                 }),
@@ -491,11 +515,15 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
                     propagation.repositoryAccessMode === 'default_branch'
                       ? 'Direct push'
                       : propagation.prName,
-                    propagation.completedAt ? (
-                      <RenderDate date={propagation.completedAt} />
-                    ) : (
-                      'N/A'
-                    )
+                    ...(compact
+                      ? []
+                      : [
+                          propagation.completedAt ? (
+                            <RenderDate date={propagation.completedAt} />
+                          ) : (
+                            'N/A'
+                          )
+                        ])
                   ]
                 }))
               ]}
@@ -542,12 +570,18 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
           </>
         )}
 
-        <Spacer height={20} />
-        <Text size="3" weight="strong">
-          Logs
-        </Text>
-        <Spacer height={10} />
-        <SkillSyncLogs logs={sync.data.logs} />
+        {logs === 'always' ||
+        (logs === 'active-or-failed' &&
+          ['processing', 'failed'].includes(sync.data.status)) ? (
+          <>
+            <Spacer height={20} />
+            <Text size="3" weight="strong">
+              Logs
+            </Text>
+            <Spacer height={10} />
+            <SkillSyncLogs logs={sync.data.logs} />
+          </>
+        ) : null}
       </>
     );
   });
