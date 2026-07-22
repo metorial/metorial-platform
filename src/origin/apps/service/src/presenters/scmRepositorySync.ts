@@ -14,6 +14,8 @@ export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => ({
   title: sync.title,
   description: sync.description,
   enableAutoMerge: sync.enableAutoMerge,
+  forceMergeOrPush: sync.forceMergeOrPush,
+  mergeBeforeChecksPass: sync.mergeBeforeChecksPass,
 
   providerPrId: sync.providerPrId,
   providerPrUrl: sync.providerPrUrl,

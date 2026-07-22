@@ -1,16 +1,36 @@
 import { generatePlainId } from '@lowerdeck/id';
-import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { ID } from '../../id';
-import { createBitbucketClientWithInstallation } from '../../lib/bitbucket';
-import { createGitHubInstallationClient } from '../../lib/githubApp';
-import { createGitLabClientWithInstallation } from '../../lib/gitlab';
-import { getScmProviderErrorStatus } from '../../lib/scmProviderError';
+import {
+  createProviderRepositoryWebhook,
+  deleteProviderRepositoryWebhook,
+  equalRepositoryWebhookEvents,
+  getDesiredRepositoryWebhookEvents,
+  getRepositoryWebhookCallbackUrl,
+  listManagedProviderRepositoryWebhooks,
+  readProviderRepositoryWebhook,
+  updateProviderRepositoryWebhook
+} from '../../lib/scmRepositoryWebhook';
+import {
+  getScmProviderErrorDetails,
+  getScmProviderErrorStatus
+} from '../../lib/scmProviderError';
+
+let webhookReconcileBlockDurationMs = 7 * 24 * 60 * 60_000;
 
 export let createRepoWebhookQueue = createQueue<{ repoId: string }>({
   name: 'ori/rep/wh-cr',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: env.service.REDIS_URL,
+  jobOpts: {
+    attempts: 5,
+    backoff: { type: 'exponential', delay: 5_000 }
+  },
+  workerOpts: {
+    concurrency: 5,
+    limiter: { max: 10, duration: 1_000 }
+  }
 });
 
 let isPrivateIpv4 = (hostname: string) => {
@@ -32,7 +52,7 @@ let isPrivateIpv4 = (hostname: string) => {
   );
 };
 
-let isLocalOrPrivateWebhookUrl = (url: string) => {
+export let isLocalOrPrivateWebhookUrl = (url: string) => {
   try {
     let hostname = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '');
     let isIpv6 = hostname.includes(':');
@@ -52,210 +72,216 @@ let isLocalOrPrivateWebhookUrl = (url: string) => {
   }
 };
 
-let shouldIgnoreGitHubHookAlreadyExistsError = (error: any) => {
-  if (error.status !== 422) return false;
-
-  if (
-    typeof error.message === 'string' &&
-    error.message.toLowerCase().includes('hook already exists')
-  ) {
-    return true;
-  }
-
-  let errors = error.response?.data?.errors;
-  if (!Array.isArray(errors)) return false;
-
-  return errors.some(
-    (e: any) =>
-      e.resource === 'Hook' &&
-      typeof e.message === 'string' &&
-      e.message.toLowerCase().includes('already exists')
+let isAlreadyExistsError = (error: unknown) => {
+  let details = getScmProviderErrorDetails(error);
+  return (
+    details.status === 409 ||
+    Boolean(details.description?.toLowerCase().includes('already exists'))
   );
 };
 
-export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(async data => {
-  let repo = await db.scmRepository.findUnique({
-    where: { id: data.repoId },
-    include: { installation: { include: { backend: true } } }
-  });
-  if (!repo) throw new QueueRetryError();
+export let shouldBlockRepositoryWebhookReconcile = (error: unknown) => {
+  let details = getScmProviderErrorDetails(error);
+  if (isAlreadyExistsError(error)) return false;
+  return [
+    'authentication_failed',
+    'permission_denied',
+    'resource_not_found',
+    'invalid_request'
+  ].includes(details.classification);
+};
 
-  let existingWebhook = await db.scmRepositoryWebhook.findUnique({
-    where: { repoOid: repo.oid }
+let blockRepositoryWebhookReconcile = async (repoOid: bigint, error: unknown) => {
+  let details = getScmProviderErrorDetails(error);
+  let blockedUntil = new Date(Date.now() + webhookReconcileBlockDurationMs);
+  let reason = [details.classification, details.status, details.description]
+    .filter(value => value != null && value !== '')
+    .join(': ')
+    .slice(0, 1_000);
+
+  await db.scmRepository.update({
+    where: { oid: repoOid },
+    data: {
+      webhookReconcileBlockedUntil: blockedUntil,
+      webhookReconcileBlockedReason: reason
+    }
   });
-  if (existingWebhook) {
+
+  console.warn(
+    JSON.stringify({
+      event: 'scm_webhook_reconcile_blocked',
+      repoOid: repoOid.toString(),
+      blockedUntil: blockedUntil.toISOString(),
+      providerError: details
+    })
+  );
+};
+
+let clearRepositoryWebhookReconcileBlock = async (repo: {
+  oid: bigint;
+  webhookReconcileBlockedUntil: Date | null;
+  webhookReconcileBlockedReason: string | null;
+}) => {
+  if (!repo.webhookReconcileBlockedUntil && !repo.webhookReconcileBlockedReason) return;
+  await db.scmRepository.update({
+    where: { oid: repo.oid },
+    data: {
+      webhookReconcileBlockedUntil: null,
+      webhookReconcileBlockedReason: null
+    }
+  });
+};
+
+let removeManagedWebhooks = async (
+  repo: Parameters<typeof listManagedProviderRepositoryWebhooks>[0],
+  exceptExternalId?: string
+) => {
+  let hooks = await listManagedProviderRepositoryWebhooks(repo);
+  for (let hook of hooks) {
+    if (hook.id === exceptExternalId) continue;
     try {
-      if (repo.provider === 'github') {
-        if (!repo.installation.externalInstallationId) throw new Error('Installation ID not found');
-        let octokit = await createGitHubInstallationClient(
-          repo.installation.externalInstallationId,
-          repo.installation.backend
-        );
-        await octokit.request('PATCH /repos/{owner}/{repo}/hooks/{hook_id}', {
-          owner: repo.externalOwner,
-          repo: repo.externalName,
-          hook_id: parseInt(existingWebhook.externalId),
-          active: true,
-          config: {
-            url: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/gh/${existingWebhook.id}`,
-            content_type: 'json',
-            secret: existingWebhook.signingSecret,
-            insecure_ssl: '0'
-          },
-          events: ['push', 'status', 'check_run', 'check_suite', 'pull_request', 'pull_request_review']
-        });
-      } else if (repo.provider === 'gitlab') {
-        let gitlab = await createGitLabClientWithInstallation(repo.installation);
-        await gitlab.ProjectHooks.edit(
-          parseInt(repo.externalId),
-          parseInt(existingWebhook.externalId),
-          `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/gl/${existingWebhook.id}`,
-          {
-            pushEvents: true,
-            mergeRequestsEvents: true,
-            pipelineEvents: true,
-            token: existingWebhook.signingSecret
-          }
-        );
-      } else {
-        let client = await createBitbucketClientWithInstallation(repo.installation);
-        await client.updateWebhook({
-          repositoryId: repo.externalId,
-          webhookId: existingWebhook.externalId,
-          url: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/bb/${existingWebhook.id}`,
-          secret: existingWebhook.signingSecret
-        });
-      }
-      return;
+      await deleteProviderRepositoryWebhook(repo, hook.id);
     } catch (error) {
       if (getScmProviderErrorStatus(error) !== 404) throw error;
-      await db.scmRepositoryWebhook.delete({ where: { oid: existingWebhook.oid } });
     }
   }
+};
 
-  if (isLocalOrPrivateWebhookUrl(env.service.ORIGIN_SERVICE_PUBLIC_URL)) {
-    console.warn(
-      `[createRepoWebhook] Skipping webhook creation for repo ${repo.id}: ORIGIN_SERVICE_PUBLIC_URL must be publicly reachable, got ${env.service.ORIGIN_SERVICE_PUBLIC_URL}`
-    );
+let createAndConfirmWebhook = async (
+  repo: Parameters<typeof createProviderRepositoryWebhook>[0],
+  webhook: { id: string; signingSecret: string }
+) => {
+  await removeManagedWebhooks(repo);
+  let externalId = await createProviderRepositoryWebhook(repo, webhook);
+  let state = await readProviderRepositoryWebhook(repo, { ...webhook, externalId });
+  let desiredEvents = getDesiredRepositoryWebhookEvents(repo);
+  let callbackUrl = getRepositoryWebhookCallbackUrl(repo.provider, webhook.id);
+  if (
+    !state.active ||
+    state.callbackUrl !== callbackUrl ||
+    !equalRepositoryWebhookEvents(state.registeredEvents, desiredEvents)
+  ) {
+    throw Object.assign(new Error('Provider did not register the requested webhook events'), {
+      status: 422
+    });
+  }
+  return state;
+};
+
+export let reconcileRepositoryWebhook = async (repoId: string) => {
+  let repo = await db.scmRepository.findUnique({
+    where: { id: repoId },
+    include: { installation: { include: { backend: true } } }
+  });
+  if (!repo) return;
+  if (
+    repo.webhookReconcileBlockedUntil &&
+    repo.webhookReconcileBlockedUntil.getTime() > Date.now()
+  ) {
     return;
   }
+  if (isLocalOrPrivateWebhookUrl(env.service.ORIGIN_SERVICE_PUBLIC_URL)) return;
 
-  let secret = generatePlainId(32);
-  let webhookId = await ID.generateId('scmRepositoryWebhook');
+  try {
+    let webhook = await db.scmRepositoryWebhook.findUnique({
+      where: { repoOid: repo.oid }
+    });
 
-  if (repo.provider === 'github') {
-    if (!repo.installation.externalInstallationId) {
-      throw new Error('Installation ID not found');
-    }
-
-    let octokit = await createGitHubInstallationClient(
-      repo.installation.externalInstallationId,
-      repo.installation.backend
-    );
-
-    try {
-      let whRes = await octokit.request('POST /repos/{owner}/{repo}/hooks', {
-        owner: repo.externalOwner,
-        repo: repo.externalName,
-        config: {
-          url: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/gh/${webhookId}`,
-          content_type: 'json',
-          secret,
-          insecure_ssl: '0'
-        },
-        events: ['push', 'status', 'check_run', 'check_suite', 'pull_request', 'pull_request_review'],
-        active: true
-      });
-
-      await db.scmRepositoryWebhook.upsert({
-        where: {
-          repoOid: repo.oid
-        },
-        create: {
-          id: webhookId,
+    if (!webhook) {
+      let localWebhook = {
+        id: await ID.generateId('scmRepositoryWebhook'),
+        signingSecret: generatePlainId(32)
+      };
+      let state = await createAndConfirmWebhook(repo, localWebhook);
+      await db.scmRepositoryWebhook.create({
+        data: {
+          ...localWebhook,
           repoOid: repo.oid,
-          externalId: whRes.data.id.toString(),
-          signingSecret: secret,
+          externalId: state.externalId,
+          registeredEvents: state.registeredEvents,
           type: 'push'
-        },
-        update: {}
-      });
-    } catch (error: any) {
-      if (shouldIgnoreGitHubHookAlreadyExistsError(error)) {
-        console.log(
-          `[createRepoWebhook] Webhook already exists for repo ${repo.id}:`,
-          error.message
-        );
-        return;
-      }
-      throw error;
-    }
-  }
-
-  if (repo.provider === 'gitlab') {
-    let gitlab = await createGitLabClientWithInstallation(repo.installation);
-
-    try {
-      let hook = await gitlab.ProjectHooks.add(
-        parseInt(repo.externalId),
-        `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/gl/${webhookId}`,
-        {
-          pushEvents: true,
-          mergeRequestsEvents: true,
-          pipelineEvents: true,
-          token: secret
         }
-      );
-
-      await db.scmRepositoryWebhook.upsert({
-        where: {
-          repoOid: repo.oid
-        },
-        create: {
-          id: webhookId,
-          repoOid: repo.oid,
-          externalId: hook.id.toString(),
-          signingSecret: secret,
-          type: 'push'
-        },
-        update: {}
       });
-    } catch (error: any) {
-      // If webhook already exists or validation error, log and continue
-      if (error.response?.status === 422 || error.cause?.response?.statusCode === 422) {
-        console.log(
-          `[createRepoWebhook] Webhook already exists or validation error for GitLab repo ${repo.id}:`,
-          error.message
-        );
-        return;
-      }
-      throw error;
+      await clearRepositoryWebhookReconcileBlock(repo);
+      return;
     }
-  }
 
-  if (repo.provider === 'bitbucket') {
-    let client = await createBitbucketClientWithInstallation(repo.installation);
-    let externalRepo = await client.getRepositoryById(repo.externalId);
-    let webhookPrefix = `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/bb/`;
-    let existingHooks = await client.listWebhooks(repo.externalId);
-    for (let hook of existingHooks.filter(hook => hook.url.startsWith(webhookPrefix))) {
-      await client.deleteWebhook(repo.externalId, hook.id);
+    let state;
+    try {
+      state = await readProviderRepositoryWebhook(repo, webhook);
+    } catch (error) {
+      if (getScmProviderErrorStatus(error) !== 404) throw error;
+      state = await createAndConfirmWebhook(repo, webhook);
+      await db.scmRepositoryWebhook.update({
+        where: { oid: webhook.oid },
+        data: {
+          externalId: state.externalId,
+          registeredEvents: state.registeredEvents
+        }
+      });
+      await clearRepositoryWebhookReconcileBlock(repo);
+      return;
     }
-    let externalId = await client.createWebhook({
-      repository: externalRepo,
-      url: `${webhookPrefix}${webhookId}`,
-      secret
-    });
-    await db.scmRepositoryWebhook.upsert({
-      where: { repoOid: repo.oid },
-      create: {
-        id: webhookId,
-        repoOid: repo.oid,
-        externalId,
-        signingSecret: secret,
-        type: 'push'
-      },
-      update: {}
-    });
+
+    let desiredEvents = getDesiredRepositoryWebhookEvents(repo);
+    let callbackUrl = getRepositoryWebhookCallbackUrl(repo.provider, webhook.id);
+    let providerMatches =
+      state.active &&
+      state.callbackUrl === callbackUrl &&
+      equalRepositoryWebhookEvents(state.registeredEvents, desiredEvents);
+
+    if (!providerMatches) {
+      let updated: boolean;
+      try {
+        updated = await updateProviderRepositoryWebhook(repo, webhook);
+      } catch (error) {
+        if (getScmProviderErrorStatus(error) !== 404) throw error;
+        updated = false;
+      }
+      if (!updated) {
+        try {
+          await deleteProviderRepositoryWebhook(repo, webhook.externalId);
+        } catch (error) {
+          if (getScmProviderErrorStatus(error) !== 404) throw error;
+        }
+        state = await createAndConfirmWebhook(repo, webhook);
+      } else {
+        state = await readProviderRepositoryWebhook(repo, webhook);
+      }
+
+      if (
+        !state.active ||
+        state.callbackUrl !== callbackUrl ||
+        !equalRepositoryWebhookEvents(state.registeredEvents, desiredEvents)
+      ) {
+        throw Object.assign(new Error('Provider did not register the requested webhook events'), {
+          status: 422
+        });
+      }
+    }
+
+    if (
+      webhook.externalId !== state.externalId ||
+      !equalRepositoryWebhookEvents(webhook.registeredEvents, state.registeredEvents)
+    ) {
+      await db.scmRepositoryWebhook.update({
+        where: { oid: webhook.oid },
+        data: {
+          externalId: state.externalId,
+          registeredEvents: state.registeredEvents
+        }
+      });
+    }
+    await clearRepositoryWebhookReconcileBlock(repo);
+  } catch (error) {
+    if (shouldBlockRepositoryWebhookReconcile(error)) {
+      await blockRepositoryWebhookReconcile(repo.oid, error);
+      return;
+    }
+    throw error;
   }
+};
+
+export let createRepoWebhookQueueProcessor = createRepoWebhookQueue.process(async data => {
+  await reconcileRepositoryWebhook(data.repoId);
 });

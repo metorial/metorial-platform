@@ -73,6 +73,9 @@ model ScmRepository {
 
   defaultBranch String @default("main")
 
+  webhookReconcileBlockedUntil  DateTime?
+  webhookReconcileBlockedReason String?
+
   backendOid BigInt
   backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
 
@@ -95,6 +98,7 @@ model ScmRepository {
   scmRepositorySyncs  ScmRepositorySync[]
 
   @@unique([tenantOid, backendOid, externalId])
+  @@index([webhookReconcileBlockedUntil, oid])
 }
 
 model ScmRepositorySync {
@@ -194,6 +198,14 @@ enum ScmRepositoryWebhookType {
   push
 }
 
+enum ScmRepositoryWebhookEvent {
+  push
+  pull_request
+  pull_request_review
+  ci_status
+  ci_check
+}
+
 model ScmRepositoryWebhook {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -205,6 +217,7 @@ model ScmRepositoryWebhook {
 
   externalId    String
   signingSecret String
+  registeredEvents ScmRepositoryWebhookEvent[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

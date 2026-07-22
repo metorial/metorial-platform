@@ -361,7 +361,12 @@ export class BitbucketClient {
     return this.normalizeDataCenterRepository(repo);
   }
 
-  async createWebhook(i: { repository: BitbucketRepository; url: string; secret: string }) {
+  async createWebhook(i: {
+    repository: BitbucketRepository;
+    url: string;
+    secret: string;
+    events: string[];
+  }) {
     let [owner, repo] = i.repository.id.split('/');
     if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
     if (!isDataCenter(this.backend)) {
@@ -374,17 +379,7 @@ export class BitbucketClient {
             url: i.url,
             active: true,
             secret: i.secret,
-            events: [
-              'repo:push',
-              'pullrequest:created',
-              'pullrequest:updated',
-              'pullrequest:approved',
-              'pullrequest:unapproved',
-              'pullrequest:fulfilled',
-              'pullrequest:rejected',
-              'repo:commit_status_created',
-              'repo:commit_status_updated'
-            ]
+            events: i.events
           }
         }
       );
@@ -399,14 +394,7 @@ export class BitbucketClient {
           url: i.url,
           active: true,
           secret: i.secret,
-          events: [
-            'repo:refs_changed',
-            'pr:opened',
-            'pr:modified',
-            'pr:reviewer:approved',
-            'pr:merged',
-            'pr:declined'
-          ]
+          events: i.events
         }
       }
     );
@@ -428,6 +416,21 @@ export class BitbucketClient {
     }));
   }
 
+  async getWebhook(repositoryId: string, webhookId: string) {
+    let [owner, repo] = repositoryId.split('/');
+    if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
+    let path = !isDataCenter(this.backend)
+      ? `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/hooks/${encodeURIComponent(webhookId)}`
+      : `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/webhooks/${encodeURIComponent(webhookId)}`;
+    let hook = await this.request<any>(path);
+    return {
+      id: String(hook.uuid ?? hook.id),
+      url: String(hook.url),
+      active: hook.active !== false,
+      events: Array.isArray(hook.events) ? hook.events.map(String) : []
+    };
+  }
+
   async deleteWebhook(repositoryId: string, webhookId: string) {
     let [owner, repo] = repositoryId.split('/');
     if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
@@ -442,6 +445,7 @@ export class BitbucketClient {
     webhookId: string;
     url: string;
     secret: string;
+    events: string[];
   }) {
     let [owner, repo] = i.repositoryId.split('/');
     if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
@@ -457,26 +461,7 @@ export class BitbucketClient {
         url: i.url,
         active: true,
         secret: i.secret,
-        events: !dataCenter
-          ? [
-              'repo:push',
-              'pullrequest:created',
-              'pullrequest:updated',
-              'pullrequest:approved',
-              'pullrequest:unapproved',
-              'pullrequest:fulfilled',
-              'pullrequest:rejected',
-              'repo:commit_status_created',
-              'repo:commit_status_updated'
-            ]
-          : [
-              'repo:refs_changed',
-              'pr:opened',
-              'pr:modified',
-              'pr:reviewer:approved',
-              'pr:merged',
-              'pr:declined'
-            ]
+        events: i.events
       }
     });
   }
