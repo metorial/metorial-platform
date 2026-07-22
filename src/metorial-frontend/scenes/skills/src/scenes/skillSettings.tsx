@@ -70,7 +70,7 @@ export let SkillSettingsScene = (p: {
 
   let discoveryForm = useForm({
     initialValues: {
-      clientName: skill.data?.clientName ?? '',
+      clientName: (skill.data?.clientName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
       clientDescription: skill.data?.clientDescription ?? '',
       license: skill.data?.license ?? '',
       compatibility: skill.data?.compatibility ?? ''
@@ -78,7 +78,11 @@ export let SkillSettingsScene = (p: {
     updateInitialValues: true,
     onSubmit: async values => {
       await discoveryUpdateMutator.mutate({
-        clientName: values.clientName.trim(),
+        clientName:
+          values.clientName
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '-') || undefined,
         clientDescription: values.clientDescription.trim() || undefined,
         license: values.license.trim() || null,
         compatibility: values.compatibility.trim() || null
@@ -86,7 +90,11 @@ export let SkillSettingsScene = (p: {
     },
     schema: yup =>
       yup.object({
-        clientName: yup.string().trim().required('Client name is required'),
+        clientName: yup
+          .string()
+          .trim()
+          .required('Client name is required')
+          .matches(/^[a-z0-9-]+$/, 'Client name must only contain letters and numbers'),
         clientDescription: yup.string().ensure(),
         license: yup.string().ensure(),
         compatibility: yup.string().ensure()
