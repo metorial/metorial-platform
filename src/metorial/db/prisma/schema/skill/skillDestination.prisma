@@ -90,9 +90,11 @@ model SkillDestinationSyncRepositoryPropagation {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status               SkillDestinationSyncRepositoryPropagationStatus
-  originSyncId         String?
-  repositoryAccessMode SkillMarketplaceRepositoryAccessMode            @default(pull_request)
+  status                SkillDestinationSyncRepositoryPropagationStatus
+  originSyncId          String?
+  repositoryAccessMode  SkillMarketplaceRepositoryAccessMode            @default(pull_request)
+  forceMergeOrPush      Boolean                                         @default(false)
+  mergeBeforeChecksPass Boolean                                         @default(false)
 
   branchName    String
   prName        String

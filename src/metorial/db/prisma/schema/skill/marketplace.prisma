@@ -13,8 +13,10 @@ model SkillMarketplace {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status               SkillMarketplaceStatus               @default(active)
-  repositoryAccessMode SkillMarketplaceRepositoryAccessMode @default(pull_request)
+  status                SkillMarketplaceStatus               @default(active)
+  repositoryAccessMode  SkillMarketplaceRepositoryAccessMode @default(pull_request)
+  forceMergeOrPush      Boolean                              @default(false)
+  mergeBeforeChecksPass Boolean                              @default(false)
 
   /// [EntityImage]
   image Json?

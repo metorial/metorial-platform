@@ -56,6 +56,10 @@ export type SkillSyncRepositoryCheck = {
   repositoryUrl: string | null;
   pullRequestUrl: string | null;
   repositoryAccessMode: 'pull_request' | 'default_branch';
+  forceMergeOrPush: boolean;
+  mergeBeforeChecksPass: boolean;
+  overrideAttemptStatus: 'not_attempted' | 'attempting' | 'refused' | 'waiting' | 'succeeded';
+  overrideRefusalReason: string | null;
   targetBranch: string | null;
   status: SkillSyncRecord['repositoryPropagations'][number]['status'];
   originStatus: string | null;
@@ -278,6 +282,10 @@ class SkillSyncServiceImpl {
         repositoryUrl: repository?.externalUrl ?? null,
         pullRequestUrl: isPullRequest ? (originSync?.providerPrUrl ?? null) : null,
         repositoryAccessMode: propagation.repositoryAccessMode,
+        forceMergeOrPush: propagation.forceMergeOrPush,
+        mergeBeforeChecksPass: propagation.mergeBeforeChecksPass,
+        overrideAttemptStatus: originSync?.mergeAttemptStatus ?? 'not_attempted',
+        overrideRefusalReason: originSync?.mergeAttemptRefusalReason ?? null,
         targetBranch: originSync?.baseBranch ?? repository?.defaultBranch ?? null,
         status: propagation.status,
         originStatus: originSync?.status ?? null,

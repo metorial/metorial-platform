@@ -11,6 +11,16 @@ let repositoryCheckSchema = v.object({
   repository_url: v.nullable(v.string()),
   pull_request_url: v.nullable(v.string()),
   repository_access_mode: v.enumOf(['pull_request', 'default_branch']),
+  force_merge_or_push: v.boolean(),
+  merge_before_checks_pass: v.boolean(),
+  override_attempt_status: v.enumOf([
+    'not_attempted',
+    'attempting',
+    'refused',
+    'waiting',
+    'succeeded'
+  ]),
+  override_refusal_reason: v.nullable(v.string()),
   target_branch: v.nullable(v.string()),
   status: v.enumOf([
     'pending',
@@ -52,6 +62,10 @@ export let v1SkillSyncRepositoryChecksPresenter = Presenter.create(
       repository_url: repositoryCheck.repositoryUrl,
       pull_request_url: repositoryCheck.pullRequestUrl,
       repository_access_mode: repositoryCheck.repositoryAccessMode,
+      force_merge_or_push: repositoryCheck.forceMergeOrPush,
+      merge_before_checks_pass: repositoryCheck.mergeBeforeChecksPass,
+      override_attempt_status: repositoryCheck.overrideAttemptStatus,
+      override_refusal_reason: repositoryCheck.overrideRefusalReason,
       target_branch: repositoryCheck.targetBranch,
       status: repositoryCheck.status,
       origin_status: repositoryCheck.originStatus,

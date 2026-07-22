@@ -125,7 +125,25 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
   let target = sync.destination.skillMarketplace ? 'marketplace' : 'skill';
   let repositoryAccessMode =
     sync.destination.skillMarketplace?.repositoryAccessMode ?? 'pull_request';
+  let forceMergeOrPush = sync.destination.skillMarketplace?.forceMergeOrPush ?? false;
+  let mergeBeforeChecksPass =
+    sync.destination.skillMarketplace?.mergeBeforeChecksPass ?? false;
   let propagationIds: string[] = [];
+
+  if (forceMergeOrPush) {
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      repositoryAccessMode === 'default_branch'
+        ? 'Override push is enabled.'
+        : 'Override merge is enabled.'
+    );
+  }
+  if (mergeBeforeChecksPass && repositoryAccessMode === 'pull_request') {
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'Merge before checks pass is enabled.'
+    );
+  }
 
   for (let link of repositoryLinks) {
     let propagation = await withTransaction(async db => {
@@ -149,6 +167,8 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
           ...getId('skillDestinationSyncRepositoryPropagation'),
           status: 'pending',
           repositoryAccessMode,
+          forceMergeOrPush,
+          mergeBeforeChecksPass,
           skillDestinationSyncOid: sync.oid,
           skillRepositoryOid: link.skillRepository.oid,
           branchName: createSkillSyncBranchName({
@@ -246,11 +266,13 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           `Starting update for ${repositoryName}.`
         );
 
-        let originSync = await origin.scmRepository.syncCodeBucket({
+        let originSyncInput = {
           tenantId: originTenant.id,
           scmRepositoryId: propagation.skillRepository.repoId,
           codeBucketId: sync.destination.codeBucketId,
           repositoryAccessMode: propagation.repositoryAccessMode,
+          forceMergeOrPush: propagation.forceMergeOrPush,
+          mergeBeforeChecksPass: propagation.mergeBeforeChecksPass,
           requestKey: propagation.id,
           branchName:
             propagation.repositoryAccessMode === 'pull_request'
@@ -264,7 +286,8 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           commitMessage: propagation.commitMessage ?? propagation.prName,
           enableAutoMerge:
             propagation.repositoryAccessMode === 'pull_request' ? true : undefined
-        });
+        };
+        let originSync = await origin.scmRepository.syncCodeBucket(originSyncInput);
 
         await db.skillDestinationSyncRepositoryPropagation.update({
           where: { oid: propagation.oid },

@@ -24,7 +24,9 @@ let skillMarketplaceInput = {
   description: v.optional(v.nullable(v.string())),
   image_file_id: v.optional(v.nullable(v.string())),
   skill_configuration_id: v.optional(v.nullable(v.string())),
-  repository_access_mode: v.optional(v.enumOf(['pull_request', 'default_branch']))
+  repository_access_mode: v.optional(v.enumOf(['pull_request', 'default_branch'])),
+  force_merge_or_push: v.optional(v.boolean()),
+  merge_before_checks_pass: v.optional(v.boolean())
 };
 
 export let getSkillMarketplaceAccess = (
@@ -148,7 +150,9 @@ export let skillMarketplaceController = Controller.create(
             description: ctx.body.description,
             imageFileId: ctx.body.image_file_id,
             skillConfigurationId: ctx.body.skill_configuration_id,
-            repositoryAccessMode: ctx.body.repository_access_mode
+            repositoryAccessMode: ctx.body.repository_access_mode,
+            forceMergeOrPush: ctx.body.force_merge_or_push,
+            mergeBeforeChecksPass: ctx.body.merge_before_checks_pass
           }
         });
 
@@ -176,7 +180,9 @@ export let skillMarketplaceController = Controller.create(
             description: ctx.body.description,
             imageFileId: ctx.body.image_file_id,
             skillConfigurationId: ctx.body.skill_configuration_id,
-            repositoryAccessMode: ctx.body.repository_access_mode
+            repositoryAccessMode: ctx.body.repository_access_mode,
+            forceMergeOrPush: ctx.body.force_merge_or_push,
+            mergeBeforeChecksPass: ctx.body.merge_before_checks_pass
           }
         });
 

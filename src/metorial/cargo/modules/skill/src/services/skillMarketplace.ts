@@ -28,6 +28,7 @@ import {
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
 import { enqueueSkillMarketplaceLifecycle } from '../queues/lifecycle';
+import { getSkillMarketplaceUpdateFlags } from '../lib/skillMarketplaceUpdate';
 import { skillPluginInclude } from './skillPlugin';
 
 export let skillMarketplaceInclude = {
@@ -85,6 +86,8 @@ type SkillMarketplaceInput = {
   description?: string | null;
   skillConfigurationId?: string | null;
   repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
+  forceMergeOrPush?: boolean;
+  mergeBeforeChecksPass?: boolean;
 };
 
 class SkillMarketplaceServiceImpl {
@@ -95,29 +98,6 @@ class SkillMarketplaceServiceImpl {
       badRequestError({
         message: 'Skill marketplace name cannot be empty'
       })
-    );
-  }
-
-  private hasUpdate(input: SkillMarketplaceInput) {
-    return (
-      input.imageFileId !== undefined ||
-      input.image !== undefined ||
-      input.providerOverrides !== undefined ||
-      input.name !== undefined ||
-      input.description !== undefined ||
-      input.skillConfigurationId !== undefined ||
-      input.repositoryAccessMode !== undefined
-    );
-  }
-
-  private hasContentUpdate(input: SkillMarketplaceInput) {
-    return (
-      input.imageFileId !== undefined ||
-      input.image !== undefined ||
-      input.providerOverrides !== undefined ||
-      input.name !== undefined ||
-      input.description !== undefined ||
-      input.skillConfigurationId !== undefined
     );
   }
 
@@ -240,6 +220,8 @@ class SkillMarketplaceServiceImpl {
         imageFileId?: string | null;
         skillConfigurationId?: string | null;
         repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
+        forceMergeOrPush?: boolean;
+        mergeBeforeChecksPass?: boolean;
       };
     }
   ) {
@@ -262,6 +244,8 @@ class SkillMarketplaceServiceImpl {
           name: d.input.name,
           description: d.input.description,
           repositoryAccessMode: d.input.repositoryAccessMode,
+          forceMergeOrPush: d.input.forceMergeOrPush,
+          mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
           slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid,
@@ -307,7 +291,8 @@ class SkillMarketplaceServiceImpl {
       input: SkillMarketplaceInput;
     }
   ) {
-    if (!this.hasUpdate(d.input)) {
+    let updateFlags = getSkillMarketplaceUpdateFlags(d.input);
+    if (!updateFlags.hasUpdate) {
       throw new ServiceError(
         badRequestError({
           message: 'At least one skill marketplace field must be updated'
@@ -343,6 +328,8 @@ class SkillMarketplaceServiceImpl {
         name: d.input.name,
         description: d.input.description,
         repositoryAccessMode: d.input.repositoryAccessMode,
+        forceMergeOrPush: d.input.forceMergeOrPush,
+        mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
         skillConfigurationOid
       }
     });
@@ -357,7 +344,7 @@ class SkillMarketplaceServiceImpl {
       });
     }
 
-    if (this.hasContentUpdate(d.input)) {
+    if (updateFlags.hasContentUpdate) {
       await enqueueSkillMarketplaceLifecycle({
         skillMarketplaceId: d.skillMarketplace.id,
         event: 'updated'
