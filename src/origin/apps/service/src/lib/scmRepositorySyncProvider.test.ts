@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createBitbucketClientWithInstallation } from './bitbucket';
 import { createGitLabClientWithInstallation } from './gitlab';
+import { createGitHubInstallationClient } from './githubApp';
 import {
   closeRepositorySyncPullRequest,
   createRepositorySyncBranch,
   getRepositorySyncCiState,
   getRepositorySyncStatusSnapshot,
-  mergeRepositorySyncPullRequest
+  mergeRepositorySyncPullRequest,
+  prepareRepositorySyncDefaultBranch
 } from './scmRepositorySyncProvider';
 
 vi.mock('./gitlab', () => ({
@@ -16,7 +19,13 @@ vi.mock('./githubApp', () => ({
   createGitHubInstallationClient: vi.fn()
 }));
 
+vi.mock('./bitbucket', () => ({
+  createBitbucketClientWithInstallation: vi.fn()
+}));
+
 let createGitLabClient = vi.mocked(createGitLabClientWithInstallation);
+let createGitHubClient = vi.mocked(createGitHubInstallationClient);
+let createBitbucketClient = vi.mocked(createBitbucketClientWithInstallation);
 
 let createSync = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -97,6 +106,20 @@ describe('GitLab repository sync', () => {
       'main'
     );
     expect(gitlab.Branches.show).toHaveBeenCalledWith(123, 'metorial/sync-marketplace-8');
+  });
+
+  it('refreshes and prepares the live GitLab default branch for direct pushes', async () => {
+    gitlab.Projects.show.mockResolvedValue({ default_branch: 'trunk', empty_repo: false });
+    gitlab.Branches.show.mockImplementation(async (_projectId: number, branchName: string) => {
+      if (branchName === 'trunk') return { name: branchName, commit: { id: 'trunk_sha' } };
+      throw { cause: { response: { statusCode: 404 } } };
+    });
+
+    await expect(prepareRepositorySyncDefaultBranch(createSync())).resolves.toEqual({
+      baseBranch: 'trunk'
+    });
+    expect(gitlab.Branches.show).toHaveBeenCalledWith(123, 'trunk');
+    expect(gitlab.RepositoryFiles.create).not.toHaveBeenCalled();
   });
 
   it('reuses an existing update branch only when it still matches the base', async () => {
@@ -389,5 +412,61 @@ describe('GitLab repository sync', () => {
     expect((error as { scmMergePermissionDenied?: boolean }).scmMergePermissionDenied).toBe(
       true
     );
+  });
+});
+
+describe('direct push default branch preparation', () => {
+  it('uses the live GitHub default branch', async () => {
+    let request = vi.fn(async (route: string) => {
+      if (route === 'GET /repos/{owner}/{repo}') return { data: { default_branch: 'trunk' } };
+      if (route === 'GET /repos/{owner}/{repo}/git/ref/{ref}') {
+        return { data: { object: { sha: 'trunk_sha' } } };
+      }
+      throw new Error(`Unexpected GitHub route: ${route}`);
+    });
+    createGitHubClient.mockResolvedValue({ request } as any);
+
+    await expect(
+      prepareRepositorySyncDefaultBranch(
+        createSync({
+          repo: {
+            id: 'repo_gh',
+            provider: 'github',
+            externalOwner: 'metorial',
+            externalName: 'skills',
+            defaultBranch: 'main',
+            installation: {
+              externalInstallationId: '123',
+              backend: {}
+            }
+          }
+        })
+      )
+    ).resolves.toEqual({ baseBranch: 'trunk' });
+  });
+
+  it('uses the live Bitbucket default branch', async () => {
+    let client = {
+      getDefaultBranch: vi.fn().mockResolvedValue('trunk'),
+      getBranch: vi.fn().mockResolvedValue('trunk_sha'),
+      initializeRepository: vi.fn()
+    };
+    createBitbucketClient.mockResolvedValue(client as any);
+
+    await expect(
+      prepareRepositorySyncDefaultBranch(
+        createSync({
+          repo: {
+            id: 'repo_bb',
+            provider: 'bitbucket',
+            externalId: 'metorial/skills',
+            defaultBranch: 'main',
+            installation: { backend: {} }
+          }
+        })
+      )
+    ).resolves.toEqual({ baseBranch: 'trunk' });
+    expect(client.getBranch).toHaveBeenCalledWith('metorial/skills', 'trunk');
+    expect(client.initializeRepository).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { CodeBucket, ScmRepository, Tenant } from '../../prisma/generated/client';
+import type {
+  CodeBucket,
+  ScmRepository,
+  ScmRepositoryAccessMode,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { startRepositorySyncQueue } from '../queues/scm/repositorySync/start';
@@ -40,20 +45,35 @@ class scmRepositorySyncServiceImpl {
     tenant: Tenant;
     repo: ScmRepository;
     codeBucket: CodeBucket;
-    branchName: string;
-    prName: string;
+    repositoryAccessMode?: ScmRepositoryAccessMode;
+    requestKey?: string;
+    branchName?: string;
+    prName?: string;
+    commitMessage?: string;
     prDescription?: string;
     enableAutoMerge?: boolean;
   }) {
-    let branchName = d.branchName.trim();
-    let title = d.prName.trim();
+    let repositoryAccessMode = d.repositoryAccessMode ?? 'pull_request';
+    let branchName =
+      repositoryAccessMode === 'default_branch'
+        ? d.repo.defaultBranch
+        : (d.branchName?.trim() ?? '');
+    let title = (d.commitMessage ?? d.prName ?? '').trim();
+    let requestKey = d.requestKey?.trim() || undefined;
 
-    if (!branchName) {
+    if (repositoryAccessMode === 'pull_request' && !branchName) {
       throw new ServiceError(badRequestError({ message: 'Branch name is required' }));
     }
 
     if (!title) {
-      throw new ServiceError(badRequestError({ message: 'Pull request name is required' }));
+      throw new ServiceError(
+        badRequestError({
+          message:
+            repositoryAccessMode === 'pull_request'
+              ? 'Pull request name is required'
+              : 'Commit message is required'
+        })
+      );
     }
 
     if (d.repo.tenantOid !== d.tenant.oid || d.codeBucket.tenantOid !== d.tenant.oid) {
@@ -62,21 +82,45 @@ class scmRepositorySyncServiceImpl {
       );
     }
 
-    let sync = await db.scmRepositorySync.create({
-      data: {
-        ...getId('scmRepositorySync'),
-        tenantOid: d.tenant.oid,
-        repoOid: d.repo.oid,
-        codeBucketOid: d.codeBucket.oid,
-        branchName,
-        baseBranch: d.repo.defaultBranch ?? 'main',
-        title,
-        description: d.prDescription,
-        enableAutoMerge: d.enableAutoMerge ?? true
-      }
-    });
+    let data = {
+      ...getId('scmRepositorySync'),
+      tenantOid: d.tenant.oid,
+      repoOid: d.repo.oid,
+      codeBucketOid: d.codeBucket.oid,
+      repositoryAccessMode,
+      requestKey,
+      branchName,
+      baseBranch: d.repo.defaultBranch ?? 'main',
+      title,
+      description: d.prDescription,
+      enableAutoMerge: d.enableAutoMerge ?? true
+    };
+    let sync = requestKey
+      ? await db.scmRepositorySync.upsert({
+          where: {
+            tenantOid_requestKey: {
+              tenantOid: d.tenant.oid,
+              requestKey
+            }
+          },
+          create: data,
+          update: {}
+        })
+      : await db.scmRepositorySync.create({ data });
 
-    await startRepositorySyncQueue.add({ syncId: sync.id });
+    if (
+      sync.repoOid !== d.repo.oid ||
+      sync.codeBucketOid !== d.codeBucket.oid ||
+      sync.repositoryAccessMode !== repositoryAccessMode
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'Repository sync request key was already used' })
+      );
+    }
+
+    if (sync.status === 'pending') {
+      await startRepositorySyncQueue.add({ syncId: sync.id });
+    }
 
     return sync;
   }
@@ -105,6 +149,7 @@ class scmRepositorySyncServiceImpl {
       'merged',
       'cancelled',
       'complete_unmerged',
+      'complete_direct_push',
       'complete_no_changes'
     ].includes(status);
     let updated = await transitionRepositorySyncState(sync.id, sync.status, {

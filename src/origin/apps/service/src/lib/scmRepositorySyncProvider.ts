@@ -446,6 +446,86 @@ let createNeutralGitHubMetorialCiCheck = async (d: {
   }
 };
 
+export let prepareRepositorySyncDefaultBranch = async (
+  sync: SyncWithRepo,
+  options?: {
+    onLog?: (message: string) => Promise<void>;
+  }
+) => {
+  if (sync.repo.provider === 'github') {
+    let octokit = await getGitHubClient(sync.repo);
+    let repository = await octokit.request('GET /repos/{owner}/{repo}', {
+      owner: sync.repo.externalOwner,
+      repo: sync.repo.externalName
+    });
+    let baseBranch = repository.data.default_branch || sync.repo.defaultBranch || 'main';
+
+    try {
+      await octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
+        owner: sync.repo.externalOwner,
+        repo: sync.repo.externalName,
+        ref: `heads/${baseBranch}`
+      });
+    } catch (error: any) {
+      if (!isGitHubEmptyRepositoryError(error)) throw error;
+      await options?.onLog?.(`GitHub repository is empty; initializing "${baseBranch}".`);
+      await initializeEmptyGitHubRepository({
+        octokit,
+        repo: sync.repo,
+        branchName: baseBranch
+      });
+    }
+
+    return { baseBranch };
+  }
+
+  if (sync.repo.provider === 'gitlab') {
+    let gitlab = await getGitLabClient(sync.repo);
+    let projectId = parseInt(sync.repo.externalId);
+    let project = await runRetryableGitLabRead(() => gitlab.Projects.show(projectId));
+    let baseBranch =
+      getGitLabProjectDefaultBranch(project) ||
+      sync.repo.defaultBranch ||
+      sync.baseBranch ||
+      'main';
+    let branch = await getGitLabBranchOrNull(gitlab, projectId, baseBranch);
+    if (!branch) {
+      await initializeEmptyGitLabRepository({
+        gitlab,
+        projectId,
+        branchName: baseBranch,
+        context: {
+          syncId: sync.id,
+          repoId: sync.repo.id
+        },
+        onLog: options?.onLog
+      });
+    }
+
+    return { baseBranch };
+  }
+
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    let baseBranch =
+      (await client.getDefaultBranch(sync.repo.externalId)) ||
+      sync.repo.defaultBranch ||
+      sync.baseBranch ||
+      'main';
+    try {
+      await client.getBranch(sync.repo.externalId, baseBranch);
+    } catch (error: any) {
+      if (getScmProviderErrorStatus(error) !== 404) throw error;
+      await options?.onLog?.(`Bitbucket repository is empty; initializing "${baseBranch}".`);
+      await client.initializeRepository(sync.repo.externalId, baseBranch);
+    }
+
+    return { baseBranch };
+  }
+
+  throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
+};
+
 export let createRepositorySyncBranch = async (
   sync: SyncWithRepo,
   options?: {
@@ -907,6 +987,33 @@ export let cleanupRepositorySyncBranchIfNoChanges = async (
   throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
 };
 
+export let getRepositorySyncBranchSha = async (sync: SyncWithRepo, branchName: string) => {
+  if (sync.repo.provider === 'github') {
+    let octokit = await getGitHubClient(sync.repo);
+    let branch = await octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
+      owner: sync.repo.externalOwner,
+      repo: sync.repo.externalName,
+      ref: `heads/${branchName}`
+    });
+    return branch.data.object.sha;
+  }
+
+  if (sync.repo.provider === 'gitlab') {
+    let gitlab = await getGitLabClient(sync.repo);
+    let branch = await gitlab.Branches.show(parseInt(sync.repo.externalId), branchName);
+    let sha = getGitLabBranchSha(branch);
+    if (sha) return sha;
+    throw new ServiceError(badRequestError({ message: 'GitLab did not return a branch SHA' }));
+  }
+
+  if (sync.repo.provider === 'bitbucket') {
+    let client = await getBitbucketClient(sync.repo);
+    return await client.getBranch(sync.repo.externalId, branchName);
+  }
+
+  throw new ServiceError(badRequestError({ message: 'Unsupported repository provider' }));
+};
+
 export let createRepositorySyncPullRequest = async (
   sync: SyncWithRepo
 ): Promise<{ providerPrId: string; providerPrUrl: string }> => {
@@ -1359,8 +1466,7 @@ export let getRepositorySyncStatusSnapshot = async (
     let pipelineState = typeof pipeline?.status === 'string' ? pipeline.status : undefined;
     let failed = ['failed', 'canceled'].includes(pipelineState ?? '') ? 1 : 0;
     let pending =
-      pipeline &&
-      !['success', 'skipped', 'failed', 'canceled'].includes(pipelineState ?? '')
+      pipeline && !['success', 'skipped', 'failed', 'canceled'].includes(pipelineState ?? '')
         ? 1
         : 0;
     let successful = pipeline && !failed && !pending ? 1 : 0;
@@ -1447,8 +1553,7 @@ export let getRepositorySyncStatusSnapshot = async (
             : mergeRequest.state === 'opened'
               ? 'open'
               : 'closed',
-        mergeSha:
-          mergeRequest.merge_commit_sha ?? mergeRequest.squash_commit_sha ?? null
+        mergeSha: mergeRequest.merge_commit_sha ?? mergeRequest.squash_commit_sha ?? null
       },
       checks: {
         state: failed ? 'failed' : pending ? 'pending' : 'success',

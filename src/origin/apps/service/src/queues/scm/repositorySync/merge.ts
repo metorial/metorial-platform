@@ -32,6 +32,27 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       syncId: data.syncId,
       expectedStatus: 'merging'
     });
+    let pendingMerge = await db.scmRepositorySync.findFirst({
+      where: { id: data.syncId, status: 'merging' },
+      select: { repoOid: true }
+    });
+    if (pendingMerge) {
+      let directPush = await db.scmRepositorySync.findFirst({
+        where: {
+          repoOid: pendingMerge.repoOid,
+          repositoryAccessMode: 'default_branch',
+          status: { in: ['creating_branch', 'syncing_contents'] }
+        },
+        select: { id: true }
+      });
+      if (directPush) {
+        await mergeRepositorySyncQueue.add(
+          { syncId: data.syncId },
+          { delay: 2_000 + Math.floor(Math.random() * 1_000) }
+        );
+        return;
+      }
+    }
     let claimed = await db.scmRepositorySync.updateMany({
       where: {
         id: data.syncId,

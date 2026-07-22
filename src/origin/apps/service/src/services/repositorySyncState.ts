@@ -106,9 +106,14 @@ export let transitionRepositorySyncState = (
 ) => updateRepositorySyncStateInTransaction(syncId, data, expectedStatus);
 
 export let isTerminalRepositorySyncStatus = (status: ScmRepositorySyncStatus) =>
-  ['merged', 'failed', 'cancelled', 'complete_unmerged', 'complete_no_changes'].includes(
-    status
-  );
+  [
+    'merged',
+    'failed',
+    'cancelled',
+    'complete_unmerged',
+    'complete_direct_push',
+    'complete_no_changes'
+  ].includes(status);
 
 export let classifyRepositorySyncSnapshot = (
   snapshot: RepositorySyncStatusSnapshot,

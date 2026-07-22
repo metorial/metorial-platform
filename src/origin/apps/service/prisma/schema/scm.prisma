@@ -16,7 +16,13 @@ enum ScmRepositorySyncStatus {
   failed
   cancelled
   complete_unmerged
+  complete_direct_push
   complete_no_changes
+}
+
+enum ScmRepositoryAccessMode {
+  pull_request
+  default_branch
 }
 
 enum ScmAccountType {
@@ -95,7 +101,9 @@ model ScmRepositorySync {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status ScmRepositorySyncStatus @default(pending)
+  status               ScmRepositorySyncStatus @default(pending)
+  repositoryAccessMode ScmRepositoryAccessMode @default(pull_request)
+  requestKey           String?
 
   branchName String
   baseBranch String
@@ -109,11 +117,11 @@ model ScmRepositorySync {
   providerPrUrl    String?
   providerMergeSha String?
 
-  errorMessage String?
-  ciState      String?
+  errorMessage   String?
+  ciState        String?
   /// [RepositorySyncStatusSnapshot]
   statusSnapshot Json?
-  attemptCount Int     @default(0)
+  attemptCount   Int     @default(0)
 
   /// [SyncLogEntry]
   logs Json[] @default([])
@@ -136,8 +144,10 @@ model ScmRepositorySync {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  @@unique([tenantOid, requestKey])
   @@index([tenantOid])
   @@index([repoOid])
+  @@index([repoOid, repositoryAccessMode, status])
   @@index([codeBucketOid])
   @@index([status])
   @@index([status, nextPollAt])

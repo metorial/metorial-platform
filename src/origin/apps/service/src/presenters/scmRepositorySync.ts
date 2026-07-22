@@ -6,6 +6,7 @@ export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => ({
 
   id: sync.id,
   status: sync.status,
+  repositoryAccessMode: sync.repositoryAccessMode,
 
   branchName: sync.branchName,
   baseBranch: sync.baseBranch,

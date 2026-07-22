@@ -1,7 +1,10 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
-import { createRepositorySyncBranch } from '../../../lib/scmRepositorySyncProvider';
+import {
+  createRepositorySyncBranch,
+  prepareRepositorySyncDefaultBranch
+} from '../../../lib/scmRepositorySyncProvider';
 import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
@@ -64,11 +67,22 @@ export let createBranchRepositorySyncQueueProcessor = createBranchRepositorySync
         branchName: sync.branchName
       });
 
-      await appendRepositorySyncLog(sync.id, 'Preparing an update branch.');
-      let branchResult = await createRepositorySyncBranch(sync, {
-        onLog: message => appendRepositorySyncLog(sync.id, message)
-      });
-      await appendRepositorySyncLog(sync.id, 'Update branch is ready.');
+      let isDirectPush = sync.repositoryAccessMode === 'default_branch';
+      await appendRepositorySyncLog(
+        sync.id,
+        isDirectPush ? 'Preparing the default branch.' : 'Preparing an update branch.'
+      );
+      let branchResult = isDirectPush
+        ? await prepareRepositorySyncDefaultBranch(sync, {
+            onLog: message => appendRepositorySyncLog(sync.id, message)
+          })
+        : await createRepositorySyncBranch(sync, {
+            onLog: message => appendRepositorySyncLog(sync.id, message)
+          });
+      await appendRepositorySyncLog(
+        sync.id,
+        isDirectPush ? 'Default branch is ready.' : 'Update branch is ready.'
+      );
       logRepositorySyncQueueEvent('createBranch', 'provider branch is ready', {
         syncId: sync.id,
         repoId: sync.repo.id,
@@ -83,6 +97,7 @@ export let createBranchRepositorySyncQueueProcessor = createBranchRepositorySync
       });
       let updated = await transitionRepositorySyncState(sync.id, 'creating_branch', {
         baseBranch,
+        branchName: isDirectPush ? baseBranch : sync.branchName,
         status: 'syncing_contents'
       });
       if (!updated) return;

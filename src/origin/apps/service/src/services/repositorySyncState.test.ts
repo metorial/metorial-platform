@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   classifyRepositorySyncSnapshot,
+  isTerminalRepositorySyncStatus,
   type RepositorySyncStatusSnapshot
 } from './repositorySyncState';
 
@@ -25,6 +26,10 @@ let snapshot = (
 });
 
 describe('repository sync snapshot classification', () => {
+  it('treats completed direct pushes as terminal', () => {
+    expect(isTerminalRepositorySyncStatus('complete_direct_push')).toBe(true);
+  });
+
   it('waits for review after checks pass when approval blocks merging', () => {
     expect(
       classifyRepositorySyncSnapshot(

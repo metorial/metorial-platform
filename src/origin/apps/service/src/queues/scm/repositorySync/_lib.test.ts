@@ -81,4 +81,26 @@ describe('repository sync failure diagnostics', () => {
     expect(output).toContain('"syncId":"sync_123"');
     expect(output).not.toContain('internal.js');
   });
+
+  it('stores actionable protected-branch guidance for direct pushes', async () => {
+    mocks.findUnique.mockResolvedValue({
+      status: 'syncing_contents',
+      repositoryAccessMode: 'default_branch'
+    });
+    let error = Object.assign(new Error('Protected branch update rejected'), {
+      status: 403
+    });
+
+    await markRepositorySyncFailed('sync_direct', error);
+
+    expect(mocks.updateState).toHaveBeenCalledWith(
+      'sync_direct',
+      'syncing_contents',
+      expect.objectContaining({
+        status: 'failed',
+        errorMessage:
+          'Direct push was blocked by repository rules. Use pull requests or allow writes to the default branch.'
+      })
+    );
+  });
 });
