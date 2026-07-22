@@ -10,6 +10,8 @@ let repositoryCheckSchema = v.object({
   repository_name: v.string(),
   repository_url: v.nullable(v.string()),
   pull_request_url: v.nullable(v.string()),
+  repository_access_mode: v.enumOf(['pull_request', 'default_branch']),
+  target_branch: v.nullable(v.string()),
   status: v.enumOf([
     'pending',
     'processing',
@@ -49,6 +51,8 @@ export let v1SkillSyncRepositoryChecksPresenter = Presenter.create(
       repository_name: repositoryCheck.repositoryName,
       repository_url: repositoryCheck.repositoryUrl,
       pull_request_url: repositoryCheck.pullRequestUrl,
+      repository_access_mode: repositoryCheck.repositoryAccessMode,
+      target_branch: repositoryCheck.targetBranch,
       status: repositoryCheck.status,
       origin_status: repositoryCheck.originStatus,
       blockers: repositoryCheck.blockers,

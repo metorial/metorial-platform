@@ -11,6 +11,9 @@ export let skillDestinationSyncStatusPresenter = (
     | undefined
 ): SkillDestinationSyncStatus => {
   if (destination?.mustFlushAt || destination?.isDirty) return 'pending';
-  if (destination?.syncs.length) return 'processing';
+  if (
+    destination?.syncs.filter(s => s.status === 'pending' || s.status === 'processing').length
+  )
+    return 'processing';
   return 'synced';
 };

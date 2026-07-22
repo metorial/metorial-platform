@@ -23,32 +23,35 @@ let skillMarketplaceInput = {
   name: v.optional(v.string()),
   description: v.optional(v.nullable(v.string())),
   image_file_id: v.optional(v.nullable(v.string())),
-  skill_configuration_id: v.optional(v.nullable(v.string()))
+  skill_configuration_id: v.optional(v.nullable(v.string())),
+  repository_access_mode: v.optional(v.enumOf(['pull_request', 'default_branch']))
 };
 
 export let getSkillMarketplaceAccess = (
   ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
 ) => getInstanceCargoAccess(ctx);
 
-export let skillMarketplaceGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
-  if (!ctx.params.skillMarketplaceId) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'skillMarketplaceId is required',
-        description: 'The skillMarketplaceId path parameter is required.'
-      })
-    );
-  }
+export let skillMarketplaceGroup = instanceGroup
+  .use(hasFlags(['skills-enabled']))
+  .use(async ctx => {
+    if (!ctx.params.skillMarketplaceId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skillMarketplaceId is required',
+          description: 'The skillMarketplaceId path parameter is required.'
+        })
+      );
+    }
 
-  await assertConsumerCanAccessSkillMarketplace(ctx, ctx.params.skillMarketplaceId);
+    await assertConsumerCanAccessSkillMarketplace(ctx, ctx.params.skillMarketplaceId);
 
-  let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
-    ...(await getSkillMarketplaceAccess(ctx)),
-    skillMarketplaceId: ctx.params.skillMarketplaceId
+    let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
+      ...(await getSkillMarketplaceAccess(ctx)),
+      skillMarketplaceId: ctx.params.skillMarketplaceId
+    });
+
+    return { skillMarketplace };
   });
-
-  return { skillMarketplace };
-});
 
 export let skillMarketplaceController = Controller.create(
   {
@@ -144,7 +147,8 @@ export let skillMarketplaceController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             imageFileId: ctx.body.image_file_id,
-            skillConfigurationId: ctx.body.skill_configuration_id
+            skillConfigurationId: ctx.body.skill_configuration_id,
+            repositoryAccessMode: ctx.body.repository_access_mode
           }
         });
 
@@ -171,7 +175,8 @@ export let skillMarketplaceController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             imageFileId: ctx.body.image_file_id,
-            skillConfigurationId: ctx.body.skill_configuration_id
+            skillConfigurationId: ctx.body.skill_configuration_id,
+            repositoryAccessMode: ctx.body.repository_access_mode
           }
         });
 

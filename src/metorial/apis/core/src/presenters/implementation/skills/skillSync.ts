@@ -14,6 +14,7 @@ let skillSyncRepositoryPropagationSchema = v.object({
     'canceled'
   ]),
   repo_id: v.string(),
+  repository_access_mode: v.enumOf(['pull_request', 'default_branch']),
   branch_name: v.string(),
   pr_name: v.string(),
   pr_description: v.nullable(v.string()),
@@ -43,6 +44,7 @@ export let v1SkillSyncPresenter = Presenter.create(skillSyncType)
       id: propagation.id,
       status: propagation.status,
       repo_id: propagation.skillRepository.repoId,
+      repository_access_mode: propagation.repositoryAccessMode,
       branch_name: propagation.branchName,
       pr_name: propagation.prName,
       pr_description: propagation.prDescription,

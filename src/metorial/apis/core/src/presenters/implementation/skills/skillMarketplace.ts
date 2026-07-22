@@ -10,6 +10,7 @@ export let v1SkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
     object: 'skill.marketplace' as const,
     id: skillMarketplace.id,
     status: skillMarketplace.status,
+    repository_access_mode: skillMarketplace.repositoryAccessMode,
     sync_status: skillDestinationSyncStatusPresenter(skillMarketplace.destination),
     image_url: await getImageUrl(skillMarketplace),
     name: skillMarketplace.name!,
@@ -19,14 +20,17 @@ export let v1SkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
     plugins: await Promise.all(
       skillMarketplace.plugins.map(skillMarketplacePlugin =>
         v1SkillMarketplacePluginPresenter
-          .present({
-            skillMarketplacePlugin: {
-              ...skillMarketplacePlugin,
-              skillMarketplace: {
-                id: skillMarketplace.id
+          .present(
+            {
+              skillMarketplacePlugin: {
+                ...skillMarketplacePlugin,
+                skillMarketplace: {
+                  id: skillMarketplace.id
+                }
               }
-            }
-          }, opts)
+            },
+            opts
+          )
           .run()
       )
     ),
@@ -38,6 +42,7 @@ export let v1SkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
       object: v.literal('skill.marketplace'),
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'deleted']),
+      repository_access_mode: v.enumOf(['pull_request', 'default_branch']),
       sync_status: v.enumOf(['pending', 'processing', 'synced']),
       image_url: v.string(),
       name: v.string(),
