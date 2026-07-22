@@ -1,7 +1,8 @@
 import { db } from '../../../db';
 import {
   getScmProviderErrorDetails,
-  getScmProviderLogDetails
+  getScmProviderLogDetails,
+  isRetryableScmProviderError
 } from '../../../lib/scmProviderError';
 import {
   isTerminalRepositorySyncStatus,
@@ -9,6 +10,24 @@ import {
 } from '../../../services/repositorySyncState';
 
 export type RepositorySyncLogEntry = [number, string];
+
+export let shouldRetryRepositorySyncContents = (d: {
+  repositoryAccessMode: string;
+  status: string;
+  attemptCount: number;
+  error: unknown;
+}) => {
+  if (
+    d.repositoryAccessMode !== 'default_branch' ||
+    d.status !== 'syncing_contents' ||
+    d.attemptCount >= 3
+  ) {
+    return false;
+  }
+
+  let classification = getScmProviderErrorDetails(d.error).classification;
+  return classification === 'conflict' || isRetryableScmProviderError(d.error);
+};
 
 export let logRepositorySyncQueueEvent = (
   stage: string,

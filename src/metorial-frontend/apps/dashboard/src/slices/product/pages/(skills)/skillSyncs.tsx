@@ -126,7 +126,7 @@ let getPullRequestsUrl = (repositoryCheck: RepositoryCheck) => {
 let getRepositoryActionMessage = (repositoryCheck: RepositoryCheck) => {
   if (repositoryCheck.repositoryAccessMode === 'default_branch') {
     if (repositoryCheck.errorMessage) return repositoryCheck.errorMessage;
-    return `We couldn't reach the repository provider. We'll retry automatically.`;
+    return `We couldn't update the default branch. We'll retry automatically.`;
   }
   let checksFailed = repositoryCheck.blockers.includes('checks_failed');
   let reviewRequired = repositoryCheck.blockers.includes('reviews_required');

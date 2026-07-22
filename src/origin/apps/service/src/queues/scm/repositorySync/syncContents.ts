@@ -5,17 +5,15 @@ import {
   cleanupRepositorySyncBranchIfNoChanges,
   getRepositorySyncBranchSha
 } from '../../../lib/scmRepositorySyncProvider';
-import {
-  getScmProviderErrorDetails,
-  isRetryableScmProviderError
-} from '../../../lib/scmProviderError';
+import { getScmProviderErrorDetails } from '../../../lib/scmProviderError';
 import { codeBucketService } from '../../../services';
 import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent,
-  markRepositorySyncFailed
+  markRepositorySyncFailed,
+  shouldRetryRepositorySyncContents
 } from './_lib';
 import { createPrRepositorySyncQueue } from './createPr';
 
@@ -180,10 +178,13 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
       });
       let providerError = getScmProviderErrorDetails(e);
       let shouldRetry =
-        failedSync?.repositoryAccessMode === 'default_branch' &&
-        failedSync.status === 'syncing_contents' &&
-        failedSync.attemptCount < 3 &&
-        (isRetryableScmProviderError(e) || providerError.classification === 'conflict');
+        failedSync &&
+        shouldRetryRepositorySyncContents({
+          repositoryAccessMode: failedSync.repositoryAccessMode,
+          status: failedSync.status,
+          attemptCount: failedSync.attemptCount,
+          error: e
+        });
       if (failedSync && shouldRetry) {
         let delay = Math.min(60_000, 2_000 * 2 ** failedSync.attemptCount);
         await transitionRepositorySyncState(failedSync.id, 'syncing_contents', {

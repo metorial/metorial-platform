@@ -13,6 +13,7 @@ import {
   formatScmProviderError,
   getScmProviderErrorDetails,
   getScmProviderLogDetails,
+  isRetryableScmProviderError,
   withScmProviderError,
   wrapScmProviderError
 } from './scmProviderError';
@@ -40,7 +41,9 @@ describe('SCM provider errors', () => {
   });
 
   it('preserves existing ServiceErrors', async () => {
-    let serviceError = new ServiceError(badRequestError({ message: 'Known validation error' }));
+    let serviceError = new ServiceError(
+      badRequestError({ message: 'Known validation error' })
+    );
 
     await expect(
       withScmProviderError('github', 'create repository', async () => {
@@ -131,6 +134,51 @@ describe('SCM provider errors', () => {
       requestId: 'request-123',
       classification: 'invalid_request'
     });
+  });
+
+  it.each([
+    [
+      'gitlab',
+      `failed to upload to GitLab: failed to create commit (status 403): {"message":"403 Forbidden - You are not allowed to push into this branch"}`,
+      'protected_branch'
+    ],
+    [
+      'github',
+      `failed to upload to GitHub: update reference failed (status 403): {"message":"Resource not accessible by integration"}`,
+      'permission_denied'
+    ],
+    [
+      'bitbucket',
+      `failed to upload to Bitbucket Cloud: source upload failed (status 403): branch restriction rejected the push`,
+      'protected_branch'
+    ]
+  ])('classifies %s code-bucket 403 details', (_provider, details, classification) => {
+    let error = Object.assign(new Error(`/rpc.CodeBucket/Export INTERNAL: ${details}`), {
+      code: 13,
+      details
+    });
+
+    expect(getScmProviderErrorDetails(error)).toMatchObject({
+      status: 403,
+      description: details,
+      classification
+    });
+    expect(isRetryableScmProviderError(error)).toBe(false);
+  });
+
+  it('uses semantic gRPC codes when no HTTP status is available', () => {
+    expect(
+      getScmProviderErrorDetails({
+        code: 7,
+        details: 'The integration cannot write to this repository.'
+      }).classification
+    ).toBe('permission_denied');
+    expect(
+      isRetryableScmProviderError({
+        code: 14,
+        details: 'The repository provider is unavailable.'
+      })
+    ).toBe(true);
   });
 
   it('formats detailed diagnostics without JavaScript stacks or credentials', () => {

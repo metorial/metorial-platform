@@ -3,6 +3,10 @@ import { getId } from '@metorial/cargo-config/id';
 import { db, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
+import {
+  getRepositorySyncRetryMessage,
+  isRepositorySyncRetrying
+} from '../../lib/repositorySyncStatus';
 import { createSkillSyncBranchName, normalizeSkillSyncBranchName } from './_lib/branchName';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncFinishQueue } from './finish';
@@ -423,7 +427,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
       if (updated.count > 0) {
         await appendSkillDestinationSyncLog(
           data.skillDestinationSyncId,
-          `Repository update failed for ${repositoryName}.`
+          `${repositoryName}: ${originSync.errorMessage ?? 'Repository update failed.'}`
         );
       }
       continue;
@@ -455,9 +459,9 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
       originSync.status === 'waiting_for_review'
         ? ('waiting_for_review' as const)
         : ('processing' as const);
-    let providerUnavailable = Boolean(originSync.errorMessage);
+    let providerUnavailable = isRepositorySyncRetrying(originSync);
     let nextErrorMessage = providerUnavailable
-      ? 'Repository update is temporarily unavailable.'
+      ? getRepositorySyncRetryMessage(propagation.repositoryAccessMode)
       : null;
     if (propagation.status !== nextStatus || propagation.errorMessage !== nextErrorMessage) {
       let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({
@@ -492,7 +496,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
       if (providerUnavailable) {
         await appendSkillDestinationSyncLog(
           data.skillDestinationSyncId,
-          `${repositoryName}: Repository update was temporarily unavailable; retrying.`
+          `${repositoryName}: ${nextErrorMessage}`
         );
       } else if (propagation.errorMessage) {
         await appendSkillDestinationSyncLog(

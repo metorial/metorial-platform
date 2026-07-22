@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
@@ -16,6 +19,65 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+var (
+	providerHTTPStatusPattern = regexp.MustCompile(`(?i)\bstatus(?: code)?[\s:=()]+(\d{3})\b`)
+	providerJSONSecretPattern = regexp.MustCompile(`(?i)("(?:authorization|private-token|access[_-]?token|refresh[_-]?token)"\s*:\s*")[^"]*(")`)
+	providerSecretPattern     = regexp.MustCompile(`(?i)(authorization|private-token|access[_-]?token|refresh[_-]?token)\s*[:=]\s*[^,\s}"']+`)
+	providerBearerPattern     = regexp.MustCompile(`(?i)bearer\s+[a-z0-9._~+/-]+=*`)
+)
+
+func providerExportError(provider string, err error) error {
+	message := err.Error()
+	grpcCode := codes.Internal
+
+	if matches := providerHTTPStatusPattern.FindStringSubmatch(message); len(matches) == 2 {
+		if httpStatus, parseErr := strconv.Atoi(matches[1]); parseErr == nil {
+			switch {
+			case httpStatus == 400 || httpStatus == 422:
+				grpcCode = codes.InvalidArgument
+			case httpStatus == 401:
+				grpcCode = codes.Unauthenticated
+			case httpStatus == 403 && isProtectedBranchError(message):
+				grpcCode = codes.FailedPrecondition
+			case httpStatus == 403:
+				grpcCode = codes.PermissionDenied
+			case httpStatus == 404:
+				grpcCode = codes.NotFound
+			case httpStatus == 408 || httpStatus == 504:
+				grpcCode = codes.DeadlineExceeded
+			case httpStatus == 409:
+				grpcCode = codes.Aborted
+			case httpStatus == 429:
+				grpcCode = codes.ResourceExhausted
+			case httpStatus >= 500:
+				grpcCode = codes.Unavailable
+			}
+		}
+	}
+
+	return status.Errorf(grpcCode, "failed to upload to %s: %s", provider, sanitizeProviderError(message))
+}
+
+func isProtectedBranchError(message string) bool {
+	normalized := strings.ToLower(message)
+	return strings.Contains(normalized, "protected branch") ||
+		strings.Contains(normalized, "protected ref") ||
+		strings.Contains(normalized, "not allowed to push into this branch") ||
+		strings.Contains(normalized, "branch restriction") ||
+		strings.Contains(normalized, "pre-receive hook declined")
+}
+
+func sanitizeProviderError(message string) string {
+	const maxLength = 1000
+	message = providerJSONSecretPattern.ReplaceAllString(message, `$1[redacted]$2`)
+	message = providerSecretPattern.ReplaceAllString(message, `$1=[redacted]`)
+	message = providerBearerPattern.ReplaceAllString(message, "Bearer [redacted]")
+	if len(message) > maxLength {
+		return message[:maxLength] + "…"
+	}
+	return message
+}
 
 type RcpService struct {
 	rpc.UnimplementedCodeBucketServer
@@ -235,7 +297,7 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 			return nil
 		})
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to upload to GitHub: %v", err)
+		return nil, providerExportError("GitHub", err)
 	}
 
 	return &rpc.ExportBucketToGithubResponse{}, nil
@@ -269,7 +331,7 @@ func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportB
 			return nil
 		})
 	}); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to upload to GitLab: %v", err)
+		return nil, providerExportError("GitLab", err)
 	}
 
 	return &rpc.ExportBucketToGitlabResponse{}, nil
@@ -323,7 +385,7 @@ func (rs *RcpService) ExportBucketToBitbucketCloud(ctx context.Context, req *rpc
 		},
 	)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to upload to Bitbucket Cloud: %v", err)
+		return nil, providerExportError("Bitbucket Cloud", err)
 	}
 	return &rpc.ExportBucketToBitbucketResponse{}, nil
 }
@@ -373,7 +435,7 @@ func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req
 		},
 	)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to upload to Bitbucket Data Center: %v", err)
+		return nil, providerExportError("Bitbucket Data Center", err)
 	}
 	return &rpc.ExportBucketToBitbucketResponse{}, nil
 }

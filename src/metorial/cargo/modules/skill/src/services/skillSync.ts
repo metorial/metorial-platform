@@ -11,6 +11,7 @@ import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillDestinationSyncStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
+import { isRepositorySyncRetrying } from '../lib/repositorySyncStatus';
 
 export let skillSyncInclude = {
   destination: {
@@ -239,6 +240,10 @@ class SkillSyncServiceImpl {
         | null
         | undefined;
       let isPullRequest = propagation.repositoryAccessMode === 'pull_request';
+      let providerUnavailable = Boolean(
+        (originSync && isRepositorySyncRetrying(originSync)) ||
+        (!originSync && (propagation.errorMessage || propagation.originSyncId))
+      );
       let blockers = [
         isPullRequest && snapshot?.checks?.state === 'pending' ? 'checks_pending' : null,
         isPullRequest && snapshot?.checks?.state === 'failed' ? 'checks_failed' : null,
@@ -257,9 +262,7 @@ class SkillSyncServiceImpl {
         snapshot?.mergeability?.reason !== 'merge_permission_required'
           ? 'merge_blocked'
           : null,
-        (originSync?.errorMessage ||
-          propagation.errorMessage ||
-          (propagation.originSyncId && !originSync)) &&
+        providerUnavailable &&
         ['processing', 'waiting_for_review'].includes(propagation.status)
           ? 'provider_unavailable'
           : null
@@ -292,9 +295,7 @@ class SkillSyncServiceImpl {
         approvedReviewCount: isPullRequest ? (snapshot?.review?.approvals ?? null) : null,
         mergeability: isPullRequest ? (snapshot?.mergeability?.state ?? null) : null,
         lastCheckedAt: snapshot?.observedAt ? new Date(snapshot.observedAt) : null,
-        errorMessage: isPullRequest
-          ? (propagation.errorMessage ?? originSync?.errorMessage ?? null)
-          : (originSync?.errorMessage ?? propagation.errorMessage ?? null)
+        errorMessage: propagation.errorMessage ?? originSync?.errorMessage ?? null
       };
     });
   }
