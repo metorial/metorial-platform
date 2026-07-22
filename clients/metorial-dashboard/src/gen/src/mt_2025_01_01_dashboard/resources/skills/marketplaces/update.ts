@@ -5,6 +5,8 @@ export type SkillsMarketplacesUpdateOutput = {
   id: string;
   status: 'active' | 'archived' | 'deleted';
   repositoryAccessMode: 'pull_request' | 'default_branch';
+  forceMergeOrPush: boolean;
+  mergeBeforeChecksPass: boolean;
   syncStatus: 'pending' | 'processing' | 'synced';
   imageUrl: string;
   name: string;
@@ -62,6 +64,14 @@ export let mapSkillsMarketplacesUpdateOutput =
     status: mtMap.objectField('status', mtMap.passthrough()),
     repositoryAccessMode: mtMap.objectField(
       'repository_access_mode',
+      mtMap.passthrough()
+    ),
+    forceMergeOrPush: mtMap.objectField(
+      'force_merge_or_push',
+      mtMap.passthrough()
+    ),
+    mergeBeforeChecksPass: mtMap.objectField(
+      'merge_before_checks_pass',
       mtMap.passthrough()
     ),
     syncStatus: mtMap.objectField('sync_status', mtMap.passthrough()),
@@ -169,6 +179,8 @@ export type SkillsMarketplacesUpdateBody = {
   imageFileId?: string | null | undefined;
   skillConfigurationId?: string | null | undefined;
   repositoryAccessMode?: 'pull_request' | 'default_branch' | undefined;
+  forceMergeOrPush?: boolean | undefined;
+  mergeBeforeChecksPass?: boolean | undefined;
 };
 
 export let mapSkillsMarketplacesUpdateBody =
@@ -182,6 +194,14 @@ export let mapSkillsMarketplacesUpdateBody =
     ),
     repositoryAccessMode: mtMap.objectField(
       'repository_access_mode',
+      mtMap.passthrough()
+    ),
+    forceMergeOrPush: mtMap.objectField(
+      'force_merge_or_push',
+      mtMap.passthrough()
+    ),
+    mergeBeforeChecksPass: mtMap.objectField(
+      'merge_before_checks_pass',
       mtMap.passthrough()
     )
   });

@@ -11,6 +11,15 @@ export type DashboardInstanceSkillsSyncsRepositoryChecksOutput = {
     repositoryUrl: string | null;
     pullRequestUrl: string | null;
     repositoryAccessMode: 'pull_request' | 'default_branch';
+    forceMergeOrPush: boolean;
+    mergeBeforeChecksPass: boolean;
+    overrideAttemptStatus:
+      | 'not_attempted'
+      | 'attempting'
+      | 'refused'
+      | 'waiting'
+      | 'succeeded';
+    overrideRefusalReason: string | null;
     targetBranch: string | null;
     status:
       | 'pending'
@@ -66,6 +75,22 @@ export let mapDashboardInstanceSkillsSyncsRepositoryChecksOutput =
             'repository_access_mode',
             mtMap.passthrough()
           ),
+          forceMergeOrPush: mtMap.objectField(
+            'force_merge_or_push',
+            mtMap.passthrough()
+          ),
+          mergeBeforeChecksPass: mtMap.objectField(
+            'merge_before_checks_pass',
+            mtMap.passthrough()
+          ),
+          overrideAttemptStatus: mtMap.objectField(
+            'override_attempt_status',
+            mtMap.passthrough()
+          ),
+          overrideRefusalReason: mtMap.objectField(
+            'override_refusal_reason',
+            mtMap.passthrough()
+          ),
           targetBranch: mtMap.objectField('target_branch', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           originStatus: mtMap.objectField('origin_status', mtMap.passthrough()),
@@ -100,3 +125,4 @@ export let mapDashboardInstanceSkillsSyncsRepositoryChecksOutput =
       )
     )
   });
+

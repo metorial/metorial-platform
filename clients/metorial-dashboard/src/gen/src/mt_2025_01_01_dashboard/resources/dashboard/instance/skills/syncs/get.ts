@@ -93,3 +93,4 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
     startedAt: mtMap.objectField('started_at', mtMap.date()),
     completedAt: mtMap.objectField('completed_at', mtMap.date())
   });
+
