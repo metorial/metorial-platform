@@ -4,6 +4,7 @@ export type DashboardInstanceSkillsMarketplacesCreateOutput = {
   object: 'skill.marketplace';
   id: string;
   status: 'active' | 'archived' | 'deleted';
+  repositoryAccessMode: 'pull_request' | 'default_branch';
   syncStatus: 'pending' | 'processing' | 'synced';
   imageUrl: string;
   name: string;
@@ -59,6 +60,10 @@ export let mapDashboardInstanceSkillsMarketplacesCreateOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    repositoryAccessMode: mtMap.objectField(
+      'repository_access_mode',
+      mtMap.passthrough()
+    ),
     syncStatus: mtMap.objectField('sync_status', mtMap.passthrough()),
     imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
@@ -163,6 +168,7 @@ export type DashboardInstanceSkillsMarketplacesCreateBody = {
   description?: string | null | undefined;
   imageFileId?: string | null | undefined;
   skillConfigurationId?: string | null | undefined;
+  repositoryAccessMode?: 'pull_request' | 'default_branch' | undefined;
 };
 
 export let mapDashboardInstanceSkillsMarketplacesCreateBody =
@@ -172,6 +178,10 @@ export let mapDashboardInstanceSkillsMarketplacesCreateBody =
     imageFileId: mtMap.objectField('image_file_id', mtMap.passthrough()),
     skillConfigurationId: mtMap.objectField(
       'skill_configuration_id',
+      mtMap.passthrough()
+    ),
+    repositoryAccessMode: mtMap.objectField(
+      'repository_access_mode',
       mtMap.passthrough()
     )
   });

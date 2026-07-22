@@ -24,6 +24,7 @@ export type DashboardInstanceSkillsSyncsGetOutput = {
       | 'failed'
       | 'canceled';
     repoId: string;
+    repositoryAccessMode: 'pull_request' | 'default_branch';
     branchName: string;
     prName: string;
     prDescription: string | null;
@@ -44,7 +45,10 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
-    skillMarketplaceId: mtMap.objectField('skill_marketplace_id', mtMap.passthrough()),
+    skillMarketplaceId: mtMap.objectField(
+      'skill_marketplace_id',
+      mtMap.passthrough()
+    ),
     skillPluginId: mtMap.objectField('skill_plugin_id', mtMap.passthrough()),
     logs: mtMap.objectField(
       'logs',
@@ -63,10 +67,20 @@ export let mapDashboardInstanceSkillsSyncsGetOutput =
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
           repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
+          repositoryAccessMode: mtMap.objectField(
+            'repository_access_mode',
+            mtMap.passthrough()
+          ),
           branchName: mtMap.objectField('branch_name', mtMap.passthrough()),
           prName: mtMap.objectField('pr_name', mtMap.passthrough()),
-          prDescription: mtMap.objectField('pr_description', mtMap.passthrough()),
-          commitMessage: mtMap.objectField('commit_message', mtMap.passthrough()),
+          prDescription: mtMap.objectField(
+            'pr_description',
+            mtMap.passthrough()
+          ),
+          commitMessage: mtMap.objectField(
+            'commit_message',
+            mtMap.passthrough()
+          ),
           errorMessage: mtMap.objectField('error_message', mtMap.passthrough()),
           createdAt: mtMap.objectField('created_at', mtMap.date()),
           updatedAt: mtMap.objectField('updated_at', mtMap.date()),

@@ -1,4 +1,7 @@
-import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
+import {
+  BaseMetorialEndpoint,
+  MetorialEndpointManager
+} from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceSkillsSyncsGetOutput,
@@ -59,11 +62,15 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
     let request = {
       path,
 
-      query: query ? mapDashboardInstanceSkillsSyncsListQuery.transformTo(query) : undefined,
+      query: query
+        ? mapDashboardInstanceSkillsSyncsListQuery.transformTo(query)
+        : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSkillsSyncsListOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSkillsSyncsListOutput
+    );
   }
 
   /**
@@ -90,7 +97,9 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSkillsSyncsGetOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSkillsSyncsGetOutput
+    );
   }
 
   /**
@@ -117,6 +126,8 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(mapDashboardInstanceSkillsSyncsRepositoryChecksOutput);
+    return this._get(request).transform(
+      mapDashboardInstanceSkillsSyncsRepositoryChecksOutput
+    );
   }
 }

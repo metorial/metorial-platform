@@ -4,6 +4,7 @@ export type SkillsMarketplacesArchiveOutput = {
   object: 'skill.marketplace';
   id: string;
   status: 'active' | 'archived' | 'deleted';
+  repositoryAccessMode: 'pull_request' | 'default_branch';
   syncStatus: 'pending' | 'processing' | 'synced';
   imageUrl: string;
   name: string;
@@ -59,6 +60,10 @@ export let mapSkillsMarketplacesArchiveOutput =
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
+    repositoryAccessMode: mtMap.objectField(
+      'repository_access_mode',
+      mtMap.passthrough()
+    ),
     syncStatus: mtMap.objectField('sync_status', mtMap.passthrough()),
     imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
