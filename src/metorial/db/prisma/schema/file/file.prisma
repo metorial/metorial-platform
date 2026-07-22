@@ -61,8 +61,8 @@ model File {
 
   title String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
   expiresAt DateTime?
 
   links                         FileLink[]

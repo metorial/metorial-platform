@@ -9,6 +9,7 @@ import {
   OrganizationNotification,
   OrganizationNotificationDestination,
   OrganizationNotificationType,
+  OrganizationMemberRole,
   withTransaction
 } from '@metorial/db';
 import {
@@ -38,6 +39,7 @@ class OrganizationNotificationService {
     };
     onlyForMemberIds?: string[];
     notForMemberIds?: string[];
+    onlyForMemberRoles?: OrganizationMemberRole[];
   }) {
     let type = await OrganizationNotificationTypes[i.type];
 
@@ -55,7 +57,8 @@ class OrganizationNotificationService {
           actions: i.input.actions ?? [],
           validUntil: i.input.validUntil,
           onlyForMemberIds: i.onlyForMemberIds ?? [],
-          notForMemberIds: i.notForMemberIds ?? []
+          notForMemberIds: i.notForMemberIds ?? [],
+          onlyForMemberRoles: i.onlyForMemberRoles ?? []
         },
         include: { type: true }
       });

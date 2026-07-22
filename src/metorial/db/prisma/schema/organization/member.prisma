@@ -47,6 +47,7 @@ model OrganizationMember {
   instanceConsumers                    InstanceConsumer[]
   consumerProfiles                     ConsumerProfile[]
   organizationNotificationDestinations OrganizationNotificationDestination[]
+  organizationNotificationEmailDigests OrganizationNotificationEmailDigest[]
 
   @@unique([userOid, organizationOid])
   @@index([lastActiveAt])

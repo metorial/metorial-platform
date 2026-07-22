@@ -1,5 +1,11 @@
 import { db, ID } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import {
+  getNextOrganizationNotificationDigestAt,
+  getOrCreateOrganizationNotificationDigestSetting,
+  getOrCreateOrganizationNotificationSetting
+} from '../lib/notificationSettings';
+import { enqueueOrganizationNotificationDigestFlush } from './createNotificationDigest';
 import { sendOrganizationNotificationEmailQueue } from './sendNotificationEmail';
 
 export let createOrganizationNotificationQueue = createQueue<{ notificationId: string }>({
@@ -27,7 +33,10 @@ export let createOrganizationNotificationProcessor =
       let members = await db.organizationMember.findMany({
         where: {
           organizationOid: notification.organizationOid,
-          status: 'active'
+          status: 'active',
+          ...(notification.onlyForMemberRoles.length
+            ? { role: { in: notification.onlyForMemberRoles } }
+            : {})
         },
         take: 100,
         skip: offset * 100,
@@ -54,7 +63,7 @@ export let createOrganizationNotificationDestinationProcessor =
     async ({ notificationId, memberId }) => {
       let notification = await db.organizationNotification.findUnique({
         where: { id: notificationId },
-        include: { type: true }
+        include: { type: true, organization: true }
       });
       if (!notification) throw new QueueRetryError();
 
@@ -66,27 +75,85 @@ export let createOrganizationNotificationDestinationProcessor =
         }
       });
       if (!member) return;
+      if (
+        notification.onlyForMemberRoles.length &&
+        !notification.onlyForMemberRoles.includes(member.role)
+      ) {
+        return;
+      }
 
-      let destination = await db.organizationNotificationDestination.upsert({
+      let existingDestination = await db.organizationNotificationDestination.findUnique({
         where: {
           memberOid_notificationOid: {
             memberOid: member.oid,
             notificationOid: notification.oid
           }
-        },
-        create: {
+        }
+      });
+
+      if (existingDestination) {
+        if (existingDestination.emailStatus != 'pending') return;
+
+        if (notification.type.severity == 'alert') {
+          await sendOrganizationNotificationEmailQueue.add({
+            destinationId: existingDestination.id
+          });
+        } else if (existingDestination.emailSendAfter) {
+          await enqueueOrganizationNotificationDigestFlush({
+            memberId: member.id,
+            organizationId: notification.organization.id,
+            sendAt: existingDestination.emailSendAfter
+          });
+        }
+        return;
+      }
+
+      let destination = await db.organizationNotificationDestination.create({
+        data: {
           id: await ID.generateId('organizationNotificationDestination'),
           status: notification.status,
           memberOid: member.oid,
           notificationOid: notification.oid
-        },
-        update: {}
+        }
       });
 
-      if (notification.type.sendEmail && !destination.emailId) {
+      let setting = await getOrCreateOrganizationNotificationSetting({
+        member,
+        organization: notification.organization,
+        type: notification.type
+      });
+      if (!setting.emailEnabled) return;
+
+      if (notification.type.severity == 'alert') {
+        destination = await db.organizationNotificationDestination.update({
+          where: { id: destination.id },
+          data: { emailStatus: 'pending' }
+        });
         await sendOrganizationNotificationEmailQueue.add({
           destinationId: destination.id
         });
+        return;
       }
+
+      let digestSetting = await getOrCreateOrganizationNotificationDigestSetting({
+        member,
+        organization: notification.organization
+      });
+      let sendAt = getNextOrganizationNotificationDigestAt({
+        timeMinutes: digestSetting.timeMinutes,
+        timezone: digestSetting.timezone
+      });
+      await db.organizationNotificationDestination.update({
+        where: { id: destination.id },
+        data: {
+          emailStatus: 'pending',
+          emailSendAfter: sendAt
+        }
+      });
+      await enqueueOrganizationNotificationDigestFlush({
+        memberId: member.id,
+        organizationId: notification.organization.id,
+        sendAt
+      });
     }
   );
