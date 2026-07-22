@@ -93,6 +93,8 @@ model Organization {
   workspace                      Workspace?
   accounts                       Account[]                       @relation("AccountOwnerOrganization")
   sites                          Site[]
+  organizationNotifications      OrganizationNotification[]
+
   @@index([authVersion])
   @@index([previousSlugs])
 }

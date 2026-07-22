@@ -1,0 +1,92 @@
+enum OrganizationNotificationSeverity {
+  alert
+  notification
+}
+
+model OrganizationNotificationType {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  sendEmail Boolean
+
+  severity OrganizationNotificationSeverity
+
+  createdAt DateTime @default(now())
+
+  organizationNotifications OrganizationNotification[]
+}
+
+enum OrganizationNotificationStatus {
+  active
+  read
+  archived
+}
+
+model OrganizationNotification {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OrganizationNotificationStatus @default(active)
+
+  kind String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  typeOid BigInt
+  type    OrganizationNotificationType @relation(fields: [typeOid], references: [oid])
+
+  onlyForMemberIds String[] @default([])
+  notForMemberIds  String[] @default([])
+
+  message String
+  title   String
+
+  /// [OrganizationNotificationPayload]
+  payload Json
+
+  /// [OrganizationNotificationActions]
+  actions Json
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  validUntil DateTime?
+
+  destinations OrganizationNotificationDestination[]
+
+  @@index([organizationOid, createdAt])
+  @@index([typeOid])
+}
+
+enum OrganizationNotificationDestinationStatus {
+  active
+  read
+  archived
+}
+
+model OrganizationNotificationDestination {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status OrganizationNotificationDestinationStatus @default(active)
+
+  memberOid BigInt
+  member    OrganizationMember @relation(fields: [memberOid], references: [oid])
+
+  notificationOid BigInt
+  notification    OrganizationNotification @relation(fields: [notificationOid], references: [oid])
+
+  emailId String?
+
+  readAt     DateTime?
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([memberOid, notificationOid])
+  @@index([memberOid, status, createdAt])
+  @@index([notificationOid])
+}
