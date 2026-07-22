@@ -54,6 +54,8 @@ export type SkillSyncRepositoryCheck = {
   repositoryName: string;
   repositoryUrl: string | null;
   pullRequestUrl: string | null;
+  repositoryAccessMode: 'pull_request' | 'default_branch';
+  targetBranch: string | null;
   status: SkillSyncRecord['repositoryPropagations'][number]['status'];
   originStatus: string | null;
   blockers: string[];
@@ -236,16 +238,21 @@ class SkillSyncServiceImpl {
           }
         | null
         | undefined;
+      let isPullRequest = propagation.repositoryAccessMode === 'pull_request';
       let blockers = [
-        snapshot?.checks?.state === 'pending' ? 'checks_pending' : null,
-        snapshot?.checks?.state === 'failed' ? 'checks_failed' : null,
+        isPullRequest && snapshot?.checks?.state === 'pending' ? 'checks_pending' : null,
+        isPullRequest && snapshot?.checks?.state === 'failed' ? 'checks_failed' : null,
+        isPullRequest &&
         ['pending', 'changes_requested'].includes(snapshot?.review?.state ?? '')
           ? 'reviews_required'
           : null,
-        snapshot?.mergeability?.state === 'conflicting' ? 'merge_conflict' : null,
-        snapshot?.mergeability?.reason === 'merge_permission_required'
+        isPullRequest && snapshot?.mergeability?.state === 'conflicting'
+          ? 'merge_conflict'
+          : null,
+        isPullRequest && snapshot?.mergeability?.reason === 'merge_permission_required'
           ? 'merge_permission_required'
           : null,
+        isPullRequest &&
         snapshot?.mergeability?.state === 'blocked' &&
         snapshot?.mergeability?.reason !== 'merge_permission_required'
           ? 'merge_blocked'
@@ -266,22 +273,28 @@ class SkillSyncServiceImpl {
           ? `${repository.externalOwner}/${repository.externalName}`
           : propagation.skillRepository.repoId,
         repositoryUrl: repository?.externalUrl ?? null,
-        pullRequestUrl: originSync?.providerPrUrl ?? null,
+        pullRequestUrl: isPullRequest ? (originSync?.providerPrUrl ?? null) : null,
+        repositoryAccessMode: propagation.repositoryAccessMode,
+        targetBranch: originSync?.baseBranch ?? repository?.defaultBranch ?? null,
         status: propagation.status,
         originStatus: originSync?.status ?? null,
         blockers,
-        checks: (snapshot?.checks?.items ?? []).map(check => ({
+        checks: (isPullRequest ? (snapshot?.checks?.items ?? []) : []).map(check => ({
           name: check.name ?? 'Repository check',
           status: check.status ?? 'unknown',
           url: check.url ?? null,
           summary: check.summary ?? null
         })),
-        reviewStatus: snapshot?.review?.state ?? null,
-        requiredReviewCount: snapshot?.review?.requiredApprovals ?? null,
-        approvedReviewCount: snapshot?.review?.approvals ?? null,
-        mergeability: snapshot?.mergeability?.state ?? null,
+        reviewStatus: isPullRequest ? (snapshot?.review?.state ?? null) : null,
+        requiredReviewCount: isPullRequest
+          ? (snapshot?.review?.requiredApprovals ?? null)
+          : null,
+        approvedReviewCount: isPullRequest ? (snapshot?.review?.approvals ?? null) : null,
+        mergeability: isPullRequest ? (snapshot?.mergeability?.state ?? null) : null,
         lastCheckedAt: snapshot?.observedAt ? new Date(snapshot.observedAt) : null,
-        errorMessage: propagation.errorMessage ?? originSync?.errorMessage ?? null
+        errorMessage: isPullRequest
+          ? (propagation.errorMessage ?? originSync?.errorMessage ?? null)
+          : (originSync?.errorMessage ?? propagation.errorMessage ?? null)
       };
     });
   }

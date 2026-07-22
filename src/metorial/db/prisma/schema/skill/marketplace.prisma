@@ -4,11 +4,17 @@ enum SkillMarketplaceStatus {
   deleted
 }
 
+enum SkillMarketplaceRepositoryAccessMode {
+  pull_request
+  default_branch
+}
+
 model SkillMarketplace {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status SkillMarketplaceStatus @default(active)
+  status               SkillMarketplaceStatus               @default(active)
+  repositoryAccessMode SkillMarketplaceRepositoryAccessMode @default(pull_request)
 
   /// [EntityImage]
   image Json?

@@ -119,6 +119,8 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
   }
 
   let target = sync.destination.skillMarketplace ? 'marketplace' : 'skill';
+  let repositoryAccessMode =
+    sync.destination.skillMarketplace?.repositoryAccessMode ?? 'pull_request';
   let propagationIds: string[] = [];
 
   for (let link of repositoryLinks) {
@@ -142,6 +144,7 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
         data: {
           ...getId('skillDestinationSyncRepositoryPropagation'),
           status: 'pending',
+          repositoryAccessMode,
           skillDestinationSyncOid: sync.oid,
           skillRepositoryOid: link.skillRepository.oid,
           branchName: createSkillSyncBranchName({
@@ -209,8 +212,14 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
       if (!propagation) throw new QueueRetryError();
 
       if (!propagation.originSyncId) {
-        let normalizedBranchName = normalizeSkillSyncBranchName(propagation.branchName);
-        if (normalizedBranchName !== propagation.branchName) {
+        let normalizedBranchName =
+          propagation.repositoryAccessMode === 'pull_request'
+            ? normalizeSkillSyncBranchName(propagation.branchName)
+            : propagation.branchName;
+        if (
+          propagation.repositoryAccessMode === 'pull_request' &&
+          normalizedBranchName !== propagation.branchName
+        ) {
           propagation = await db.skillDestinationSyncRepositoryPropagation.update({
             where: { oid: propagation.oid },
             data: { branchName: normalizedBranchName },
@@ -233,14 +242,24 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           `Starting update for ${repositoryName}.`
         );
 
-        let originSync = await origin.scmRepository.syncCodeBucketToBranch({
+        let originSync = await origin.scmRepository.syncCodeBucket({
           tenantId: originTenant.id,
           scmRepositoryId: propagation.skillRepository.repoId,
           codeBucketId: sync.destination.codeBucketId,
-          branchName: propagation.branchName,
-          prName: propagation.prName,
+          repositoryAccessMode: propagation.repositoryAccessMode,
+          requestKey: propagation.id,
+          branchName:
+            propagation.repositoryAccessMode === 'pull_request'
+              ? propagation.branchName
+              : undefined,
+          prName:
+            propagation.repositoryAccessMode === 'pull_request'
+              ? propagation.prName
+              : undefined,
           prDescription: propagation.prDescription ?? undefined,
-          enableAutoMerge: true
+          commitMessage: propagation.commitMessage ?? propagation.prName,
+          enableAutoMerge:
+            propagation.repositoryAccessMode === 'pull_request' ? true : undefined
         });
 
         await db.skillDestinationSyncRepositoryPropagation.update({
@@ -367,6 +386,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
     if (
       originSync.status === 'merged' ||
       originSync.status === 'complete_unmerged' ||
+      originSync.status === 'complete_direct_push' ||
       originSync.status === 'complete_no_changes'
     ) {
       let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({
@@ -431,6 +451,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
     }
 
     let nextStatus =
+      propagation.repositoryAccessMode === 'pull_request' &&
       originSync.status === 'waiting_for_review'
         ? ('waiting_for_review' as const)
         : ('processing' as const);

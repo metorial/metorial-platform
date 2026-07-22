@@ -14,7 +14,12 @@ import {
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
-import type { EntityImage, Prisma, SkillMarketplaceStatus } from '@metorial/db';
+import type {
+  EntityImage,
+  Prisma,
+  SkillMarketplaceRepositoryAccessMode,
+  SkillMarketplaceStatus
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
 import {
@@ -79,6 +84,7 @@ type SkillMarketplaceInput = {
   name?: string;
   description?: string | null;
   skillConfigurationId?: string | null;
+  repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
 };
 
 class SkillMarketplaceServiceImpl {
@@ -93,6 +99,18 @@ class SkillMarketplaceServiceImpl {
   }
 
   private hasUpdate(input: SkillMarketplaceInput) {
+    return (
+      input.imageFileId !== undefined ||
+      input.image !== undefined ||
+      input.providerOverrides !== undefined ||
+      input.name !== undefined ||
+      input.description !== undefined ||
+      input.skillConfigurationId !== undefined ||
+      input.repositoryAccessMode !== undefined
+    );
+  }
+
+  private hasContentUpdate(input: SkillMarketplaceInput) {
     return (
       input.imageFileId !== undefined ||
       input.image !== undefined ||
@@ -221,6 +239,7 @@ class SkillMarketplaceServiceImpl {
         providerOverrides?: Prisma.InputJsonValue | null;
         imageFileId?: string | null;
         skillConfigurationId?: string | null;
+        repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
       };
     }
   ) {
@@ -242,6 +261,7 @@ class SkillMarketplaceServiceImpl {
           providerOverrides: d.input.providerOverrides as any,
           name: d.input.name,
           description: d.input.description,
+          repositoryAccessMode: d.input.repositoryAccessMode,
           slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid,
@@ -322,6 +342,7 @@ class SkillMarketplaceServiceImpl {
         providerOverrides: d.input.providerOverrides as any,
         name: d.input.name,
         description: d.input.description,
+        repositoryAccessMode: d.input.repositoryAccessMode,
         skillConfigurationOid
       }
     });
@@ -336,10 +357,12 @@ class SkillMarketplaceServiceImpl {
       });
     }
 
-    await enqueueSkillMarketplaceLifecycle({
-      skillMarketplaceId: d.skillMarketplace.id,
-      event: 'updated'
-    });
+    if (this.hasContentUpdate(d.input)) {
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: d.skillMarketplace.id,
+        event: 'updated'
+      });
+    }
 
     return await this.getSkillMarketplaceRecord({
       resourceTenant: d.resourceTenant!,
