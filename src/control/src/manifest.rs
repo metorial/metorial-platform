@@ -19,6 +19,10 @@ pub struct Manifest {
     #[serde(default)]
     pub mode: Mode,
     #[serde(default)]
+    pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub test: Tests,
+    #[serde(default)]
     pub dev: Dev,
     #[serde(default)]
     pub package: Option<Package>,
@@ -42,7 +46,7 @@ pub struct Manifest {
     pub cleanup: Cleanup,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
     #[default]
@@ -52,7 +56,7 @@ pub enum Mode {
 }
 
 impl Mode {
-    fn applies_to(&self, kind: &RootKind) -> bool {
+    pub fn applies_to(&self, kind: &RootKind) -> bool {
         matches!(
             (self, kind),
             (Self::Both, _)
@@ -60,6 +64,23 @@ impl Mode {
                 | (Self::Enterprise, RootKind::Enterprise)
         )
     }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Tests {
+    #[serde(default)]
+    pub e2e: Option<E2eTest>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct E2eTest {
+    #[serde(default)]
+    pub packages: Vec<String>,
+    /// Single-shot service commands used instead of development watchers.
+    #[serde(default)]
+    pub start: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -251,7 +272,214 @@ pub fn discover(root: &Path) -> Result<Vec<LoadedManifest>> {
             );
         }
     }
+    validate_package_graph(&manifests)?;
     Ok(manifests)
+}
+
+fn validate_package_graph(manifests: &[LoadedManifest]) -> Result<()> {
+    let packages = manifests
+        .iter()
+        .filter_map(|loaded| {
+            loaded
+                .manifest
+                .package
+                .as_ref()
+                .map(|package| (package.name.as_str(), loaded))
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    for loaded in manifests {
+        let Some(package) = &loaded.manifest.package else {
+            if !loaded.manifest.dependencies.is_empty() {
+                bail!(
+                    "{}: dependencies require a named package",
+                    loaded.path.display()
+                );
+            }
+            continue;
+        };
+        for target in &loaded.manifest.dependencies {
+            if target == &package.name {
+                bail!(
+                    "{}: package {:?} cannot reference itself as a dependency",
+                    loaded.path.display(),
+                    package.name
+                );
+            }
+            let Some(target_manifest) = packages.get(target.as_str()) else {
+                bail!(
+                    "{}: package {:?} references unknown dependency {:?}",
+                    loaded.path.display(),
+                    package.name,
+                    target
+                );
+            };
+            for kind in [RootKind::Standalone, RootKind::Enterprise] {
+                if loaded.manifest.mode.applies_to(&kind)
+                    && !target_manifest.manifest.mode.applies_to(&kind)
+                {
+                    bail!(
+                        "{}: package {:?} ({:?}) references dependency {:?} with incompatible mode {:?}",
+                        loaded.path.display(),
+                        package.name,
+                        loaded.manifest.mode,
+                        target,
+                        target_manifest.manifest.mode
+                    );
+                }
+            }
+        }
+    }
+
+    let mut visiting = BTreeSet::new();
+    let mut visited = BTreeSet::new();
+    for package in packages.keys() {
+        validate_dependency_cycles(
+            package,
+            &packages,
+            &mut visiting,
+            &mut visited,
+            &mut Vec::new(),
+        )?;
+    }
+    Ok(())
+}
+
+fn validate_dependency_cycles<'a>(
+    package: &'a str,
+    packages: &BTreeMap<&'a str, &'a LoadedManifest>,
+    visiting: &mut BTreeSet<&'a str>,
+    visited: &mut BTreeSet<&'a str>,
+    path: &mut Vec<&'a str>,
+) -> Result<()> {
+    if visited.contains(package) {
+        return Ok(());
+    }
+    if !visiting.insert(package) {
+        let start = path.iter().position(|item| *item == package).unwrap_or(0);
+        let mut cycle = path[start..].to_vec();
+        cycle.push(package);
+        bail!("control package dependency cycle: {}", cycle.join(" -> "));
+    }
+    path.push(package);
+    if let Some(loaded) = packages.get(package) {
+        for dependency in &loaded.manifest.dependencies {
+            validate_dependency_cycles(dependency, packages, visiting, visited, path)?;
+        }
+    }
+    path.pop();
+    visiting.remove(package);
+    visited.insert(package);
+    Ok(())
+}
+
+/// Return transitive dependencies in dependency-first order, excluding roots.
+///
+/// This is intentionally independent of the E2E runner so other commands can
+/// reuse the same validated package graph.
+pub fn dependency_closure<'a>(
+    manifests: &'a [LoadedManifest],
+    roots: &[&'a LoadedManifest],
+    kind: &RootKind,
+) -> Result<Vec<&'a LoadedManifest>> {
+    let packages = manifests
+        .iter()
+        .filter(|loaded| loaded.manifest.mode.applies_to(kind))
+        .filter_map(|loaded| {
+            loaded
+                .manifest
+                .package
+                .as_ref()
+                .map(|package| (package.name.as_str(), loaded))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let root_names = roots
+        .iter()
+        .filter_map(|loaded| {
+            loaded
+                .manifest
+                .package
+                .as_ref()
+                .map(|package| package.name.as_str())
+        })
+        .collect::<BTreeSet<_>>();
+    let mut visited = root_names.clone();
+    let mut ordered = Vec::new();
+    for root in roots {
+        for dependency in &root.manifest.dependencies {
+            collect_dependency(dependency, &packages, &mut visited, &mut ordered)?;
+        }
+    }
+    Ok(ordered)
+}
+
+/// Select manifests and expand named package dependencies.
+///
+/// Root marker manifests are retained first. Dependencies are emitted in
+/// dependency-first order, followed by directly selected packages in their
+/// deterministic discovery order.
+pub fn select_with_dependencies<'a>(
+    manifests: &'a [LoadedManifest],
+    selectors: &[String],
+    kind: &RootKind,
+) -> Result<Vec<&'a LoadedManifest>> {
+    let selected = select(manifests, selectors, kind)?;
+    if selectors.is_empty() {
+        return Ok(selected);
+    }
+    let roots = selected
+        .iter()
+        .copied()
+        .filter(|loaded| loaded.manifest.package.is_none())
+        .collect::<Vec<_>>();
+    let direct = selected
+        .iter()
+        .copied()
+        .filter(|loaded| loaded.manifest.package.is_some())
+        .collect::<Vec<_>>();
+    let dependencies = dependency_closure(manifests, &direct, kind)?;
+    let mut output = roots;
+    let mut names = BTreeSet::new();
+    for loaded in dependencies.into_iter().chain(direct) {
+        let name = loaded
+            .manifest
+            .package
+            .as_ref()
+            .expect("expanded manifests are named")
+            .name
+            .as_str();
+        if names.insert(name) {
+            output.push(loaded);
+        }
+    }
+    Ok(output)
+}
+
+fn collect_dependency<'a>(
+    package: &str,
+    packages: &BTreeMap<&str, &'a LoadedManifest>,
+    visited: &mut BTreeSet<&'a str>,
+    ordered: &mut Vec<&'a LoadedManifest>,
+) -> Result<()> {
+    let loaded = packages
+        .get(package)
+        .copied()
+        .ok_or_else(|| miette::miette!("unknown control package dependency {package:?}"))?;
+    let name = loaded
+        .manifest
+        .package
+        .as_ref()
+        .expect("package graph only contains named manifests")
+        .name
+        .as_str();
+    if !visited.insert(name) {
+        return Ok(());
+    }
+    for dependency in &loaded.manifest.dependencies {
+        collect_dependency(dependency, packages, visited, ordered)?;
+    }
+    ordered.push(loaded);
+    Ok(())
 }
 
 pub fn load(path: &Path) -> Result<LoadedManifest> {
@@ -598,5 +826,91 @@ mod tests {
 
         fs::write(&path, "name='api'\n[[dev.expose]]\nport=0").unwrap();
         assert!(load(&path).is_err());
+    }
+
+    fn write_package(root: &Path, directory: &str, manifest: &str) {
+        let directory = root.join(directory);
+        fs::create_dir_all(&directory).unwrap();
+        fs::write(directory.join("package.json"), "{}").unwrap();
+        fs::write(directory.join("control.toml"), manifest).unwrap();
+    }
+
+    #[test]
+    fn validates_and_orders_package_dependencies() {
+        let temp = tempdir().unwrap();
+        fs::write(temp.path().join("control.toml"), "mode='both'").unwrap();
+        write_package(temp.path(), "db", "name='db'");
+        write_package(
+            temp.path(),
+            "api",
+            "name='api'\ndependencies=['db']\n[test.e2e]\npackages=['tests']",
+        );
+        write_package(temp.path(), "tests", "name='tests'");
+        let manifests = discover(temp.path()).unwrap();
+        let roots = select(&manifests, &["api".into()], &RootKind::Standalone).unwrap();
+        let closure = dependency_closure(&manifests, &roots, &RootKind::Standalone).unwrap();
+        assert_eq!(
+            closure
+                .iter()
+                .map(|loaded| loaded.manifest.package.as_ref().unwrap().name.as_str())
+                .collect::<Vec<_>>(),
+            ["db"]
+        );
+        let expanded =
+            select_with_dependencies(&manifests, &["api".into()], &RootKind::Standalone).unwrap();
+        assert_eq!(
+            expanded
+                .iter()
+                .filter_map(|loaded| loaded.manifest.package.as_ref().map(|p| p.name.as_str()))
+                .collect::<Vec<_>>(),
+            ["db", "api"]
+        );
+        assert!(expanded[0].manifest.package.is_none());
+        assert_eq!(
+            expanded[1..]
+                .iter()
+                .map(|loaded| loaded.manifest.package.as_ref().unwrap().name.as_str())
+                .collect::<Vec<_>>(),
+            ["db", "api"]
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_self_cyclic_and_mode_incompatible_dependencies() {
+        for (dependency, expected) in [
+            ("missing", "unknown dependency"),
+            ("api", "cannot reference itself"),
+        ] {
+            let temp = tempdir().unwrap();
+            write_package(
+                temp.path(),
+                "api",
+                &format!("name='api'\ndependencies=['{dependency}']"),
+            );
+            let error = discover(temp.path()).unwrap_err();
+            assert!(format!("{error:?}").contains(expected));
+        }
+
+        let temp = tempdir().unwrap();
+        write_package(temp.path(), "a", "name='a'\ndependencies=['b']");
+        write_package(temp.path(), "b", "name='b'\ndependencies=['a']");
+        let error = discover(temp.path()).unwrap_err();
+        assert!(format!("{error:?}").contains("a -> b -> a"));
+
+        let temp = tempdir().unwrap();
+        write_package(temp.path(), "both", "name='both'\ndependencies=['oss']");
+        write_package(temp.path(), "oss", "name='oss'\nmode='oss'");
+        let error = discover(temp.path()).unwrap_err();
+        assert!(format!("{error:?}").contains("incompatible mode"));
+    }
+
+    #[test]
+    fn distinguishes_absent_and_present_e2e_configuration() {
+        let parsed: Manifest =
+            toml::from_str("name='api'\n[test.e2e]\npackages=['suite']").unwrap();
+        assert_eq!(parsed.test.e2e.unwrap().packages, ["suite"]);
+        let absent: Manifest = toml::from_str("name='api'").unwrap();
+        assert!(absent.test.e2e.is_none());
+        assert!(toml::from_str::<Manifest>("[test.e2e]\nunknown=true").is_err());
     }
 }

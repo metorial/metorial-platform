@@ -3,6 +3,7 @@ import { PrismaClient } from '../../prisma/generated/client';
 import { afterAll, vi } from 'vitest';
 import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
 import { getId } from '../id';
+import { connectionLogsBucketRecord } from '../storage';
 
 // Mock `hono/bun` for compatibility with Vitest's Node runner (`Bun` is undefined error)
 vi.mock('hono/bun', () => ({
@@ -39,6 +40,14 @@ export const cleanDatabase = async () => {
       id: functionBayProviderSeed.id,
       identifier: functionBayProviderSeed.identifier,
       name: functionBayProviderSeed.name
+    },
+    update: {}
+  });
+  await testDb.connectionLogsStorageBucket.upsert({
+    where: { bucket: connectionLogsBucketRecord.bucket },
+    create: {
+      oid: connectionLogsBucketRecord.oid,
+      bucket: connectionLogsBucketRecord.bucket
     },
     update: {}
   });

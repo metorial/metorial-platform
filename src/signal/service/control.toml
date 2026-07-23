@@ -1,6 +1,11 @@
 name = "@metorial/signal"
 group = "oss"
 
+dependencies = ["@metorial/object-storage"]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
+
 [dev]
 run = ["bun --watch ./src/server.ts"]
 

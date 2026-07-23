@@ -23,7 +23,7 @@
     "db:push": "bun run db:push:dev && bun run db:push:test",
     "test": "bun run test:unit && bun run test:e2e",
     "test:unit": "bunx vitest run --config vitest.unit.config.ts",
-    "test:e2e": "bunx vitest run --passWithNoTests",
+    "test:e2e": "bun --bun x vitest run e2e.test.ts --passWithNoTests --configLoader native",
     "test:watch": "bunx vitest watch",
     "typecheck": "bun run check-types"
   },

@@ -1,5 +1,9 @@
 name = "@metorial/ares"
 group = "oss"
+dependencies = ["@metorial/relay"]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
 
 [dev]
 prepare = ["frontend:build"]

@@ -1,6 +1,11 @@
 name = "@metorial/app-dashboard"
 group = "oss"
 mode = "oss"
+dependencies = ["@metorial/app-api"]
+
+[test.e2e]
+start = ["vite --port 3300 --host 0.0.0.0"]
+packages = []
 
 [dev]
 run = ["vite --port 3300 --host 0.0.0.0"]

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { testDb, cleanDatabase } from '../../test/setup';
 import { fixtures } from '../../test/fixtures';
 import { shuttleClient } from '../../test/client';
+import { serverInstanceConfigurationService } from '../../services';
 
 describe('serverConnection:list E2E', () => {
   const f = fixtures(testDb);
@@ -208,11 +209,12 @@ describe('serverConnection:create E2E', () => {
       direction: 'egress' as const,
       entries: [{ cidr: '10.0.0.0/8', portRange: { from: 443, to: 443 } }]
     };
-    const instanceConfiguration = await shuttleClient.serverInstanceConfiguration.upsert({
-      tenantId: tenant.id,
-      enclaveId: 'enc_test',
-      egressPolicy
-    });
+    const instanceConfiguration =
+      await serverInstanceConfigurationService.upsertServerInstanceConfiguration({
+        tenant,
+        enclaveId: 'enc_test',
+        egressPolicy
+      });
 
     const result = await shuttleClient.serverConnection.create({
       tenantId: tenant.id,

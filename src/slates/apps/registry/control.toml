@@ -1,6 +1,11 @@
 name = "@metorial/slates-registry"
 group = "oss"
 
+dependencies = ["@metorial/object-storage"]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
+
 [dev]
 prepare = ["admin:build"]
 run = ["bun --watch ./src/server.ts"]

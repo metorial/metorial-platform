@@ -25,11 +25,11 @@ pub async fn run(
 ) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
     workspace::configure_manifests(project, &mut manifests)?;
-    let selected = manifest::select(&manifests, selectors, &project.kind)?;
+    let selected = manifest::select_with_dependencies(&manifests, selectors, &project.kind)?;
     if selected.is_empty() {
         bail!("no control.toml manifests or run commands were selected");
     }
-    let all = manifest::select(&manifests, &[], &project.kind)?;
+    let all = manifest::select_with_dependencies(&manifests, &[], &project.kind)?;
     let root_env = environment::root_environment(project)?;
     if dry_run {
         let packages = turbo::plan(&selected, &project.root, &root_env)?;
@@ -169,11 +169,11 @@ pub async fn run_prepare(
 ) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
     workspace::configure_manifests(project, &mut manifests)?;
-    let selected = manifest::select(&manifests, selectors, &project.kind)?;
+    let selected = manifest::select_with_dependencies(&manifests, selectors, &project.kind)?;
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
     }
-    let all = manifest::select(&manifests, &[], &project.kind)?;
+    let all = manifest::select_with_dependencies(&manifests, &[], &project.kind)?;
     let root_env = environment::root_environment(project)?;
     if !no_docker {
         println!("Starting development services");

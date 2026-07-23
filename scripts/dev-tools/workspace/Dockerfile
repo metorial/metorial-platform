@@ -24,6 +24,7 @@ RUN apt-get update \
     cmake \
     curl \
     git \
+    iproute2 \
     jq \
     libclang-dev \
     libpq-dev \

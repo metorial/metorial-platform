@@ -32,6 +32,7 @@ target/release/control prepare --no-docker
 target/release/control env
 target/release/control cleanup --dry-run
 target/release/control docker stop
+target/release/control test e2e @metorial/shuttle
 target/release/control workspace create feature/my-change --runtime=docker
 target/release/control workspace list
 target/release/control workspace remove feature/my-change
@@ -54,6 +55,15 @@ name = "core-api"
 group = "backend"
 # Optional: "oss" or "enterprise"; omitted means both layouts.
 mode = "both"
+# Control package names required when this package is developed or tested.
+dependencies = ["database", "api"]
+
+[test.e2e]
+# Single-shot service commands; do not use watchers or process supervisors.
+start = ["bun ./src/server.ts"]
+# Additional npm workspace packages whose test:e2e scripts belong to this suite.
+# These packages do not need control.toml manifests.
+packages = ["integration-fixtures"]
 
 # Strings are literals. `true` inherits the key from root env.json or the
 # process environment when present.
@@ -122,6 +132,20 @@ Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
 environment.
 
+`dependencies` contains Control package names. Discovery rejects unknown
+packages, self references, dependency cycles, and references unavailable in any
+mode where the referring package is active. Dependency closure is transitive,
+deterministic, and is applied by normal dev, prepare, env, cleanup, and Docker
+selection.
+
+`[test.e2e]` is an explicit opt-in. Its `start` array defines single-shot
+service commands used instead of `[dev].run`; these commands must not launch
+watchers or process supervisors. Its `packages` array contains arbitrary npm
+workspace package names, including packages without a `control.toml`. Control
+discovers package.json files recursively while excluding `.git`, `.control`,
+`node_modules`, and `target`, and validates these names when building an E2E
+plan.
+
 `control dev` starts Compose projects, waits for declared databases, creates
 databases idempotently, writes package-local `.env` files, then prepares the
 workspace in this order:
@@ -145,6 +169,81 @@ MongoDB follows the same rule using `mongosh`; an empty database receives a
 `control prepare` writes environment files and runs the same preparation
 sequence without starting Turbo or any application processes. It starts
 declared dependencies unless `--no-docker` is passed.
+
+## Docker E2E tests
+
+```sh
+control test e2e @metorial/shuttle
+control test e2e @metorial/mte-core-api @metorial/mte-global-router
+control test e2e --all
+```
+
+Each selector must resolve to one named Control package. Multiple selections
+run sequentially in independent environments; `--all` selects every manifest
+that declares `[test.e2e]`. In enterprise checkouts, Control infers OSS mode
+when a selected manifest lives under `oss/`, so no mode flag is required. The
+command requires a Docker host and intentionally does not run inside a Control
+workspace container. Control generates a self-contained
+`.control/test/docker-compose.yml` and runner assets.
+The Compose project gets fresh Postgres 17, MongoDB 8, Redis 7.4, NATS 2.11,
+and etcd data volumes on every invocation. Checkout-derived external volumes
+persist `node_modules`, Bun, Cargo target/registry, and Go build/module caches
+across E2E runs; normal E2E cleanup never removes those caches, so the next
+`bun install` reuses the checkout's existing Linux `node_modules` volume.
+
+One shared test container uses the same content-hashed development image as
+Docker workspaces. Each invocation has a unique generated directory and Compose
+project. Control generates read-only environment overlays for the selected
+package and its dependency sources, then mounts those overlays over the
+container's package-local `.env`/`.env.test` paths without modifying checkout
+files. The selected source and its tests use suffixed test databases;
+dependency sources use unsuffixed development databases. The runner creates
+every required Postgres database idempotently. MongoDB databases are left to
+Mongo's normal lazy creation behavior; readiness is provided by the Mongo
+container health check and forwarded TCP port, so the shared runner does not
+require `mongosh`.
+Workspace-wide Prisma tasks receive all distinct database variables (for
+example `CARGO_DATABASE_URL` and federation URLs), while generic
+`DATABASE_URL` remains package-local. Control then runs `bun install`, workspace
+Prisma generate/push tasks, and the selected Control manifests' declared
+prepare scripts. It intentionally skips the production root build.
+
+The runner starts development commands dependency-first, one Control manifest
+at a time. Before starting the next manifest it waits for the current
+manifest's declared `[[dev.expose]]` TCP ports while checking every development
+process for early exit. Workers without exposures must survive a deterministic
+two-second startup grace. If a later manifest repeats an already-ready port,
+Control uses the same survival check instead of accepting the earlier
+listener as proof that the later source is ready. Service URLs using the normal
+`services` host are localized to `localhost` in generated E2E environments, so
+the selected test uses the object-storage, relay, and other dev processes
+running in the shared container. Included npm packages are test targets only
+and are not started as services. Compose attaches output only from
+`control-e2e`, keeping dependency health logs out of normal output. Tests run
+sequentially in this order:
+
+1. the selected package
+2. packages listed by `[test.e2e].packages`
+
+The selected package's and each explicitly included npm package's `test:e2e`
+script is run when present. Control dependencies are source services only; to
+run a dependency's tests, select it in a separate command, which gives it a
+fresh Compose project and volumes. Included npm packages receive the selected
+Control package's test environment. Declared database URLs are rewritten to
+deterministic test databases (`<declared-name>-test`, without double suffixing
+an existing `-test` name), `NODE_ENV` is set to `test`, and those Postgres test
+databases are provisioned alongside dependency source databases. Control runs
+`db:push:test` when declared. Packages without that script fall back to
+`prisma:push` under the mounted test environment; packages without either
+schema script continue without schema preparation.
+
+Dependency development processes use unsuffixed fresh databases. Mongo test
+URLs use the same suffix and retain Mongo's lazy creation behavior. A missing
+test script emits a warning and does not fail the suite. Development
+processes, containers, networks, and volumes are cleaned up after success,
+failure, or interrupt. A hard host or Docker daemon crash can leave the
+deterministic Compose project behind; the next invocation removes it before
+starting.
 
 `control workspace create BRANCH --runtime=host|docker` creates a sibling
 worktree. The runtime flag is required and is stored in

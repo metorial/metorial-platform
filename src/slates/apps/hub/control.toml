@@ -1,5 +1,14 @@
 name = "@metorial/slates"
 group = "oss"
+dependencies = [
+  "@metorial/object-storage",
+  "@metorial/function-bay",
+  "@metorial/signal",
+  "@metorial/nebula",
+]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
 
 [dev]
 prepare = ["admin:build"]

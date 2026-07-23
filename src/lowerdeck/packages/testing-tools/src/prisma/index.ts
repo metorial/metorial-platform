@@ -68,7 +68,7 @@ export const cleanDatabase = async (
   const exclude = new Set(options.excludeTables ?? []);
 
   const tables = await prisma.$queryRawUnsafe<Array<{ tablename: string }>>(
-    `SELECT tablename FROM pg_tables WHERE schemaname = '${schema}'`
+    `SELECT tablename::text AS tablename FROM pg_tables WHERE schemaname = '${schema}'`
   );
 
   if (!tables.length) {

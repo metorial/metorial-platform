@@ -169,7 +169,7 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
 async fn start_services(project: &ProjectRoot) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
     workspace::configure_manifests(project, &mut manifests)?;
-    let selected = manifest::select(&manifests, &[], &project.kind)?;
+    let selected = manifest::select_with_dependencies(&manifests, &[], &project.kind)?;
     let env = environment::root_environment(project)?;
     docker::start(&project.root, &selected, &env)
         .await

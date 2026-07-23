@@ -6,6 +6,7 @@ import type {
   WorkflowRun
 } from '../../../prisma/generated/client';
 import { WorkflowArtifactType } from '../../../prisma/generated/client';
+import { env } from '../../env';
 import { ID, snowflake } from '../../id';
 import { defineFactory } from '@lowerdeck/testing-tools';
 
@@ -25,7 +26,7 @@ export const WorkflowArtifactFixtures = (db: PrismaClient) => {
         name: data.overrides?.name ?? `artifact-${randomBytes(4).toString('hex')}`,
         type: data.overrides?.type ?? WorkflowArtifactType.output,
         storageKey: data.overrides?.storageKey ?? `artifacts/${id}`,
-        bucket: data.overrides?.bucket ?? 'artifacts-test',
+        bucket: data.overrides?.bucket ?? env.storage.ARTIFACT_BUCKET_NAME,
         workflowOid: data.workflowOid,
         runOid: data.runOid,
         createdAt: data.overrides?.createdAt ?? new Date()

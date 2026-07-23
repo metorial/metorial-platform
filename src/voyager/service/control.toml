@@ -1,6 +1,9 @@
 name = "@metorial/voyager"
 group = "oss"
 
+[test.e2e]
+start = ["bun ./src/server.ts"]
+
 [dev]
 run = ["bun --watch ./src/server.ts"]
 

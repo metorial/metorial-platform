@@ -1,5 +1,9 @@
 name = "@metorial/shuttle"
 group = "oss"
+dependencies = ["@metorial/function-bay", "@metorial/nebula", "@metorial/object-storage"]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
 
 [dev]
 run = ["bun --watch ./src/server.ts"]

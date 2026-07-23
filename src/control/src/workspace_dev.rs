@@ -207,7 +207,7 @@ struct RunningWorkspace {
 async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningWorkspace> {
     let metadata = workspace::metadata(project).await?;
     let manifests = manifest::discover(&project.root)?;
-    let selected = manifest::select(&manifests, &[], &project.kind)?;
+    let selected = manifest::select_with_dependencies(&manifests, &[], &project.kind)?;
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
     }
@@ -477,6 +477,20 @@ fn workspace_assets(project: &ProjectRoot, metadata: &WorkspaceMetadata) -> Path
     project.oss.join("scripts/dev-tools/workspace")
 }
 
+pub(crate) fn test_assets(project: &ProjectRoot) -> PathBuf {
+    for root in [&project.root, &project.oss] {
+        for candidate in [
+            root.join("oss/scripts/dev-tools/workspace"),
+            root.join("scripts/dev-tools/workspace"),
+        ] {
+            if candidate.is_dir() {
+                return candidate;
+            }
+        }
+    }
+    project.oss.join("scripts/dev-tools/workspace")
+}
+
 fn workspace_environment(
     project: &ProjectRoot,
     metadata: &WorkspaceMetadata,
@@ -584,7 +598,7 @@ async fn ensure_proxy(root: &Path, assets: &Path) -> Result<()> {
         .wrap_err("could not start the global development proxy")
 }
 
-async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<String> {
+pub(crate) async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<String> {
     let dockerfile = assets.join("Dockerfile");
     let entrypoint = assets.join("entrypoint.sh");
     let mut hasher = DefaultHasher::new();

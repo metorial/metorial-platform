@@ -1,6 +1,11 @@
 name = "@metorial/code-bucket-service-generated"
 group = "oss"
 
+dependencies = ["@metorial/object-storage"]
+
+[test.e2e]
+start = ["make run"]
+
 [dev]
 run = ["make dev"]
 

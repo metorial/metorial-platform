@@ -77,6 +77,8 @@ entryPoints:
     address: ':8080'
   port-12121:
     address: ':12121'
+  port-52010:
+    address: ':52010'
   port-52020:
     address: ':52020'
   port-52030:

@@ -1,5 +1,17 @@
 name = "@metorial-subspace/app-controller"
 group = "oss"
+dependencies = [
+  "@metorial/object-storage",
+  "@metorial/shuttle",
+  "@metorial/slates",
+  "@metorial/voyager",
+  "@metorial/origin",
+  "@metorial/signal",
+  "@metorial/function-bay",
+]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
 
 [dev]
 run = ["bun --watch ./src/server.ts"]

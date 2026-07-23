@@ -1,6 +1,8 @@
 name = "@metorial-cargo/service"
 group = "oss"
 
+dependencies = ["@metorial/object-storage"]
+
 [dev]
 run = ["bun --watch ./src/server.ts"]
 

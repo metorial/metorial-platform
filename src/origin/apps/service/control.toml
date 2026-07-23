@@ -1,6 +1,9 @@
 name = "@metorial/origin"
 group = "oss"
-mode = "enterprise"
+dependencies = ["@metorial/code-bucket-service-generated", "@metorial/object-storage"]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
 
 [dev]
 run = ["bun --watch ./src/server.ts"]

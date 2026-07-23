@@ -1,6 +1,7 @@
 mod cleanup;
 mod dev;
 mod docker;
+mod e2e;
 mod environment;
 mod manifest;
 mod process;
@@ -26,6 +27,9 @@ struct Cli {
     /// Start root detection at this directory.
     #[arg(long, global = true, value_name = "PATH")]
     root: Option<PathBuf>,
+    /// Operate on the OSS source tree in an enterprise checkout.
+    #[arg(long, global = true)]
+    oss: bool,
     #[command(subcommand)]
     command: Commands,
 }
@@ -81,12 +85,29 @@ enum Commands {
         #[command(subcommand)]
         command: DockerCommand,
     },
+    /// Run tests in isolated environments.
+    Test {
+        #[command(subcommand)]
+        command: TestCommand,
+    },
 }
 
 #[derive(Debug, Subcommand)]
 enum DockerCommand {
     /// Stop declared Compose services without removing volumes.
     Stop { selectors: Vec<String> },
+}
+
+#[derive(Debug, Subcommand)]
+enum TestCommand {
+    /// Run package E2E suites sequentially in fresh Docker environments.
+    E2e {
+        /// Package selectors, each resolving to exactly one Control package.
+        selectors: Vec<String>,
+        /// Run every package that declares an E2E suite.
+        #[arg(long)]
+        all: bool,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -145,11 +166,15 @@ enum WorkspaceCommand {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let start = match cli.root {
-        Some(root) => root,
+    let start = match &cli.root {
+        Some(root) => root.clone(),
         None => env::current_dir().into_diagnostic()?,
     };
-    let project = root::detect(&start)?;
+    let mut project = root::detect(&start)?;
+    if cli.oss {
+        project.kind = root::RootKind::Standalone;
+        project.root = project.oss.clone();
+    }
 
     match cli.command {
         Commands::Dev {
@@ -176,7 +201,8 @@ async fn main() -> Result<()> {
         Commands::Env { selectors, json } => {
             let mut manifests = manifest::discover(&project.root)?;
             workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            let selected =
+                manifest::select_with_dependencies(&manifests, &selectors, &project.kind)?;
             let root_env = environment::root_environment(&project)?;
             let mut written = Vec::new();
             for loaded in selected {
@@ -204,7 +230,8 @@ async fn main() -> Result<()> {
         } => {
             let mut manifests = manifest::discover(&project.root)?;
             workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            let selected =
+                manifest::select_with_dependencies(&manifests, &selectors, &project.kind)?;
             if stop_docker {
                 let env = environment::root_environment(&project)?;
                 let projects = docker::compose_projects(&project.root, &selected);
@@ -300,12 +327,16 @@ async fn main() -> Result<()> {
         } => {
             let mut manifests = manifest::discover(&project.root)?;
             workspace::configure_manifests(&project, &mut manifests)?;
-            let selected = manifest::select(&manifests, &selectors, &project.kind)?;
+            let selected =
+                manifest::select_with_dependencies(&manifests, &selectors, &project.kind)?;
             let env = environment::root_environment(&project)?;
             let projects = docker::compose_projects(&project.root, &selected);
             docker::stop(&project.root, &projects, &env).await;
             Ok(())
         }
+        Commands::Test {
+            command: TestCommand::E2e { selectors, all },
+        } => e2e::run(&project, &selectors, all).await,
     }
 }
 
@@ -466,6 +497,32 @@ mod tests {
                 no_docker: true,
                 selectors,
             } if selectors == ["backend"]
+        ));
+    }
+
+    #[test]
+    fn parses_e2e_test_selector() {
+        let test = Cli::try_parse_from([
+            "control",
+            "test",
+            "e2e",
+            "@metorial/shuttle",
+            "@metorial/forge",
+        ])
+        .unwrap();
+        assert!(matches!(
+            test.command,
+            Commands::Test {
+                command: TestCommand::E2e { selectors, all: false },
+            } if selectors == ["@metorial/shuttle", "@metorial/forge"]
+        ));
+
+        let all = Cli::try_parse_from(["control", "test", "e2e", "--all"]).unwrap();
+        assert!(matches!(
+            all.command,
+            Commands::Test {
+                command: TestCommand::E2e { selectors, all: true },
+            } if selectors.is_empty()
         ));
     }
 }

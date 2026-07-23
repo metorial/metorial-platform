@@ -1,14 +1,15 @@
 name = "@metorial/synthesis"
 group = "oss"
+dependencies = ["@metorial-subspace/app-controller"]
+
+[test.e2e]
+start = ["bun ./src/server.ts"]
 
 [dev]
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
 port = 52160
-
-[[dev.expose]]
-port = 12121
 
 [dev.env]
 METORIAL_ENV = "development"

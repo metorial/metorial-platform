@@ -23,6 +23,7 @@
     "db:push:test": "sh -c 'set -a; . ./.env.test; set +a; bun prisma db push --schema prisma/schema'",
     "db:push": "bun run db:push:dev && bun run db:push:test",
     "test": "bunx vitest run --passWithNoTests",
+    "test:e2e": "bun --bun x vitest run e2e.test.ts --configLoader native",
     "test:watch": "bunx vitest watch",
     "typecheck": "bun run check-types && bun run admin:typecheck",
     "admin:typecheck": "tsc --noEmit --project admin/tsconfig.json",

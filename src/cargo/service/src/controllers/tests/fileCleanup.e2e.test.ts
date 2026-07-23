@@ -1,23 +1,13 @@
 import {
   cleanupDeletedFileStorage,
+  getCargoFilesBucketName,
+  getStorage,
   listDeletedFilesWithStorage
 } from '@metorial-cargo/module-file';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../db';
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
-
-let storageMocks = vi.hoisted(() => ({
-  deleteObject: vi.fn(async (_bucket: string, _key: string) => {})
-}));
-
-vi.mock('../../../../modules/file/src/storage', () => ({
-  getCargoFilesBucketName: () => 'cargo-files-test',
-  getStorage: () => ({
-    deleteObject: storageMocks.deleteObject
-  }),
-  storage: {}
-}));
 
 let createEnvironment = async () => {
   let tenant = await cargoClient.tenant.upsert({
@@ -44,7 +34,6 @@ let createEnvironment = async () => {
 
 describe('cargo file cleanup.e2e', () => {
   beforeEach(async () => {
-    storageMocks.deleteObject.mockClear();
     await cleanDatabase();
   });
 
@@ -98,6 +87,11 @@ describe('cargo file cleanup.e2e', () => {
 
   it('deletes object storage content for a single deleted file', async () => {
     let { tenant, environment, purpose } = await createEnvironment();
+    await getStorage().putObject(
+      getCargoFilesBucketName(),
+      'cleanup-single',
+      Buffer.from('cleanup-single')
+    );
 
     let file = await cargoClient.file.create({
       tenantId: tenant.id,
@@ -120,10 +114,9 @@ describe('cargo file cleanup.e2e', () => {
       })
     ).resolves.toBe(true);
 
-    expect(storageMocks.deleteObject).toHaveBeenCalledWith(
-      'cargo-files-test',
-      'cleanup-single'
-    );
+    await expect(
+      getStorage().getObject(getCargoFilesBucketName(), 'cleanup-single')
+    ).rejects.toThrow();
 
     let cleanedFile = await db.file.findUnique({
       where: {
@@ -135,6 +128,11 @@ describe('cargo file cleanup.e2e', () => {
 
   it('keeps object storage when an active file shares the deleted file store id', async () => {
     let { tenant, environment, purpose } = await createEnvironment();
+    await getStorage().putObject(
+      getCargoFilesBucketName(),
+      'cleanup-shared',
+      Buffer.from('cleanup-shared')
+    );
 
     let deletedFile = await cargoClient.file.create({
       tenantId: tenant.id,
@@ -166,7 +164,11 @@ describe('cargo file cleanup.e2e', () => {
       })
     ).resolves.toBe(false);
 
-    expect(storageMocks.deleteObject).not.toHaveBeenCalled();
+    await expect(
+      getStorage().getObject(getCargoFilesBucketName(), 'cleanup-shared')
+    ).resolves.toMatchObject({
+      data: Buffer.from('cleanup-shared')
+    });
   });
 
   it('skips missing files, active files, and deleted files without storage keys', async () => {
@@ -213,6 +215,5 @@ describe('cargo file cleanup.e2e', () => {
       })
     ).resolves.toBe(false);
 
-    expect(storageMocks.deleteObject).not.toHaveBeenCalled();
   });
 });

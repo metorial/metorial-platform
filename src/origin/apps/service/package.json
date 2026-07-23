@@ -12,7 +12,8 @@
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
     "prisma:push": "bun prisma db push --accept-data-loss",
-    "prisma:generate": "bun prisma generate"
+    "prisma:generate": "bun prisma generate",
+    "test:e2e": "bun ./e2e/reachability.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

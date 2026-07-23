@@ -57,6 +57,8 @@
     "src/nebula/*",
     "src/nebula/*/*",
     "src/nebula/*/*/*",
+    "src/object-storage/*",
+    "src/object-storage/clients/*",
     "src/origin/*",
     "src/origin/*/*",
     "src/origin/*/*/*",

@@ -12,6 +12,7 @@ process.env.SIGNED_DOWNLOAD_URL_TOKEN_SECRET ??= 'cargo-download-test-secret';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { flushAfterTransactionHooks, PrismaClient } from '@metorial-cargo/db';
+import { initBuckets } from '@metorial-cargo/module-file';
 import { afterAll } from 'vitest';
 import { setupPrismaTestDb, setupTestGlobals } from '@lowerdeck/testing-tools';
 import { resetVoyagerStub, setupVoyagerStub } from './helpers/voyagerStub';
@@ -54,6 +55,7 @@ export let cleanDatabase = async () => {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       await db.clean();
+      await initBuckets();
       resetVoyagerStub();
       await flushAfterTransactionHooks();
       return;

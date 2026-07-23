@@ -7,7 +7,9 @@
   "scripts": {
     "oss:server:build": "ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite",
     "oss:server:start": "bun ./dist/index.js",
-    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts"
+    "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
+    "db:push:test": "sh -c 'set -a; . ./.env.test; set +a; bunx prisma db push --accept-data-loss --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma db push --accept-data-loss --schema ../../multi-region/prisma/schema --config ../../multi-region/prisma.config.ts'",
+    "test:e2e": "bun -e \"let response = await fetch('http://127.0.0.1:4310'); if (response.status >= 500) throw new Error('app-api returned HTTP ' + response.status); console.log('app-api responded with HTTP ' + response.status)\""
   },
   "dependencies": {
     "@metorial/api-auth": "1.0.0",

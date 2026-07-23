@@ -1,6 +1,8 @@
 name = "@metorial/db"
 group = "oss"
 
+dependencies = ["@metorial/object-storage"]
+
 [dev.env]
 METORIAL_ENV = "development"
 METORIAL_SOURCE = "oss"
