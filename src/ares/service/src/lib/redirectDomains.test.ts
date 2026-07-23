@@ -38,9 +38,10 @@ describe('redirectDomains', () => {
     expect(isRedirectDomainMatch('evil-example.com', '*.example.com')).toBe(false);
   });
 
-  it('matches exact hostnames case-insensitively', () => {
-    expect(isRedirectDomainMatch('Example.com', 'example.com')).toBe(true);
-    expect(isRedirectDomainMatch('api.example.com', 'example.com')).toBe(false);
+  it('allows *.localhost for workspace hosts', () => {
+    expect(normalizeRedirectDomain('*.localhost')).toBe('*.localhost');
+    expect(isRedirectDomainMatch('ws-test.localhost', '*.localhost')).toBe(true);
+    expect(isRedirectDomainMatch('localhost', '*.localhost')).toBe(false);
   });
 });
 

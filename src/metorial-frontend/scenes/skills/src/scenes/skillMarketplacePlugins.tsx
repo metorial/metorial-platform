@@ -377,6 +377,7 @@ export let SkillMarketplacePluginsScene = (p: {
   getSkillPath?: (skillId: string) => string;
 }) => {
   let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
+  let syncMarketplace = marketplace.syncMutator();
   let marketplacePlugins = useAllSkillMarketplacePlugins(p.instanceId, p.skillMarketplaceId, {
     order: 'asc',
     status: ['active']
@@ -452,6 +453,7 @@ export let SkillMarketplacePluginsScene = (p: {
         if (created) {
           await marketplacePlugins.refetch();
           await marketplace.refetch();
+          await syncMarketplace.mutate({});
         }
       }
     });
@@ -468,6 +470,7 @@ export let SkillMarketplacePluginsScene = (p: {
     if (deleted) {
       await marketplacePlugins.refetch();
       await marketplace.refetch();
+      await syncMarketplace.mutate({});
     }
   };
 
@@ -476,25 +479,35 @@ export let SkillMarketplacePluginsScene = (p: {
       title="Plugins and Skills"
       description="Choose which plugins and skills are available in this marketplace."
       rightActions={
-        <Menu
-          items={[
-            // { id: 'plugin', label: 'Add Existing Plugin' },
-            { id: 'skill', label: 'Add Skill' }
-          ]}
-          onItemClick={item => {
-            if (item === 'plugin') addExistingPlugin();
-            if (item === 'skill') addSingleSkill();
-          }}
+        // <Menu
+        //   items={[
+        //     // { id: 'plugin', label: 'Add Existing Plugin' },
+        //     { id: 'skill', label: 'Add Skill' }
+        //   ]}
+        //   onItemClick={item => {
+        //     if (item === 'plugin') addExistingPlugin();
+        //     if (item === 'skill') addSingleSkill();
+        //   }}
+        // >
+        //   <Button
+        //     size="2"
+        //     iconLeft={<RiAddLine />}
+        //     disabled={!p.instanceId || !p.skillMarketplaceId}
+        //     variant="outline"
+        //   >
+        //     Add
+        //   </Button>
+        // </Menu>
+
+        <Button
+          size="2"
+          iconLeft={<RiAddLine />}
+          disabled={!p.instanceId || !p.skillMarketplaceId}
+          onClick={addSingleSkill}
+          variant="outline"
         >
-          <Button
-            size="2"
-            iconLeft={<RiAddLine />}
-            disabled={!p.instanceId || !p.skillMarketplaceId}
-            variant="outline"
-          >
-            Add
-          </Button>
-        </Menu>
+          Add Skill
+        </Button>
       }
     >
       {marketplacePlugins.data.length === 0 ? (
@@ -520,6 +533,7 @@ export let SkillMarketplacePluginsScene = (p: {
           <deleteMarketplacePlugin.RenderError />
           <createSkillPlugin.RenderError />
           <createSkillPluginSkill.RenderError />
+          <syncMarketplace.RenderError />
         </>
       )}
     </Box>

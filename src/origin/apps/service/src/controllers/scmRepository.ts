@@ -185,17 +185,22 @@ export let scmRepositoryController = app.controller({
       };
     }),
 
-  syncCodeBucketToBranch: scmRepositoryApp
+  syncCodeBucket: scmRepositoryApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         scmRepositoryId: v.string(),
         codeBucketId: v.string(),
-        branchName: v.string(),
-        prName: v.string(),
+        repositoryAccessMode: v.enumOf(['pull_request', 'default_branch']),
+        requestKey: v.optional(v.string()),
+        branchName: v.optional(v.string()),
+        prName: v.optional(v.string()),
         prDescription: v.optional(v.string()),
-        enableAutoMerge: v.optional(v.boolean())
+        commitMessage: v.optional(v.string()),
+        enableAutoMerge: v.optional(v.boolean()),
+        forceMergeOrPush: v.optional(v.boolean()),
+        mergeBeforeChecksPass: v.optional(v.boolean())
       })
     )
     .do(async ctx => {
@@ -208,10 +213,52 @@ export let scmRepositoryController = app.controller({
         tenant: ctx.tenant,
         repo: ctx.scmRepository,
         codeBucket,
+        repositoryAccessMode: ctx.input.repositoryAccessMode,
+        requestKey: ctx.input.requestKey,
         branchName: ctx.input.branchName,
         prName: ctx.input.prName,
         prDescription: ctx.input.prDescription,
-        enableAutoMerge: ctx.input.enableAutoMerge
+        commitMessage: ctx.input.commitMessage,
+        enableAutoMerge: ctx.input.enableAutoMerge,
+        forceMergeOrPush: ctx.input.forceMergeOrPush,
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
+      });
+
+      return scmRepositorySyncPresenter(sync);
+    }),
+
+  syncCodeBucketToBranch: scmRepositoryApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        scmRepositoryId: v.string(),
+        codeBucketId: v.string(),
+        branchName: v.string(),
+        prName: v.string(),
+        prDescription: v.optional(v.string()),
+        enableAutoMerge: v.optional(v.boolean()),
+        forceMergeOrPush: v.optional(v.boolean()),
+        mergeBeforeChecksPass: v.optional(v.boolean())
+      })
+    )
+    .do(async ctx => {
+      let codeBucket = await codeBucketService.getCodeBucketById({
+        tenant: ctx.tenant,
+        id: ctx.input.codeBucketId
+      });
+
+      let sync = await scmRepositorySyncService.createScmRepositorySync({
+        tenant: ctx.tenant,
+        repo: ctx.scmRepository,
+        codeBucket,
+        repositoryAccessMode: 'pull_request',
+        branchName: ctx.input.branchName,
+        prName: ctx.input.prName,
+        prDescription: ctx.input.prDescription,
+        enableAutoMerge: ctx.input.enableAutoMerge,
+        forceMergeOrPush: ctx.input.forceMergeOrPush,
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass
       });
 
       return scmRepositorySyncPresenter(sync);

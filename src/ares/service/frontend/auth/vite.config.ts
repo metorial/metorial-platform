@@ -1,10 +1,11 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+// `vite` (dev server) uses `/`; `vite build` must use the backend asset prefix.
+export default defineConfig(({ command }) => ({
   plugins: [react()],
 
-  base: process.env.NODE_ENV === 'development' ? '/' : '/metorial-ares',
+  base: command === 'serve' ? '/' : '/metorial-ares',
 
   resolve: {
     dedupe: ['react', 'react-dom']
@@ -28,4 +29,4 @@ export default defineConfig({
   build: {
     outDir: 'dist'
   }
-});
+}));

@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '@metorial-subspace/db';
+import { db, type Prisma } from '@metorial-subspace/db';
 import { providerService } from '@metorial-subspace/module-catalog';
 import {
   adminProviderTelemetryErrorGroupService,
@@ -554,6 +554,80 @@ let presentAdminRun = (run: any) => ({
   completed_at: run.completedAt
 });
 
+let adminToolCallInclude = {
+  session: { select: { id: true } },
+  sessionProvider: { include: { provider: true } },
+  providerRun: { include: { providerVersion: true } },
+  toolCall: { include: { tool: true } },
+  error: { include: { group: true } },
+  tenant: true,
+  environment: true
+} satisfies Prisma.SessionMessageInclude;
+
+type AdminToolCallMessage = Omit<
+  Prisma.SessionMessageGetPayload<{ include: typeof adminToolCallInclude }>,
+  'input' | 'output'
+>;
+
+let presentAdminToolCall = (message: AdminToolCallMessage) => ({
+  object: 'admin.tool_call',
+  id: message.id,
+  status: message.status,
+  failure_reason: message.failureReason,
+  source: message.source,
+  tool_key: message.toolCall?.toolKey ?? message.methodOrToolKey ?? null,
+  tool: message.toolCall?.tool
+    ? {
+        id: message.toolCall.tool.id,
+        key: message.toolCall.tool.key,
+        name: message.toolCall.tool.name
+      }
+    : null,
+  is_tool_resolved: !!message.toolCall,
+  error: message.error
+    ? {
+        id: message.error.id,
+        type: message.error.type,
+        code: message.error.code,
+        message: message.error.message,
+        group_id: message.error.group?.id ?? null
+      }
+    : null,
+  provider: message.sessionProvider?.provider
+    ? {
+        id: message.sessionProvider.provider.id,
+        name: message.sessionProvider.provider.name,
+        slug: message.sessionProvider.provider.slug
+      }
+    : null,
+  provider_version: message.providerRun?.providerVersion
+    ? {
+        id: message.providerRun.providerVersion.id,
+        tag: message.providerRun.providerVersion.tag,
+        name: message.providerRun.providerVersion.name
+      }
+    : null,
+  provider_run_id: message.providerRun?.id ?? null,
+  tenant: {
+    id: message.tenant.id,
+    name: message.tenant.name,
+    identifier: message.tenant.identifier
+  },
+  environment: {
+    id: message.environment.id,
+    name: message.environment.name,
+    identifier: message.environment.identifier
+  },
+  tenant_id: message.tenant.id,
+  environment_id: message.environment.id,
+  session_id: message.session.id,
+  created_at: message.createdAt,
+  completed_at: message.completedAt,
+  duration_ms: message.completedAt
+    ? message.completedAt.getTime() - message.createdAt.getTime()
+    : null
+});
+
 let SESSION_TRACE_LIMITS = {
   messages: 100,
   runs: 30,
@@ -926,6 +1000,75 @@ export let adminProviderTelemetryController = app.controller({
 
       let list = await paginator.run(ctx.input);
       return Paginator.presentLight(list, presentAdminRun);
+    }),
+
+  listToolCalls: app
+    .handler()
+    .input(
+      Paginator.validate(
+        v.object({
+          ...telemetryScopeValidator,
+          toolKeys: v.optional(v.array(v.string())),
+          statuses: v.optional(
+            v.array(v.enumOf(['waiting_for_response', 'failed', 'succeeded']))
+          ),
+          failureReasons: v.optional(
+            v.array(v.enumOf(['timeout', 'provider_error', 'system_error', 'none']))
+          ),
+          sources: v.optional(v.array(v.enumOf(['client', 'provider']))),
+          providerVersionIds: v.optional(v.array(v.string()))
+        })
+      )
+    )
+    .do(async ctx => {
+      let scope = await resolveTelemetryScope(ctx.input);
+      if (scope.isEmpty) return emptyList();
+
+      let toolKeys = uniqueStrings(ctx.input.toolKeys ?? []);
+      if (ctx.input.toolKeys && toolKeys.length === 0) return emptyList();
+
+      let providerVersions = ctx.input.providerVersionIds?.length
+        ? await db.providerVersion.findMany({
+            where: { id: { in: ctx.input.providerVersionIds } },
+            select: { oid: true }
+          })
+        : undefined;
+
+      let paginator = Paginator.create(
+        ({ prisma }) =>
+          prisma(
+            async opts =>
+              await db.sessionMessage.findMany({
+                ...opts,
+                orderBy: createdAtOrder(ctx.input.order),
+                where: {
+                  methodOrToolKey: toolKeys.length ? { in: toolKeys } : { not: null },
+                  sessionProviderOid: { not: null },
+                  OR: [{ toolCall: { isNot: null } }, { source: 'client' }],
+                  status: ctx.input.statuses ? { in: ctx.input.statuses } : undefined,
+                  failureReason: ctx.input.failureReasons
+                    ? { in: ctx.input.failureReasons }
+                    : undefined,
+                  source: ctx.input.sources ? { in: ctx.input.sources } : undefined,
+                  tenantOid: oidFilter(scope.tenantOids),
+                  environmentOid: oidFilter(scope.environmentOids),
+                  sessionProvider: scope.provider
+                    ? { providerOid: scope.provider.oid }
+                    : undefined,
+                  providerRun: providerVersions
+                    ? { providerVersionOid: { in: providerVersions.map(v => v.oid) } }
+                    : undefined,
+                  createdAt: { gte: scope.from, lte: scope.to }
+                },
+                omit: { input: true, output: true },
+                include: adminToolCallInclude
+              })
+          ),
+        { defaultOrder: 'desc' }
+      );
+
+      let list = await paginator.run(ctx.input);
+      return Paginator.presentLight(list, presentAdminToolCall);
     }),
 
   getRunLogs: app

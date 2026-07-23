@@ -32,7 +32,8 @@ export let skillSyncsLoader = createLoader({
 
 export let useSkillSyncs = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceSkillsSyncsListQuery | null
+  query?: DashboardInstanceSkillsSyncsListQuery | null,
+  options?: { pollInterval?: number | null }
 ) => {
   let data = usePaginator(
     pagination =>
@@ -43,15 +44,16 @@ export let useSkillSyncs = (
   );
 
   let hasActiveSyncs = data.data?.items.some(sync =>
-    ['pending', 'processing'].includes(sync.status)
+    ['pending', 'processing', 'waiting_for_review'].includes(sync.status)
   );
   let refetchRef = useRef(data.refetch);
   refetchRef.current = data.refetch;
   useEffect(() => {
-    if (!hasActiveSyncs) return;
-    let id = setInterval(() => refetchRef.current(), 3000);
+    let pollInterval = options?.pollInterval === undefined ? 3000 : options.pollInterval;
+    if (!hasActiveSyncs || pollInterval === null) return;
+    let id = setInterval(() => refetchRef.current(), pollInterval);
     return () => clearInterval(id);
-  }, [hasActiveSyncs]);
+  }, [hasActiveSyncs, options?.pollInterval]);
 
   return data;
 };
@@ -66,18 +68,40 @@ export let skillSyncLoader = createLoader({
 
 export let useSkillSync = (
   instanceId: string | null | undefined,
-  skillSyncId: string | null | undefined
+  skillSyncId: string | null | undefined,
+  options?: { pollInterval?: number | null }
 ) => {
-  let data = skillSyncLoader.use(instanceId && skillSyncId ? { instanceId, skillSyncId } : null);
+  let data = skillSyncLoader.use(
+    instanceId && skillSyncId ? { instanceId, skillSyncId } : null
+  );
 
-  let isActive = data.data?.status ? ['pending', 'processing'].includes(data.data.status) : false;
+  let isActive = data.data?.status
+    ? ['pending', 'processing', 'waiting_for_review'].includes(data.data.status)
+    : false;
   let refetchRef = useRef(data.refetch);
   refetchRef.current = data.refetch;
   useEffect(() => {
-    if (!isActive) return;
-    let id = setInterval(() => refetchRef.current(), 3000);
+    let pollInterval = options?.pollInterval === undefined ? 3000 : options.pollInterval;
+    if (!isActive || pollInterval === null) return;
+    let id = setInterval(() => refetchRef.current(), pollInterval);
     return () => clearInterval(id);
-  }, [isActive]);
+  }, [isActive, options?.pollInterval]);
 
   return data;
 };
+
+export let skillSyncRepositoryChecksLoader = createLoader({
+  name: 'skillSyncRepositoryChecks',
+  parents: [skillSyncLoader],
+  fetch: (i: { instanceId: string; skillSyncId: string }) =>
+    withAuth(sdk => sdk.skillSyncs.repositoryChecks(i.instanceId, i.skillSyncId)),
+  mutators: {}
+});
+
+export let useSkillSyncRepositoryChecks = (
+  instanceId: string | null | undefined,
+  skillSyncId: string | null | undefined
+) =>
+  skillSyncRepositoryChecksLoader.use(
+    instanceId && skillSyncId ? { instanceId, skillSyncId } : null
+  );

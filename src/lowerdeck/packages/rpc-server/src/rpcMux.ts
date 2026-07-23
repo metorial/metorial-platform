@@ -135,7 +135,12 @@ export let rpcMux = (
       if (opts.cors && 'domains' in opts.cors) {
         try {
           let url = new URL(origin);
-          let rootDomain = url.hostname.split('.').slice(-2).join('.');
+          let hostname = url.hostname;
+          // `foo.localhost` root would otherwise be `foo.localhost`, not `localhost`.
+          let rootDomain =
+            hostname === 'localhost' || hostname.endsWith('.localhost')
+              ? 'localhost'
+              : hostname.split('.').slice(-2).join('.');
           corsOk = opts.cors.domains.includes(rootDomain);
         } catch (e) {
           // Ignore -> no cors

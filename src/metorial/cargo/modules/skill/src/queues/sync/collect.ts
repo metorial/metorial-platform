@@ -374,6 +374,25 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
   }
 
   let tasks = taskManager.getTasks();
+
+  if (tasks.length === 0 && !data.skillRepositoryId) {
+    await db.skillDestinationSync.updateMany({
+      where: {
+        oid: sync.oid,
+        status: 'processing'
+      },
+      data: {
+        status: 'canceled',
+        completedAt: new Date()
+      }
+    });
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'Sync canceled because there were no content updates.'
+    );
+    return;
+  }
+
   let names = await getSyncTaskNames(tasks);
   let prMetadata = getSyncPrMetadata({
     destination: sync.destination!,

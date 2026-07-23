@@ -1,0 +1,29 @@
+name = "@metorial/nebula"
+group = "oss"
+
+[dev]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52170
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
+DEFAULT_PROVIDER = "local"
+LOCAL_MASTER_SECRET = "local-dev-nebula-master-secret-with-enough-entropy"
+KMS_AWS_REGION = "us-east-1"
+KMS_CREATE_DEFAULT_KEY = "false"
+CONSUMER_INSTANCE_TOKEN_SECRET = "local-dev-nebula-consumer-token-secret-with-enough-entropy"
+CONSUMER_INSTANCE_TOKEN_TTL_SECONDS = "3600"
+CONSUMER_REGISTRATION_SLATES = "local-dev-nebula-slates-registration-secret"
+CONSUMER_REGISTRATION_SHUTTLE = "local-dev-nebula-shuttle-registration-secret"
+
+[dev.db.main]
+name = "nebula"
+engine = "postgres"
+env = "DATABASE_URL"

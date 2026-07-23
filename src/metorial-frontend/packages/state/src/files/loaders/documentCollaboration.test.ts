@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { __documentCollaborationTestUtils } from './documentCollaboration';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('document collaboration reset helpers', () => {
   it('seeds a reset collaboration state from the authoritative document snapshot', () => {
@@ -46,5 +50,28 @@ describe('document collaboration reset helpers', () => {
 
     expect(__documentCollaborationTestUtils.canRetryConnection(maxAttempts - 1)).toBe(true);
     expect(__documentCollaborationTestUtils.canRetryConnection(maxAttempts)).toBe(false);
+  });
+});
+
+describe('document collaboration connection lifecycle', () => {
+  it('cancels a deferred initial connection during a StrictMode cleanup', () => {
+    vi.useFakeTimers();
+    let connect = vi.fn();
+
+    let cancel = __documentCollaborationTestUtils.deferInitialConnection(connect);
+    cancel();
+    vi.runAllTimers();
+
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  it('starts a normal deferred initial connection', () => {
+    vi.useFakeTimers();
+    let connect = vi.fn();
+
+    __documentCollaborationTestUtils.deferInitialConnection(connect);
+    vi.runAllTimers();
+
+    expect(connect).toHaveBeenCalledOnce();
   });
 });

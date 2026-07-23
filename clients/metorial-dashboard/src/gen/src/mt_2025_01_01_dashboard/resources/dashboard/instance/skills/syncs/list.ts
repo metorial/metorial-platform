@@ -4,15 +4,28 @@ export type DashboardInstanceSkillsSyncsListOutput = {
   items: {
     object: 'skill.sync';
     id: string;
-    status: 'pending' | 'completed' | 'failed' | 'processing' | 'canceled';
+    status:
+      | 'pending'
+      | 'completed'
+      | 'failed'
+      | 'processing'
+      | 'waiting_for_review'
+      | 'canceled';
     skillMarketplaceId: string | null;
     skillPluginId: string | null;
     logs: { timestamp: Date; message: string }[];
     repositoryPropagations: {
       object: 'skill.sync_repository_propagation';
       id: string;
-      status: 'pending' | 'processing' | 'completed' | 'failed' | 'canceled';
+      status:
+        | 'pending'
+        | 'processing'
+        | 'waiting_for_review'
+        | 'completed'
+        | 'failed'
+        | 'canceled';
       repoId: string;
+      repositoryAccessMode: 'pull_request' | 'default_branch';
       branchName: string;
       prName: string;
       prDescription: string | null;
@@ -64,6 +77,10 @@ export let mapDashboardInstanceSkillsSyncsListOutput =
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 repoId: mtMap.objectField('repo_id', mtMap.passthrough()),
+                repositoryAccessMode: mtMap.objectField(
+                  'repository_access_mode',
+                  mtMap.passthrough()
+                ),
                 branchName: mtMap.objectField(
                   'branch_name',
                   mtMap.passthrough()
@@ -121,8 +138,16 @@ export type DashboardInstanceSkillsSyncsListQuery = {
     | 'completed'
     | 'failed'
     | 'processing'
+    | 'waiting_for_review'
     | 'canceled'
-    | ('pending' | 'completed' | 'failed' | 'processing' | 'canceled')[]
+    | (
+        | 'pending'
+        | 'completed'
+        | 'failed'
+        | 'processing'
+        | 'waiting_for_review'
+        | 'canceled'
+      )[]
     | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };

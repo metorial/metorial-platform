@@ -506,317 +506,319 @@ type DocumentLiveApiOptions = {
 
 export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
   createHono()
-  .get('/ping', c => c.text('OK'))
-  .get(
-    options?.path ?? '/document-live',
-    upgradeWebSocket(async c => {
-      let url = new URL(c.req.url);
-      let connection = options?.resolveConnection
-        ? await options.resolveConnection({
-            request: c.req.raw,
-            url
-          })
-        : {
-            documentId: url.searchParams.get('documentId'),
-            actorId: url.searchParams.get('actorId'),
-            canWrite: url.searchParams.get('canWrite') === 'true',
-            defaultPermissions: undefined,
-            overridePermissions: undefined
-          };
-      let { documentId, actorId, canWrite, defaultPermissions, overridePermissions } =
-        connection;
+    .get('/ping', c => c.text('OK'))
+    .get(
+      options?.path ?? '/document-live',
+      upgradeWebSocket(async c => {
+        let url = new URL(c.req.url);
+        let connection = options?.resolveConnection
+          ? await options.resolveConnection({
+              request: c.req.raw,
+              url
+            })
+          : {
+              documentId: url.searchParams.get('documentId'),
+              actorId: url.searchParams.get('actorId'),
+              canWrite: url.searchParams.get('canWrite') === 'true',
+              defaultPermissions: undefined,
+              overridePermissions: undefined
+            };
+        let { documentId, actorId, canWrite, defaultPermissions, overridePermissions } =
+          connection;
 
-      if (!documentId || !actorId) {
-        throw new Error('documentId and actorId query params are required');
-      }
+        if (!documentId || !actorId) {
+          throw new Error('documentId and actorId query params are required');
+        }
 
-      let scopedDocument = await documentService.getScopedDocumentById({
-        documentId
-      });
-      let resourceActor = await resourceActorService.getActorById({
-        resourceTenant: scopedDocument.resourceTenant,
-        actorId
-      });
-      let authorization = {
-        type: 'privileged' as const,
-        resourceActor
-      };
+        let scopedDocument = await documentService.getScopedDocumentById({
+          documentId
+        });
+        let resourceActor = await resourceActorService.getActorById({
+          resourceTenant: scopedDocument.resourceTenant,
+          actorId
+        });
+        let authorization = {
+          type: 'privileged' as const,
+          resourceActor
+        };
 
-      await documentService.getDocumentById({
-        resourceTenant: scopedDocument.resourceTenant,
-        resourceGroup: scopedDocument.resourceGroup,
-        documentId,
-        authorization,
-        defaultPermissions,
-        overridePermissions
-      });
+        await documentService.getDocumentById({
+          resourceTenant: scopedDocument.resourceTenant,
+          resourceGroup: scopedDocument.resourceGroup,
+          documentId,
+          authorization,
+          defaultPermissions,
+          overridePermissions
+        });
 
-      let sessionId = generatePlainId(20);
+        let sessionId = generatePlainId(20);
 
-      return {
-        onOpen: async (_, ws) => {
-          let session = {
-            id: sessionId,
-            documentId,
-            actorId,
-            canWrite,
-            defaultPermissions,
-            overridePermissions,
-            lastPingAt: Date.now()
-          };
+        return {
+          onOpen: async (_, ws) => {
+            let session = {
+              id: sessionId,
+              documentId,
+              actorId,
+              canWrite,
+              defaultPermissions,
+              overridePermissions,
+              lastPingAt: Date.now()
+            };
 
-          liveSessions.set(sessionId, session);
-          socketsBySessionId.set(sessionId, ws);
-          getRoomSessionIds(documentId).add(sessionId);
-          await persistLiveSession(session);
-
-          let collaboration =
-            await internalDocumentCollaborationService.getSnapshot(documentId);
-          send(ws, 'document_snapshot', buildDocumentPayload(scopedDocument.document));
-          send(ws, 'collaboration_snapshot', {
-            sessionId,
-            document: buildDocumentPayload(scopedDocument.document),
-            stateUpdate: collaboration.update,
-            generation: collaboration.generation,
-            awareness: await getAwarenessPayload(documentId)
-          });
-          await broadcastParticipantList(documentId);
-        },
-
-        onMessage: async event => {
-          let session = liveSessions.get(sessionId);
-          if (!session) return;
-
-          session.lastPingAt = Date.now();
-
-          try {
-            let parsed = JSON.parse(event.data.toString()) as DocumentLiveClientMessage;
+            liveSessions.set(sessionId, session);
+            socketsBySessionId.set(sessionId, ws);
+            getRoomSessionIds(documentId).add(sessionId);
             await persistLiveSession(session);
 
-            if (parsed.type === 'ping') {
-              let ws = socketsBySessionId.get(sessionId);
-              if (ws) {
-                send(ws, 'pong', {
-                  documentId: session.documentId
-                });
-              }
-              return;
-            }
+            let collaboration =
+              await internalDocumentCollaborationService.getSnapshot(documentId);
+            send(ws, 'document_snapshot', buildDocumentPayload(scopedDocument.document));
+            send(ws, 'collaboration_snapshot', {
+              sessionId,
+              document: buildDocumentPayload(scopedDocument.document),
+              stateUpdate: collaboration.update,
+              generation: collaboration.generation,
+              awareness: await getAwarenessPayload(documentId)
+            });
+            await broadcastParticipantList(documentId);
+          },
 
-            if (
-              !canSendDocumentLiveMessage({
-                canWrite: session.canWrite,
-                type: parsed.type
-              })
-            ) {
-              let ws = socketsBySessionId.get(sessionId);
-              if (ws) {
-                send(ws, 'error', {
-                  code: 'document_read_only',
-                  message: 'This live document connection is read-only'
-                });
-              }
-              return;
-            }
+          onMessage: async event => {
+            let session = liveSessions.get(sessionId);
+            if (!session) return;
 
-            if (parsed.type === 'yjs_update') {
-              if (typeof parsed.data?.update !== 'string') {
-                throw new Error('Invalid live document Yjs update payload');
-              }
+            session.lastPingAt = Date.now();
 
-              if (scopedDocument.document.isReadOnly) {
-                let ws = socketsBySessionId.get(sessionId);
-                if (ws) await sendCollaborationReset(ws, session.documentId);
-                return;
-              }
-
-              let merged = await internalDocumentCollaborationService.mergeUpdate({
-                documentId: session.documentId,
-                update: parsed.data.update,
-                actorId: session.actorId,
-                generation:
-                  typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
-              });
-              if (merged.stale) {
-                let ws = socketsBySessionId.get(sessionId);
-                if (ws) await sendCollaborationReset(ws, session.documentId);
-                return;
-              }
-              await queueDocumentCollaborationFlush(session.documentId, merged.revision);
-
-              await broadcastDistributedToDocumentExcept(
-                session.documentId,
-                sessionId,
-                'yjs_update',
-                {
-                  sessionId,
-                  actorId: session.actorId,
-                  update: parsed.data.update,
-                  generation: merged.generation
-                }
-              );
-              return;
-            }
-
-            if (parsed.type === 'yjs_state_initialize') {
-              if (typeof parsed.data?.update !== 'string') {
-                throw new Error('Invalid live document Yjs state initialize payload');
-              }
-
-              if (scopedDocument.document.isReadOnly) {
-                let ws = socketsBySessionId.get(sessionId);
-                if (ws) await sendCollaborationReset(ws, session.documentId);
-                return;
-              }
-
-              let initialized = await internalDocumentCollaborationService.initializeState({
-                documentId: session.documentId,
-                update: parsed.data.update,
-                generation:
-                  typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
-              });
-              let ws = socketsBySessionId.get(sessionId);
-              if (initialized.stale) {
-                if (ws) await sendCollaborationReset(ws, session.documentId);
-                return;
-              }
-              if (ws) {
-                send(ws, 'yjs_state_initialized', initialized);
-              }
-              return;
-            }
-
-            if (parsed.type === 'awareness_update') {
-              if (
-                typeof parsed.data?.clientId !== 'number' ||
-                typeof parsed.data?.update !== 'string'
-              ) {
-                throw new Error('Invalid live document awareness payload');
-              }
-
-              session.awarenessClientId = parsed.data.clientId;
-              session.awarenessUpdate = parsed.data.update;
+            try {
+              let parsed = JSON.parse(event.data.toString()) as DocumentLiveClientMessage;
               await persistLiveSession(session);
 
-              await broadcastDistributedToDocumentExcept(
-                session.documentId,
-                sessionId,
-                'awareness_update',
-                {
-                  sessionId,
-                  actorId: session.actorId,
-                  clientId: parsed.data.clientId,
-                  update: parsed.data.update
+              if (parsed.type === 'ping') {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) {
+                  send(ws, 'pong', {
+                    documentId: session.documentId
+                  });
                 }
-              );
-              return;
-            }
-
-            if (
-              parsed.type !== 'document_update' &&
-              parsed.type !== 'document_title_update' &&
-              parsed.type !== 'document_snapshot_save'
-            ) {
-              throw new Error('Invalid live document payload');
-            }
-
-            if (
-              parsed.type === 'document_update' &&
-              typeof parsed.data?.content !== 'string'
-            ) {
-              throw new Error('Invalid live document payload');
-            }
-
-            if (
-              parsed.type === 'document_title_update' &&
-              typeof parsed.data?.title !== 'string'
-            ) {
-              throw new Error('Invalid live document payload');
-            }
-
-            if (
-              parsed.type === 'document_snapshot_save' &&
-              (typeof parsed.data?.content !== 'string' ||
-                typeof parsed.data?.title !== 'string')
-            ) {
-              throw new Error('Invalid live document snapshot payload');
-            }
-
-            let currentScopedDocument = await documentService.getScopedDocumentById({
-              documentId: session.documentId
-            });
-
-            await documentService.getDocumentById({
-              resourceTenant: currentScopedDocument.resourceTenant,
-              resourceGroup: currentScopedDocument.resourceGroup,
-              documentId: session.documentId,
-              authorization,
-              defaultPermissions: session.defaultPermissions,
-              overridePermissions: session.overridePermissions
-            });
-
-            let updatedDocument = await documentService.updateDocument({
-              resourceTenant: currentScopedDocument.resourceTenant,
-              resourceGroup: currentScopedDocument.resourceGroup,
-              document: currentScopedDocument.document,
-              input: {
-                authorization,
-                title: parsed.data.title,
-                content:
-                  parsed.type === 'document_update' || parsed.type === 'document_snapshot_save'
-                    ? parsed.data.content
-                    : undefined
+                return;
               }
-            });
 
-            await broadcastDistributedToDocument(
-              updatedDocument.id,
-              parsed.type === 'document_snapshot_save'
-                ? 'document_snapshot_saved'
-                : 'document_snapshot',
-              buildDocumentPayload(updatedDocument),
-              sessionId
-            );
+              if (
+                !canSendDocumentLiveMessage({
+                  canWrite: session.canWrite,
+                  type: parsed.type
+                })
+              ) {
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) {
+                  send(ws, 'error', {
+                    code: 'document_read_only',
+                    message: 'This live document connection is read-only'
+                  });
+                }
+                return;
+              }
 
-            let childDocuments =
-              await internalDocumentSyncService.listLinkedChildDocumentsForLiveSync({
-                parentDocumentId: updatedDocument.id
+              if (parsed.type === 'yjs_update') {
+                if (typeof parsed.data?.update !== 'string') {
+                  throw new Error('Invalid live document Yjs update payload');
+                }
+
+                if (scopedDocument.document.isReadOnly) {
+                  let ws = socketsBySessionId.get(sessionId);
+                  if (ws) await sendCollaborationReset(ws, session.documentId);
+                  return;
+                }
+
+                let merged = await internalDocumentCollaborationService.mergeUpdate({
+                  documentId: session.documentId,
+                  update: parsed.data.update,
+                  actorId: session.actorId,
+                  generation:
+                    typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
+                });
+                if (merged.stale) {
+                  let ws = socketsBySessionId.get(sessionId);
+                  if (ws) await sendCollaborationReset(ws, session.documentId);
+                  return;
+                }
+                await queueDocumentCollaborationFlush(session.documentId, merged.revision);
+
+                await broadcastDistributedToDocumentExcept(
+                  session.documentId,
+                  sessionId,
+                  'yjs_update',
+                  {
+                    sessionId,
+                    actorId: session.actorId,
+                    update: parsed.data.update,
+                    generation: merged.generation
+                  }
+                );
+                return;
+              }
+
+              if (parsed.type === 'yjs_state_initialize') {
+                if (typeof parsed.data?.update !== 'string') {
+                  throw new Error('Invalid live document Yjs state initialize payload');
+                }
+
+                if (scopedDocument.document.isReadOnly) {
+                  let ws = socketsBySessionId.get(sessionId);
+                  if (ws) await sendCollaborationReset(ws, session.documentId);
+                  return;
+                }
+
+                let initialized = await internalDocumentCollaborationService.initializeState({
+                  documentId: session.documentId,
+                  update: parsed.data.update,
+                  generation:
+                    typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
+                });
+                let ws = socketsBySessionId.get(sessionId);
+                if (initialized.stale) {
+                  if (ws) await sendCollaborationReset(ws, session.documentId);
+                  return;
+                }
+                if (ws) {
+                  send(ws, 'yjs_state_initialized', initialized);
+                }
+                return;
+              }
+
+              if (parsed.type === 'awareness_update') {
+                if (
+                  typeof parsed.data?.clientId !== 'number' ||
+                  typeof parsed.data?.update !== 'string'
+                ) {
+                  throw new Error('Invalid live document awareness payload');
+                }
+
+                session.awarenessClientId = parsed.data.clientId;
+                session.awarenessUpdate = parsed.data.update;
+                await persistLiveSession(session);
+
+                await broadcastDistributedToDocumentExcept(
+                  session.documentId,
+                  sessionId,
+                  'awareness_update',
+                  {
+                    sessionId,
+                    actorId: session.actorId,
+                    clientId: parsed.data.clientId,
+                    update: parsed.data.update
+                  }
+                );
+                return;
+              }
+
+              if (
+                parsed.type !== 'document_update' &&
+                parsed.type !== 'document_title_update' &&
+                parsed.type !== 'document_snapshot_save'
+              ) {
+                throw new Error('Invalid live document payload');
+              }
+
+              if (
+                parsed.type === 'document_update' &&
+                typeof parsed.data?.content !== 'string'
+              ) {
+                throw new Error('Invalid live document payload');
+              }
+
+              if (
+                parsed.type === 'document_title_update' &&
+                typeof parsed.data?.title !== 'string'
+              ) {
+                throw new Error('Invalid live document payload');
+              }
+
+              if (
+                parsed.type === 'document_snapshot_save' &&
+                (typeof parsed.data?.content !== 'string' ||
+                  typeof parsed.data?.title !== 'string')
+              ) {
+                throw new Error('Invalid live document snapshot payload');
+              }
+
+              let currentScopedDocument = await documentService.getScopedDocumentById({
+                documentId: session.documentId
               });
-            let sharedContent =
-              updatedDocument.resolvedContent ?? updatedDocument.content.content;
-            let sharedUpdatedAt = updatedDocument.draftUpdatedAt ?? updatedDocument.updatedAt;
 
-            for (let childDocument of childDocuments) {
+              await documentService.getDocumentById({
+                resourceTenant: currentScopedDocument.resourceTenant,
+                resourceGroup: currentScopedDocument.resourceGroup,
+                documentId: session.documentId,
+                authorization,
+                defaultPermissions: session.defaultPermissions,
+                overridePermissions: session.overridePermissions
+              });
+
+              let updatedDocument = await documentService.updateDocument({
+                resourceTenant: currentScopedDocument.resourceTenant,
+                resourceGroup: currentScopedDocument.resourceGroup,
+                document: currentScopedDocument.document,
+                input: {
+                  authorization,
+                  title: parsed.data.title,
+                  content:
+                    parsed.type === 'document_update' ||
+                    parsed.type === 'document_snapshot_save'
+                      ? parsed.data.content
+                      : undefined
+                }
+              });
+
               await broadcastDistributedToDocument(
-                childDocument.id,
-                'document_snapshot',
-                buildDocumentPayload(childDocument, {
-                  content: sharedContent,
-                  updatedAt: sharedUpdatedAt
-                }),
+                updatedDocument.id,
+                parsed.type === 'document_snapshot_save'
+                  ? 'document_snapshot_saved'
+                  : 'document_snapshot',
+                buildDocumentPayload(updatedDocument),
                 sessionId
               );
-            }
 
-            await broadcastParticipantList(updatedDocument.id);
-          } catch (error) {
-            let ws = socketsBySessionId.get(sessionId);
-            if (ws) {
-              sendError(ws, error);
+              let childDocuments =
+                await internalDocumentSyncService.listLinkedChildDocumentsForLiveSync({
+                  parentDocumentId: updatedDocument.id
+                });
+              let sharedContent =
+                updatedDocument.resolvedContent ?? updatedDocument.content.content;
+              let sharedUpdatedAt =
+                updatedDocument.draftUpdatedAt ?? updatedDocument.updatedAt;
+
+              for (let childDocument of childDocuments) {
+                await broadcastDistributedToDocument(
+                  childDocument.id,
+                  'document_snapshot',
+                  buildDocumentPayload(childDocument, {
+                    content: sharedContent,
+                    updatedAt: sharedUpdatedAt
+                  }),
+                  sessionId
+                );
+              }
+
+              await broadcastParticipantList(updatedDocument.id);
+            } catch (error) {
+              let ws = socketsBySessionId.get(sessionId);
+              if (ws) {
+                sendError(ws, error);
+              }
             }
+          },
+
+          onClose: async () => {
+            await removeSession(sessionId);
+          },
+
+          onError: async error => {
+            console.error('Cargo live document websocket error', error);
+            await removeSession(sessionId);
           }
-        },
-
-        onClose: async () => {
-          await removeSession(sessionId);
-        },
-
-        onError: async error => {
-          console.error('Cargo live document websocket error', error);
-          await removeSession(sessionId);
-        }
-      };
-    })
-  );
+        };
+      })
+    );
 
 export let documentLiveApi = createDocumentLiveApi();

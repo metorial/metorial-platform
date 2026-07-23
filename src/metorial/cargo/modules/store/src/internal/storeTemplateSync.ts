@@ -3,7 +3,12 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import { documentInclude, documentService } from '@metorial/cargo-module-doc';
+import {
+  documentInclude,
+  documentService,
+  internalDocumentDraftService,
+  internalDocumentVersioningService
+} from '@metorial/cargo-module-doc';
 import {
   filePurposeService,
   fileService,
@@ -521,76 +526,76 @@ class InternalStoreTemplateSyncServiceImpl {
     let title = getDocumentTitle(d.item, content);
 
     if (d.existingItem?.kind === 'document' && d.existingItem.document) {
-      let document = await withTransaction(async db => {
-        let currentDocument = await db.document.findFirst({
-          where: {
-            id: d.existingItem!.document!.id
-          },
-          include: documentInclude
-        });
-        if (!currentDocument)
-          throw new ServiceError(notFoundError('document', d.existingItem!.document!.id));
+      let document = await internalDocumentDraftService.withDocumentLock(
+        d.existingItem.document.id,
+        async () =>
+          await withTransaction(async db => {
+            let currentDocument = await db.document.findFirst({
+              where: {
+                id: d.existingItem!.document!.id
+              },
+              include: documentInclude
+            });
+            if (!currentDocument)
+              throw new ServiceError(notFoundError('document', d.existingItem!.document!.id));
 
-        let hasContentChange = currentDocument.content.content !== content;
-        let hasTitleChange = currentDocument.title !== title;
+            let hasContentChange = currentDocument.content.content !== content;
+            let hasTitleChange = currentDocument.title !== title;
 
-        if (!hasContentChange && !hasTitleChange) return currentDocument;
+            if (!hasContentChange && !hasTitleChange) return currentDocument;
 
-        let contentIds = hasContentChange ? getId('documentContent') : null;
-        if (contentIds) {
-          await db.documentContent.create({
-            data: {
-              oid: contentIds.oid,
-              content
+            let contentIds = hasContentChange ? getId('documentContent') : null;
+            if (contentIds) {
+              await db.documentContent.create({
+                data: {
+                  oid: contentIds.oid,
+                  content
+                }
+              });
             }
-          });
-        }
 
-        let nextVersionNumber = hasContentChange
-          ? currentDocument.maxVersionNumber + 1
-          : currentDocument.maxVersionNumber;
-        let version = contentIds
-          ? await this.createDocumentVersion({
-              resourceTenant: d.resourceTenant,
-              resourceGroup: d.resourceGroup,
-              document: currentDocument,
-              contentOid: contentIds.oid,
-              versionNumber: nextVersionNumber,
-              previousVersionOid: currentDocument.currentVersionOid ?? undefined
-            })
-          : null;
+            let version = contentIds
+              ? await internalDocumentVersioningService.createVersion({
+                  resourceTenant: d.resourceTenant,
+                  resourceGroup: d.resourceGroup,
+                  document: currentDocument,
+                  contentOid: contentIds.oid,
+                  previousVersionOid: currentDocument.currentVersionOid,
+                  listEditedAt: new Date()
+                })
+              : null;
 
-        await db.file.update({
-          where: {
-            id: currentDocument.file.id
-          },
-          data: {
-            storeId: d.item.fileStoreId!,
-            fileName: title,
-            fileSize: d.item.contentByteSize ?? Buffer.byteLength(content, 'utf8'),
-            fileType: 'text/markdown',
-            title,
-            isReadOnly: true,
-            isTemplateBacking: true
-          }
-        });
+            await db.file.update({
+              where: {
+                id: currentDocument.file.id
+              },
+              data: {
+                storeId: d.item.fileStoreId!,
+                fileName: title,
+                fileSize: d.item.contentByteSize ?? Buffer.byteLength(content, 'utf8'),
+                fileType: 'text/markdown',
+                title,
+                isReadOnly: true,
+                isTemplateBacking: true
+              }
+            });
 
-        return await db.document.update({
-          where: {
-            id: currentDocument.id
-          },
-          data: {
-            title,
-            isReadOnly: true,
-            isTemplateBacking: true,
-            contentOid: contentIds ? contentIds.oid : undefined,
-            currentVersionOid: contentIds ? version!.oid : undefined,
-            maxVersionNumber: contentIds ? nextVersionNumber : undefined,
-            isContentOwner: contentIds ? true : undefined
-          },
-          include: documentInclude
-        });
-      });
+            return await db.document.update({
+              where: {
+                id: currentDocument.id
+              },
+              data: {
+                title,
+                isReadOnly: true,
+                isTemplateBacking: true,
+                contentOid: contentIds ? contentIds.oid : undefined,
+                currentVersionOid: contentIds ? version!.oid : undefined,
+                isContentOwner: contentIds ? true : undefined
+              },
+              include: documentInclude
+            });
+          })
+      );
 
       await storeItemMutationService.attachTargetToStore({
         resourceTenant: d.resourceTenant,
@@ -639,35 +644,6 @@ class InternalStoreTemplateSyncServiceImpl {
       },
       allowReadOnly: true
     });
-  }
-
-  private async createDocumentVersion(d: {
-    resourceTenant: { oid: bigint };
-    resourceGroup: { oid: bigint };
-    document: { oid: bigint };
-    contentOid: bigint;
-    versionNumber: number;
-    previousVersionOid?: bigint;
-  }) {
-    let versionIds = getId('documentVersion');
-
-    return await withTransaction(
-      async db =>
-        await db.documentVersion.create({
-          data: {
-            oid: versionIds.oid,
-            id: versionIds.id,
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
-            documentOid: d.document.oid,
-            contentOid: d.contentOid,
-            versionNumber: d.versionNumber,
-            previousVersionOid: d.previousVersionOid,
-            listEditedAt: new Date()
-          }
-        }),
-      { ifExists: true }
-    );
   }
 
   async syncStoreTemplateBackingStore(d: {

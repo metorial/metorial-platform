@@ -26,7 +26,7 @@ export let resolveDocumentsLiveTarget = async (d: {
   authenticateRequest: AuthenticateRequest;
 }) => {
   if (d.editToken) {
-    let { owner, accessActor, defaultPermissions, overridePermissions } =
+    let { owner, accessTags, accessActor, defaultPermissions, overridePermissions } =
       await documentEditTokenService.verifyDocumentEditToken({
         token: d.editToken,
         documentId: d.documentId,
@@ -37,6 +37,7 @@ export let resolveDocumentsLiveTarget = async (d: {
       owner,
       canWrite: true,
       cargoAccess: {
+        accessTags,
         accessActor,
         defaultPermissions,
         overridePermissions

@@ -135,6 +135,11 @@ let reconnectMaxAttempts = 6;
 let reconnectJitterRatio = 0.25;
 let reconnectStabilityMs = 30_000;
 
+let deferInitialConnection = (connect: () => void) => {
+  let timer = setTimeout(connect, 0);
+  return () => clearTimeout(timer);
+};
+
 let encodeBase64 = (update: Uint8Array) => {
   let binary = '';
   let chunkSize = 0x8000;
@@ -239,6 +244,7 @@ export let __documentCollaborationTestUtils = {
   resolveInitialMarkdown,
   getReconnectDelayMs,
   canRetryConnection,
+  deferInitialConnection,
   reconnectMaxAttempts
 };
 
@@ -363,6 +369,7 @@ export let useDocumentCollaboration = (
 
     let closed = false;
     let reconnectTimer: number | null = null;
+    let cancelInitialConnection: (() => void) | null = null;
     let ws: WebSocket | null = null;
     let heartbeat: number | null = null;
     let stabilityTimer: number | null = null;
@@ -661,11 +668,16 @@ export let useDocumentCollaboration = (
       delayNextConnectionRef.current = false;
       scheduleReconnect();
     } else {
-      void connect(false);
+      cancelInitialConnection = deferInitialConnection(() => {
+        cancelInitialConnection = null;
+        void connect(false);
+      });
     }
 
     return () => {
       closed = true;
+      cancelInitialConnection?.();
+      cancelInitialConnection = null;
       if (reconnectTimer) {
         window.clearTimeout(reconnectTimer);
         reconnectTimer = null;

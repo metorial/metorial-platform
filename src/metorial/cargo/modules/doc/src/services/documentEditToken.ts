@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { Tokens } from '@lowerdeck/tokens';
 import { getConfig } from '@metorial/config';
 import { db, type Instance, type Organization, type User } from '@metorial/db';
+import type { AccessTagSelector, AnyAccessTagSelector } from '@metorial/module-access';
 
 let documentEditTokenTtlMs = 15 * 60 * 1000;
 let documentEditTokens = new Tokens({
@@ -29,6 +30,7 @@ type DocumentEditTokenClaims = {
   documentId: string;
   instanceId: string;
   organizationId: string;
+  accessTagOids?: string[];
   accessActor?: Omit<DocumentEditAccessActor, 'organizationActorOid' | 'consumerOid'> & {
     organizationActorOid?: string;
     consumerOid?: string;
@@ -36,6 +38,21 @@ type DocumentEditTokenClaims = {
   defaultPermissions?: DocumentEditStorePermission[];
   overridePermissions?: boolean;
 };
+
+let getAccessTagOid = (selector: AccessTagSelector) => {
+  if (typeof selector === 'bigint') return selector;
+  if ('oid' in selector) return selector.oid;
+  return selector.accessTagOid;
+};
+
+let serializeAccessTags = (accessTags?: AnyAccessTagSelector) => {
+  if (!accessTags) return undefined;
+  let selectors = Array.isArray(accessTags) ? accessTags : [accessTags];
+  return selectors.map(selector => getAccessTagOid(selector).toString());
+};
+
+let deserializeAccessTags = (accessTagOids?: string[]) =>
+  accessTagOids?.map(accessTagOid => BigInt(accessTagOid));
 
 export type DocumentEditOwner =
   | {
@@ -60,6 +77,7 @@ class DocumentEditTokenServiceImpl {
     documentId: string;
     instanceId: string;
     organizationId: string;
+    accessTags?: AnyAccessTagSelector;
     accessActor?: DocumentEditAccessActor;
     defaultPermissions?: DocumentEditStorePermission[];
     overridePermissions?: boolean;
@@ -71,6 +89,7 @@ class DocumentEditTokenServiceImpl {
         documentId: d.documentId,
         instanceId: d.instanceId,
         organizationId: d.organizationId,
+        accessTagOids: serializeAccessTags(d.accessTags),
         accessActor: d.accessActor
           ? {
               identifier: d.accessActor.identifier,
@@ -99,6 +118,7 @@ class DocumentEditTokenServiceImpl {
     instanceId?: string | null;
   }): Promise<{
     owner: DocumentEditOwner;
+    accessTags?: AnyAccessTagSelector;
     accessActor?: DocumentEditAccessActor;
     defaultPermissions?: DocumentEditStorePermission[];
     overridePermissions?: boolean;
@@ -146,6 +166,7 @@ class DocumentEditTokenServiceImpl {
         organization: instance.organization,
         instance
       },
+      accessTags: deserializeAccessTags(claims.accessTagOids),
       accessActor: claims.accessActor
         ? {
             identifier: claims.accessActor.identifier,
@@ -171,6 +192,16 @@ export let documentEditTokenService = Service.create(
 ).build();
 
 export let __documentEditTokenTestUtils = {
+  serializeAccessTags,
+  deserializeAccessTags,
+  readTokenClaims: async (token: string) => {
+    let payload = await documentEditTokens.verify({
+      token,
+      expectedType: 'document_edit'
+    });
+    if (!payload.verified) throw invalidTokenError();
+    return payload.data as Partial<DocumentEditTokenClaims>;
+  },
   createToken: async (d: {
     claims?: Partial<DocumentEditTokenClaims>;
     type?: string;

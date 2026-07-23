@@ -11,22 +11,36 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
+import { status as grpcStatus } from '@grpc/grpc-js';
 
 let Sentry = getSentry();
 
 type ScmProvider = 'github' | 'gitlab' | 'bitbucket';
 
+let getEmbeddedHttpStatus = (value: unknown) => {
+  if (typeof value !== 'string') return undefined;
+  let match = value.match(/\bstatus(?: code)?[\s:=()]+(\d{3})\b/i);
+  if (!match) return undefined;
+
+  let status = Number(match[1]);
+  return Number.isInteger(status) ? status : undefined;
+};
+
 export let getScmProviderErrorStatus = (error: any): number | undefined =>
   error?.status ??
   error?.response?.status ??
   error?.cause?.response?.status ??
-  error?.cause?.response?.statusCode;
+  error?.cause?.response?.statusCode ??
+  getEmbeddedHttpStatus(error?.details) ??
+  getEmbeddedHttpStatus(error instanceof Error ? error.message : error);
 
 let getHeader = (headers: any, name: string) => {
   if (!headers) return undefined;
   if (typeof headers.get === 'function') return headers.get(name) ?? undefined;
 
-  let entry = Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase());
+  let entry = Object.entries(headers).find(
+    ([key]) => key.toLowerCase() === name.toLowerCase()
+  );
   return typeof entry?.[1] === 'string' ? entry[1] : undefined;
 };
 
@@ -49,7 +63,10 @@ let sanitizeText = (value: unknown, maxLength = 1000): string | undefined => {
       /("(?:authorization|private-token|access[_-]?token|refresh[_-]?token)"\s*:\s*")[^"]*"/gi,
       '$1[redacted]"'
     )
-    .replace(/(authorization|private-token|access[_-]?token|refresh[_-]?token)\s*[:=]\s*[^,\s}"']+/gi, '$1=[redacted]')
+    .replace(
+      /(authorization|private-token|access[_-]?token|refresh[_-]?token)\s*[:=]\s*[^,\s}"']+/gi,
+      '$1=[redacted]'
+    )
     .replace(/bearer\s+[a-z0-9._~+/-]+=*/gi, 'Bearer [redacted]')
     .trim();
 
@@ -61,6 +78,7 @@ let getDescription = (error: any) => {
   let candidates = [
     error?.cause?.description,
     error?.description,
+    error?.details,
     error?.response?.data?.message,
     error?.response?.data?.error,
     error?.cause?.response?.data?.message,
@@ -110,12 +128,20 @@ export type ScmProviderErrorDetails = {
     | 'network_failure';
 };
 
-let classifyScmProviderError = (status: number | undefined, description: string | undefined) => {
+let classifyScmProviderError = (
+  status: number | undefined,
+  description: string | undefined,
+  grpcCode?: number
+) => {
   let normalized = description?.toLowerCase() ?? '';
   if (
     normalized.includes('protected branch') ||
     normalized.includes('protected ref') ||
-    normalized.includes('is protected')
+    normalized.includes('is protected') ||
+    normalized.includes('was protected') ||
+    normalized.includes('not allowed to push into this branch') ||
+    normalized.includes('branch restriction') ||
+    normalized.includes('pre-receive hook declined')
   ) {
     return 'protected_branch' as const;
   }
@@ -130,6 +156,22 @@ let classifyScmProviderError = (status: number | undefined, description: string 
   if (status === 408 || status === 504) return 'timeout' as const;
   if (status === 400 || status === 422) return 'invalid_request' as const;
   if (status != null && status >= 500) return 'upstream_failure' as const;
+
+  if (grpcCode === grpcStatus.UNAUTHENTICATED) return 'authentication_failed' as const;
+  if (grpcCode === grpcStatus.PERMISSION_DENIED) return 'permission_denied' as const;
+  if (grpcCode === grpcStatus.NOT_FOUND) return 'resource_not_found' as const;
+  if (grpcCode === grpcStatus.ABORTED || grpcCode === grpcStatus.ALREADY_EXISTS) {
+    return 'conflict' as const;
+  }
+  if (grpcCode === grpcStatus.RESOURCE_EXHAUSTED) return 'rate_limited' as const;
+  if (grpcCode === grpcStatus.DEADLINE_EXCEEDED) return 'timeout' as const;
+  if (
+    grpcCode === grpcStatus.INVALID_ARGUMENT ||
+    grpcCode === grpcStatus.FAILED_PRECONDITION
+  ) {
+    return 'invalid_request' as const;
+  }
+  if (grpcCode === grpcStatus.UNAVAILABLE) return 'upstream_failure' as const;
   return 'network_failure' as const;
 };
 
@@ -137,8 +179,7 @@ export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetail
   let value = error as any;
   let request = getRequest(value);
   let response = getResponse(value);
-  let method =
-    typeof request?.method === 'string' ? request.method.toUpperCase() : undefined;
+  let method = typeof request?.method === 'string' ? request.method.toUpperCase() : undefined;
   let status = getScmProviderErrorStatus(value);
   let description = getDescription(value);
 
@@ -150,13 +191,19 @@ export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetail
     requestId:
       getHeader(response?.headers, 'x-request-id') ??
       getHeader(response?.headers, 'x-gitlab-meta'),
-    classification: classifyScmProviderError(status, description)
+    classification: classifyScmProviderError(
+      status,
+      description,
+      typeof value?.code === 'number' ? value.code : undefined
+    )
   };
 };
 
 export let isRetryableScmProviderError = (error: unknown) => {
-  let status = getScmProviderErrorStatus(error);
-  return status == null || status === 408 || status === 429 || status >= 500;
+  let classification = getScmProviderErrorDetails(error).classification;
+  return ['network_failure', 'rate_limited', 'timeout', 'upstream_failure'].includes(
+    classification
+  );
 };
 
 let providerName = (provider: ScmProvider) =>
@@ -196,7 +243,8 @@ export let formatScmProviderError = (d: {
 };
 
 let publicErrorReason = (classification: ScmProviderErrorDetails['classification']) => {
-  if (classification === 'protected_branch') return 'a protected branch rule blocked the request';
+  if (classification === 'protected_branch')
+    return 'a protected branch rule blocked the request';
   if (classification === 'missing_branch') return 'the requested branch was not found';
   if (classification === 'permission_denied') return 'the integration lacks permission';
   if (classification === 'authentication_failed') return 'authentication failed';

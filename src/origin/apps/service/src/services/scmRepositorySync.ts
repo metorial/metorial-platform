@@ -1,9 +1,21 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { CodeBucket, ScmRepository, Tenant } from '../../prisma/generated/client';
+import type {
+  CodeBucket,
+  ScmRepository,
+  ScmRepositoryAccessMode,
+  Tenant
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { startRepositorySyncQueue } from '../queues/scm/repositorySync/start';
+import { mergeRepositorySyncQueue } from '../queues/scm/repositorySync/merge';
+import { waitForCiRepositorySyncQueue } from '../queues/scm/repositorySync/waitForCi';
+import { getRepositorySyncStatusSnapshot } from '../lib/scmRepositorySyncProvider';
+import {
+  classifyRepositorySyncSnapshot,
+  transitionRepositorySyncState
+} from './repositorySyncState';
 
 class scmRepositorySyncServiceImpl {
   async getScmRepositorySyncById(d: { tenant: Tenant; id: string }) {
@@ -33,43 +45,162 @@ class scmRepositorySyncServiceImpl {
     tenant: Tenant;
     repo: ScmRepository;
     codeBucket: CodeBucket;
-    branchName: string;
-    prName: string;
+    repositoryAccessMode?: ScmRepositoryAccessMode;
+    requestKey?: string;
+    branchName?: string;
+    prName?: string;
+    commitMessage?: string;
     prDescription?: string;
     enableAutoMerge?: boolean;
+    forceMergeOrPush?: boolean;
+    mergeBeforeChecksPass?: boolean;
   }) {
-    let branchName = d.branchName.trim();
-    let title = d.prName.trim();
+    let repositoryAccessMode = d.repositoryAccessMode ?? 'pull_request';
+    let branchName =
+      repositoryAccessMode === 'default_branch'
+        ? d.repo.defaultBranch
+        : (d.branchName?.trim() ?? '');
+    let title = (d.commitMessage ?? d.prName ?? '').trim();
+    let requestKey = d.requestKey?.trim() || undefined;
+    let baseBranch = d.repo.defaultBranch ?? 'main';
+    let description = d.prDescription ?? null;
+    let enableAutoMerge = d.enableAutoMerge ?? true;
+    let forceMergeOrPush = d.forceMergeOrPush ?? false;
+    let mergeBeforeChecksPass = d.mergeBeforeChecksPass ?? false;
 
-    if (!branchName) {
+    if (repositoryAccessMode === 'pull_request' && !branchName) {
       throw new ServiceError(badRequestError({ message: 'Branch name is required' }));
     }
 
     if (!title) {
-      throw new ServiceError(badRequestError({ message: 'Pull request name is required' }));
+      throw new ServiceError(
+        badRequestError({
+          message:
+            repositoryAccessMode === 'pull_request'
+              ? 'Pull request name is required'
+              : 'Commit message is required'
+        })
+      );
     }
 
     if (d.repo.tenantOid !== d.tenant.oid || d.codeBucket.tenantOid !== d.tenant.oid) {
-      throw new ServiceError(badRequestError({ message: 'Repository and code bucket must belong to the tenant' }));
+      throw new ServiceError(
+        badRequestError({ message: 'Repository and code bucket must belong to the tenant' })
+      );
     }
 
-    let sync = await db.scmRepositorySync.create({
-      data: {
-        ...getId('scmRepositorySync'),
-        tenantOid: d.tenant.oid,
-        repoOid: d.repo.oid,
-        codeBucketOid: d.codeBucket.oid,
-        branchName,
-        baseBranch: d.repo.defaultBranch ?? 'main',
-        title,
-        description: d.prDescription,
-        enableAutoMerge: d.enableAutoMerge ?? true
-      }
-    });
+    let data = {
+      ...getId('scmRepositorySync'),
+      tenantOid: d.tenant.oid,
+      repoOid: d.repo.oid,
+      codeBucketOid: d.codeBucket.oid,
+      repositoryAccessMode,
+      requestKey,
+      branchName,
+      baseBranch,
+      title,
+      description,
+      enableAutoMerge,
+      forceMergeOrPush,
+      mergeBeforeChecksPass
+    };
+    let sync = requestKey
+      ? await db.scmRepositorySync.upsert({
+          where: {
+            tenantOid_requestKey: {
+              tenantOid: d.tenant.oid,
+              requestKey
+            }
+          },
+          create: data,
+          update: {}
+        })
+      : await db.scmRepositorySync.create({ data });
 
-    await startRepositorySyncQueue.add({ syncId: sync.id });
+    if (
+      sync.repoOid !== d.repo.oid ||
+      sync.codeBucketOid !== d.codeBucket.oid ||
+      sync.repositoryAccessMode !== repositoryAccessMode ||
+      (repositoryAccessMode === 'pull_request' && sync.branchName !== branchName) ||
+      sync.title !== title ||
+      sync.description !== description ||
+      sync.enableAutoMerge !== enableAutoMerge ||
+      sync.forceMergeOrPush !== forceMergeOrPush ||
+      sync.mergeBeforeChecksPass !== mergeBeforeChecksPass
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'Repository sync request key was already used' })
+      );
+    }
+
+    if (sync.status === 'pending') {
+      await startRepositorySyncQueue.add({ syncId: sync.id });
+    }
 
     return sync;
+  }
+
+  async checkScmRepositorySyncStatus(d: { tenant: Tenant; id: string }) {
+    let sync = await db.scmRepositorySync.findFirst({
+      where: { id: d.id, tenantOid: d.tenant.oid },
+      include: {
+        repo: {
+          include: {
+            installation: {
+              include: { backend: true }
+            }
+          }
+        }
+      }
+    });
+    if (!sync) throw new ServiceError(notFoundError('scmRepositorySync'));
+    if (!sync.providerPrId || !sync.providerPrUrl) return sync;
+
+    let snapshot = await getRepositorySyncStatusSnapshot(sync);
+    let now = new Date();
+    let status = classifyRepositorySyncSnapshot(snapshot, {
+      enableAutoMerge: sync.enableAutoMerge,
+      forceMergeOrPush: sync.forceMergeOrPush,
+      mergeBeforeChecksPass: sync.mergeBeforeChecksPass
+    });
+
+    let completed = [
+      'merged',
+      'cancelled',
+      'complete_unmerged',
+      'complete_direct_push',
+      'complete_no_changes'
+    ].includes(status);
+    let updated = await transitionRepositorySyncState(sync.id, sync.status, {
+      status,
+      statusSnapshot: snapshot,
+      ...(status === 'merged'
+        ? { providerMergeSha: snapshot.pullRequest.mergeSha ?? sync.providerMergeSha }
+        : {}),
+      ciState: snapshot.checks.state,
+      lastPolledAt: now,
+      attemptCount: 0,
+      nextPollAt: completed || status === 'merging' ? null : new Date(now.getTime() + 30_000),
+      completedAt: completed ? (sync.completedAt ?? now) : null,
+      errorMessage:
+        status === 'cancelled' ? 'Pull request was closed before it could be merged' : null
+    });
+    if (!updated) {
+      return db.scmRepositorySync.findUniqueOrThrow({ where: { id: sync.id } });
+    }
+
+    if (status === 'merging' && sync.enableAutoMerge) {
+      await mergeRepositorySyncQueue.add(
+        { syncId: sync.id },
+        { id: `${sync.id}:rpc-merge:${now.getTime()}` }
+      );
+    } else if (!completed && sync.enableAutoMerge) {
+      await waitForCiRepositorySyncQueue.add(
+        { syncId: sync.id },
+        { id: `${sync.id}:rpc-check:${now.getTime()}` }
+      );
+    }
+    return updated;
   }
 }
 

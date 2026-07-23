@@ -8,7 +8,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "prisma:generate": "./prisma-generate.sh",
-    "prisma:push": "prisma db push --accept-data-loss"
+    "prisma:push": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --accept-data-loss'"
   },
   "dependencies": {
     "@aws-sdk/rds-signer": "^3.1018.0",

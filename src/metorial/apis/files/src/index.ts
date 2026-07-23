@@ -289,6 +289,7 @@ let createDocumentsLiveHandler = (
               return {
                 documentId,
                 actorId: access.actorId,
+                accessTags: access.accessTags,
                 defaultPermissions: access.defaultPermissions,
                 overridePermissions: access.overridePermissions,
                 canWrite:

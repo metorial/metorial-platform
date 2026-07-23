@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db } from '../db';
@@ -12,6 +12,7 @@ class ChangeNotificationServiceImpl {
       include: {
         repo: { include: { account: true } },
         repoPush: { include: { repo: true } },
+        repositorySync: true,
         tenant: true
       }
     });
@@ -32,12 +33,48 @@ class ChangeNotificationServiceImpl {
           include: {
             repo: { include: { account: true } },
             repoPush: { include: { repo: true } },
+            repositorySync: true,
             tenant: true
           },
           orderBy: opts.orderBy?.length ? opts.orderBy : [{ createdAt: 'desc' }]
         })
       )
     );
+  }
+
+  async pollChangeNotifications(d: {
+    tenantOid: bigint;
+    afterCursor?: string;
+    limit: number;
+  }) {
+    if (d.afterCursor && !/^\d+$/.test(d.afterCursor)) {
+      throw new ServiceError(
+        badRequestError({ message: 'Invalid change notification cursor' })
+      );
+    }
+    let after = d.afterCursor ? BigInt(d.afterCursor) : undefined;
+    let notifications = await db.changeNotification.findMany({
+      where: {
+        tenantOid: d.tenantOid,
+        type: 'repository_sync_status_changed',
+        ...(after != null && { oid: { gt: after } })
+      },
+      include: {
+        repo: { include: { account: true } },
+        repoPush: { include: { repo: true } },
+        repositorySync: true,
+        tenant: true
+      },
+      orderBy: { oid: 'asc' },
+      take: Math.min(Math.max(d.limit, 1), 100)
+    });
+    return {
+      notifications,
+      nextCursor:
+        notifications.length > 0
+          ? notifications[notifications.length - 1]!.oid.toString()
+          : d.afterCursor
+    };
   }
 }
 

@@ -11,24 +11,30 @@ import {
   resolveSkillConfigurations,
   resolveSkillMarketplaces
 } from '@metorial/cargo-list-utils';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
+import type {
+  EntityImage,
+  Prisma,
+  SkillMarketplaceRepositoryAccessMode,
+  SkillMarketplaceStatus
+} from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
-import type { EntityImage, Prisma, SkillMarketplaceStatus } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
 import {
   createSkillDestination,
   forceSkillDestinationSync,
   getSkillDestinationEditorUrl
 } from '../internal/skillDestination';
+import { getSkillMarketplaceUpdateFlags } from '../lib/skillMarketplaceUpdate';
 import { enqueueSkillMarketplaceLifecycle } from '../queues/lifecycle';
 import { skillConfigurationService } from './skillConfiguration';
-import { skillPluginInclude } from './skillPlugin';
 import {
   getSkillMarketplaceAccessWhere,
   type SkillMarketplaceAccessInput
 } from './skillMarketplaceAccess';
+import { skillPluginInclude } from './skillPlugin';
 
 export let skillMarketplaceInclude = {
   destination: {
@@ -36,7 +42,7 @@ export let skillMarketplaceInclude = {
       syncs: {
         where: {
           status: {
-            in: ['pending', 'processing']
+            in: ['pending', 'processing', 'waiting_for_review']
           }
         }
       }
@@ -84,6 +90,9 @@ type SkillMarketplaceInput = {
   name?: string;
   description?: string | null;
   skillConfigurationId?: string | null;
+  repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
+  forceMergeOrPush?: boolean;
+  mergeBeforeChecksPass?: boolean;
 };
 
 class SkillMarketplaceServiceImpl {
@@ -205,6 +214,9 @@ class SkillMarketplaceServiceImpl {
         providerOverrides?: Prisma.InputJsonValue | null;
         imageFileId?: string | null;
         skillConfigurationId?: string | null;
+        repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
+        forceMergeOrPush?: boolean;
+        mergeBeforeChecksPass?: boolean;
       };
     }
   ) {
@@ -233,6 +245,9 @@ class SkillMarketplaceServiceImpl {
           providerOverrides: d.input.providerOverrides as any,
           name: d.input.name,
           description: d.input.description,
+          repositoryAccessMode: d.input.repositoryAccessMode,
+          forceMergeOrPush: d.input.forceMergeOrPush,
+          mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
           slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid,
@@ -278,7 +293,8 @@ class SkillMarketplaceServiceImpl {
       input: SkillMarketplaceInput;
     }
   ) {
-    if (!this.hasUpdate(d.input)) {
+    let updateFlags = getSkillMarketplaceUpdateFlags(d.input);
+    if (!updateFlags.hasUpdate) {
       throw new ServiceError(
         badRequestError({
           message: 'At least one skill marketplace field must be updated'
@@ -320,6 +336,9 @@ class SkillMarketplaceServiceImpl {
         providerOverrides: d.input.providerOverrides as any,
         name: d.input.name,
         description: d.input.description,
+        repositoryAccessMode: d.input.repositoryAccessMode,
+        forceMergeOrPush: d.input.forceMergeOrPush,
+        mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
         skillConfigurationOid
       }
     });
@@ -334,10 +353,12 @@ class SkillMarketplaceServiceImpl {
       });
     }
 
-    await enqueueSkillMarketplaceLifecycle({
-      skillMarketplaceId: d.skillMarketplace.id,
-      event: 'updated'
-    });
+    if (updateFlags.hasContentUpdate) {
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: d.skillMarketplace.id,
+        event: 'updated'
+      });
+    }
 
     return await this.getSkillMarketplaceRecord({
       resourceTenant: d.resourceTenant!,

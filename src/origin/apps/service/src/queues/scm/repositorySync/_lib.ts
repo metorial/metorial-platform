@@ -1,7 +1,33 @@
 import { db } from '../../../db';
-import { getScmProviderLogDetails } from '../../../lib/scmProviderError';
+import {
+  getScmProviderErrorDetails,
+  getScmProviderLogDetails,
+  isRetryableScmProviderError
+} from '../../../lib/scmProviderError';
+import {
+  isTerminalRepositorySyncStatus,
+  transitionRepositorySyncState
+} from '../../../services/repositorySyncState';
 
 export type RepositorySyncLogEntry = [number, string];
+
+export let shouldRetryRepositorySyncContents = (d: {
+  repositoryAccessMode: string;
+  status: string;
+  attemptCount: number;
+  error: unknown;
+}) => {
+  if (
+    d.repositoryAccessMode !== 'default_branch' ||
+    d.status !== 'syncing_contents' ||
+    d.attemptCount >= 3
+  ) {
+    return false;
+  }
+
+  let classification = getScmProviderErrorDetails(d.error).classification;
+  return classification === 'conflict' || isRetryableScmProviderError(d.error);
+};
 
 export let logRepositorySyncQueueEvent = (
   stage: string,
@@ -74,23 +100,30 @@ export let getRepositorySyncErrorMessage = (error: unknown) => {
 };
 
 export let markRepositorySyncFailed = async (syncId: string, error: unknown) => {
-  let message = getRepositorySyncErrorMessage(error);
-
-  await db.scmRepositorySync.updateMany({
-    where: {
-      id: syncId,
-      status: {
-        notIn: ['merged', 'failed', 'cancelled', 'complete_unmerged', 'complete_no_changes']
-      }
-    },
-    data: {
-      status: 'failed',
-      errorMessage: message,
-      completedAt: new Date(),
-      attemptCount: { increment: 1 },
-      logs: {
-        push: [Date.now(), 'Repository update failed.'] satisfies RepositorySyncLogEntry
-      }
+  let sync = await db.scmRepositorySync.findUnique({ where: { id: syncId } });
+  if (!sync || isTerminalRepositorySyncStatus(sync.status)) return;
+  let details = getScmProviderErrorDetails(error);
+  let message =
+    sync.repositoryAccessMode === 'default_branch'
+      ? details.classification === 'protected_branch'
+        ? 'Direct push was blocked by repository rules. Use pull requests or allow writes to the default branch.'
+        : ['permission_denied', 'authentication_failed'].includes(details.classification)
+          ? 'The connected account cannot push to the default branch. Update repository access and retry.'
+          : details.classification === 'conflict'
+            ? 'The default branch changed while syncing. Retry the sync.'
+            : ['rate_limited', 'timeout', 'upstream_failure', 'network_failure'].includes(
+                  details.classification
+                )
+              ? 'The repository provider could not complete the update. Retry the sync.'
+              : getRepositorySyncErrorMessage(error)
+      : getRepositorySyncErrorMessage(error);
+  await transitionRepositorySyncState(syncId, sync.status, {
+    status: 'failed',
+    errorMessage: message,
+    completedAt: new Date(),
+    attemptCount: { increment: 1 },
+    logs: {
+      push: [Date.now(), 'Repository update failed.'] satisfies RepositorySyncLogEntry
     }
   });
 };

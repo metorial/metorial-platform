@@ -274,7 +274,6 @@ class DocumentServiceImpl {
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
         document,
-        versionNumber: 1,
         contentOid: contentIds.oid,
         listEditedAt: new Date()
       });
@@ -756,7 +755,6 @@ class DocumentServiceImpl {
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
         document,
-        versionNumber: 1,
         contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
         listEditedAt: new Date()
       });

@@ -75,7 +75,6 @@ class InternalDocumentContentServiceImpl {
 
       let liveContentOid = d.document.contentOid;
       let activeVersion = d.document.currentVersion;
-      let nextVersionNumber = d.document.maxVersionNumber;
       let didCreateVersion = false;
       let { parentLiveContent, shouldKeepParentSync } = await this.getParentSyncState({
         document: d.document,
@@ -170,13 +169,10 @@ class InternalDocumentContentServiceImpl {
           liveContentOid = liveContentIds.oid;
         }
 
-        nextVersionNumber += 1;
-
         activeVersion = await internalDocumentVersioningService.createVersion({
           resourceTenant: d.resourceTenant,
           resourceGroup: d.resourceGroup,
           document: d.document,
-          versionNumber: nextVersionNumber,
           contentOid: liveContentOid,
           previousVersionOid: d.document.currentVersion?.oid,
           listEditedAt: d.listEditedAt
@@ -200,12 +196,10 @@ class InternalDocumentContentServiceImpl {
               resourceTenant: d.resourceTenant,
               resourceGroup: d.resourceGroup,
               document: d.document,
-              versionNumber: d.document.maxVersionNumber + 1,
               contentOid: liveContentOid,
               listEditedAt: d.listEditedAt
             });
 
-            nextVersionNumber += 1;
             didCreateVersion = true;
           } else {
             activeVersion = await db.documentVersion.update({
@@ -239,12 +233,10 @@ class InternalDocumentContentServiceImpl {
             resourceTenant: d.resourceTenant,
             resourceGroup: d.resourceGroup,
             document: d.document,
-            versionNumber: d.document.maxVersionNumber + 1,
             contentOid: liveContentOid,
             listEditedAt: d.listEditedAt
           });
 
-          nextVersionNumber += 1;
           didCreateVersion = true;
         } else {
           activeVersion = await db.documentVersion.update({
@@ -277,12 +269,10 @@ class InternalDocumentContentServiceImpl {
             resourceTenant: d.resourceTenant,
             resourceGroup: d.resourceGroup,
             document: d.document,
-            versionNumber: d.document.maxVersionNumber + 1,
             contentOid: liveContentOid,
             listEditedAt: d.listEditedAt
           });
 
-          nextVersionNumber += 1;
           didCreateVersion = true;
         } else {
           activeVersion = await db.documentVersion.update({
@@ -303,7 +293,6 @@ class InternalDocumentContentServiceImpl {
       return {
         activeVersion,
         liveContentOid,
-        nextVersionNumber,
         isContentOwner: d.document.isContentOwner || !shouldKeepParentSync,
         didCreateVersion,
         draftVersionExpiresAt:
@@ -392,7 +381,6 @@ class InternalDocumentContentServiceImpl {
 
       let activeVersion = d.document.currentVersion;
       let liveContentOid = d.document.contentOid;
-      let maxVersionNumber = d.document.maxVersionNumber;
       let isContentOwner = d.document.isContentOwner;
       let createdVersionId: string | null = null;
       let draftVersionExpiresAt = d.document.draftVersionExpiresAt;
@@ -410,7 +398,6 @@ class InternalDocumentContentServiceImpl {
 
         activeVersion = writeResult.activeVersion;
         liveContentOid = writeResult.liveContentOid;
-        maxVersionNumber = writeResult.nextVersionNumber;
         isContentOwner = writeResult.isContentOwner;
         createdVersionId = writeResult.didCreateVersion
           ? (writeResult.activeVersion?.id ?? null)
@@ -437,7 +424,6 @@ class InternalDocumentContentServiceImpl {
           title: nextTitle,
           contentOid: hasContentChange ? liveContentOid : undefined,
           isContentOwner: hasContentChange ? isContentOwner : undefined,
-          maxVersionNumber: hasContentChange ? maxVersionNumber : undefined,
           currentVersionOid: hasContentChange ? (activeVersion?.oid ?? null) : undefined,
           draftVersionExpiresAt: hasContentChange ? draftVersionExpiresAt : undefined
         },

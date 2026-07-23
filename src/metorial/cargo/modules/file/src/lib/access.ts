@@ -1,15 +1,15 @@
-import { resourceActorService } from '@metorial/module-resource-tenant';
-import {
-  resolveResourceScopeForOwner,
-  type ResourceScope,
-  type ResourceScopeOwner
-} from '@metorial/module-resource-tenant';
 import type { Instance, ResourceActor } from '@metorial/db';
 import {
   createResourceAuthorization,
   type AnyAccessTagSelector,
   type ResourceAuthorization
 } from '@metorial/module-access';
+import {
+  resolveResourceScopeForOwner,
+  resourceActorService,
+  type ResourceScope,
+  type ResourceScopeOwner
+} from '@metorial/module-resource-tenant';
 
 let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
 
@@ -56,10 +56,10 @@ export type CargoAccessInput = {
   scope?: ResourceScope;
   resourceActor?: ResourceActor;
   accessActor?: CargoAccessActor;
+  accessTags?: AnyAccessTagSelector;
   defaultPermissions?: CargoStorePermission[];
   overridePermissions?: boolean;
   authorization?: ResourceAuthorization;
-  accessTags?: AnyAccessTagSelector;
 };
 
 export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
@@ -170,6 +170,7 @@ export let resolveCargoAccess = async (d: CargoAccessInput) => {
       resourceActor: actor
     },
     actorId: actor?.id,
+    accessTags: d.accessTags,
     defaultPermissions: d.defaultPermissions,
     overridePermissions: d.overridePermissions
   };

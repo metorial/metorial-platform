@@ -17,6 +17,13 @@ import type {
   SkillMarketplaceSettingsScene as _SkillMarketplaceSettingsScene,
   SkillPluginSettingsScene as _SkillPluginSettingsScene
 } from './skillMarketplaceSettings';
+export { SkillMarketplaceRepositoryAccessSettings } from './skillMarketplaceSettings';
+export {
+  SkillMarketplaceRepositoriesSettingsBox,
+  SkillMarketplaceRepositoriesSettingsContent,
+  SkillMarketplaceRepositoriesSettingsContentScene,
+  useSkillMarketplaceRepositoriesManager
+} from './skillRepositories';
 import type { SkillParticipantsScene as _SkillParticipantsScene } from './skillParticipants';
 import type {
   SkillMergeRequestScene as _SkillMergeRequestScene,

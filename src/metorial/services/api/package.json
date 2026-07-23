@@ -23,7 +23,6 @@
     "@metorial/cargo-module-store": "1.0.0",
     "@metorial/logging": "1.0.0",
     "@metorial/module-access": "1.0.0",
-    "@metorial/module-cargo-sync": "1.0.0",
     "@metorial/module-email": "1.0.0",
     "@metorial/module-event": "1.0.0",
     "@metorial/module-machine-access": "1.0.0",

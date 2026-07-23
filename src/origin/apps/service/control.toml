@@ -1,0 +1,39 @@
+name = "@metorial/origin"
+group = "oss"
+mode = "enterprise"
+
+[dev]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52090
+
+[[dev.expose]]
+port = 52093
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
+ORIGIN_SERVICE_PUBLIC_URL = "http://{{HOSTNAME}}:52093"
+OBJECT_STORAGE_URL = "http://services:52010"
+CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
+CODE_BUCKET_SERVICE_URL = "localhost:5050"
+CODE_BUCKET_EDITOR_URL = "http://localhost:52092"
+SCM_GITHUB_APP_ID = true
+SCM_GITHUB_APP_SLUG = true
+SCM_GITHUB_APP_PRIVATE_KEY_BASE_64 = true
+SCM_GITHUB_APP_CLIENT_ID = true
+SCM_GITHUB_APP_CLIENT_SECRET = true
+SCM_GITLAB_CLIENT_ID = true
+SCM_GITLAB_CLIENT_SECRET = true
+SCM_BITBUCKET_CLIENT_ID = true
+SCM_BITBUCKET_CLIENT_SECRET = true
+
+[dev.db.main]
+name = "origin"
+engine = "postgres"
+env = "DATABASE_URL"

@@ -5,6 +5,7 @@ import { mergeRepositorySyncQueueProcessor } from './merge';
 import { startRepositorySyncQueueProcessor } from './start';
 import { syncContentsRepositorySyncQueueProcessor } from './syncContents';
 import { waitForCiRepositorySyncQueueProcessor } from './waitForCi';
+import { recoverRepositorySyncProcessor } from './recover';
 
 export let repositorySyncQueueProcessor = combineQueueProcessors([
   startRepositorySyncQueueProcessor,
@@ -12,5 +13,6 @@ export let repositorySyncQueueProcessor = combineQueueProcessors([
   syncContentsRepositorySyncQueueProcessor,
   createPrRepositorySyncQueueProcessor,
   waitForCiRepositorySyncQueueProcessor,
-  mergeRepositorySyncQueueProcessor
+  mergeRepositorySyncQueueProcessor,
+  recoverRepositorySyncProcessor
 ]);

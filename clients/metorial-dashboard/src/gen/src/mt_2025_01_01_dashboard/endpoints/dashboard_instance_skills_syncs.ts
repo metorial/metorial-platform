@@ -7,9 +7,11 @@ import {
   mapDashboardInstanceSkillsSyncsGetOutput,
   mapDashboardInstanceSkillsSyncsListOutput,
   mapDashboardInstanceSkillsSyncsListQuery,
+  mapDashboardInstanceSkillsSyncsRepositoryChecksOutput,
   type DashboardInstanceSkillsSyncsGetOutput,
   type DashboardInstanceSkillsSyncsListOutput,
-  type DashboardInstanceSkillsSyncsListQuery
+  type DashboardInstanceSkillsSyncsListQuery,
+  type DashboardInstanceSkillsSyncsRepositoryChecksOutput
 } from '../resources';
 
 /**
@@ -97,6 +99,35 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceSkillsSyncsGetOutput
+    );
+  }
+
+  /**
+   * @name Get skill sync repository checks
+   * @description Returns the latest repository checks and review requirements.
+   *
+   * @param `instanceId` - string
+   * @param `skillSyncId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsSyncsRepositoryChecksOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  repositoryChecks(
+    instanceId: string,
+    skillSyncId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsSyncsRepositoryChecksOutput> {
+    let path = `dashboard/instances/${instanceId}/skill-syncs/${skillSyncId}/repository-checks`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._get(request).transform(
+      mapDashboardInstanceSkillsSyncsRepositoryChecksOutput
     );
   }
 }

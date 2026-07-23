@@ -95,37 +95,10 @@ let createSchemaChangeAlert = async (d: {
   status: MonitorAlertStatus;
 }) =>
   await withTransaction(async tx => {
-    let existing = await tx.monitorAlert.findUnique({
-      where: {
-        monitorOid_specificationChangeNotificationOid: {
-          monitorOid: d.monitor.oid,
-          specificationChangeNotificationOid: d.notification.oid
-        }
-      }
-    });
-
-    if (existing) {
-      if (existing.status === 'ignored' && d.status === 'pending') {
-        await tx.monitorAlert.update({
-          where: { oid: existing.oid },
-          data: {
-            status: 'pending',
-            resolvedAt: null
-          }
-        });
-      }
-
-      await updateMonitorAlertWindow({
-        db: tx,
-        monitor: d.monitor,
-        timestamp: d.notification.createdAt
-      });
-      return;
-    }
-
-    let alert = await tx.monitorAlert.create({
+    let alertId = getId('monitorAlert');
+    let createResult = await tx.monitorAlert.createMany({
       data: {
-        ...getId('monitorAlert'),
+        ...alertId,
         status: d.status,
         monitorOid: d.monitor.oid,
         specificationChangeNotificationOid: d.notification.oid,
@@ -133,17 +106,34 @@ let createSchemaChangeAlert = async (d: {
         environmentOid: d.monitor.environmentOid,
         solutionOid: d.monitor.solutionOid,
         createdAt: d.notification.createdAt
-      }
+      },
+      skipDuplicates: true
     });
 
-    await tx.monitorAlertEvent.create({
-      data: {
-        ...getId('monitorAlertEvent'),
-        type: 'created',
-        monitorAlertOid: alert.oid,
-        createdAt: d.notification.createdAt
-      }
-    });
+    if (createResult.count === 0 && d.status === 'pending') {
+      await tx.monitorAlert.updateMany({
+        where: {
+          monitorOid: d.monitor.oid,
+          specificationChangeNotificationOid: d.notification.oid,
+          status: 'ignored'
+        },
+        data: {
+          status: 'pending',
+          resolvedAt: null
+        }
+      });
+    }
+
+    if (createResult.count === 1) {
+      await tx.monitorAlertEvent.create({
+        data: {
+          ...getId('monitorAlertEvent'),
+          type: 'created',
+          monitorAlertOid: alertId.oid,
+          createdAt: d.notification.createdAt
+        }
+      });
+    }
 
     await updateMonitorAlertWindow({
       db: tx,

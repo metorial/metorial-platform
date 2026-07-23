@@ -10,12 +10,19 @@ enum ScmRepositorySyncStatus {
   syncing_contents
   creating_pr
   waiting_for_ci
+  waiting_for_review
   merging
   merged
   failed
   cancelled
   complete_unmerged
+  complete_direct_push
   complete_no_changes
+}
+
+enum ScmRepositoryAccessMode {
+  pull_request
+  default_branch
 }
 
 enum ScmAccountType {
@@ -66,6 +73,9 @@ model ScmRepository {
 
   defaultBranch String @default("main")
 
+  webhookReconcileBlockedUntil  DateTime?
+  webhookReconcileBlockedReason String?
+
   backendOid BigInt
   backend    ScmBackend @relation(fields: [backendOid], references: [oid], onDelete: Cascade)
 
@@ -88,13 +98,16 @@ model ScmRepository {
   scmRepositorySyncs  ScmRepositorySync[]
 
   @@unique([tenantOid, backendOid, externalId])
+  @@index([webhookReconcileBlockedUntil, oid])
 }
 
 model ScmRepositorySync {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status ScmRepositorySyncStatus @default(pending)
+  status               ScmRepositorySyncStatus @default(pending)
+  repositoryAccessMode ScmRepositoryAccessMode @default(pull_request)
+  requestKey           String?
 
   branchName String
   baseBranch String
@@ -102,15 +115,20 @@ model ScmRepositorySync {
   title       String
   description String?
 
-  enableAutoMerge Boolean @default(true)
+  enableAutoMerge       Boolean @default(true)
+  forceMergeOrPush      Boolean @default(false)
+  mergeBeforeChecksPass Boolean @default(false)
 
-  providerPrId     String?
-  providerPrUrl    String?
-  providerMergeSha String?
+  providerPrId               String?
+  providerPrUrl              String?
+  providerMergeSha           String?
+  mergeAttemptSnapshotHashes String[] @default([])
 
-  errorMessage String?
-  ciState      String?
-  attemptCount Int     @default(0)
+  errorMessage   String?
+  ciState        String?
+  /// [RepositorySyncStatusSnapshot]
+  statusSnapshot Json?
+  attemptCount   Int     @default(0)
 
   /// [SyncLogEntry]
   logs Json[] @default([])
@@ -128,13 +146,18 @@ model ScmRepositorySync {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  changeNotifications ChangeNotification[] @relation("RepositorySyncChangeNotifications")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  @@unique([tenantOid, requestKey])
   @@index([tenantOid])
   @@index([repoOid])
+  @@index([repoOid, repositoryAccessMode, status])
   @@index([codeBucketOid])
   @@index([status])
+  @@index([status, nextPollAt])
 }
 
 model ScmInstallation {
@@ -178,6 +201,14 @@ enum ScmRepositoryWebhookType {
   push
 }
 
+enum ScmRepositoryWebhookEvent {
+  push
+  pull_request
+  pull_request_review
+  ci_status
+  ci_check
+}
+
 model ScmRepositoryWebhook {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -187,8 +218,9 @@ model ScmRepositoryWebhook {
   repoOid BigInt        @unique
   repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
 
-  externalId    String
-  signingSecret String
+  externalId       String
+  signingSecret    String
+  registeredEvents ScmRepositoryWebhookEvent[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

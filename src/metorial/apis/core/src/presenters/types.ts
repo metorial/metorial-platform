@@ -219,6 +219,7 @@ import type {
   SkillGroupResource,
   SkillItemResource,
   SkillResource,
+  SkillSyncRepositoryCheck,
   SkillTemplateItemResource,
   SkillTemplateResource
 } from '@metorial/cargo-module-skill';
@@ -957,6 +958,10 @@ export let skillSyncType = PresentableType.create<{
     };
   }>;
 }>()('skillSync');
+
+export let skillSyncRepositoryChecksType = PresentableType.create<{
+  repositoryChecks: SkillSyncRepositoryCheck[];
+}>()('skillSyncRepositoryChecks');
 
 export let skillParticipantType = PresentableType.create<{
   skillParticipant: SkillParticipant & {

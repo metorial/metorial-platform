@@ -4,7 +4,6 @@ import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client'
 import { db } from '../db';
 import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
 
-type GitLabClient = InstanceType<typeof Gitlab>;
 type GitLabInstallation = ScmInstallation & { backend: ScmBackend };
 type GitLabCredentials = {
   accessToken: string;
@@ -14,7 +13,7 @@ type GitLabCredentials = {
 
 let tokenRefreshes = new Map<bigint, Promise<GitLabCredentials>>();
 
-export let createGitLabClient = (backend?: ScmBackend): GitLabClient => {
+export let createGitLabClient = (backend?: ScmBackend) => {
   let host = backend?.webUrl ?? 'https://gitlab.com';
   let oauthToken = undefined; // Will be set when we have a token
 
@@ -24,10 +23,7 @@ export let createGitLabClient = (backend?: ScmBackend): GitLabClient => {
   });
 };
 
-export let createGitLabClientWithToken = (
-  token: string,
-  backend?: ScmBackend
-): GitLabClient => {
+export let createGitLabClientWithToken = (token: string, backend?: ScmBackend) => {
   let host = backend?.webUrl ?? 'https://gitlab.com';
 
   return new Gitlab({
@@ -150,9 +146,7 @@ export let refreshGitLabAccessToken = async (i: {
   };
 };
 
-export let createGitLabClientWithInstallation = async (
-  installation: GitLabInstallation
-): Promise<GitLabClient> => {
+export let createGitLabClientWithInstallation = async (installation: GitLabInstallation) => {
   let accessToken = await getGitLabAccessTokenWithInstallation(installation);
   return createGitLabClientWithToken(accessToken, installation.backend);
 };

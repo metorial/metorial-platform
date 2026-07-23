@@ -461,6 +461,13 @@
         "typescript": "^5",
       },
     },
+    "src/control": {
+      "name": "total-control",
+      "version": "0.1.0",
+      "bin": {
+        "control": "./bin/control.mjs",
+      },
+    },
     "src/forge/clients/forge": {
       "name": "@metorial-platform-systems/forge-client",
       "version": "1.0.4",
@@ -1469,6 +1476,7 @@
         "react-use": "^17.5.1",
         "reactflow": "^11.11.4",
         "remark-gfm": "^4.0.1",
+        "shleemy": "^1.2.2",
         "styled-components": "^6.1.13",
         "tiptap-markdown": "^0.9.0",
       },
@@ -2160,6 +2168,7 @@
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/hono": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/lock": "workspace:2.0.0",
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/redis": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
@@ -2172,6 +2181,7 @@
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/docs-editor-schema": "^1.0.0",
+        "@metorial/module-access": "^1.0.0",
         "@metorial/module-resource-tenant": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "hono": "4.12.23",
@@ -2440,21 +2450,6 @@
         "ai": "^6.0.175",
         "just-bash": "^2.14.4",
         "zod": "^4.4.3",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.8.2",
-        "vitest": "^3.1.2",
-      },
-    },
-    "src/metorial/modules/cargo-sync": {
-      "name": "@metorial/module-cargo-sync",
-      "version": "1.0.0",
-      "dependencies": {
-        "@metorial-cargo/db": "1.0.0",
-        "@metorial/cron": "^1.0.0",
-        "@metorial/db": "^1.0.0",
-        "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3163,7 +3158,6 @@
         "@metorial/cargo-module-store": "1.0.0",
         "@metorial/logging": "1.0.0",
         "@metorial/module-access": "1.0.0",
-        "@metorial/module-cargo-sync": "1.0.0",
         "@metorial/module-email": "1.0.0",
         "@metorial/module-event": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
@@ -6224,8 +6218,6 @@
     "@metorial/module-access": ["@metorial/module-access@workspace:src/metorial/modules/access"],
 
     "@metorial/module-assistant": ["@metorial/module-assistant@workspace:src/metorial/modules/assistant"],
-
-    "@metorial/module-cargo-sync": ["@metorial/module-cargo-sync@workspace:src/metorial/modules/cargo-sync"],
 
     "@metorial/module-community": ["@metorial/module-community@workspace:src/metorial/modules/community"],
 
@@ -9690,6 +9682,8 @@
     "token-types": ["token-types@6.1.2", "", { "dependencies": { "@borewit/text-codec": "^0.2.1", "@tokenizer/token": "^0.3.0", "ieee754": "^1.2.1" } }, "sha512-dRXchy+C0IgK8WPC6xvCHFRIWYUbqqdEIKPaKo/AcTUNzwLTK6AH7RjdLWsEZcAN/TBdtfUw3PYEgPr5VPr6ww=="],
 
     "toposort": ["toposort@2.0.2", "", {}, "sha512-0a5EOkAUp8D4moMi2W8ZF8jcga7BgZd91O/yabJCFY8az+XSzeGyTKs0Aoo897iV1Nj6guFq8orWDS96z91oGg=="],
+
+    "total-control": ["total-control@workspace:src/control"],
 
     "totalist": ["totalist@3.0.1", "", {}, "sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ=="],
 

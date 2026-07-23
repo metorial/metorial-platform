@@ -124,12 +124,10 @@ export let flushExpiredDraftVersion = async (d: {
         }
       });
 
-      let nextVersionNumber = document.maxVersionNumber + 1;
       let nextVersion = await internalDocumentVersioningService.createVersion({
         resourceTenant: document.resourceTenant,
         resourceGroup: document.resourceGroup,
         document,
-        versionNumber: nextVersionNumber,
         contentOid: document.contentOid,
         previousVersionOid: document.currentVersion.oid,
         listEditedAt: now
@@ -140,7 +138,6 @@ export let flushExpiredDraftVersion = async (d: {
           id: document.id
         },
         data: {
-          maxVersionNumber: nextVersionNumber,
           currentVersionOid: nextVersion.oid,
           draftVersionExpiresAt: null
         },

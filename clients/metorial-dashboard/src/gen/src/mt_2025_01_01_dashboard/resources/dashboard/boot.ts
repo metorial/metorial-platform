@@ -332,3 +332,7 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
   )
 });
 
+export type DashboardBootBody = {};
+
+export let mapDashboardBootBody = mtMap.object<DashboardBootBody>({});
+

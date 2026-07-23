@@ -5,8 +5,16 @@ import { skillSyncType } from '../../types';
 let skillSyncRepositoryPropagationSchema = v.object({
   object: v.literal('skill.sync_repository_propagation'),
   id: v.string(),
-  status: v.enumOf(['pending', 'processing', 'completed', 'failed', 'canceled']),
+  status: v.enumOf([
+    'pending',
+    'processing',
+    'waiting_for_review',
+    'completed',
+    'failed',
+    'canceled'
+  ]),
   repo_id: v.string(),
+  repository_access_mode: v.enumOf(['pull_request', 'default_branch']),
   branch_name: v.string(),
   pr_name: v.string(),
   pr_description: v.nullable(v.string()),
@@ -25,15 +33,18 @@ export let v1SkillSyncPresenter = Presenter.create(skillSyncType)
     status: skillSync.status,
     skill_marketplace_id: skillSync.destination.skillMarketplace?.id ?? null,
     skill_plugin_id: skillSync.destination.skillPlugin?.id ?? null,
-    logs: (skillSync.logs as [number, string][]).map(([ts, msg]) => ({
-      timestamp: new Date(ts),
-      message: msg
-    })),
+    logs: [...(skillSync.logs as [number, string][])]
+      .sort(([left], [right]) => left - right)
+      .map(([ts, msg]) => ({
+        timestamp: new Date(ts),
+        message: msg
+      })),
     repository_propagations: skillSync.repositoryPropagations.map(propagation => ({
       object: 'skill.sync_repository_propagation' as const,
       id: propagation.id,
       status: propagation.status,
       repo_id: propagation.skillRepository.repoId,
+      repository_access_mode: propagation.repositoryAccessMode,
       branch_name: propagation.branchName,
       pr_name: propagation.prName,
       pr_description: propagation.prDescription,
@@ -52,7 +63,14 @@ export let v1SkillSyncPresenter = Presenter.create(skillSyncType)
     v.object({
       object: v.literal('skill.sync'),
       id: v.string(),
-      status: v.enumOf(['pending', 'completed', 'failed', 'processing', 'canceled']),
+      status: v.enumOf([
+        'pending',
+        'completed',
+        'failed',
+        'processing',
+        'waiting_for_review',
+        'canceled'
+      ]),
       skill_marketplace_id: v.nullable(v.string()),
       skill_plugin_id: v.nullable(v.string()),
       logs: v.array(v.object({ timestamp: v.date(), message: v.string() })),

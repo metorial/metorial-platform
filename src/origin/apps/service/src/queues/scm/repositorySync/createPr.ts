@@ -1,7 +1,11 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
-import { createRepositorySyncPullRequest } from '../../../lib/scmRepositorySyncProvider';
+import {
+  closeRepositorySyncPullRequest,
+  createRepositorySyncPullRequest
+} from '../../../lib/scmRepositorySyncProvider';
+import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
   logRepositorySyncQueueError,
@@ -53,6 +57,60 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
         return;
       }
 
+      let newer = await db.scmRepositorySync.findFirst({
+        where: {
+          repoOid: sync.repoOid,
+          codeBucketOid: sync.codeBucketOid,
+          oid: { gt: sync.oid }
+        },
+        select: { id: true }
+      });
+      if (newer) {
+        await transitionRepositorySyncState(sync.id, 'creating_pr', {
+          status: 'cancelled',
+          completedAt: new Date(),
+          errorMessage: 'Superseded by a newer repository sync before pull request creation'
+        });
+        return;
+      }
+
+      let older = await db.scmRepositorySync.findMany({
+        where: {
+          repoOid: sync.repoOid,
+          codeBucketOid: sync.codeBucketOid,
+          baseBranch: sync.baseBranch,
+          oid: { lt: sync.oid },
+          providerPrId: { not: null },
+          status: { notIn: ['merged', 'cancelled', 'complete_no_changes'] }
+        },
+        include: {
+          repo: {
+            include: {
+              installation: {
+                include: { backend: true }
+              }
+            }
+          }
+        },
+        orderBy: { oid: 'desc' }
+      });
+      for (let previous of older) {
+        let outcome = await closeRepositorySyncPullRequest(previous);
+        if (outcome === 'merged') {
+          await transitionRepositorySyncState(previous.id, previous.status, {
+            status: 'merged',
+            completedAt: new Date(),
+            errorMessage: null
+          });
+        } else {
+          await transitionRepositorySyncState(previous.id, previous.status, {
+            status: 'cancelled',
+            completedAt: new Date(),
+            errorMessage: 'Superseded by a newer Metorial repository sync'
+          });
+        }
+      }
+
       logRepositorySyncQueueEvent('createPr', 'creating provider pull request', {
         syncId: sync.id,
         repoId: sync.repo.id,
@@ -75,15 +133,12 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
       });
 
       if (!sync.enableAutoMerge) {
-        await db.scmRepositorySync.update({
-          where: { oid: sync.oid },
-          data: {
-            status: 'complete_unmerged',
-            providerPrId: pr.providerPrId,
-            providerPrUrl: pr.providerPrUrl,
-            completedAt: new Date()
-          }
+        let updated = await transitionRepositorySyncState(sync.id, 'creating_pr', {
+          status: 'waiting_for_review',
+          providerPrId: pr.providerPrId,
+          providerPrUrl: pr.providerPrUrl
         });
+        if (!updated) return;
         await appendRepositorySyncLog(
           sync.id,
           'Repository update is ready for manual review.'
@@ -95,14 +150,12 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
         return;
       }
 
-      await db.scmRepositorySync.update({
-        where: { oid: sync.oid },
-        data: {
-          status: 'waiting_for_ci',
-          providerPrId: pr.providerPrId,
-          providerPrUrl: pr.providerPrUrl
-        }
+      let updated = await transitionRepositorySyncState(sync.id, 'creating_pr', {
+        status: 'waiting_for_ci',
+        providerPrId: pr.providerPrId,
+        providerPrUrl: pr.providerPrUrl
       });
+      if (!updated) return;
       await appendRepositorySyncLog(sync.id, 'Waiting for checks to pass.');
       logRepositorySyncQueueEvent('createPr', 'transitioned sync to waiting_for_ci', {
         syncId: sync.id,
