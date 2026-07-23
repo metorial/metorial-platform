@@ -1,0 +1,19 @@
+name = "@metorial/object-storage"
+group = "oss"
+
+[test.e2e]
+start = ["cargo run --bin object-store-service"]
+
+[dev]
+run = ["cargo run --bin object-store-service"]
+
+[[dev.expose]]
+port = 52010
+
+[dev.env]
+OBJECT_STORE__SERVER__HOST = "0.0.0.0"
+OBJECT_STORE__SERVER__PORT = "52010"
+OBJECT_STORE__BACKEND__TYPE = "local"
+OBJECT_STORE__BACKEND__ROOT_PATH = "/tmp/metorial-object-storage"
+OBJECT_STORE__BACKEND__PHYSICAL_BUCKET = "metorial-local"
+RUST_LOG = "object_store=info,tower_http=info"

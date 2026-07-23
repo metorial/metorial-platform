@@ -1,0 +1,8 @@
+{
+  "name": "@metorial/object-storage",
+  "private": true,
+  "scripts": {
+    "test": "cargo test --workspace",
+    "test:e2e": "cargo test --workspace"
+  }
+}
