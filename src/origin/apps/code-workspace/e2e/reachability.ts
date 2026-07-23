@@ -1,4 +1,4 @@
-let url = 'http://127.0.0.1:3302';
+let url = `http://127.0.0.1:${process.env.PORT ?? '3302'}`;
 let response = await fetch(url, {
   redirect: 'manual',
   signal: AbortSignal.timeout(10_000)

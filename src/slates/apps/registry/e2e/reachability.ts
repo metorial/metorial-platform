@@ -1,4 +1,4 @@
-let url = 'http://127.0.0.1:52040';
+let url = `http://127.0.0.1:${process.env.SLATES_REGISTRY_PUBLIC_PORT ?? '52040'}`;
 let response = await fetch(url, {
   redirect: 'manual',
   signal: AbortSignal.timeout(10_000)

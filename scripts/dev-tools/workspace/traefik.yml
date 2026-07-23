@@ -67,6 +67,8 @@ entryPoints:
     address: ':4350'
   port-4351:
     address: ':4351'
+  port-5050:
+    address: ':5050'
   port-5175:
     address: ':5175'
   port-5176:
@@ -93,6 +95,8 @@ entryPoints:
     address: ':52045'
   port-52046:
     address: ':52046'
+  port-52047:
+    address: ':52047'
   port-52050:
     address: ':52050'
   port-52060:
@@ -103,6 +107,8 @@ entryPoints:
     address: ':52071'
   port-52072:
     address: ':52072'
+  port-52073:
+    address: ':52073'
   port-52080:
     address: ':52080'
   port-52081:

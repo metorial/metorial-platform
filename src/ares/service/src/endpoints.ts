@@ -11,22 +11,22 @@ let Sentry = getSentry();
 
 let authServer = Bun.serve({
   fetch: withSecurityHeaders(authApi),
-  port: 52120
+  port: Number(process.env.ARES_AUTH_PORT ?? '52120')
 });
 
 let adminServer = Bun.serve({
   fetch: withSecurityHeaders(adminApi),
-  port: 52121
+  port: Number(process.env.ARES_ADMIN_PORT ?? '52121')
 });
 
 let ssoServer = Bun.serve({
   fetch: ssoApi,
-  port: 52122
+  port: Number(process.env.ARES_SSO_PORT ?? '52122')
 });
 
 let internalServer = Bun.serve({
   fetch: internalApi,
-  port: 52123
+  port: Number(process.env.ARES_INTERNAL_PORT ?? '52123')
 });
 
 let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {

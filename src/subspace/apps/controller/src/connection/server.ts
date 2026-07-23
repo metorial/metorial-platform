@@ -4,6 +4,6 @@ import { websocket } from './api/metorialIntegrationProtocol';
 Bun.serve({
   fetch: api.fetch,
   websocket,
-  port: 52072,
+  port: Number(process.env.SUBSPACE_CONNECTION_PORT ?? '52072'),
   idleTimeout: 0
 });

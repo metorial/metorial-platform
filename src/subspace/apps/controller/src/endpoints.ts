@@ -18,7 +18,7 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
 
 let server = Bun.serve({
   fetch: subspaceControllerApi,
-  port: 52070
+  port: Number(process.env.SUBSPACE_CONTROLLER_PORT ?? '52070')
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

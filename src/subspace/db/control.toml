@@ -7,7 +7,6 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-PUBLIC_SERVICE_URL = "http://{{HOSTNAME}}:52071"
 
 [dev.db.main]
 name = "subspace"

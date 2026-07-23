@@ -1,7 +1,11 @@
 name = "@metorial/slates-registry"
 group = "oss"
 
-dependencies = ["@metorial/object-storage"]
+[[dependencies]]
+identifier = "@metorial/object-storage"
+env = [
+  { endpoint = "rpc", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
 
 [test.e2e]
 start = ["bun ./src/server.ts"]
@@ -10,14 +14,24 @@ start = ["bun ./src/server.ts"]
 prepare = ["admin:build"]
 run = ["bun --watch ./src/server.ts"]
 
-[[dev.expose]]
+[endpoints.public]
 port = 52040
+env = [
+  { key = "SLATES_REGISTRY_PUBLIC_PORT", value = "{{PORT}}" },
+  { key = "SERVICE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
 
-[[dev.expose]]
+[endpoints.internal]
 port = 52041
+env = [{ key = "SLATES_REGISTRY_INTERNAL_PORT", value = "{{PORT}}" }]
 
-[[dev.expose]]
+[endpoints.admin]
 port = 52042
+env = [{ key = "SLATES_REGISTRY_ADMIN_PORT", value = "{{PORT}}" }]
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -25,13 +39,10 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-OBJECT_STORAGE_URL = "http://services:52010"
 PACKAGE_BUCKET_NAME = "package-bucket"
 NPM_REGISTRY_URL = "https://registry.npmjs.org"
 NPM_SEARCH_URL = "https://registry.npmjs.org/-/v1/search"
 NPM_TOKEN = true
-SERVICE_PUBLIC_URL = "http://{{HOSTNAME}}:52040"
 NPM_ORG = "slates-integrations"
 
 [dev.db.main]

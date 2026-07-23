@@ -1,0 +1,13 @@
+[[external]]
+identifier = "@metorial/relay"
+hostname = "services"
+
+[external.mapping]
+rpc = 52110
+
+[[external]]
+identifier = "@metorial/object-storage"
+hostname = "services"
+
+[external.mapping]
+rpc = 52010

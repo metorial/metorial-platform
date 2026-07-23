@@ -9,7 +9,7 @@ await secretPurposeService.warmKnownPurposes();
 
 let server = Bun.serve({
   fetch: nebulaApi,
-  port: 52170
+  port: Number(process.env.NEBULA_API_PORT ?? '52170')
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

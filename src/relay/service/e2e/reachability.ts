@@ -1,4 +1,4 @@
-let url = 'http://127.0.0.1:52110/metorial-relay';
+let url = `http://127.0.0.1:${process.env.RELAY_PORT ?? '52110'}/metorial-relay`;
 let response = await fetch(url, {
   redirect: 'manual',
   signal: AbortSignal.timeout(10_000)

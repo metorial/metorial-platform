@@ -1,4 +1,4 @@
-let url = 'http://127.0.0.1:52120';
+let url = `http://127.0.0.1:${process.env.ARES_AUTH_PORT ?? '52120'}`;
 let response = await fetch(url, {
   redirect: 'manual',
   signal: AbortSignal.timeout(10_000)

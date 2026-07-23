@@ -4,7 +4,7 @@ import { db } from './db';
 
 let server = Bun.serve({
   fetch: VoyagerApi,
-  port: 52060
+  port: Number(process.env.VOYAGER_PORT ?? '52060')
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

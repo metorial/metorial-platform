@@ -39,18 +39,16 @@ let redis = new RedisClient(env.service.REDIS_URL?.replace('rediss://', 'redis:/
   tls: env.service.REDIS_URL?.startsWith('rediss://')
 });
 
-if (process.env.NODE_ENV === 'production') {
-  Bun.serve({
-    fetch: async _ => {
-      try {
-        await db.tenant.count();
-        await redis.ping();
-        return new Response('OK');
-      } catch (error) {
-        console.error(error);
-        return new Response('Service Unavailable', { status: 503 });
-      }
-    },
-    port: env.service.SYNTHESIS_HEALTH_PORT
-  });
-}
+Bun.serve({
+  fetch: async _ => {
+    try {
+      await db.tenant.count();
+      await redis.ping();
+      return new Response('OK');
+    } catch (error) {
+      console.error(error);
+      return new Response('Service Unavailable', { status: 503 });
+    }
+  },
+  port: env.service.SYNTHESIS_HEALTH_PORT
+});

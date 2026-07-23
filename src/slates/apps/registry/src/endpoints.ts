@@ -6,17 +6,17 @@ import { db } from './db';
 
 Bun.serve({
   fetch: registryApp.fetch,
-  port: 52040
+  port: Number(process.env.SLATES_REGISTRY_PUBLIC_PORT ?? '52040')
 });
 
 Bun.serve({
   fetch: slatesRegistryApi,
-  port: 52041
+  port: Number(process.env.SLATES_REGISTRY_INTERNAL_PORT ?? '52041')
 });
 
 Bun.serve({
   fetch: adminApi,
-  port: 52042
+  port: Number(process.env.SLATES_REGISTRY_ADMIN_PORT ?? '52042')
 });
 
 console.log('Slates registry server is running');

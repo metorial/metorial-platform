@@ -7,12 +7,12 @@ start = ["cargo run --bin object-store-service"]
 [dev]
 run = ["cargo run --bin object-store-service"]
 
-[[dev.expose]]
+[endpoints.rpc]
 port = 52010
+env = [{ key = "OBJECT_STORE__SERVER__PORT", value = "{{PORT}}" }]
 
 [dev.env]
 OBJECT_STORE__SERVER__HOST = "0.0.0.0"
-OBJECT_STORE__SERVER__PORT = "52010"
 OBJECT_STORE__BACKEND__TYPE = "local"
 OBJECT_STORE__BACKEND__ROOT_PATH = "/tmp/metorial-object-storage"
 OBJECT_STORE__BACKEND__PHYSICAL_BUCKET = "metorial-local"

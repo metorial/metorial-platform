@@ -7,8 +7,13 @@ start = ["bun ./src/server.ts"]
 [dev]
 run = ["bun --watch ./src/server.ts"]
 
-[[dev.expose]]
+[endpoints.rpc]
 port = 52060
+env = [{ key = "VOYAGER_PORT", value = "{{PORT}}" }]
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -16,7 +21,6 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
 
 [dev.db.main]
 name = "voyager"

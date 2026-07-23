@@ -18,12 +18,12 @@ let server = Bun.serve({
     [{ endpoint: rpcMux({ path: '/subspace-public/internal-api' }, [subspaceFrontendRPC]) }],
     app.fetch as any
   ),
-  port: 52071
+  port: Number(process.env.SUBSPACE_PUBLIC_PORT ?? '52071')
 });
 
 let adminServer = Bun.serve({
   fetch: adminApp.fetch,
-  port: 52073
+  port: Number(process.env.SUBSPACE_ADMIN_PORT ?? '52073')
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

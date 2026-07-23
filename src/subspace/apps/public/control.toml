@@ -1,14 +1,58 @@
 name = "@metorial-subspace/app-public"
 group = "oss"
-dependencies = [
-  "@metorial/object-storage",
-  "@metorial-subspace/app-controller",
-  "@metorial/shuttle",
-  "@metorial/slates",
-  "@metorial/voyager",
-  "@metorial/origin",
-  "@metorial/signal",
-  "@metorial/function-bay",
+
+[[dependencies]]
+identifier = "@metorial/object-storage"
+env = [
+  { endpoint = "rpc", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "@metorial-subspace/app-controller"
+
+[[dependencies]]
+identifier = "@metorial/shuttle"
+env = [
+  { endpoint = "api", key = "SHUTTLE_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-shuttle" },
+  { endpoint = "api", key = "SHUTTLE_LIVE_URL", value = "ws://{{HOSTNAME}}:{{PORT}}" },
+  { endpoint = "public", key = "SHUTTLE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "@metorial/slates"
+env = [
+  { endpoint = "internal", key = "SLATES_HUB_URL", value = "http://{{HOSTNAME}}:{{PORT}}/slates-hub" },
+  { endpoint = "public", key = "SLATES_HUB_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "@metorial/voyager"
+env = [
+  { endpoint = "rpc", key = "VOYAGER_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-voyager" },
+]
+
+[[dependencies]]
+identifier = "@metorial/origin"
+env = [
+  { endpoint = "api", key = "ORIGIN_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-origin" },
+]
+
+[[dependencies]]
+identifier = "@metorial/signal"
+env = [
+  { endpoint = "api", key = "SIGNAL_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-signal" },
+]
+
+[[dependencies]]
+identifier = "@metorial/function-bay"
+env = [
+  { endpoint = "api", key = "FUNCTION_BAY_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-function-bay" },
+]
+
+[[dependencies]]
+identifier = "@metorial-cargo/service"
+env = [
+  { endpoint = "api", key = "CARGO_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-cargo" },
 ]
 
 [test.e2e]
@@ -18,8 +62,24 @@ start = ["bun ./src/server.ts"]
 prepare = ["frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
-[[dev.expose]]
+[endpoints.public]
 port = 52071
+env = [
+  { key = "SUBSPACE_PUBLIC_PORT", value = "{{PORT}}" },
+  { key = "PUBLIC_SERVICE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[endpoints.admin]
+port = 52073
+env = [{ key = "SUBSPACE_ADMIN_PORT", value = "{{PORT}}" }]
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
+
+[[resources]]
+type = "nats"
+env = [{ key = "NATS_URL", value = "nats://{{HOSTNAME}}:{{PORT}}" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -27,25 +87,11 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-NATS_URL = "nats://localhost:34222"
-PUBLIC_SERVICE_URL = "http://{{HOSTNAME}}:52071"
-SHUTTLE_URL = "http://localhost:52080/metorial-shuttle"
-SHUTTLE_LIVE_URL = "ws://localhost:52080"
-SHUTTLE_PUBLIC_URL = "http://{{HOSTNAME}}:52081"
-SLATES_HUB_URL = "http://localhost:52046/slates-hub"
-SLATES_HUB_PUBLIC_URL = "http://{{HOSTNAME}}:52045"
-VOYAGER_URL = "http://localhost:52060/metorial-voyager"
-OBJECT_STORAGE_URL = "http://services:52010"
 MESSAGE_BUCKET_NAME = "messages"
 PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME = "provider-telemetry-error-groups"
-ORIGIN_URL = "http://localhost:52090/metorial-origin"
 REGISTRY_URL = "https://metorial-saas-dev2.registry.metorial-enterprise.com/metorial-registry-root"
 SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
-SIGNAL_API_URL = "http://localhost:52050/metorial-signal"
-CARGO_API_URL = "http://localhost:52150/metorial-cargo"
-FUNCTION_BAY_API_URL = "http://localhost:52030/metorial-function-bay"
 
 [dev.db.main]
 name = "subspace"

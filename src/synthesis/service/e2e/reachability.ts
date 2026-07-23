@@ -1,4 +1,4 @@
-let url = 'http://127.0.0.1:52160/ping';
+let url = `http://127.0.0.1:${process.env.SYNTHESIS_API_PORT ?? '52160'}/ping`;
 let response = await fetch(url, {
   redirect: 'manual',
   signal: AbortSignal.timeout(10_000)
