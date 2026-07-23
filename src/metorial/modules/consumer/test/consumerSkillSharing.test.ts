@@ -16,7 +16,8 @@ let {
 } = vi.hoisted(() => ({
   db: {
     consumerProfile: {
-      findMany: vi.fn()
+      findMany: vi.fn(),
+      findUnique: vi.fn()
     },
     consumerGroup: {
       findUniqueOrThrow: vi.fn(),
@@ -442,6 +443,49 @@ describe('consumer skill sharing', () => {
       })
     );
     expect(createSkillMock).not.toHaveBeenCalled();
+  });
+
+  it('grants imported skills to the importing consumer profile', async () => {
+    let importedProfile = {
+      ...targetProfile,
+      status: 'active',
+      surface: {
+        ...consumerSurface,
+        organization
+      }
+    };
+    db.consumerProfile.findUnique.mockResolvedValue(importedProfile);
+
+    await consumerSkillService.grantImportedSkillAccess({
+      consumerProfileOid: targetProfile.oid,
+      skill: skill as any
+    });
+
+    expect(createConsumerAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization,
+        consumerSurface: importedProfile.surface,
+        consumerGroup: personalConsumerGroup,
+        access: {
+          type: 'skill',
+          skill
+        }
+      })
+    );
+    expect(grantAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        permission: 'skill_write',
+        subject: { consumerGroup: personalConsumerGroup },
+        resource: { skill }
+      })
+    );
+    expect(grantAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        permission: 'skill_manage_access',
+        subject: { consumerProfile: importedProfile },
+        resource: { skill }
+      })
+    );
   });
 
   it('blocks callers from changing their own share targets', async () => {

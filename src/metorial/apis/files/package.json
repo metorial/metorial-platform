@@ -4,7 +4,9 @@
   "author": "Tobias Herber",
   "license": "FSL-1.1",
   "main": "src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",

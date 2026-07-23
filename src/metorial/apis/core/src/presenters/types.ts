@@ -749,6 +749,7 @@ export let skillExportType = PresentableType.create<{
 export let skillImportType = PresentableType.create<{
   skillImport: Prisma.SkillImportGetPayload<{
     include: {
+      sourceFile: true;
       items: {
         include: {
           skill: true;

@@ -55,12 +55,14 @@ export let resolveUploadTarget = async (d: {
       instanceId
     });
 
+    let consumer =
+      d.auth.type == 'machine' && d.auth.restrictions.type == 'instance'
+        ? d.auth.restrictions.consumer
+        : undefined;
     let cargoAccessContext = {
       ...instanceAccess,
-      consumerProfile:
-        d.auth.type == 'machine' && d.auth.restrictions.type == 'instance'
-          ? d.auth.restrictions.consumer?.consumerProfile
-          : undefined
+      consumerProfile: consumer?.consumerProfile,
+      accessTags: consumer?.accessTags
     } satisfies InstanceCargoAccessContext;
 
     await accessService.checkTargetAccess({

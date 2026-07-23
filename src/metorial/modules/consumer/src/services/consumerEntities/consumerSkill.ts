@@ -228,6 +228,34 @@ class ConsumerSkillServiceImpl {
     return consumerAccess;
   }
 
+  async grantImportedSkillAccess(d: { consumerProfileOid: bigint; skill: Skill }) {
+    let consumerProfile = await db.consumerProfile.findUnique({
+      where: { oid: d.consumerProfileOid },
+      include: {
+        consumer: true,
+        surface: {
+          include: {
+            organization: true
+          }
+        }
+      }
+    });
+    if (!consumerProfile || consumerProfile.status !== 'active') {
+      throw new ServiceError(
+        notFoundError('consumerProfile', d.consumerProfileOid.toString())
+      );
+    }
+
+    return await this.createConsumerPersonalSkillAccess({
+      organization: consumerProfile.surface.organization,
+      consumerSurface: consumerProfile.surface,
+      consumerProfile,
+      skill: d.skill,
+      permission: 'write',
+      grantManageAccess: true
+    });
+  }
+
   private getConsumerShareableGroups(consumerGroups: ConsumerGroup[]) {
     return consumerGroups.filter(group => group.type !== 'user_access');
   }
