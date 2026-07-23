@@ -9,6 +9,7 @@ import { Service } from '@lowerdeck/service';
 import {
   skillResourceService,
   skillService,
+  skillParticipantService,
   skillTemplateService,
   type SkillRecord
 } from '@metorial/cargo-module-skill';
@@ -21,8 +22,6 @@ import {
   ID,
   Instance,
   Organization,
-  OrganizationActor,
-  OrganizationMember,
   Prisma,
   Skill,
   withTransaction
@@ -30,10 +29,7 @@ import {
 import {
   accessTagService,
   consumerSkillManageAccessRoles,
-  consumerSkillWriteRoles,
-  createResourceAuthorization,
-  isLegacyResourceAuthorizationEnabled,
-  revokeMigratedResourceAccessPolicies
+  createResourceAuthorization
 } from '@metorial/module-access';
 import {
   resourceActorService,
@@ -63,29 +59,6 @@ type ConsumerSkillForkInput = ConsumerSkillCreateInput;
 
 type SkillSharePermission = 'read' | 'write' | 'none';
 
-let consumerAccessInclude = {
-  consumerGroup: true,
-  providerTemplate: true,
-  magicMcpServer: true,
-  skill: true,
-  skillTemplate: true,
-  skillGroup: true,
-  skillMarketplace: true,
-  listing: true
-} as const;
-
-let getContentPermissionsForShare = (permission: SkillSharePermission) => {
-  if (permission == 'write') {
-    return ['content_read', 'content_write'] satisfies Array<'content_read' | 'content_write'>;
-  }
-
-  if (permission == 'read') {
-    return ['content_read'] satisfies Array<'content_read' | 'content_write'>;
-  }
-
-  return [] satisfies Array<'content_read' | 'content_write'>;
-};
-
 let getUniqueIds = (ids?: string[]) => Array.from(new Set(ids ?? []));
 
 class ConsumerSkillServiceImpl {
@@ -108,7 +81,7 @@ class ConsumerSkillServiceImpl {
   private async getConsumerWriteAccessTags(
     consumerProfile: Pick<
       ConsumerProfile,
-      'oid' | 'accessTagOid' | 'personalConsumerGroupOid' | 'surfaceOid' | 'ssoGroupIds'
+      'oid' | 'personalConsumerGroupOid' | 'surfaceOid' | 'ssoGroupIds'
     >
   ) {
     let effectiveGroups = await db.consumerGroup.findMany({
@@ -129,12 +102,7 @@ class ConsumerSkillServiceImpl {
       }
     });
 
-    return Array.from(
-      new Set([
-        consumerProfile.accessTagOid,
-        ...effectiveGroups.map(group => group.accessTagOid)
-      ])
-    );
+    return Array.from(new Set(effectiveGroups.map(group => group.accessTagOid)));
   }
 
   async assertConsumerCanManageSkillAccess(d: {
@@ -148,15 +116,7 @@ class ConsumerSkillServiceImpl {
     let manageableSkill = await db.skill.findFirst({
       where: {
         oid: d.skill.oid,
-        OR: [
-          // Creator evidence remains a compatibility path until actor/access
-          // reconciliation has materialized every canonical ownership grant.
-          ...(isLegacyResourceAuthorizationEnabled()
-            ? [{ createdByConsumerOid: d.consumerProfile.consumerOid }]
-            : []),
-          { createdByConsumerProfileOid: d.consumerProfile.oid },
-          { accessTagEntities: accessTagFilter }
-        ]
+        accessTagEntities: accessTagFilter
       },
       select: {
         oid: true
@@ -174,26 +134,41 @@ class ConsumerSkillServiceImpl {
 
   private async createConsumerPersonalSkillAccess(d: {
     organization: Organization;
-    consumerSurface: ConsumerSurface;
-    consumerProfile: Pick<ConsumerProfile, 'accessTagOid' | 'personalConsumerGroupOid'>;
+    instance: Instance;
+    consumerProfile: Pick<
+      ConsumerProfile,
+      'id' | 'oid' | 'instanceOid' | 'personalConsumerGroupOid'
+    >;
     skill: Skill;
     permission: Exclude<SkillSharePermission, 'none'>;
     grantManageAccess?: boolean;
   }) {
-    let personalConsumerGroup = await db.consumerGroup.findUniqueOrThrow({
-      where: {
-        oid: d.consumerProfile.personalConsumerGroupOid
-      }
+    let { actor } = await this.getConsumerActor({
+      instance: d.instance,
+      consumerProfile: d.consumerProfile
     });
-
-    let consumerAccess = await consumerAccessService.createConsumerAccess({
+    let participant = await skillParticipantService.setSkillParticipantAccessRole({
+      skill: d.skill,
+      actor,
+      permission: d.permission
+    });
+    if (!participant) {
+      throw new ServiceError(notFoundError('skill.participant'));
+    }
+    let policyScope = {
+      type: 'skill_participant' as const,
+      skillParticipantId: participant.id
+    };
+    await consumerAccessPolicyService.grantAccess({
       organization: d.organization,
-      consumerSurface: d.consumerSurface,
-      consumerGroup: personalConsumerGroup,
-      access: {
-        type: 'skill',
+      permission: 'skill_read',
+      subject: {
+        personalConsumerGroupForProfile: d.consumerProfile
+      },
+      resource: {
         skill: d.skill
-      }
+      },
+      policyScope
     });
 
     if (d.permission == 'write') {
@@ -201,15 +176,12 @@ class ConsumerSkillServiceImpl {
         organization: d.organization,
         permission: 'skill_write',
         subject: {
-          consumerGroup: personalConsumerGroup
+          personalConsumerGroupForProfile: d.consumerProfile
         },
         resource: {
           skill: d.skill
         },
-        policyScope: {
-          type: 'consumer_access',
-          consumerAccessId: consumerAccess.id
-        }
+        policyScope
       });
     }
     if (d.grantManageAccess) {
@@ -217,15 +189,14 @@ class ConsumerSkillServiceImpl {
         organization: d.organization,
         permission: 'skill_manage_access',
         subject: {
-          consumerProfile: d.consumerProfile
+          personalConsumerGroupForProfile: d.consumerProfile
         },
         resource: {
           skill: d.skill
-        }
+        },
+        policyScope
       });
     }
-
-    return consumerAccess;
   }
 
   async grantImportedSkillAccess(d: { consumerProfileOid: bigint; skill: Skill }) {
@@ -237,7 +208,8 @@ class ConsumerSkillServiceImpl {
           include: {
             organization: true
           }
-        }
+        },
+        instance: true
       }
     });
     if (!consumerProfile || consumerProfile.status !== 'active') {
@@ -248,7 +220,7 @@ class ConsumerSkillServiceImpl {
 
     return await this.createConsumerPersonalSkillAccess({
       organization: consumerProfile.surface.organization,
-      consumerSurface: consumerProfile.surface,
+      instance: consumerProfile.instance,
       consumerProfile,
       skill: d.skill,
       permission: 'write',
@@ -311,11 +283,7 @@ class ConsumerSkillServiceImpl {
       instance: d.instance,
       consumerProfile: d.consumerProfile
     });
-    let isOwner =
-      d.skill.createdByResourceActorOid === actor.oid ||
-      (isLegacyResourceAuthorizationEnabled() &&
-        d.skill.createdByConsumerOid === d.consumerProfile.consumerOid) ||
-      d.skill.createdByConsumerProfileOid === d.consumerProfile.oid;
+    let isOwner = d.skill.createdByResourceActorOid === actor.oid;
 
     if (isOwner) {
       throw new ServiceError(
@@ -326,53 +294,33 @@ class ConsumerSkillServiceImpl {
     }
   }
 
-  private async assertCanSetOrganizationActorSharePermission(d: {
-    instance: Instance;
-    skill: Skill;
-    organizationActor: OrganizationActor;
-    permission: SkillSharePermission;
-  }) {
-    if (d.permission == 'write') return;
-
-    let scope = await resolveResourceScopeForOwner({
-      type: 'instance',
-      instance: d.instance
-    });
-    let actor = await resourceActorService.ensureOrganizationActor({
-      resourceTenant: scope.resourceTenant,
-      organizationActorOid: d.organizationActor.oid
-    });
-    let isOwner =
-      d.skill.createdByResourceActorOid === actor.oid ||
-      d.skill.createdByOrganizationActorOid === d.organizationActor.oid;
-
-    if (isOwner) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'The skill owner cannot be removed or downgraded.'
-        })
-      );
-    }
-  }
-
-  private async deleteConsumerPersonalSkillAccess(d: {
+  private async deleteLegacyPersonalConsumerAccess(d: {
     organization: Organization;
     consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
-    skill: Skill;
+    skill: Pick<Skill, 'oid'>;
   }) {
     let accesses = await db.consumerAccess.findMany({
       where: {
         type: 'skill',
-        skillOid: d.skill.oid,
-        consumerGroupOid: d.consumerProfile.personalConsumerGroupOid
+        consumerGroupOid: d.consumerProfile.personalConsumerGroupOid,
+        skillOid: d.skill.oid
       },
-      include: consumerAccessInclude
+      include: {
+        consumerGroup: true,
+        providerTemplate: true,
+        magicMcpServer: true,
+        skill: true,
+        skillTemplate: true,
+        skillGroup: true,
+        skillMarketplace: true,
+        listing: true
+      }
     });
 
-    for (let access of accesses) {
+    for (let consumerAccess of accesses) {
       await consumerAccessService.deleteConsumerAccess({
         organization: d.organization,
-        consumerAccess: access
+        consumerAccess
       });
     }
   }
@@ -380,7 +328,6 @@ class ConsumerSkillServiceImpl {
   private async setConsumerSkillSharePermission(d: {
     organization: Organization;
     instance: Instance;
-    consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfileForSkill;
     skill: SkillRecord;
     permission: SkillSharePermission;
@@ -391,267 +338,35 @@ class ConsumerSkillServiceImpl {
       consumerProfile: d.consumerProfile,
       permission: d.permission
     });
-    let migratedConsumerSkills = await db.consumerSkill.findMany({
-      where: {
-        consumerProfileOid: d.consumerProfile.oid,
-        skillOid: d.skill.oid
-      },
-      select: { id: true }
+    let { actor } = await this.getConsumerActor({
+      instance: d.instance,
+      consumerProfile: d.consumerProfile
     });
-    for (let consumerSkill of migratedConsumerSkills) {
-      await revokeMigratedResourceAccessPolicies({
-        sourceType: 'consumer_skill',
-        sourceId: consumerSkill.id
-      });
-    }
-
-    if (d.permission == 'none') {
-      await this.deleteConsumerPersonalSkillAccess({
+    let participant = await skillParticipantService.setSkillParticipantAccessRole({
+      skill: d.skill,
+      actor,
+      permission: d.permission
+    });
+    await this.deleteLegacyPersonalConsumerAccess({
+      organization: d.organization,
+      consumerProfile: d.consumerProfile,
+      skill: d.skill
+    });
+    await consumerAccessPolicyService.revokeSkillParticipantAccessForPersonalGroup({
+      organization: d.organization,
+      consumerProfile: d.consumerProfile,
+      skill: d.skill
+    });
+    if (!participant) return;
+    if (d.permission != 'none') {
+      await this.createConsumerPersonalSkillAccess({
         organization: d.organization,
-        consumerProfile: d.consumerProfile,
-        skill: d.skill
-      });
-
-      await this.syncConsumerSkillParticipantProjection({
         instance: d.instance,
-        skill: d.skill,
         consumerProfile: d.consumerProfile,
+        skill: d.skill,
         permission: d.permission
       });
-      return;
     }
-
-    let consumerAccess = await this.createConsumerPersonalSkillAccess({
-      organization: d.organization,
-      consumerSurface: d.consumerSurface,
-      consumerProfile: d.consumerProfile,
-      skill: d.skill,
-      permission: d.permission
-    });
-    if (d.permission == 'read') {
-      await consumerAccessPolicyService.revokeAccess({
-        organization: d.organization,
-        permission: 'skill_write',
-        subject: {
-          consumerGroup: consumerAccess.consumerGroup
-        },
-        resource: {
-          skill: d.skill
-        },
-        policyScope: {
-          type: 'consumer_access',
-          consumerAccessId: consumerAccess.id
-        }
-      });
-    }
-
-    await this.syncConsumerSkillParticipantProjection({
-      instance: d.instance,
-      skill: d.skill,
-      consumerProfile: d.consumerProfile,
-      permission: d.permission
-    });
-  }
-
-  private async syncConsumerSkillParticipantProjection(d: {
-    instance: Pick<Instance, 'id' | 'oid' | 'resourceTenantOid' | 'resourceGroupOid'>;
-    skill: SkillRecord;
-    consumerProfile: Pick<ConsumerProfile, 'oid' | 'instanceOid'>;
-    permission: SkillSharePermission;
-  }) {
-    let [scope, { actor }] = await Promise.all([
-      resolveResourceScopeForOwner({
-        type: 'instance',
-        instance: d.instance
-      }),
-      this.getConsumerActor({
-        instance: d.instance,
-        consumerProfile: d.consumerProfile
-      })
-    ]);
-
-    await skillService.upsertSkillActor({
-      ...scope,
-      skill: d.skill,
-      actor,
-      permissions: getContentPermissionsForShare(d.permission),
-      overridePermissions: true
-    });
-  }
-
-  async reconcileSkillShareParticipants(d: { instance: Instance; skill: SkillRecord }) {
-    let scope = await resolveResourceScopeForOwner({
-      type: 'instance',
-      instance: d.instance
-    });
-    let consumerAccesses = await db.consumerAccess.findMany({
-      where: {
-        type: 'skill',
-        skillOid: d.skill.oid,
-        consumerGroup: {
-          personalOwner: {
-            is: {
-              status: 'active'
-            }
-          }
-        }
-      },
-      include: {
-        consumerGroup: {
-          include: {
-            personalOwner: true
-          }
-        }
-      }
-    });
-    let accessTagOids = consumerAccesses.map(access => access.consumerGroup.accessTagOid);
-    let writeAccessTagEntities = accessTagOids.length
-      ? await db.accessTagEntity.findMany({
-          where: {
-            skillOid: d.skill.oid,
-            accessTagOid: {
-              in: accessTagOids
-            },
-            accessTagPolicy: {
-              roles: {
-                hasSome: [...consumerSkillWriteRoles]
-              }
-            }
-          },
-          select: {
-            accessTagOid: true
-          }
-        })
-      : [];
-    let writeAccessTagOids = new Set(
-      writeAccessTagEntities.map(entity => entity.accessTagOid.toString())
-    );
-    let permissionByProfileOid = new Map<
-      bigint,
-      {
-        profile: ConsumerProfile;
-        permission: Exclude<SkillSharePermission, 'none'>;
-      }
-    >();
-
-    for (let access of consumerAccesses) {
-      let profile = access.consumerGroup.personalOwner;
-      if (!profile) continue;
-
-      let permission: Exclude<SkillSharePermission, 'none'> = writeAccessTagOids.has(
-        access.consumerGroup.accessTagOid.toString()
-      )
-        ? 'write'
-        : 'read';
-      let existing = permissionByProfileOid.get(profile.oid);
-      if (existing?.permission != 'write') {
-        permissionByProfileOid.set(profile.oid, { profile, permission });
-      }
-    }
-
-    let consumerStoreParticipants = await db.storeParticipant.findMany({
-      where: {
-        storeOid: d.skill.storeOid!,
-        resourceActor: {
-          OR: [{ consumerProfileOid: { not: null } }, { consumerOid: { not: null } }]
-        }
-      },
-      include: {
-        resourceActor: true
-      }
-    });
-    let participantByProfileOid = new Map(
-      consumerStoreParticipants
-        .filter(participant => participant.resourceActor.consumerProfileOid != null)
-        .map(participant => [participant.resourceActor.consumerProfileOid!, participant])
-    );
-
-    for (let [profileOid, { profile, permission }] of permissionByProfileOid) {
-      let permissions = getContentPermissionsForShare(permission);
-      let existing = participantByProfileOid.get(profileOid);
-      participantByProfileOid.delete(profileOid);
-      if (
-        existing &&
-        existing.permissions.length == permissions.length &&
-        permissions.every(item => existing.permissions.includes(item))
-      ) {
-        continue;
-      }
-      let actor =
-        existing?.resourceActor ??
-        (await resourceActorService.ensureConsumerProfileActor({
-          resourceTenant: scope.resourceTenant,
-          consumerProfile: profile
-        }));
-
-      await skillService.upsertSkillActor({
-        ...scope,
-        skill: d.skill,
-        actor,
-        permissions,
-        overridePermissions: true
-      });
-      if (existing) {
-        await revokeMigratedResourceAccessPolicies({
-          sourceType: 'store_participant',
-          sourceId: existing.id
-        });
-      }
-    }
-
-    let activeProfileParticipantOids = new Set(
-      Array.from(participantByProfileOid.values(), participant => participant.oid)
-    );
-    for (let participant of consumerStoreParticipants) {
-      if (
-        participant.resourceActor.consumerProfileOid != null &&
-        !activeProfileParticipantOids.has(participant.oid)
-      ) {
-        continue;
-      }
-      if (participant.permissions.length == 0) continue;
-      await skillService.upsertSkillActor({
-        ...scope,
-        skill: d.skill,
-        actor: participant.resourceActor,
-        permissions: [],
-        overridePermissions: true
-      });
-      await revokeMigratedResourceAccessPolicies({
-        sourceType: 'store_participant',
-        sourceId: participant.id
-      });
-    }
-  }
-
-  private async setOrganizationMemberSkillSharePermission(d: {
-    instance: Instance;
-    skill: SkillRecord;
-    member: OrganizationMember & { actor: OrganizationActor };
-    permission: SkillSharePermission;
-  }) {
-    await this.assertCanSetOrganizationActorSharePermission({
-      instance: d.instance,
-      skill: d.skill,
-      organizationActor: d.member.actor,
-      permission: d.permission
-    });
-
-    let scope = await resolveResourceScopeForOwner({
-      type: 'instance',
-      instance: d.instance
-    });
-    let actor = await resourceActorService.ensureOrganizationActor({
-      resourceTenant: scope.resourceTenant,
-      organizationActorOid: d.member.actor.oid
-    });
-    await skillService.upsertSkillActor({
-      ...scope,
-      skill: d.skill,
-      actor,
-      permissions: getContentPermissionsForShare(d.permission),
-      overridePermissions: true
-    });
   }
 
   async createConsumerSkill(d: {
@@ -682,10 +397,7 @@ class ConsumerSkillServiceImpl {
       ? await skillTemplateService.getSkillTemplateById({
           ...scope,
           skillTemplateId: d.input.templateId,
-          accessTags: [
-            d.consumerProfile.accessTagOid,
-            ...d.consumerGroups.map(group => group.accessTagOid)
-          ]
+          accessTags: d.consumerGroups.map(group => group.accessTagOid)
         })
       : await skillTemplateService.getDefaultSkillTemplate(scope);
     let localSkill = await skillService.createSkill({
@@ -696,12 +408,9 @@ class ConsumerSkillServiceImpl {
         authorization: createResourceAuthorization({
           restricted: true,
           resourceActor: actor,
-          accessTags: [
-            { accessTagOid: d.consumerProfile.accessTagOid },
-            ...d.consumerGroups.map(group => ({
-              accessTagOid: group.accessTagOid
-            }))
-          ],
+          accessTags: d.consumerGroups.map(group => ({
+            accessTagOid: group.accessTagOid
+          })),
           ...scope,
           instance: d.instance,
           consumerProfile: d.consumerProfile
@@ -725,7 +434,7 @@ class ConsumerSkillServiceImpl {
     }
     await this.createConsumerPersonalSkillAccess({
       organization: d.organization,
-      consumerSurface: d.consumerSurface,
+      instance: d.instance,
       consumerProfile: d.consumerProfile,
       skill: localSkill,
       permission: 'write',
@@ -763,11 +472,7 @@ class ConsumerSkillServiceImpl {
     let parentSkill = await skillService.getSkillById({
       ...scope,
       skillId: d.parentSkillId,
-      accessTags: [
-        d.consumerProfile.accessTagOid,
-        ...d.consumerGroups.map(group => group.accessTagOid)
-      ],
-      consumerProfileOid: d.consumerProfile.oid
+      accessTags: d.consumerGroups.map(group => group.accessTagOid)
     });
     let localSkill = await skillService.createSkill({
       ...scope,
@@ -778,12 +483,9 @@ class ConsumerSkillServiceImpl {
         authorization: createResourceAuthorization({
           restricted: true,
           resourceActor: actor,
-          accessTags: [
-            { accessTagOid: d.consumerProfile.accessTagOid },
-            ...d.consumerGroups.map(group => ({
-              accessTagOid: group.accessTagOid
-            }))
-          ],
+          accessTags: d.consumerGroups.map(group => ({
+            accessTagOid: group.accessTagOid
+          })),
           ...scope,
           instance: d.instance,
           consumerProfile: d.consumerProfile
@@ -805,7 +507,7 @@ class ConsumerSkillServiceImpl {
     });
     await this.createConsumerPersonalSkillAccess({
       organization: d.organization,
-      consumerSurface: d.consumerSurface,
+      instance: d.instance,
       consumerProfile: d.consumerProfile,
       skill: localSkill,
       permission: 'write',
@@ -822,7 +524,6 @@ class ConsumerSkillServiceImpl {
     permission: SkillSharePermission;
     consumerProfile?: ConsumerProfileForSkill;
     consumerGroups?: ConsumerGroup[];
-    currentOrganizationMember?: OrganizationMember;
     targets: {
       consumerProfileIds?: string[];
       organizationMemberIds?: string[];
@@ -839,6 +540,13 @@ class ConsumerSkillServiceImpl {
           })
         );
       }
+      if (organizationMemberIds.length) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Organization member skill access is privileged and cannot be changed.'
+          })
+        );
+      }
 
       if (d.consumerProfile) {
         if (consumerProfileIds.includes(d.consumerProfile.id)) {
@@ -849,29 +557,10 @@ class ConsumerSkillServiceImpl {
           );
         }
 
-        if (organizationMemberIds.length) {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'Consumers cannot change organization member skill share access.'
-            })
-          );
-        }
-
         await this.assertConsumerCanManageSkillAccess({
           skill: d.skill,
           consumerProfile: d.consumerProfile
         });
-      }
-
-      if (
-        d.currentOrganizationMember &&
-        organizationMemberIds.includes(d.currentOrganizationMember.id)
-      ) {
-        throw new ServiceError(
-          forbiddenError({
-            message: 'Organization members cannot change their own skill share access.'
-          })
-        );
       }
 
       if (consumerProfileIds.length) {
@@ -904,44 +593,8 @@ class ConsumerSkillServiceImpl {
           await this.setConsumerSkillSharePermission({
             organization: d.organization,
             instance: d.instance,
-            consumerSurface: targetProfile.surface,
             consumerProfile: targetProfile,
             skill: d.skill,
-            permission: d.permission
-          });
-        }
-      }
-
-      if (organizationMemberIds.length) {
-        let members = await db.organizationMember.findMany({
-          where: {
-            organizationOid: d.organization.oid,
-            status: 'active',
-            id: {
-              in: organizationMemberIds
-            },
-            user: {
-              type: {
-                not: 'system'
-              }
-            }
-          },
-          include: {
-            actor: true
-          }
-        });
-
-        if (members.length !== organizationMemberIds.length) {
-          throw new ServiceError(notFoundError('organization_member'));
-        }
-
-        for (let member of members as Array<
-          OrganizationMember & { actor: OrganizationActor }
-        >) {
-          await this.setOrganizationMemberSkillSharePermission({
-            instance: d.instance,
-            skill: d.skill,
-            member,
             permission: d.permission
           });
         }
@@ -1002,17 +655,6 @@ class ConsumerSkillServiceImpl {
         }
       });
     }
-
-    await consumerAccessPolicyService.grantAccess({
-      organization: d.organization,
-      permission: 'skill_read',
-      subject: {
-        personalConsumerGroupForProfile: d.consumerProfile
-      },
-      resource: {
-        skill
-      }
-    });
 
     return await skillResourceService.hydrateSkill(skill);
   }

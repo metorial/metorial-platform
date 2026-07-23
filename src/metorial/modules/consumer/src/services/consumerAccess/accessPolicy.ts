@@ -41,6 +41,15 @@ type ConsumerAccessPolicyScope =
       type: 'consumer_access';
       consumerAccessId: string;
     }
+  | {
+      type: 'skill_participant';
+      skillParticipantId: string;
+    }
+  | {
+      type: 'skill_participant_migration';
+      runId: string;
+      skillParticipantId: string;
+    }
   | undefined;
 
 type ConsumerAccessResource =
@@ -55,9 +64,6 @@ type ConsumerAccessResource =
   | { skillMarketplace: Pick<SkillMarketplace, 'oid'> };
 
 type ConsumerAccessSubject =
-  | {
-      consumerProfile: Pick<ConsumerProfile, 'accessTagOid'>;
-    }
   | {
       consumerGroup: Pick<ConsumerGroup, 'accessTagOid'>;
     }
@@ -123,7 +129,19 @@ let getPolicyConfig = (d: {
     };
   }
 
-  return base;
+  if (d.policyScope.type == 'skill_participant') {
+    return {
+      name: `${base.name} (${d.policyScope.skillParticipantId})`,
+      systemIdentifier: `skill_participant:${d.policyScope.skillParticipantId}:${d.permission}`,
+      roles: base.roles
+    };
+  }
+
+  return {
+    name: `${base.name} migration (${d.policyScope.skillParticipantId})`,
+    systemIdentifier: `skill_participant_migration:${d.policyScope.runId}:${d.policyScope.skillParticipantId}:${d.permission}`,
+    roles: base.roles
+  };
 };
 
 let isProviderTemplatePermission = (permission: ConsumerAccessPermission) => {
@@ -313,10 +331,6 @@ class ConsumerAccessPolicyServiceImpl {
   }
 
   private async getSubjectAccessTagOids(d: { subject: ConsumerAccessSubject }) {
-    if ('consumerProfile' in d.subject) {
-      return [d.subject.consumerProfile.accessTagOid];
-    }
-
     if ('consumerGroup' in d.subject) {
       return [d.subject.consumerGroup.accessTagOid];
     }
@@ -516,6 +530,44 @@ class ConsumerAccessPolicyServiceImpl {
           },
           accessTagPolicyOid: policy.oid,
           ...resourceData
+        }
+      });
+    });
+  }
+
+  async revokeSkillParticipantAccessForPersonalGroup(d: {
+    organization: Organization;
+    consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
+    skill: Pick<Skill, 'oid'>;
+  }) {
+    let accessTagOids = await this.getSubjectAccessTagOids({
+      subject: {
+        personalConsumerGroupForProfile: d.consumerProfile
+      }
+    });
+
+    await withTransaction(async db => {
+      await db.accessTagEntity.deleteMany({
+        where: {
+          accessTagOid: {
+            in: accessTagOids
+          },
+          skillOid: d.skill.oid,
+          accessTagPolicy: {
+            organizationOid: d.organization.oid,
+            OR: [
+              {
+                systemIdentifier: {
+                  startsWith: 'skill_participant:'
+                }
+              },
+              {
+                systemIdentifier: {
+                  startsWith: 'skill_participant_migration:'
+                }
+              }
+            ]
+          }
         }
       });
     });

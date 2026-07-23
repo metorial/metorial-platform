@@ -543,7 +543,7 @@ describe('AuthenticationService', () => {
             consumerSession: expect.objectContaining(mockConsumerSession),
             consumerProfile: expect.objectContaining(mockConsumerProfile),
             consumerGroups: mockConsumerGroups,
-            accessTags: [11n, 12n]
+            accessTags: [12n]
           })
         );
       }

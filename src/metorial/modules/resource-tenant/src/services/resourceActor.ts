@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, ID, type Prisma } from '@metorial/db';
 import type { ResourceScope } from './resourceScope';
@@ -60,6 +60,14 @@ class ResourceActorServiceImpl {
       };
     }
   ) {
+    if (d.input.consumerOid && !d.input.consumerProfileOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Consumer resource actors must be linked to a consumer profile.'
+        })
+      );
+    }
+
     if (!d.input.id) {
       return await db.resourceActor.upsert({
         where: {
@@ -171,35 +179,6 @@ class ResourceActorServiceImpl {
         identifier: `mte-oac-${organizationActor.id}`,
         name: organizationActor.name,
         organizationActorOid: organizationActor.oid
-      }
-    });
-  }
-
-  async ensureConsumerActor(
-    d: Pick<ResourceScope, 'resourceTenant'> & {
-      consumerOid: bigint;
-    }
-  ) {
-    let consumer = await db.consumer.findUnique({
-      where: {
-        oid: d.consumerOid
-      },
-      select: {
-        oid: true,
-        id: true,
-        name: true
-      }
-    });
-    if (!consumer) {
-      throw new ServiceError(notFoundError('consumer', d.consumerOid.toString()));
-    }
-
-    return await this.upsertActor({
-      resourceTenant: d.resourceTenant,
-      input: {
-        identifier: `mte-con-${consumer.id}`,
-        name: consumer.name,
-        consumerOid: consumer.oid
       }
     });
   }

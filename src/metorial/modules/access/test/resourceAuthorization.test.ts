@@ -1,20 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import {
-  createResourceAuthorization,
-  getResourceAuthorizationMode,
-  isCanonicalResourceAuthorizationEnabled,
-  isLegacyResourceAuthorizationEnabled
-} from '../src/services/resourceAuthorization';
-
-let previousMode = process.env.RESOURCE_AUTHORIZATION_MODE;
-
-afterEach(() => {
-  if (previousMode == null) {
-    delete process.env.RESOURCE_AUTHORIZATION_MODE;
-  } else {
-    process.env.RESOURCE_AUTHORIZATION_MODE = previousMode;
-  }
-});
+import { describe, expect, it } from 'vitest';
+import { createResourceAuthorization } from '../src/services/resourceAuthorization';
 
 describe('resource authorization', () => {
   it('rejects a restricted profile paired with a sibling instance group', () => {
@@ -39,15 +24,15 @@ describe('resource authorization', () => {
     ).toThrow('does not match the selected instance ResourceScope');
   });
 
-  it.each([
-    ['legacy', true, false],
-    ['both', true, true],
-    ['canonical', false, true]
-  ] as const)('supports the %s rollout mode', (mode, legacy, canonical) => {
-    process.env.RESOURCE_AUTHORIZATION_MODE = mode;
-
-    expect(getResourceAuthorizationMode()).toBe(mode);
-    expect(isLegacyResourceAuthorizationEnabled()).toBe(legacy);
-    expect(isCanonicalResourceAuthorizationEnabled()).toBe(canonical);
+  it('rejects consumer-only actors', () => {
+    expect(() =>
+      createResourceAuthorization({
+        restricted: false,
+        resourceActor: {
+          consumerOid: 4n,
+          consumerProfileOid: null
+        } as any
+      })
+    ).toThrow('must be linked to a consumer profile');
   });
 });
