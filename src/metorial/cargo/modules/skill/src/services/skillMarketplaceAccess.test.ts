@@ -8,9 +8,7 @@ vi.mock('@metorial/module-access', () => ({
   accessTagService: {
     getAccessTagFilter
   },
-  consumerSkillReadRoles: ['consumer#instance.skill:read'],
-  isCanonicalResourceAuthorizationEnabled: () => true,
-  isLegacyResourceAuthorizationEnabled: () => true
+  consumerSkillReadRoles: ['consumer#instance.skill:read']
 }));
 
 import { getSkillMarketplaceAccessWhere } from './skillMarketplaceAccess';
@@ -30,39 +28,24 @@ describe('getSkillMarketplaceAccessWhere', () => {
     });
   });
 
-  it('uses canonical marketplace tag entities and the legacy relation during rollout', async () => {
+  it('uses only canonical marketplace tag entities', async () => {
     let accessTags = [{ accessTagOid: 3n }];
 
     await expect(
       getSkillMarketplaceAccessWhere({
-        accessTags,
-        legacyConsumerGroupOids: [4n]
+        accessTags
       })
     ).resolves.toEqual({
-      OR: [
-        {
-          accessTagEntities: {
-            some: {
-              accessTagOid: { in: [3n] },
-              accessTagPolicy: {
-                roles: {
-                  hasSome: ['consumer#instance.skill:read']
-                }
-              }
-            }
-          }
-        },
-        {
-          consumerAccesses: {
-            some: {
-              type: 'skill_marketplace',
-              consumerGroupOid: {
-                in: [4n]
-              }
+      accessTagEntities: {
+        some: {
+          accessTagOid: { in: [3n] },
+          accessTagPolicy: {
+            roles: {
+              hasSome: ['consumer#instance.skill:read']
             }
           }
         }
-      ]
+      }
     });
     expect(getAccessTagFilter).toHaveBeenCalledWith({
       tags: accessTags,

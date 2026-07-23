@@ -44,7 +44,6 @@ export type CargoAccessActor = {
   identifier?: string;
   name: string;
   organizationActorOid?: bigint;
-  consumerOid?: bigint;
   consumerProfileOid?: bigint;
 };
 
@@ -142,25 +141,20 @@ export let resolveCargoAccess = async (d: CargoAccessInput) => {
             resourceTenant: scope.resourceTenant,
             organizationActorOid: d.accessActor.organizationActorOid
           })
-        : d.accessActor?.consumerOid != null
-          ? await resourceActorService.ensureConsumerActor({
+        : d.accessActor?.consumerProfileOid != null
+          ? await resourceActorService.ensureConsumerProfileActor({
               resourceTenant: scope.resourceTenant,
-              consumerOid: d.accessActor.consumerOid
+              consumerProfileOid: d.accessActor.consumerProfileOid
             })
-          : d.accessActor?.consumerProfileOid != null
-            ? await resourceActorService.ensureConsumerProfileActor({
+          : d.accessActor
+            ? await resourceActorService.upsertActor({
                 resourceTenant: scope.resourceTenant,
-                consumerProfileOid: d.accessActor.consumerProfileOid
+                input: {
+                  identifier: d.accessActor.identifier ?? d.accessActor.name,
+                  name: d.accessActor.name
+                }
               })
-            : d.accessActor
-              ? await resourceActorService.upsertActor({
-                  resourceTenant: scope.resourceTenant,
-                  input: {
-                    identifier: d.accessActor.identifier ?? d.accessActor.name,
-                    name: d.accessActor.name
-                  }
-                })
-              : undefined);
+            : undefined);
 
   return {
     scope,

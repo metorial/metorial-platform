@@ -7,9 +7,6 @@ import {
   consumerSkillReadRoles,
   consumerSkillWriteRoles,
   assertResourceAuthorizationScope,
-  getResourceAuthorizationMode,
-  isLegacyResourceAuthorizationEnabled,
-  revokeMigratedResourceAccessPolicies,
   type ResourceAuthorization
 } from '@metorial/module-access';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
@@ -325,10 +322,6 @@ class StoreAccessServiceImpl {
                     permissions: nextPermissions
                   }
                 });
-                await revokeMigratedResourceAccessPolicies({
-                  sourceType: 'store_participant',
-                  sourceId: existing.id
-                });
               }
 
               updatedParticipants.push(existing);
@@ -353,12 +346,6 @@ class StoreAccessServiceImpl {
                 resourceActorOid: d.actor.oid,
                 permissions: nextPermissions
               }
-            });
-            // The upsert may have taken its update branch after a concurrent
-            // insert that was not visible to the preceding findMany.
-            await revokeMigratedResourceAccessPolicies({
-              sourceType: 'store_participant',
-              sourceId: participant.id
             });
             byStoreOid.set(storeOid.toString(), participant);
             updatedParticipants.push(participant);
@@ -425,21 +412,7 @@ class StoreAccessServiceImpl {
       tags: d.accessTags,
       roles
     });
-    let accessFilters: Prisma.SkillWhereInput[] = [
-      {
-        createdByResourceActorOid: d.actor.oid
-      }
-    ];
-    if (d.actor.consumerOid && isLegacyResourceAuthorizationEnabled()) {
-      accessFilters.push({
-        createdByConsumerOid: d.actor.consumerOid
-      });
-    }
-    if (d.actor.organizationActorOid) {
-      accessFilters.push({
-        createdByOrganizationActorOid: d.actor.organizationActorOid
-      });
-    }
+    let accessFilters: Prisma.SkillWhereInput[] = [];
 
     if (accessTagFilter) {
       accessFilters.push({
@@ -680,12 +653,7 @@ class StoreAccessServiceImpl {
         let participantStoreOids = this.getAccessibleStoreOids(
           participants,
           d.requiredPermission
-        ).filter(
-          storeOid =>
-            getResourceAuthorizationMode() == 'legacy' ||
-            !this.getAccessTags(d) ||
-            !skillStoreOidSet.has(storeOid.toString())
-        );
+        ).filter(storeOid => !skillStoreOidSet.has(storeOid.toString()));
 
         return {
           actor,

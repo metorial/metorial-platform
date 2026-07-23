@@ -1,10 +1,9 @@
-import type { Prisma, ResourceActor } from '@metorial/db';
+import type { Prisma } from '@metorial/db';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import {
   accessTagService,
   type ResourceAuthorization,
-  consumerSkillWriteRoles,
-  isLegacyResourceAuthorizationEnabled
+  consumerSkillWriteRoles
 } from '@metorial/module-access';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 
@@ -48,22 +47,10 @@ export let getSkillMetadataWriteAccessWhere = async (
     tags: d.authorization.accessTags,
     roles: [...consumerSkillWriteRoles]
   });
-  let actor: ResourceActor = d.authorization.resourceActor;
-  let legacyCreatorFilters: Prisma.SkillWhereInput[] = isLegacyResourceAuthorizationEnabled()
-    ? [
-        { createdByResourceActorOid: actor.oid },
-        { createdByConsumerProfileOid: actor.consumerProfileOid },
-        ...(actor.consumerOid ? [{ createdByConsumerOid: actor.consumerOid }] : [])
-      ]
-    : [];
-
   return {
-    oid: d.skill.oid,
+    oid: accessTagFilter ? d.skill.oid : { in: [] },
     resourceTenantOid: d.resourceTenant.oid,
     resourceGroupOid: d.resourceGroup.oid,
-    OR: [
-      ...(accessTagFilter ? [{ accessTagEntities: accessTagFilter }] : []),
-      ...legacyCreatorFilters
-    ]
+    accessTagEntities: accessTagFilter
   };
 };

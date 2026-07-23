@@ -1,16 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  getAccessTagFilter: vi.fn(),
-  legacyEnabled: vi.fn()
+  getAccessTagFilter: vi.fn()
 }));
 
 vi.mock('@metorial/module-access', () => ({
   consumerSkillWriteRoles: ['consumer#instance.skill:write'],
   accessTagService: {
     getAccessTagFilter: mocks.getAccessTagFilter
-  },
-  isLegacyResourceAuthorizationEnabled: mocks.legacyEnabled
+  }
 }));
 
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
@@ -38,7 +36,6 @@ describe('skill metadata write access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getAccessTagFilter.mockResolvedValue(accessTagFilter);
-    mocks.legacyEnabled.mockReturnValue(false);
   });
 
   it('requires a direct write grant on the exact scoped skill', async () => {
@@ -56,7 +53,7 @@ describe('skill metadata write access', () => {
       oid: 6n,
       resourceTenantOid: 1n,
       resourceGroupOid: 2n,
-      OR: [{ accessTagEntities: accessTagFilter }]
+      accessTagEntities: accessTagFilter
     });
   });
 

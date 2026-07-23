@@ -84,7 +84,7 @@ describe('consumer skill group lifecycle filtering', () => {
     vi.clearAllMocks();
     getAccessTagFilterMock.mockResolvedValue(accessTagFilter);
     getConsumerSkillAccessWhereMock.mockResolvedValue({
-      OR: [{ createdByConsumerProfileOid: 4n }, { accessTagEntities: accessTagFilter }]
+      accessTagEntities: accessTagFilter
     });
   });
 
@@ -124,8 +124,7 @@ describe('consumer skill group lifecycle filtering', () => {
         ...scope,
         skillGroupItemId: 'sgi_archived_skill',
         allowDeleted: true,
-        accessTags,
-        consumerProfileOid: 4n
+        accessTags
       })
     ).rejects.toThrow();
 
@@ -136,10 +135,7 @@ describe('consumer skill group lifecycle filtering', () => {
             status: 'active',
             AND: [
               {
-                OR: [
-                  { createdByConsumerProfileOid: 4n },
-                  { accessTagEntities: accessTagFilter }
-                ]
+                accessTagEntities: accessTagFilter
               }
             ]
           }
@@ -147,7 +143,7 @@ describe('consumer skill group lifecycle filtering', () => {
       })
     );
     expect(getConsumerSkillAccessWhereMock).toHaveBeenCalledWith(
-      expect.objectContaining({ accessTags, consumerProfileOid: 4n })
+      expect.objectContaining({ accessTags })
     );
   });
 });

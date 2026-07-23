@@ -1,12 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let {
-  db,
-  getAccessTagFilterMock,
-  authorizationModeMock,
-  isLegacyEnabledMock,
-  revokeMigratedPoliciesMock
-} = vi.hoisted(() => ({
+let { db, getAccessTagFilterMock } = vi.hoisted(() => ({
   db: {
     store: {
       findMany: vi.fn()
@@ -19,10 +13,7 @@ let {
       findMany: vi.fn()
     }
   },
-  getAccessTagFilterMock: vi.fn(),
-  authorizationModeMock: vi.fn(),
-  isLegacyEnabledMock: vi.fn(),
-  revokeMigratedPoliciesMock: vi.fn()
+  getAccessTagFilterMock: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -37,9 +28,6 @@ vi.mock('@metorial/module-access', () => ({
   consumerSkillReadRoles: ['consumer#instance.skill:read'],
   consumerSkillWriteRoles: ['consumer#instance.skill:write'],
   assertResourceAuthorizationScope: vi.fn(),
-  getResourceAuthorizationMode: authorizationModeMock,
-  isLegacyResourceAuthorizationEnabled: isLegacyEnabledMock,
-  revokeMigratedResourceAccessPolicies: revokeMigratedPoliciesMock,
   accessTagService: {
     getAccessTagFilter: getAccessTagFilterMock
   }
@@ -73,9 +61,6 @@ let accessTagFilter = {
 describe('native consumer skill store access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    authorizationModeMock.mockReturnValue('both');
-    isLegacyEnabledMock.mockReturnValue(true);
-
     getAccessTagFilterMock.mockImplementation(async ({ roles }) => ({
       ...accessTagFilter,
       some: {
@@ -124,7 +109,7 @@ describe('native consumer skill store access', () => {
     );
   });
 
-  it('revokes migrated participant grants when permissions are overridden', async () => {
+  it('updates observational participant permissions without policy cleanup', async () => {
     let participant = {
       id: 'stp_1',
       storeOid: store.oid,
@@ -144,10 +129,7 @@ describe('native consumer skill store access', () => {
       overridePermissions: true
     });
 
-    expect(revokeMigratedPoliciesMock).toHaveBeenCalledWith({
-      sourceType: 'store_participant',
-      sourceId: participant.id
-    });
+    expect(db.storeParticipant.update).toHaveBeenCalled();
   });
 
   it('does not turn a skill-group read grant into write access', async () => {
@@ -160,7 +142,6 @@ describe('native consumer skill store access', () => {
 
     let accessibleSkillQuery = db.skill.findMany.mock.calls[1]![0];
     expect(accessibleSkillQuery.where.OR).toEqual([
-      { createdByResourceActorOid: actor.oid },
       {
         accessTagEntities: {
           ...accessTagFilter,
@@ -178,8 +159,6 @@ describe('native consumer skill store access', () => {
   });
 
   it('ignores stale consumer participants after an access-tag grant is revoked', async () => {
-    authorizationModeMock.mockReturnValue('canonical');
-    isLegacyEnabledMock.mockReturnValue(false);
     db.storeParticipant.findMany.mockResolvedValue([
       {
         storeOid: store.oid,
@@ -222,7 +201,7 @@ describe('native consumer skill store access', () => {
     expect(result.accessibleStoreOids).toEqual([store.oid]);
   });
 
-  it('recognizes legacy consumer ownership through the native actor link', async () => {
+  it('does not recognize creator columns as skill access', async () => {
     authorization = {
       ...authorization,
       resourceActor: {
@@ -239,7 +218,10 @@ describe('native consumer skill store access', () => {
     });
 
     let accessibleSkillQuery = db.skill.findMany.mock.calls[1]![0];
-    expect(accessibleSkillQuery.where.OR).toContainEqual({
+    expect(accessibleSkillQuery.where.OR).not.toContainEqual({
+      createdByResourceActorOid: actor.oid
+    });
+    expect(accessibleSkillQuery.where.OR).not.toContainEqual({
       createdByConsumerOid: 20n
     });
   });

@@ -21,7 +21,7 @@ export type DocumentEditAccessActor = {
   identifier?: string;
   name: string;
   organizationActorOid?: bigint;
-  consumerOid?: bigint;
+  consumerProfileOid?: bigint;
 };
 
 export type DocumentEditStorePermission = 'content_read' | 'content_write';
@@ -31,9 +31,12 @@ type DocumentEditTokenClaims = {
   instanceId: string;
   organizationId: string;
   accessTagOids?: string[];
-  accessActor?: Omit<DocumentEditAccessActor, 'organizationActorOid' | 'consumerOid'> & {
+  accessActor?: Omit<
+    DocumentEditAccessActor,
+    'organizationActorOid' | 'consumerProfileOid'
+  > & {
     organizationActorOid?: string;
-    consumerOid?: string;
+    consumerProfileOid?: string;
   };
   defaultPermissions?: DocumentEditStorePermission[];
   overridePermissions?: boolean;
@@ -96,7 +99,7 @@ class DocumentEditTokenServiceImpl {
               name: d.accessActor.name,
               resourceActorId: d.accessActor.resourceActorId,
               organizationActorOid: d.accessActor.organizationActorOid?.toString(),
-              consumerOid: d.accessActor.consumerOid?.toString()
+              consumerProfileOid: d.accessActor.consumerProfileOid?.toString()
             }
           : undefined,
         defaultPermissions: d.defaultPermissions,
@@ -175,8 +178,8 @@ class DocumentEditTokenServiceImpl {
             organizationActorOid: claims.accessActor.organizationActorOid
               ? BigInt(claims.accessActor.organizationActorOid)
               : undefined,
-            consumerOid: claims.accessActor.consumerOid
-              ? BigInt(claims.accessActor.consumerOid)
+            consumerProfileOid: claims.accessActor.consumerProfileOid
+              ? BigInt(claims.accessActor.consumerProfileOid)
               : undefined
           }
         : undefined,

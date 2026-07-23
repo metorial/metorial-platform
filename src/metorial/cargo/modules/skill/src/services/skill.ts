@@ -27,7 +27,6 @@ import {
   assertResourceActorScope,
   type AnyAccessTagSelector,
   consumerSkillReadRoles,
-  isLegacyResourceAuthorizationEnabled,
   type ResourceAuthorization
 } from '@metorial/module-access';
 import { subspaceSkillService } from '@metorial/module-subspace';
@@ -71,12 +70,9 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 
 export let getConsumerSkillAccessWhere = async (d: {
   accessTags?: AnyAccessTagSelector;
-  consumerProfileOid?: bigint;
 }): Promise<Prisma.SkillWhereInput | undefined> => {
   if (!d.accessTags) return undefined;
 
-  // Skill AccessTagEntity grants predate this migration and remain the
-  // authorization source in every rollout mode.
   let accessTagFilter = await accessTagService.getAccessTagFilter({
     tags: d.accessTags,
     roles: [...consumerSkillReadRoles]
@@ -98,10 +94,6 @@ export let getConsumerSkillAccessWhere = async (d: {
         }
       ]
     : [];
-  if (d.consumerProfileOid && isLegacyResourceAuthorizationEnabled()) {
-    accessFilters.unshift({ createdByConsumerProfileOid: d.consumerProfileOid });
-  }
-
   return accessFilters.length ? { OR: accessFilters } : { oid: { in: [] } };
 };
 
@@ -111,7 +103,6 @@ class SkillServiceImpl {
       skillId: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     let accessWhere = await getConsumerSkillAccessWhere(d);
@@ -289,8 +280,6 @@ class SkillServiceImpl {
         }
       }
 
-      await skillParticipantService.syncSkillParticipantsFromStore({ skill });
-
       await enqueueSkillLifecycle({ skillId: skill.id, event: 'created' });
 
       return skill;
@@ -338,7 +327,6 @@ class SkillServiceImpl {
       providerIds?: string[];
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     let skills = await resolveSkills(d, d.ids);
@@ -462,7 +450,6 @@ class SkillServiceImpl {
       skillId: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     return await this.getSkillRecord(d);
@@ -669,41 +656,6 @@ class SkillServiceImpl {
     return d.skill;
   }
 
-  async upsertSkillActor(
-    d: ResourceScope & {
-      skill: SkillRecord;
-      actor: ResourceActor;
-      permissions: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
-    assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
-      resourceActor: d.actor
-    });
-    let participant = await storeAccessService.ensureActorStorePermissions({
-      store: d.skill.store!,
-      actor: d.actor,
-      permissions: d.permissions,
-      overridePermissions: d.overridePermissions
-    });
-    if (!participant) {
-      throw new ServiceError(notFoundError('store.participant'));
-    }
-
-    await skillParticipantService.syncSkillParticipantsFromStore({
-      skill: d.skill
-    });
-
-    return {
-      skillId: d.skill.id,
-      storeId: d.skill.store!.id,
-      actorId: d.actor.id,
-      storeParticipantId: participant.id,
-      permissions: participant.permissions
-    };
-  }
-
   async markSkillUse(
     d: ResourceScope & {
       skill: SkillRecord;
@@ -714,15 +666,26 @@ class SkillServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceActor: d.actor
     });
-    await skillParticipantService.syncSkillParticipantsFromStore({
-      skill: d.skill
+    await storeAccessService.ensureActorStorePermissions({
+      store: d.skill.store!,
+      actor: d.actor,
+      permissions: d.actor.organizationActorOid
+        ? [storeReadPermission, storeWritePermission]
+        : [storeReadPermission]
     });
-
-    return await skillParticipantService.ensureSkillParticipantRoles({
+    await skillParticipantService.ensureSkillParticipantAccessRole({
       skill: d.skill,
       actor: d.actor,
-      roles: ['user']
+      permission: d.actor.organizationActorOid ? 'write' : 'read'
     });
+
+    if (d.actor.consumerProfileOid) {
+      return await skillParticipantService.ensureSkillParticipantRoles({
+        skill: d.skill,
+        actor: d.actor,
+        roles: ['user']
+      });
+    }
   }
 }
 
