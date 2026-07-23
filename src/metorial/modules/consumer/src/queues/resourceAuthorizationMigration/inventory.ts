@@ -1,5 +1,6 @@
 import { db, type Prisma } from '@metorial/db';
 import { replaceMigrationArtifacts } from './artifacts';
+import { participantEvidenceGrantsAuthorization } from './rules';
 
 type SnapshotRow = {
   profileOid: bigint;
@@ -100,79 +101,86 @@ let inventoryLegacyAccessInTransaction = async (d: {
     classification: string;
     payload: unknown;
   }[] = [];
-  let [consumerSkills, skills, entities, accesses, storeParticipants] = await Promise.all([
-    database.consumerSkill.findMany({
-      include: {
-        consumerProfile: true,
-        skill: true,
-        instance: { select: { resourceGroupOid: true } }
-      }
-    }),
-    database.skill.findMany({
-      where: {
-        OR: [
-          { createdByConsumerProfileOid: { not: null } },
-          { createdByConsumerOid: { not: null } },
-          {
-            createdByResourceActor: {
-              OR: [{ consumerProfileOid: { not: null } }, { consumerOid: { not: null } }]
+  let [consumerSkills, skills, entities, accesses, storeParticipants, skillParticipants] =
+    await Promise.all([
+      database.consumerSkill.findMany({
+        include: {
+          consumerProfile: true,
+          skill: true,
+          instance: { select: { resourceGroupOid: true } }
+        }
+      }),
+      database.skill.findMany({
+        where: {
+          OR: [
+            { createdByConsumerProfileOid: { not: null } },
+            { createdByConsumerOid: { not: null } },
+            {
+              createdByResourceActor: {
+                OR: [{ consumerProfileOid: { not: null } }, { consumerOid: { not: null } }]
+              }
             }
-          }
-        ]
-      },
-      include: {
-        createdByResourceActor: true
-      }
-    }),
-    database.accessTagEntity.findMany({
-      include: {
-        skill: true,
-        skillTemplate: true,
-        skillGroup: true,
-        skillMarketplace: true,
-        accessTagPolicy: true,
-        accessTag: {
-          include: {
-            consumerProfile: {
-              include: { surface: { include: { portal: true } } }
-            },
-            consumerGroup: {
-              include: {
-                personalOwner: true,
-                profiles: { include: { profile: true } },
-                surface: {
-                  include: { consumerProfiles: true, portal: true }
+          ]
+        },
+        include: {
+          createdByResourceActor: true
+        }
+      }),
+      database.accessTagEntity.findMany({
+        include: {
+          skill: true,
+          skillTemplate: true,
+          skillGroup: true,
+          skillMarketplace: true,
+          accessTagPolicy: true,
+          accessTag: {
+            include: {
+              consumerProfile: {
+                include: { surface: { include: { portal: true } } }
+              },
+              consumerGroup: {
+                include: {
+                  personalOwner: true,
+                  profiles: { include: { profile: true } },
+                  surface: {
+                    include: { consumerProfiles: true, portal: true }
+                  }
                 }
               }
             }
           }
         }
-      }
-    }),
-    database.consumerAccess.findMany({
-      include: {
-        skill: true,
-        skillTemplate: true,
-        skillGroup: true,
-        skillMarketplace: true,
-        consumerGroup: {
-          include: {
-            personalOwner: true,
-            profiles: { include: { profile: true } },
-            surface: {
-              include: { consumerProfiles: true, portal: true }
+      }),
+      database.consumerAccess.findMany({
+        include: {
+          skill: true,
+          skillTemplate: true,
+          skillGroup: true,
+          skillMarketplace: true,
+          consumerGroup: {
+            include: {
+              personalOwner: true,
+              profiles: { include: { profile: true } },
+              surface: {
+                include: { consumerProfiles: true, portal: true }
+              }
             }
           }
         }
-      }
-    }),
-    database.storeParticipant.findMany({
-      include: {
-        resourceActor: { include: { consumerProfile: true } },
-        store: { include: { skill: true } }
-      }
-    })
-  ]);
+      }),
+      database.storeParticipant.findMany({
+        include: {
+          resourceActor: { include: { consumerProfile: true } },
+          store: { include: { skill: true } }
+        }
+      }),
+      database.skillParticipant.findMany({
+        include: {
+          resourceActor: { include: { consumerProfile: true } },
+          skill: true
+        }
+      })
+    ]);
 
   let rows: SnapshotRow[] = [];
   let add = (row: SnapshotRow) => rows.push(row);
@@ -520,25 +528,8 @@ let inventoryLegacyAccessInTransaction = async (d: {
       });
       continue;
     }
-    let actions: string[] = [];
-    if (participant.permissions.includes('content_read')) actions.push('read');
-    if (participant.permissions.includes('content_write')) {
-      if (!actions.includes('read')) actions.push('read');
-      actions.push('write');
-    }
-    addSkillActions(
-      {
-        profileOid: profile.oid,
-        instanceOid: profile.instanceOid,
-        surfaceOid: profile.surfaceOid,
-        resourceGroupOid: participant.store.resourceGroupOid,
-        resourceType: 'skill',
-        resourceOid: skill.oid,
-        source: 'store_participant',
-        sourceOid: participant.oid
-      },
-      actions
-    );
+    // StoreParticipant is attribution/operational state only. It deliberately
+    // contributes no effective authorization row.
   }
 
   let groupRows = rows.filter(
@@ -704,6 +695,27 @@ let inventoryLegacyAccessInTransaction = async (d: {
     kind: 'data_issue',
     immutable: d.stage == 'pre_actor',
     artifacts: dataIssues
+  });
+  await replaceMigrationArtifacts({
+    database,
+    runId: d.runId,
+    stage: d.stage,
+    kind: 'participant_evidence',
+    immutable: d.stage == 'pre_actor',
+    artifacts: skillParticipants.map(participant => ({
+      recordKey: `skill_participant:${participant.oid}`,
+      classification: 'observational',
+      payload: {
+        skillParticipantOid: participant.oid,
+        skillParticipantId: participant.id,
+        skillOid: participant.skillOid,
+        resourceActorOid: participant.resourceActorOid,
+        consumerProfileOid: participant.resourceActor.consumerProfileOid,
+        organizationActorOid: participant.resourceActor.organizationActorOid,
+        roles: participant.roles,
+        grantsAuthorization: participantEvidenceGrantsAuthorization()
+      }
+    }))
   });
 
   return { rows: uniqueRows.size };

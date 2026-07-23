@@ -47,7 +47,10 @@ let sampleRows = <T extends { recordKey: string; payload: unknown }>(rows: T[]) 
     });
 };
 
-let getReplayContext = async (payload: EffectiveAccessPayload) => {
+let getReplayContext = async (
+  payload: EffectiveAccessPayload,
+  accessTagsOverride?: bigint[]
+) => {
   let profile = await db.consumerProfile.findUnique({
     where: { oid: BigInt(payload.profileOid) }
   });
@@ -81,7 +84,7 @@ let getReplayContext = async (payload: EffectiveAccessPayload) => {
     },
     select: { accessTagOid: true }
   });
-  let accessTags = [profile.accessTagOid, ...groups.map(group => group.accessTagOid)];
+  let accessTags = accessTagsOverride ?? groups.map(group => group.accessTagOid);
   let authorization = createResourceAuthorization({
     restricted: true,
     resourceActor: actor,
@@ -101,8 +104,11 @@ let getReplayContext = async (payload: EffectiveAccessPayload) => {
   };
 };
 
-let replayRow = async (payload: EffectiveAccessPayload) => {
-  let context = await getReplayContext(payload);
+let replayRow = async (
+  payload: EffectiveAccessPayload,
+  options?: { participantOnly: boolean }
+) => {
+  let context = await getReplayContext(payload, options?.participantOnly ? [] : undefined);
   if (!context) return { allowed: false, coverage: 'missing_context' };
 
   if (payload.resourceType == 'skill') {
@@ -110,8 +116,7 @@ let replayRow = async (payload: EffectiveAccessPayload) => {
     if (!skill) return { allowed: false, coverage: 'skill' };
     if (payload.action == 'read') {
       let accessWhere = await getConsumerSkillAccessWhere({
-        accessTags: context.accessTags,
-        consumerProfileOid: context.profile.oid
+        accessTags: context.accessTags
       });
       let allowed = !!(await db.skill.findFirst({
         where: {
@@ -131,7 +136,6 @@ let replayRow = async (payload: EffectiveAccessPayload) => {
           resourceGroup: context.resourceGroup,
           skillId: skill.id,
           accessTags: context.accessTags,
-          consumerProfileOid: context.profile.oid,
           allowDeleted: true
         });
         await skillService.assertSkillWriteAccess({
@@ -254,7 +258,6 @@ let replayRow = async (payload: EffectiveAccessPayload) => {
           resourceGroup: context.resourceGroup,
           skillId: skill.id,
           accessTags: context.accessTags,
-          consumerProfileOid: context.profile.oid,
           allowDeleted: true
         })
       ]);
@@ -349,6 +352,50 @@ export let replayCanonicalAccessSample = async (d: { runId: string }) => {
       payload: { ...payload, ...replay, expected: true }
     });
   }
+  let participantRows = await db.skillParticipant.findMany({
+    where: {
+      resourceActor: { consumerProfileOid: { not: null } },
+      skill: { status: 'active', resourceGroupOid: { not: null } }
+    },
+    include: {
+      resourceActor: { include: { consumerProfile: true } },
+      skill: true
+    }
+  });
+  let participantSamples = participantRows
+    .sort((left, right) =>
+      createHash('sha256')
+        .update(left.id)
+        .digest('hex')
+        .localeCompare(createHash('sha256').update(right.id).digest('hex'))
+    )
+    .slice(0, SAMPLE_PER_KIND);
+  let participantArtifacts = [];
+  for (let participant of participantSamples) {
+    let profile = participant.resourceActor.consumerProfile!;
+    let payload: EffectiveAccessPayload = {
+      profileOid: profile.oid.toString(),
+      instanceOid: profile.instanceOid.toString(),
+      surfaceOid: profile.surfaceOid.toString(),
+      resourceGroupOid: participant.skill.resourceGroupOid!.toString(),
+      resourceType: 'skill',
+      resourceOid: participant.skillOid.toString(),
+      action: 'read'
+    };
+    let replay = await replayRow(payload, { participantOnly: true });
+    participantArtifacts.push({
+      recordKey: `skill_participant:${participant.id}:read`,
+      classification: replay.allowed ? 'mismatch' : 'preserved',
+      payload: {
+        ...payload,
+        skillParticipantId: participant.id,
+        ...replay,
+        expected: false,
+        accessTags: [],
+        assertion: 'participant_row_alone_never_grants'
+      }
+    });
+  }
   await replaceMigrationArtifacts({
     runId: d.runId,
     stage: 'predicate_replay',
@@ -356,13 +403,23 @@ export let replayCanonicalAccessSample = async (d: { runId: string }) => {
     immutable: false,
     artifacts
   });
-  let mismatches = artifacts.filter(artifact => artifact.classification == 'mismatch');
+  await replaceMigrationArtifacts({
+    runId: d.runId,
+    stage: 'predicate_replay',
+    kind: 'participant_only_sample',
+    immutable: false,
+    artifacts: participantArtifacts
+  });
+  let mismatches = [...artifacts, ...participantArtifacts].filter(
+    artifact => artifact.classification == 'mismatch'
+  );
   if (mismatches.length) {
     throw new Error(`Canonical predicate replay found ${mismatches.length} mismatches.`);
   }
   return {
     sampled: artifacts.length,
     replayed: artifacts.filter(artifact => artifact.classification == 'preserved').length,
+    participantOnlySampled: participantArtifacts.length,
     notReplayable: artifacts.filter(artifact => artifact.classification == 'not_replayable')
       .length
   };

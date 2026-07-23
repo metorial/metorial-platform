@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { inventoryLegacyAccess } from './inventory';
 import { replaceMigrationArtifacts } from './artifacts';
 import { replayCanonicalAccessSample } from './predicateReplay';
+import { normalizeMigrationParticipantPolicies } from './reconcileAccess';
 
 type EffectiveRow = {
   profileOid: string;
@@ -108,6 +109,24 @@ let compareStages = async (d: {
 
 export let shadowCompareCanonicalAccess = async (d: { runId: string }) => {
   await inventoryLegacyAccess({ runId: d.runId, stage: 'canonical' });
+  let nonTagCanonicalRows = await db.resourceAuthorizationMigrationArtifact.findMany({
+    where: {
+      runId: d.runId,
+      stage: 'canonical',
+      kind: 'effective_access',
+      NOT: [
+        { payload: { path: ['source'], equals: 'access_tag_entity' } },
+        { payload: { path: ['source'], equals: 'skill_group_inheritance' } },
+        { payload: { path: ['source'], equals: 'skill_marketplace_inheritance' } },
+        { payload: { path: ['source'], equals: 'group_share_and_skill_write' } }
+      ]
+    }
+  });
+  if (nonTagCanonicalRows.length > 0) {
+    throw new Error(
+      `Canonical inventory contains ${nonTagCanonicalRows.length} non-tag authorization rows.`
+    );
+  }
 
   let actorDiff = await compareStages({
     runId: d.runId,
@@ -155,18 +174,17 @@ export let shadowCompareCanonicalAccess = async (d: { runId: string }) => {
 };
 
 export let finalizeResourceAuthorizationMigration = async (d: { runId: string }) => {
-  let [unresolved, unsafeDiffs, replayMismatches, phases] = await Promise.all([
+  let [unresolved, replayMismatches, unsafeDiffs, phases] = await Promise.all([
     db.resourceAuthorizationMigrationArtifact.count({
       where: {
         runId: d.runId,
-        classification: { in: ['unresolved', 'stale_legacy'] }
+        classification: { in: ['unresolved', 'ambiguous', 'stale_legacy'] }
       }
     }),
     db.resourceAuthorizationMigrationArtifact.count({
       where: {
         runId: d.runId,
         stage: 'predicate_replay',
-        kind: 'sample',
         classification: 'mismatch'
       }
     }),
@@ -207,5 +225,6 @@ export let finalizeResourceAuthorizationMigration = async (d: { runId: string })
       `Cannot finalize resource authorization migration: unresolved=${unresolved}, unsafeDiffs=${unsafeDiffs}, replayMismatches=${replayMismatches}, missing=${missing.join(',')}, ordered=${ordered}.`
     );
   }
-  return { unresolved, unsafeDiffs };
+  let normalization = await normalizeMigrationParticipantPolicies({ runId: d.runId });
+  return { unresolved, unsafeDiffs, ...normalization };
 };

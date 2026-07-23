@@ -1,5 +1,4 @@
-import { db } from '@metorial/db';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import { db, ID } from '@metorial/db';
 import { recordMigrationArtifact } from './artifacts';
 
 let mergeActorCollisions = async (
@@ -8,127 +7,156 @@ let mergeActorCollisions = async (
   resourceGroupOid: bigint,
   fence: () => Promise<void>
 ) => {
-  let skillParticipants = await db.skillParticipant.findMany({
-    where: { resourceActorOid: sourceActorOid, skill: { resourceGroupOid } }
-  });
-  for (let source of skillParticipants) {
-    await fence();
-    let target = await db.skillParticipant.findUnique({
-      where: {
-        skillOid_resourceActorOid: {
-          skillOid: source.skillOid,
-          resourceActorOid: targetActorOid
-        }
-      }
+  return await db.$transaction(async db => {
+    let skillParticipants = await db.skillParticipant.findMany({
+      where: { resourceActorOid: sourceActorOid, skill: { resourceGroupOid } }
     });
-    if (!target) {
+    for (let source of skillParticipants) {
+      await fence();
+      let target = await db.skillParticipant.findUnique({
+        where: {
+          skillOid_resourceActorOid: {
+            skillOid: source.skillOid,
+            resourceActorOid: targetActorOid
+          }
+        }
+      });
+      if (!target) {
+        await db.skillParticipant.update({
+          where: { oid: source.oid },
+          data: { resourceActorOid: targetActorOid }
+        });
+        continue;
+      }
       await db.skillParticipant.update({
-        where: { oid: source.oid },
-        data: { resourceActorOid: targetActorOid }
+        where: { oid: target.oid },
+        data: { roles: [...new Set([...target.roles, ...source.roles])] }
       });
-      continue;
+      await db.skillParticipant.delete({ where: { oid: source.oid } });
     }
-    await db.skillParticipant.update({
-      where: { oid: target.oid },
-      data: { roles: [...new Set([...target.roles, ...source.roles])] }
-    });
-    await db.skillParticipant.delete({ where: { oid: source.oid } });
-  }
 
-  let storeParticipants = await db.storeParticipant.findMany({
-    where: { resourceActorOid: sourceActorOid, store: { resourceGroupOid } }
-  });
-  for (let source of storeParticipants) {
-    await fence();
-    let target = await db.storeParticipant.findUnique({
-      where: {
-        storeOid_resourceActorOid: {
-          storeOid: source.storeOid,
-          resourceActorOid: targetActorOid
-        }
-      }
+    let storeParticipants = await db.storeParticipant.findMany({
+      where: { resourceActorOid: sourceActorOid, store: { resourceGroupOid } }
     });
-    if (!target) {
+    for (let source of storeParticipants) {
+      await fence();
+      let target = await db.storeParticipant.findUnique({
+        where: {
+          storeOid_resourceActorOid: {
+            storeOid: source.storeOid,
+            resourceActorOid: targetActorOid
+          }
+        }
+      });
+      if (!target) {
+        await db.storeParticipant.update({
+          where: { oid: source.oid },
+          data: { resourceActorOid: targetActorOid }
+        });
+        continue;
+      }
       await db.storeParticipant.update({
-        where: { oid: source.oid },
-        data: { resourceActorOid: targetActorOid }
+        where: { oid: target.oid },
+        data: { permissions: [...new Set([...target.permissions, ...source.permissions])] }
       });
-      continue;
+      await db.storeParticipant.delete({ where: { oid: source.oid } });
     }
-    await db.storeParticipant.update({
-      where: { oid: target.oid },
-      data: { permissions: [...new Set([...target.permissions, ...source.permissions])] }
-    });
-    await db.storeParticipant.delete({ where: { oid: source.oid } });
-  }
 
-  let documentParticipants = await db.documentParticipant.findMany({
-    where: { resourceActorOid: sourceActorOid, document: { resourceGroupOid } }
-  });
-  for (let source of documentParticipants) {
-    await fence();
-    let target = await db.documentParticipant.findUnique({
-      where: {
-        documentOid_resourceActorOid: {
-          documentOid: source.documentOid,
-          resourceActorOid: targetActorOid
-        }
-      }
+    let documentParticipants = await db.documentParticipant.findMany({
+      where: { resourceActorOid: sourceActorOid, document: { resourceGroupOid } }
     });
-    if (!target) {
+    for (let source of documentParticipants) {
+      await fence();
+      let target = await db.documentParticipant.findUnique({
+        where: {
+          documentOid_resourceActorOid: {
+            documentOid: source.documentOid,
+            resourceActorOid: targetActorOid
+          }
+        }
+      });
+      if (!target) {
+        await db.documentParticipant.update({
+          where: { oid: source.oid },
+          data: { resourceActorOid: targetActorOid }
+        });
+        continue;
+      }
       await db.documentParticipant.update({
-        where: { oid: source.oid },
-        data: { resourceActorOid: targetActorOid }
+        where: { oid: target.oid },
+        data: {
+          role: target.role == 'editor' || source.role == 'editor' ? 'editor' : 'viewer',
+          editCount: target.editCount + source.editCount,
+          createdAt: target.createdAt < source.createdAt ? target.createdAt : source.createdAt,
+          lastEditedAt:
+            !target.lastEditedAt ||
+            (source.lastEditedAt && source.lastEditedAt > target.lastEditedAt)
+              ? source.lastEditedAt
+              : target.lastEditedAt,
+          lastViewedAt:
+            !target.lastViewedAt ||
+            (source.lastViewedAt && source.lastViewedAt > target.lastViewedAt)
+              ? source.lastViewedAt
+              : target.lastViewedAt
+        }
       });
-      continue;
+      await db.documentParticipant.delete({ where: { oid: source.oid } });
     }
-    await db.documentParticipant.update({
-      where: { oid: target.oid },
-      data: {
-        role: target.role == 'editor' || source.role == 'editor' ? 'editor' : 'viewer',
-        editCount: target.editCount + source.editCount,
-        createdAt: target.createdAt < source.createdAt ? target.createdAt : source.createdAt,
-        lastEditedAt:
-          !target.lastEditedAt ||
-          (source.lastEditedAt && source.lastEditedAt > target.lastEditedAt)
-            ? source.lastEditedAt
-            : target.lastEditedAt,
-        lastViewedAt:
-          !target.lastViewedAt ||
-          (source.lastViewedAt && source.lastViewedAt > target.lastViewedAt)
-            ? source.lastViewedAt
-            : target.lastViewedAt
+
+    let editors = await db.documentVersionEditors.findMany({
+      where: {
+        resourceActorOid: sourceActorOid,
+        documentVersion: { resourceGroupOid }
       }
     });
-    await db.documentParticipant.delete({ where: { oid: source.oid } });
-  }
-
-  let editors = await db.documentVersionEditors.findMany({
-    where: {
-      resourceActorOid: sourceActorOid,
-      documentVersion: { resourceGroupOid }
+    for (let source of editors) {
+      await fence();
+      let target = await db.documentVersionEditors.findUnique({
+        where: {
+          documentVersionOid_resourceActorOid: {
+            documentVersionOid: source.documentVersionOid,
+            resourceActorOid: targetActorOid
+          }
+        }
+      });
+      if (target) {
+        await db.documentVersionEditors.delete({ where: { oid: source.oid } });
+      } else {
+        await db.documentVersionEditors.update({
+          where: { oid: source.oid },
+          data: { resourceActorOid: targetActorOid }
+        });
+      }
     }
   });
-  for (let source of editors) {
-    await fence();
-    let target = await db.documentVersionEditors.findUnique({
-      where: {
-        documentVersionOid_resourceActorOid: {
-          documentVersionOid: source.documentVersionOid,
-          resourceActorOid: targetActorOid
-        }
-      }
-    });
-    if (target) {
-      await db.documentVersionEditors.delete({ where: { oid: source.oid } });
-    } else {
-      await db.documentVersionEditors.update({
-        where: { oid: source.oid },
-        data: { resourceActorOid: targetActorOid }
-      });
-    }
-  }
 };
+
+let ensureCanonicalProfileActor = async (d: {
+  resourceTenantOid: bigint;
+  profile: { oid: bigint; id: string; name: string; consumerOid: bigint };
+}) =>
+  await db.resourceActor.upsert({
+    where: {
+      resourceTenantOid_consumerProfileOid: {
+        resourceTenantOid: d.resourceTenantOid,
+        consumerProfileOid: d.profile.oid
+      }
+    },
+    create: {
+      id: await ID.generateId('resourceActor'),
+      identifier: `mte-cpf-${d.profile.id}`,
+      name: d.profile.name,
+      type: 'external',
+      resourceTenantOid: d.resourceTenantOid,
+      consumerOid: d.profile.consumerOid,
+      consumerProfileOid: d.profile.oid
+    },
+    update: {
+      identifier: `mte-cpf-${d.profile.id}`,
+      name: d.profile.name,
+      consumerOid: d.profile.consumerOid
+    }
+  });
 
 let repointActorEverywhere = async (
   sourceActorOid: bigint,
@@ -146,71 +174,72 @@ let repointActorEverywhere = async (
     await mergeActorCollisions(sourceActorOid, targetActorOid, group.oid, fence);
   }
   await fence();
-  await Promise.all([
-    db.skill.updateMany({
-      where: { createdByResourceActorOid: sourceActorOid },
-      data: { createdByResourceActorOid: targetActorOid }
-    }),
-    db.store.updateMany({
-      where: { createdByResourceActorOid: sourceActorOid },
-      data: { createdByResourceActorOid: targetActorOid }
-    }),
-    db.document.updateMany({
-      where: { createdByResourceActorOid: sourceActorOid },
-      data: { createdByResourceActorOid: targetActorOid }
-    }),
-    db.file.updateMany({
-      where: { createdByResourceActorOid: sourceActorOid },
-      data: { createdByResourceActorOid: targetActorOid }
-    }),
-    db.fileLink.updateMany({
-      where: { createdByResourceActorOid: sourceActorOid },
-      data: { createdByResourceActorOid: targetActorOid }
-    }),
-    db.skillExport.updateMany({
-      where: { creatorResourceActorOid: sourceActorOid },
-      data: { creatorResourceActorOid: targetActorOid }
-    }),
-    db.skillImport.updateMany({
-      where: { creatorResourceActorOid: sourceActorOid },
-      data: { creatorResourceActorOid: targetActorOid }
-    }),
-    db.skillForkSync.updateMany({
-      where: { createdByResourceActorOid: sourceActorOid },
-      data: { createdByResourceActorOid: targetActorOid }
-    }),
-    db.storeItem.updateMany({
-      where: { lastModifiedByResourceActorOid: sourceActorOid },
-      data: { lastModifiedByResourceActorOid: targetActorOid }
-    }),
-    db.skillMergeRequestItem.updateMany({
-      where: { resolvedByResourceActorOid: sourceActorOid },
-      data: { resolvedByResourceActorOid: targetActorOid }
-    }),
-    db.skillMergeRequestComment.updateMany({
-      where: { resourceActorOid: sourceActorOid },
-      data: { resourceActorOid: targetActorOid }
-    }),
-    db.skillMergeRequestEvent.updateMany({
-      where: { resourceActorOid: sourceActorOid },
-      data: { resourceActorOid: targetActorOid }
-    })
-  ]);
-  for (let field of [
-    'createdByResourceActorOid',
-    'mergeStartedByResourceActorOid',
-    'mergedByResourceActorOid',
-    'closedByResourceActorOid',
-    'rolledBackByResourceActorOid'
-  ] as const) {
-    await fence();
-    await db.skillMergeRequest.updateMany({
-      where: { [field]: sourceActorOid },
-      data: { [field]: targetActorOid }
-    });
-  }
-  await fence();
-  await db.resourceActor.delete({ where: { oid: sourceActorOid } });
+  await db.$transaction(async db => {
+    await Promise.all([
+      db.skill.updateMany({
+        where: { createdByResourceActorOid: sourceActorOid },
+        data: { createdByResourceActorOid: targetActorOid }
+      }),
+      db.store.updateMany({
+        where: { createdByResourceActorOid: sourceActorOid },
+        data: { createdByResourceActorOid: targetActorOid }
+      }),
+      db.document.updateMany({
+        where: { createdByResourceActorOid: sourceActorOid },
+        data: { createdByResourceActorOid: targetActorOid }
+      }),
+      db.file.updateMany({
+        where: { createdByResourceActorOid: sourceActorOid },
+        data: { createdByResourceActorOid: targetActorOid }
+      }),
+      db.fileLink.updateMany({
+        where: { createdByResourceActorOid: sourceActorOid },
+        data: { createdByResourceActorOid: targetActorOid }
+      }),
+      db.skillExport.updateMany({
+        where: { creatorResourceActorOid: sourceActorOid },
+        data: { creatorResourceActorOid: targetActorOid }
+      }),
+      db.skillImport.updateMany({
+        where: { creatorResourceActorOid: sourceActorOid },
+        data: { creatorResourceActorOid: targetActorOid }
+      }),
+      db.skillForkSync.updateMany({
+        where: { createdByResourceActorOid: sourceActorOid },
+        data: { createdByResourceActorOid: targetActorOid }
+      }),
+      db.storeItem.updateMany({
+        where: { lastModifiedByResourceActorOid: sourceActorOid },
+        data: { lastModifiedByResourceActorOid: targetActorOid }
+      }),
+      db.skillMergeRequestItem.updateMany({
+        where: { resolvedByResourceActorOid: sourceActorOid },
+        data: { resolvedByResourceActorOid: targetActorOid }
+      }),
+      db.skillMergeRequestComment.updateMany({
+        where: { resourceActorOid: sourceActorOid },
+        data: { resourceActorOid: targetActorOid }
+      }),
+      db.skillMergeRequestEvent.updateMany({
+        where: { resourceActorOid: sourceActorOid },
+        data: { resourceActorOid: targetActorOid }
+      })
+    ]);
+    for (let field of [
+      'createdByResourceActorOid',
+      'mergeStartedByResourceActorOid',
+      'mergedByResourceActorOid',
+      'closedByResourceActorOid',
+      'rolledBackByResourceActorOid'
+    ] as const) {
+      await fence();
+      await db.skillMergeRequest.updateMany({
+        where: { [field]: sourceActorOid },
+        data: { [field]: targetActorOid }
+      });
+    }
+    await db.resourceActor.delete({ where: { oid: sourceActorOid } });
+  });
 };
 
 export let reconcileLegacyConsumerActors = async (d: {
@@ -401,50 +430,6 @@ export let reconcileLegacyConsumerActors = async (d: {
       continue;
     }
 
-    let unanimousCandidates = await Promise.all(
-      groups
-        .filter(group => group.instance != null)
-        .map(group =>
-          db.consumerProfile.findMany({
-            where: {
-              consumerOid: actor.consumerOid!,
-              instanceOid: group.instance!.oid,
-              surface: { type: 'portal', portal: { isNot: null } }
-            },
-            orderBy: [{ status: 'asc' }, { createdAt: 'asc' }, { oid: 'asc' }],
-            take: 2
-          })
-        )
-    );
-    let unanimousProfile =
-      unanimousCandidates.length == groups.length &&
-      unanimousCandidates.every(candidates => candidates.length == 1) &&
-      unanimousCandidates.every(
-        candidates => candidates[0]!.oid == unanimousCandidates[0]![0]!.oid
-      )
-        ? unanimousCandidates[0]![0]!
-        : null;
-    if (unanimousProfile) {
-      let existing = await db.resourceActor.findUnique({
-        where: {
-          resourceTenantOid_consumerProfileOid: {
-            resourceTenantOid: actor.resourceTenantOid,
-            consumerProfileOid: unanimousProfile.oid
-          }
-        }
-      });
-      if (!existing) {
-        await db.resourceActor.update({
-          where: { oid: actor.oid },
-          data: {
-            identifier: `mte-cpf-${unanimousProfile.id}`,
-            name: unanimousProfile.name,
-            consumerProfileOid: unanimousProfile.oid
-          }
-        });
-      }
-    }
-
     for (let group of groups) {
       await d.fence();
       if (!group.instance) {
@@ -489,7 +474,26 @@ export let reconcileLegacyConsumerActors = async (d: {
         },
         orderBy: [{ status: 'asc' }, { createdAt: 'asc' }, { oid: 'asc' }]
       });
-      if (profiles.length == 0) {
+      let activeProfiles = profiles.filter(
+        profile =>
+          profile.status == 'active' &&
+          profile.surface.status == 'active' &&
+          profile.surface.portal?.status == 'active'
+      );
+      if (activeProfiles.length == 0) {
+        let crossInstanceProfiles = await db.consumerProfile.count({
+          where: {
+            consumerOid: actor.consumerOid!,
+            instanceOid: { not: group.instance.oid },
+            instance: { resourceTenantOid: actor.resourceTenantOid },
+            status: 'active',
+            surface: {
+              type: 'portal',
+              status: 'active',
+              portal: { status: 'active' }
+            }
+          }
+        });
         decisionKeys.push(`${actor.oid}:${group.oid}`);
         unresolved++;
         await recordMigrationArtifact({
@@ -501,11 +505,19 @@ export let reconcileLegacyConsumerActors = async (d: {
           payload: {
             actorOid: actor.oid,
             resourceGroupOid: group.oid,
-            reason: 'no_active_portal_profile_in_resource_group'
+            candidateCount: profiles.length,
+            crossInstanceCandidateCount: crossInstanceProfiles,
+            reason:
+              profiles.length > 0
+                ? 'only_inactive_portal_profiles_in_resource_group'
+                : crossInstanceProfiles > 0
+                  ? 'only_cross_instance_portal_profiles'
+                  : 'no_portal_profile_in_resource_group'
           }
         });
         continue;
       }
+      profiles = activeProfiles;
       let relevantSkills = await db.skill.findMany({
         where: {
           resourceGroupOid: group.oid,
@@ -640,12 +652,34 @@ export let reconcileLegacyConsumerActors = async (d: {
           (a.profile.oid < b.profile.oid ? -1 : 1)
       );
       let selected = scored[0]!;
-      selectedProfileOids.push(selected.profile.oid);
       let isAmbiguous =
         scored.length > 1 &&
         scored[1]!.exact == selected.exact &&
         scored[1]!.evidence == selected.evidence;
-      if (isAmbiguous) ambiguous++;
+      if (isAmbiguous) {
+        ambiguous++;
+        decisionKeys.push(`${actor.oid}:${group.oid}`);
+        await recordMigrationArtifact({
+          runId: d.runId,
+          stage: 'actor_reconciliation',
+          kind: 'actor_decision',
+          recordKey: `${actor.oid}:${group.oid}`,
+          classification: 'ambiguous',
+          payload: {
+            actorOid: actor.oid,
+            resourceGroupOid: group.oid,
+            candidateProfileOids: scored
+              .filter(
+                candidate =>
+                  candidate.exact == selected.exact && candidate.evidence == selected.evidence
+              )
+              .map(candidate => candidate.profile.oid),
+            reason: 'multiple_equally_supported_active_profiles'
+          }
+        });
+        continue;
+      }
+      selectedProfileOids.push(selected.profile.oid);
 
       let existingProfileActor = await db.resourceActor.findUnique({
         where: {
@@ -665,113 +699,115 @@ export let reconcileLegacyConsumerActors = async (d: {
                 consumerProfileOid: selected.profile.oid
               }
             })
-          : await resourceActorService.ensureConsumerProfileActor({
-              resourceTenant: actor.resourceTenant,
-              consumerProfile: selected.profile
+          : await ensureCanonicalProfileActor({
+              resourceTenantOid: actor.resourceTenantOid,
+              profile: selected.profile
             });
 
       if (canonicalActor.oid != actor.oid) {
         await mergeActorCollisions(actor.oid, canonicalActor.oid, group.oid, d.fence);
       }
       await d.fence();
-      await Promise.all([
-        db.skill.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            createdByResourceActorOid: actor.oid
-          },
-          data: { createdByResourceActorOid: canonicalActor.oid }
-        }),
-        db.store.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            createdByResourceActorOid: actor.oid
-          },
-          data: { createdByResourceActorOid: canonicalActor.oid }
-        }),
-        db.document.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            createdByResourceActorOid: actor.oid
-          },
-          data: { createdByResourceActorOid: canonicalActor.oid }
-        }),
-        db.file.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            createdByResourceActorOid: actor.oid
-          },
-          data: { createdByResourceActorOid: canonicalActor.oid }
-        }),
-        db.fileLink.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            createdByResourceActorOid: actor.oid
-          },
-          data: { createdByResourceActorOid: canonicalActor.oid }
-        }),
-        db.skillExport.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            creatorResourceActorOid: actor.oid
-          },
-          data: { creatorResourceActorOid: canonicalActor.oid }
-        }),
-        db.skillImport.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            creatorResourceActorOid: actor.oid
-          },
-          data: { creatorResourceActorOid: canonicalActor.oid }
-        }),
-        db.skillForkSync.updateMany({
-          where: {
-            resourceGroupOid: group.oid,
-            createdByResourceActorOid: actor.oid
-          },
-          data: { createdByResourceActorOid: canonicalActor.oid }
-        }),
-        db.storeItem.updateMany({
-          where: {
-            store: { resourceGroupOid: group.oid },
-            lastModifiedByResourceActorOid: actor.oid
-          },
-          data: { lastModifiedByResourceActorOid: canonicalActor.oid }
-        }),
-        db.skillMergeRequestItem.updateMany({
-          where: {
-            skillMergeRequest: { resourceGroupOid: group.oid },
-            resolvedByResourceActorOid: actor.oid
-          },
-          data: { resolvedByResourceActorOid: canonicalActor.oid }
-        }),
-        db.skillMergeRequestComment.updateMany({
-          where: {
-            skillMergeRequest: { resourceGroupOid: group.oid },
-            resourceActorOid: actor.oid
-          },
-          data: { resourceActorOid: canonicalActor.oid }
-        }),
-        db.skillMergeRequestEvent.updateMany({
-          where: {
-            skillMergeRequest: { resourceGroupOid: group.oid },
-            resourceActorOid: actor.oid
-          },
-          data: { resourceActorOid: canonicalActor.oid }
-        })
-      ]);
-      for (let field of [
-        'createdByResourceActorOid',
-        'mergeStartedByResourceActorOid',
-        'mergedByResourceActorOid',
-        'closedByResourceActorOid',
-        'rolledBackByResourceActorOid'
-      ] as const) {
-        await db.skillMergeRequest.updateMany({
-          where: { resourceGroupOid: group.oid, [field]: actor.oid },
-          data: { [field]: canonicalActor.oid }
-        });
-      }
+      await db.$transaction(async db => {
+        await Promise.all([
+          db.skill.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              createdByResourceActorOid: actor.oid
+            },
+            data: { createdByResourceActorOid: canonicalActor.oid }
+          }),
+          db.store.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              createdByResourceActorOid: actor.oid
+            },
+            data: { createdByResourceActorOid: canonicalActor.oid }
+          }),
+          db.document.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              createdByResourceActorOid: actor.oid
+            },
+            data: { createdByResourceActorOid: canonicalActor.oid }
+          }),
+          db.file.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              createdByResourceActorOid: actor.oid
+            },
+            data: { createdByResourceActorOid: canonicalActor.oid }
+          }),
+          db.fileLink.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              createdByResourceActorOid: actor.oid
+            },
+            data: { createdByResourceActorOid: canonicalActor.oid }
+          }),
+          db.skillExport.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              creatorResourceActorOid: actor.oid
+            },
+            data: { creatorResourceActorOid: canonicalActor.oid }
+          }),
+          db.skillImport.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              creatorResourceActorOid: actor.oid
+            },
+            data: { creatorResourceActorOid: canonicalActor.oid }
+          }),
+          db.skillForkSync.updateMany({
+            where: {
+              resourceGroupOid: group.oid,
+              createdByResourceActorOid: actor.oid
+            },
+            data: { createdByResourceActorOid: canonicalActor.oid }
+          }),
+          db.storeItem.updateMany({
+            where: {
+              store: { resourceGroupOid: group.oid },
+              lastModifiedByResourceActorOid: actor.oid
+            },
+            data: { lastModifiedByResourceActorOid: canonicalActor.oid }
+          }),
+          db.skillMergeRequestItem.updateMany({
+            where: {
+              skillMergeRequest: { resourceGroupOid: group.oid },
+              resolvedByResourceActorOid: actor.oid
+            },
+            data: { resolvedByResourceActorOid: canonicalActor.oid }
+          }),
+          db.skillMergeRequestComment.updateMany({
+            where: {
+              skillMergeRequest: { resourceGroupOid: group.oid },
+              resourceActorOid: actor.oid
+            },
+            data: { resourceActorOid: canonicalActor.oid }
+          }),
+          db.skillMergeRequestEvent.updateMany({
+            where: {
+              skillMergeRequest: { resourceGroupOid: group.oid },
+              resourceActorOid: actor.oid
+            },
+            data: { resourceActorOid: canonicalActor.oid }
+          })
+        ]);
+        for (let field of [
+          'createdByResourceActorOid',
+          'mergeStartedByResourceActorOid',
+          'mergedByResourceActorOid',
+          'closedByResourceActorOid',
+          'rolledBackByResourceActorOid'
+        ] as const) {
+          await db.skillMergeRequest.updateMany({
+            where: { resourceGroupOid: group.oid, [field]: actor.oid },
+            data: { [field]: canonicalActor.oid }
+          });
+        }
+      });
       reconciled++;
       decisionKeys.push(`${actor.oid}:${group.oid}`);
       await recordMigrationArtifact({
@@ -779,7 +815,7 @@ export let reconcileLegacyConsumerActors = async (d: {
         stage: 'actor_reconciliation',
         kind: 'actor_decision',
         recordKey: `${actor.oid}:${group.oid}`,
-        classification: isAmbiguous ? 'ambiguous' : 'selected',
+        classification: 'selected',
         payload: {
           actorOid: actor.oid,
           resourceGroupOid: group.oid,
@@ -852,6 +888,66 @@ export let reconcileLegacyConsumerActors = async (d: {
         }
       });
     }
+  }
+
+  await db.resourceAuthorizationMigrationArtifact.deleteMany({
+    where: {
+      runId: d.runId,
+      stage: 'actor_reconciliation',
+      kind: 'postcondition',
+      recordKey: { startsWith: 'referenced_consumer_only:' }
+    }
+  });
+  let referencedConsumerOnlyActors = await db.resourceActor.findMany({
+    where: {
+      consumerOid: { not: null },
+      consumerProfileOid: null,
+      organizationActorOid: null,
+      OR: [
+        { skillParticipants: { some: {} } },
+        { storeParticipants: { some: {} } },
+        { documentParticipants: { some: {} } },
+        { documentVersionEditors: { some: {} } },
+        { createdSkills: { some: {} } },
+        { createdStores: { some: {} } },
+        { createdDocuments: { some: {} } },
+        { createdFiles: { some: {} } },
+        { createdFileLinks: { some: {} } },
+        { createdSkillExports: { some: {} } },
+        { createdSkillImports: { some: {} } },
+        { createdMergeRequests: { some: {} } },
+        { createdSkillForkSyncs: { some: {} } },
+        { startedMergeRequests: { some: {} } },
+        { mergedMergeRequests: { some: {} } },
+        { closedMergeRequests: { some: {} } },
+        { rolledBackMergeRequests: { some: {} } },
+        { resolvedMergeRequestItems: { some: {} } },
+        { skillMergeRequestComments: { some: {} } },
+        { skillMergeRequestEvents: { some: {} } },
+        { lastModifiedStoreItems: { some: {} } }
+      ]
+    },
+    select: { oid: true, consumerOid: true, resourceTenantOid: true }
+  });
+  for (let actor of referencedConsumerOnlyActors) {
+    await recordMigrationArtifact({
+      runId: d.runId,
+      stage: 'actor_reconciliation',
+      kind: 'postcondition',
+      recordKey: `referenced_consumer_only:${actor.oid}`,
+      classification: 'unresolved',
+      payload: {
+        actorOid: actor.oid,
+        consumerOid: actor.consumerOid,
+        resourceTenantOid: actor.resourceTenantOid,
+        reason: 'referenced_consumer_only_actor_remains_after_reconciliation'
+      }
+    });
+  }
+  if (referencedConsumerOnlyActors.length > 0) {
+    throw new Error(
+      `Actor reconciliation left ${referencedConsumerOnlyActors.length} referenced consumer-only ResourceActors.`
+    );
   }
 
   return { actors: actors.length, reconciled, unresolved, ambiguous };
