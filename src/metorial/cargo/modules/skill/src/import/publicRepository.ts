@@ -1,9 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import JSZip from 'jszip';
+import { extractSkillArchive, maxSkillImportArchiveBytes } from './archive';
 
-let maxArchiveBytes = 10 * 1024 * 1024;
-let maxExtractedBytes = 30 * 1024 * 1024;
-let maxExtractedFiles = 5000;
 let maxRedirects = 5;
 
 export type PublicRepositoryProvider = 'github' | 'gitlab' | 'bitbucket';
@@ -124,7 +121,8 @@ export let fetchRepositoryArchive = async (archiveUrl: string) => {
     }
 
     let contentLength = Number(response.headers.get('content-length') ?? 0);
-    if (contentLength > maxArchiveBytes) throw new Error('Repository archive is too large');
+    if (contentLength > maxSkillImportArchiveBytes)
+      throw new Error('Repository archive is too large');
     if (!response.body) throw new Error('Repository archive response was empty');
 
     let reader = response.body.getReader();
@@ -135,7 +133,7 @@ export let fetchRepositoryArchive = async (archiveUrl: string) => {
       if (done) break;
       if (!value) continue;
       totalBytes += value.byteLength;
-      if (totalBytes > maxArchiveBytes) {
+      if (totalBytes > maxSkillImportArchiveBytes) {
         await reader.cancel();
         throw new Error('Repository archive is too large');
       }
@@ -147,57 +145,4 @@ export let fetchRepositoryArchive = async (archiveUrl: string) => {
   throw new Error('Repository archive redirected too many times');
 };
 
-let normalizeArchivePath = (path: string) => {
-  let normalized = path.replaceAll('\\', '/').replace(/^\/+/, '');
-  let segments = normalized.split('/').filter(Boolean);
-  if (segments.some(segment => segment === '.' || segment === '..')) {
-    throw new Error(`Repository archive contains an unsafe path: ${path}`);
-  }
-  return segments.join('/');
-};
-
-export let extractRepositoryArchive = async (archive: Uint8Array) => {
-  let zip = await JSZip.loadAsync(archive, { createFolders: false });
-  let entries = Object.values(zip.files).filter(entry => !entry.dir);
-  if (entries.length > maxExtractedFiles)
-    throw new Error('Repository contains too many files');
-
-  let declaredExtractedBytes = entries.reduce(
-    (total, entry) =>
-      total +
-      Number(
-        (entry as typeof entry & { _data?: { uncompressedSize?: number } })._data
-          ?.uncompressedSize ?? 0
-      ),
-    0
-  );
-  if (declaredExtractedBytes > maxExtractedBytes) {
-    throw new Error('Repository expands beyond the import size limit');
-  }
-
-  let normalizedPaths = entries.map(entry =>
-    normalizeArchivePath(
-      (entry as typeof entry & { unsafeOriginalName?: string }).unsafeOriginalName ??
-        entry.name
-    )
-  );
-  let firstSegments = new Set(normalizedPaths.map(path => path.split('/')[0]).filter(Boolean));
-  let stripWrapper = firstSegments.size === 1;
-  let files: { path: string; content: Uint8Array }[] = [];
-  let extractedBytes = 0;
-
-  for (let index = 0; index < entries.length; index++) {
-    let path = normalizedPaths[index]!;
-    if (stripWrapper) path = path.split('/').slice(1).join('/');
-    if (!path) continue;
-
-    let content = await entries[index]!.async('uint8array');
-    extractedBytes += content.byteLength;
-    if (extractedBytes > maxExtractedBytes) {
-      throw new Error('Repository expands beyond the import size limit');
-    }
-    files.push({ path: `/${path}`, content });
-  }
-
-  return files;
-};
+export let extractRepositoryArchive = extractSkillArchive;

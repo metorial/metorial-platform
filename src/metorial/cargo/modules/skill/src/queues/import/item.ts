@@ -1,4 +1,5 @@
 import { db } from '@metorial/db';
+import { consumerSkillService } from '@metorial/module-consumer';
 import { createQueue } from '@metorial/queue';
 import { materializeImportedSkill } from '../../import/materialize';
 import type { SkillRecord } from '../../services/skill';
@@ -92,14 +93,31 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
   try {
     if (!item.skillImport.codeBucketId) throw new Error('Import codebucket is missing');
 
+    let actor = item.skillImport.creatorResourceActor ?? undefined;
+    let consumerActor =
+      actor?.consumerProfileOid != null
+        ? { ...actor, consumerProfileOid: actor.consumerProfileOid }
+        : undefined;
     createdSkill = await materializeImportedSkill({
       resourceTenant: item.skillImport.resourceTenant!,
       resourceGroup: item.skillImport.resourceGroup,
       codeBucketId: item.skillImport.codeBucketId,
       skillId: item.targetSkillId,
       rootPath: item.path,
-      repositoryName: item.skillImport.repositoryName,
-      actor: item.skillImport.creatorResourceActor ?? undefined,
+      repositoryName:
+        item.skillImport.repositoryName ??
+        item.skillImport.sourceFileName?.replace(/\.(zip|md|markdown)$/i, ''),
+      actor,
+      authorization: consumerActor
+        ? {
+            type: 'restricted',
+            resourceActor: consumerActor,
+            accessTags: []
+          }
+        : {
+            type: 'privileged',
+            resourceActor: actor
+          },
       onSkillCreated: async skill => {
         createdSkill = skill;
         let linked = await db.skillImportItem.updateMany({
@@ -119,6 +137,13 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         if (heartbeat.count === 0) throw new Error('Skill import item is no longer active');
       }
     });
+
+    if (consumerActor) {
+      await consumerSkillService.grantImportedSkillAccess({
+        skill: createdSkill,
+        consumerProfileOid: consumerActor.consumerProfileOid
+      });
+    }
 
     let completed = await db.skillImportItem.updateMany({
       where: { id: item.id, status: 'processing' },
