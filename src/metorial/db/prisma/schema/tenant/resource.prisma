@@ -141,10 +141,8 @@ model ResourceActor {
   lastModifiedStoreItems    StoreItem[]
 
   @@unique([resourceTenantOid, identifier])
-  // Promoted to a unique index only after the one-shot actor reconciliation
-  // reports zero duplicate/unresolved organization actors.
-  @@index([resourceTenantOid, organizationActorOid])
   @@unique([resourceTenantOid, consumerProfileOid])
+  @@unique([resourceTenantOid, organizationActorOid])
   @@index([consumerOid])
   @@index([consumerProfileOid])
 }

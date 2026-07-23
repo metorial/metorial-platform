@@ -1,20 +1,19 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { ConsumerProfile, Instance } from '@metorial/db';
 import { skillGroupService, skillService } from '@metorial/cargo-module-skill';
-import type {
-  AnyAccessTagSelector,
-  ResourceAuthorization
-} from '@metorial/module-access';
+import type { AnyAccessTagSelector, ResourceAuthorization } from '@metorial/module-access';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 
-export let assertConsumerCanWriteSkillGroupItem = async (d: ResourceScope & {
-  instance: Instance;
-  skillGroupId: string;
-  skillId: string;
-  consumerProfile?: ConsumerProfile;
-  accessTags?: AnyAccessTagSelector;
-  authorization: ResourceAuthorization;
-}) => {
+export let assertConsumerCanWriteSkillGroupItem = async (
+  d: ResourceScope & {
+    instance: Instance;
+    skillGroupId: string;
+    skillId: string;
+    consumerProfile?: ConsumerProfile;
+    accessTags?: AnyAccessTagSelector;
+    authorization: ResourceAuthorization;
+  }
+) => {
   if (!d.consumerProfile) return;
 
   let [skillGroup, skill] = await Promise.all([
@@ -29,7 +28,7 @@ export let assertConsumerCanWriteSkillGroupItem = async (d: ResourceScope & {
       resourceGroup: d.resourceGroup,
       skillId: d.skillId,
       allowDeleted: true,
-      consumerProfileOid: d.consumerProfile.oid
+      accessTags: d.accessTags
     })
   ]);
   if (!skillGroup.allowConsumerSkillAssignment) {

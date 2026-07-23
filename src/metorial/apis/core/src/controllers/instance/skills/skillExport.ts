@@ -91,8 +91,7 @@ let assertConsumerCanCreateExport = async (
       resourceTenant: access.resourceTenant,
       resourceGroup: access.resourceGroup,
       skillId: input.skillId,
-      accessTags: ctx.accessTags,
-      consumerProfileOid: ctx.consumerProfile.oid
+      accessTags: ctx.accessTags
     });
     return;
   }

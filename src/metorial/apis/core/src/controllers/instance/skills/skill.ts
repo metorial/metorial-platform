@@ -58,8 +58,7 @@ export let skillGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(asyn
     resourceGroup: access.resourceGroup,
     skillId: ctx.params.skillId,
     allowDeleted: true,
-    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
-    consumerProfileOid: ctx.consumerProfile?.oid
+    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
   });
   let skill = await skillResourceService.hydrateSkill(localSkill);
 
@@ -119,8 +118,7 @@ export let skillController = Controller.create(
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at,
-          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
-          consumerProfileOid: ctx.consumerProfile?.oid
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -141,6 +139,15 @@ export let skillController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(skillPresenter)
       .do(async ctx => {
+        if (ctx.resourceActor) {
+          let access = await getInstanceCargoAccess(ctx);
+          await skillService.markSkillUse({
+            resourceTenant: access.resourceTenant,
+            resourceGroup: access.resourceGroup,
+            skill: ctx.skill.localSkill,
+            actor: ctx.resourceActor
+          });
+        }
         return skillPresenter.present({ skill: ctx.skill });
       }),
 
@@ -475,7 +482,6 @@ export let skillController = Controller.create(
           permission: ctx.body.permission,
           consumerProfile: ctx.consumerProfile,
           consumerGroups: ctx.consumerGroups,
-          currentOrganizationMember: ctx.member,
           targets: {
             consumerProfileIds: ctx.body.consumer_profile_ids,
             organizationMemberIds: ctx.body.organization_member_ids

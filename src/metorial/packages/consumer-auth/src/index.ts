@@ -228,7 +228,7 @@ let getConsumerAccessContextForConsumerProfileSingle = async (d: {
   return {
     ssoGroupIds,
     consumerGroups,
-    accessTags: [d.profile.accessTagOid, ...consumerGroups.map(group => group.accessTagOid)]
+    accessTags: consumerGroups.map(group => group.accessTagOid)
   };
 };
 

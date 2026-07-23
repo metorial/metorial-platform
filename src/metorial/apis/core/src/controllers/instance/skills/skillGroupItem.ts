@@ -33,8 +33,7 @@ export let skillGroupItemGroup = skillGroupGroup.use(async ctx => {
     skillGroupItemId: ctx.params.skillGroupItemId,
     skillGroupId: ctx.skillGroup.id,
     allowDeleted: true,
-    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
-    consumerProfileOid: ctx.consumerProfile?.oid
+    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
   });
   let skillGroupItem = await skillResourceService.hydrateSkillGroupItem(localSkillGroupItem);
 
@@ -87,8 +86,7 @@ export let skillGroupItemController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           skillIds: normalizeArrayParam(ctx.query.skill_id),
           createdAt: ctx.query.created_at,
-          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
-          consumerProfileOid: ctx.consumerProfile?.oid
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
         });
 
         let list = await paginator.run(ctx.query);

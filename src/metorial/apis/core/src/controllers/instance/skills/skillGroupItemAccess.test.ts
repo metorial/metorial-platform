@@ -51,7 +51,7 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
       resourceGroup,
       skillId: 'skl_1',
       allowDeleted: true,
-      consumerProfileOid: 4n
+      accessTags: [{ accessTagOid: 5n }]
     });
     expect(mocks.getSkillGroupById).toHaveBeenCalledWith({
       resourceTenant,
