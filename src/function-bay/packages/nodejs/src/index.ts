@@ -1,9 +1,9 @@
 import { Function, Runtime } from '@function-bay/build';
 import { tempDir } from '@function-bay/utils';
-import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { $ as _$ } from 'bun';
 import fs from 'fs/promises';
 import path from 'path';
+import { functionBayNodeBuildToolchain } from './buildToolchain';
 import { getMetorialLauncher } from './launcher';
 import { cleanup } from './lib/cleanup';
 import { fileExistsSync, readJsonFileOptional } from './lib/fs';
@@ -29,17 +29,13 @@ let $ = (...args: Parameters<typeof _$>) => {
   return _$(...args);
 };
 
-let spec = v.object({
-  entrypoint: v.optional(v.string()),
-  scripts: v.optional(
-    v.object({
-      build: v.optional(v.string())
-    })
-  ),
-  nodeJsVersion: v.optional(v.string())
-});
-
-type Spec = ValidationTypeValue<typeof spec>;
+type Spec = {
+  entrypoint?: string;
+  scripts?: {
+    build?: string;
+  };
+  nodeJsVersion?: string;
+};
 
 let differentJsTypes = ['.ts', '.js', '.cjs', '.mjs'];
 let tryExtensions = (base: string) => differentJsTypes.map(ext => base + ext);
@@ -51,7 +47,9 @@ let tryDirs = (filenames: string[]) =>
 export let build = async (): Promise<void> => {
   console.log('Building Node.js function...');
 
-  await $`bun i -g @vercel/ncc typescript @types/node`;
+  let { ncc, typescript, nodeTypes } = functionBayNodeBuildToolchain;
+
+  await $`bun i -g ${ncc} ${typescript} ${nodeTypes}`;
   await $`curl https://get.volta.sh | bash`;
 
   console.log('Setting up Node.js build environment...');
@@ -83,21 +81,21 @@ export let build = async (): Promise<void> => {
       console.log('Detected yarn.lock, installing dependencies with Yarn...');
       await $`bash -c "volta install yarn@1"`.env(env);
       await $`bash -c "yarn install"`.env(env);
-      await $`bash -c "yarn add @vercel/ncc typescript @types/node"`.env(env).nothrow();
+      await $`bash -c "yarn add ${ncc} ${typescript} ${nodeTypes}"`.env(env);
     } else if (fileExistsSync('pnpm-lock.yaml')) {
       console.log('Detected pnpm-lock.yaml, installing dependencies with pnpm...');
       await $`bash -c "volta install pnpm"`.env(env);
       await $`bash -c "pnpm install"`.env(env);
-      await $`bash -c "pnpm add @vercel/ncc typescript @types/node"`.env(env).nothrow();
+      await $`bash -c "pnpm add ${ncc} ${typescript} ${nodeTypes}"`.env(env);
     } else if (fileExistsSync('bun.lock')) {
       console.log('Detected bun.lock, installing dependencies with Bun...');
       await $`bash -c "volta install bun"`.env(env);
       await $`bash -c "bun install"`.env(env);
-      await $`bash -c "bun add @vercel/ncc typescript @types/node"`.env(env).nothrow();
+      await $`bash -c "bun add ${ncc} ${typescript} ${nodeTypes}"`.env(env);
     } else {
       console.log('Installing dependencies with npm...');
       await $`bash -c "npm install"`.env(env);
-      await $`bash -c "npm install @vercel/ncc typescript @types/node"`.env(env).nothrow();
+      await $`bash -c "npm install ${ncc} ${typescript} ${nodeTypes}"`.env(env);
     }
   } else {
     console.log('No package.json found, skipping dependency installation.');
