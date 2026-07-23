@@ -18,7 +18,7 @@ import {
 
 /**
  * @name Skill Imports controller
- * @description Import skills from public or configured source repositories.
+ * @description Import skills from public repositories or uploaded files.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -106,7 +106,7 @@ export class MetorialDashboardInstanceSkillsImportsEndpoint {
 
   /**
    * @name Create skill import
-   * @description Queues a skill import from a public or configured source repository.
+   * @description Queues a skill import from a repository or uploaded file.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceSkillsImportsCreateBody

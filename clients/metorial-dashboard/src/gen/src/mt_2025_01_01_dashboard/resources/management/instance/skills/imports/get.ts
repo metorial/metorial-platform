@@ -17,6 +17,12 @@ export type ManagementInstanceSkillsImportsGetOutput = {
         repositoryName: string | null;
         ref: string | null;
         path: string | null;
+      }
+    | {
+        type: 'file';
+        fileId: string | null;
+        fileName: string;
+        format: 'zip' | 'markdown';
       };
   codeBucketId: string | null;
   error: string | null;
@@ -61,7 +67,10 @@ export let mapManagementInstanceSkillsImportsGetOutput =
               'repository_id',
               mtMap.passthrough()
             ),
-            path: mtMap.objectField('path', mtMap.passthrough())
+            path: mtMap.objectField('path', mtMap.passthrough()),
+            fileId: mtMap.objectField('file_id', mtMap.passthrough()),
+            fileName: mtMap.objectField('file_name', mtMap.passthrough()),
+            format: mtMap.objectField('format', mtMap.passthrough())
           })
         )
       ])

@@ -17,6 +17,12 @@ export type SkillsImportsCreateOutput = {
         repositoryName: string | null;
         ref: string | null;
         path: string | null;
+      }
+    | {
+        type: 'file';
+        fileId: string | null;
+        fileName: string;
+        format: 'zip' | 'markdown';
       };
   codeBucketId: string | null;
   error: string | null;
@@ -61,7 +67,10 @@ export let mapSkillsImportsCreateOutput =
               'repository_id',
               mtMap.passthrough()
             ),
-            path: mtMap.objectField('path', mtMap.passthrough())
+            path: mtMap.objectField('path', mtMap.passthrough()),
+            fileId: mtMap.objectField('file_id', mtMap.passthrough()),
+            fileName: mtMap.objectField('file_name', mtMap.passthrough()),
+            format: mtMap.objectField('format', mtMap.passthrough())
           })
         )
       ])
@@ -104,7 +113,8 @@ export type SkillsImportsCreateBody = {
         repositoryId: string;
         ref?: string | undefined;
         path?: string | undefined;
-      };
+      }
+    | { type: 'file'; fileId: string };
 };
 
 export let mapSkillsImportsCreateBody = mtMap.object<SkillsImportsCreateBody>({
@@ -121,7 +131,8 @@ export let mapSkillsImportsCreateBody = mtMap.object<SkillsImportsCreateBody>({
           ),
           ref: mtMap.objectField('ref', mtMap.passthrough()),
           repositoryId: mtMap.objectField('repository_id', mtMap.passthrough()),
-          path: mtMap.objectField('path', mtMap.passthrough())
+          path: mtMap.objectField('path', mtMap.passthrough()),
+          fileId: mtMap.objectField('file_id', mtMap.passthrough())
         })
       )
     ])
