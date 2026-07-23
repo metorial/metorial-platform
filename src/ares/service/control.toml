@@ -8,11 +8,11 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
 prepare = ["frontend:build"]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.auth]
 port = 52120
@@ -57,11 +57,13 @@ TURNSTILE_SITE_KEY = true
 TURNSTILE_SECRET_KEY = true
 
 [dev.db.main]
+package = "@metorial/ares"
 name = "ares"
 engine = "postgres"
 env = "DATABASE_URL"
 
 [dev.db.sso]
+package = "@metorial/ares"
 name = "ares-sso"
 engine = "postgres"
 env = "SSO_DATABASE_URL"

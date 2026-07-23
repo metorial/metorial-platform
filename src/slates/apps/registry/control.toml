@@ -8,11 +8,12 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+prepare = []
+start = ["test:start-e2e"]
 
 [dev]
 prepare = ["admin:build"]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.public]
 port = 52040
@@ -46,6 +47,7 @@ NPM_TOKEN = true
 NPM_ORG = "slates-integrations"
 
 [dev.db.main]
+package = "@metorial/slates-registry"
 name = "slates-registry"
 engine = "postgres"
 env = "DATABASE_URL"

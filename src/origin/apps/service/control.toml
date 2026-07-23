@@ -15,10 +15,10 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52090
@@ -53,6 +53,7 @@ SCM_BITBUCKET_CLIENT_ID = true
 SCM_BITBUCKET_CLIENT_SECRET = true
 
 [dev.db.main]
+package = "@metorial/origin"
 name = "origin"
 engine = "postgres"
 env = "DATABASE_URL"

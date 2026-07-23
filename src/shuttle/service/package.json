@@ -25,7 +25,11 @@
     "test:unit": "bunx vitest run --config vitest.unit.config.ts",
     "test:e2e": "bun --bun x vitest run e2e.test.ts --passWithNoTests --configLoader native",
     "test:watch": "bunx vitest watch",
-    "typecheck": "bun run check-types"
+    "typecheck": "bun run check-types",
+    "test:start-e2e": "bun ./src/server.ts",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@lowerdeck/testing-tools": "workspace:2.0.0",

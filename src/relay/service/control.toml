@@ -2,10 +2,10 @@ name = "@metorial/relay"
 group = "oss"
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52110
@@ -23,6 +23,7 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 
 [dev.db.main]
+package = "@metorial/relay"
 name = "relay"
 engine = "postgres"
 env = "DATABASE_URL"

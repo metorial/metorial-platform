@@ -18,7 +18,7 @@ identifier = "@metorial/voyager"
 env = [{ endpoint = "rpc", key = "VOYAGER_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-voyager" }]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52150
@@ -51,6 +51,7 @@ SIGNED_DOWNLOAD_URL_TOKEN_SECRET = "dev-cargo-download-token-secret"
 API_URL = "http://localhost:4310"
 
 [dev.db.main]
+package = "@metorial-cargo/db"
 name = "cargo"
 engine = "postgres"
 env = "DATABASE_URL"

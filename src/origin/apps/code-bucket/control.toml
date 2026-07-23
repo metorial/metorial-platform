@@ -8,10 +8,10 @@ env = [
 ]
 
 [test.e2e]
-start = ["make run"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["make dev"]
+run = ["dev:start"]
 
 [endpoints.http]
 port = 52091

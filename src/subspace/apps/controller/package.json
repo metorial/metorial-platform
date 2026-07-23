@@ -18,7 +18,9 @@
     "test": "vitest run --passWithNoTests",
     "test:e2e": "sh -c 'PORT=52198 bun ../../test-servers/index.ts & pid=$!; trap \"kill $pid\" EXIT; bun --bun x vitest run --mode ci --reporter verbose --configLoader native'",
     "test:ci": "vitest run --mode ci --reporter verbose --configLoader native",
-    "test:watch": "bunx vitest watch"
+    "test:watch": "bunx vitest watch",
+    "test:start-e2e": "bun ./src/server.ts",
+    "dev:start": "bun --watch ./src/server.ts"
   },
   "devDependencies": {
     "@lowerdeck/slugify": "workspace:2.0.0",

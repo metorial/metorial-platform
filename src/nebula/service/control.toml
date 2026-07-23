@@ -2,10 +2,10 @@ name = "@metorial/nebula"
 group = "oss"
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52170
@@ -31,6 +31,7 @@ CONSUMER_REGISTRATION_SLATES = "local-dev-nebula-slates-registration-secret"
 CONSUMER_REGISTRATION_SHUTTLE = "local-dev-nebula-shuttle-registration-secret"
 
 [dev.db.main]
+package = "@metorial/nebula"
 name = "nebula"
 engine = "postgres"
 env = "DATABASE_URL"

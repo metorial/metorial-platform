@@ -333,8 +333,12 @@ mod tests {
     fn repository_schema_mirrors_omit_run_suffix() {
         let temp = tempdir().unwrap();
         let manifest = temp.path().join("control.toml");
-        fs::write(temp.path().join("package.json"), "{}").unwrap();
-        fs::write(&manifest, "name='@metorial/api'\n[dev]\nrun=['bun dev']").unwrap();
+        fs::write(
+            temp.path().join("package.json"),
+            r#"{"scripts":{"dev:start":"true"}}"#,
+        )
+        .unwrap();
+        fs::write(&manifest, "name='@metorial/api'\n[dev]\nrun=['dev:start']").unwrap();
         let loaded = load(&manifest).unwrap();
         let packages = plan(&[&loaded], temp.path(), &BTreeMap::new()).unwrap();
         assert_eq!(packages.len(), 1);

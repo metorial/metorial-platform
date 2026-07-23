@@ -8,10 +8,10 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52050
@@ -30,6 +30,7 @@ NODE_ENV = "development"
 LOGS_BUCKET_NAME = "signal-logs"
 
 [dev.db.main]
+package = "@metorial/signal"
 name = "signal"
 engine = "postgres"
 env = "DATABASE_URL"

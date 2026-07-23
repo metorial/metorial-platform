@@ -20,10 +20,10 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52080
@@ -59,6 +59,7 @@ NEBULA_CONSUMER_TOKEN = "local-dev-nebula-shuttle-registration-secret"
 SHUTTLE_DELEGATE_SECRETS_TO_NEBULA = "true"
 
 [dev.db.main]
+package = "@metorial/shuttle"
 name = "shuttle"
 engine = "postgres"
 env = "DATABASE_URL"

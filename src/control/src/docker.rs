@@ -9,8 +9,10 @@ use tokio::time::sleep;
 
 use crate::{
     environment::{mongo_url, postgres_url},
+    infrastructure::{self, RenderOptions, Requirements},
     manifest::LoadedManifest,
     process,
+    workspace::ServicePorts,
 };
 
 pub async fn start(
@@ -18,7 +20,53 @@ pub async fn start(
     manifests: &[&LoadedManifest],
     environment: &BTreeMap<String, String>,
 ) -> Result<Vec<(PathBuf, Vec<String>)>> {
-    let projects = compose_projects(root, manifests);
+    let requirements = Requirements::from_manifests(manifests);
+    start_with_requirements(root, manifests, environment, requirements, true).await
+}
+
+pub async fn start_databases(
+    root: &Path,
+    manifests: &[&LoadedManifest],
+    environment: &BTreeMap<String, String>,
+) -> Result<Vec<(PathBuf, Vec<String>)>> {
+    let mut requirements = Requirements::from_manifests(manifests);
+    requirements.redis = false;
+    requirements.nats = false;
+    requirements.etcd = false;
+    start_with_requirements(root, manifests, environment, requirements, false).await
+}
+
+async fn start_with_requirements(
+    root: &Path,
+    manifests: &[&LoadedManifest],
+    environment: &BTreeMap<String, String>,
+    requirements: Requirements,
+    include_declared_compose: bool,
+) -> Result<Vec<(PathBuf, Vec<String>)>> {
+    let generated = root.join(".control/dev/services.docker-compose.yml");
+    let ports = service_ports(environment)?;
+    if requirements.count() > 0 {
+        infrastructure::write_compose(
+            &generated,
+            &requirements,
+            &RenderOptions {
+                project_name: Some(&project_name(root)),
+                network: "control-services",
+                network_name: None,
+                ports: Some(&ports),
+                restart: true,
+            },
+        )?;
+    }
+    let mut projects = if include_declared_compose {
+        compose_projects(root, manifests)
+    } else {
+        Vec::new()
+    };
+    if requirements.count() > 0 {
+        projects.push((generated.clone(), requirements.service_names()));
+        projects.sort_by(|left, right| left.0.cmp(&right.0));
+    }
     for (index, (compose, services)) in projects.iter().enumerate() {
         let mut args = compose_prefix(compose);
         args.extend([
@@ -39,12 +87,18 @@ pub async fn start(
         for loaded in manifests {
             let base = loaded.path.parent().unwrap_or(root);
             for db in loaded.manifest.postgres.values() {
-                wait_postgres(root, base, db, environment).await?;
-                create_postgres(root, base, db, environment).await?;
+                let mut db = db.clone();
+                db.compose = Some(generated.clone());
+                db.service = Some("postgres-db2".into());
+                wait_postgres(root, base, &db, environment).await?;
+                create_postgres(root, base, &db, environment).await?;
             }
             for db in loaded.manifest.mongo.values() {
-                wait_mongo(root, base, db, environment).await?;
-                create_mongo(root, base, db, environment).await?;
+                let mut db = db.clone();
+                db.compose = Some(generated.clone());
+                db.service = Some("mongodb".into());
+                wait_mongo(root, base, &db, environment).await?;
+                create_mongo(root, base, &db, environment).await?;
             }
         }
         Ok(())
@@ -55,6 +109,33 @@ pub async fn start(
         return Err(error);
     }
     Ok(projects)
+}
+
+fn service_ports(environment: &BTreeMap<String, String>) -> Result<ServicePorts> {
+    let parse = |key: &str| -> Result<u16> {
+        environment
+            .get(key)
+            .ok_or_else(|| miette::miette!("missing {key}"))?
+            .parse()
+            .map_err(|_| miette::miette!("invalid {key}"))
+    };
+    Ok(ServicePorts {
+        postgres: parse("CONTROL_PORT_POSTGRES")?,
+        mongo: parse("CONTROL_PORT_MONGO")?,
+        redis: parse("CONTROL_PORT_REDIS")?,
+        nats: parse("CONTROL_PORT_NATS")?,
+        etcd_client: parse("CONTROL_PORT_ETCD_CLIENT")?,
+        etcd_peer: parse("CONTROL_PORT_ETCD_PEER")?,
+    })
+}
+
+fn project_name(root: &Path) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    root.canonicalize()
+        .unwrap_or_else(|_| root.to_path_buf())
+        .hash(&mut hasher);
+    format!("control_dev_{:08x}", hasher.finish() as u32)
 }
 
 pub async fn stop(

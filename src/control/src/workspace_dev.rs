@@ -10,6 +10,7 @@ use miette::{IntoDiagnostic, Result, WrapErr, bail};
 
 use crate::{
     environment,
+    infrastructure::{self, RenderOptions, Requirements},
     manifest::{self, LoadedManifest},
     process,
     root::ProjectRoot,
@@ -99,7 +100,7 @@ pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
         .wrap_err("could not stop workspace container")?;
     }
 
-    let assets = workspace_assets(project, &metadata);
+    let assets = generated_assets(project);
     let mut compose = compose_args(
         &assets.join("services.docker-compose.yml"),
         &services_project(&metadata),
@@ -160,7 +161,7 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
     .await
     .unwrap_or_else(|| "not created".into());
     println!("container: {container_status}");
-    let assets = workspace_assets(project, &metadata);
+    let assets = generated_assets(project);
     let mut args = compose_args(
         &assets.join("services.docker-compose.yml"),
         &services_project(&metadata),
@@ -176,7 +177,17 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
         .unwrap_or_default()
         .lines()
         .count();
-    println!("dependencies: {running_services}/5 running");
+    let mut total_args = compose_args(
+        &assets.join("services.docker-compose.yml"),
+        &services_project(&metadata),
+    );
+    total_args.extend(["config".into(), "--services".into()]);
+    let total_services = output_args("docker", &total_args, &project.root)
+        .await
+        .unwrap_or_default()
+        .lines()
+        .count();
+    println!("dependencies: {running_services}/{total_services} running");
     let marker = format!("/control-state/bootstrap-{SETUP_VERSION}");
     if container_status == "running" {
         let initialized = docker_quiet(
@@ -224,12 +235,13 @@ async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningW
         bail!("no control.toml manifests were selected");
     }
     let ports = exposed_ports(&selected);
-    let assets = workspace_assets(project, &metadata);
+    let image_assets = workspace_assets(project, &metadata);
+    let assets = generate_runtime_assets(project, &metadata, &selected)?;
     ensure_proxy(&project.root, &assets).await?;
     let environment = workspace_environment(project, &metadata)?;
     let service_network =
         start_services(project, &metadata, &selected, &assets, &environment).await?;
-    let image = ensure_image(&project.root, &assets, rebuild).await?;
+    let image = ensure_image(&project.root, &image_assets, rebuild).await?;
     let name = container_name(&metadata);
 
     let existing_image = inspect_value(&project.root, &name, "{{.Config.Image}}").await;
@@ -566,6 +578,101 @@ fn workspace_assets(project: &ProjectRoot, metadata: &WorkspaceMetadata) -> Path
         }
     }
     project.oss.join("scripts/dev-tools/workspace")
+}
+
+fn generated_assets(project: &ProjectRoot) -> PathBuf {
+    project.root.join(".control/workspace")
+}
+
+fn generate_runtime_assets(
+    project: &ProjectRoot,
+    metadata: &WorkspaceMetadata,
+    manifests: &[&LoadedManifest],
+) -> Result<PathBuf> {
+    let directory = generated_assets(project);
+    fs::create_dir_all(&directory).into_diagnostic()?;
+    let requirements = Requirements::from_manifests(manifests);
+    let project_name = services_project(metadata);
+    infrastructure::write_compose(
+        &directory.join("services.docker-compose.yml"),
+        &requirements,
+        &RenderOptions {
+            project_name: Some(&project_name),
+            network: "workspace-services",
+            network_name: None,
+            ports: None,
+            restart: true,
+        },
+    )?;
+    let ports = exposed_ports(manifests);
+    fs::write(directory.join("traefik.yml"), render_traefik(&ports))
+        .into_diagnostic()
+        .wrap_err("could not write generated Traefik configuration")?;
+    fs::write(
+        directory.join("proxy.docker-compose.yml"),
+        render_proxy_compose(&ports),
+    )
+    .into_diagnostic()
+    .wrap_err("could not write generated proxy Compose file")?;
+    Ok(directory)
+}
+
+fn render_proxy_compose(ports: &BTreeSet<u16>) -> String {
+    let published = std::iter::once(80)
+        .chain(ports.iter().copied())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .map(|port| format!("      - \"{port}:{port}\"\n"))
+        .collect::<String>();
+    format!(
+        "name: control-proxy\n\
+         services:\n\
+         \x20 traefik:\n\
+         \x20   image: traefik:v3.7.8\n\
+         \x20   restart: unless-stopped\n\
+         \x20   command: [--configFile=/etc/traefik/traefik.yml]\n\
+         \x20   ports:\n\
+{published}\
+         \x20   volumes:\n\
+         \x20     - /var/run/docker.sock:/var/run/docker.sock:ro\n\
+         \x20     - ./traefik.yml:/etc/traefik/traefik.yml:ro\n\
+         \x20   networks: [control-proxy]\n\
+         \x20   healthcheck: {{ test: [CMD, traefik, healthcheck, --ping], interval: 5s, timeout: 3s, retries: 12 }}\n\
+         networks:\n\
+         \x20 control-proxy: {{ name: control_proxy }}\n"
+    )
+}
+
+fn render_traefik(ports: &BTreeSet<u16>) -> String {
+    let mut entrypoints =
+        String::from("  health:\n    address: ':8082'\n  port-80:\n    address: ':80'\n");
+    if ports.contains(&4300) {
+        entrypoints.push_str(
+            "    http:\n      redirections:\n        entryPoint:\n          to: port-4300\n          scheme: http\n          permanent: false\n",
+        );
+    }
+    for port in ports {
+        entrypoints.push_str(&format!("  port-{port}:\n    address: ':{port}'\n"));
+    }
+    format!(
+        "global:\n\
+         \x20 checkNewVersion: false\n\
+         \x20 sendAnonymousUsage: false\n\
+         log:\n\
+         \x20 level: INFO\n\
+         api:\n\
+         \x20 dashboard: false\n\
+         ping:\n\
+         \x20 entryPoint: health\n\
+         providers:\n\
+         \x20 docker:\n\
+         \x20   endpoint: unix:///var/run/docker.sock\n\
+         \x20   exposedByDefault: false\n\
+         \x20   network: control_proxy\n\
+         \x20   watch: true\n\
+         entryPoints:\n\
+{entrypoints}"
+    )
 }
 
 pub(crate) fn test_assets(project: &ProjectRoot) -> PathBuf {
@@ -1023,14 +1130,42 @@ mod tests {
 
     #[test]
     fn proxy_redirects_port_80_to_4300() {
-        let oss = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let assets = oss.join("scripts/dev-tools/workspace");
-        let compose = fs::read_to_string(assets.join("proxy.docker-compose.yml")).unwrap();
-        let traefik = fs::read_to_string(assets.join("traefik.yml")).unwrap();
-        assert!(compose.contains("'80:80'"));
+        let ports = BTreeSet::from([4300]);
+        let compose = render_proxy_compose(&ports);
+        let traefik = render_traefik(&ports);
+        assert!(compose.contains("\"80:80\""));
         assert!(traefik.contains("port-80:"));
         assert!(traefik.contains("to: port-4300"));
         assert!(traefik.contains("scheme: http"));
+    }
+
+    #[test]
+    fn docker_compose_accepts_generated_proxy_when_available() {
+        if !std::process::Command::new("docker")
+            .args(["compose", "version"])
+            .output()
+            .is_ok_and(|output| output.status.success())
+        {
+            return;
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let ports = BTreeSet::from([4300, 4310]);
+        fs::write(
+            temp.path().join("proxy.docker-compose.yml"),
+            render_proxy_compose(&ports),
+        )
+        .unwrap();
+        fs::write(temp.path().join("traefik.yml"), render_traefik(&ports)).unwrap();
+        let output = std::process::Command::new("docker")
+            .current_dir(temp.path())
+            .args(["compose", "--file", "proxy.docker-compose.yml", "config"])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     #[test]
@@ -1058,17 +1193,16 @@ mod tests {
     #[test]
     fn proxy_declares_every_repository_exposure() {
         let oss = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let assets = oss.join("scripts/dev-tools/workspace");
-        let compose = fs::read_to_string(assets.join("proxy.docker-compose.yml")).unwrap();
-        let traefik = fs::read_to_string(assets.join("traefik.yml")).unwrap();
         let mut manifests = manifest::discover(&oss).unwrap();
         let enterprise = oss.parent().unwrap();
         if enterprise.join("package.json").is_file() {
             manifests.extend(manifest::discover(enterprise).unwrap());
         }
         let ports = exposed_ports(&manifests.iter().collect::<Vec<_>>());
+        let compose = render_proxy_compose(&ports);
+        let traefik = render_traefik(&ports);
         for port in ports {
-            assert!(compose.contains(&format!("'{port}:{port}'")));
+            assert!(compose.contains(&format!("\"{port}:{port}\"")));
             assert!(traefik.contains(&format!("port-{port}:")));
         }
     }

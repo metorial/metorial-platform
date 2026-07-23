@@ -22,7 +22,11 @@
     "admin:dev": "vite --config admin/vite.config.ts",
     "typecheck": "tsc --noEmit && bun run admin:typecheck",
     "admin:typecheck": "tsc --noEmit --project admin/tsconfig.json",
-    "test:e2e": "bun ./e2e/reachability.ts"
+    "test:e2e": "bun ./e2e/reachability.ts",
+    "test:start-e2e": "bun ./src/server.ts",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest",

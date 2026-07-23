@@ -56,11 +56,12 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+prepare = []
+start = ["test:start-e2e"]
 
 [dev]
 prepare = ["frontend:build"]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.public]
 port = 52071
@@ -94,6 +95,7 @@ SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
 
 [dev.db.main]
+package = "@metorial-subspace/db"
 name = "subspace"
 engine = "postgres"
 env = "DATABASE_URL"

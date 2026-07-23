@@ -24,7 +24,11 @@
     "test": "bunx vitest run --passWithNoTests",
     "test:e2e": "bun ./e2e/reachability.ts",
     "test:watch": "bunx vitest watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:start-e2e": "bun ./src/server.ts",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest",

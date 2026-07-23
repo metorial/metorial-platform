@@ -9,10 +9,10 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52160
@@ -38,6 +38,7 @@ SCOUT_TOKEN = true
 SUBSPACE_SOLUTION = "metorial-dev"
 
 [dev.db.main]
+package = "@metorial/synthesis"
 name = "synthesis"
 engine = "postgres"
 env = "SYNTHESIS_DATABASE_URL"

@@ -8,10 +8,10 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52020
@@ -33,6 +33,7 @@ ARTIFACT_BUCKET_NAME = "artifacts"
 LOG_BUCKET_NAME = "logs"
 
 [dev.db.main]
+package = "@metorial/forge"
 name = "forge"
 engine = "postgres"
 env = "DATABASE_URL"

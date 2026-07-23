@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "bun prisma generate --schema prisma/schema --config prisma.config.ts",
     "prisma:push": "sh -c 'set -a; . ../service/.env; set +a; bun prisma db push --accept-data-loss --schema prisma/schema --config prisma.config.ts'",
-    "db:push:test": "sh -c 'set -a; . ../service/.env.test; set +a; bun prisma db push --accept-data-loss --schema prisma/schema --config prisma.config.ts'"
+    "db:push:test": "sh -c 'set -a; . ../service/.env.test; set +a; bun prisma db push --accept-data-loss --schema prisma/schema --config prisma.config.ts'",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -33,7 +35,9 @@
   "types": "src/index.ts",
   "typesVersions": {
     "*": {
-      "sync-source": ["src/syncSource.ts"]
+      "sync-source": [
+        "src/syncSource.ts"
+      ]
     }
   },
   "exports": {

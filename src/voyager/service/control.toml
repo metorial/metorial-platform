@@ -2,10 +2,10 @@ name = "@metorial/voyager"
 group = "oss"
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52060
@@ -23,11 +23,13 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 
 [dev.db.main]
+package = "@metorial/voyager"
 name = "voyager"
 engine = "postgres"
 env = "DATABASE_URL"
 
 [dev.db.search]
+package = "@metorial/voyager"
 name = "voyager-search"
 engine = "postgres"
 env = "SEARCH_DATABASE_URL"

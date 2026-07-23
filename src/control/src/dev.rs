@@ -9,11 +9,18 @@ use miette::{Result, WrapErr, bail};
 
 use crate::{
     docker, environment,
+    infrastructure::Requirements,
     manifest::{self, LoadedManifest},
     process,
     root::ProjectRoot,
     turbo, workspace,
 };
+
+#[derive(Debug, Clone, Copy)]
+pub enum DatabaseTask {
+    Generate,
+    Push,
+}
 
 pub async fn run(
     project: &ProjectRoot,
@@ -42,23 +49,26 @@ pub async fn run(
     if selected.is_empty() {
         bail!("no control.toml manifests or run commands were selected");
     }
-    let mut all =
-        manifest::select_with_dependencies_excluding(&manifests, &[], &project.kind, &externals)?;
-    all.retain(|loaded| {
-        loaded
-            .manifest
-            .package
-            .as_ref()
-            .is_none_or(|package| !externals.contains(&package.name))
-    });
     let root_env = environment::root_environment(project)?;
     if dry_run {
         let packages = turbo::plan(&selected, &project.root, &root_env)?;
         println!("root: {}", project.root.display());
+        println!(
+            "infrastructure: {}",
+            Requirements::from_manifests(&selected)
+                .service_names()
+                .join(", ")
+        );
         if !no_prepare {
-            println!("prepare: turbo run prisma:generate");
-            println!("prepare: turbo run prisma:push");
-            println!("prepare: bun run build");
+            let database_packages = database_packages(&selected);
+            println!(
+                "prepare: turbo run control:db:generate ({})",
+                database_packages.join(", ")
+            );
+            println!(
+                "prepare: turbo run control:db:push ({})",
+                database_packages.join(", ")
+            );
         }
         for loaded in &selected {
             let cwd = loaded.path.parent().unwrap_or(&project.root);
@@ -77,9 +87,6 @@ pub async fn run(
         return Ok(());
     }
 
-    // Prepare runs prisma:push for every package, so dependency services must
-    // cover the full workspace even when only a subset of apps will run.
-    let docker_manifests = if no_prepare { &selected } else { &all };
     let workspace_id = std::env::var("CONTROL_WORKSPACE_ID")
         .ok()
         .filter(|value| !value.trim().is_empty());
@@ -91,7 +98,7 @@ pub async fn run(
         Vec::new()
     } else {
         println!("Starting development services");
-        match docker::start(&project.root, docker_manifests, &root_env).await {
+        match docker::start(&project.root, &selected, &root_env).await {
             Ok(projects) => {
                 println!("Development services ready");
                 projects
@@ -105,7 +112,7 @@ pub async fn run(
         }
     };
 
-    let prepared = prepare_selected(project, &all, &selected, &root_env, no_prepare).await;
+    let prepared = prepare_selected(project, &selected, &root_env, no_prepare).await;
     if let Err(error) = prepared {
         docker::stop(&project.root, &projects, &root_env).await;
         if process::is_interrupted(&error) {
@@ -207,38 +214,78 @@ pub async fn run_prepare(
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
     }
-    let mut all =
-        manifest::select_with_dependencies_excluding(&manifests, &[], &project.kind, &externals)?;
-    all.retain(|loaded| {
+    let root_env = environment::root_environment(project)?;
+    if !no_docker {
+        println!("Starting development services");
+        docker::start(&project.root, &selected, &root_env)
+            .await
+            .wrap_err("Docker startup failed")?;
+        println!("Development services ready");
+    }
+    prepare_selected(project, &selected, &root_env, false).await
+}
+
+pub async fn run_database_task(
+    project: &ProjectRoot,
+    selectors: &[String],
+    task: DatabaseTask,
+) -> Result<()> {
+    let mut manifests = manifest::discover(&project.root)?;
+    workspace::configure_manifests(project, &mut manifests).await?;
+    let externals = manifest::load_externals(&project.root, &mut manifests)?;
+    let mut selected = manifest::select_with_dependencies_excluding(
+        &manifests,
+        selectors,
+        &project.kind,
+        &externals,
+    )?;
+    selected.retain(|loaded| {
         loaded
             .manifest
             .package
             .as_ref()
             .is_none_or(|package| !externals.contains(&package.name))
     });
+    if selected.is_empty() {
+        bail!("no control.toml manifests were selected");
+    }
+
     let root_env = environment::root_environment(project)?;
-    if !no_docker {
-        println!("Starting development services");
-        docker::start(&project.root, &all, &root_env)
+    if matches!(task, DatabaseTask::Push) {
+        println!("Starting required development database services");
+        docker::start_databases(&project.root, &selected, &root_env)
             .await
             .wrap_err("Docker startup failed")?;
-        println!("Development services ready");
     }
-    prepare_selected(project, &all, &selected, &root_env, false).await
+    prepare_selected(project, &selected, &root_env, true).await?;
+    write_database_owner_environments(&project.root, &selected, &root_env)?;
+
+    let packages = database_packages(&selected);
+    if packages.is_empty() {
+        println!("No database packages selected");
+        return Ok(());
+    }
+    let (name, label) = match task {
+        DatabaseTask::Generate => (
+            "control:db:generate",
+            "Generating selected database clients",
+        ),
+        DatabaseTask::Push => ("control:db:push", "Pushing selected database schemas"),
+    };
+    println!("{label}: {}", packages.join(", "));
+    run_turbo_task(&project.root, &root_env, name, &packages, Some(3))
+        .await
+        .wrap_err_with(|| format!("turbo run {name} failed"))
 }
 
 async fn prepare_selected(
     project: &ProjectRoot,
-    all: &[&LoadedManifest],
     selected: &[&LoadedManifest],
     env: &BTreeMap<String, String>,
     skip_commands: bool,
 ) -> Result<()> {
     let environment_spinner = spinner("Preparing development environment");
-    // Always write every package `.env` when preparing so turbo `prisma:push`
-    // can reach every schema; with `--no-prepare` only write selected ones.
-    let env_targets = if skip_commands { selected } else { all };
-    for loaded in env_targets {
+    for loaded in selected {
         if environment::has_values(loaded) {
             environment::write_for_manifest(loaded, env)?;
         }
@@ -255,30 +302,118 @@ async fn prepare_workspace(
     selected: &[&LoadedManifest],
     env: &BTreeMap<String, String>,
 ) -> Result<()> {
-    // Workspace-wide turbo tasks (cached) before package-local prepare scripts.
+    write_database_owner_environments(&project.root, selected, env)?;
+    let packages = database_packages(selected);
     for (label, task, concurrency) in [
-        ("Generating Prisma clients", "prisma:generate", Some(3_u32)),
-        ("Pushing Prisma schemas", "prisma:push", Some(3)),
+        (
+            "Generating selected database clients",
+            "control:db:generate",
+            Some(3_u32),
+        ),
+        (
+            "Pushing selected database schemas",
+            "control:db:push",
+            Some(3),
+        ),
     ] {
+        if packages.is_empty() {
+            continue;
+        }
         println!("{label}");
-        if let Err(error) = run_turbo_task(&project.root, env, task, &[], concurrency).await {
+        if let Err(error) = run_turbo_task(&project.root, env, task, &packages, concurrency).await {
             if process::is_interrupted(&error) {
                 return Err(error);
             }
             return Err(error).wrap_err_with(|| format!("turbo run {task} failed"));
         }
     }
-    // Root `build` script applies workspace filters (enterprise vs OSS).
-    println!("Building packages");
-    if let Err(error) =
-        process::run("bun", &["run".into(), "build".into()], &project.root, env).await
-    {
-        if process::is_interrupted(&error) {
-            return Err(error);
-        }
-        return Err(error).wrap_err("bun run build failed");
-    }
     prepare_scripts(&project.root, selected, env).await
+}
+
+fn database_packages(manifests: &[&LoadedManifest]) -> Vec<String> {
+    manifests
+        .iter()
+        .flat_map(|loaded| {
+            loaded
+                .manifest
+                .postgres
+                .values()
+                .map(|database| database.package.clone())
+                .chain(
+                    loaded
+                        .manifest
+                        .mongo
+                        .values()
+                        .map(|database| database.package.clone()),
+                )
+        })
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn write_database_owner_environments(
+    root: &Path,
+    manifests: &[&LoadedManifest],
+    root_env: &BTreeMap<String, String>,
+) -> Result<()> {
+    let mut values = BTreeMap::<String, BTreeMap<String, String>>::new();
+    for loaded in manifests {
+        let resolved = environment::all_for_manifest(loaded, root_env)?;
+        if let Some(package) = &loaded.manifest.package
+            && database_packages(manifests).contains(&package.name)
+        {
+            values
+                .entry(package.name.clone())
+                .or_default()
+                .extend(resolved.clone());
+        }
+        for (name, database) in &loaded.manifest.postgres {
+            values
+                .entry(database.package.clone())
+                .or_default()
+                .insert(name.clone(), resolved[name].clone());
+        }
+        for (name, database) in &loaded.manifest.mongo {
+            values
+                .entry(database.package.clone())
+                .or_default()
+                .insert(name.clone(), resolved[name].clone());
+        }
+    }
+    let package_paths = discover_package_paths(root)?;
+    for (package, environment) in values {
+        let directory = package_paths
+            .get(&package)
+            .ok_or_else(|| miette::miette!("unknown database package {package:?}"))?;
+        environment::write_dotenv(&directory.join(".env"), &environment)?;
+    }
+    Ok(())
+}
+
+fn discover_package_paths(root: &Path) -> Result<BTreeMap<String, std::path::PathBuf>> {
+    let mut output = BTreeMap::new();
+    for entry in walkdir::WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_entry(|entry| {
+            !matches!(
+                entry.file_name().to_str(),
+                Some(".git" | "node_modules" | ".control" | "target")
+            )
+        })
+        .filter_map(std::result::Result::ok)
+        .filter(|entry| entry.file_type().is_file() && entry.file_name() == "package.json")
+    {
+        let text = std::fs::read_to_string(entry.path()).into_diagnostic()?;
+        let value: serde_json::Value = serde_json::from_str(&text).into_diagnostic()?;
+        if let Some(name) = value.get("name").and_then(serde_json::Value::as_str) {
+            output
+                .entry(name.to_string())
+                .or_insert_with(|| entry.path().parent().unwrap_or(root).to_path_buf());
+        }
+    }
+    Ok(output)
 }
 
 async fn prepare_scripts(

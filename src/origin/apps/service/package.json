@@ -13,7 +13,11 @@
     "server:start": "bun ./dist/index.js",
     "prisma:push": "bun prisma db push --accept-data-loss",
     "prisma:generate": "bun prisma generate",
-    "test:e2e": "bun ./e2e/reachability.ts"
+    "test:e2e": "bun ./e2e/reachability.ts",
+    "test:start-e2e": "bun ./src/server.ts",
+    "dev:start": "bun --watch ./src/server.ts",
+    "control:db:generate": "bun run prisma:generate",
+    "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -29,6 +29,8 @@ cargo build --release
 target/release/control --help
 target/release/control dev backend
 target/release/control prepare --no-docker
+target/release/control db generate core-api
+target/release/control db push core-api
 target/release/control env
 target/release/control cleanup --dry-run
 target/release/control docker stop
@@ -75,8 +77,10 @@ env = [
 ]
 
 [test.e2e]
-# Single-shot service commands; do not use watchers or process supervisors.
-start = ["bun ./src/server.ts"]
+# Package scripts used to start services without development watchers.
+start = ["test:start-e2e"]
+# Optional override; an empty list skips development preparation in E2E.
+prepare = []
 # Additional npm workspace packages whose test:e2e scripts belong to this suite.
 # These packages do not need control.toml manifests.
 packages = ["integration-fixtures"]
@@ -85,13 +89,14 @@ packages = ["integration-fixtures"]
 # process environment when present.
 [dev]
 prepare = ["frontend:build"]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [dev.env]
 LOG_LEVEL = "debug"
 SECRET = true
 
 [dev.db.main]
+package = "@metorial/db"
 name = "metorial"
 engine = "postgres"
 env = "DATABASE_URL"
@@ -107,11 +112,11 @@ stop = true
 paths = ["dist", ".cache"]
 ```
 
-Workspace-wide Prisma generation and schema push are always run by Control via
-Turbo (`prisma:generate`, `prisma:push`) before package-local `prepare` scripts.
-The root `build` script is then run (also Turbo, with enterprise/OSS filters).
-Root `control.toml` files may still declare `mode` so they participate in
-selection; they no longer need a `prepare = ["build"]` entry.
+Each database names the npm package that owns its schema. That package must
+declare `control:db:generate` and `control:db:push`; these normally delegate to
+its existing Prisma scripts. Control deduplicates owners from the selected
+service graph, generates all selected clients, then pushes all selected schemas
+before package-local preparation. It does not run a workspace-wide build.
 
 Package-local `prepare` entries are package.json script names (for example
 `frontend:build` or `admin:build`). Control runs each as
@@ -124,9 +129,9 @@ is also accepted for external projects: `[package]`, `[env]`,
 `[postgres.NAME]`, `[mongo.NAME]`, `[run.NAME]`, and `[groups]`. Detailed
 environment values can use `{ from = "TOKEN", default = "" }`.
 
-`run` and `cleanup` commands are intentionally shell strings. Control invokes
-`/bin/sh -eu -c` on Unix and `cmd.exe /D /S /C` on Windows. Package-local
-`prepare` entries are npm script names, not shell commands.
+Repository `[dev].run`, `[test.e2e].start`, and package-local `prepare` entries
+are package.json script names. Extended-schema `[run.NAME].command` and cleanup
+commands remain shell strings.
 
 Literal, inherited, and default environment values support the strict
 `{{HOSTNAME}}` template. It resolves from `METORIAL_HOSTNAME` and unknown or
@@ -209,16 +214,15 @@ plan.
 databases idempotently, writes package-local `.env` files, then prepares the
 workspace in this order:
 
-1. `turbo run prisma:generate` (all packages)
-2. `turbo run prisma:push` (all packages)
-3. `bun run build` (Turbo via the root build script, with workspace filters)
-4. package-local `control.toml` prepare scripts via `turbo run <script> --filter=<package>`
+1. `turbo run control:db:generate` filtered to selected database owners
+2. `turbo run control:db:push` filtered to selected database owners
+3. selected package-local prepare scripts via `turbo run <script> --filter=<package>`
 
 It then generates an isolated `.control/dev` Turbo workspace with one mirror
 package per run command and invokes Turbo directly with explicit filters.
-Ctrl-C terminates Turbo and performs configured Docker cleanup. Because prepare
-pushes every Prisma schema, dependency services cover the full workspace even
-when only a subset of applications are started.
+Ctrl-C terminates Turbo and performs configured Docker cleanup. Compose is
+generated below `.control/dev` and contains only infrastructure required by the
+selected dependency closure.
 
 For Postgres, database creation uses `docker compose exec` when `compose` and
 `service` are supplied, otherwise the local `pg_isready` and `psql` clients.
@@ -228,6 +232,13 @@ MongoDB follows the same rule using `mongosh`; an empty database receives a
 `control prepare` writes environment files and runs the same preparation
 sequence without starting Turbo or any application processes. It starts
 declared dependencies unless `--no-docker` is passed.
+
+`control db generate [SELECTORS...]` resolves the development dependency graph,
+writes its package and database-owner environments, and runs
+`control:db:generate` only for the selected database packages. `control db push
+[SELECTORS...]` additionally starts and provisions the required development
+database services before running `control:db:push`. Both commands use the same
+external-package exclusion and workspace port mapping as `control dev`.
 
 ## Docker E2E tests
 
@@ -244,34 +255,29 @@ when a selected manifest lives under `oss/`, so no mode flag is required. The
 command requires a Docker host and intentionally does not run inside a Control
 workspace container. Control generates a self-contained
 `.control/test/docker-compose.yml` and runner assets.
-The Compose project gets fresh Postgres 17, MongoDB 8, Redis 7.4, NATS 2.11,
-and etcd data volumes on every invocation. Checkout-derived external volumes
+The Compose project gets fresh instances only for databases and resources
+declared by the selected source graph. Checkout-derived external volumes
 persist `node_modules`, Bun, Cargo target/registry, and Go build/module caches
 across E2E runs; normal E2E cleanup never removes those caches, so the next
 `bun install` reuses the checkout's existing Linux `node_modules` volume.
 
 One shared test container uses the same content-hashed development image as
 Docker workspaces. Each invocation has a unique generated directory and Compose
-project. Control generates read-only `.env` overlays for every discovered
-Control manifest with environment or database values, including manifests
-outside the selected source graph and mode-inactive packages that workspace-wide
-Turbo tasks can still visit. These overlays mask checkout and host-workspace
-`.env` files without modifying them. The selected package receives its test
-environment at both `.env` and `.env.test`; startup dependencies and unrelated
-workspace packages receive unsuffixed isolated E2E environments.
+project. Control generates read-only `.env` overlays only for selected source
+manifests and database-owner packages. These overlays mask checkout and
+host-workspace `.env` files without modifying them. The selected package
+receives its test environment at both `.env` and `.env.test`; startup
+dependencies receive unsuffixed isolated E2E environments.
 
-The runner creates every Postgres database required by workspace-wide schema
-tasks plus selected test database variants. MongoDB retains lazy database
+The runner creates the selected Postgres databases plus selected test database
+variants. MongoDB retains lazy database
 creation; readiness is provided by the Mongo container health check and
 forwarded TCP port, so the shared runner does not require `mongosh`.
-Workspace-wide Prisma tasks receive non-generic database variables (for example
-`CARGO_DATABASE_URL` and federation URLs) only from the active source graph.
-Variables declared only by non-source or mode-inactive packages, plus generic
-`DATABASE_URL`, remain package-local under mounted overlays. This prevents
-mutually exclusive OSS and enterprise declarations from colliding in the root
-process environment. Control then runs `bun install`, workspace Prisma
-generate/push tasks, and only the selected source manifests' declared prepare
-scripts. It intentionally skips the production root build.
+Database owner packages receive their selected URL bindings in mounted
+overlays. Control then runs `bun install`, package-filtered control DB
+generate/push tasks, and only selected source manifests' E2E prepare overrides
+(or inherited development prepares). It intentionally skips the production
+root build.
 
 The runner starts development commands dependency-first, one Control manifest
 at a time. Before starting the next manifest it waits for the current
@@ -294,12 +300,13 @@ Control package's test environment. Declared database URLs are rewritten to
 deterministic test databases (`<declared-name>-test`, without double suffixing
 an existing `-test` name), `NODE_ENV` is set to `test`, and those Postgres test
 databases are provisioned alongside dependency source databases. Control runs
-`db:push:test` when declared. Packages without that script fall back to
-`prisma:push` under the mounted test environment; packages without either
-schema script continue without schema preparation.
+the owning packages' required `control:db:generate` and `control:db:push`
+scripts with mounted test database environments.
 
-Dependency development processes use unsuffixed fresh databases. Mongo test
-URLs use the same suffix and retain Mongo's lazy creation behavior. A missing
+Dependency development processes use unsuffixed fresh databases unless they
+reference the same owner and database as the selected package; shared databases
+use the selected package's `-test` variant so one schema push prepares every
+consumer. Mongo test URLs use the same suffix and retain Mongo's lazy creation behavior. A missing
 test script emits a warning and does not fail the suite. Development
 processes, containers, networks, and volumes are cleaned up after success,
 failure, or interrupt. A hard host or Docker daemon crash can leave the
@@ -315,9 +322,9 @@ Application services are not started.
 
 Docker workspaces perform setup inside a persistent Ubuntu development
 container. Host workspaces perform setup directly on the host and generate an
-isolated dependency stack at `.control/services.docker-compose.yml`. Its
-Postgres, MongoDB, Redis, NATS, and etcd host ports are allocated once and
-persisted in workspace metadata. Containers, networks, volumes, and ports are
+isolated dependency stack at `.control/dev/services.docker-compose.yml`. Its
+required infrastructure host ports are allocated once and persisted in
+workspace metadata. Containers, networks, volumes, and ports are
 therefore independent between host workspaces. Named application endpoint ports
 are also allocated once and persisted, so host workspaces can run concurrently.
 
@@ -422,8 +429,9 @@ HTTP listener that should be reachable from the host must have a named endpoint
 declaration and bind to `0.0.0.0`. Non-HTTP ports remain
 internal to the all-in-one container.
 
-Every workspace owns persistent Postgres, MongoDB, Redis, NATS, and etcd
-services. `workspace stop` stops both the workspace container and dependencies
+Every workspace owns only the persistent infrastructure selected by active
+Control manifests. Docker-workspace Compose and Traefik configuration are
+generated under `.control/workspace`. `workspace stop` stops both the workspace container and dependencies
 without removing containers or volumes. `workspace start` or `workspace connect`
 resumes them. `workspace stop --volumes` explicitly removes the container,
 compiler/dependency/VS Code volumes, and dependency data.

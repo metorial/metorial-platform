@@ -6,7 +6,6 @@ on:
     paths:
       - 'src/control/**'
       - 'scripts/dev-tools/workspace/**'
-      - 'scripts/dev-tools/services.docker-compose.yml'
       - '**/control.toml'
       - 'package.json'
       - 'turbo.json'
@@ -15,7 +14,6 @@ on:
     paths:
       - 'src/control/**'
       - 'scripts/dev-tools/workspace/**'
-      - 'scripts/dev-tools/services.docker-compose.yml'
       - '**/control.toml'
       - 'package.json'
       - 'turbo.json'
@@ -49,11 +47,9 @@ jobs:
       - name: Validate repository manifests
         run: cargo run --quiet --manifest-path src/control/Cargo.toml -- dev --dry-run
 
-      - name: Validate workspace Compose files
-        run: |
-          docker compose --file scripts/dev-tools/workspace/proxy.docker-compose.yml config --quiet
-          docker compose --file scripts/dev-tools/workspace/services.docker-compose.yml config --quiet
-          docker compose --file scripts/dev-tools/services.docker-compose.yml config --quiet
+      - name: Validate generated Compose schemas
+        working-directory: src/control
+        run: cargo test docker_compose_accepts_generated_schema_when_available
 
       - name: Build workspace development image
         run: docker build --file scripts/dev-tools/workspace/Dockerfile scripts/dev-tools/workspace

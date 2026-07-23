@@ -9,6 +9,7 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 
 [dev.db.main]
+package = "@metorial-subspace/db"
 name = "subspace"
 engine = "postgres"
 env = "DATABASE_URL"

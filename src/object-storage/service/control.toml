@@ -2,10 +2,10 @@ name = "@metorial/object-storage"
 group = "oss"
 
 [test.e2e]
-start = ["cargo run --bin object-store-service"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["cargo run --bin object-store-service"]
+run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52010

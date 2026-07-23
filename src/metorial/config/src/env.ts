@@ -30,7 +30,7 @@ export let env = createValidatedEnv({
 
   env: {
     METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
-    NODE_ENV: v.enumOf(['development', 'production'])
+    NODE_ENV: v.enumOf(['development', 'test', 'production'])
   },
 
   encryption: {

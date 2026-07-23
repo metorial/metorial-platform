@@ -3,6 +3,7 @@ mod dev;
 mod docker;
 mod e2e;
 mod environment;
+mod infrastructure;
 mod manifest;
 mod process;
 mod root;
@@ -60,6 +61,11 @@ enum Commands {
         #[arg(long)]
         no_docker: bool,
     },
+    /// Generate clients or push schemas for selected development databases.
+    Db {
+        #[command(subcommand)]
+        command: DbCommand,
+    },
     /// Write resolved development environment files.
     Env {
         selectors: Vec<String>,
@@ -96,6 +102,20 @@ enum Commands {
 enum DockerCommand {
     /// Stop declared Compose services without removing volumes.
     Stop { selectors: Vec<String> },
+}
+
+#[derive(Debug, Subcommand)]
+enum DbCommand {
+    /// Run control:db:generate for selected database-owner packages.
+    Generate {
+        /// Package names or group names. All packages are selected when omitted.
+        selectors: Vec<String>,
+    },
+    /// Start required databases and run control:db:push for their owner packages.
+    Push {
+        /// Package names or group names. All packages are selected when omitted.
+        selectors: Vec<String>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -198,6 +218,14 @@ async fn main() -> Result<()> {
             selectors,
             no_docker,
         } => dev::run_prepare(&project, &selectors, no_docker).await,
+        Commands::Db { command } => match command {
+            DbCommand::Generate { selectors } => {
+                dev::run_database_task(&project, &selectors, dev::DatabaseTask::Generate).await
+            }
+            DbCommand::Push { selectors } => {
+                dev::run_database_task(&project, &selectors, dev::DatabaseTask::Push).await
+            }
+        },
         Commands::Env { selectors, json } => {
             let mut manifests = manifest::discover(&project.root)?;
             workspace::configure_manifests(&project, &mut manifests).await?;
@@ -532,6 +560,25 @@ mod tests {
             Commands::Prepare {
                 no_docker: true,
                 selectors,
+            } if selectors == ["backend"]
+        ));
+    }
+
+    #[test]
+    fn parses_database_commands() {
+        let generate = Cli::try_parse_from(["control", "db", "generate", "@metorial/db"]).unwrap();
+        assert!(matches!(
+            generate.command,
+            Commands::Db {
+                command: DbCommand::Generate { selectors },
+            } if selectors == ["@metorial/db"]
+        ));
+
+        let push = Cli::try_parse_from(["control", "db", "push", "backend"]).unwrap();
+        assert!(matches!(
+            push.command,
+            Commands::Db {
+                command: DbCommand::Push { selectors },
             } if selectors == ["backend"]
         ));
     }

@@ -10,6 +10,7 @@ use miette::{IntoDiagnostic, Result, WrapErr, bail};
 
 use crate::{
     environment,
+    infrastructure::{self, RenderOptions, Requirements},
     manifest::{self, LoadedManifest},
     process,
     root::{ProjectRoot, RootKind},
@@ -103,20 +104,15 @@ async fn run_one(project: &ProjectRoot, selector: &str) -> Result<()> {
     configure_e2e_manifests(&mut manifests)?;
     let npm_packages = discover_npm_packages(&project.root)?;
     let plan = build_plan(&manifests, &npm_packages, selector, &project.kind)?;
-    // Turbo's Prisma tasks are workspace-wide and can include packages outside
-    // the selected service graph (including mode-inactive manifests). Those
-    // packages get local overlays, but only active sources contribute process
-    // environment to avoid mixing mutually exclusive mode declarations.
-    let task_manifests = manifests.iter().collect::<Vec<_>>();
     let root_environment = e2e_root_environment(project)?;
-    let task_environment = task_environment(&plan.sources, &task_manifests, &root_environment)?;
+    let task_environment = task_environment(&plan.sources, &plan.sources, &root_environment)?;
 
     let assets = workspace_dev::test_assets(project);
     let image = workspace_dev::ensure_image(&project.root, &assets, false).await?;
     let generated = generate(
         project,
         &plan,
-        &task_manifests,
+        &plan.sources,
         &root_environment,
         &task_environment,
         &image,
@@ -437,7 +433,7 @@ fn generate(
         if !environment::has_values(loaded) {
             continue;
         }
-        let manifest_environment = environment::all_for_manifest(loaded, root_environment)?;
+        let manifest_environment = source_environment(plan, loaded, root_environment)?;
         let manifest_env_file = overlays.join(format!("manifest-{index}.env"));
         environment::write_dotenv(&manifest_env_file, &manifest_environment)?;
         let manifest_directory = loaded.path.parent().unwrap_or(&project.root);
@@ -446,6 +442,27 @@ fn generate(
             container_path(project, &manifest_directory.join(".env")),
             manifest_env_file,
         )?;
+    }
+    let npm_packages = discover_npm_packages(&project.root)?;
+    for (index, (package, values)) in database_owner_environments(plan, root_environment)?
+        .into_iter()
+        .enumerate()
+    {
+        let matches = npm_packages
+            .get(&package)
+            .ok_or_else(|| miette::miette!("unknown database package {package:?}"))?;
+        if matches.len() != 1 {
+            bail!(
+                "database package {package:?} is ambiguous; found {} package.json files",
+                matches.len()
+            );
+        }
+        let owner_env_file = overlays.join(format!("database-owner-{index}.env"));
+        environment::write_dotenv(&owner_env_file, &values)?;
+        environment_mounts.insert(
+            container_path(project, &matches[0].directory.join(".env")),
+            owner_env_file,
+        );
     }
     let environment_mounts = environment_mounts
         .into_iter()
@@ -485,56 +502,41 @@ fn generate(
             TestTarget::Npm(_) => None,
         })
         .collect::<Vec<_>>();
-    script.push_str(&provisioning_script(all_manifests, &control_test_manifests));
+    let requirements = Requirements::from_manifests(&plan.sources);
+    script.push_str(&provisioning_script(
+        &plan.sources,
+        &control_test_manifests,
+        &requirements,
+    ));
     let root_env_file = runners.join("root.env");
     environment::write_dotenv(&root_env_file, task_environment)?;
     let root_env = shell_quote(&container_path(project, &root_env_file));
-    script.push_str(&format!(
-        "echo 'Generating Prisma clients'\n\
-         bun --env-file={root_env} x turbo run prisma:generate --ui=stream --concurrency=3\n\
-         echo 'Pushing Prisma schemas'\n\
-         bun --env-file={root_env} x turbo run prisma:push --ui=stream --concurrency=3\n"
-    ));
-
-    let mut runner_index = 0;
-    for loaded in &control_test_manifests {
-        let name = package_name(loaded)?;
-        let cwd = loaded.path.parent().unwrap_or(&project.root);
-        let test_env_file = &main_test_env_file;
-        let scripts = package_scripts(&loaded.path)?;
-        let (schema_script, command) = if scripts.contains("db:push:test") {
-            ("db:push:test", "bun run db:push:test".to_string())
-        } else if scripts.contains("prisma:push") {
-            ("prisma:push", "bun run prisma:push".to_string())
-        } else {
-            script.push_str(&format!(
-                "echo {}\n",
-                shell_quote(&format!(
-                    "No test schema script for {name}; continuing without schema preparation"
-                ))
-            ));
-            continue;
-        };
-        let runner = runners.join(format!("schema-{runner_index}.mjs"));
-        write_runner(&runner, &container_path(project, cwd), &command)?;
+    let database_packages = database_packages(&plan.sources);
+    if !database_packages.is_empty() {
+        let filters = database_packages
+            .iter()
+            .map(|package| format!(" --filter={}", shell_quote(package)))
+            .collect::<String>();
         script.push_str(&format!(
-            "echo {}\nbun --env-file={} {}\n",
-            shell_quote(&format!(
-                "Preparing test schema for {name} with {schema_script}"
-            )),
-            shell_quote(&container_path(project, test_env_file)),
-            shell_quote(&container_path(project, &runner)),
+            "echo 'Generating selected database clients'\n\
+             bun --env-file={root_env} x turbo run control:db:generate --ui=stream --concurrency=3{filters}\n\
+             echo 'Pushing selected database schemas'\n\
+             bun --env-file={root_env} x turbo run control:db:push --ui=stream --concurrency=3{filters}\n"
         ));
-        runner_index += 1;
     }
 
+    let mut runner_index = 0;
+
     for loaded in &plan.sources {
-        let package_environment = if loaded.path == plan.main.path {
-            main_test_environment.clone()
-        } else {
-            environment::all_for_manifest(loaded, root_environment)?
-        };
-        for prepare in &loaded.manifest.prepare {
+        let package_environment = source_environment(plan, loaded, root_environment)?;
+        let prepares = loaded
+            .manifest
+            .test
+            .e2e
+            .as_ref()
+            .and_then(|e2e| e2e.prepare.as_ref())
+            .unwrap_or(&loaded.manifest.prepare);
+        for prepare in prepares {
             let env_file = runners.join(format!("prepare-{runner_index}.env"));
             environment::write_dotenv(&env_file, &package_environment)?;
             script.push_str(&format!(
@@ -555,10 +557,7 @@ fn generate(
     let mut ready_ports = BTreeSet::new();
     for loaded in &plan.sources {
         let source_name = package_name(loaded)?;
-        let mut manifest_environment = environment::all_for_manifest(loaded, root_environment)?;
-        if loaded.path == plan.main.path {
-            set_test_database_urls(&mut manifest_environment, loaded);
-        }
+        let manifest_environment = source_environment(plan, loaded, root_environment)?;
         let cwd = loaded.path.parent().unwrap_or(&project.root);
         for endpoint in loaded.manifest.endpoints.values() {
             if !ready_ports.contains(&endpoint.port) {
@@ -589,7 +588,7 @@ fn generate(
                     .map(|(index, command)| {
                         (
                             format!("e2e-{}", index + 1),
-                            command.clone(),
+                            format!("bun run {command}"),
                             BTreeMap::new(),
                         )
                     })
@@ -760,6 +759,7 @@ fn generate(
     fs::write(
         &compose,
         render_compose(
+            &requirements,
             &project.root,
             image,
             &container_path(project, &directory.join("run.sh")),
@@ -776,6 +776,51 @@ fn generate(
         project: format!("control_test_{checkout_id}_{run_id}"),
         cache_volumes,
     })
+}
+
+fn database_packages(manifests: &[&LoadedManifest]) -> Vec<String> {
+    manifests
+        .iter()
+        .flat_map(|loaded| {
+            loaded
+                .manifest
+                .postgres
+                .values()
+                .map(|database| database.package.clone())
+                .chain(
+                    loaded
+                        .manifest
+                        .mongo
+                        .values()
+                        .map(|database| database.package.clone()),
+                )
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn database_owner_environments(
+    plan: &TestPlan<'_>,
+    root_environment: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>> {
+    let mut output = BTreeMap::<String, BTreeMap<String, String>>::new();
+    for loaded in &plan.sources {
+        let resolved = source_environment(plan, loaded, root_environment)?;
+        for (name, database) in &loaded.manifest.postgres {
+            output
+                .entry(database.package.clone())
+                .or_default()
+                .insert(name.clone(), resolved[name].clone());
+        }
+        for (name, database) in &loaded.manifest.mongo {
+            output
+                .entry(database.package.clone())
+                .or_default()
+                .insert(name.clone(), resolved[name].clone());
+        }
+    }
+    Ok(output)
 }
 
 fn insert_environment_mount(
@@ -798,6 +843,7 @@ fn insert_environment_mount(
 fn provisioning_script(
     manifests: &[&LoadedManifest],
     control_test_manifests: &[&LoadedManifest],
+    requirements: &Requirements,
 ) -> String {
     let mut postgres = manifests
         .iter()
@@ -810,14 +856,27 @@ fn provisioning_script(
             .flat_map(|loaded| loaded.manifest.postgres.values())
             .map(|database| test_database_name(&database.database)),
     );
-    let mut script = String::from(
-        "echo 'Waiting for isolated database forwarding'\n\
-         for port in 35432 32707; do\n\
+    let database_ports = [
+        requirements.postgres.then_some(35432),
+        requirements.mongo.then_some(32707),
+    ]
+    .into_iter()
+    .flatten()
+    .map(|port| port.to_string())
+    .collect::<Vec<_>>()
+    .join(" ");
+    let mut script = if database_ports.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "echo 'Waiting for isolated database forwarding'\n\
+         for port in {database_ports}; do\n\
            ready=0\n\
-           for attempt in $(seq 1 60); do nc -z 127.0.0.1 \"$port\" && { ready=1; break; }; sleep 1; done\n\
+           for attempt in $(seq 1 60); do nc -z 127.0.0.1 \"$port\" && {{ ready=1; break; }}; sleep 1; done\n\
            if ((ready == 0)); then echo \"Database forwarding on port $port did not become ready\" >&2; exit 1; fi\n\
-         done\n",
-    );
+         done\n"
+        )
+    };
     if !postgres.is_empty() {
         script.push_str("echo 'Provisioning isolated Postgres databases'\n");
     }
@@ -842,6 +901,44 @@ fn control_test_environment(
     let mut output = environment::all_for_manifest(loaded, root_environment)?;
     output.insert("NODE_ENV".into(), "test".into());
     set_test_database_urls(&mut output, loaded);
+    Ok(output)
+}
+
+fn source_environment(
+    plan: &TestPlan<'_>,
+    loaded: &LoadedManifest,
+    root_environment: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, String>> {
+    if loaded.path == plan.main.path {
+        return control_test_environment(loaded, root_environment);
+    }
+    let mut output = environment::all_for_manifest(loaded, root_environment)?;
+    for (name, database) in &loaded.manifest.postgres {
+        if plan
+            .main
+            .manifest
+            .postgres
+            .values()
+            .any(|main| main.package == database.package && main.database == database.database)
+        {
+            let mut test_database = database.clone();
+            test_database.database = test_database_name(&database.database);
+            output.insert(name.clone(), environment::postgres_url(&test_database));
+        }
+    }
+    for (name, database) in &loaded.manifest.mongo {
+        if plan
+            .main
+            .manifest
+            .mongo
+            .values()
+            .any(|main| main.package == database.package && main.database == database.database)
+        {
+            let mut test_database = database.clone();
+            test_database.database = test_database_name(&database.database);
+            output.insert(name.clone(), environment::mongo_url(&test_database));
+        }
+    }
     Ok(output)
 }
 
@@ -902,6 +999,7 @@ fn cache_volume_names(checkout_id: &str) -> Vec<String> {
 }
 
 fn render_compose(
+    requirements: &Requirements,
     root: &Path,
     image: &str,
     runner: &str,
@@ -928,50 +1026,67 @@ fn render_compose(
             )
         })
         .collect::<String>();
+    let services = infrastructure::render_service_blocks(
+        requirements,
+        &RenderOptions {
+            project_name: None,
+            network: "workspace-services",
+            network_name: None,
+            ports: None,
+            restart: false,
+        },
+    );
+    let depends_on_entries = requirements
+        .service_names()
+        .into_iter()
+        .map(|name| format!("      {name}: {{ condition: service_healthy }}\n"))
+        .collect::<String>();
+    let depends_on = if depends_on_entries.is_empty() {
+        String::new()
+    } else {
+        format!("    depends_on:\n{depends_on_entries}")
+    };
+    let infrastructure_volumes = infrastructure::volume_names(requirements)
+        .into_iter()
+        .map(|name| format!("  {name}:\n"))
+        .collect::<String>();
+    let service_environment = [
+        requirements
+            .postgres
+            .then_some("      CONTROL_SERVICE_POSTGRES: postgres-db2:5432\n"),
+        requirements
+            .mongo
+            .then_some("      CONTROL_SERVICE_MONGO: mongodb:27017\n"),
+        requirements
+            .redis
+            .then_some("      CONTROL_SERVICE_REDIS: redis-db:6379\n"),
+        requirements
+            .nats
+            .then_some("      CONTROL_SERVICE_NATS: nats-1:4222\n"),
+        requirements
+            .etcd
+            .then_some("      CONTROL_SERVICE_ETCD: etcd:2379\n"),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<String>();
+    let sysctls = if reserved_ports.is_empty() {
+        String::new()
+    } else {
+        format!("    sysctls:\n      net.ipv4.ip_local_reserved_ports: {reserved_ports}\n")
+    };
     format!(
         "services:\n\
-         \x20 postgres-db2:\n\
-         \x20   image: postgres:17\n\
-         \x20   command: postgres -c max_connections=1000\n\
-         \x20   environment: {{ POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }}\n\
-         \x20   volumes: [postgres-data:/var/lib/postgresql/data]\n\
-         \x20   networks: [workspace-services]\n\
-         \x20   healthcheck: {{ test: [CMD-SHELL, \"pg_isready -U postgres -d postgres\"], interval: 2s, timeout: 5s, retries: 30 }}\n\
-         \x20 mongodb:\n\
-         \x20   image: mongo:8\n\
-         \x20   environment: {{ MONGO_INITDB_ROOT_USERNAME: mongo, MONGO_INITDB_ROOT_PASSWORD: mongo }}\n\
-         \x20   volumes: [mongo-data:/data/db]\n\
-         \x20   networks: [workspace-services]\n\
-         \x20   healthcheck: {{ test: [CMD-SHELL, \"mongosh --quiet --username mongo --password mongo --authenticationDatabase admin --eval 'quit(db.runCommand({{ ping: 1 }}).ok ? 0 : 2)'\"], interval: 2s, timeout: 5s, retries: 30 }}\n\
-         \x20 redis-db:\n\
-         \x20   image: redis:7.4-alpine\n\
-         \x20   command: redis-server --appendonly yes\n\
-         \x20   volumes: [redis-data:/data]\n\
-         \x20   networks: [workspace-services]\n\
-         \x20   healthcheck: {{ test: [CMD, redis-cli, ping], interval: 2s, timeout: 3s, retries: 30 }}\n\
-         \x20 nats-1:\n\
-         \x20   image: nats:2.11-alpine\n\
-         \x20   command: [--jetstream, --store_dir=/data, --http_port=8222]\n\
-         \x20   volumes: [nats-data:/data]\n\
-         \x20   networks: [workspace-services]\n\
-         \x20   healthcheck: {{ test: [CMD-SHELL, \"wget -q -O - http://127.0.0.1:8222/healthz >/dev/null\"], interval: 2s, timeout: 3s, retries: 30 }}\n\
-         \x20 etcd:\n\
-         \x20   image: bitnamilegacy/etcd:latest\n\
-         \x20   environment: {{ ALLOW_NONE_AUTHENTICATION: \"yes\" }}\n\
-         \x20   volumes: [etcd-data:/bitnami/etcd]\n\
-         \x20   networks: [workspace-services]\n\
-         \x20   healthcheck: {{ test: [CMD, etcdctl, endpoint, health], interval: 2s, timeout: 5s, retries: 30 }}\n\
+{services}\
          \x20 control-e2e:\n\
          \x20   image: {image}\n\
          \x20   init: true\n\
-         \x20   sysctls:\n\
-         \x20     net.ipv4.ip_local_reserved_ports: {reserved_ports}\n\
+{sysctls}\
          \x20   working_dir: /workspace\n\
          \x20   command: [\"/bin/bash\", {runner}]\n\
          \x20   environment:\n\
          \x20     CONTROL_WORKSPACE_ID: e2e\n\
-         \x20     CONTROL_SERVICE_POSTGRES: postgres-db2:5432\n\
-         \x20     CONTROL_SERVICE_MONGO: mongodb:27017\n\
+{service_environment}\
          \x20     CARGO_TARGET_DIR: /control-cache/cargo-target\n\
          \x20     METORIAL_HOSTNAME: localhost\n\
          \x20   extra_hosts:\n\
@@ -986,20 +1101,11 @@ fn render_compose(
          \x20     - go-build:/root/.cache/go-build\n\
          \x20     - go-mod:/opt/go/pkg/mod\n\
          \x20   networks: [default, workspace-services]\n\
-         \x20   depends_on:\n\
-         \x20     postgres-db2: {{ condition: service_healthy }}\n\
-         \x20     mongodb: {{ condition: service_healthy }}\n\
-         \x20     redis-db: {{ condition: service_healthy }}\n\
-         \x20     nats-1: {{ condition: service_healthy }}\n\
-         \x20     etcd: {{ condition: service_healthy }}\n\
+{depends_on}\
          networks:\n\
          \x20 workspace-services: {{ internal: true }}\n\
          volumes:\n\
-         \x20 postgres-data:\n\
-         \x20 mongo-data:\n\
-         \x20 redis-data:\n\
-         \x20 nats-data:\n\
-         \x20 etcd-data:\n\
+{infrastructure_volumes}\
          \x20 node-modules: {{ external: true, name: {} }}\n\
          \x20 bun-cache: {{ external: true, name: {} }}\n\
          \x20 cargo-target: {{ external: true, name: {} }}\n\
@@ -1031,27 +1137,6 @@ fn e2e_test_command(package_json: &Path) -> Result<Option<String>> {
         return Ok(None);
     };
     Ok(Some("bun run test:e2e".into()))
-}
-
-fn package_scripts(manifest: &Path) -> Result<BTreeSet<String>> {
-    let path = manifest
-        .parent()
-        .unwrap_or(Path::new("."))
-        .join("package.json");
-    let value: serde_json::Value = serde_json::from_str(
-        &fs::read_to_string(&path)
-            .into_diagnostic()
-            .wrap_err_with(|| format!("could not read {}", path.display()))?,
-    )
-    .into_diagnostic()
-    .wrap_err_with(|| format!("invalid {}", path.display()))?;
-    Ok(value
-        .get("scripts")
-        .and_then(serde_json::Value::as_object)
-        .into_iter()
-        .flat_map(|scripts| scripts.iter())
-        .filter_map(|(name, command)| command.as_str().map(|_| name.clone()))
-        .collect())
 }
 
 fn write_runner(path: &Path, cwd: &str, command: &str) -> Result<()> {
@@ -1134,7 +1219,11 @@ mod tests {
             format!(
                 r#"{{"name":"{directory_name}","scripts":{scripts}}}"#,
                 directory_name = directory.file_name().unwrap().to_string_lossy(),
-                scripts = if e2e { r#"{"test:e2e":"true"}"# } else { "{}" }
+                scripts = if e2e {
+                    r#"{"test:e2e":"true","dev:start":"true","test:start-e2e":"true","control:db:generate":"true","control:db:push":"true"}"#
+                } else {
+                    r#"{"dev:start":"true","test:start-e2e":"true","control:db:generate":"true","control:db:push":"true"}"#
+                }
             ),
         )
         .unwrap();
@@ -1299,6 +1388,13 @@ mod tests {
     fn compose_is_self_contained_and_declares_fresh_infrastructure() {
         let caches = cache_volume_names("abcd1234");
         let compose = render_compose(
+            &Requirements {
+                postgres: true,
+                mongo: true,
+                redis: true,
+                nats: true,
+                etcd: true,
+            },
             Path::new("/code/project"),
             "metorial-control-dev:abc",
             "/workspace/.control/test/run.sh",
@@ -1346,6 +1442,13 @@ mod tests {
         fs::write(
             &path,
             render_compose(
+                &Requirements {
+                    postgres: true,
+                    mongo: true,
+                    redis: true,
+                    nats: true,
+                    etcd: true,
+                },
                 Path::new("/code/project"),
                 "metorial-control-dev:abc",
                 "/workspace/.control/test/run.sh",
@@ -1355,6 +1458,30 @@ mod tests {
                     "/workspace/service/.env.test".into(),
                 )],
                 "52010,52070",
+            ),
+        )
+        .unwrap();
+        let output = std::process::Command::new("docker")
+            .args(["compose", "--file"])
+            .arg(&path)
+            .arg("config")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        fs::write(
+            &path,
+            render_compose(
+                &Requirements::default(),
+                Path::new("/code/project"),
+                "metorial-control-dev:abc",
+                "/workspace/.control/test/run.sh",
+                &cache_volume_names("abcd1234"),
+                &[],
+                "",
             ),
         )
         .unwrap();
@@ -1379,7 +1506,7 @@ mod tests {
             temp.path(),
             "api",
             Some(
-                "name='api'\ndependencies=['db']\n[dev]\nprepare=['seed']\nrun=['bun dev']\n[[dev.expose]]\nport=4310\n[dev.env]\nE2E_TOKEN='main-token'\n[dev.db.main]\nname='main-db'\nengine='postgres'\nenv='DATABASE_URL'\n[test.e2e]\npackages=['suite']",
+                "name='api'\ndependencies=['db']\n[dev]\nprepare=['seed']\nrun=['dev:start']\n[[dev.expose]]\nport=4310\n[dev.env]\nE2E_TOKEN='main-token'\n[dev.db.main]\nname='main-db'\nengine='postgres'\nenv='DATABASE_URL'\npackage='api'\n[test.e2e]\npackages=['suite']",
             ),
             true,
         );
@@ -1407,11 +1534,11 @@ mod tests {
         assert!(!runner.contains("mongosh"));
         assert!(
             runner.find("Provisioning isolated Postgres").unwrap()
-                < runner.find("prisma:generate").unwrap()
+                < runner.find("control:db:generate").unwrap()
         );
         assert!(runner.contains("main-db-test"));
-        assert!(runner.contains("prisma:generate"));
-        assert!(runner.contains("prisma:push"));
+        assert!(runner.contains("control:db:generate"));
+        assert!(runner.contains("control:db:push"));
         assert!(runner.contains("turbo run 'seed'"));
         assert!(!runner.contains("bun run build"));
         assert!(runner.contains("Waiting for api port "));
@@ -1441,31 +1568,65 @@ mod tests {
     }
 
     #[test]
-    fn prepares_test_schemas_from_preferred_and_fallback_scripts() {
+    fn empty_e2e_prepare_override_skips_development_prepare() {
+        let temp = tempdir().unwrap();
+        package(
+            temp.path(),
+            "api",
+            Some("name='api'\n[dev]\nprepare=['frontend:build']\n[test.e2e]\nprepare=[]"),
+            true,
+        );
+        let mut manifests = manifest::discover(temp.path()).unwrap();
+        configure_e2e_manifests(&mut manifests).unwrap();
+        let npm = discover_npm_packages(temp.path()).unwrap();
+        let plan = build_plan(&manifests, &npm, "api", &RootKind::Standalone).unwrap();
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        generate(
+            &project,
+            &plan,
+            &plan.sources,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            "dev:image",
+            "test-run",
+        )
+        .unwrap();
+        let runner = fs::read_to_string(temp.path().join(".control/test/test-run/run.sh")).unwrap();
+        assert!(!runner.contains("frontend:build"));
+    }
+
+    #[test]
+    fn prepares_only_selected_database_owner_packages() {
         let temp = tempdir().unwrap();
         package(
             temp.path(),
             "db",
-            Some("name='db'\n[dev.db.main]\nname='db'\nengine='postgres'\nenv='DATABASE_URL'"),
+            Some(
+                "name='db'\n[dev.db.main]\nname='db'\nengine='postgres'\nenv='DATABASE_URL'\npackage='db'",
+            ),
             true,
         );
         set_package_scripts(
             temp.path(),
             "db",
-            r#"{"test:e2e":"true","db:push:test":"true"}"#,
+            r#"{"test:e2e":"true","control:db:generate":"true","control:db:push":"true"}"#,
         );
         package(
             temp.path(),
             "api",
             Some(
-                "name='api'\ndependencies=['db']\n[test.e2e]\n[dev]\nrun=['bun dev']\n[dev.db.main]\nname='api'\nengine='postgres'\nenv='DATABASE_URL'",
+                "name='api'\ndependencies=['db']\n[test.e2e]\n[dev]\nrun=['dev:start']\n[dev.db.main]\nname='api'\nengine='postgres'\nenv='DATABASE_URL'\npackage='api'",
             ),
             true,
         );
         set_package_scripts(
             temp.path(),
             "api",
-            r#"{"test:e2e":"true","prisma:push":"true"}"#,
+            r#"{"test:e2e":"true","dev:start":"true","control:db:generate":"true","control:db:push":"true"}"#,
         );
         let mut manifests = manifest::discover(temp.path()).unwrap();
         configure_e2e_manifests(&mut manifests).unwrap();
@@ -1491,22 +1652,12 @@ mod tests {
         .unwrap();
 
         let runner = fs::read_to_string(temp.path().join(".control/test/test-run/run.sh")).unwrap();
-        let prisma = runner.find("Pushing Prisma schemas").unwrap();
-        let fallback = runner
-            .find("Preparing test schema for api with prisma:push")
-            .unwrap();
+        let push = runner.find("Pushing selected database schemas").unwrap();
         let source = runner.find("Starting api:dev").unwrap();
-        assert!(prisma < fallback && fallback < source);
-        assert!(!runner.contains("Preparing test schema for db"));
-        let generated_runners = fs::read_dir(temp.path().join(".control/test/test-run/runners"))
-            .unwrap()
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.file_name().to_string_lossy().starts_with("schema-"))
-            .map(|entry| fs::read_to_string(entry.path()).unwrap())
-            .collect::<Vec<_>>()
-            .join("\n");
-        assert!(generated_runners.contains("bun run prisma:push"));
-        assert!(!generated_runners.contains("bun run db:push:test"));
+        assert!(push < source);
+        assert!(runner.contains("--filter='api'"));
+        assert!(runner.contains("--filter='db'"));
+        assert!(!runner.contains("Preparing test schema"));
 
         let api_env =
             fs::read_to_string(temp.path().join(".control/test/test-run/env/main.env")).unwrap();
@@ -1530,20 +1681,20 @@ mod tests {
         package(
             temp.path(),
             "a",
-            Some("name='a'\n[dev]\nrun=['bun a']\n[[dev.expose]]\nport=4101"),
+            Some("name='a'\n[dev]\nrun=['dev:start']\n[[dev.expose]]\nport=4101"),
             false,
         );
         package(
             temp.path(),
             "worker",
-            Some("name='worker'\ndependencies=['a']\n[dev]\nrun=['bun worker']"),
+            Some("name='worker'\ndependencies=['a']\n[dev]\nrun=['dev:start']"),
             false,
         );
         package(
             temp.path(),
             "b",
             Some(
-                "name='b'\ndependencies=['worker']\n[test.e2e]\n[dev]\nrun=['bun b']\n[[dev.expose]]\nport=4101",
+                "name='b'\ndependencies=['worker']\n[test.e2e]\n[dev]\nrun=['dev:start']\n[[dev.expose]]\nport=4101",
             ),
             true,
         );
@@ -1592,7 +1743,7 @@ mod tests {
             temp.path(),
             "api",
             Some(
-                "name='api'\n[test.e2e]\n[dev.db.main]\nname='main-db'\nengine='postgres'\nenv='DATABASE_URL'",
+                "name='api'\n[test.e2e]\n[dev.db.main]\nname='main-db'\nengine='postgres'\nenv='DATABASE_URL'\npackage='api'",
             ),
             true,
         );
@@ -1600,7 +1751,7 @@ mod tests {
             temp.path(),
             "cargo",
             Some(
-                "name='cargo'\nmode='enterprise'\n[dev.db.cargo]\nname='cargo-db'\nengine='postgres'\nenv='CARGO_DATABASE_URL'\n[dev.db.usage]\nname='usage-db'\nengine='mongodb'\nenv='USAGE_MONGO_URL'",
+                "name='cargo'\nmode='enterprise'\n[dev.db.cargo]\nname='cargo-db'\nengine='postgres'\nenv='CARGO_DATABASE_URL'\npackage='cargo'\n[dev.db.usage]\nname='usage-db'\nengine='mongodb'\nenv='USAGE_MONGO_URL'\npackage='cargo'",
             ),
             false,
         );
@@ -1625,9 +1776,13 @@ mod tests {
         assert!(!tasks.contains_key("CARGO_DATABASE_URL"));
         assert!(!tasks.contains_key("USAGE_MONGO_URL"));
         assert!(!tasks.contains_key("DATABASE_URL"));
-        let script = provisioning_script(&all, &[]);
+        let script = provisioning_script(
+            &plan.sources,
+            &[],
+            &Requirements::from_manifests(&plan.sources),
+        );
         assert!(script.contains("main-db"));
-        assert!(script.contains("cargo-db"));
+        assert!(!script.contains("cargo-db"));
         assert!(!script.contains("mongosh"));
 
         let project = ProjectRoot {
@@ -1638,7 +1793,7 @@ mod tests {
         generate(
             &project,
             &plan,
-            &all,
+            &plan.sources,
             &roots,
             &tasks,
             "dev:image",
@@ -1647,16 +1802,7 @@ mod tests {
         .unwrap();
         let generated = temp.path().join(".control/test/test-run");
         let compose = fs::read_to_string(generated.join("docker-compose.yml")).unwrap();
-        assert!(compose.contains("target: \"/workspace/cargo/.env\", read_only: true"));
-        let cargo_overlay = fs::read_dir(generated.join("env"))
-            .unwrap()
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.file_name().to_string_lossy().starts_with("manifest-"))
-            .map(|entry| fs::read_to_string(entry.path()).unwrap())
-            .find(|contents| contents.contains("CARGO_DATABASE_URL="))
-            .unwrap();
-        assert!(cargo_overlay.contains("postgres-db2:5432/cargo-db"));
-        assert!(!cargo_overlay.contains("127.0.0.1:30000"));
+        assert!(!compose.contains("target: \"/workspace/cargo/.env\", read_only: true"));
         let root_overlay = fs::read_to_string(generated.join("runners/root.env")).unwrap();
         assert!(
             !root_overlay
@@ -1664,7 +1810,7 @@ mod tests {
                 .any(|line| line.starts_with("DATABASE_URL="))
         );
         assert!(
-            fs::read_to_string(generated.join("run.sh"))
+            !fs::read_to_string(generated.join("run.sh"))
                 .unwrap()
                 .contains("database='cargo-db'")
         );
@@ -1677,7 +1823,7 @@ mod tests {
             temp.path(),
             "oss-db",
             Some(
-                "name='oss-db'\nmode='oss'\n[dev.db.global]\nname='metorial-oss-global'\nengine='postgres'\nenv='GLOBAL_DATABASE_URL'",
+                "name='oss-db'\nmode='oss'\n[dev.db.global]\nname='metorial-oss-global'\nengine='postgres'\nenv='GLOBAL_DATABASE_URL'\npackage='oss-db'",
             ),
             false,
         );
@@ -1685,7 +1831,7 @@ mod tests {
             temp.path(),
             "enterprise-db",
             Some(
-                "name='enterprise-db'\nmode='enterprise'\n[dev.db.global]\nname='metorial-enterprise-global'\nengine='postgres'\nenv='GLOBAL_DATABASE_URL'",
+                "name='enterprise-db'\nmode='enterprise'\n[dev.db.global]\nname='metorial-enterprise-global'\nengine='postgres'\nenv='GLOBAL_DATABASE_URL'\npackage='enterprise-db'",
             ),
             false,
         );
@@ -1740,7 +1886,7 @@ mod tests {
             temp.path(),
             "forge",
             Some(
-                "name='@metorial/forge'\n[test.e2e]\n[dev.env]\nOBJECT_STORAGE_URL='http://services:52010'\nRELAY_URL='http://services:52110/metorial-relay'\n[dev.db.main]\nname='forge'\nengine='postgres'\nenv='DATABASE_URL'",
+                "name='@metorial/forge'\n[test.e2e]\n[dev.env]\nOBJECT_STORAGE_URL='http://services:52010'\nRELAY_URL='http://services:52110/metorial-relay'\n[dev.db.main]\nname='forge'\nengine='postgres'\nenv='DATABASE_URL'\npackage='forge'",
             ),
             true,
         );
@@ -1760,10 +1906,131 @@ mod tests {
         assert_eq!(test["OBJECT_STORAGE_URL"], "http://services:52010");
         assert_eq!(test["RELAY_URL"], "http://services:52110/metorial-relay");
         assert_eq!(test["NODE_ENV"], "test");
-        let script = provisioning_script(&[forge], &[forge]);
+        let script =
+            provisioning_script(&[forge], &[forge], &Requirements::from_manifests(&[forge]));
         assert!(script.contains("database='forge'"));
         assert!(script.contains("database='forge-test'"));
         assert_eq!(test_database_name("already-test"), "already-test");
+    }
+
+    #[test]
+    fn dependencies_share_the_main_test_database_for_the_same_owner() {
+        let temp = tempdir().unwrap();
+        package(temp.path(), "schema", None, false);
+        package(
+            temp.path(),
+            "dependency",
+            Some(
+                "name='dependency'\n[dev.db.main]\nname='shared'\nengine='postgres'\nenv='DATABASE_URL'\npackage='schema'",
+            ),
+            false,
+        );
+        package(
+            temp.path(),
+            "api",
+            Some(
+                "name='api'\ndependencies=['dependency']\n[test.e2e]\n[dev.db.shared]\nname='shared'\nengine='postgres'\nenv='SHARED_DATABASE_URL'\npackage='schema'",
+            ),
+            true,
+        );
+        let mut manifests = manifest::discover(temp.path()).unwrap();
+        configure_e2e_manifests(&mut manifests).unwrap();
+        let npm = discover_npm_packages(temp.path()).unwrap();
+        let plan = build_plan(&manifests, &npm, "api", &RootKind::Standalone).unwrap();
+        let dependency = plan
+            .sources
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "dependency")
+            .unwrap();
+        let environment = source_environment(&plan, dependency, &BTreeMap::new()).unwrap();
+        assert!(environment["DATABASE_URL"].ends_with("/shared-test"));
+        let owners = database_owner_environments(&plan, &BTreeMap::new()).unwrap();
+        assert!(owners["schema"]["DATABASE_URL"].ends_with("/shared-test"));
+        assert!(owners["schema"]["SHARED_DATABASE_URL"].ends_with("/shared-test"));
+    }
+
+    #[test]
+    fn enterprise_core_api_dependencies_use_its_shared_test_databases() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        if !root
+            .join("src/metorial/services/core-api/control.toml")
+            .is_file()
+        {
+            return;
+        }
+        let mut manifests = manifest::discover(&root).unwrap();
+        configure_e2e_manifests(&mut manifests).unwrap();
+        let npm = discover_npm_packages(&root).unwrap();
+        let plan = build_plan(
+            &manifests,
+            &npm,
+            "@metorial/mte-core-api",
+            &RootKind::Enterprise,
+        )
+        .unwrap();
+        let dependency = plan
+            .sources
+            .iter()
+            .find(|loaded| {
+                loaded.manifest.package.as_ref().unwrap().name
+                    == "@metorial-subspace/app-controller"
+            })
+            .unwrap();
+        let environment = source_environment(
+            &plan,
+            dependency,
+            &BTreeMap::from([
+                ("CONTROL_PORT_POSTGRES".into(), "35432".into()),
+                ("CONTROL_PORT_MONGO".into(), "32707".into()),
+                ("CONTROL_PORT_REDIS".into(), "36379".into()),
+                ("CONTROL_PORT_NATS".into(), "34222".into()),
+                ("CONTROL_PORT_ETCD_CLIENT".into(), "32379".into()),
+                ("CONTROL_PORT_ETCD_PEER".into(), "32380".into()),
+                ("METORIAL_HOSTNAME".into(), "localhost".into()),
+            ]),
+        )
+        .unwrap();
+        assert!(environment["DATABASE_URL"].ends_with("/subspace-test"));
+        assert!(!environment.contains_key("SUBSPACE_DATABASE_URL"));
+
+        let project = ProjectRoot {
+            kind: RootKind::Enterprise,
+            root: root.clone(),
+            oss: root.join("oss"),
+        };
+        let generated = generate(
+            &project,
+            &plan,
+            &plan.sources,
+            &BTreeMap::from([
+                ("CONTROL_PORT_POSTGRES".into(), "35432".into()),
+                ("CONTROL_PORT_MONGO".into(), "32707".into()),
+                ("CONTROL_PORT_REDIS".into(), "36379".into()),
+                ("CONTROL_PORT_NATS".into(), "34222".into()),
+                ("CONTROL_PORT_ETCD_CLIENT".into(), "32379".into()),
+                ("CONTROL_PORT_ETCD_PEER".into(), "32380".into()),
+                ("METORIAL_HOSTNAME".into(), "localhost".into()),
+            ]),
+            &BTreeMap::new(),
+            "dev:image",
+            "shared-database-regression",
+        )
+        .unwrap();
+        let controller_environment = fs::read_dir(generated.directory.join("runners"))
+            .unwrap()
+            .filter_map(std::result::Result::ok)
+            .filter(|entry| {
+                entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "env")
+            })
+            .map(|entry| fs::read_to_string(entry.path()).unwrap())
+            .find(|contents| contents.contains("SUBSPACE_CONTROLLER_PORT="))
+            .unwrap();
+        assert!(controller_environment.contains("/subspace-test"));
+        assert!(!controller_environment.contains("SUBSPACE_DATABASE_URL="));
+        fs::remove_dir_all(generated.directory).unwrap();
     }
 
     #[test]
@@ -1797,6 +2064,13 @@ mod tests {
         assert_ne!(first, cache_volume_names("another-checkout"));
         assert_eq!(first[0], "control-e2e-checkout123-node-modules");
         let compose = render_compose(
+            &Requirements {
+                postgres: true,
+                mongo: true,
+                redis: true,
+                nats: true,
+                etcd: true,
+            },
             Path::new("/code/project"),
             "dev:image",
             "/workspace/.control/test/run.sh",

@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "test": "cargo test --workspace",
-    "test:e2e": "cargo test --workspace"
+    "test:e2e": "cargo test --workspace",
+    "test:start-e2e": "cargo run --bin object-store-service",
+    "dev:start": "cargo run --bin object-store-service"
   }
 }

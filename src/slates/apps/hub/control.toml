@@ -26,11 +26,12 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+prepare = []
+start = ["test:start-e2e"]
 
 [dev]
 prepare = ["admin:build"]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.public]
 port = 52045
@@ -70,6 +71,7 @@ NEBULA_CONSUMER_TOKEN = "local-dev-nebula-slates-registration-secret"
 SLATES_DELEGATE_SECRETS_TO_NEBULA = "true"
 
 [dev.db.main]
+package = "@metorial/slates"
 name = "slates-hub"
 engine = "postgres"
 env = "DATABASE_URL"

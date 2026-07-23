@@ -73,7 +73,7 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 packages = [
   "@metorial/module-organization",
   "@metorial/module-machine-access",
@@ -81,7 +81,7 @@ packages = [
 ]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 4310
@@ -148,26 +148,31 @@ EXTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 INTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 
 [dev.db.main]
+package = "@metorial/db"
 name = "metorial-oss"
 engine = "postgres"
 env = "DATABASE_URL"
 
 [dev.db.subspace]
+package = "@metorial-subspace/db"
 name = "subspace"
 engine = "postgres"
 env = "SUBSPACE_DATABASE_URL"
 
 [dev.db.cargo]
+package = "@metorial-cargo/db"
 name = "cargo"
 engine = "postgres"
 env = "CARGO_DATABASE_URL"
 
 [dev.db.global]
+package = "@metorial/multi-region"
 name = "metorial-oss-global"
 engine = "postgres"
 env = "GLOBAL_DATABASE_URL"
 
 [dev.db.usage]
+package = "@metorial/module-usage"
 name = "metorial-usage"
 engine = "mongodb"
 env = "USAGE_MONGO_URL"

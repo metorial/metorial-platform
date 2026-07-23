@@ -418,32 +418,16 @@ pub async fn configure_manifests(
     if allocate_missing_endpoint_ports(project, manifests, &mut metadata, &ports).await? {
         write_metadata(&project.root, &metadata)?;
     }
-    let generated = project.root.join(".control/services.docker-compose.yml");
     for loaded in manifests.iter_mut() {
-        for compose in &mut loaded.manifest.docker.compose {
-            if is_default_services_compose(compose) {
-                *compose = generated.clone();
-            }
-        }
         for database in loaded.manifest.postgres.values_mut() {
-            if database
-                .compose
-                .as_ref()
-                .is_some_and(|compose| is_default_services_compose(compose))
-            {
-                database.compose = Some(generated.clone());
-                database.port = ports.postgres;
-            }
+            database.compose = None;
+            database.service = None;
+            database.port = ports.postgres;
         }
         for database in loaded.manifest.mongo.values_mut() {
-            if database
-                .compose
-                .as_ref()
-                .is_some_and(|compose| is_default_services_compose(compose))
-            {
-                database.compose = Some(generated.clone());
-                database.port = ports.mongo;
-            }
+            database.compose = None;
+            database.service = None;
+            database.port = ports.mongo;
         }
         if let Some(package) = &loaded.manifest.package {
             for (name, endpoint) in &mut loaded.manifest.endpoints {
@@ -542,13 +526,6 @@ fn reserved_endpoint_ports(
             .map(|endpoint| endpoint.port),
     );
     reserved
-}
-
-fn is_default_services_compose(path: &Path) -> bool {
-    path.file_name().and_then(|name| name.to_str()) == Some("services.docker-compose.yml")
-        && !path
-            .components()
-            .any(|component| component.as_os_str() == ".control")
 }
 
 async fn allocate_service_ports(project: &ProjectRoot) -> Result<ServicePorts> {
@@ -1044,17 +1021,14 @@ mod tests {
     #[tokio::test]
     async fn host_workspace_remaps_generated_compose_and_database_ports() {
         let temp = tempdir().unwrap();
-        fs::create_dir_all(temp.path().join("scripts/dev-tools")).unwrap();
         fs::write(
-            temp.path()
-                .join("scripts/dev-tools/services.docker-compose.yml"),
-            "services: {}",
+            temp.path().join("package.json"),
+            r#"{"name":"test","scripts":{"dev:start":"true","control:db:generate":"true","control:db:push":"true"}}"#,
         )
         .unwrap();
-        fs::write(temp.path().join("package.json"), "{}").unwrap();
         fs::write(
             temp.path().join("control.toml"),
-            "name='test'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='PORT'\nvalue='{{PORT}}'\n[dev]\nrun=['bun dev']\n[dev.db.main]\nname='test'\nengine='postgres'\nenv='DATABASE_URL'\n",
+            "name='test'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='PORT'\nvalue='{{PORT}}'\n[dev]\nrun=['dev:start']\n[dev.db.main]\nname='test'\nengine='postgres'\nenv='DATABASE_URL'\npackage='test'\n",
         )
         .unwrap();
         write_metadata(
@@ -1089,18 +1063,8 @@ mod tests {
         configure_manifests(&project, &mut manifests).await.unwrap();
         let manifest = &manifests[0].manifest;
         assert_eq!(manifest.postgres["DATABASE_URL"].port, 41001);
-        assert_eq!(
-            manifest.postgres["DATABASE_URL"].compose.as_deref(),
-            Some(
-                temp.path()
-                    .join(".control/services.docker-compose.yml")
-                    .as_path()
-            )
-        );
-        assert_eq!(
-            manifest.docker.compose,
-            [temp.path().join(".control/services.docker-compose.yml")]
-        );
+        assert_eq!(manifest.postgres["DATABASE_URL"].compose, None);
+        assert!(manifest.docker.compose.is_empty());
         assert_eq!(manifest.endpoints["http"].port, 42000);
     }
 

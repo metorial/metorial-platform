@@ -12,6 +12,7 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 
 [dev.db.main]
+package = "@metorial/db"
 name = "metorial-enterprise"
 engine = "postgres"
 env = "DATABASE_URL"

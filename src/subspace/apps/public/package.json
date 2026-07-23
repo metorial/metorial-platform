@@ -19,7 +19,9 @@
     "server:build": "bun run check-types && ncc build ./src/server.ts -o ./dist --source-map --external bun:sqlite --external bun --transpile-only && bun run sentry:sourcemaps:if-token",
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-subspace-frontend ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-frontend ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
-    "test:e2e": "bun ./e2e/reachability.ts"
+    "test:e2e": "bun ./e2e/reachability.ts",
+    "test:start-e2e": "bun ./src/server.ts",
+    "dev:start": "bun --watch ./src/server.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

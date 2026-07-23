@@ -491,6 +491,7 @@ mod tests {
     #[test]
     fn generates_encoded_database_urls() {
         let pg = Postgres {
+            package: "database".into(),
             host: "localhost".into(),
             port: 5432,
             user: "user".into(),

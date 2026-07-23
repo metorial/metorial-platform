@@ -2,11 +2,12 @@ name = "@metorial/code-workspace"
 group = "oss"
 
 [test.e2e]
-start = ["vite --port \"$PORT\" --host 0.0.0.0"]
+prepare = []
+start = ["test:start-e2e"]
 
 [dev]
 prepare = ["setup_vscode"]
-run = ["vite --port \"$PORT\" --host 0.0.0.0"]
+run = ["dev:start"]
 
 [endpoints.web]
 port = 3302

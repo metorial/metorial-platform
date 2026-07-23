@@ -14,10 +14,10 @@ env = [
 ]
 
 [test.e2e]
-start = ["bun ./src/server.ts"]
+start = ["test:start-e2e"]
 
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
 [endpoints.api]
 port = 52030
@@ -38,6 +38,7 @@ DEFAULT_PROVIDER = "local"
 BUNDLE_BUCKET_NAME = "function-bay-bundles"
 
 [dev.db.main]
+package = "@metorial/function-bay"
 name = "function-bay"
 engine = "postgres"
 env = "DATABASE_URL"
