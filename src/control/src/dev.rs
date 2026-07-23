@@ -24,12 +24,33 @@ pub async fn run(
     dry_run: bool,
 ) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
-    workspace::configure_manifests(project, &mut manifests)?;
-    let selected = manifest::select_with_dependencies(&manifests, selectors, &project.kind)?;
+    workspace::configure_manifests(project, &mut manifests).await?;
+    let externals = manifest::load_externals(&project.root, &mut manifests)?;
+    let mut selected = manifest::select_with_dependencies_excluding(
+        &manifests,
+        selectors,
+        &project.kind,
+        &externals,
+    )?;
+    selected.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
     if selected.is_empty() {
         bail!("no control.toml manifests or run commands were selected");
     }
-    let all = manifest::select_with_dependencies(&manifests, &[], &project.kind)?;
+    let mut all =
+        manifest::select_with_dependencies_excluding(&manifests, &[], &project.kind, &externals)?;
+    all.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
     let root_env = environment::root_environment(project)?;
     if dry_run {
         let packages = turbo::plan(&selected, &project.root, &root_env)?;
@@ -168,12 +189,33 @@ pub async fn run_prepare(
     no_docker: bool,
 ) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
-    workspace::configure_manifests(project, &mut manifests)?;
-    let selected = manifest::select_with_dependencies(&manifests, selectors, &project.kind)?;
+    workspace::configure_manifests(project, &mut manifests).await?;
+    let externals = manifest::load_externals(&project.root, &mut manifests)?;
+    let mut selected = manifest::select_with_dependencies_excluding(
+        &manifests,
+        selectors,
+        &project.kind,
+        &externals,
+    )?;
+    selected.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
     if selected.is_empty() {
         bail!("no control.toml manifests were selected");
     }
-    let all = manifest::select_with_dependencies(&manifests, &[], &project.kind)?;
+    let mut all =
+        manifest::select_with_dependencies_excluding(&manifests, &[], &project.kind, &externals)?;
+    all.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
     let root_env = environment::root_environment(project)?;
     if !no_docker {
         println!("Starting development services");

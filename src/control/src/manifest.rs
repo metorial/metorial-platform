@@ -19,7 +19,11 @@ pub struct Manifest {
     #[serde(default)]
     pub mode: Mode,
     #[serde(default)]
-    pub dependencies: Vec<String>,
+    pub dependencies: Vec<Dependency>,
+    #[serde(default)]
+    pub endpoints: BTreeMap<String, Endpoint>,
+    #[serde(default)]
+    pub resources: Vec<Resource>,
     #[serde(default)]
     pub test: Tests,
     #[serde(default)]
@@ -44,6 +48,122 @@ pub struct Manifest {
     pub docker: Docker,
     #[serde(default)]
     pub cleanup: Cleanup,
+    #[serde(skip)]
+    pub dependency_endpoints: BTreeMap<String, BTreeMap<String, ResolvedEndpoint>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum Dependency {
+    /// Transitional support while repository manifests are migrated.
+    Identifier(String),
+    Detailed(DependencySpec),
+}
+
+impl Dependency {
+    pub fn identifier(&self) -> &str {
+        match self {
+            Self::Identifier(identifier) => identifier,
+            Self::Detailed(dependency) => &dependency.identifier,
+        }
+    }
+
+    pub fn env(&self) -> &[DependencyEnv] {
+        match self {
+            Self::Identifier(_) => &[],
+            Self::Detailed(dependency) => &dependency.env,
+        }
+    }
+
+    pub fn starts(&self) -> bool {
+        match self {
+            Self::Identifier(_) => true,
+            Self::Detailed(dependency) => dependency.start,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DependencySpec {
+    pub identifier: String,
+    #[serde(default = "default_true")]
+    pub start: bool,
+    #[serde(default)]
+    pub env: Vec<DependencyEnv>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DependencyEnv {
+    pub endpoint: String,
+    pub key: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Endpoint {
+    pub port: u16,
+    #[serde(default)]
+    pub env: Vec<EndpointEnv>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EndpointEnv {
+    pub key: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Resource {
+    #[serde(rename = "type")]
+    pub resource_type: ResourceType,
+    #[serde(default)]
+    pub env: Vec<ResourceEnv>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "lowercase")]
+pub enum ResourceType {
+    Redis,
+    Nats,
+    Etcd,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceEnv {
+    pub key: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedEndpoint {
+    pub hostname: String,
+    pub port: u16,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExternalManifest {
+    #[serde(default)]
+    pub external: Vec<External>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct External {
+    pub identifier: String,
+    pub hostname: String,
+    #[serde(default)]
+    pub mapping: BTreeMap<String, u16>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
@@ -255,7 +375,7 @@ pub fn discover(root: &Path) -> Result<Vec<LoadedManifest>> {
         .map(|e| e.into_path())
         .collect::<Vec<_>>();
     paths.sort();
-    let manifests = paths
+    let mut manifests = paths
         .into_iter()
         .map(|path| load(&path))
         .collect::<Result<Vec<_>>>()?;
@@ -273,6 +393,8 @@ pub fn discover(root: &Path) -> Result<Vec<LoadedManifest>> {
         }
     }
     validate_package_graph(&manifests)?;
+    refresh_dependency_endpoints(&mut manifests);
+    validate_dependency_endpoints(&manifests)?;
     Ok(manifests)
 }
 
@@ -298,15 +420,16 @@ fn validate_package_graph(manifests: &[LoadedManifest]) -> Result<()> {
             }
             continue;
         };
-        for target in &loaded.manifest.dependencies {
-            if target == &package.name {
+        for dependency in &loaded.manifest.dependencies {
+            let target = dependency.identifier();
+            if target == package.name {
                 bail!(
                     "{}: package {:?} cannot reference itself as a dependency",
                     loaded.path.display(),
                     package.name
                 );
             }
-            let Some(target_manifest) = packages.get(target.as_str()) else {
+            let Some(target_manifest) = packages.get(target) else {
                 bail!(
                     "{}: package {:?} references unknown dependency {:?}",
                     loaded.path.display(),
@@ -363,8 +486,13 @@ fn validate_dependency_cycles<'a>(
     }
     path.push(package);
     if let Some(loaded) = packages.get(package) {
-        for dependency in &loaded.manifest.dependencies {
-            validate_dependency_cycles(dependency, packages, visiting, visited, path)?;
+        for dependency in loaded
+            .manifest
+            .dependencies
+            .iter()
+            .filter(|dependency| dependency.starts())
+        {
+            validate_dependency_cycles(dependency.identifier(), packages, visiting, visited, path)?;
         }
     }
     path.pop();
@@ -381,6 +509,15 @@ pub fn dependency_closure<'a>(
     manifests: &'a [LoadedManifest],
     roots: &[&'a LoadedManifest],
     kind: &RootKind,
+) -> Result<Vec<&'a LoadedManifest>> {
+    dependency_closure_excluding(manifests, roots, kind, &BTreeSet::new())
+}
+
+fn dependency_closure_excluding<'a>(
+    manifests: &'a [LoadedManifest],
+    roots: &[&'a LoadedManifest],
+    kind: &RootKind,
+    excluded: &BTreeSet<String>,
 ) -> Result<Vec<&'a LoadedManifest>> {
     let packages = manifests
         .iter()
@@ -406,8 +543,19 @@ pub fn dependency_closure<'a>(
     let mut visited = root_names.clone();
     let mut ordered = Vec::new();
     for root in roots {
-        for dependency in &root.manifest.dependencies {
-            collect_dependency(dependency, &packages, &mut visited, &mut ordered)?;
+        for dependency in root
+            .manifest
+            .dependencies
+            .iter()
+            .filter(|dependency| dependency.starts())
+        {
+            collect_dependency(
+                dependency.identifier(),
+                &packages,
+                &mut visited,
+                &mut ordered,
+                excluded,
+            )?;
         }
     }
     Ok(ordered)
@@ -418,14 +566,24 @@ pub fn dependency_closure<'a>(
 /// Root marker manifests are retained first. Dependencies are emitted in
 /// dependency-first order, followed by directly selected packages in their
 /// deterministic discovery order.
-pub fn select_with_dependencies<'a>(
+pub fn select_with_dependencies_excluding<'a>(
     manifests: &'a [LoadedManifest],
     selectors: &[String],
     kind: &RootKind,
+    excluded: &BTreeSet<String>,
 ) -> Result<Vec<&'a LoadedManifest>> {
     let selected = select(manifests, selectors, kind)?;
     if selectors.is_empty() {
-        return Ok(selected);
+        return Ok(selected
+            .into_iter()
+            .filter(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !excluded.contains(&package.name))
+            })
+            .collect());
     }
     let roots = selected
         .iter()
@@ -435,9 +593,15 @@ pub fn select_with_dependencies<'a>(
     let direct = selected
         .iter()
         .copied()
-        .filter(|loaded| loaded.manifest.package.is_some())
+        .filter(|loaded| {
+            loaded
+                .manifest
+                .package
+                .as_ref()
+                .is_some_and(|package| !excluded.contains(&package.name))
+        })
         .collect::<Vec<_>>();
-    let dependencies = dependency_closure(manifests, &direct, kind)?;
+    let dependencies = dependency_closure_excluding(manifests, &direct, kind, excluded)?;
     let mut output = roots;
     let mut names = BTreeSet::new();
     for loaded in dependencies.into_iter().chain(direct) {
@@ -460,7 +624,11 @@ fn collect_dependency<'a>(
     packages: &BTreeMap<&str, &'a LoadedManifest>,
     visited: &mut BTreeSet<&'a str>,
     ordered: &mut Vec<&'a LoadedManifest>,
+    excluded: &BTreeSet<String>,
 ) -> Result<()> {
+    if excluded.contains(package) {
+        return Ok(());
+    }
     let loaded = packages
         .get(package)
         .copied()
@@ -475,8 +643,19 @@ fn collect_dependency<'a>(
     if !visited.insert(name) {
         return Ok(());
     }
-    for dependency in &loaded.manifest.dependencies {
-        collect_dependency(dependency, packages, visited, ordered)?;
+    for dependency in loaded
+        .manifest
+        .dependencies
+        .iter()
+        .filter(|dependency| dependency.starts())
+    {
+        collect_dependency(
+            dependency.identifier(),
+            packages,
+            visited,
+            ordered,
+            excluded,
+        )?;
     }
     ordered.push(loaded);
     Ok(())
@@ -576,6 +755,26 @@ fn normalize(manifest: &mut Manifest, path: &Path) -> Result<()> {
             }
         }
     }
+    for (index, exposure) in manifest.expose.iter().enumerate() {
+        if !manifest
+            .endpoints
+            .values()
+            .any(|endpoint| endpoint.port == exposure.port)
+        {
+            let name = if index == 0 {
+                "http".into()
+            } else {
+                format!("http-{}", index + 1)
+            };
+            manifest.endpoints.insert(
+                name,
+                Endpoint {
+                    port: exposure.port,
+                    env: Vec::new(),
+                },
+            );
+        }
+    }
     Ok(())
 }
 
@@ -602,6 +801,8 @@ fn validate(manifest: &Manifest, path: &Path) -> Result<()> {
                 path.display()
             );
         }
+    } else if !manifest.endpoints.is_empty() {
+        bail!("{}: endpoints require a named package", path.display());
     }
     let names = manifest.run.keys().cloned().collect::<BTreeSet<_>>();
     for (name, run) in &manifest.run {
@@ -617,11 +818,82 @@ fn validate(manifest: &Manifest, path: &Path) -> Result<()> {
             }
         }
     }
+    let mut shared_env_keys = BTreeMap::new();
     for (key, value) in &manifest.env {
         validate_env(key, value, path)?;
+        register_env_key(&mut shared_env_keys, key, "[env]/[dev.env]", path)?;
     }
-    for (key, value) in manifest.run.iter().flat_map(|(_, r)| r.env.iter()) {
-        validate_env(key, value, path)?;
+    let mut endpoint_ports = BTreeSet::new();
+    for (name, endpoint) in &manifest.endpoints {
+        validate_name("endpoint", name, path)?;
+        if endpoint.port == 0 {
+            bail!("{}: endpoint {name:?} port cannot be zero", path.display());
+        }
+        if !endpoint_ports.insert(endpoint.port) {
+            bail!(
+                "{}: duplicate endpoint port {}",
+                path.display(),
+                endpoint.port
+            );
+        }
+        for env in &endpoint.env {
+            validate_structured_env(&env.key, &env.value, &["HOSTNAME", "PORT"], path)?;
+            register_env_key(
+                &mut shared_env_keys,
+                &env.key,
+                &format!("endpoint {name:?}"),
+                path,
+            )?;
+        }
+    }
+    let mut resource_types = BTreeSet::new();
+    for resource in &manifest.resources {
+        if !resource_types.insert(resource.resource_type) {
+            bail!(
+                "{}: duplicate {:?} resource declaration",
+                path.display(),
+                resource.resource_type
+            );
+        }
+        for env in &resource.env {
+            validate_structured_env(
+                &env.key,
+                &env.value,
+                &[
+                    "HOSTNAME",
+                    "PORT",
+                    "CONTROL_PORT_REDIS",
+                    "CONTROL_PORT_NATS",
+                    "CONTROL_PORT_ETCD_CLIENT",
+                    "CONTROL_PORT_ETCD_PEER",
+                ],
+                path,
+            )?;
+            register_env_key(
+                &mut shared_env_keys,
+                &env.key,
+                &format!("resource {:?}", resource.resource_type),
+                path,
+            )?;
+        }
+    }
+    let mut dependencies = BTreeSet::new();
+    for dependency in &manifest.dependencies {
+        let identifier = dependency.identifier();
+        validate_identifier("dependency identifier", identifier, path)?;
+        if !dependencies.insert(identifier) {
+            bail!("{}: duplicate dependency {identifier:?}", path.display());
+        }
+        for env in dependency.env() {
+            validate_name("dependency endpoint", &env.endpoint, path)?;
+            validate_structured_env(&env.key, &env.value, &["HOSTNAME", "PORT"], path)?;
+            register_env_key(
+                &mut shared_env_keys,
+                &env.key,
+                &format!("dependency {identifier:?}"),
+                path,
+            )?;
+        }
     }
     let mut exposed_ports = BTreeSet::new();
     for exposure in &manifest.expose {
@@ -637,16 +909,280 @@ fn validate(manifest: &Manifest, path: &Path) -> Result<()> {
         }
     }
     for (name, db) in &manifest.postgres {
+        validate_env(name, &EnvValue::Literal(String::new()), path)?;
         if db.database.is_empty() || db.database.contains(['\0', '\'', '"']) {
             bail!("{}: invalid Postgres database {name:?}", path.display());
         }
+        register_env_key(&mut shared_env_keys, name, "Postgres database", path)?;
     }
     for (name, db) in &manifest.mongo {
+        validate_env(name, &EnvValue::Literal(String::new()), path)?;
         if db.database.is_empty() || db.database.contains(['\0', '\'', '"']) {
             bail!("{}: invalid Mongo database {name:?}", path.display());
         }
+        register_env_key(&mut shared_env_keys, name, "MongoDB database", path)?;
+    }
+    for (run_name, run) in &manifest.run {
+        for (key, value) in &run.env {
+            validate_env(key, value, path)?;
+            if let Some(source) = shared_env_keys.get(key.as_str()) {
+                bail!(
+                    "{}: environment key {key:?} is declared by both {source} and run {run_name:?}",
+                    path.display()
+                );
+            }
+        }
     }
     Ok(())
+}
+
+fn register_env_key<'a>(
+    keys: &mut BTreeMap<&'a str, String>,
+    key: &'a str,
+    source: &str,
+    path: &Path,
+) -> Result<()> {
+    if let Some(previous) = keys.insert(key, source.to_string()) {
+        bail!(
+            "{}: environment key {key:?} is declared by both {previous} and {source}",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+fn validate_name(kind: &str, value: &str, path: &Path) -> Result<()> {
+    if value.is_empty()
+        || !value.chars().all(|character| {
+            character == '-' || character == '_' || character.is_ascii_alphanumeric()
+        })
+    {
+        bail!("{}: invalid {kind} {value:?}", path.display());
+    }
+    Ok(())
+}
+
+fn validate_identifier(kind: &str, value: &str, path: &Path) -> Result<()> {
+    if value.trim().is_empty() || value.chars().any(char::is_whitespace) {
+        bail!("{}: invalid {kind} {value:?}", path.display());
+    }
+    Ok(())
+}
+
+fn validate_structured_env(key: &str, value: &str, templates: &[&str], path: &Path) -> Result<()> {
+    validate_env(key, &EnvValue::Literal(String::new()), path)?;
+    validate_templates(value, templates).wrap_err_with(|| {
+        format!(
+            "{}: invalid template for environment key {key:?}",
+            path.display()
+        )
+    })
+}
+
+fn validate_templates(value: &str, allowed: &[&str]) -> Result<()> {
+    let mut remaining = value;
+    while let Some(start) = remaining.find("{{") {
+        remaining = &remaining[start + 2..];
+        let Some(end) = remaining.find("}}") else {
+            bail!("unclosed template in {value:?}");
+        };
+        let template = &remaining[..end];
+        if !allowed.contains(&template) {
+            bail!("unknown template {template:?} in {value:?}");
+        }
+        remaining = &remaining[end + 2..];
+    }
+    if remaining.contains("}}") {
+        bail!("unmatched template delimiter in {value:?}");
+    }
+    Ok(())
+}
+
+pub fn refresh_dependency_endpoints(manifests: &mut [LoadedManifest]) {
+    let endpoints = manifests
+        .iter()
+        .filter_map(|loaded| {
+            loaded.manifest.package.as_ref().map(|package| {
+                (
+                    package.name.clone(),
+                    loaded
+                        .manifest
+                        .endpoints
+                        .iter()
+                        .map(|(name, endpoint)| {
+                            (
+                                name.clone(),
+                                ResolvedEndpoint {
+                                    hostname: "localhost".into(),
+                                    port: endpoint.port,
+                                },
+                            )
+                        })
+                        .collect::<BTreeMap<_, _>>(),
+                )
+            })
+        })
+        .collect::<BTreeMap<_, _>>();
+    for loaded in manifests {
+        loaded.manifest.dependency_endpoints = loaded
+            .manifest
+            .dependencies
+            .iter()
+            .filter_map(|dependency| {
+                endpoints
+                    .get(dependency.identifier())
+                    .cloned()
+                    .map(|endpoints| (dependency.identifier().to_string(), endpoints))
+            })
+            .collect();
+    }
+}
+
+pub fn validate_dependency_endpoints(manifests: &[LoadedManifest]) -> Result<()> {
+    for loaded in manifests {
+        for dependency in &loaded.manifest.dependencies {
+            let endpoints = loaded
+                .manifest
+                .dependency_endpoints
+                .get(dependency.identifier())
+                .expect("validated dependencies have resolved endpoint sets");
+            for env in dependency.env() {
+                if !endpoints.contains_key(&env.endpoint) {
+                    bail!(
+                        "{}: dependency {:?} references unknown endpoint {:?}",
+                        loaded.path.display(),
+                        dependency.identifier(),
+                        env.endpoint
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn load_externals(root: &Path, manifests: &mut [LoadedManifest]) -> Result<BTreeSet<String>> {
+    let Some((path, external)) = read_external_manifest(root)? else {
+        return Ok(BTreeSet::new());
+    };
+    apply_externals(manifests, &external, &path)
+}
+
+pub fn load_external_hostnames(root: &Path) -> Result<BTreeSet<String>> {
+    Ok(read_external_manifest(root)?
+        .into_iter()
+        .flat_map(|(_, manifest)| manifest.external)
+        .map(|external| external.hostname)
+        .collect())
+}
+
+fn read_external_manifest(root: &Path) -> Result<Option<(PathBuf, ExternalManifest)>> {
+    let path = root.join("control-external.toml");
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let text = fs::read_to_string(&path)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not read {}", path.display()))?;
+    let external: ExternalManifest = toml::from_str(&text)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("invalid {}", path.display()))?;
+    Ok(Some((path, external)))
+}
+
+pub fn apply_externals(
+    manifests: &mut [LoadedManifest],
+    external: &ExternalManifest,
+    path: &Path,
+) -> Result<BTreeSet<String>> {
+    let packages = manifests
+        .iter()
+        .filter_map(|loaded| {
+            loaded
+                .manifest
+                .package
+                .as_ref()
+                .map(|package| (package.name.clone(), loaded.manifest.endpoints.clone()))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let mut identifiers = BTreeSet::new();
+    for item in &external.external {
+        validate_identifier("external identifier", &item.identifier, path)?;
+        if item.hostname.trim().is_empty() || item.hostname.contains(char::is_whitespace) {
+            bail!(
+                "{}: invalid external hostname {:?}",
+                path.display(),
+                item.hostname
+            );
+        }
+        if !identifiers.insert(item.identifier.clone()) {
+            bail!(
+                "{}: duplicate external {:?}",
+                path.display(),
+                item.identifier
+            );
+        }
+        let endpoints = packages.get(&item.identifier).ok_or_else(|| {
+            miette::miette!(
+                "{}: external references unknown dependency {:?}",
+                path.display(),
+                item.identifier
+            )
+        })?;
+        for (name, port) in &item.mapping {
+            if *port == 0 {
+                bail!(
+                    "{}: external endpoint {name:?} port cannot be zero",
+                    path.display()
+                );
+            }
+            if !endpoints.contains_key(name) {
+                bail!(
+                    "{}: external {:?} maps unknown endpoint {name:?}",
+                    path.display(),
+                    item.identifier
+                );
+            }
+        }
+        for loaded in manifests.iter() {
+            for dependency in loaded
+                .manifest
+                .dependencies
+                .iter()
+                .filter(|dependency| dependency.identifier() == item.identifier)
+            {
+                for env in dependency.env() {
+                    if !item.mapping.contains_key(&env.endpoint) {
+                        bail!(
+                            "{}: external {:?} is missing mapping for referenced endpoint {:?}",
+                            path.display(),
+                            item.identifier,
+                            env.endpoint
+                        );
+                    }
+                }
+            }
+        }
+        for loaded in manifests.iter_mut() {
+            if let Some(resolved) = loaded
+                .manifest
+                .dependency_endpoints
+                .get_mut(&item.identifier)
+            {
+                for (name, port) in &item.mapping {
+                    resolved.insert(
+                        name.clone(),
+                        ResolvedEndpoint {
+                            hostname: item.hostname.clone(),
+                            port: *port,
+                        },
+                    );
+                }
+            }
+        }
+    }
+    validate_dependency_endpoints(manifests)?;
+    Ok(identifiers)
 }
 
 fn validate_env(key: &str, value: &EnvValue, path: &Path) -> Result<()> {
@@ -856,8 +1392,13 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["db"]
         );
-        let expanded =
-            select_with_dependencies(&manifests, &["api".into()], &RootKind::Standalone).unwrap();
+        let expanded = select_with_dependencies_excluding(
+            &manifests,
+            &["api".into()],
+            &RootKind::Standalone,
+            &BTreeSet::new(),
+        )
+        .unwrap();
         assert_eq!(
             expanded
                 .iter()
@@ -912,5 +1453,231 @@ mod tests {
         let absent: Manifest = toml::from_str("name='api'").unwrap();
         assert!(absent.test.e2e.is_none());
         assert!(toml::from_str::<Manifest>("[test.e2e]\nunknown=true").is_err());
+    }
+
+    #[test]
+    fn parses_and_validates_structured_wiring() {
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "upstream",
+            r#"
+                name = "upstream"
+                [endpoints.http]
+                port = 4310
+                [[endpoints.http.env]]
+                key = "LISTEN_PORT"
+                value = "{{PORT}}"
+            "#,
+        );
+        write_package(
+            temp.path(),
+            "consumer",
+            r#"
+                name = "consumer"
+                [[dependencies]]
+                identifier = "upstream"
+                [[dependencies.env]]
+                endpoint = "http"
+                key = "UPSTREAM_URL"
+                value = "http://{{HOSTNAME}}:{{PORT}}"
+                [[resources]]
+                type = "redis"
+                [[resources.env]]
+                key = "REDIS_URL"
+                value = "redis://{{HOSTNAME}}:{{PORT}}"
+            "#,
+        );
+        let manifests = discover(temp.path()).unwrap();
+        let consumer = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "consumer")
+            .unwrap();
+        assert_eq!(consumer.manifest.dependencies[0].identifier(), "upstream");
+        assert_eq!(
+            consumer.manifest.dependency_endpoints["upstream"]["http"].port,
+            4310
+        );
+        assert_eq!(
+            consumer.manifest.resources[0].resource_type,
+            ResourceType::Redis
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_structured_wiring() {
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "upstream",
+            "name='upstream'\n[endpoints.http]\nport=4310",
+        );
+        write_package(
+            temp.path(),
+            "consumer",
+            "name='consumer'\n[[dependencies]]\nidentifier='upstream'\n[[dependencies.env]]\nendpoint='missing'\nkey='URL'\nvalue='http://{{HOSTNAME}}:{{PORT}}'",
+        );
+        assert!(format!("{:?}", discover(temp.path()).unwrap_err()).contains("unknown endpoint"));
+
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "invalid",
+            "name='invalid'\n[[resources]]\ntype='redis'\n[[resources.env]]\nkey='URL'\nvalue='{{UNKNOWN}}'",
+        );
+        assert!(format!("{:?}", discover(temp.path()).unwrap_err()).contains("unknown template"));
+    }
+
+    #[test]
+    fn external_mapping_overrides_development_dependency_endpoints() {
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "upstream",
+            "name='upstream'\n[endpoints.http]\nport=4310",
+        );
+        write_package(
+            temp.path(),
+            "consumer",
+            "name='consumer'\n[[dependencies]]\nidentifier='upstream'\n[[dependencies.env]]\nendpoint='http'\nkey='URL'\nvalue='http://{{HOSTNAME}}:{{PORT}}'",
+        );
+        fs::write(
+            temp.path().join("control-external.toml"),
+            "[[external]]\nidentifier='upstream'\nhostname='api.example.test'\n[external.mapping]\nhttp=443\n",
+        )
+        .unwrap();
+        let mut manifests = discover(temp.path()).unwrap();
+        let identifiers = load_externals(temp.path(), &mut manifests).unwrap();
+        assert_eq!(identifiers, BTreeSet::from(["upstream".to_string()]));
+        assert_eq!(
+            load_external_hostnames(temp.path()).unwrap(),
+            BTreeSet::from(["api.example.test".to_string()])
+        );
+        let consumer = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "consumer")
+            .unwrap();
+        assert_eq!(
+            consumer.manifest.dependency_endpoints["upstream"]["http"],
+            ResolvedEndpoint {
+                hostname: "api.example.test".into(),
+                port: 443,
+            }
+        );
+    }
+
+    #[test]
+    fn external_dependencies_stop_local_closure_expansion() {
+        let temp = tempdir().unwrap();
+        write_package(temp.path(), "database", "name='database'");
+        write_package(
+            temp.path(),
+            "upstream",
+            "name='upstream'\ndependencies=['database']",
+        );
+        write_package(
+            temp.path(),
+            "consumer",
+            "name='consumer'\ndependencies=['upstream']",
+        );
+        let manifests = discover(temp.path()).unwrap();
+        let selected = select_with_dependencies_excluding(
+            &manifests,
+            &["consumer".into()],
+            &RootKind::Standalone,
+            &BTreeSet::from(["upstream".into()]),
+        )
+        .unwrap();
+        assert_eq!(
+            selected
+                .iter()
+                .filter_map(|loaded| loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .map(|package| &package.name))
+                .collect::<Vec<_>>(),
+            ["consumer"]
+        );
+    }
+
+    #[test]
+    fn non_starting_endpoint_reference_does_not_create_a_cycle_or_closure_edge() {
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "api",
+            "name='api'\n[endpoints.http]\nport=4310\n[[dependencies]]\nidentifier='worker'",
+        );
+        write_package(
+            temp.path(),
+            "worker",
+            "name='worker'\n[endpoints.callback]\nport=4311\n[[dependencies]]\nidentifier='api'\nstart=false\n[[dependencies.env]]\nendpoint='http'\nkey='API_CALLBACK_URL'\nvalue='http://{{HOSTNAME}}:{{PORT}}'",
+        );
+        let manifests = discover(temp.path()).unwrap();
+        let api = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "api")
+            .unwrap();
+        let worker = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "worker")
+            .unwrap();
+        assert!(api.manifest.dependencies[0].starts());
+        assert!(!worker.manifest.dependencies[0].starts());
+        assert_eq!(
+            worker.manifest.dependency_endpoints["api"]["http"].port,
+            4310
+        );
+        assert_eq!(
+            dependency_closure(&manifests, &[api], &RootKind::Standalone)
+                .unwrap()
+                .iter()
+                .map(|loaded| loaded.manifest.package.as_ref().unwrap().name.as_str())
+                .collect::<Vec<_>>(),
+            ["worker"]
+        );
+    }
+
+    #[test]
+    fn rejects_environment_key_collisions_across_manifest_sources() {
+        for manifest in [
+            "name='api'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='URL'\nvalue='{{PORT}}'\n[dev.env]\nURL='duplicate'",
+            "name='api'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='URL'\nvalue='{{PORT}}'\n[[resources]]\ntype='redis'\n[[resources.env]]\nkey='URL'\nvalue='redis://{{HOSTNAME}}:{{PORT}}'",
+            "name='api'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='URL'\nvalue='{{PORT}}'\n[run.dev]\ncommand='run'\n[run.dev.env]\nURL='duplicate'",
+            "name='api'\n[dev.env]\nURL='duplicate'\n[dev.db.main]\nname='api'\nengine='postgres'\nenv='URL'",
+        ] {
+            let temp = tempdir().unwrap();
+            write_package(temp.path(), "api", manifest);
+            let error = discover(temp.path()).unwrap_err();
+            assert!(
+                format!("{error:?}").contains("environment key \"URL\" is declared by both"),
+                "{error:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_environment_key_collision_between_dependencies() {
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "one",
+            "name='one'\n[endpoints.http]\nport=4310",
+        );
+        write_package(
+            temp.path(),
+            "two",
+            "name='two'\n[endpoints.http]\nport=4311",
+        );
+        write_package(
+            temp.path(),
+            "consumer",
+            "name='consumer'\n[[dependencies]]\nidentifier='one'\n[[dependencies.env]]\nendpoint='http'\nkey='URL'\nvalue='{{HOSTNAME}}:{{PORT}}'\n[[dependencies]]\nidentifier='two'\n[[dependencies.env]]\nendpoint='http'\nkey='URL'\nvalue='{{HOSTNAME}}:{{PORT}}'",
+        );
+        assert!(
+            format!("{:?}", discover(temp.path()).unwrap_err())
+                .contains("environment key \"URL\" is declared by both")
+        );
     }
 }

@@ -55,8 +55,24 @@ name = "core-api"
 group = "backend"
 # Optional: "oss" or "enterprise"; omitted means both layouts.
 mode = "both"
-# Control package names required when this package is developed or tested.
-dependencies = ["database", "api"]
+[endpoints.http]
+port = 4310
+env = [
+  { key = "PORT", value = "{{PORT}}" },
+  { key = "PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "api"
+env = [
+  { endpoint = "http", key = "API_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[resources]]
+type = "redis"
+env = [
+  { key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" },
+]
 
 [test.e2e]
 # Single-shot service commands; do not use watchers or process supervisors.
@@ -71,13 +87,8 @@ packages = ["integration-fixtures"]
 prepare = ["frontend:build"]
 run = ["bun --watch ./src/server.ts"]
 
-[[dev.expose]]
-# HTTP/WebSocket listener exposed through the workspace hostname proxy.
-port = 4310
-
 [dev.env]
 LOG_LEVEL = "debug"
-PUBLIC_URL = "http://{{HOSTNAME}}:4310"
 SECRET = true
 
 [dev.db.main]
@@ -119,7 +130,7 @@ environment values can use `{ from = "TOKEN", default = "" }`.
 
 Literal, inherited, and default environment values support the strict
 `{{HOSTNAME}}` template. It resolves from `METORIAL_HOSTNAME` and unknown or
-unclosed templates are errors. Dependency URLs can use
+unclosed templates are errors. Resource values can use
 `{{CONTROL_PORT_POSTGRES}}`, `{{CONTROL_PORT_MONGO}}`,
 `{{CONTROL_PORT_REDIS}}`, `{{CONTROL_PORT_NATS}}`,
 `{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
@@ -132,11 +143,59 @@ Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
 environment.
 
-`dependencies` contains Control package names. Discovery rejects unknown
-packages, self references, dependency cycles, and references unavailable in any
-mode where the referring package is active. Dependency closure is transitive,
-deterministic, and is applied by normal dev, prepare, env, cleanup, and Docker
-selection.
+Each `[[dependencies]]` entry names a Control package with `identifier`. Its
+`env` entries select one of that package's `[endpoints.NAME]` declarations and
+resolve `{{HOSTNAME}}` and `{{PORT}}`. Endpoint `env` entries tell the owning
+service its actual hostname/port. Source checkouts and Docker workspace
+internals use endpoint defaults; host workspaces persist conflict-free actual
+ports; E2E allocates conflict-free ports per run.
+
+Dependencies default to `start = true`, which includes the target in dependency
+closure, cycle detection, and dependency-first startup. Set `start = false` for
+an endpoint-only reference such as a reverse callback URL:
+
+```toml
+[[dependencies]]
+identifier = "public-api"
+start = false
+env = [
+  { endpoint = "http", key = "CALLBACK_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+```
+
+The target is still validated and its endpoint environment is resolved, but the
+edge does not pull or start it. E2E starts that target only when another
+`start = true` edge or direct selection includes it.
+
+`[[resources]]` declares one Redis, NATS, or etcd requirement per type. Resource
+environment uses the runtime-selected host/port and may use the corresponding
+`CONTROL_PORT_*` templates. Postgres and MongoDB retain their existing model.
+Discovery rejects unknown/self/cyclic/mode-incompatible dependencies, unknown
+endpoints, malformed names or ports, duplicate resources/environment keys, and
+invalid templates. Environment keys must be unique across package environment,
+endpoint, dependency, resource, and database bindings. A run environment also
+cannot override one of those shared keys; separate runs may reuse keys because
+their environments are isolated.
+
+Development optionally reads a root `control-external.toml`:
+
+```toml
+[[external]]
+identifier = "api"
+hostname = "api.dev.example.com"
+
+[external.mapping]
+http = 443
+```
+
+External identifiers and mapping endpoints must exist, and every endpoint used
+by dependency environment wiring must be mapped. Development omits external
+packages from local startup and injects the configured host/ports. E2E ignores
+externals and starts dependencies locally. Docker workspaces resolve every
+configured external hostname on the host and add it to the workspace
+container's hosts configuration. Changing that resolved configuration recreates
+the container while retaining workspace volumes. `CONTROL_SERVICES_HOST`
+remains an optional address override for the hostname `services`.
 
 `[test.e2e]` is an explicit opt-in. Its `start` array defines single-shot
 service commands used instead of `[dev].run`; these commands must not launch
@@ -193,32 +252,34 @@ across E2E runs; normal E2E cleanup never removes those caches, so the next
 
 One shared test container uses the same content-hashed development image as
 Docker workspaces. Each invocation has a unique generated directory and Compose
-project. Control generates read-only environment overlays for the selected
-package and its dependency sources, then mounts those overlays over the
-container's package-local `.env`/`.env.test` paths without modifying checkout
-files. The selected source and its tests use suffixed test databases;
-dependency sources use unsuffixed development databases. The runner creates
-every required Postgres database idempotently. MongoDB databases are left to
-Mongo's normal lazy creation behavior; readiness is provided by the Mongo
-container health check and forwarded TCP port, so the shared runner does not
-require `mongosh`.
-Workspace-wide Prisma tasks receive all distinct database variables (for
-example `CARGO_DATABASE_URL` and federation URLs), while generic
-`DATABASE_URL` remains package-local. Control then runs `bun install`, workspace
-Prisma generate/push tasks, and the selected Control manifests' declared
-prepare scripts. It intentionally skips the production root build.
+project. Control generates read-only `.env` overlays for every discovered
+Control manifest with environment or database values, including manifests
+outside the selected source graph and mode-inactive packages that workspace-wide
+Turbo tasks can still visit. These overlays mask checkout and host-workspace
+`.env` files without modifying them. The selected package receives its test
+environment at both `.env` and `.env.test`; startup dependencies and unrelated
+workspace packages receive unsuffixed isolated E2E environments.
+
+The runner creates every Postgres database required by workspace-wide schema
+tasks plus selected test database variants. MongoDB retains lazy database
+creation; readiness is provided by the Mongo container health check and
+forwarded TCP port, so the shared runner does not require `mongosh`.
+Workspace-wide Prisma tasks receive non-generic database variables (for example
+`CARGO_DATABASE_URL` and federation URLs) only from the active source graph.
+Variables declared only by non-source or mode-inactive packages, plus generic
+`DATABASE_URL`, remain package-local under mounted overlays. This prevents
+mutually exclusive OSS and enterprise declarations from colliding in the root
+process environment. Control then runs `bun install`, workspace Prisma
+generate/push tasks, and only the selected source manifests' declared prepare
+scripts. It intentionally skips the production root build.
 
 The runner starts development commands dependency-first, one Control manifest
 at a time. Before starting the next manifest it waits for the current
-manifest's declared `[[dev.expose]]` TCP ports while checking every development
-process for early exit. Workers without exposures must survive a deterministic
-two-second startup grace. If a later manifest repeats an already-ready port,
-Control uses the same survival check instead of accepting the earlier
-listener as proof that the later source is ready. Service URLs using the normal
-`services` host are localized to `localhost` in generated E2E environments, so
-the selected test uses the object-storage, relay, and other dev processes
-running in the shared container. Included npm packages are test targets only
-and are not started as services. Compose attaches output only from
+manifest's allocated named endpoint ports while checking every development
+process for early exit. Workers without endpoints must survive a deterministic
+two-second startup grace. Resource URLs are generated from structured resource
+declarations; arbitrary `services` URLs are not rewritten. Included npm
+packages are test targets only and are not started as services. Compose attaches output only from
 `control-e2e`, keeping dependency health logs out of normal output. Tests run
 sequentially in this order:
 
@@ -257,9 +318,8 @@ container. Host workspaces perform setup directly on the host and generate an
 isolated dependency stack at `.control/services.docker-compose.yml`. Its
 Postgres, MongoDB, Redis, NATS, and etcd host ports are allocated once and
 persisted in workspace metadata. Containers, networks, volumes, and ports are
-therefore independent between host workspaces. Application ports declared by
-`[[dev.expose]]` remain fixed, so multiple host workspaces cannot run the same
-application service concurrently.
+therefore independent between host workspaces. Named application endpoint ports
+are also allocated once and persisted, so host workspaces can run concurrently.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
@@ -358,13 +418,9 @@ container as `/workspace/HOST.md`) listing every exposed HTTP endpoint for that
 hostname, grouped by package.
 
 `.localhost` resolves without host-file changes on supported systems. Every
-HTTP listener that should be reachable from the host must have a
-`[[dev.expose]]` declaration and bind to `0.0.0.0`. Non-HTTP ports remain
+HTTP listener that should be reachable from the host must have a named endpoint
+declaration and bind to `0.0.0.0`. Non-HTTP ports remain
 internal to the all-in-one container.
-
-The hostname `services` (object storage, relay, and similar) is resolved on the
-host — including Tailscale MagicDNS — and injected into the container with
-`--add-host`. Override with `CONTROL_SERVICES_HOST` when needed.
 
 Every workspace owns persistent Postgres, MongoDB, Redis, NATS, and etcd
 services. `workspace stop` stops both the workspace container and dependencies

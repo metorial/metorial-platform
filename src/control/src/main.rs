@@ -200,9 +200,21 @@ async fn main() -> Result<()> {
         } => dev::run_prepare(&project, &selectors, no_docker).await,
         Commands::Env { selectors, json } => {
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected =
-                manifest::select_with_dependencies(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             let root_env = environment::root_environment(&project)?;
             let mut written = Vec::new();
             for loaded in selected {
@@ -229,9 +241,21 @@ async fn main() -> Result<()> {
             selectors,
         } => {
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected =
-                manifest::select_with_dependencies(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             if stop_docker {
                 let env = environment::root_environment(&project)?;
                 let projects = docker::compose_projects(&project.root, &selected);
@@ -326,9 +350,21 @@ async fn main() -> Result<()> {
             command: DockerCommand::Stop { selectors },
         } => {
             let mut manifests = manifest::discover(&project.root)?;
-            workspace::configure_manifests(&project, &mut manifests)?;
-            let selected =
-                manifest::select_with_dependencies(&manifests, &selectors, &project.kind)?;
+            workspace::configure_manifests(&project, &mut manifests).await?;
+            let externals = manifest::load_externals(&project.root, &mut manifests)?;
+            let mut selected = manifest::select_with_dependencies_excluding(
+                &manifests,
+                &selectors,
+                &project.kind,
+                &externals,
+            )?;
+            selected.retain(|loaded| {
+                loaded
+                    .manifest
+                    .package
+                    .as_ref()
+                    .is_none_or(|package| !externals.contains(&package.name))
+            });
             let env = environment::root_environment(&project)?;
             let projects = docker::compose_projects(&project.root, &selected);
             docker::stop(&project.root, &projects, &env).await;

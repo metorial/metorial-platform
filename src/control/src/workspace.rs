@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs,
     net::{Ipv4Addr, SocketAddrV4, TcpListener},
     path::{Path, PathBuf},
@@ -44,6 +44,8 @@ pub struct WorkspaceMetadata {
     pub runtime: WorkspaceRuntime,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub service_ports: Option<ServicePorts>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub endpoint_ports: std::collections::BTreeMap<String, std::collections::BTreeMap<String, u16>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -104,9 +106,13 @@ pub async fn create(
     if target.exists() {
         bail!("workspace path already exists: {}", target.display());
     }
-    let service_ports = match runtime {
-        WorkspaceRuntime::Host => Some(allocate_service_ports(project).await?),
-        WorkspaceRuntime::Docker => None,
+    let (service_ports, endpoint_ports) = match runtime {
+        WorkspaceRuntime::Host => {
+            let service_ports = allocate_service_ports(project).await?;
+            let endpoint_ports = allocate_endpoint_ports(project, &service_ports).await?;
+            (Some(service_ports), endpoint_ports)
+        }
+        WorkspaceRuntime::Docker => (None, Default::default()),
     };
 
     let root_branch_created = add_worktree(&project.root, &target, branch).await?;
@@ -165,6 +171,7 @@ pub async fn create(
                 source_root: project.root.clone(),
                 runtime,
                 service_ports,
+                endpoint_ports,
             },
         )?;
         println!("created workspace {}", target.display());
@@ -349,6 +356,7 @@ pub async fn metadata(project: &ProjectRoot) -> Result<WorkspaceMetadata> {
         source_root,
         runtime: WorkspaceRuntime::Docker,
         service_ports: None,
+        endpoint_ports: Default::default(),
     };
     write_metadata(&project.root, &metadata)?;
     Ok(metadata)
@@ -366,9 +374,13 @@ fn write_metadata(root: &Path, metadata: &WorkspaceMetadata) -> Result<()> {
     fs::create_dir_all(parent).into_diagnostic()?;
     let mut contents = serde_json::to_string_pretty(metadata).into_diagnostic()?;
     contents.push('\n');
-    fs::write(&path, contents)
+    let temporary = parent.join(".workspace.json.tmp");
+    fs::write(&temporary, contents)
         .into_diagnostic()
-        .wrap_err_with(|| format!("could not write {}", path.display()))
+        .wrap_err_with(|| format!("could not write {}", temporary.display()))?;
+    fs::rename(&temporary, &path)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not install {}", path.display()))
 }
 
 fn read_metadata_file(root: &Path) -> Result<Option<WorkspaceMetadata>> {
@@ -389,8 +401,11 @@ pub fn metadata_if_present(root: &Path) -> Result<Option<WorkspaceMetadata>> {
     read_metadata_file(root)
 }
 
-pub fn configure_manifests(project: &ProjectRoot, manifests: &mut [LoadedManifest]) -> Result<()> {
-    let Some(metadata) = read_metadata_file(&project.root)? else {
+pub async fn configure_manifests(
+    project: &ProjectRoot,
+    manifests: &mut [LoadedManifest],
+) -> Result<()> {
+    let Some(mut metadata) = read_metadata_file(&project.root)? else {
         return Ok(());
     };
     if metadata.runtime != WorkspaceRuntime::Host {
@@ -398,9 +413,13 @@ pub fn configure_manifests(project: &ProjectRoot, manifests: &mut [LoadedManifes
     }
     let ports = metadata
         .service_ports
+        .clone()
         .ok_or_else(|| miette::miette!("host workspace metadata is missing service_ports"))?;
+    if allocate_missing_endpoint_ports(project, manifests, &mut metadata, &ports).await? {
+        write_metadata(&project.root, &metadata)?;
+    }
     let generated = project.root.join(".control/services.docker-compose.yml");
-    for loaded in manifests {
+    for loaded in manifests.iter_mut() {
         for compose in &mut loaded.manifest.docker.compose {
             if is_default_services_compose(compose) {
                 *compose = generated.clone();
@@ -426,8 +445,103 @@ pub fn configure_manifests(project: &ProjectRoot, manifests: &mut [LoadedManifes
                 database.port = ports.mongo;
             }
         }
+        if let Some(package) = &loaded.manifest.package {
+            for (name, endpoint) in &mut loaded.manifest.endpoints {
+                endpoint.port = metadata
+                    .endpoint_ports
+                    .get(&package.name)
+                    .expect("missing host endpoint ports were allocated")
+                    .get(name)
+                    .copied()
+                    .expect("missing host endpoint port was allocated");
+            }
+        }
     }
+    crate::manifest::refresh_dependency_endpoints(manifests);
+    crate::manifest::validate_dependency_endpoints(manifests)?;
     Ok(())
+}
+
+async fn allocate_missing_endpoint_ports(
+    project: &ProjectRoot,
+    manifests: &[LoadedManifest],
+    metadata: &mut WorkspaceMetadata,
+    service_ports: &ServicePorts,
+) -> Result<bool> {
+    let missing = manifests
+        .iter()
+        .filter_map(|loaded| {
+            loaded.manifest.package.as_ref().map(|package| {
+                loaded
+                    .manifest
+                    .endpoints
+                    .keys()
+                    .filter(|endpoint| {
+                        !metadata
+                            .endpoint_ports
+                            .get(&package.name)
+                            .is_some_and(|ports| ports.contains_key(*endpoint))
+                    })
+                    .map(|endpoint| (package.name.clone(), endpoint.clone()))
+                    .collect::<Vec<_>>()
+            })
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+    if missing.is_empty() {
+        return Ok(false);
+    }
+
+    let mut reserved = reserved_endpoint_ports(manifests, service_ports);
+    reserved.extend(
+        metadata
+            .endpoint_ports
+            .values()
+            .flat_map(|endpoints| endpoints.values())
+            .copied(),
+    );
+    for worktree in list_worktrees(&project.root).await? {
+        if let Some(workspace) = read_metadata_file(&worktree.path)? {
+            reserved.extend(
+                workspace
+                    .endpoint_ports
+                    .values()
+                    .flat_map(|endpoints| endpoints.values())
+                    .copied(),
+            );
+        }
+    }
+    let allocated = allocate_port_values(&reserved, missing.len())?;
+    for ((package, endpoint), port) in missing.into_iter().zip(allocated) {
+        metadata
+            .endpoint_ports
+            .entry(package)
+            .or_default()
+            .insert(endpoint, port);
+    }
+    Ok(true)
+}
+
+fn reserved_endpoint_ports(
+    manifests: &[LoadedManifest],
+    service_ports: &ServicePorts,
+) -> BTreeSet<u16> {
+    let mut reserved = BTreeSet::from([32379, 32380, 32707, 34222, 35432, 36379]);
+    reserved.extend([
+        service_ports.postgres,
+        service_ports.mongo,
+        service_ports.redis,
+        service_ports.nats,
+        service_ports.etcd_client,
+        service_ports.etcd_peer,
+    ]);
+    reserved.extend(
+        manifests
+            .iter()
+            .flat_map(|loaded| loaded.manifest.endpoints.values())
+            .map(|endpoint| endpoint.port),
+    );
+    reserved
 }
 
 fn is_default_services_compose(path: &Path) -> bool {
@@ -457,6 +571,69 @@ async fn allocate_service_ports(project: &ProjectRoot) -> Result<ServicePorts> {
         }
     }
     allocate_available_ports(&reserved)
+}
+
+async fn allocate_endpoint_ports(
+    project: &ProjectRoot,
+    service_ports: &ServicePorts,
+) -> Result<std::collections::BTreeMap<String, std::collections::BTreeMap<String, u16>>> {
+    let manifests = crate::manifest::discover(&project.root)?;
+    let declarations = manifests
+        .iter()
+        .filter_map(|loaded| {
+            loaded.manifest.package.as_ref().map(|package| {
+                loaded
+                    .manifest
+                    .endpoints
+                    .keys()
+                    .map(|endpoint| (package.name.clone(), endpoint.clone()))
+                    .collect::<Vec<_>>()
+            })
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+    let mut reserved = reserved_endpoint_ports(&manifests, service_ports);
+    for worktree in list_worktrees(&project.root).await? {
+        if let Some(metadata) = read_metadata_file(&worktree.path)? {
+            reserved.extend(
+                metadata
+                    .endpoint_ports
+                    .values()
+                    .flat_map(|endpoints| endpoints.values())
+                    .copied(),
+            );
+        }
+    }
+    let ports = allocate_port_values(&reserved, declarations.len())?;
+    let mut output = std::collections::BTreeMap::new();
+    for ((package, endpoint), port) in declarations.into_iter().zip(ports) {
+        output
+            .entry(package)
+            .or_insert_with(std::collections::BTreeMap::new)
+            .insert(endpoint, port);
+    }
+    Ok(output)
+}
+
+fn allocate_port_values(reserved: &BTreeSet<u16>, count: usize) -> Result<Vec<u16>> {
+    let mut listeners = Vec::new();
+    let mut allocated = Vec::new();
+    for port in 30000..60000 {
+        if reserved.contains(&port) {
+            continue;
+        }
+        if let Ok(listener) = TcpListener::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, port)) {
+            listeners.push(listener);
+            allocated.push(port);
+            if allocated.len() == count {
+                break;
+            }
+        }
+    }
+    if allocated.len() != count {
+        bail!("could not allocate {count} conflict-free endpoint ports");
+    }
+    Ok(allocated)
 }
 
 fn allocate_available_ports(reserved: &BTreeSet<u16>) -> Result<ServicePorts> {
@@ -749,7 +926,17 @@ async fn delete_branch(repo: &Path, branch: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::process::Command;
     use tempfile::tempdir;
+
+    fn initialize_git(root: &Path) {
+        let status = Command::new("git")
+            .args(["init", "--quiet"])
+            .current_dir(root)
+            .status()
+            .unwrap();
+        assert!(status.success());
+    }
 
     #[test]
     fn validates_and_maps_branch_paths() {
@@ -854,8 +1041,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn host_workspace_remaps_generated_compose_and_database_ports() {
+    #[tokio::test]
+    async fn host_workspace_remaps_generated_compose_and_database_ports() {
         let temp = tempdir().unwrap();
         fs::create_dir_all(temp.path().join("scripts/dev-tools")).unwrap();
         fs::write(
@@ -867,7 +1054,7 @@ mod tests {
         fs::write(temp.path().join("package.json"), "{}").unwrap();
         fs::write(
             temp.path().join("control.toml"),
-            "name='test'\n[dev]\nrun=['bun dev']\n[dev.db.main]\nname='test'\nengine='postgres'\nenv='DATABASE_URL'\n",
+            "name='test'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='PORT'\nvalue='{{PORT}}'\n[dev]\nrun=['bun dev']\n[dev.db.main]\nname='test'\nengine='postgres'\nenv='DATABASE_URL'\n",
         )
         .unwrap();
         write_metadata(
@@ -886,6 +1073,10 @@ mod tests {
                     etcd_client: 41005,
                     etcd_peer: 41006,
                 }),
+                endpoint_ports: BTreeMap::from([(
+                    "test".into(),
+                    BTreeMap::from([("http".into(), 42000)]),
+                )]),
             },
         )
         .unwrap();
@@ -895,7 +1086,7 @@ mod tests {
             oss: temp.path().into(),
         };
         let mut manifests = vec![crate::manifest::load(&temp.path().join("control.toml")).unwrap()];
-        configure_manifests(&project, &mut manifests).unwrap();
+        configure_manifests(&project, &mut manifests).await.unwrap();
         let manifest = &manifests[0].manifest;
         assert_eq!(manifest.postgres["DATABASE_URL"].port, 41001);
         assert_eq!(
@@ -909,6 +1100,148 @@ mod tests {
         assert_eq!(
             manifest.docker.compose,
             [temp.path().join(".control/services.docker-compose.yml")]
+        );
+        assert_eq!(manifest.endpoints["http"].port, 42000);
+    }
+
+    #[tokio::test]
+    async fn upgrades_old_host_metadata_with_endpoint_ports() {
+        let temp = tempdir().unwrap();
+        initialize_git(temp.path());
+        fs::create_dir_all(temp.path().join(".control")).unwrap();
+        fs::write(temp.path().join("package.json"), "{}").unwrap();
+        fs::write(
+            temp.path().join("control.toml"),
+            "name='api'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='PORT'\nvalue='{{PORT}}'\n",
+        )
+        .unwrap();
+        fs::write(
+            temp.path().join(".control/workspace.json"),
+            format!(
+                r#"{{
+                    "id": "old-host",
+                    "hostname": "localhost",
+                    "branch": "old-host",
+                    "source_root": {},
+                    "runtime": "host",
+                    "service_ports": {{
+                        "postgres": 41001,
+                        "mongo": 41002,
+                        "redis": 41003,
+                        "nats": 41004,
+                        "etcd_client": 41005,
+                        "etcd_peer": 41006
+                    }}
+                }}"#,
+                serde_json::to_string(temp.path()).unwrap()
+            ),
+        )
+        .unwrap();
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        let mut manifests = crate::manifest::discover(temp.path()).unwrap();
+
+        configure_manifests(&project, &mut manifests).await.unwrap();
+
+        let upgraded = read_metadata_file(temp.path()).unwrap().unwrap();
+        let port = upgraded.endpoint_ports["api"]["http"];
+        assert_eq!(manifests[0].manifest.endpoints["http"].port, port);
+        assert!((30000..60000).contains(&port));
+        assert_ne!(port, 4310);
+        assert!(!temp.path().join(".control/.workspace.json.tmp").exists());
+    }
+
+    #[tokio::test]
+    async fn preserves_allocations_when_lazily_adding_endpoints() {
+        let temp = tempdir().unwrap();
+        initialize_git(temp.path());
+        fs::write(temp.path().join("package.json"), "{}").unwrap();
+        fs::write(
+            temp.path().join("control.toml"),
+            "name='api'\n[endpoints.http]\nport=4310\n[endpoints.metrics]\nport=4311\n",
+        )
+        .unwrap();
+        write_metadata(
+            temp.path(),
+            &WorkspaceMetadata {
+                id: "host".into(),
+                hostname: "localhost".into(),
+                branch: "host".into(),
+                source_root: temp.path().into(),
+                runtime: WorkspaceRuntime::Host,
+                service_ports: Some(ServicePorts {
+                    postgres: 41001,
+                    mongo: 41002,
+                    redis: 41003,
+                    nats: 41004,
+                    etcd_client: 41005,
+                    etcd_peer: 41006,
+                }),
+                endpoint_ports: BTreeMap::from([(
+                    "api".into(),
+                    BTreeMap::from([("http".into(), 42000)]),
+                )]),
+            },
+        )
+        .unwrap();
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        let mut manifests = crate::manifest::discover(temp.path()).unwrap();
+
+        configure_manifests(&project, &mut manifests).await.unwrap();
+
+        let upgraded = read_metadata_file(temp.path()).unwrap().unwrap();
+        assert_eq!(upgraded.endpoint_ports["api"]["http"], 42000);
+        let metrics = upgraded.endpoint_ports["api"]["metrics"];
+        assert_ne!(metrics, 42000);
+        assert_eq!(manifests[0].manifest.endpoints["http"].port, 42000);
+        assert_eq!(manifests[0].manifest.endpoints["metrics"].port, metrics);
+    }
+
+    #[tokio::test]
+    async fn docker_metadata_does_not_allocate_endpoint_ports() {
+        let temp = tempdir().unwrap();
+        fs::write(temp.path().join("package.json"), "{}").unwrap();
+        fs::write(
+            temp.path().join("control.toml"),
+            "name='api'\n[endpoints.http]\nport=4310\n",
+        )
+        .unwrap();
+        write_metadata(
+            temp.path(),
+            &WorkspaceMetadata {
+                id: "docker".into(),
+                hostname: "docker.localhost".into(),
+                branch: "docker".into(),
+                source_root: temp.path().into(),
+                runtime: WorkspaceRuntime::Docker,
+                service_ports: None,
+                endpoint_ports: BTreeMap::new(),
+            },
+        )
+        .unwrap();
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        let mut manifests = crate::manifest::discover(temp.path()).unwrap();
+
+        configure_manifests(&project, &mut manifests).await.unwrap();
+
+        assert_eq!(manifests[0].manifest.endpoints["http"].port, 4310);
+        assert!(
+            read_metadata_file(temp.path())
+                .unwrap()
+                .unwrap()
+                .endpoint_ports
+                .is_empty()
         );
     }
 }

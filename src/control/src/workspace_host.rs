@@ -168,8 +168,17 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
 
 async fn start_services(project: &ProjectRoot) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
-    workspace::configure_manifests(project, &mut manifests)?;
-    let selected = manifest::select_with_dependencies(&manifests, &[], &project.kind)?;
+    workspace::configure_manifests(project, &mut manifests).await?;
+    let externals = manifest::load_externals(&project.root, &mut manifests)?;
+    let mut selected =
+        manifest::select_with_dependencies_excluding(&manifests, &[], &project.kind, &externals)?;
+    selected.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
     let env = environment::root_environment(project)?;
     docker::start(&project.root, &selected, &env)
         .await
@@ -474,6 +483,7 @@ mod tests {
                 etcd_client: 40005,
                 etcd_peer: 40006,
             }),
+            endpoint_ports: Default::default(),
         };
         let rendered = render_compose(
             "services:\n  postgres:\n    ports:\n      - '35432:5432'\nnetworks:\n  control-services:\n    name: control_services\n",

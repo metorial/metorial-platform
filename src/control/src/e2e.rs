@@ -100,18 +100,23 @@ fn project_for_selector(
 
 async fn run_one(project: &ProjectRoot, selector: &str) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
-    configure_e2e_manifests(&mut manifests);
+    configure_e2e_manifests(&mut manifests)?;
     let npm_packages = discover_npm_packages(&project.root)?;
     let plan = build_plan(&manifests, &npm_packages, selector, &project.kind)?;
+    // Turbo's Prisma tasks are workspace-wide and can include packages outside
+    // the selected service graph (including mode-inactive manifests). Those
+    // packages get local overlays, but only active sources contribute process
+    // environment to avoid mixing mutually exclusive mode declarations.
+    let task_manifests = manifests.iter().collect::<Vec<_>>();
     let root_environment = e2e_root_environment(project)?;
-    let task_environment = task_environment(&plan.sources, &root_environment)?;
+    let task_environment = task_environment(&plan.sources, &task_manifests, &root_environment)?;
 
     let assets = workspace_dev::test_assets(project);
     let image = workspace_dev::ensure_image(&project.root, &assets, false).await?;
     let generated = generate(
         project,
         &plan,
-        &plan.sources,
+        &task_manifests,
         &root_environment,
         &task_environment,
         &image,
@@ -183,8 +188,10 @@ struct TestPlan<'a> {
     tests: Vec<TestTarget<'a>>,
 }
 
-fn configure_e2e_manifests(manifests: &mut [LoadedManifest]) {
-    for loaded in manifests {
+fn configure_e2e_manifests(manifests: &mut [LoadedManifest]) -> Result<()> {
+    let mut reserved = BTreeSet::from([2379, 2380, 4222, 5432, 6379, 27017]);
+    let mut listeners = Vec::new();
+    for loaded in manifests.iter_mut() {
         for database in loaded.manifest.postgres.values_mut() {
             database.host = "postgres-db2".into();
             database.port = 5432;
@@ -202,7 +209,23 @@ fn configure_e2e_manifests(manifests: &mut [LoadedManifest]) {
             database.compose = None;
             database.service = None;
         }
+        for endpoint in loaded.manifest.endpoints.values_mut() {
+            let listener = (30000..60000)
+                .filter(|port| !reserved.contains(port))
+                .find_map(|port| {
+                    std::net::TcpListener::bind(("127.0.0.1", port))
+                        .ok()
+                        .map(|listener| (port, listener))
+                })
+                .ok_or_else(|| miette::miette!("could not allocate an E2E endpoint port"))?;
+            reserved.insert(listener.0);
+            endpoint.port = listener.0;
+            listeners.push(listener.1);
+        }
     }
+    manifest::refresh_dependency_endpoints(manifests);
+    manifest::validate_dependency_endpoints(manifests)?;
+    Ok(())
 }
 
 fn e2e_root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String>> {
@@ -210,6 +233,9 @@ fn e2e_root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String
     environment.insert("METORIAL_HOSTNAME".into(), "localhost".into());
     environment.insert("TURBO_TELEMETRY_DISABLED".into(), "1".into());
     environment.insert("DO_NOT_TRACK".into(), "1".into());
+    environment.insert("CONTROL_SERVICE_REDIS".into(), "redis-db:6379".into());
+    environment.insert("CONTROL_SERVICE_NATS".into(), "nats-1:4222".into());
+    environment.insert("CONTROL_SERVICE_ETCD".into(), "etcd:2379".into());
     for (key, port) in [
         ("CONTROL_PORT_POSTGRES", 35432),
         ("CONTROL_PORT_MONGO", 32707),
@@ -224,15 +250,25 @@ fn e2e_root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String
 }
 
 fn task_environment(
-    manifests: &[&LoadedManifest],
+    active_manifests: &[&LoadedManifest],
+    all_manifests: &[&LoadedManifest],
     root_environment: &BTreeMap<String, String>,
 ) -> Result<BTreeMap<String, String>> {
     let mut output = root_environment.clone();
-    // A workspace-wide DATABASE_URL would leak one schema into every Prisma
-    // package. Generic URLs stay in each package-local .env instead.
+    // Database values from packages outside the active graph must not leak
+    // through the process environment and override their mounted local dotenv.
     output.remove("DATABASE_URL");
+    for name in all_manifests.iter().flat_map(|loaded| {
+        loaded
+            .manifest
+            .postgres
+            .keys()
+            .chain(loaded.manifest.mongo.keys())
+    }) {
+        output.remove(name);
+    }
     let mut database_values = BTreeMap::<String, String>::new();
-    for loaded in manifests {
+    for loaded in active_manifests {
         let resolved = environment::all_for_manifest(loaded, root_environment)?;
         for name in loaded
             .manifest
@@ -383,30 +419,38 @@ fn generate(
     let main_test_env_file = overlays.join("main.env");
     environment::write_dotenv(&main_test_env_file, &main_test_environment)?;
     let main_directory = plan.main.path.parent().unwrap_or(&project.root);
-    let mut environment_mounts = vec![
-        (
-            main_test_env_file.clone(),
-            container_path(project, &main_directory.join(".env")),
-        ),
-        (
-            main_test_env_file.clone(),
-            container_path(project, &main_directory.join(".env.test")),
-        ),
-    ];
-    for (index, loaded) in plan.sources.iter().enumerate() {
+    let mut environment_mounts = BTreeMap::new();
+    insert_environment_mount(
+        &mut environment_mounts,
+        container_path(project, &main_directory.join(".env")),
+        main_test_env_file.clone(),
+    )?;
+    insert_environment_mount(
+        &mut environment_mounts,
+        container_path(project, &main_directory.join(".env.test")),
+        main_test_env_file.clone(),
+    )?;
+    for (index, loaded) in all_manifests.iter().enumerate() {
         if loaded.path == plan.main.path {
             continue;
         }
-        let mut source_environment = environment::all_for_manifest(loaded, root_environment)?;
-        localize_service_hosts(&mut source_environment);
-        let source_env_file = overlays.join(format!("source-{index}.env"));
-        environment::write_dotenv(&source_env_file, &source_environment)?;
-        let source_directory = loaded.path.parent().unwrap_or(&project.root);
-        environment_mounts.push((
-            source_env_file,
-            container_path(project, &source_directory.join(".env")),
-        ));
+        if !environment::has_values(loaded) {
+            continue;
+        }
+        let manifest_environment = environment::all_for_manifest(loaded, root_environment)?;
+        let manifest_env_file = overlays.join(format!("manifest-{index}.env"));
+        environment::write_dotenv(&manifest_env_file, &manifest_environment)?;
+        let manifest_directory = loaded.path.parent().unwrap_or(&project.root);
+        insert_environment_mount(
+            &mut environment_mounts,
+            container_path(project, &manifest_directory.join(".env")),
+            manifest_env_file,
+        )?;
     }
+    let environment_mounts = environment_mounts
+        .into_iter()
+        .map(|(target, source)| (source, target))
+        .collect::<Vec<_>>();
 
     let mut script = String::from(
         "#!/usr/bin/env bash\n\
@@ -488,9 +532,7 @@ fn generate(
         let package_environment = if loaded.path == plan.main.path {
             main_test_environment.clone()
         } else {
-            let mut values = environment::all_for_manifest(loaded, root_environment)?;
-            localize_service_hosts(&mut values);
-            values
+            environment::all_for_manifest(loaded, root_environment)?
         };
         for prepare in &loaded.manifest.prepare {
             let env_file = runners.join(format!("prepare-{runner_index}.env"));
@@ -517,10 +559,9 @@ fn generate(
         if loaded.path == plan.main.path {
             set_test_database_urls(&mut manifest_environment, loaded);
         }
-        localize_service_hosts(&mut manifest_environment);
         let cwd = loaded.path.parent().unwrap_or(&project.root);
-        for exposure in &loaded.manifest.expose {
-            if !ready_ports.contains(&exposure.port) {
+        for endpoint in loaded.manifest.endpoints.values() {
+            if !ready_ports.contains(&endpoint.port) {
                 script.push_str(&format!(
                     "if nc -z 127.0.0.1 {port} 2>/dev/null; then\n\
                        echo {}\n\
@@ -529,9 +570,9 @@ fn generate(
                      fi\n",
                     shell_quote(&format!(
                         "Port {} is already occupied before starting {source_name}",
-                        exposure.port
+                        endpoint.port
                     )),
-                    port = exposure.port,
+                    port = endpoint.port,
                 ));
             }
         }
@@ -586,7 +627,7 @@ fn generate(
         if source_runs.is_empty() {
             continue;
         }
-        if loaded.manifest.expose.is_empty() {
+        if loaded.manifest.endpoints.is_empty() {
             script.push_str(&format!(
                 "echo {}\n\
                  for attempt in 1 2; do sleep 1; check_children; done\n\
@@ -596,8 +637,8 @@ fn generate(
             ));
             continue;
         }
-        for exposure in &loaded.manifest.expose {
-            let port = exposure.port;
+        for endpoint in loaded.manifest.endpoints.values() {
+            let port = endpoint.port;
             if !ready_ports.insert(port) {
                 script.push_str(&format!(
                     "echo {}\n\
@@ -632,15 +673,15 @@ fn generate(
         }
         let stable_ports = loaded
             .manifest
-            .expose
-            .iter()
-            .map(|exposure| {
+            .endpoints
+            .values()
+            .map(|endpoint| {
                 format!(
                     "nc -z 127.0.0.1 {} || {{ echo {} >&2; ss -ltnp >&2 || true; exit 1; }}\n",
-                    exposure.port,
+                    endpoint.port,
                     shell_quote(&format!(
                         "Port {} disappeared while stabilizing {source_name}",
-                        exposure.port
+                        endpoint.port
                     ))
                 )
             })
@@ -707,8 +748,8 @@ fn generate(
     let cache_volumes = cache_volume_names(&checkout_id);
     let mut reserved_ports = all_manifests
         .iter()
-        .flat_map(|loaded| loaded.manifest.expose.iter())
-        .map(|exposure| exposure.port)
+        .flat_map(|loaded| loaded.manifest.endpoints.values())
+        .map(|endpoint| endpoint.port)
         .collect::<BTreeSet<_>>();
     reserved_ports.extend([32707, 35432]);
     let reserved_ports = reserved_ports
@@ -735,6 +776,23 @@ fn generate(
         project: format!("control_test_{checkout_id}_{run_id}"),
         cache_volumes,
     })
+}
+
+fn insert_environment_mount(
+    mounts: &mut BTreeMap<String, PathBuf>,
+    target: String,
+    source: PathBuf,
+) -> Result<()> {
+    if let Some(previous) = mounts.insert(target.clone(), source.clone())
+        && previous != source
+    {
+        bail!(
+            "multiple E2E environment overlays target {target:?}: {} and {}",
+            previous.display(),
+            source.display()
+        );
+    }
+    Ok(())
 }
 
 fn provisioning_script(
@@ -784,7 +842,6 @@ fn control_test_environment(
     let mut output = environment::all_for_manifest(loaded, root_environment)?;
     output.insert("NODE_ENV".into(), "test".into());
     set_test_database_urls(&mut output, loaded);
-    localize_service_hosts(&mut output);
     Ok(output)
 }
 
@@ -798,22 +855,6 @@ fn set_test_database_urls(output: &mut BTreeMap<String, String>, loaded: &Loaded
         let mut test_database = database.clone();
         test_database.database = test_database_name(&database.database);
         output.insert(name.clone(), environment::mongo_url(&test_database));
-    }
-}
-
-fn localize_service_hosts(environment: &mut BTreeMap<String, String>) {
-    for value in environment.values_mut() {
-        *value = value
-            .replace("://services:", "://localhost:")
-            .replace("//services:", "//localhost:")
-            .replace("localhost:36379", "redis-db:6379")
-            .replace("127.0.0.1:36379", "redis-db:6379")
-            .replace("localhost:34222", "nats-1:4222")
-            .replace("127.0.0.1:34222", "nats-1:4222")
-            .replace("localhost:32379", "etcd:2379")
-            .replace("127.0.0.1:32379", "etcd:2379")
-            .replace("localhost:32380", "etcd:2380")
-            .replace("127.0.0.1:32380", "etcd:2380");
     }
 }
 
@@ -934,7 +975,6 @@ fn render_compose(
          \x20     CARGO_TARGET_DIR: /control-cache/cargo-target\n\
          \x20     METORIAL_HOSTNAME: localhost\n\
          \x20   extra_hosts:\n\
-         \x20     - services:127.0.0.1\n\
          \x20     - mcp-test-server:127.0.0.1\n\
          \x20   volumes:\n\
          \x20     - {{ type: bind, source: {root}, target: /workspace }}\n\
@@ -1152,7 +1192,8 @@ mod tests {
             true,
         );
         package(temp.path(), "suite", None, true);
-        let manifests = manifest::discover(temp.path()).unwrap();
+        let mut manifests = manifest::discover(temp.path()).unwrap();
+        configure_e2e_manifests(&mut manifests).unwrap();
         let npm = discover_npm_packages(temp.path()).unwrap();
         let plan = build_plan(&manifests, &npm, "api", &RootKind::Standalone).unwrap();
         assert!(matches!(plan.tests[0], TestTarget::Control(_)));
@@ -1174,6 +1215,37 @@ mod tests {
                 .to_string()
                 .contains("opted into")
         );
+    }
+
+    #[test]
+    fn endpoint_only_dependencies_are_not_started_by_e2e() {
+        let temp = tempdir().unwrap();
+        package(
+            temp.path(),
+            "callback",
+            Some("name='callback'\n[endpoints.http]\nport=4310"),
+            false,
+        );
+        package(
+            temp.path(),
+            "api",
+            Some(
+                "name='api'\n[test.e2e]\n[[dependencies]]\nidentifier='callback'\nstart=false\n[[dependencies.env]]\nendpoint='http'\nkey='CALLBACK_URL'\nvalue='http://{{HOSTNAME}}:{{PORT}}'",
+            ),
+            true,
+        );
+        let manifests = manifest::discover(temp.path()).unwrap();
+        let npm = discover_npm_packages(temp.path()).unwrap();
+        let plan = build_plan(&manifests, &npm, "api", &RootKind::Standalone).unwrap();
+        assert_eq!(
+            plan.sources
+                .iter()
+                .map(|loaded| package_name(loaded).unwrap())
+                .collect::<Vec<_>>(),
+            ["api"]
+        );
+        let environment = environment::all_for_manifest(plan.main, &BTreeMap::new()).unwrap();
+        assert_eq!(environment["CALLBACK_URL"], "http://localhost:4310");
     }
 
     #[test]
@@ -1249,7 +1321,7 @@ mod tests {
         assert!(!compose.contains("include:"));
         assert!(!compose.contains("services.docker-compose.yml"));
         assert!(compose.contains("workspace-services: { internal: true }"));
-        assert!(compose.contains("services:127.0.0.1"));
+        assert!(!compose.contains("services:127.0.0.1"));
         assert!(compose.contains("mcp-test-server:127.0.0.1"));
         assert!(compose.contains("net.ipv4.ip_local_reserved_ports: \"52010,52070\""));
         assert!(compose.contains("target: \"/workspace/service/.env.test\", read_only: true"));
@@ -1342,7 +1414,7 @@ mod tests {
         assert!(runner.contains("prisma:push"));
         assert!(runner.contains("turbo run 'seed'"));
         assert!(!runner.contains("bun run build"));
-        assert!(runner.contains("Waiting for api port 4310"));
+        assert!(runner.contains("Waiting for api port "));
         let env_files = fs::read_dir(temp.path().join(".control/test/test-run/runners"))
             .unwrap()
             .filter_map(|entry| entry.ok())
@@ -1396,7 +1468,7 @@ mod tests {
             r#"{"test:e2e":"true","prisma:push":"true"}"#,
         );
         let mut manifests = manifest::discover(temp.path()).unwrap();
-        configure_e2e_manifests(&mut manifests);
+        configure_e2e_manifests(&mut manifests).unwrap();
         let npm = discover_npm_packages(temp.path()).unwrap();
         let plan = build_plan(&manifests, &npm, "api", &RootKind::Standalone).unwrap();
         let all = manifest::select(&manifests, &[], &RootKind::Standalone).unwrap();
@@ -1406,7 +1478,7 @@ mod tests {
             oss: temp.path().into(),
         };
         let roots = BTreeMap::from([("CONTROL_PORT_POSTGRES".into(), "35432".into())]);
-        let tasks = task_environment(&all, &roots).unwrap();
+        let tasks = task_environment(&plan.sources, &all, &roots).unwrap();
         generate(
             &project,
             &plan,
@@ -1438,9 +1510,13 @@ mod tests {
 
         let api_env =
             fs::read_to_string(temp.path().join(".control/test/test-run/env/main.env")).unwrap();
-        let db_env =
-            fs::read_to_string(temp.path().join(".control/test/test-run/env/source-0.env"))
-                .unwrap();
+        let db_env = fs::read_dir(temp.path().join(".control/test/test-run/env"))
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with("manifest-"))
+            .map(|entry| fs::read_to_string(entry.path()).unwrap())
+            .find(|contents| contents.contains("postgres-db2:5432/db"))
+            .unwrap();
         assert!(api_env.contains("postgres-db2:5432/api-test"));
         assert!(db_env.contains("postgres-db2:5432/db"));
         assert!(!db_env.contains("db-test"));
@@ -1471,7 +1547,8 @@ mod tests {
             ),
             true,
         );
-        let manifests = manifest::discover(temp.path()).unwrap();
+        let mut manifests = manifest::discover(temp.path()).unwrap();
+        configure_e2e_manifests(&mut manifests).unwrap();
         let npm = discover_npm_packages(temp.path()).unwrap();
         let plan = build_plan(&manifests, &npm, "b", &RootKind::Standalone).unwrap();
         let all = manifest::select(&manifests, &[], &RootKind::Standalone).unwrap();
@@ -1492,21 +1569,19 @@ mod tests {
         .unwrap();
         let runner = fs::read_to_string(temp.path().join(".control/test/test-run/run.sh")).unwrap();
         let start_a = runner.find("Starting a:dev").unwrap();
-        let ready_a = runner.find("Port 4101 ready for a").unwrap();
+        let ready_a = runner.find(" ready for a").unwrap();
         let start_worker = runner.find("Starting worker:dev").unwrap();
         let worker_ready = runner.find("Worker worker survived startup").unwrap();
         let start_b = runner.find("Starting b:dev").unwrap();
-        let duplicate_ready = runner
-            .find("Duplicate port 4101 survival check passed for b")
-            .unwrap();
+        let ready_b = runner.find(" ready for b").unwrap();
         assert!(
             start_a < ready_a
                 && ready_a < start_worker
                 && start_worker < worker_ready
                 && worker_ready < start_b
-                && start_b < duplicate_ready
+                && start_b < ready_b
         );
-        assert!(!runner.contains("Waiting for b port 4101"));
+        assert!(runner.contains("Waiting for b port "));
         assert!(runner.matches("check_children").count() >= 4);
     }
 
@@ -1525,13 +1600,16 @@ mod tests {
             temp.path(),
             "cargo",
             Some(
-                "name='cargo'\n[dev.db.cargo]\nname='cargo-db'\nengine='postgres'\nenv='CARGO_DATABASE_URL'\n[dev.db.usage]\nname='usage-db'\nengine='mongodb'\nenv='USAGE_MONGO_URL'",
+                "name='cargo'\nmode='enterprise'\n[dev.db.cargo]\nname='cargo-db'\nengine='postgres'\nenv='CARGO_DATABASE_URL'\n[dev.db.usage]\nname='usage-db'\nengine='mongodb'\nenv='USAGE_MONGO_URL'",
             ),
             false,
         );
         let mut manifests = manifest::discover(temp.path()).unwrap();
-        configure_e2e_manifests(&mut manifests);
-        let all = manifest::select(&manifests, &[], &RootKind::Standalone).unwrap();
+        configure_e2e_manifests(&mut manifests).unwrap();
+        let all = manifests.iter().collect::<Vec<_>>();
+        let npm = discover_npm_packages(temp.path()).unwrap();
+        let plan = build_plan(&manifests, &npm, "api", &RootKind::Standalone).unwrap();
+        assert_eq!(plan.sources.len(), 1);
         let roots = BTreeMap::from([
             (
                 "CARGO_DATABASE_URL".into(),
@@ -1543,20 +1621,116 @@ mod tests {
             ),
             ("CONTROL_PORT_POSTGRES".into(), "30000".into()),
         ]);
-        let tasks = task_environment(&all, &roots).unwrap();
-        assert_eq!(
-            tasks["CARGO_DATABASE_URL"],
-            "postgresql://postgres:postgres@postgres-db2:5432/cargo-db"
-        );
-        assert_eq!(
-            tasks["USAGE_MONGO_URL"],
-            "mongodb://mongo:mongo@mongodb:27017/usage-db?authSource=admin"
-        );
+        let tasks = task_environment(&plan.sources, &all, &roots).unwrap();
+        assert!(!tasks.contains_key("CARGO_DATABASE_URL"));
+        assert!(!tasks.contains_key("USAGE_MONGO_URL"));
         assert!(!tasks.contains_key("DATABASE_URL"));
         let script = provisioning_script(&all, &[]);
         assert!(script.contains("main-db"));
         assert!(script.contains("cargo-db"));
         assert!(!script.contains("mongosh"));
+
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        generate(
+            &project,
+            &plan,
+            &all,
+            &roots,
+            &tasks,
+            "dev:image",
+            "test-run",
+        )
+        .unwrap();
+        let generated = temp.path().join(".control/test/test-run");
+        let compose = fs::read_to_string(generated.join("docker-compose.yml")).unwrap();
+        assert!(compose.contains("target: \"/workspace/cargo/.env\", read_only: true"));
+        let cargo_overlay = fs::read_dir(generated.join("env"))
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with("manifest-"))
+            .map(|entry| fs::read_to_string(entry.path()).unwrap())
+            .find(|contents| contents.contains("CARGO_DATABASE_URL="))
+            .unwrap();
+        assert!(cargo_overlay.contains("postgres-db2:5432/cargo-db"));
+        assert!(!cargo_overlay.contains("127.0.0.1:30000"));
+        let root_overlay = fs::read_to_string(generated.join("runners/root.env")).unwrap();
+        assert!(
+            !root_overlay
+                .lines()
+                .any(|line| line.starts_with("DATABASE_URL="))
+        );
+        assert!(
+            fs::read_to_string(generated.join("run.sh"))
+                .unwrap()
+                .contains("database='cargo-db'")
+        );
+    }
+
+    #[test]
+    fn mode_exclusive_database_envs_do_not_conflict_in_task_environment() {
+        let temp = tempdir().unwrap();
+        package(
+            temp.path(),
+            "oss-db",
+            Some(
+                "name='oss-db'\nmode='oss'\n[dev.db.global]\nname='metorial-oss-global'\nengine='postgres'\nenv='GLOBAL_DATABASE_URL'",
+            ),
+            false,
+        );
+        package(
+            temp.path(),
+            "enterprise-db",
+            Some(
+                "name='enterprise-db'\nmode='enterprise'\n[dev.db.global]\nname='metorial-enterprise-global'\nengine='postgres'\nenv='GLOBAL_DATABASE_URL'",
+            ),
+            false,
+        );
+        package(
+            temp.path(),
+            "oss-api",
+            Some("name='oss-api'\nmode='oss'\ndependencies=['oss-db']\n[test.e2e]"),
+            true,
+        );
+        package(
+            temp.path(),
+            "enterprise-api",
+            Some(
+                "name='enterprise-api'\nmode='enterprise'\ndependencies=['enterprise-db']\n[test.e2e]",
+            ),
+            true,
+        );
+        let mut manifests = manifest::discover(temp.path()).unwrap();
+        configure_e2e_manifests(&mut manifests).unwrap();
+        let npm = discover_npm_packages(temp.path()).unwrap();
+        let all = manifests.iter().collect::<Vec<_>>();
+        let roots = BTreeMap::from([(
+            "GLOBAL_DATABASE_URL".into(),
+            "postgresql://stale:30000/global".into(),
+        )]);
+
+        for (selector, kind, expected, unexpected) in [
+            (
+                "oss-api",
+                RootKind::Standalone,
+                "metorial-oss-global",
+                "metorial-enterprise-global",
+            ),
+            (
+                "enterprise-api",
+                RootKind::Enterprise,
+                "metorial-enterprise-global",
+                "metorial-oss-global",
+            ),
+        ] {
+            let plan = build_plan(&manifests, &npm, selector, &kind).unwrap();
+            let tasks = task_environment(&plan.sources, &all, &roots).unwrap();
+            assert!(tasks["GLOBAL_DATABASE_URL"].contains(expected));
+            assert!(!tasks["GLOBAL_DATABASE_URL"].contains(unexpected));
+        }
     }
 
     #[test]
@@ -1571,7 +1745,7 @@ mod tests {
             true,
         );
         let mut manifests = manifest::discover(temp.path()).unwrap();
-        configure_e2e_manifests(&mut manifests);
+        configure_e2e_manifests(&mut manifests).unwrap();
         let forge = &manifests[0];
         let source = environment::all_for_manifest(forge, &BTreeMap::new()).unwrap();
         let test = control_test_environment(forge, &BTreeMap::new()).unwrap();
@@ -1583,8 +1757,8 @@ mod tests {
             test["DATABASE_URL"],
             "postgresql://postgres:postgres@postgres-db2:5432/forge-test"
         );
-        assert_eq!(test["OBJECT_STORAGE_URL"], "http://localhost:52010");
-        assert_eq!(test["RELAY_URL"], "http://localhost:52110/metorial-relay");
+        assert_eq!(test["OBJECT_STORAGE_URL"], "http://services:52010");
+        assert_eq!(test["RELAY_URL"], "http://services:52110/metorial-relay");
         assert_eq!(test["NODE_ENV"], "test");
         let script = provisioning_script(&[forge], &[forge]);
         assert!(script.contains("database='forge'"));
