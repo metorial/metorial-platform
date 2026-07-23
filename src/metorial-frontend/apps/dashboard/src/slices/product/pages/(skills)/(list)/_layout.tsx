@@ -1,15 +1,14 @@
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import { showScmRepositoryPicker } from '@metorial/scene-scm';
+import { useSkillImportActions } from '@metorial/scene-skills';
 import {
-  useCreateSkillImport,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { showSkillImportStatusPanel } from '../../../scenes/skills/importStatusPanel';
 import { showSkillGroupFormModal } from '../../../scenes/skills/groupModal';
 import { showSkillMarketplaceFormModal } from '../../../scenes/skills/marketplaceModal';
 import { showSkillFormModal } from '../../../scenes/skills/modal';
@@ -20,24 +19,14 @@ export let SkillsListLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let createSkillImport = useCreateSkillImport();
   let navigate = useNavigate();
   let pathname = useLocation().pathname;
 
   let listPathParams = [organization.data, project.data, instance.data] as const;
-  let openSkillImportStatus = (skillImportId: string) => {
-    if (!instance.data) return;
-
-    window.setTimeout(
-      () =>
-        showSkillImportStatusPanel({
-          instanceId: instance.data!.id,
-          skillImportId,
-          getSkillPath: skillId => Paths.instance.skill(...listPathParams, skillId)
-        }),
-      0
-    );
-  };
+  let skillImport = useSkillImportActions({
+    instanceId: instance.data?.id ?? '',
+    getSkillPath: skillId => Paths.instance.skill(...listPathParams, skillId)
+  });
 
   let createAction = () => {
     if (!instance.data) return null;
@@ -120,34 +109,24 @@ export let SkillsListLayout = () => {
                 window.location.href = `/o/${organization.data.slug}/project/${project.data.slug}/scm`;
               },
               onSelect: async repository => {
-                let [skillImport] = await createSkillImport.mutate({
-                  instanceId: instance.data!.id,
-                  source: {
-                    type: 'origin',
-                    repositoryId: repository.id
-                  }
+                return skillImport.createImport({
+                  type: 'origin',
+                  repositoryId: repository.id
                 });
-                if (!skillImport) return false;
-
-                openSkillImportStatus(skillImport.id);
-                return true;
               },
               onSelectPublicUrl: async repositoryUrl => {
-                let [skillImport] = await createSkillImport.mutate({
-                  instanceId: instance.data!.id,
-                  source: {
-                    type: 'public',
-                    repositoryUrl
-                  }
+                return skillImport.createImport({
+                  type: 'public',
+                  repositoryUrl
                 });
-                if (!skillImport) return false;
-
-                openSkillImportStatus(skillImport.id);
-                return true;
               },
-              selectionError: <createSkillImport.RenderError />
+              selectionError: <skillImport.RenderError />
             });
           }
+        },
+        {
+          label: 'Upload Skill',
+          onClick: skillImport.uploadSkill
         },
         {
           label: 'Create Template',
