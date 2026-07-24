@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
   db,
+  transactionDb,
   createConsumerAccessMock,
   deleteConsumerAccessMock,
   grantAccessMock,
@@ -11,7 +12,8 @@ let {
   getSkillByIdMock,
   setSkillParticipantAccessRoleMock,
   getSkillTemplateByIdMock,
-  createSkillMock
+  createSkillMock,
+  withTransactionMock
 } = vi.hoisted(() => ({
   db: {
     consumerProfile: {
@@ -38,6 +40,11 @@ let {
       findFirst: vi.fn()
     }
   },
+  transactionDb: {
+    consumerAccess: {
+      findMany: vi.fn()
+    }
+  },
   createConsumerAccessMock: vi.fn(),
   deleteConsumerAccessMock: vi.fn(),
   grantAccessMock: vi.fn(),
@@ -47,12 +54,15 @@ let {
   getSkillByIdMock: vi.fn(),
   setSkillParticipantAccessRoleMock: vi.fn(),
   getSkillTemplateByIdMock: vi.fn(),
-  createSkillMock: vi.fn()
+  createSkillMock: vi.fn(),
+  withTransactionMock: vi.fn(
+    async (fn: (database: unknown) => unknown) => await fn(transactionDb)
+  )
 }));
 
 vi.mock('@metorial/db', () => ({
   db,
-  withTransaction: (fn: () => unknown) => fn(),
+  withTransaction: withTransactionMock,
   ID: {
     generateId: vi.fn()
   }
@@ -150,7 +160,7 @@ describe('consumer skill sharing', () => {
 
     db.consumerGroup.findUniqueOrThrow.mockResolvedValue(personalConsumerGroup);
     db.consumerGroup.findMany.mockResolvedValue([personalConsumerGroup]);
-    db.consumerAccess.findMany.mockResolvedValue([]);
+    transactionDb.consumerAccess.findMany.mockResolvedValue([]);
     db.accessTagEntity.findMany.mockResolvedValue([]);
     db.storeParticipant.findMany.mockResolvedValue([]);
     createConsumerAccessMock.mockResolvedValue({
@@ -199,6 +209,45 @@ describe('consumer skill sharing', () => {
     );
   });
 
+  it('resolves actors before using a transaction-aware mutation per share target', async () => {
+    let secondProfile = {
+      ...targetProfile,
+      oid: 17n,
+      id: 'profile_2',
+      personalConsumerGroupOid: 18n
+    };
+    db.consumerProfile.findMany.mockResolvedValue([targetProfile, secondProfile]);
+
+    await consumerSkillService.shareSkill({
+      organization: organization as any,
+      instance: instance as any,
+      skill: skill as any,
+      permission: 'read',
+      targets: {
+        consumerProfileIds: [targetProfile.id, secondProfile.id]
+      }
+    });
+
+    expect(withTransactionMock).toHaveBeenCalledTimes(2);
+    expect(transactionDb.consumerAccess.findMany).toHaveBeenCalledTimes(2);
+    expect(db.consumerAccess.findMany).not.toHaveBeenCalled();
+    expect(setSkillParticipantAccessRoleMock).toHaveBeenCalledTimes(2);
+    expect(ensureConsumerActorMock).toHaveBeenCalledTimes(2);
+    expect(ensureConsumerActorMock.mock.invocationCallOrder[0]).toBeLessThan(
+      withTransactionMock.mock.invocationCallOrder[0]!
+    );
+    expect(grantAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: { personalConsumerGroupForProfile: targetProfile }
+      })
+    );
+    expect(grantAccessMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: { personalConsumerGroupForProfile: secondProfile }
+      })
+    );
+  });
+
   it('grants direct consumer write access without creating a participant', async () => {
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
 
@@ -228,7 +277,7 @@ describe('consumer skill sharing', () => {
   it('revokes legacy personal ConsumerAccess and participant-scoped policies', async () => {
     let access = { oid: 50n };
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
-    db.consumerAccess.findMany.mockResolvedValue([access]);
+    transactionDb.consumerAccess.findMany.mockResolvedValue([access]);
 
     await consumerSkillService.shareSkill({
       organization: organization as any,
@@ -254,7 +303,7 @@ describe('consumer skill sharing', () => {
   it('revokes legacy personal access even when no participant exists', async () => {
     let access = { oid: 50n };
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
-    db.consumerAccess.findMany.mockResolvedValue([access]);
+    transactionDb.consumerAccess.findMany.mockResolvedValue([access]);
     setSkillParticipantAccessRoleMock.mockResolvedValue(undefined);
 
     await consumerSkillService.shareSkill({

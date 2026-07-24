@@ -10,8 +10,8 @@ import {
   type ResourceAuthorizationMigrationPhase
 } from './artifacts';
 import { inventoryLegacyAccess } from './inventory';
-import { reconcileLegacyConsumerActors } from './reconcileActors';
 import { reconcileCanonicalAccess } from './reconcileAccess';
+import { reconcileLegacyConsumerActors } from './reconcileActors';
 import {
   finalizeResourceAuthorizationMigration,
   shadowCompareCanonicalAccess
@@ -228,3 +228,7 @@ export let resourceAuthorizationMigrationQueueProcessor =
       clearInterval(heartbeat);
     }
   });
+
+// setTimeout(() => {
+//   enqueueResourceAuthorizationMigration();
+// });

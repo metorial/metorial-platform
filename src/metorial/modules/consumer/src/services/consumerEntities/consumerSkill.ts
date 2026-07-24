@@ -155,9 +155,27 @@ class ConsumerSkillServiceImpl {
     if (!participant) {
       throw new ServiceError(notFoundError('skill.participant'));
     }
+    await this.grantConsumerPersonalSkillAccess({
+      organization: d.organization,
+      consumerProfile: d.consumerProfile,
+      skill: d.skill,
+      participant,
+      permission: d.permission,
+      grantManageAccess: d.grantManageAccess
+    });
+  }
+
+  private async grantConsumerPersonalSkillAccess(d: {
+    organization: Organization;
+    consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
+    skill: Pick<Skill, 'oid'>;
+    participant: { id: string };
+    permission: Exclude<SkillSharePermission, 'none'>;
+    grantManageAccess?: boolean;
+  }) {
     let policyScope = {
       type: 'skill_participant' as const,
-      skillParticipantId: participant.id
+      skillParticipantId: d.participant.id
     };
     await consumerAccessPolicyService.grantAccess({
       organization: d.organization,
@@ -272,18 +290,13 @@ class ConsumerSkillServiceImpl {
   }
 
   private async assertCanSetConsumerSharePermission(d: {
-    instance: Instance;
     skill: Skill;
-    consumerProfile: ConsumerProfile;
+    actor: { oid: bigint };
     permission: SkillSharePermission;
   }) {
     if (d.permission == 'write') return;
 
-    let { actor } = await this.getConsumerActor({
-      instance: d.instance,
-      consumerProfile: d.consumerProfile
-    });
-    let isOwner = d.skill.createdByResourceActorOid === actor.oid;
+    let isOwner = d.skill.createdByResourceActorOid === d.actor.oid;
 
     if (isOwner) {
       throw new ServiceError(
@@ -295,11 +308,12 @@ class ConsumerSkillServiceImpl {
   }
 
   private async deleteLegacyPersonalConsumerAccess(d: {
+    database: Prisma.TransactionClient;
     organization: Organization;
     consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
     skill: Pick<Skill, 'oid'>;
   }) {
-    let accesses = await db.consumerAccess.findMany({
+    let accesses = await d.database.consumerAccess.findMany({
       where: {
         type: 'skill',
         consumerGroupOid: d.consumerProfile.personalConsumerGroupOid,
@@ -332,41 +346,43 @@ class ConsumerSkillServiceImpl {
     skill: SkillRecord;
     permission: SkillSharePermission;
   }) {
-    await this.assertCanSetConsumerSharePermission({
-      instance: d.instance,
-      skill: d.skill,
-      consumerProfile: d.consumerProfile,
-      permission: d.permission
-    });
     let { actor } = await this.getConsumerActor({
       instance: d.instance,
       consumerProfile: d.consumerProfile
     });
-    let participant = await skillParticipantService.setSkillParticipantAccessRole({
+    await this.assertCanSetConsumerSharePermission({
       skill: d.skill,
       actor,
       permission: d.permission
     });
-    await this.deleteLegacyPersonalConsumerAccess({
-      organization: d.organization,
-      consumerProfile: d.consumerProfile,
-      skill: d.skill
-    });
-    await consumerAccessPolicyService.revokeSkillParticipantAccessForPersonalGroup({
-      organization: d.organization,
-      consumerProfile: d.consumerProfile,
-      skill: d.skill
-    });
-    if (!participant) return;
-    if (d.permission != 'none') {
-      await this.createConsumerPersonalSkillAccess({
-        organization: d.organization,
-        instance: d.instance,
-        consumerProfile: d.consumerProfile,
+
+    await withTransaction(async database => {
+      let participant = await skillParticipantService.setSkillParticipantAccessRole({
         skill: d.skill,
+        actor,
         permission: d.permission
       });
-    }
+      await this.deleteLegacyPersonalConsumerAccess({
+        database,
+        organization: d.organization,
+        consumerProfile: d.consumerProfile,
+        skill: d.skill
+      });
+      await consumerAccessPolicyService.revokeSkillParticipantAccessForPersonalGroup({
+        organization: d.organization,
+        consumerProfile: d.consumerProfile,
+        skill: d.skill
+      });
+      if (!participant || d.permission == 'none') return;
+
+      await this.grantConsumerPersonalSkillAccess({
+        organization: d.organization,
+        consumerProfile: d.consumerProfile,
+        skill: d.skill,
+        participant,
+        permission: d.permission
+      });
+    });
   }
 
   async createConsumerSkill(d: {
@@ -529,77 +545,75 @@ class ConsumerSkillServiceImpl {
       organizationMemberIds?: string[];
     };
   }) {
-    return await withTransaction(async () => {
-      let consumerProfileIds = getUniqueIds(d.targets.consumerProfileIds);
-      let organizationMemberIds = getUniqueIds(d.targets.organizationMemberIds);
+    let consumerProfileIds = getUniqueIds(d.targets.consumerProfileIds);
+    let organizationMemberIds = getUniqueIds(d.targets.organizationMemberIds);
 
-      if (!consumerProfileIds.length && !organizationMemberIds.length) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'At least one share target is required.'
-          })
-        );
-      }
-      if (organizationMemberIds.length) {
+    if (!consumerProfileIds.length && !organizationMemberIds.length) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'At least one share target is required.'
+        })
+      );
+    }
+    if (organizationMemberIds.length) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Organization member skill access is privileged and cannot be changed.'
+        })
+      );
+    }
+
+    if (d.consumerProfile) {
+      if (consumerProfileIds.includes(d.consumerProfile.id)) {
         throw new ServiceError(
           forbiddenError({
-            message: 'Organization member skill access is privileged and cannot be changed.'
+            message: 'Consumers cannot change their own skill share access.'
           })
         );
       }
 
-      if (d.consumerProfile) {
-        if (consumerProfileIds.includes(d.consumerProfile.id)) {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'Consumers cannot change their own skill share access.'
-            })
-          );
-        }
+      await this.assertConsumerCanManageSkillAccess({
+        skill: d.skill,
+        consumerProfile: d.consumerProfile
+      });
+    }
 
-        await this.assertConsumerCanManageSkillAccess({
-          skill: d.skill,
-          consumerProfile: d.consumerProfile
-        });
-      }
+    if (!consumerProfileIds.length) return;
 
-      if (consumerProfileIds.length) {
-        let targetProfiles = await db.consumerProfile.findMany({
-          where: {
-            id: {
-              in: consumerProfileIds
-            },
-            instanceOid: d.instance.oid,
-            status: 'active',
-            ...(d.consumerProfile
-              ? {
-                  surfaceOid: d.consumerProfile.surfaceOid,
-                  ...this.getProfileSharedGroupWhere(d.consumerGroups ?? [])
-                }
-              : {})
-          },
-          include: {
-            consumer: true,
-            personalConsumerGroup: true,
-            surface: true
-          }
-        });
-
-        if (targetProfiles.length !== consumerProfileIds.length) {
-          throw new ServiceError(notFoundError('consumer.profile'));
-        }
-
-        for (let targetProfile of targetProfiles) {
-          await this.setConsumerSkillSharePermission({
-            organization: d.organization,
-            instance: d.instance,
-            consumerProfile: targetProfile,
-            skill: d.skill,
-            permission: d.permission
-          });
-        }
+    let targetProfiles = await db.consumerProfile.findMany({
+      where: {
+        id: {
+          in: consumerProfileIds
+        },
+        instanceOid: d.instance.oid,
+        status: 'active',
+        ...(d.consumerProfile
+          ? {
+              surfaceOid: d.consumerProfile.surfaceOid,
+              ...this.getProfileSharedGroupWhere(d.consumerGroups ?? [])
+            }
+          : {})
+      },
+      include: {
+        consumer: true,
+        personalConsumerGroup: true,
+        surface: true
       }
     });
+
+    if (targetProfiles.length !== consumerProfileIds.length) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    for (let targetProfile of targetProfiles) {
+      await this.setConsumerSkillSharePermission({
+        organization: d.organization,
+        instance: d.instance,
+        consumerProfile: targetProfile,
+        skill: d.skill,
+        permission: d.permission
+      });
+    }
   }
 
   async publishConsumerSkill(d: {

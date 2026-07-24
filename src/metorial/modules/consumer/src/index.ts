@@ -28,7 +28,6 @@ export * from './portalUrlTemplate';
 export * from './queues/lifecycle';
 export * from './queues/materializeMagicMcpSessionOwnership';
 export * from './services';
-export { enqueueResourceAuthorizationMigration } from './queues/resourceAuthorizationMigration';
 
 export let consumerQueueProcessor = combineQueueProcessors([
   consumerSearchQueueProcessor,
