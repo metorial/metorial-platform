@@ -6,16 +6,16 @@ import {
   ID,
   Organization,
   OrganizationMember,
+  OrganizationMemberRole,
   OrganizationNotification,
   OrganizationNotificationDestination,
   OrganizationNotificationType,
-  OrganizationMemberRole,
   withTransaction
 } from '@metorial/db';
 import {
   OrganizationNotificationTypeIdentifier,
   OrganizationNotificationTypes
-} from '../definitions';
+} from '../definitions/notifications';
 import { createOrganizationNotificationQueue } from '../queues/createNotification';
 
 type OrganizationNotificationDestinationWithNotification =

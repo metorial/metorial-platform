@@ -18,7 +18,7 @@ vi.mock('@metorial/db', () => ({
 }));
 
 it('upserts the explicit notification type catalog at startup', async () => {
-  let { OrganizationNotificationTypes } = await import('./definitions');
+  let { OrganizationNotificationTypes } = await import('./notifications');
 
   await expect(OrganizationNotificationTypes.organization_notification).resolves.toMatchObject(
     {

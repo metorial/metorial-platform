@@ -5,7 +5,7 @@ import { db, Organization, OrganizationMember, withTransaction } from '@metorial
 import {
   OrganizationNotificationTypeIdentifier,
   OrganizationNotificationTypes
-} from '../definitions';
+} from '../definitions/notifications';
 import {
   getOrCreateOrganizationNotificationDigestSetting,
   getOrCreateOrganizationNotificationSetting
