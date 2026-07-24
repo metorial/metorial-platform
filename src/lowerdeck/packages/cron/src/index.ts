@@ -26,34 +26,41 @@ export let createCron = (
   let connection = parseRedisUrl(opts.redisUrl);
   if (process.env.QUEUE_DEBUG_LOGGING)
     console.log('Creating cron with connection', opts.redisUrl, connection);
-  let queue = new Queue(`Cr0N_${opts.name}`, {
-    connection,
-    defaultJobOptions: {
-      removeOnComplete: true,
-      removeOnFail: {
-        age: 60 * 60 * 24 // 1 day
-      }
-    }
-  });
 
   return {
     start: async () => {
       log(`Starting cron job ${opts.name} to run every ${opts.cron} using bullmq`);
 
-      await queue.upsertJobScheduler(
-        'cron',
-        {
-          pattern: opts.cron
-        },
-        {
-          opts: {
-            removeDependencyOnFailure: true,
-            removeOnComplete: true,
-            removeOnFail: true,
-            keepLogs: 0
+      // Delay Redis connection creation until startup reaches this processor.
+      let queue = new Queue(`Cr0N_${opts.name}`, {
+        connection,
+        defaultJobOptions: {
+          removeOnComplete: true,
+          removeOnFail: {
+            age: 60 * 60 * 24 // 1 day
           }
         }
-      );
+      });
+
+      try {
+        await queue.upsertJobScheduler(
+          'cron',
+          {
+            pattern: opts.cron
+          },
+          {
+            opts: {
+              removeDependencyOnFailure: true,
+              removeOnComplete: true,
+              removeOnFail: true,
+              keepLogs: 0
+            }
+          }
+        );
+      } catch (error) {
+        await queue.close();
+        throw error;
+      }
 
       let worker = new Worker(
         queue.name,
@@ -83,12 +90,32 @@ export let createCron = (
         },
         {
           connection,
-          concurrency: 1
+          concurrency: 1,
+          autorun: false
         }
       );
 
+      try {
+        await worker.waitUntilReady();
+      } catch (error) {
+        await Promise.allSettled([worker.close(true), queue.close()]);
+        throw error;
+      }
+      void worker.run().catch(error => {
+        Sentry.captureException(error, {
+          tags: {
+            cronName: opts.name,
+            cronOperation: 'run'
+          }
+        });
+        console.error(`Cron ${opts.name} stopped unexpectedly`, error);
+      });
+
       return {
-        close: worker.close.bind(worker)
+        close: async () => {
+          await worker.close();
+          await queue.close();
+        }
       };
     }
   };
