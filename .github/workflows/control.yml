@@ -51,5 +51,5 @@ jobs:
         working-directory: src/control
         run: cargo test docker_compose_accepts_generated_schema_when_available
 
-      - name: Build workspace development image
-        run: docker build --file scripts/dev-tools/workspace/Dockerfile scripts/dev-tools/workspace
+      - name: Smoke test Docker unit runner
+        run: cargo run --quiet --manifest-path src/control/Cargo.toml -- test unit @metorial/db

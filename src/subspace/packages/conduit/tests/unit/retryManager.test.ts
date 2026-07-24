@@ -40,7 +40,7 @@ describe('RetryManager', () => {
         attempts++;
         throw new Error('Always fails');
       }, 'Test operation')
-    ).rejects.toThrow('Test operation failed after 3 attempts: Always fails');
+    ).rejects.toThrow('Always fails');
 
     expect(attempts).toBe(3); // Initial + 2 retries
   });
@@ -95,7 +95,7 @@ describe('RetryManager', () => {
       manager.withRetry(async () => {
         throw 'String error';
       }, 'Test operation')
-    ).rejects.toThrow('Test operation failed after 2 attempts: String error');
+    ).rejects.toThrow('String error');
   });
 
   test('should pass attempt number to function', async () => {

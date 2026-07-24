@@ -8,7 +8,6 @@ import type {
   ConduitHeartbeatPing,
   ConduitHeartbeatPong
 } from '@metorial-subspace/connection-utils';
-import { conduit } from '../lib/conduit';
 import { topics } from '../lib/topic';
 
 let HEARTBEAT_TIMEOUT_MS = 1500;
@@ -56,6 +55,7 @@ let heartbeatSender: ConduitHeartbeatSender | null = null;
 
 let getHeartbeatSender = async () => {
   if (!heartbeatSender) {
+    let { conduit } = await import('../lib/conduit');
     heartbeatSender = conduit.createSender({
       defaultTimeout: HEARTBEAT_TIMEOUT_MS,
       maxRetries: 0

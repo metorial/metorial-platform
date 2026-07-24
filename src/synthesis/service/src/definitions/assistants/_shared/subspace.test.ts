@@ -87,7 +87,7 @@ describe('subspace assistant input validation', () => {
     });
 
     expect(JSON.parse(headers['Metorial-Agent-Client'])).toEqual({
-      name: 'Metorial Explorer',
+      name: 'Metorial Assistant',
       type: 'system_client',
       foreignId: 'synthesis:ten_1:env_1:sess_1'
     });

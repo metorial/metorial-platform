@@ -34,6 +34,7 @@ target/release/control db push core-api
 target/release/control env
 target/release/control cleanup --dry-run
 target/release/control docker stop
+target/release/control test unit @metorial/shuttle
 target/release/control test e2e @metorial/shuttle
 target/release/control workspace create feature/my-change --runtime=docker
 target/release/control workspace list
@@ -239,6 +240,41 @@ writes its package and database-owner environments, and runs
 [SELECTORS...]` additionally starts and provisions the required development
 database services before running `control:db:push`. Both commands use the same
 external-package exclusion and workspace port mapping as `control dev`.
+
+## Docker unit tests
+
+```sh
+control test unit @metorial/shuttle
+control test unit @metorial/mte-core-api @metorial/mte-global-router
+control test unit --all
+```
+
+Each selector must resolve to exactly one named Control package. All selected
+packages are combined into one Turbo filter union in one ephemeral container,
+so shared package dependencies are generated, built, and tested only once.
+`--all` selects every leaf workspace package with a `test` script and uses the
+same deduplicated graph. Workspace aggregators are excluded so they cannot
+invoke Turbo recursively and run tests twice; testless applications are not
+built merely because they have a Control manifest. `--all` cannot be combined
+with selectors. The runner uses the same content-hashed development image and
+persistent Linux dependency/compiler caches as Docker E2E. The command must run
+on a Docker host rather than inside a Control workspace container.
+
+Unit-test scope is derived only from the npm workspace graph. For each selected
+package, Control uses Turbo's `<package>...` filter to generate Prisma clients,
+run `build`, and run `test` for that package and all of its transitive workspace
+package dependencies. `control.toml` dependencies do not expand this scope and
+no application or infrastructure services are started. A package that appears
+in both graphs is included only when it is also an npm workspace dependency.
+
+The container runs `bun install`, `turbo run prisma:generate`, `turbo run
+build`, and `turbo run test`, in that order. It does not push schemas, run
+migrations, write development environments, start dependency processes, or
+invoke `test:e2e`.
+
+Package `test` scripts are therefore required to be unit-only. E2E files must
+be excluded by their unit configuration or command and exposed separately
+through `test:e2e`, which is run only by `control test e2e`.
 
 ## Docker E2E tests
 

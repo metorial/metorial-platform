@@ -4115,6 +4115,8 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial-subspace/presenters": "^1.0.0",
         "@metorial-subspace/provider-native": "^1.0.0",
+        "@metorial/data-hooks": "^1.0.0",
+        "@metorial/ui": "^1.0.0",
         "@sentry/bun": "^10.34.0",
         "@sentry/cli": "^3.2.0",
         "@types/react-dom": "19.2.3",

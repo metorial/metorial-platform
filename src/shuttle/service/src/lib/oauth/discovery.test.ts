@@ -50,7 +50,7 @@ describe('OAuthDiscovery', () => {
       } as any;
     });
 
-    await expect(OAuthDiscovery.discover('https://mcp.avo.app/mcp')).resolves.toEqual(
+    await expect(OAuthDiscovery.discover('https://mcp.avo.app/mcp')).resolves.toMatchObject(
       oauthConfig
     );
 

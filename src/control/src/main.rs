@@ -8,6 +8,7 @@ mod manifest;
 mod process;
 mod root;
 mod turbo;
+mod unit;
 mod workspace;
 mod workspace_dev;
 mod workspace_host;
@@ -120,6 +121,14 @@ enum DbCommand {
 
 #[derive(Debug, Subcommand)]
 enum TestCommand {
+    /// Run package unit tests and npm workspace dependencies in Docker.
+    Unit {
+        /// Package selectors, each resolving to exactly one Control package.
+        selectors: Vec<String>,
+        /// Run every Control package in one deduplicated Turbo graph.
+        #[arg(long)]
+        all: bool,
+    },
     /// Run package E2E suites sequentially in fresh Docker environments.
     E2e {
         /// Package selectors, each resolving to exactly one Control package.
@@ -398,9 +407,10 @@ async fn main() -> Result<()> {
             docker::stop(&project.root, &projects, &env).await;
             Ok(())
         }
-        Commands::Test {
-            command: TestCommand::E2e { selectors, all },
-        } => e2e::run(&project, &selectors, all).await,
+        Commands::Test { command } => match command {
+            TestCommand::Unit { selectors, all } => unit::run(&project, &selectors, all).await,
+            TestCommand::E2e { selectors, all } => e2e::run(&project, &selectors, all).await,
+        },
     }
 }
 
@@ -605,6 +615,38 @@ mod tests {
             all.command,
             Commands::Test {
                 command: TestCommand::E2e { selectors, all: true },
+            } if selectors.is_empty()
+        ));
+    }
+
+    #[test]
+    fn parses_unit_test_selectors() {
+        let test = Cli::try_parse_from([
+            "control",
+            "test",
+            "unit",
+            "@metorial/shuttle",
+            "@metorial/forge",
+        ])
+        .unwrap();
+        assert!(matches!(
+            test.command,
+            Commands::Test {
+                command: TestCommand::Unit {
+                    selectors,
+                    all: false,
+                },
+            } if selectors == ["@metorial/shuttle", "@metorial/forge"]
+        ));
+
+        let all = Cli::try_parse_from(["control", "test", "unit", "--all"]).unwrap();
+        assert!(matches!(
+            all.command,
+            Commands::Test {
+                command: TestCommand::Unit {
+                    selectors,
+                    all: true,
+                },
             } if selectors.is_empty()
         ));
     }

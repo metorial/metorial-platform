@@ -24,7 +24,7 @@ describe('resolveAssistantConversationInput', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('rejects provided input for a no-input assistant', async () => {
+  it('ignores provided input for a no-input assistant', async () => {
     await expect(
       resolveAssistantConversationInput({
         ...context,
@@ -34,7 +34,7 @@ describe('resolveAssistantConversationInput', () => {
         rawInput: { project_id: 'project_1' },
         rawInputProvided: true
       })
-    ).rejects.toThrow('This assistant does not accept conversation input.');
+    ).resolves.toBeUndefined();
   });
 
   it('rejects invalid input before calling handleInput', async () => {

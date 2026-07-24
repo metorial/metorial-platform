@@ -1,12 +1,11 @@
 import { configDefaults, defineConfig } from 'vitest/config';
 
-// Default suite: the fast, in-memory tests. Explicitly excludes the docker-backed
-// real-infra suite so `bun run test` stays dockerless and unchanged.
+// Default suite: unit tests only. Integration suites use their explicit scripts.
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts'],
     exclude: [...configDefaults.exclude, 'tests/integration-real/**'],
     testTimeout: 30000,
     hookTimeout: 30000

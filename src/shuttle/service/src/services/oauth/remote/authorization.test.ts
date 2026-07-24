@@ -134,7 +134,9 @@ describe('remoteOauthAuthorizationService.startAuthorization', () => {
     expect(result.redirectUrl).toBe('https://provider.example.com/auth');
     expect(oauthUtilsMock.buildAuthorizationUrl).toHaveBeenCalledWith(
       expect.objectContaining({
-        authEndpoint: 'https://provider.example.com/authorize',
+        config: expect.objectContaining({
+          authorization_endpoint: 'https://provider.example.com/authorize'
+        }),
         clientId: 'test-client-id',
         redirectUri: callbackUrlOverride,
         scopes: ['repo'],
