@@ -11,7 +11,7 @@ use crate::{
     docker, environment,
     infrastructure::Requirements,
     manifest::{self, LoadedManifest},
-    process,
+    process, proxy,
     root::ProjectRoot,
     turbo, workspace,
 };
@@ -30,6 +30,9 @@ pub async fn run(
     stop_docker: bool,
     dry_run: bool,
 ) -> Result<()> {
+    if !dry_run {
+        workspace::metadata(project).await?;
+    }
     let mut manifests = manifest::discover(&project.root)?;
     workspace::configure_manifests(project, &mut manifests).await?;
     let externals = manifest::load_externals(&project.root, &mut manifests)?;
@@ -143,6 +146,25 @@ pub async fn run(
     }
     workspace_spinner.finish_with_message(format!("Prepared {} run command(s)", packages.len()));
 
+    let metadata = workspace::metadata(project).await?;
+    if let Err(error) = proxy::ensure(
+        project,
+        &metadata,
+        &proxy::public_ports(&manifests, project),
+    )
+    .await
+    {
+        docker::stop(&project.root, &projects, &root_env).await;
+        return Err(error);
+    }
+    let registration = match proxy::register(project, &metadata, &selected) {
+        Ok(registration) => registration,
+        Err(error) => {
+            docker::stop(&project.root, &projects, &root_env).await;
+            return Err(error);
+        }
+    };
+
     let interactive = stdin().is_terminal() && stdout().is_terminal();
     let mut args = vec![
         "run".into(),
@@ -178,15 +200,17 @@ pub async fn run(
         }
     };
 
+    let unregister_result = registration.unregister();
     let cleanup_result = cleanup(&project.root, &selected, &root_env).await;
     let should_stop = stop_docker || selected.iter().any(|loaded| loaded.manifest.docker.stop);
     if should_stop {
         docker::stop(&project.root, &projects, &root_env).await;
     }
-    match (result, cleanup_result) {
-        (Err(error), _) => Err(error),
-        (Ok(()), Err(error)) => Err(error),
-        (Ok(()), Ok(())) => Ok(()),
+    match (result, unregister_result, cleanup_result) {
+        (Err(error), _, _) => Err(error),
+        (Ok(()), Err(error), _) => Err(error),
+        (Ok(()), Ok(()), Err(error)) => Err(error),
+        (Ok(()), Ok(()), Ok(())) => Ok(()),
     }
 }
 
@@ -195,6 +219,7 @@ pub async fn run_prepare(
     selectors: &[String],
     no_docker: bool,
 ) -> Result<()> {
+    workspace::metadata(project).await?;
     let mut manifests = manifest::discover(&project.root)?;
     workspace::configure_manifests(project, &mut manifests).await?;
     let externals = manifest::load_externals(&project.root, &mut manifests)?;
@@ -230,6 +255,7 @@ pub async fn run_database_task(
     selectors: &[String],
     task: DatabaseTask,
 ) -> Result<()> {
+    workspace::metadata(project).await?;
     let mut manifests = manifest::discover(&project.root)?;
     workspace::configure_manifests(project, &mut manifests).await?;
     let externals = manifest::load_externals(&project.root, &mut manifests)?;

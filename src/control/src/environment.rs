@@ -96,13 +96,14 @@ pub fn root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String
             .entry(key.into())
             .or_insert_with(|| value.to_string());
     }
-    if let Some(metadata) = workspace::metadata_if_present(&project.root)?
-        && metadata.runtime == WorkspaceRuntime::Host
-    {
+    if let Some(metadata) = workspace::metadata_if_present(&project.root)? {
+        output.insert("METORIAL_HOSTNAME".into(), metadata.hostname.clone());
+        if metadata.runtime != WorkspaceRuntime::Host {
+            return Ok(output);
+        }
         let ports = metadata
             .service_ports
             .ok_or_else(|| miette::miette!("host workspace metadata is missing service_ports"))?;
-        output.insert("METORIAL_HOSTNAME".into(), "localhost".into());
         for (key, value) in [
             ("CONTROL_PORT_POSTGRES", ports.postgres),
             ("CONTROL_PORT_MONGO", ports.mongo),
@@ -260,6 +261,10 @@ pub fn all_for_manifest(
                     &[
                         ("HOSTNAME", own_hostname.to_string()),
                         ("PORT", endpoint.port.to_string()),
+                        (
+                            "BIND_PORT",
+                            endpoint.bind_port.unwrap_or(endpoint.port).to_string(),
+                        ),
                     ],
                 )?,
             );
@@ -617,14 +622,14 @@ mod tests {
     }
 
     #[test]
-    fn host_workspaces_always_use_localhost() {
+    fn host_workspaces_use_their_public_hostname() {
         let temp = tempdir().unwrap();
         fs::create_dir_all(temp.path().join(".control")).unwrap();
         fs::write(
             temp.path().join(".control/workspace.json"),
             r#"{
                 "id": "feature-auth",
-                "hostname": "feature-auth.localhost",
+                "hostname": "metorial-feature-auth.localhost",
                 "branch": "feature/auth",
                 "source_root": "/code/metorial",
                 "runtime": "host",
@@ -646,7 +651,7 @@ mod tests {
         };
         assert_eq!(
             root_environment(&project).unwrap()["METORIAL_HOSTNAME"],
-            "localhost"
+            "metorial-feature-auth.localhost"
         );
     }
 
@@ -656,7 +661,7 @@ mod tests {
         for (directory, manifest) in [
             (
                 "upstream",
-                "name='upstream'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='PORT'\nvalue='{{PORT}}'",
+                "name='upstream'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='PUBLIC_PORT'\nvalue='{{PORT}}'\n[[endpoints.http.env]]\nkey='BIND_PORT'\nvalue='{{BIND_PORT}}'",
             ),
             (
                 "consumer",
@@ -668,7 +673,16 @@ mod tests {
             fs::write(path.join("package.json"), "{}").unwrap();
             fs::write(path.join("control.toml"), manifest).unwrap();
         }
-        let manifests = crate::manifest::discover(temp.path()).unwrap();
+        let mut manifests = crate::manifest::discover(temp.path()).unwrap();
+        manifests
+            .iter_mut()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "upstream")
+            .unwrap()
+            .manifest
+            .endpoints
+            .get_mut("http")
+            .unwrap()
+            .bind_port = Some(33001);
         let upstream = manifests
             .iter()
             .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "upstream")
@@ -678,8 +692,12 @@ mod tests {
             .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "consumer")
             .unwrap();
         assert_eq!(
-            all_for_manifest(upstream, &BTreeMap::new()).unwrap()["PORT"],
+            all_for_manifest(upstream, &BTreeMap::new()).unwrap()["PUBLIC_PORT"],
             "4310"
+        );
+        assert_eq!(
+            all_for_manifest(upstream, &BTreeMap::new()).unwrap()["BIND_PORT"],
+            "33001"
         );
         let roots = BTreeMap::from([("CONTROL_SERVICE_NATS".into(), "nats-1:4222".into())]);
         let values = all_for_manifest(consumer, &roots).unwrap();

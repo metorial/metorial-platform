@@ -21,7 +21,7 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52030
-env = [{ key = "FUNCTION_BAY_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "FUNCTION_BAY_API_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

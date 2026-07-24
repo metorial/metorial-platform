@@ -107,6 +107,9 @@ pub struct DependencyEnv {
 #[serde(deny_unknown_fields)]
 pub struct Endpoint {
     pub port: u16,
+    /// Runtime listener port. The manifest port remains the public endpoint.
+    #[serde(skip)]
+    pub bind_port: Option<u16>,
     #[serde(default)]
     pub env: Vec<EndpointEnv>,
 }
@@ -840,6 +843,7 @@ fn normalize(manifest: &mut Manifest, path: &Path) -> Result<()> {
                 name,
                 Endpoint {
                     port: exposure.port,
+                    bind_port: None,
                     env: Vec::new(),
                 },
             );
@@ -904,7 +908,12 @@ fn validate(manifest: &Manifest, path: &Path) -> Result<()> {
             );
         }
         for env in &endpoint.env {
-            validate_structured_env(&env.key, &env.value, &["HOSTNAME", "PORT"], path)?;
+            validate_structured_env(
+                &env.key,
+                &env.value,
+                &["HOSTNAME", "PORT", "BIND_PORT"],
+                path,
+            )?;
             register_env_key(
                 &mut shared_env_keys,
                 &env.key,
@@ -1114,6 +1123,10 @@ fn validate_templates(value: &str, allowed: &[&str]) -> Result<()> {
 }
 
 pub fn refresh_dependency_endpoints(manifests: &mut [LoadedManifest]) {
+    refresh_dependency_endpoints_for_hostname(manifests, "localhost");
+}
+
+pub fn refresh_dependency_endpoints_for_hostname(manifests: &mut [LoadedManifest], hostname: &str) {
     let endpoints = manifests
         .iter()
         .filter_map(|loaded| {
@@ -1128,7 +1141,7 @@ pub fn refresh_dependency_endpoints(manifests: &mut [LoadedManifest]) {
                             (
                                 name.clone(),
                                 ResolvedEndpoint {
-                                    hostname: "localhost".into(),
+                                    hostname: hostname.into(),
                                     port: endpoint.port,
                                 },
                             )
@@ -1625,7 +1638,7 @@ mod tests {
                 port = 4310
                 [[endpoints.http.env]]
                 key = "LISTEN_PORT"
-                value = "{{PORT}}"
+                value = "{{BIND_PORT}}"
             "#,
         );
         write_package(

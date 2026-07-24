@@ -86,22 +86,22 @@ run = ["dev:start"]
 [endpoints.api]
 port = 4310
 env = [
-  { key = "API_PORT", value = "{{PORT}}" },
+  { key = "API_PORT", value = "{{BIND_PORT}}" },
   { key = "API_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
 [endpoints.mcp]
 port = 4311
-env = [{ key = "MCP_PORT", value = "{{PORT}}" }]
+env = [{ key = "MCP_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.portal]
 port = 4315
-env = [{ key = "PORTAL_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "PORTAL_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.files]
 port = 4318
 env = [
-  { key = "FILES_PORT", value = "{{PORT}}" },
+  { key = "FILES_PORT", value = "{{BIND_PORT}}" },
   { key = "FILES_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
   { key = "DOWNLOAD_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]

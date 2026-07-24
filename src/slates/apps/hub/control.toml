@@ -36,17 +36,17 @@ run = ["dev:start"]
 [endpoints.public]
 port = 52045
 env = [
-  { key = "SLATES_HUB_PUBLIC_PORT", value = "{{PORT}}" },
+  { key = "SLATES_HUB_PUBLIC_PORT", value = "{{BIND_PORT}}" },
   { key = "SERVICE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
 [endpoints.internal]
 port = 52046
-env = [{ key = "SLATES_HUB_INTERNAL_PORT", value = "{{PORT}}" }]
+env = [{ key = "SLATES_HUB_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.admin]
 port = 52047
-env = [{ key = "SLATES_HUB_ADMIN_PORT", value = "{{PORT}}" }]
+env = [{ key = "SLATES_HUB_ADMIN_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

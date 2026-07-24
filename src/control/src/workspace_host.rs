@@ -8,7 +8,7 @@ use miette::{IntoDiagnostic, Result, WrapErr, bail};
 use crate::{
     dev, docker, environment,
     infrastructure::{self, RenderOptions, Requirements},
-    manifest, process,
+    manifest, process, proxy,
     root::ProjectRoot,
     workspace::{self, ServicePorts, WorkspaceMetadata, WorkspaceRuntime},
 };
@@ -111,7 +111,8 @@ pub async fn shell(project: &ProjectRoot) -> Result<()> {
 }
 
 pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
-    host_metadata(project).await?;
+    let metadata = host_metadata(project).await?;
+    proxy::unregister_workspace(project, &metadata)?;
     let compose = compose_path(project);
     let mut args = compose_args(&compose);
     if volumes {
@@ -139,7 +140,7 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
     println!("workspace: {}", metadata.id);
     println!("branch: {}", metadata.branch);
     println!("runtime: host");
-    println!("hostname: localhost");
+    println!("hostname: {}", metadata.hostname);
     println!("postgres: localhost:{}", ports.postgres);
     println!("mongo: localhost:{}", ports.mongo);
     println!("redis: localhost:{}", ports.redis);

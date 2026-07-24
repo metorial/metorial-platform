@@ -16,17 +16,17 @@ run = ["dev:start"]
 [endpoints.http]
 port = 52091
 env = [
-  { key = "CODE_BUCKET_HTTP_ADDRESS", value = ":{{PORT}}" },
+  { key = "CODE_BUCKET_HTTP_ADDRESS", value = ":{{BIND_PORT}}" },
   { key = "CODE_BUCKET_EDITOR_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
 [endpoints.workspace]
 port = 52092
-env = [{ key = "CODE_BUCKET_WORKSPACE_ADDRESS", value = ":{{PORT}}" }]
+env = [{ key = "CODE_BUCKET_WORKSPACE_ADDRESS", value = ":{{BIND_PORT}}" }]
 
 [endpoints.rpc]
 port = 5050
-env = [{ key = "CODE_BUCKET_RPC_ADDRESS", value = ":{{PORT}}" }]
+env = [{ key = "CODE_BUCKET_RPC_ADDRESS", value = ":{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

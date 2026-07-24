@@ -9,7 +9,7 @@ run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52060
-env = [{ key = "VOYAGER_PORT", value = "{{PORT}}" }]
+env = [{ key = "VOYAGER_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

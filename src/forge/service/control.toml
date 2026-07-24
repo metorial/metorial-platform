@@ -15,7 +15,7 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52020
-env = [{ key = "FORGE_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "FORGE_API_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

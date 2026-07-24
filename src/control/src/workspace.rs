@@ -102,6 +102,21 @@ pub async fn create(
     open_code: bool,
 ) -> Result<PathBuf> {
     validate_branch(branch)?;
+    let desired_id = workspace_id(branch);
+    if desired_id == "root" {
+        bail!("workspace name `root` is reserved for the main checkout");
+    }
+    for worktree in list_worktrees(&project.root).await? {
+        let existing_id = read_metadata_file(&worktree.path)?
+            .map(|metadata| metadata.id)
+            .or_else(|| worktree.branch.as_deref().map(workspace_id));
+        if existing_id.as_deref() == Some(&desired_id) {
+            bail!(
+                "workspace identifier {desired_id:?} is already used by {}",
+                worktree.path.display()
+            );
+        }
+    }
     let target = workspace_path(&project.root, branch);
     if target.exists() {
         bail!("workspace path already exists: {}", target.display());
@@ -162,7 +177,7 @@ pub async fn create(
         write_metadata(
             &target,
             &WorkspaceMetadata {
-                id: workspace_id(branch),
+                id: desired_id,
                 hostname: match runtime {
                     WorkspaceRuntime::Host => "localhost".into(),
                     WorkspaceRuntime::Docker => workspace_hostname(branch),
@@ -331,7 +346,32 @@ async fn find_worktree(project: &ProjectRoot, branch: &str) -> Result<GitWorktre
 }
 
 pub async fn metadata(project: &ProjectRoot) -> Result<WorkspaceMetadata> {
-    if let Some(metadata) = read_metadata_file(&project.root)? {
+    if let Some(mut metadata) = read_metadata_file(&project.root)? {
+        let is_source = same_path(&project.root, &metadata.source_root);
+        let hostname = if is_source {
+            "metorial-root.localhost".into()
+        } else {
+            workspace_hostname(&metadata.id)
+        };
+        let mut changed = metadata.hostname != hostname;
+        if changed {
+            metadata.hostname = hostname;
+        }
+        if is_source && metadata.id != "root" {
+            metadata.id = "root".into();
+            changed = true;
+        }
+        if is_source && metadata.runtime != WorkspaceRuntime::Host {
+            metadata.runtime = WorkspaceRuntime::Host;
+            changed = true;
+        }
+        if is_source && metadata.service_ports.is_none() {
+            metadata.service_ports = Some(allocate_service_ports(project).await?);
+            changed = true;
+        }
+        if changed {
+            write_metadata(&project.root, &metadata)?;
+        }
         return Ok(metadata);
     }
 
@@ -349,13 +389,31 @@ pub async fn metadata(project: &ProjectRoot) -> Result<WorkspaceMetadata> {
         branch
     };
     let source_root = source_root(project).await?;
+    let is_source = same_path(&project.root, &source_root);
+    let service_ports = if is_source {
+        Some(allocate_service_ports(project).await?)
+    } else {
+        None
+    };
     let metadata = WorkspaceMetadata {
-        id: workspace_id(&branch),
-        hostname: workspace_hostname(&branch),
+        id: if is_source {
+            "root".into()
+        } else {
+            workspace_id(&branch)
+        },
+        hostname: if is_source {
+            "metorial-root.localhost".into()
+        } else {
+            workspace_hostname(&branch)
+        },
         branch,
         source_root,
-        runtime: WorkspaceRuntime::Docker,
-        service_ports: None,
+        runtime: if is_source {
+            WorkspaceRuntime::Host
+        } else {
+            WorkspaceRuntime::Docker
+        },
+        service_ports,
         endpoint_ports: Default::default(),
     };
     write_metadata(&project.root, &metadata)?;
@@ -408,40 +466,41 @@ pub async fn configure_manifests(
     let Some(mut metadata) = read_metadata_file(&project.root)? else {
         return Ok(());
     };
-    if metadata.runtime != WorkspaceRuntime::Host {
-        return Ok(());
-    }
-    let ports = metadata
-        .service_ports
-        .clone()
-        .ok_or_else(|| miette::miette!("host workspace metadata is missing service_ports"))?;
-    if allocate_missing_endpoint_ports(project, manifests, &mut metadata, &ports).await? {
-        write_metadata(&project.root, &metadata)?;
-    }
-    for loaded in manifests.iter_mut() {
-        for database in loaded.manifest.postgres.values_mut() {
-            database.compose = None;
-            database.service = None;
-            database.port = ports.postgres;
+    if metadata.runtime == WorkspaceRuntime::Host {
+        let ports = metadata
+            .service_ports
+            .clone()
+            .ok_or_else(|| miette::miette!("host workspace metadata is missing service_ports"))?;
+        if allocate_missing_endpoint_ports(project, manifests, &mut metadata, &ports).await? {
+            write_metadata(&project.root, &metadata)?;
         }
-        for database in loaded.manifest.mongo.values_mut() {
-            database.compose = None;
-            database.service = None;
-            database.port = ports.mongo;
-        }
-        if let Some(package) = &loaded.manifest.package {
-            for (name, endpoint) in &mut loaded.manifest.endpoints {
-                endpoint.port = metadata
-                    .endpoint_ports
-                    .get(&package.name)
-                    .expect("missing host endpoint ports were allocated")
-                    .get(name)
-                    .copied()
-                    .expect("missing host endpoint port was allocated");
+        for loaded in manifests.iter_mut() {
+            for database in loaded.manifest.postgres.values_mut() {
+                database.compose = None;
+                database.service = None;
+                database.port = ports.postgres;
+            }
+            for database in loaded.manifest.mongo.values_mut() {
+                database.compose = None;
+                database.service = None;
+                database.port = ports.mongo;
+            }
+            if let Some(package) = &loaded.manifest.package {
+                for (name, endpoint) in &mut loaded.manifest.endpoints {
+                    endpoint.bind_port = Some(
+                        metadata
+                            .endpoint_ports
+                            .get(&package.name)
+                            .expect("missing host endpoint ports were allocated")
+                            .get(name)
+                            .copied()
+                            .expect("missing host endpoint port was allocated"),
+                    );
+                }
             }
         }
     }
-    crate::manifest::refresh_dependency_endpoints(manifests);
+    crate::manifest::refresh_dependency_endpoints_for_hostname(manifests, &metadata.hostname);
     crate::manifest::validate_dependency_endpoints(manifests)?;
     Ok(())
 }
@@ -795,7 +854,7 @@ pub fn workspace_id(branch: &str) -> String {
 }
 
 pub fn workspace_hostname(branch: &str) -> String {
-    format!("{}.localhost", workspace_id(branch))
+    format!("metorial-{}.localhost", workspace_id(branch))
 }
 
 async fn add_worktree(repo: &Path, target: &Path, branch: &str) -> Result<bool> {
@@ -925,7 +984,10 @@ mod tests {
             Path::new("/code/metorial-feature-cli")
         );
         assert_eq!(workspace_id("Feature/CLI"), "feature-cli");
-        assert_eq!(workspace_hostname("Feature/CLI"), "feature-cli.localhost");
+        assert_eq!(
+            workspace_hostname("Feature/CLI"),
+            "metorial-feature-cli.localhost"
+        );
     }
 
     #[test]
@@ -1001,6 +1063,32 @@ mod tests {
         assert_eq!(metadata.service_ports, None);
     }
 
+    #[tokio::test]
+    async fn migrates_the_main_checkout_to_root_host_identity() {
+        let temp = tempdir().unwrap();
+        initialize_git(temp.path());
+        fs::create_dir_all(temp.path().join(".control")).unwrap();
+        fs::write(temp.path().join("package.json"), "{}").unwrap();
+        fs::write(
+            temp.path().join(".control/workspace.json"),
+            format!(
+                r#"{{"id":"main","hostname":"main.localhost","branch":"dev","source_root":{},"runtime":"docker"}}"#,
+                serde_json::to_string(temp.path()).unwrap()
+            ),
+        )
+        .unwrap();
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        let metadata = metadata(&project).await.unwrap();
+        assert_eq!(metadata.id, "root");
+        assert_eq!(metadata.hostname, "metorial-root.localhost");
+        assert_eq!(metadata.runtime, WorkspaceRuntime::Host);
+        assert!(metadata.service_ports.is_some());
+    }
+
     #[test]
     fn host_port_allocation_skips_reserved_ports() {
         let reserved = BTreeSet::from([30000, 30001, 30002]);
@@ -1065,7 +1153,73 @@ mod tests {
         assert_eq!(manifest.postgres["DATABASE_URL"].port, 41001);
         assert_eq!(manifest.postgres["DATABASE_URL"].compose, None);
         assert!(manifest.docker.compose.is_empty());
-        assert_eq!(manifest.endpoints["http"].port, 42000);
+        assert_eq!(manifest.endpoints["http"].port, 4310);
+        assert_eq!(manifest.endpoints["http"].bind_port, Some(42000));
+    }
+
+    #[tokio::test]
+    async fn host_dependencies_use_public_workspace_endpoints() {
+        let temp = tempdir().unwrap();
+        for (directory, manifest) in [
+            (
+                "api",
+                "name='api'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='LISTEN_PORT'\nvalue='{{BIND_PORT}}'",
+            ),
+            (
+                "consumer",
+                "name='consumer'\n[[dependencies]]\nidentifier='api'\n[[dependencies.env]]\nendpoint='http'\nkey='API_URL'\nvalue='http://{{HOSTNAME}}:{{PORT}}'",
+            ),
+        ] {
+            fs::create_dir(temp.path().join(directory)).unwrap();
+            fs::write(temp.path().join(directory).join("package.json"), "{}").unwrap();
+            fs::write(temp.path().join(directory).join("control.toml"), manifest).unwrap();
+        }
+        write_metadata(
+            temp.path(),
+            &WorkspaceMetadata {
+                id: "feature".into(),
+                hostname: "metorial-feature.localhost".into(),
+                branch: "feature".into(),
+                source_root: PathBuf::from("/code/metorial"),
+                runtime: WorkspaceRuntime::Host,
+                service_ports: Some(ServicePorts {
+                    postgres: 41001,
+                    mongo: 41002,
+                    redis: 41003,
+                    nats: 41004,
+                    etcd_client: 41005,
+                    etcd_peer: 41006,
+                }),
+                endpoint_ports: BTreeMap::from([(
+                    "api".into(),
+                    BTreeMap::from([("http".into(), 42000)]),
+                )]),
+            },
+        )
+        .unwrap();
+        let project = ProjectRoot {
+            kind: RootKind::Standalone,
+            root: temp.path().into(),
+            oss: temp.path().into(),
+        };
+        let mut manifests = crate::manifest::discover(temp.path()).unwrap();
+        configure_manifests(&project, &mut manifests).await.unwrap();
+        let api = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "api")
+            .unwrap();
+        let consumer = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "consumer")
+            .unwrap();
+        assert_eq!(api.manifest.endpoints["http"].bind_port, Some(42000));
+        assert_eq!(
+            consumer.manifest.dependency_endpoints["api"]["http"],
+            crate::manifest::ResolvedEndpoint {
+                hostname: "metorial-feature.localhost".into(),
+                port: 4310,
+            }
+        );
     }
 
     #[tokio::test]
@@ -1112,7 +1266,11 @@ mod tests {
 
         let upgraded = read_metadata_file(temp.path()).unwrap().unwrap();
         let port = upgraded.endpoint_ports["api"]["http"];
-        assert_eq!(manifests[0].manifest.endpoints["http"].port, port);
+        assert_eq!(manifests[0].manifest.endpoints["http"].port, 4310);
+        assert_eq!(
+            manifests[0].manifest.endpoints["http"].bind_port,
+            Some(port)
+        );
         assert!((30000..60000).contains(&port));
         assert_ne!(port, 4310);
         assert!(!temp.path().join(".control/.workspace.json.tmp").exists());
@@ -1164,8 +1322,16 @@ mod tests {
         assert_eq!(upgraded.endpoint_ports["api"]["http"], 42000);
         let metrics = upgraded.endpoint_ports["api"]["metrics"];
         assert_ne!(metrics, 42000);
-        assert_eq!(manifests[0].manifest.endpoints["http"].port, 42000);
-        assert_eq!(manifests[0].manifest.endpoints["metrics"].port, metrics);
+        assert_eq!(manifests[0].manifest.endpoints["http"].port, 4310);
+        assert_eq!(
+            manifests[0].manifest.endpoints["http"].bind_port,
+            Some(42000)
+        );
+        assert_eq!(manifests[0].manifest.endpoints["metrics"].port, 4311);
+        assert_eq!(
+            manifests[0].manifest.endpoints["metrics"].bind_port,
+            Some(metrics)
+        );
     }
 
     #[tokio::test]

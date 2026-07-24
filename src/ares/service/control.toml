@@ -17,27 +17,27 @@ run = ["dev:start"]
 [endpoints.auth]
 port = 52120
 env = [
-  { key = "ARES_AUTH_PORT", value = "{{PORT}}" },
+  { key = "ARES_AUTH_PORT", value = "{{BIND_PORT}}" },
   { key = "ARES_AUTH_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
 [endpoints.admin]
 port = 52121
 env = [
-  { key = "ARES_ADMIN_PORT", value = "{{PORT}}" },
+  { key = "ARES_ADMIN_PORT", value = "{{BIND_PORT}}" },
   { key = "ARES_ADMIN_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
 [endpoints.sso]
 port = 52122
 env = [
-  { key = "ARES_SSO_PORT", value = "{{PORT}}" },
+  { key = "ARES_SSO_PORT", value = "{{BIND_PORT}}" },
   { key = "ARES_SSO_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
 [endpoints.internal]
 port = 52123
-env = [{ key = "ARES_INTERNAL_PORT", value = "{{PORT}}" }]
+env = [{ key = "ARES_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

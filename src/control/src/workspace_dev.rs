@@ -12,12 +12,11 @@ use crate::{
     environment,
     infrastructure::{self, RenderOptions, Requirements},
     manifest::{self, LoadedManifest},
-    process,
+    process, proxy,
     root::ProjectRoot,
     workspace::{self, WorkspaceMetadata},
 };
 
-const PROXY_PROJECT: &str = "control_proxy";
 const PROXY_NETWORK: &str = "control_proxy";
 const SETUP_VERSION: &str = "v1";
 const VSCODE_EXTENSION: &str = "ms-vscode-remote.remote-containers";
@@ -85,6 +84,7 @@ pub async fn shell(project: &ProjectRoot) -> Result<()> {
 
 pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
     let metadata = workspace::metadata(project).await?;
+    proxy::unregister_workspace(project, &metadata)?;
     let environment = workspace_environment(project, &metadata)?;
     let name = container_name(&metadata);
     if inspect_value(&project.root, &name, "{{.Id}}")
@@ -237,7 +237,7 @@ async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningW
     let ports = exposed_ports(&selected);
     let image_assets = workspace_assets(project, &metadata);
     let assets = generate_runtime_assets(project, &metadata, &selected)?;
-    ensure_proxy(&project.root, &assets).await?;
+    ensure_proxy_network(&project.root).await?;
     let environment = workspace_environment(project, &metadata)?;
     let service_network =
         start_services(project, &metadata, &selected, &assets, &environment).await?;
@@ -254,12 +254,21 @@ async fn ensure_running(project: &ProjectRoot, rebuild: bool) -> Result<RunningW
     .await
     .filter(|value| value != "<no value>")
     .unwrap_or_default();
+    let proxy_root = proxy::proxy_root(project, &metadata);
+    let existing_proxy_root = inspect_value(
+        &project.root,
+        &name,
+        "{{index .Config.Labels \"control.proxy-root\"}}",
+    )
+    .await
+    .filter(|value| value != "<no value>")
+    .unwrap_or_default();
     let needs_replacement = container_needs_replacement(
         existing_image.as_deref(),
         &image,
         &existing_external_hosts,
         &external_hosts_label,
-    );
+    ) || existing_proxy_root != proxy_root.to_string_lossy();
     if needs_replacement {
         docker_run(
             &project.root,
@@ -341,7 +350,7 @@ async fn create_container(
     environment: &BTreeMap<String, String>,
     image: &str,
     name: &str,
-    ports: &BTreeSet<u16>,
+    _ports: &BTreeSet<u16>,
     external_hosts: &[(String, String)],
 ) -> Result<()> {
     let mut git_directories = BTreeSet::new();
@@ -350,6 +359,8 @@ async fn create_container(
         git_directories.insert(git_common_directory(&project.oss).await?);
     }
     let volumes = workspace_volumes(metadata);
+    let proxy_root = proxy::proxy_root(project, metadata);
+    fs::create_dir_all(&proxy_root).into_diagnostic()?;
     let mut args = vec![
         "create".into(),
         "--init".into(),
@@ -367,6 +378,8 @@ async fn create_container(
         format!("METORIAL_HOSTNAME={}", metadata.hostname),
         "--env".into(),
         format!("CONTROL_WORKSPACE_ID={}", metadata.id),
+        "--env".into(),
+        format!("CONTROL_PROXY_ROOT={}", proxy_root.display()),
         "--env".into(),
         "CONTROL_SERVICE_POSTGRES=postgres-db2:5432".into(),
         "--env".into(),
@@ -399,12 +412,14 @@ async fn create_container(
         format!("{}:/control-state", volumes[6]),
         "--volume".into(),
         format!("{}:/root/.vscode-server", volumes[7]),
-        "--label".into(),
-        "traefik.enable=true".into(),
-        "--label".into(),
-        format!("traefik.docker.network={PROXY_NETWORK}"),
+        "--volume".into(),
+        format!("{}:{}", proxy_root.display(), proxy_root.display()),
+        "--volume".into(),
+        "/var/run/docker.sock:/var/run/docker.sock".into(),
         "--label".into(),
         format!("control.workspace={}", metadata.id),
+        "--label".into(),
+        format!("control.proxy-root={}", proxy_root.display()),
     ];
     for directory in git_directories {
         args.extend([
@@ -422,7 +437,6 @@ async fn create_container(
             ]);
         }
     }
-    args.extend(proxy_label_args(metadata, ports));
     let external_hosts_label = external_host_label(external_hosts);
     if !external_hosts_label.is_empty() {
         args.extend([
@@ -604,75 +618,7 @@ fn generate_runtime_assets(
             restart: true,
         },
     )?;
-    let ports = exposed_ports(manifests);
-    fs::write(directory.join("traefik.yml"), render_traefik(&ports))
-        .into_diagnostic()
-        .wrap_err("could not write generated Traefik configuration")?;
-    fs::write(
-        directory.join("proxy.docker-compose.yml"),
-        render_proxy_compose(&ports),
-    )
-    .into_diagnostic()
-    .wrap_err("could not write generated proxy Compose file")?;
     Ok(directory)
-}
-
-fn render_proxy_compose(ports: &BTreeSet<u16>) -> String {
-    let published = std::iter::once(80)
-        .chain(ports.iter().copied())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .map(|port| format!("      - \"{port}:{port}\"\n"))
-        .collect::<String>();
-    format!(
-        "name: control-proxy\n\
-         services:\n\
-         \x20 traefik:\n\
-         \x20   image: traefik:v3.7.8\n\
-         \x20   restart: unless-stopped\n\
-         \x20   command: [--configFile=/etc/traefik/traefik.yml]\n\
-         \x20   ports:\n\
-{published}\
-         \x20   volumes:\n\
-         \x20     - /var/run/docker.sock:/var/run/docker.sock:ro\n\
-         \x20     - ./traefik.yml:/etc/traefik/traefik.yml:ro\n\
-         \x20   networks: [control-proxy]\n\
-         \x20   healthcheck: {{ test: [CMD, traefik, healthcheck, --ping], interval: 5s, timeout: 3s, retries: 12 }}\n\
-         networks:\n\
-         \x20 control-proxy: {{ name: control_proxy }}\n"
-    )
-}
-
-fn render_traefik(ports: &BTreeSet<u16>) -> String {
-    let mut entrypoints =
-        String::from("  health:\n    address: ':8082'\n  port-80:\n    address: ':80'\n");
-    if ports.contains(&4300) {
-        entrypoints.push_str(
-            "    http:\n      redirections:\n        entryPoint:\n          to: port-4300\n          scheme: http\n          permanent: false\n",
-        );
-    }
-    for port in ports {
-        entrypoints.push_str(&format!("  port-{port}:\n    address: ':{port}'\n"));
-    }
-    format!(
-        "global:\n\
-         \x20 checkNewVersion: false\n\
-         \x20 sendAnonymousUsage: false\n\
-         log:\n\
-         \x20 level: INFO\n\
-         api:\n\
-         \x20 dashboard: false\n\
-         ping:\n\
-         \x20 entryPoint: health\n\
-         providers:\n\
-         \x20 docker:\n\
-         \x20   endpoint: unix:///var/run/docker.sock\n\
-         \x20   exposedByDefault: false\n\
-         \x20   network: control_proxy\n\
-         \x20   watch: true\n\
-         entryPoints:\n\
-{entrypoints}"
-    )
 }
 
 pub(crate) fn test_assets(project: &ProjectRoot) -> PathBuf {
@@ -781,35 +727,24 @@ fn write_hosts_file(
     Ok(())
 }
 
-fn proxy_label_args(metadata: &WorkspaceMetadata, ports: &BTreeSet<u16>) -> Vec<String> {
-    let mut args = Vec::new();
-    for port in ports {
-        let route = format!("{}-{port}", metadata.id);
-        args.extend([
-            "--label".into(),
-            format!(
-                "traefik.http.routers.{route}.rule=Host(`{}`)",
-                metadata.hostname
-            ),
-            "--label".into(),
-            format!("traefik.http.routers.{route}.entrypoints=port-{port}"),
-            "--label".into(),
-            format!("traefik.http.routers.{route}.service={route}"),
-            "--label".into(),
-            format!("traefik.http.services.{route}.loadbalancer.server.port={port}"),
-        ]);
+async fn ensure_proxy_network(root: &Path) -> Result<()> {
+    if docker_quiet(
+        root,
+        vec!["network".into(), "inspect".into(), PROXY_NETWORK.into()],
+        &Default::default(),
+    )
+    .await
+    .is_ok()
+    {
+        return Ok(());
     }
-    args
-}
-
-async fn ensure_proxy(root: &Path, assets: &Path) -> Result<()> {
-    let args = compose_args(&assets.join("proxy.docker-compose.yml"), PROXY_PROJECT)
-        .into_iter()
-        .chain(["up".into(), "--detach".into(), "--wait".into()])
-        .collect();
-    docker_run(root, args, &Default::default())
-        .await
-        .wrap_err("could not start the global development proxy")
+    docker_run(
+        root,
+        vec!["network".into(), "create".into(), PROXY_NETWORK.into()],
+        &Default::default(),
+    )
+    .await
+    .wrap_err("could not create the shared development proxy network")
 }
 
 pub(crate) async fn ensure_image(root: &Path, assets: &Path, rebuild: bool) -> Result<String> {
@@ -940,7 +875,7 @@ fn services_project(metadata: &WorkspaceMetadata) -> String {
     format!("control_ws_{}", metadata.id.replace('-', "_"))
 }
 
-fn container_name(metadata: &WorkspaceMetadata) -> String {
+pub(crate) fn container_name(metadata: &WorkspaceMetadata) -> String {
     format!("metorial-ws-{}", metadata.id)
 }
 
@@ -1007,7 +942,7 @@ mod tests {
     fn metadata() -> WorkspaceMetadata {
         WorkspaceMetadata {
             id: "feature-auth".into(),
-            hostname: "feature-auth.localhost".into(),
+            hostname: "metorial-feature-auth.localhost".into(),
             branch: "feature/auth".into(),
             source_root: "/code/metorial".into(),
             runtime: crate::workspace::WorkspaceRuntime::Docker,
@@ -1072,6 +1007,7 @@ mod tests {
                         "dashboard".into(),
                         Endpoint {
                             port: 4300,
+                            bind_port: None,
                             env: vec![],
                         },
                     )]),
@@ -1090,6 +1026,7 @@ mod tests {
                             "api".into(),
                             Endpoint {
                                 port: 4310,
+                                bind_port: None,
                                 env: vec![],
                             },
                         ),
@@ -1097,6 +1034,7 @@ mod tests {
                             "events".into(),
                             Endpoint {
                                 port: 4318,
+                                bind_port: None,
                                 env: vec![],
                             },
                         ),
@@ -1107,64 +1045,24 @@ mod tests {
         ];
         let selected = manifests.iter().collect::<Vec<_>>();
         let markdown = hosts_markdown(&metadata, &selected);
-        assert!(markdown.contains("Hostname: `feature-auth.localhost`"));
+        assert!(markdown.contains("Hostname: `metorial-feature-auth.localhost`"));
         assert!(
-            markdown.contains("Port 80 redirects to port 4300: http://feature-auth.localhost/")
+            markdown.contains(
+                "Port 80 redirects to port 4300: http://metorial-feature-auth.localhost/"
+            )
         );
         assert!(markdown.contains(
-            "- `@metorial/dashboard` / `dashboard` — http://feature-auth.localhost:4300"
+            "- `@metorial/dashboard` / `dashboard` — http://metorial-feature-auth.localhost:4300"
         ));
-        assert!(
-            markdown
-                .contains("- `@metorial/core-api` / `api` — http://feature-auth.localhost:4310")
-        );
-        assert!(
-            markdown
-                .contains("- `@metorial/core-api` / `events` — http://feature-auth.localhost:4318")
-        );
+        assert!(markdown.contains(
+            "- `@metorial/core-api` / `api` — http://metorial-feature-auth.localhost:4310"
+        ));
+        assert!(markdown.contains(
+            "- `@metorial/core-api` / `events` — http://metorial-feature-auth.localhost:4318"
+        ));
         assert!(
             markdown.find("4300").unwrap() < markdown.find("4310").unwrap(),
             "endpoints should be sorted by port"
-        );
-    }
-
-    #[test]
-    fn proxy_redirects_port_80_to_4300() {
-        let ports = BTreeSet::from([4300]);
-        let compose = render_proxy_compose(&ports);
-        let traefik = render_traefik(&ports);
-        assert!(compose.contains("\"80:80\""));
-        assert!(traefik.contains("port-80:"));
-        assert!(traefik.contains("to: port-4300"));
-        assert!(traefik.contains("scheme: http"));
-    }
-
-    #[test]
-    fn docker_compose_accepts_generated_proxy_when_available() {
-        if !std::process::Command::new("docker")
-            .args(["compose", "version"])
-            .output()
-            .is_ok_and(|output| output.status.success())
-        {
-            return;
-        }
-        let temp = tempfile::tempdir().unwrap();
-        let ports = BTreeSet::from([4300, 4310]);
-        fs::write(
-            temp.path().join("proxy.docker-compose.yml"),
-            render_proxy_compose(&ports),
-        )
-        .unwrap();
-        fs::write(temp.path().join("traefik.yml"), render_traefik(&ports)).unwrap();
-        let output = std::process::Command::new("docker")
-            .current_dir(temp.path())
-            .args(["compose", "--file", "proxy.docker-compose.yml", "config"])
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
         );
     }
 
@@ -1188,22 +1086,5 @@ mod tests {
         let networks = r#"{"control_proxy":{"NetworkID":"one"}}"#;
         assert!(has_network(networks, "control_proxy").unwrap());
         assert!(!has_network(networks, "control_ws_test_workspace-services").unwrap());
-    }
-
-    #[test]
-    fn proxy_declares_every_repository_exposure() {
-        let oss = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let mut manifests = manifest::discover(&oss).unwrap();
-        let enterprise = oss.parent().unwrap();
-        if enterprise.join("package.json").is_file() {
-            manifests.extend(manifest::discover(enterprise).unwrap());
-        }
-        let ports = exposed_ports(&manifests.iter().collect::<Vec<_>>());
-        let compose = render_proxy_compose(&ports);
-        let traefik = render_traefik(&ports);
-        for port in ports {
-            assert!(compose.contains(&format!("\"{port}:{port}\"")));
-            assert!(traefik.contains(&format!("port-{port}:")));
-        }
     }
 }

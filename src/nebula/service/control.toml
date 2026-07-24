@@ -9,7 +9,7 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52170
-env = [{ key = "NEBULA_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "NEBULA_API_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

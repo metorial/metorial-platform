@@ -9,7 +9,7 @@ run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52110
-env = [{ key = "RELAY_PORT", value = "{{PORT}}" }]
+env = [{ key = "RELAY_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

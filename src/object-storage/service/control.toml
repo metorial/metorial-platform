@@ -9,7 +9,7 @@ run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52010
-env = [{ key = "OBJECT_STORE__SERVER__PORT", value = "{{PORT}}" }]
+env = [{ key = "OBJECT_STORE__SERVER__PORT", value = "{{BIND_PORT}}" }]
 
 [dev.env]
 OBJECT_STORE__SERVER__HOST = "0.0.0.0"

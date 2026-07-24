@@ -1,3 +1,4 @@
+mod actions;
 mod cleanup;
 mod dev;
 mod docker;
@@ -6,6 +7,7 @@ mod environment;
 mod infrastructure;
 mod manifest;
 mod process;
+mod proxy;
 mod root;
 mod turbo;
 mod unit;
@@ -97,6 +99,11 @@ enum Commands {
         #[command(subcommand)]
         command: TestCommand,
     },
+    /// Generate repository automation files.
+    Generate {
+        #[command(subcommand)]
+        command: GenerateCommand,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -137,6 +144,12 @@ enum TestCommand {
         #[arg(long)]
         all: bool,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum GenerateCommand {
+    /// Generate GitHub Actions workflows.
+    Actions,
 }
 
 #[derive(Debug, Subcommand)]
@@ -213,6 +226,7 @@ async fn main() -> Result<()> {
             stop_docker,
             dry_run,
         } => {
+            actions::generate(&project)?;
             dev::run(
                 &project,
                 &selectors,
@@ -236,6 +250,7 @@ async fn main() -> Result<()> {
             }
         },
         Commands::Env { selectors, json } => {
+            workspace::metadata(&project).await?;
             let mut manifests = manifest::discover(&project.root)?;
             workspace::configure_manifests(&project, &mut manifests).await?;
             let externals = manifest::load_externals(&project.root, &mut manifests)?;
@@ -411,6 +426,13 @@ async fn main() -> Result<()> {
             TestCommand::Unit { selectors, all } => unit::run(&project, &selectors, all).await,
             TestCommand::E2e { selectors, all } => e2e::run(&project, &selectors, all).await,
         },
+        Commands::Generate {
+            command: GenerateCommand::Actions,
+        } => {
+            let path = actions::generate(&project)?;
+            println!("generated {}", path.display());
+            Ok(())
+        }
     }
 }
 
@@ -648,6 +670,17 @@ mod tests {
                     all: true,
                 },
             } if selectors.is_empty()
+        ));
+    }
+
+    #[test]
+    fn parses_generate_actions() {
+        let generate = Cli::try_parse_from(["control", "generate", "actions"]).unwrap();
+        assert!(matches!(
+            generate.command,
+            Commands::Generate {
+                command: GenerateCommand::Actions,
+            }
         ));
     }
 }

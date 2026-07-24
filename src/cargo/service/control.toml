@@ -22,18 +22,18 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52150
-env = [{ key = "CARGO_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "CARGO_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.content]
 port = 52151
 env = [
-  { key = "CARGO_CONTENT_PORT", value = "{{PORT}}" },
+  { key = "CARGO_CONTENT_PORT", value = "{{BIND_PORT}}" },
   { key = "DOWNLOAD_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
 [endpoints.health]
 port = 12121
-env = [{ key = "CARGO_HEALTH_PORT", value = "{{PORT}}" }]
+env = [{ key = "CARGO_HEALTH_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

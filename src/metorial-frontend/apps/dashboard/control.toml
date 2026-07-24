@@ -17,7 +17,7 @@ run = ["dev:start"]
 
 [endpoints.web]
 port = 3300
-env = [{ key = "PORT", value = "{{PORT}}" }]
+env = [{ key = "PORT", value = "{{BIND_PORT}}" }]
 
 [dev.env]
 METORIAL_ENV = "development"

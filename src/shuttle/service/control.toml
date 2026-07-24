@@ -27,12 +27,12 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52080
-env = [{ key = "SHUTTLE_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "SHUTTLE_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.public]
 port = 52081
 env = [
-  { key = "SHUTTLE_PUBLIC_PORT", value = "{{PORT}}" },
+  { key = "SHUTTLE_PUBLIC_PORT", value = "{{BIND_PORT}}" },
   { key = "PROVIDER_OAUTH_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 

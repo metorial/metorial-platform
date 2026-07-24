@@ -11,4 +11,4 @@ run = ["dev:start"]
 
 [endpoints.web]
 port = 3302
-env = [{ key = "PORT", value = "{{PORT}}" }]
+env = [{ key = "PORT", value = "{{BIND_PORT}}" }]

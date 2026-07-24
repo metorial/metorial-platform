@@ -158,11 +158,19 @@ async fn run_one(project: &ProjectRoot, selector: &str) -> Result<()> {
     let generated_cleanup = fs::remove_dir_all(&generated.directory)
         .into_diagnostic()
         .wrap_err("could not remove the generated E2E run directory");
+    println!(
+        "E2E test result for {selector}: {}",
+        test_result(result.is_ok())
+    );
     match (result, cleanup) {
         (Err(error), _) => Err(error),
         (Ok(()), Err(error)) => Err(error),
         (Ok(()), Ok(())) => generated_cleanup,
     }
+}
+
+fn test_result(succeeded: bool) -> &'static str {
+    if succeeded { "PASSED" } else { "FAILED" }
 }
 
 #[derive(Debug, Clone)]
@@ -216,6 +224,7 @@ fn configure_e2e_manifests(manifests: &mut [LoadedManifest]) -> Result<()> {
                 .ok_or_else(|| miette::miette!("could not allocate an E2E endpoint port"))?;
             reserved.insert(listener.0);
             endpoint.port = listener.0;
+            endpoint.bind_port = None;
             listeners.push(listener.1);
         }
     }
@@ -1209,6 +1218,13 @@ mod tests {
         );
         assert_eq!(e2e_source_command("cargo run"), "cargo run");
     }
+
+    #[test]
+    fn formats_post_cleanup_test_results() {
+        assert_eq!(test_result(true), "PASSED");
+        assert_eq!(test_result(false), "FAILED");
+    }
+
     use tempfile::tempdir;
 
     fn package(root: &Path, directory: &str, control: Option<&str>, e2e: bool) {

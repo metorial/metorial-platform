@@ -22,12 +22,12 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52090
-env = [{ key = "ORIGIN_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "ORIGIN_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.scm]
 port = 52093
 env = [
-  { key = "ORIGIN_SCM_PORT", value = "{{PORT}}" },
+  { key = "ORIGIN_SCM_PORT", value = "{{BIND_PORT}}" },
   { key = "ORIGIN_SERVICE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 

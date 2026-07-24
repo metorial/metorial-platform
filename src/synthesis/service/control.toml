@@ -16,11 +16,11 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52160
-env = [{ key = "SYNTHESIS_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "SYNTHESIS_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.health]
-port = 12121
-env = [{ key = "SYNTHESIS_HEALTH_PORT", value = "{{PORT}}" }]
+port = 52161
+env = [{ key = "SYNTHESIS_HEALTH_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

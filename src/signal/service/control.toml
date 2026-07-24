@@ -15,7 +15,7 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52050
-env = [{ key = "SIGNAL_API_PORT", value = "{{PORT}}" }]
+env = [{ key = "SIGNAL_API_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"

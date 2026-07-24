@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
+    net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -81,6 +82,29 @@ async fn start_with_requirements(
             stop(root, &projects[..=index], environment).await;
             return Err(error);
         }
+        if compose == &generated && !host_ports_reachable(&requirements, &ports) {
+            eprintln!(
+                "generated Docker services have stale host port bindings; recreating containers"
+            );
+            let mut recreate = compose_prefix(compose);
+            recreate.extend([
+                "up".into(),
+                "--detach".into(),
+                "--wait".into(),
+                "--wait-timeout".into(),
+                "60".into(),
+                "--force-recreate".into(),
+            ]);
+            recreate.extend(services.iter().cloned());
+            if let Err(error) = process::run("docker", &recreate, root, environment).await {
+                stop(root, &projects[..=index], environment).await;
+                return Err(error);
+            }
+            if !host_ports_reachable(&requirements, &ports) {
+                stop(root, &projects[..=index], environment).await;
+                bail!("generated Docker services are not reachable on their configured host ports");
+            }
+        }
     }
 
     let provisioning = async {
@@ -109,6 +133,25 @@ async fn start_with_requirements(
         return Err(error);
     }
     Ok(projects)
+}
+
+fn host_ports_reachable(requirements: &Requirements, ports: &ServicePorts) -> bool {
+    [
+        (requirements.postgres, ports.postgres),
+        (requirements.mongo, ports.mongo),
+        (requirements.redis, ports.redis),
+        (requirements.nats, ports.nats),
+        (requirements.etcd, ports.etcd_client),
+    ]
+    .into_iter()
+    .filter(|(required, _)| *required)
+    .all(|(_, port)| {
+        TcpStream::connect_timeout(
+            &SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port),
+            Duration::from_millis(500),
+        )
+        .is_ok()
+    })
 }
 
 fn service_ports(environment: &BTreeMap<String, String>) -> Result<ServicePorts> {
@@ -392,4 +435,39 @@ fn _urls_compile_check(
     mongo: &crate::manifest::Mongo,
 ) -> (String, String) {
     (postgres_url(postgres), mongo_url(mongo))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::net::TcpListener;
+
+    use super::*;
+
+    #[test]
+    fn checks_required_host_service_ports() {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let open_port = listener.local_addr().unwrap().port();
+        let ports = ServicePorts {
+            postgres: open_port,
+            mongo: 1,
+            redis: 1,
+            nats: 1,
+            etcd_client: 1,
+            etcd_peer: 1,
+        };
+        assert!(host_ports_reachable(
+            &Requirements {
+                postgres: true,
+                ..Default::default()
+            },
+            &ports
+        ));
+        assert!(!host_ports_reachable(
+            &Requirements {
+                mongo: true,
+                ..Default::default()
+            },
+            &ports
+        ));
+    }
 }

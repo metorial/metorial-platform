@@ -61,7 +61,7 @@ mode = "both"
 [endpoints.http]
 port = 4310
 env = [
-  { key = "PORT", value = "{{PORT}}" },
+  { key = "PORT", value = "{{BIND_PORT}}" },
   { key = "PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
@@ -139,11 +139,13 @@ Literal, inherited, and default environment values support the strict
 unclosed templates are errors. Resource values can use
 `{{CONTROL_PORT_POSTGRES}}`, `{{CONTROL_PORT_MONGO}}`,
 `{{CONTROL_PORT_REDIS}}`, `{{CONTROL_PORT_NATS}}`,
-`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
-checkouts receive the standard development ports; host workspaces receive their
-persisted allocation. Native development defaults the hostname to `localhost`;
-host workspaces always use `localhost`, while Docker workspaces use their
-branch-derived `<branch>.localhost` hostname.
+`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. The main
+checkout uses `metorial-root.localhost`; worktrees use
+`metorial-<workspace>.localhost`. Endpoint `{{PORT}}` is the public port from
+`control.toml`, while `{{BIND_PORT}}` is the process listener port. They are
+equal in Docker workspaces. Native and host-workspace processes receive
+persisted conflict-free bind ports because the shared proxy owns the public
+ports on the host.
 
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
@@ -151,10 +153,10 @@ environment.
 
 Each `[[dependencies]]` entry names a Control package with `identifier`. Its
 `env` entries select one of that package's `[endpoints.NAME]` declarations and
-resolve `{{HOSTNAME}}` and `{{PORT}}`. Endpoint `env` entries tell the owning
-service its actual hostname/port. Source checkouts and Docker workspace
-internals use endpoint defaults; host workspaces persist conflict-free actual
-ports; E2E allocates conflict-free ports per run.
+resolve `{{HOSTNAME}}` and `{{PORT}}`. Local dependencies always receive the
+workspace hostname and public/default port. Endpoint `env` entries may also use
+`{{BIND_PORT}}` for listener configuration. E2E remains isolated and resolves
+both port templates to its conflict-free per-run allocation.
 
 Dependencies default to `start = true`, which includes the target in dependency
 closure, cycle detection, and dependency-first startup. Set `start = false` for
@@ -224,6 +226,15 @@ package per run command and invokes Turbo directly with explicit filters.
 Ctrl-C terminates Turbo and performs configured Docker cleanup. Compose is
 generated below `.control/dev` and contains only infrastructure required by the
 selected dependency closure.
+
+Immediately before starting Turbo, Control ensures one root-owned Traefik
+instance at `<main-checkout>/.control/proxy`, then registers the selected local
+endpoints for the lifetime of that `control dev` session. Worktrees share the
+proxy and its `control_proxy` Docker network. Routes are removed on normal exit,
+interruption, launch failure, and `control workspace stop`; a later
+`control dev` registers them again. If proxy startup fails, inspect the
+generated files in that directory and check whether a declared public port is
+already occupied.
 
 For Postgres, database creation uses `docker compose exec` when `compose` and
 `service` are supplied, otherwise the local `pg_isready` and `psql` clients.
@@ -424,7 +435,9 @@ to operate on the current checkout.
 
 The command builds an Ubuntu 24.04 image containing zsh, Bun 1.2.15, Node.js
 22/npm, the globally installed `total-control` launcher, Go 1.25, Rust 1.91.1,
-Air, and native build tools. It bind mounts the worktree at `/workspace`.
+Air, Docker/Compose, and native build tools. It bind mounts the worktree at
+`/workspace`, the shared proxy state at its host path, and the Docker socket so
+`control dev` inside the workspace can reconcile the root-owned proxy.
 `workspace start` and its `workspace connect` alias start the dependency stack
 and idle container, open a VS Code window attached to the named container, and
 return. `workspace dev` ensures the container is running and then executes
@@ -443,18 +456,20 @@ keeps Linux dependencies separate from the host's Darwin install. Generated
 editor and container see the same output. The source checkout's `env.json` is
 mounted read-only when a worktree does not provide its own override.
 
-A single global Traefik container owns the declared HTTP ports and routes each
-request by host header. A workspace for branch `feature/auth` therefore uses
+A single root-owned Traefik container under the main checkout's
+`.control/proxy` owns the declared HTTP ports and routes each request by host
+header. A workspace for branch `feature/auth` therefore uses
 URLs such as:
 
 ```text
-http://feature-auth.localhost:4310
-http://feature-auth.localhost:4300
+http://metorial-feature-auth.localhost:4310
+http://metorial-feature-auth.localhost:4300
 ```
 
 Port 80 on the workspace hostname redirects to the same host on port 4300, so
-`http://feature-auth.localhost/` is equivalent to
-`http://feature-auth.localhost:4300/`.
+`http://metorial-feature-auth.localhost/` is equivalent to
+`http://metorial-feature-auth.localhost:4300/`. The main checkout uses
+`metorial-root.localhost`.
 
 On start, Control writes `HOST.md` at the workspace root (visible inside the
 container as `/workspace/HOST.md`) listing every exposed HTTP endpoint for that
@@ -466,8 +481,10 @@ declaration and bind to `0.0.0.0`. Non-HTTP ports remain
 internal to the all-in-one container.
 
 Every workspace owns only the persistent infrastructure selected by active
-Control manifests. Docker-workspace Compose and Traefik configuration are
-generated under `.control/workspace`. `workspace stop` stops both the workspace container and dependencies
-without removing containers or volumes. `workspace start` or `workspace connect`
-resumes them. `workspace stop --volumes` explicitly removes the container,
-compiler/dependency/VS Code volumes, and dependency data.
+Control manifests. Docker-workspace infrastructure Compose is generated under
+`.control/workspace`; proxy configuration is shared from the source checkout.
+`workspace stop` stops both the workspace container and dependencies and clears
+stale proxy registrations without removing containers or volumes. `workspace
+start` or `workspace connect` resumes them. `workspace stop --volumes`
+explicitly removes the container, compiler/dependency/VS Code volumes, and
+dependency data.

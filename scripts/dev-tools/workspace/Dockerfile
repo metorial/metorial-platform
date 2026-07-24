@@ -23,6 +23,8 @@ RUN apt-get update \
     clang \
     cmake \
     curl \
+    docker.io \
+    docker-compose-v2 \
     git \
     iproute2 \
     jq \

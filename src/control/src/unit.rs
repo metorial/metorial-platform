@@ -97,15 +97,17 @@ async fn run_packages(project: &ProjectRoot, packages: &[String]) -> Result<()> 
     }
 
     let args = docker_args(&project.root, &image, packages, &caches);
-    process::run("docker", &args, &project.root, &Default::default())
-        .await
-        .wrap_err_with(|| {
-            if packages.is_empty() {
-                "unit tests failed for the workspace".into()
-            } else {
-                format!("unit tests failed for {}", packages.join(", "))
-            }
-        })
+    let result = process::run("docker", &args, &project.root, &Default::default()).await;
+    let target = if packages.is_empty() {
+        "all testable workspace modules".into()
+    } else {
+        packages.join(", ")
+    };
+    println!(
+        "Unit test result for {target}: {}",
+        if result.is_ok() { "PASSED" } else { "FAILED" }
+    );
+    result.wrap_err_with(|| format!("unit tests failed for {target}"))
 }
 
 fn runner_script(packages: &[String]) -> String {

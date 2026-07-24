@@ -67,11 +67,11 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52070
-env = [{ key = "SUBSPACE_CONTROLLER_PORT", value = "{{PORT}}" }]
+env = [{ key = "SUBSPACE_CONTROLLER_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.connection]
 port = 52072
-env = [{ key = "SUBSPACE_CONNECTION_PORT", value = "{{PORT}}" }]
+env = [{ key = "SUBSPACE_CONNECTION_PORT", value = "{{BIND_PORT}}" }]
 
 [[resources]]
 type = "redis"
