@@ -113,3 +113,55 @@ export let hyperplaneTokenRepository = Service.create(
   'hyperplaneTokenRepository',
   () => new HyperplaneTokenRepository()
 ).build();
+
+class HorizonTokenRepository {
+  async findReusableHorizonToken(d: { horizonIdentifier: string; expiresAfter?: Date }) {
+    return await globalDB.horizonToken.findFirst({
+      where: {
+        horizon: { identifier: d.horizonIdentifier },
+        expiresAt: d.expiresAfter ? { gt: d.expiresAfter } : { gt: new Date() }
+      },
+      include: {
+        horizon: true
+      },
+      orderBy: {
+        expiresAt: 'desc'
+      }
+    });
+  }
+
+  async getHorizonToken(d: { horizonIdentifier: string; horizonTokenId: string }) {
+    return await globalDB.horizonToken.findFirst({
+      where: {
+        id: d.horizonTokenId,
+        horizon: { identifier: d.horizonIdentifier }
+      },
+      include: {
+        horizon: true
+      }
+    });
+  }
+
+  async createHorizonToken(d: { horizonIdentifier: string; ttlMs: number }) {
+    let expiresAt = new Date(Date.now() + d.ttlMs);
+    let horizon = await globalDB.horizon.findUniqueOrThrow({
+      where: { identifier: d.horizonIdentifier }
+    });
+
+    return await globalDB.horizonToken.create({
+      data: {
+        horizonOid: horizon.oid,
+        token: crypto.randomUUID(),
+        expiresAt
+      },
+      include: {
+        horizon: true
+      }
+    });
+  }
+}
+
+export let horizonTokenRepository = Service.create(
+  'horizonTokenRepository',
+  () => new HorizonTokenRepository()
+).build();

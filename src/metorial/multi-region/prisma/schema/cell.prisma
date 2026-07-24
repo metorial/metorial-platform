@@ -73,3 +73,30 @@ model HyperplaneToken {
 
   @@index([hyperplaneOid, expiresAt])
 }
+
+model Horizon {
+  oid        Int    @id @default(autoincrement())
+  identifier String @unique
+
+  endpointUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tokens HorizonToken[]
+}
+
+model HorizonToken {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  horizonOid Int
+  horizon    Horizon @relation(fields: [horizonOid], references: [oid])
+
+  token     String
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([horizonOid, expiresAt])
+}
