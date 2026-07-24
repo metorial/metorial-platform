@@ -283,6 +283,13 @@ declare global {
   namespace PrismaJson {
     type Record = { [key: string]: any };
 
+    type OrganizationNotificationPayload = { [key: string]: any };
+    type OrganizationNotificationActions = {
+      variant?: 'primary' | 'secondary';
+      text: string;
+      action: { type: 'navigate'; path: string };
+    }[];
+
     type ServerEntityAttributes = {
       websiteUrl?: string;
     };

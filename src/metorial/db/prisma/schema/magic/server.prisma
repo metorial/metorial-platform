@@ -19,12 +19,12 @@ model MagicMcpServer {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  status               MagicMcpServerStatus
-  source               MagicMcpServerSource    @default(manual)
-  ownerType            MagicMcpServerOwnerType @default(server_owned)
-  isConsumerReconciled Boolean                 @default(false)
-  hasSubspaceBacking   Boolean                 @default(false)
-  isSubspaceBackingReconciling Boolean         @default(false)
+  status                       MagicMcpServerStatus
+  source                       MagicMcpServerSource    @default(manual)
+  ownerType                    MagicMcpServerOwnerType @default(server_owned)
+  isConsumerReconciled         Boolean                 @default(false)
+  hasSubspaceBacking           Boolean                 @default(false)
+  isSubspaceBackingReconciling Boolean                 @default(false)
 
   providerTemplateId                String?
   legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")

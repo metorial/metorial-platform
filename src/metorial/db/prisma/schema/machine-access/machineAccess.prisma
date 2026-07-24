@@ -48,5 +48,5 @@ model MachineAccess {
   oauthAuthorizations OAuthAuthorization[]
   oauthInstallations  OAuthInstallation[]
   oauthApplications   OAuthApplication[]
-  internalOAuthTokens  InternalOAuthToken[]
+  internalOAuthTokens InternalOAuthToken[]
 }

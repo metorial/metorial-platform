@@ -19,6 +19,7 @@ model User {
   name      String
   firstName String?
   lastName  String?
+  timezone  String?
 
   /// [EntityImage]
   image Json
@@ -44,18 +45,20 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  sessions                UserSession[]
-  members                 OrganizationMember[]
-  access                  MachineAccess[]
-  files                   File[]
-  profile                 Profile?
-  uploads                 Upload[]
-  oauthAuthorizations     OAuthAuthorization[]
-  cliDevices              CliDevice[]
-  oauthAuthorizationFlows OAuthAuthorizationFlow[]
-  apiKeyCreatedEmailSends ApiKeyCreatedEmailSend[]
-  apiKeyExpiredEmailSends ApiKeyExpiredEmailSend[]
-  workspaceProfiles       WorkspaceProfile[]
+  sessions                               UserSession[]
+  members                                OrganizationMember[]
+  access                                 MachineAccess[]
+  files                                  File[]
+  profile                                Profile?
+  uploads                                Upload[]
+  oauthAuthorizations                    OAuthAuthorization[]
+  cliDevices                             CliDevice[]
+  oauthAuthorizationFlows                OAuthAuthorizationFlow[]
+  apiKeyCreatedEmailSends                ApiKeyCreatedEmailSend[]
+  apiKeyExpiredEmailSends                ApiKeyExpiredEmailSend[]
+  workspaceProfiles                      WorkspaceProfile[]
+  organizationNotificationSettings       OrganizationNotificationSetting[]
+  organizationNotificationDigestSettings OrganizationNotificationDigestSetting[]
 }
 
 model UserSession {
