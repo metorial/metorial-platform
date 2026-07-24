@@ -16,11 +16,7 @@ import {
   SpanStatusCode,
   trace
 } from '@lowerdeck/telemetry';
-import {
-  Queue,
-  QueueEvents,
-  Worker,
-} from 'bullmq';
+import { Queue, QueueEvents, Worker } from 'bullmq';
 import type { DeduplicationOptions, JobsOptions, QueueOptions, WorkerOptions } from 'bullmq';
 import { QueueRetryError } from '../lib/queueRetryError';
 import type { IQueue } from '../types';
@@ -132,22 +128,27 @@ export let createBullMqQueue = <JobData>(
   if (process.env.QUEUE_DEBUG_LOGGING)
     console.log('Creating queue with connection', opts.name, opts.redisUrl, redisOpts);
 
-  let queue = new Queue<JobData>(opts.name, {
-    ...opts.queueOpts,
-    connection: redisOpts,
-    defaultJobOptions: {
-      removeOnComplete: true,
-      removeOnFail: {
-        age: 60 * 60 * 24 // 1 day
-      },
-      backoff: {
-        type: 'custom'
-      },
-      attempts: 25,
-      keepLogs: 10,
-      ...opts.jobOpts
-    }
-  });
+  // Worker-only processes define hundreds of queues. Constructing every producer Queue
+  // eagerly opens a Redis connection even when that process never publishes to it.
+  let useQueue = memo(
+    () =>
+      new Queue<JobData>(opts.name, {
+        ...opts.queueOpts,
+        connection: redisOpts,
+        defaultJobOptions: {
+          removeOnComplete: true,
+          removeOnFail: {
+            age: 60 * 60 * 24 // 1 day
+          },
+          backoff: {
+            type: 'custom'
+          },
+          attempts: 25,
+          keepLogs: 10,
+          ...opts.jobOpts
+        }
+      })
+  );
 
   let useQueueEvents = memo(() => new QueueEvents(opts.name, { connection: redisOpts }));
 
@@ -172,7 +173,7 @@ export let createBullMqQueue = <JobData>(
           }
         },
         async () =>
-          await queue.addBulk(
+          await useQueue().addBulk(
             payloads.map(
               payload =>
                 ({
@@ -208,7 +209,7 @@ export let createBullMqQueue = <JobData>(
             operation: 'publish'
           },
           async () =>
-            await queue.add(
+            await useQueue().add(
               'j' as any,
               {
                 payload: SuperJson.serialize(payload),
@@ -320,6 +321,7 @@ export let createBullMqQueue = <JobData>(
               concurrency: 50,
               ...opts.workerOpts,
               connection: redisOpts,
+              autorun: false,
 
               settings: {
                 ...opts.workerOpts?.settings,
@@ -336,6 +338,24 @@ export let createBullMqQueue = <JobData>(
               }
             }
           );
+
+          // Do not let the processor-composition layer move on to the next queue until
+          // this worker has an established Redis connection.
+          try {
+            await worker.waitUntilReady();
+          } catch (error) {
+            await worker.close(true);
+            throw error;
+          }
+          void worker.run().catch(error => {
+            Sentry.captureException(error, {
+              tags: {
+                queueName: opts.name,
+                queueOperation: 'run'
+              }
+            });
+            console.error(`Queue ${opts.name} stopped unexpectedly`, error);
+          });
 
           return {
             close: () => worker.close()
