@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { env } from '../../env';
-import { eventCleanupQueueProcessor } from '../../queues/send/cleanup';
+import { cleanupEvent } from '../../queues/send/cleanup';
 import { storage } from '../../storage';
 import { signalClient } from '../../test/client';
 import { fixtures } from '../../test/fixtures';
@@ -88,7 +88,7 @@ describe('event.e2e', () => {
       }
     });
 
-    await (eventCleanupQueueProcessor as any).handler({ eventId: event.id });
+    await cleanupEvent({ eventId: event.id });
 
     let offloaded = await testDb.event.findUniqueOrThrow({
       where: { id: event.id }

@@ -4,7 +4,7 @@ import { db } from './db';
 
 let server = Bun.serve({
   fetch: forgeApi,
-  port: 52020
+  port: Number(process.env.FORGE_API_PORT ?? '52020')
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

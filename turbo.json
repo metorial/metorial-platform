@@ -23,6 +23,12 @@
         "FEDERATION_CORE_DATABASE_URL"
       ]
     },
+    "control:db:generate": {
+      "cache": false
+    },
+    "control:db:push": {
+      "cache": false
+    },
     "generate:client": {
       "dependsOn": [
         "^generate:client"

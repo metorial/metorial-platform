@@ -14,11 +14,19 @@ import {
 } from '@metorial/ui';
 import { RiArrowDownSLine, RiMore2Line } from '@remixicon/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { Fragment, memo as reactMemo, useEffect, useMemo, useState } from 'react';
+import React, {
+  Fragment,
+  memo as reactMemo,
+  useEffect,
+  useId,
+  useMemo,
+  useState
+} from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { TableFilter, TableFilterState, getFilterPayload } from '../filter';
 import { Observer, useObserver } from '../state';
+import { useTableQuerySyncEnabled } from '../state/tableRegistry';
 import {
   TableActions,
   TableClickable,
@@ -293,6 +301,8 @@ export let TableComponent = reactMemo(
     selectedItemId?: string;
     headerActions?: (d: { filter: any; search?: string }) => React.ReactNode;
   }) => {
+    let tableId = useId();
+    let querySyncEnabled = useTableQuerySyncEnabled(tableId);
     let filterState = useState([] as TableFilterState[]);
     let filterPayload = useMemo(() => getFilterPayload(filterState[0]), [filterState[0]]);
     let [hasHydratedLayout, setHasHydratedLayout] = useState(false);
@@ -312,6 +322,7 @@ export let TableComponent = reactMemo(
     }, [search]);
 
     useFilterQuery({
+      enabled: querySyncEnabled,
       filters: props.filters,
       filterState,
       searchState: [search, setSearch],

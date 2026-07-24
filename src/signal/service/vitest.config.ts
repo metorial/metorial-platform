@@ -1,6 +1,9 @@
 import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vitest/config';
 import { createVitestConfig, loadTestEnv, withAliases } from '@lowerdeck/testing-tools';
+
+let configDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadTestEnv(mode || 'test', process.cwd(), '');
@@ -39,7 +42,7 @@ export default defineConfig(({ mode }) => {
 
   return withAliases(config, {
     '@metorial-platform-systems/signal-client': resolve(
-      __dirname,
+      configDir,
       '../clients/signal/src/index.ts'
     )
   });

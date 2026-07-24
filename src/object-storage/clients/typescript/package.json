@@ -1,0 +1,39 @@
+{
+  "name": "object-storage-client",
+  "version": "0.2.5",
+  "description": "TypeScript client for Object Storage Service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "object-storage",
+    "s3",
+    "client"
+  ],
+  "author": "Object Storage Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/metorial/object-storage"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.10.0",
+    "axios-mock-adapter": "^1.22.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.0"
+  }
+}

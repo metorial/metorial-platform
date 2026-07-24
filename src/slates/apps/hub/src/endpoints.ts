@@ -7,19 +7,19 @@ import { db } from './db';
 
 Bun.serve({
   fetch: hubApp.fetch,
-  port: 52045,
+  port: Number(process.env.SLATES_HUB_PUBLIC_PORT ?? '52045'),
   idleTimeout: 250
 });
 
 Bun.serve({
   fetch: slatesHubApi,
-  port: 52046,
+  port: Number(process.env.SLATES_HUB_INTERNAL_PORT ?? '52046'),
   idleTimeout: 250
 });
 
 Bun.serve({
   fetch: adminApi,
-  port: 52047
+  port: Number(process.env.SLATES_HUB_ADMIN_PORT ?? '52047')
 });
 
 console.log('Slates hub server is running');

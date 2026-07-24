@@ -1,14 +1,30 @@
 name = "@metorial/synthesis"
 group = "oss"
 
+[[dependencies]]
+identifier = "@metorial-subspace/app-controller"
+env = [
+  { endpoint = "api", key = "SUBSPACE_URL", value = "http://{{HOSTNAME}}:{{PORT}}/subspace-controller" },
+  { endpoint = "connection", key = "SUBSPACE_CONNECTION_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[test.e2e]
+start = ["test:start-e2e"]
+
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
-[[dev.expose]]
+[endpoints.api]
 port = 52160
+env = [{ key = "SYNTHESIS_API_PORT", value = "{{BIND_PORT}}" }]
 
-[[dev.expose]]
-port = 12121
+[endpoints.health]
+port = 52161
+env = [{ key = "SYNTHESIS_HEALTH_PORT", value = "{{BIND_PORT}}" }]
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -16,17 +32,13 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-SYNTHESIS_API_PORT = "52160"
-SYNTHESIS_HEALTH_PORT = "12121"
 AI_GATEWAY_API_KEY = true
 SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
 SUBSPACE_SOLUTION = "metorial-dev"
-SUBSPACE_URL = "http://localhost:52070/subspace-controller"
-SUBSPACE_CONNECTION_URL = "http://localhost:52072"
 
 [dev.db.main]
+package = "@metorial/synthesis"
 name = "synthesis"
 engine = "postgres"
 env = "SYNTHESIS_DATABASE_URL"

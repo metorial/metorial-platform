@@ -1,14 +1,38 @@
 name = "@metorial/code-bucket-service-generated"
 group = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+env = [
+  { endpoint = "rpc", key = "CODE_BUCKET_OBJECT_STORAGE_ENDPOINT", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[test.e2e]
+start = ["test:start-e2e"]
+
 [dev]
-run = ["make dev"]
+run = ["dev:start"]
 
-[[dev.expose]]
+[endpoints.http]
 port = 52091
+env = [
+  { key = "CODE_BUCKET_HTTP_ADDRESS", value = ":{{BIND_PORT}}" },
+  { key = "CODE_BUCKET_EDITOR_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
 
-[[dev.expose]]
+[endpoints.workspace]
 port = 52092
+env = [{ key = "CODE_BUCKET_WORKSPACE_ADDRESS", value = ":{{BIND_PORT}}" }]
+
+[endpoints.rpc]
+port = 5050
+env = [{ key = "CODE_BUCKET_RPC_ADDRESS", value = ":{{BIND_PORT}}" }]
+
+[[resources]]
+type = "redis"
+env = [
+  { key = "CODE_BUCKET_REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" },
+]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -17,10 +41,4 @@ IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 CODE_BUCKET_JWT_SECRET = "origin-code-bucket-dev-secret"
-CODE_BUCKET_OBJECT_STORAGE_ENDPOINT = "http://services:52010"
 CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
-CODE_BUCKET_REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-CODE_BUCKET_HTTP_ADDRESS = ":52091"
-CODE_BUCKET_RPC_ADDRESS = ":5050"
-CODE_BUCKET_WORKSPACE_ADDRESS = ":52092"
-CODE_BUCKET_EDITOR_API_URL = "http://localhost:52091"

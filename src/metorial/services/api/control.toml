@@ -2,20 +2,113 @@ name = "@metorial/app-api"
 group = "oss"
 mode = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+env = [
+  { endpoint = "rpc", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "@metorial/ares"
+env = [
+  { endpoint = "internal", key = "ARES_INTERNAL_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-ares-internal/api" },
+  { endpoint = "auth", key = "ARES_AUTH_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "@metorial/code-bucket-service-generated"
+env = [
+  { endpoint = "rpc", key = "CODE_BUCKET_SERVICE_URL", value = "{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "@metorial/nebula"
+env = [
+  { endpoint = "api", key = "NEBULA_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-nebula" },
+]
+
+[[dependencies]]
+identifier = "@metorial/relay"
+env = [
+  { endpoint = "rpc", key = "RELAY_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-relay" },
+]
+
+[[dependencies]]
+identifier = "@metorial/synthesis"
+env = [
+  { endpoint = "api", key = "SYNTHESIS_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-synthesis" },
+]
+
+[[dependencies]]
+identifier = "@metorial-subspace/app-controller"
+env = [
+  { endpoint = "api", key = "SUBSPACE_URL", value = "http://{{HOSTNAME}}:{{PORT}}/subspace-controller" },
+  { endpoint = "connection", key = "SUBSPACE_CONNECTION_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "@metorial/voyager"
+env = [
+  { endpoint = "rpc", key = "VOYAGER_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-voyager" },
+]
+
+[[dependencies]]
+identifier = "@metorial-cargo/service"
+env = [
+  { endpoint = "api", key = "CARGO_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-cargo" },
+]
+
+[[dependencies]]
+identifier = "@metorial/origin"
+env = [
+  { endpoint = "api", key = "ORIGIN_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-origin" },
+]
+
+[[dependencies]]
+identifier = "@metorial/app-dashboard"
+start = false
+env = [
+  { endpoint = "web", key = "APP_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+  { endpoint = "web", key = "DASHBOARD_FRONTEND_HOST", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[test.e2e]
+start = ["test:start-e2e"]
+packages = [
+  "@metorial/module-organization",
+  "@metorial/module-machine-access",
+  "@metorial/module-consumer",
+]
+
 [dev]
-run = ["bun --watch ./src/server.ts"]
+run = ["dev:start"]
 
-[[dev.expose]]
+[endpoints.api]
 port = 4310
+env = [
+  { key = "API_PORT", value = "{{BIND_PORT}}" },
+  { key = "API_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
 
-[[dev.expose]]
+[endpoints.mcp]
 port = 4311
+env = [{ key = "MCP_PORT", value = "{{BIND_PORT}}" }]
 
-[[dev.expose]]
+[endpoints.portal]
 port = 4315
+env = [{ key = "PORTAL_API_PORT", value = "{{BIND_PORT}}" }]
 
-[[dev.expose]]
+[endpoints.files]
 port = 4318
+env = [
+  { key = "FILES_PORT", value = "{{BIND_PORT}}" },
+  { key = "FILES_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+  { key = "DOWNLOAD_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -26,47 +119,28 @@ NODE_ENV = "development"
 EMAIL_SES_ACCESS_KEY_ID = true
 EMAIL_SES_SECRET_ACCESS_KEY = true
 EMAIL_SES_REGION = true
-EMAIL_FROM = true
-EMAIL_FROM_NAME = true
+EMAIL_FROM = "dev@metorial.com"
+EMAIL_FROM_NAME = "Metorial DEV"
 CONSUMER_TOKEN_SECRET = "consumer-token-secret"
 CONSUMER_SESSION_SECRET = "consumer-token-secret"
 SIGNED_DOWNLOAD_URL_TOKEN_SECRET = "dev-cargo-download-token-secret"
 CARGO_REGION = "dev"
-DOWNLOAD_PUBLIC_URL = "http://{{HOSTNAME}}:4318"
 PORTAL_HOST_TEMPLATE = "http://{{HOSTNAME}}:4304/{portalId}"
 PORTAL_REDIRECT_DOMAINS = "{{HOSTNAME}}"
 CARGO_SYNC_CLAIM_METORIAL_OWNERSHIP = "false"
-REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-CARGO_API_URL = "http://localhost:52150/metorial-cargo"
-SYNTHESIS_API_URL = "http://localhost:52160/metorial-synthesis"
 PROVIDER_OAUTH_TICKET_SECRET = "provider-oauth-ticket-secret"
 AUTH_TICKET_SECRET = "auth-ticket-secret"
 ENCRYPTION_SECRET = "encryption-secret"
-OBJECT_STORAGE_URL = "http://services:52010"
 FILES_BUCKET_NAME = "mte-files"
 USAGE_MONGO_URI = "mongodb://mongo:mongo@localhost:{{CONTROL_PORT_MONGO}}/?authSource=admin"
-API_URL = "http://localhost:4310"
-FILES_URL = "http://localhost:4318"
-APP_URL = "http://localhost:4300"
-DASHBOARD_FRONTEND_HOST = "http://localhost:4300"
 PORTALS_URL = "http://localhost:4304"
-PORTAL_API_PORT = "4315"
 AWS_ACCESS_KEY_ID = true
 AWS_SECRET_ACCESS_KEY = true
 AWS_REGION = true
 AWS_ACCOUNT_ID = true
-ARES_INTERNAL_URL = "http://localhost:52123/metorial-ares-internal/api"
-ARES_AUTH_URL = "http://localhost:52120"
-RELAY_URL = "http://services:52110/metorial-relay"
 EMAIL_NAME = "Metorial DEV"
 EMAIL_ADDRESS = "dev@metorial.com"
 SUBSPACE_SOLUTION = "metorial-dev"
-SUBSPACE_URL = "http://localhost:52070/subspace-controller"
-SUBSPACE_CONNECTION_URL = "http://localhost:52072"
-VOYAGER_URL = "http://localhost:52060/metorial-voyager"
-ORIGIN_URL = "http://localhost:52090/metorial-origin"
-CODE_BUCKET_SERVICE_URL = "localhost:5050"
-NEBULA_API_URL = "http://localhost:52170/metorial-nebula"
 AI_GATEWAY_API_KEY = true
 SCOUT_URL = true
 SCOUT_TOKEN = true
@@ -74,26 +148,31 @@ EXTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 INTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 
 [dev.db.main]
+package = "@metorial/db"
 name = "metorial-oss"
 engine = "postgres"
 env = "DATABASE_URL"
 
 [dev.db.subspace]
+package = "@metorial-subspace/db"
 name = "subspace"
 engine = "postgres"
 env = "SUBSPACE_DATABASE_URL"
 
 [dev.db.cargo]
+package = "@metorial-cargo/db"
 name = "cargo"
 engine = "postgres"
 env = "CARGO_DATABASE_URL"
 
 [dev.db.global]
+package = "@metorial/multi-region"
 name = "metorial-oss-global"
 engine = "postgres"
 env = "GLOBAL_DATABASE_URL"
 
 [dev.db.usage]
+package = "@metorial/module-usage"
 name = "metorial-usage"
 engine = "mongodb"
 env = "USAGE_MONGO_URL"

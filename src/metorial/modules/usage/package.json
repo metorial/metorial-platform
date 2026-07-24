@@ -6,7 +6,9 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
-    "lint": "prettier src/**/*.ts --check"
+    "lint": "prettier src/**/*.ts --check",
+    "control:db:generate": "echo 'No schema generation required for MongoDB usage database'",
+    "control:db:push": "echo 'No schema push required for MongoDB usage database'"
   },
   "dependencies": {
     "@metorial/cron": "^1.0.0",

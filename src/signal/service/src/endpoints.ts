@@ -5,7 +5,7 @@ import { db } from './db';
 
 let server = Bun.serve({
   fetch: SignalApi,
-  port: 52050
+  port: Number(process.env.SIGNAL_API_PORT ?? '52050')
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

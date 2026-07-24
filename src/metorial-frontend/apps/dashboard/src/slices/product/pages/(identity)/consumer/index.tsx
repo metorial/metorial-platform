@@ -8,7 +8,7 @@ import {
   useCurrentProject,
   useIdentityActors
 } from '@metorial/state';
-import { Attributes, Avatar, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
+import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
 
@@ -82,18 +82,9 @@ export let ConsumerPage = () => {
                       {profile.name}
                     </Text>,
                     <Text size="2">{profile.email}</Text>,
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Avatar
-                        entity={{ name: profile.surface.name }}
-                        size={26}
-                        radius={8}
-                        withInitials
-                        noTooltip
-                      />
-                      <Text size="2" weight="strong">
-                        {profile.surface.name}
-                      </Text>
-                    </div>,
+                    <Text size="2" weight="strong">
+                      {profile.surface.name}
+                    </Text>,
                     profile.groups?.length ? (
                       <Text>{profile.groups.length} groups</Text>
                     ) : (

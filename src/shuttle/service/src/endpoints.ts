@@ -14,14 +14,14 @@ let shuttleApi = apiMux(
 
 let apiServer = Bun.serve({
   fetch: shuttleApi,
-  port: 52080,
+  port: Number(process.env.SHUTTLE_API_PORT ?? '52080'),
   websocket,
   idleTimeout: 240
 });
 
 let publicServer = Bun.serve({
   fetch: publicApp.fetch,
-  port: 52081,
+  port: Number(process.env.SHUTTLE_PUBLIC_PORT ?? '52081'),
   websocket
 });
 

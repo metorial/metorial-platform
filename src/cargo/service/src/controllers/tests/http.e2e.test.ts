@@ -1,6 +1,6 @@
 import { createFetchRouter } from '@lowerdeck/testing-tools';
 import { cargoContentApi, cargoUploadApi } from '@metorial-cargo/module-file/http';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   downloadFile,
   getFileDownloadUrl,
@@ -9,32 +9,8 @@ import {
 import { cargoClient } from '../../test/client';
 import { cleanDatabase } from '../../test/setup';
 
-let objects = new Map<string, { data: Blob; contentType: string }>();
-
-vi.mock('../../../../modules/file/src/storage', () => ({
-  getCargoFilesBucketName: () => 'cargo-files-test',
-  getStorage: () => ({
-    putObject: async (_bucket: string, key: string, file: Blob, contentType: string) => {
-      objects.set(key, { data: file, contentType });
-    },
-    getObject: async (_bucket: string, key: string) => {
-      let item = objects.get(key);
-      if (!item) throw new Error('Object not found');
-
-      return {
-        data: item.data,
-        metadata: {
-          content_type: item.contentType
-        }
-      };
-    }
-  }),
-  storage: {}
-}));
-
 describe('cargo http.e2e', () => {
   beforeEach(async () => {
-    objects.clear();
     await cleanDatabase();
   });
 

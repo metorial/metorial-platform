@@ -40,11 +40,13 @@ let getManagedQueryString = (searchParams: URLSearchParams, filterKeys: Set<stri
 };
 
 export let useFilterQuery = ({
+  enabled = true,
   filters,
   filterState: [filterState, setFilterState],
   searchState: [, setSearch],
   debouncedSearch
 }: {
+  enabled?: boolean;
   filters?: TableFilter<any>[];
   filterState: [TableFilterState[], React.Dispatch<React.SetStateAction<TableFilterState[]>>];
   searchState: [string, React.Dispatch<React.SetStateAction<string>>];
@@ -56,6 +58,8 @@ export let useFilterQuery = ({
 
   let lastSetQueryRef = useRef<string | undefined>(undefined);
   useEffect(() => {
+    if (!enabled) return;
+
     try {
       let query = new URLSearchParams(searchParams);
       let queryString = query.toString();
@@ -69,9 +73,11 @@ export let useFilterQuery = ({
     } catch (e) {
       console.error(e);
     }
-  }, [currentFilters, searchParams, setFilterState, setSearch]);
+  }, [currentFilters, enabled, searchParams, setFilterState, setSearch]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     try {
       let filterQuery = serializeToQuery(filterState);
       let nextSearchParams = new URLSearchParams(searchParams);
@@ -104,5 +110,5 @@ export let useFilterQuery = ({
     } catch (e) {
       console.error(e);
     }
-  }, [debouncedSearch, filterKeys, filterState, searchParams, setSearchParams]);
+  }, [debouncedSearch, enabled, filterKeys, filterState, searchParams, setSearchParams]);
 };

@@ -10,12 +10,15 @@ let cachedIndexHtmlTemplate: { beforePreload: string; afterPreload: string } | n
 
 let indexHtmlPath = join(process.cwd(), 'frontend', 'dist', 'index.html');
 let indexHtml = Bun.file(indexHtmlPath);
+let missingIndexHtmlMessage =
+  'Setup Session frontend is unavailable because frontend/dist/index.html was not built.';
+let indexHtmlExists = await indexHtml.exists();
 
-if (!(await indexHtml.exists())) {
+if (!indexHtmlExists && process.env.NODE_ENV !== 'test') {
   throw new Error('Index HTML file not found. Make sure the frontend is built.');
 }
 
-let indexHtmlContents = await indexHtml.text();
+let indexHtmlContents = indexHtmlExists ? await indexHtml.text() : null;
 
 let parseIndexHtmlTemplate = (indexHtmlText: string) => {
   let markerIndex = indexHtmlText.indexOf(preloadMarker);
@@ -37,8 +40,14 @@ let getIndexHtmlTemplate = async () => {
   if (process.env.NODE_ENV !== 'production') {
     // In development, always read from disk to pick up changes without restarting the server.
     let indexHtmlFile = Bun.file(indexHtmlPath);
+    if (!(await indexHtmlFile.exists())) {
+      if (process.env.NODE_ENV === 'test') return null;
+      throw new Error('Index HTML file not found. Make sure the frontend is built.');
+    }
     indexHtmlContents = await indexHtmlFile.text();
   }
+
+  if (indexHtmlContents === null) return null;
 
   let template = parseIndexHtmlTemplate(indexHtmlContents);
 
@@ -51,6 +60,15 @@ let getIndexHtmlTemplate = async () => {
 
 export let renderIndexHtml = async (preload: unknown) => {
   let template = await getIndexHtmlTemplate();
+  if (template === null) {
+    return new Response(missingIndexHtmlMessage, {
+      status: 503,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8'
+      }
+    });
+  }
+
   let preloadScript = `<script type="application/json" id="preload-data">${htmlEncode(
     JSON.stringify(preload)
   )}</script>`;

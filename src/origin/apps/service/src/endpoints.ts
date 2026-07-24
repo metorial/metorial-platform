@@ -9,13 +9,13 @@ await scmBackendService.ensureDefaultBackends();
 
 let originServer = Bun.serve({
   fetch: originApi,
-  port: 52090,
+  port: Number(process.env.ORIGIN_API_PORT ?? '52090'),
   idleTimeout: 250
 });
 
 let scmServer = Bun.serve({
   fetch: scmController.fetch,
-  port: 52093,
+  port: Number(process.env.ORIGIN_SCM_PORT ?? '52093'),
   idleTimeout: 60
 });
 

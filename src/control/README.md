@@ -29,9 +29,13 @@ cargo build --release
 target/release/control --help
 target/release/control dev backend
 target/release/control prepare --no-docker
+target/release/control db generate core-api
+target/release/control db push core-api
 target/release/control env
 target/release/control cleanup --dry-run
 target/release/control docker stop
+target/release/control test unit @metorial/shuttle
+target/release/control test e2e @metorial/shuttle
 target/release/control workspace create feature/my-change --runtime=docker
 target/release/control workspace list
 target/release/control workspace remove feature/my-change
@@ -54,23 +58,46 @@ name = "core-api"
 group = "backend"
 # Optional: "oss" or "enterprise"; omitted means both layouts.
 mode = "both"
+[endpoints.http]
+port = 4310
+env = [
+  { key = "PORT", value = "{{BIND_PORT}}" },
+  { key = "PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
+identifier = "api"
+env = [
+  { endpoint = "http", key = "API_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[resources]]
+type = "redis"
+env = [
+  { key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" },
+]
+
+[test.e2e]
+# Package scripts used to start services without development watchers.
+start = ["test:start-e2e"]
+# Optional override; an empty list skips development preparation in E2E.
+prepare = []
+# Additional npm workspace packages whose test:e2e scripts belong to this suite.
+# These packages do not need control.toml manifests.
+packages = ["integration-fixtures"]
 
 # Strings are literals. `true` inherits the key from root env.json or the
 # process environment when present.
 [dev]
 prepare = ["frontend:build"]
-run = ["bun --watch ./src/server.ts"]
-
-[[dev.expose]]
-# HTTP/WebSocket listener exposed through the workspace hostname proxy.
-port = 4310
+run = ["dev:start"]
 
 [dev.env]
 LOG_LEVEL = "debug"
-PUBLIC_URL = "http://{{HOSTNAME}}:4310"
 SECRET = true
 
 [dev.db.main]
+package = "@metorial/db"
 name = "metorial"
 engine = "postgres"
 env = "DATABASE_URL"
@@ -86,11 +113,11 @@ stop = true
 paths = ["dist", ".cache"]
 ```
 
-Workspace-wide Prisma generation and schema push are always run by Control via
-Turbo (`prisma:generate`, `prisma:push`) before package-local `prepare` scripts.
-The root `build` script is then run (also Turbo, with enterprise/OSS filters).
-Root `control.toml` files may still declare `mode` so they participate in
-selection; they no longer need a `prepare = ["build"]` entry.
+Each database names the npm package that owns its schema. That package must
+declare `control:db:generate` and `control:db:push`; these normally delegate to
+its existing Prisma scripts. Control deduplicates owners from the selected
+service graph, generates all selected clients, then pushes all selected schemas
+before package-local preparation. It does not run a workspace-wide build.
 
 Package-local `prepare` entries are package.json script names (for example
 `frontend:build` or `admin:build`). Control runs each as
@@ -103,39 +130,111 @@ is also accepted for external projects: `[package]`, `[env]`,
 `[postgres.NAME]`, `[mongo.NAME]`, `[run.NAME]`, and `[groups]`. Detailed
 environment values can use `{ from = "TOKEN", default = "" }`.
 
-`run` and `cleanup` commands are intentionally shell strings. Control invokes
-`/bin/sh -eu -c` on Unix and `cmd.exe /D /S /C` on Windows. Package-local
-`prepare` entries are npm script names, not shell commands.
+Repository `[dev].run`, `[test.e2e].start`, and package-local `prepare` entries
+are package.json script names. Extended-schema `[run.NAME].command` and cleanup
+commands remain shell strings.
 
 Literal, inherited, and default environment values support the strict
 `{{HOSTNAME}}` template. It resolves from `METORIAL_HOSTNAME` and unknown or
-unclosed templates are errors. Dependency URLs can use
+unclosed templates are errors. Resource values can use
 `{{CONTROL_PORT_POSTGRES}}`, `{{CONTROL_PORT_MONGO}}`,
 `{{CONTROL_PORT_REDIS}}`, `{{CONTROL_PORT_NATS}}`,
-`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
-checkouts receive the standard development ports; host workspaces receive their
-persisted allocation. Native development defaults the hostname to `localhost`;
-host workspaces always use `localhost`, while Docker workspaces use their
-branch-derived `<branch>.localhost` hostname.
+`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. The main
+checkout uses `metorial-root.localhost`; worktrees use
+`metorial-<workspace>.localhost`. Endpoint `{{PORT}}` is the public port from
+`control.toml`, while `{{BIND_PORT}}` is the process listener port. They are
+equal in Docker workspaces. Native and host-workspace processes receive
+persisted conflict-free bind ports because the shared proxy owns the public
+ports on the host.
 
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
 environment.
 
+Each `[[dependencies]]` entry names a Control package with `identifier`. Its
+`env` entries select one of that package's `[endpoints.NAME]` declarations and
+resolve `{{HOSTNAME}}` and `{{PORT}}`. Local dependencies always receive the
+workspace hostname and public/default port. Endpoint `env` entries may also use
+`{{BIND_PORT}}` for listener configuration. E2E remains isolated and resolves
+both port templates to its conflict-free per-run allocation.
+
+Dependencies default to `start = true`, which includes the target in dependency
+closure, cycle detection, and dependency-first startup. Set `start = false` for
+an endpoint-only reference such as a reverse callback URL:
+
+```toml
+[[dependencies]]
+identifier = "public-api"
+start = false
+env = [
+  { endpoint = "http", key = "CALLBACK_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+```
+
+The target is still validated and its endpoint environment is resolved, but the
+edge does not pull or start it. E2E starts that target only when another
+`start = true` edge or direct selection includes it.
+
+`[[resources]]` declares one Redis, NATS, or etcd requirement per type. Resource
+environment uses the runtime-selected host/port and may use the corresponding
+`CONTROL_PORT_*` templates. Postgres and MongoDB retain their existing model.
+Discovery rejects unknown/self/cyclic/mode-incompatible dependencies, unknown
+endpoints, malformed names or ports, duplicate resources/environment keys, and
+invalid templates. Environment keys must be unique across package environment,
+endpoint, dependency, resource, and database bindings. A run environment also
+cannot override one of those shared keys; separate runs may reuse keys because
+their environments are isolated.
+
+Development optionally reads a root `control-external.toml`:
+
+```toml
+[[external]]
+identifier = "api"
+hostname = "api.dev.example.com"
+
+[external.mapping]
+http = 443
+```
+
+External identifiers and mapping endpoints must exist, and every endpoint used
+by dependency environment wiring must be mapped. Development omits external
+packages from local startup and injects the configured host/ports. E2E ignores
+externals and starts dependencies locally. Docker workspaces resolve every
+configured external hostname on the host and add it to the workspace
+container's hosts configuration. Changing that resolved configuration recreates
+the container while retaining workspace volumes. `CONTROL_SERVICES_HOST`
+remains an optional address override for the hostname `services`.
+
+`[test.e2e]` is an explicit opt-in. Its `start` array defines single-shot
+service commands used instead of `[dev].run`; these commands must not launch
+watchers or process supervisors. Its `packages` array contains arbitrary npm
+workspace package names, including packages without a `control.toml`. Control
+discovers package.json files recursively while excluding `.git`, `.control`,
+`node_modules`, and `target`, and validates these names when building an E2E
+plan.
+
 `control dev` starts Compose projects, waits for declared databases, creates
 databases idempotently, writes package-local `.env` files, then prepares the
 workspace in this order:
 
-1. `turbo run prisma:generate` (all packages)
-2. `turbo run prisma:push` (all packages)
-3. `bun run build` (Turbo via the root build script, with workspace filters)
-4. package-local `control.toml` prepare scripts via `turbo run <script> --filter=<package>`
+1. `turbo run control:db:generate` filtered to selected database owners
+2. `turbo run control:db:push` filtered to selected database owners
+3. selected package-local prepare scripts via `turbo run <script> --filter=<package>`
 
 It then generates an isolated `.control/dev` Turbo workspace with one mirror
 package per run command and invokes Turbo directly with explicit filters.
-Ctrl-C terminates Turbo and performs configured Docker cleanup. Because prepare
-pushes every Prisma schema, dependency services cover the full workspace even
-when only a subset of applications are started.
+Ctrl-C terminates Turbo and performs configured Docker cleanup. Compose is
+generated below `.control/dev` and contains only infrastructure required by the
+selected dependency closure.
+
+Immediately before starting Turbo, Control ensures one root-owned Traefik
+instance at `<main-checkout>/.control/proxy`, then registers the selected local
+endpoints for the lifetime of that `control dev` session. Worktrees share the
+proxy and its `control_proxy` Docker network. Routes are removed on normal exit,
+interruption, launch failure, and `control workspace stop`; a later
+`control dev` registers them again. If proxy startup fails, inspect the
+generated files in that directory and check whether a declared public port is
+already occupied.
 
 For Postgres, database creation uses `docker compose exec` when `compose` and
 `service` are supplied, otherwise the local `pg_isready` and `psql` clients.
@@ -146,6 +245,121 @@ MongoDB follows the same rule using `mongosh`; an empty database receives a
 sequence without starting Turbo or any application processes. It starts
 declared dependencies unless `--no-docker` is passed.
 
+`control db generate [SELECTORS...]` resolves the development dependency graph,
+writes its package and database-owner environments, and runs
+`control:db:generate` only for the selected database packages. `control db push
+[SELECTORS...]` additionally starts and provisions the required development
+database services before running `control:db:push`. Both commands use the same
+external-package exclusion and workspace port mapping as `control dev`.
+
+## Docker unit tests
+
+```sh
+control test unit @metorial/shuttle
+control test unit @metorial/mte-core-api @metorial/mte-global-router
+control test unit --all
+```
+
+Each selector must resolve to exactly one named Control package. All selected
+packages are combined into one Turbo filter union in one ephemeral container,
+so shared package dependencies are generated, built, and tested only once.
+`--all` selects every leaf workspace package with a `test` script and uses the
+same deduplicated graph. Workspace aggregators are excluded so they cannot
+invoke Turbo recursively and run tests twice; testless applications are not
+built merely because they have a Control manifest. `--all` cannot be combined
+with selectors. The runner uses the same content-hashed development image and
+persistent Linux dependency/compiler caches as Docker E2E. The command must run
+on a Docker host rather than inside a Control workspace container.
+
+Unit-test scope is derived only from the npm workspace graph. For each selected
+package, Control uses Turbo's `<package>...` filter to generate Prisma clients,
+run `build`, and run `test` for that package and all of its transitive workspace
+package dependencies. `control.toml` dependencies do not expand this scope and
+no application or infrastructure services are started. A package that appears
+in both graphs is included only when it is also an npm workspace dependency.
+
+The container runs `bun install`, `turbo run prisma:generate`, `turbo run
+build`, and `turbo run test`, in that order. It does not push schemas, run
+migrations, write development environments, start dependency processes, or
+invoke `test:e2e`.
+
+Package `test` scripts are therefore required to be unit-only. E2E files must
+be excluded by their unit configuration or command and exposed separately
+through `test:e2e`, which is run only by `control test e2e`.
+
+## Docker E2E tests
+
+```sh
+control test e2e @metorial/shuttle
+control test e2e @metorial/mte-core-api @metorial/mte-global-router
+control test e2e --all
+```
+
+Each selector must resolve to one named Control package. Multiple selections
+run sequentially in independent environments; `--all` selects every manifest
+that declares `[test.e2e]`. In enterprise checkouts, Control infers OSS mode
+when a selected manifest lives under `oss/`, so no mode flag is required. The
+command requires a Docker host and intentionally does not run inside a Control
+workspace container. Control generates a self-contained
+`.control/test/docker-compose.yml` and runner assets.
+The Compose project gets fresh instances only for databases and resources
+declared by the selected source graph. Checkout-derived external volumes
+persist `node_modules`, Bun, Cargo target/registry, and Go build/module caches
+across E2E runs; normal E2E cleanup never removes those caches, so the next
+`bun install` reuses the checkout's existing Linux `node_modules` volume.
+
+One shared test container uses the same content-hashed development image as
+Docker workspaces. Each invocation has a unique generated directory and Compose
+project. Control generates read-only `.env` overlays only for selected source
+manifests and database-owner packages. These overlays mask checkout and
+host-workspace `.env` files without modifying them. The selected package
+receives its test environment at both `.env` and `.env.test`; startup
+dependencies receive unsuffixed isolated E2E environments.
+
+The runner creates the selected Postgres databases plus selected test database
+variants. MongoDB retains lazy database
+creation; readiness is provided by the Mongo container health check and
+forwarded TCP port, so the shared runner does not require `mongosh`.
+Database owner packages receive their selected URL bindings in mounted
+overlays. Control then runs `bun install`, package-filtered control DB
+generate/push tasks, and only selected source manifests' E2E prepare overrides
+(or inherited development prepares). It intentionally skips the production
+root build.
+
+The runner starts development commands dependency-first, one Control manifest
+at a time. Before starting the next manifest it waits for the current
+manifest's allocated named endpoint ports while checking every development
+process for early exit. Workers without endpoints must survive a deterministic
+two-second startup grace. Resource URLs are generated from structured resource
+declarations; arbitrary `services` URLs are not rewritten. Included npm
+packages are test targets only and are not started as services. Compose attaches output only from
+`control-e2e`, keeping dependency health logs out of normal output. Tests run
+sequentially in this order:
+
+1. the selected package
+2. packages listed by `[test.e2e].packages`
+
+The selected package's and each explicitly included npm package's `test:e2e`
+script is run when present. Control dependencies are source services only; to
+run a dependency's tests, select it in a separate command, which gives it a
+fresh Compose project and volumes. Included npm packages receive the selected
+Control package's test environment. Declared database URLs are rewritten to
+deterministic test databases (`<declared-name>-test`, without double suffixing
+an existing `-test` name), `NODE_ENV` is set to `test`, and those Postgres test
+databases are provisioned alongside dependency source databases. Control runs
+the owning packages' required `control:db:generate` and `control:db:push`
+scripts with mounted test database environments.
+
+Dependency development processes use unsuffixed fresh databases unless they
+reference the same owner and database as the selected package; shared databases
+use the selected package's `-test` variant so one schema push prepares every
+consumer. Mongo test URLs use the same suffix and retain Mongo's lazy creation behavior. A missing
+test script emits a warning and does not fail the suite. Development
+processes, containers, networks, and volumes are cleaned up after success,
+failure, or interrupt. A hard host or Docker daemon crash can leave the
+deterministic Compose project behind; the next invocation removes it before
+starting.
+
 `control workspace create BRANCH --runtime=host|docker` creates a sibling
 worktree. The runtime flag is required and is stored in
 `.control/workspace.json`. Enterprise mode creates the enterprise worktree and
@@ -155,12 +369,11 @@ Application services are not started.
 
 Docker workspaces perform setup inside a persistent Ubuntu development
 container. Host workspaces perform setup directly on the host and generate an
-isolated dependency stack at `.control/services.docker-compose.yml`. Its
-Postgres, MongoDB, Redis, NATS, and etcd host ports are allocated once and
-persisted in workspace metadata. Containers, networks, volumes, and ports are
-therefore independent between host workspaces. Application ports declared by
-`[[dev.expose]]` remain fixed, so multiple host workspaces cannot run the same
-application service concurrently.
+isolated dependency stack at `.control/dev/services.docker-compose.yml`. Its
+required infrastructure host ports are allocated once and persisted in
+workspace metadata. Containers, networks, volumes, and ports are
+therefore independent between host workspaces. Named application endpoint ports
+are also allocated once and persisted, so host workspaces can run concurrently.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
@@ -222,7 +435,9 @@ to operate on the current checkout.
 
 The command builds an Ubuntu 24.04 image containing zsh, Bun 1.2.15, Node.js
 22/npm, the globally installed `total-control` launcher, Go 1.25, Rust 1.91.1,
-Air, and native build tools. It bind mounts the worktree at `/workspace`.
+Air, Docker/Compose, and native build tools. It bind mounts the worktree at
+`/workspace`, the shared proxy state at its host path, and the Docker socket so
+`control dev` inside the workspace can reconcile the root-owned proxy.
 `workspace start` and its `workspace connect` alias start the dependency stack
 and idle container, open a VS Code window attached to the named container, and
 return. `workspace dev` ensures the container is running and then executes
@@ -241,34 +456,35 @@ keeps Linux dependencies separate from the host's Darwin install. Generated
 editor and container see the same output. The source checkout's `env.json` is
 mounted read-only when a worktree does not provide its own override.
 
-A single global Traefik container owns the declared HTTP ports and routes each
-request by host header. A workspace for branch `feature/auth` therefore uses
+A single root-owned Traefik container under the main checkout's
+`.control/proxy` owns the declared HTTP ports and routes each request by host
+header. A workspace for branch `feature/auth` therefore uses
 URLs such as:
 
 ```text
-http://feature-auth.localhost:4310
-http://feature-auth.localhost:4300
+http://metorial-feature-auth.localhost:4310
+http://metorial-feature-auth.localhost:4300
 ```
 
 Port 80 on the workspace hostname redirects to the same host on port 4300, so
-`http://feature-auth.localhost/` is equivalent to
-`http://feature-auth.localhost:4300/`.
+`http://metorial-feature-auth.localhost/` is equivalent to
+`http://metorial-feature-auth.localhost:4300/`. The main checkout uses
+`metorial-root.localhost`.
 
 On start, Control writes `HOST.md` at the workspace root (visible inside the
 container as `/workspace/HOST.md`) listing every exposed HTTP endpoint for that
 hostname, grouped by package.
 
 `.localhost` resolves without host-file changes on supported systems. Every
-HTTP listener that should be reachable from the host must have a
-`[[dev.expose]]` declaration and bind to `0.0.0.0`. Non-HTTP ports remain
+HTTP listener that should be reachable from the host must have a named endpoint
+declaration and bind to `0.0.0.0`. Non-HTTP ports remain
 internal to the all-in-one container.
 
-The hostname `services` (object storage, relay, and similar) is resolved on the
-host — including Tailscale MagicDNS — and injected into the container with
-`--add-host`. Override with `CONTROL_SERVICES_HOST` when needed.
-
-Every workspace owns persistent Postgres, MongoDB, Redis, NATS, and etcd
-services. `workspace stop` stops both the workspace container and dependencies
-without removing containers or volumes. `workspace start` or `workspace connect`
-resumes them. `workspace stop --volumes` explicitly removes the container,
-compiler/dependency/VS Code volumes, and dependency data.
+Every workspace owns only the persistent infrastructure selected by active
+Control manifests. Docker-workspace infrastructure Compose is generated under
+`.control/workspace`; proxy configuration is shared from the source checkout.
+`workspace stop` stops both the workspace container and dependencies and clears
+stale proxy registrations without removing containers or volumes. `workspace
+start` or `workspace connect` resumes them. `workspace stop --volumes`
+explicitly removes the container, compiler/dependency/VS Code volumes, and
+dependency data.

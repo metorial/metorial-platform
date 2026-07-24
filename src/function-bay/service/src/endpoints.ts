@@ -4,7 +4,7 @@ import { db } from './db';
 
 let server = Bun.serve({
   fetch: functionBayApi,
-  port: 52030
+  port: Number(process.env.FUNCTION_BAY_API_PORT ?? '52030')
 });
 
 console.log(`Service running on http://localhost:${server.port}`);

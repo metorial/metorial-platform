@@ -39,7 +39,7 @@ const URL_COMPONENT: &AsciiSet = &CONTROLS
     .add(b'}');
 
 use crate::{
-    manifest::{EnvSpec, EnvValue, LoadedManifest, Mongo, Postgres},
+    manifest::{EnvSpec, EnvValue, LoadedManifest, Mongo, Postgres, ResourceType},
     root::{ProjectRoot, RootKind},
     workspace::{self, WorkspaceRuntime},
 };
@@ -96,13 +96,14 @@ pub fn root_environment(project: &ProjectRoot) -> Result<BTreeMap<String, String
             .entry(key.into())
             .or_insert_with(|| value.to_string());
     }
-    if let Some(metadata) = workspace::metadata_if_present(&project.root)?
-        && metadata.runtime == WorkspaceRuntime::Host
-    {
+    if let Some(metadata) = workspace::metadata_if_present(&project.root)? {
+        output.insert("METORIAL_HOSTNAME".into(), metadata.hostname.clone());
+        if metadata.runtime != WorkspaceRuntime::Host {
+            return Ok(output);
+        }
         let ports = metadata
             .service_ports
             .ok_or_else(|| miette::miette!("host workspace metadata is missing service_ports"))?;
-        output.insert("METORIAL_HOSTNAME".into(), "localhost".into());
         for (key, value) in [
             ("CONTROL_PORT_POSTGRES", ports.postgres),
             ("CONTROL_PORT_MONGO", ports.mongo),
@@ -162,33 +163,10 @@ pub fn resolve(
         };
         if let Some(resolved) = resolved {
             let interpolated = interpolate(&resolved, root_values)?;
-            output.insert(
-                key.clone(),
-                remap_legacy_dependency_ports(&interpolated, root_values),
-            );
+            output.insert(key.clone(), interpolated);
         }
     }
     Ok(output)
-}
-
-fn remap_legacy_dependency_ports(value: &str, root_values: &BTreeMap<String, String>) -> String {
-    let mut output = value.to_string();
-    for (default, key) in [
-        (35432, "CONTROL_PORT_POSTGRES"),
-        (32707, "CONTROL_PORT_MONGO"),
-        (36379, "CONTROL_PORT_REDIS"),
-        (34222, "CONTROL_PORT_NATS"),
-        (32379, "CONTROL_PORT_ETCD_CLIENT"),
-        (32380, "CONTROL_PORT_ETCD_PEER"),
-    ] {
-        let Some(port) = root_values.get(key) else {
-            continue;
-        };
-        for host in ["localhost", "127.0.0.1"] {
-            output = output.replace(&format!("{host}:{default}"), &format!("{host}:{port}"));
-        }
-    }
-    output
 }
 
 fn interpolate(value: &str, root_values: &BTreeMap<String, String>) -> Result<String> {
@@ -270,6 +248,130 @@ pub fn all_for_manifest(
     for (name, db) in &loaded.manifest.mongo {
         output.insert(name.clone(), mongo_url(db));
     }
+    let own_hostname = root_values
+        .get("METORIAL_HOSTNAME")
+        .map(String::as_str)
+        .unwrap_or("localhost");
+    for endpoint in loaded.manifest.endpoints.values() {
+        for env in &endpoint.env {
+            output.insert(
+                env.key.clone(),
+                interpolate_structured(
+                    &env.value,
+                    &[
+                        ("HOSTNAME", own_hostname.to_string()),
+                        ("PORT", endpoint.port.to_string()),
+                        (
+                            "BIND_PORT",
+                            endpoint.bind_port.unwrap_or(endpoint.port).to_string(),
+                        ),
+                    ],
+                )?,
+            );
+        }
+    }
+    for dependency in &loaded.manifest.dependencies {
+        for env in dependency.env() {
+            let endpoint = loaded
+                .manifest
+                .dependency_endpoints
+                .get(dependency.identifier())
+                .and_then(|endpoints| endpoints.get(&env.endpoint))
+                .ok_or_else(|| {
+                    miette::miette!(
+                        "{}: unresolved endpoint {:?} on dependency {:?}",
+                        loaded.path.display(),
+                        env.endpoint,
+                        dependency.identifier()
+                    )
+                })?;
+            output.insert(
+                env.key.clone(),
+                interpolate_structured(
+                    &env.value,
+                    &[
+                        ("HOSTNAME", endpoint.hostname.clone()),
+                        ("PORT", endpoint.port.to_string()),
+                    ],
+                )?,
+            );
+        }
+    }
+    for resource in &loaded.manifest.resources {
+        let (hostname, port) = resource_address(resource.resource_type, root_values)?;
+        for env in &resource.env {
+            let mut templates =
+                BTreeMap::from([("HOSTNAME", hostname.clone()), ("PORT", port.to_string())]);
+            for key in [
+                "CONTROL_PORT_REDIS",
+                "CONTROL_PORT_NATS",
+                "CONTROL_PORT_ETCD_CLIENT",
+                "CONTROL_PORT_ETCD_PEER",
+            ] {
+                if let Some(value) = root_values.get(key) {
+                    templates.insert(key, value.clone());
+                }
+            }
+            match resource.resource_type {
+                ResourceType::Redis => {
+                    templates.insert("CONTROL_PORT_REDIS", port.to_string());
+                }
+                ResourceType::Nats => {
+                    templates.insert("CONTROL_PORT_NATS", port.to_string());
+                }
+                ResourceType::Etcd => {
+                    templates.insert("CONTROL_PORT_ETCD_CLIENT", port.to_string());
+                    if lookup("CONTROL_SERVICE_ETCD", root_values).is_some() {
+                        templates.insert("CONTROL_PORT_ETCD_PEER", "2380".into());
+                    }
+                }
+            }
+            output.insert(
+                env.key.clone(),
+                interpolate_structured(&env.value, &templates.into_iter().collect::<Vec<_>>())?,
+            );
+        }
+    }
+    Ok(output)
+}
+
+fn resource_address(
+    resource_type: ResourceType,
+    root_values: &BTreeMap<String, String>,
+) -> Result<(String, u16)> {
+    let (service_key, port_key, default_port) = match resource_type {
+        ResourceType::Redis => ("CONTROL_SERVICE_REDIS", "CONTROL_PORT_REDIS", 36379),
+        ResourceType::Nats => ("CONTROL_SERVICE_NATS", "CONTROL_PORT_NATS", 34222),
+        ResourceType::Etcd => ("CONTROL_SERVICE_ETCD", "CONTROL_PORT_ETCD_CLIENT", 32379),
+    };
+    if let Some(service) = lookup(service_key, root_values) {
+        let (hostname, port) = service.rsplit_once(':').ok_or_else(|| {
+            miette::miette!("invalid {service_key} address {service:?}; expected hostname:port")
+        })?;
+        let port = port
+            .parse::<u16>()
+            .into_diagnostic()
+            .wrap_err_with(|| format!("invalid {service_key} port in {service:?}"))?;
+        return Ok((hostname.to_string(), port));
+    }
+    let port = root_values
+        .get(port_key)
+        .map(|value| value.parse::<u16>())
+        .transpose()
+        .into_diagnostic()
+        .wrap_err_with(|| format!("invalid {port_key}"))?
+        .unwrap_or(default_port);
+    Ok(("localhost".into(), port))
+}
+
+fn interpolate_structured(value: &str, templates: &[(&str, String)]) -> Result<String> {
+    let mut output = value.to_string();
+    for (key, resolved) in templates {
+        output = output.replace(&format!("{{{{{key}}}}}"), resolved);
+    }
+    if output.contains("{{") || output.contains("}}") {
+        bail!("unresolved structured environment template in {value:?}");
+    }
     Ok(output)
 }
 
@@ -277,6 +379,13 @@ pub fn has_values(loaded: &LoadedManifest) -> bool {
     !loaded.manifest.env.is_empty()
         || !loaded.manifest.postgres.is_empty()
         || !loaded.manifest.mongo.is_empty()
+        || !loaded.manifest.endpoints.is_empty()
+        || !loaded
+            .manifest
+            .dependencies
+            .iter()
+            .all(|dependency| dependency.env().is_empty())
+        || !loaded.manifest.resources.is_empty()
 }
 
 pub fn write_for_manifest(
@@ -387,6 +496,7 @@ mod tests {
     #[test]
     fn generates_encoded_database_urls() {
         let pg = Postgres {
+            package: "database".into(),
             host: "localhost".into(),
             port: 5432,
             user: "user".into(),
@@ -512,38 +622,14 @@ mod tests {
     }
 
     #[test]
-    fn remaps_legacy_local_dependency_urls_for_host_workspaces() {
-        let values = BTreeMap::from([
-            (
-                "DATABASE_URL".into(),
-                EnvValue::Literal("postgresql://postgres@127.0.0.1:35432/app".into()),
-            ),
-            (
-                "REDIS_URL".into(),
-                EnvValue::Literal("redis://localhost:36379/0".into()),
-            ),
-        ]);
-        let roots = BTreeMap::from([
-            ("CONTROL_PORT_POSTGRES".into(), "41001".into()),
-            ("CONTROL_PORT_REDIS".into(), "41003".into()),
-        ]);
-        let resolved = resolve(&values, &roots).unwrap();
-        assert_eq!(
-            resolved["DATABASE_URL"],
-            "postgresql://postgres@127.0.0.1:41001/app"
-        );
-        assert_eq!(resolved["REDIS_URL"], "redis://localhost:41003/0");
-    }
-
-    #[test]
-    fn host_workspaces_always_use_localhost() {
+    fn host_workspaces_use_their_public_hostname() {
         let temp = tempdir().unwrap();
         fs::create_dir_all(temp.path().join(".control")).unwrap();
         fs::write(
             temp.path().join(".control/workspace.json"),
             r#"{
                 "id": "feature-auth",
-                "hostname": "feature-auth.localhost",
+                "hostname": "metorial-feature-auth.localhost",
                 "branch": "feature/auth",
                 "source_root": "/code/metorial",
                 "runtime": "host",
@@ -565,7 +651,57 @@ mod tests {
         };
         assert_eq!(
             root_environment(&project).unwrap()["METORIAL_HOSTNAME"],
-            "localhost"
+            "metorial-feature-auth.localhost"
         );
+    }
+
+    #[test]
+    fn resolves_endpoint_dependency_and_resource_environment() {
+        let temp = tempdir().unwrap();
+        for (directory, manifest) in [
+            (
+                "upstream",
+                "name='upstream'\n[endpoints.http]\nport=4310\n[[endpoints.http.env]]\nkey='PUBLIC_PORT'\nvalue='{{PORT}}'\n[[endpoints.http.env]]\nkey='BIND_PORT'\nvalue='{{BIND_PORT}}'",
+            ),
+            (
+                "consumer",
+                "name='consumer'\n[[dependencies]]\nidentifier='upstream'\n[[dependencies.env]]\nendpoint='http'\nkey='UPSTREAM_URL'\nvalue='http://{{HOSTNAME}}:{{PORT}}'\n[[resources]]\ntype='nats'\n[[resources.env]]\nkey='NATS_URL'\nvalue='nats://{{HOSTNAME}}:{{PORT}}'",
+            ),
+        ] {
+            let path = temp.path().join(directory);
+            fs::create_dir_all(&path).unwrap();
+            fs::write(path.join("package.json"), "{}").unwrap();
+            fs::write(path.join("control.toml"), manifest).unwrap();
+        }
+        let mut manifests = crate::manifest::discover(temp.path()).unwrap();
+        manifests
+            .iter_mut()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "upstream")
+            .unwrap()
+            .manifest
+            .endpoints
+            .get_mut("http")
+            .unwrap()
+            .bind_port = Some(33001);
+        let upstream = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "upstream")
+            .unwrap();
+        let consumer = manifests
+            .iter()
+            .find(|loaded| loaded.manifest.package.as_ref().unwrap().name == "consumer")
+            .unwrap();
+        assert_eq!(
+            all_for_manifest(upstream, &BTreeMap::new()).unwrap()["PUBLIC_PORT"],
+            "4310"
+        );
+        assert_eq!(
+            all_for_manifest(upstream, &BTreeMap::new()).unwrap()["BIND_PORT"],
+            "33001"
+        );
+        let roots = BTreeMap::from([("CONTROL_SERVICE_NATS".into(), "nats-1:4222".into())]);
+        let values = all_for_manifest(consumer, &roots).unwrap();
+        assert_eq!(values["UPSTREAM_URL"], "http://localhost:4310");
+        assert_eq!(values["NATS_URL"], "nats://nats-1:4222");
     }
 }

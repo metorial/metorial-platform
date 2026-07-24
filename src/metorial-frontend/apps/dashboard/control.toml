@@ -2,11 +2,22 @@ name = "@metorial/app-dashboard"
 group = "oss"
 mode = "oss"
 
-[dev]
-run = ["vite --port 3300 --host 0.0.0.0"]
+[[dependencies]]
+identifier = "@metorial/app-api"
+env = [
+  { endpoint = "portal", key = "VITE_CUSTOM_PORTAL_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/portal-api" },
+]
 
-[[dev.expose]]
+[test.e2e]
+start = ["test:start-e2e"]
+packages = []
+
+[dev]
+run = ["dev:start"]
+
+[endpoints.web]
 port = 3300
+env = [{ key = "PORT", value = "{{BIND_PORT}}" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -17,7 +28,3 @@ NODE_ENV = "development"
 VITE_METORIAL_ENV = "development"
 VITE_EXPLORER_URL = "http://{{HOSTNAME}}:6050"
 VITE_EXPLORER_V2_URL = "http://{{HOSTNAME}}:4350"
-VITE_FEDERATION_INSTANCES = "{\"local1\":{\"federationApi\":\"http://{{HOSTNAME}}:4321\",\"coreApi\":\"http://{{HOSTNAME}}:4310?_metorial_instance=local1\",\"adminApi\":\"http://{{HOSTNAME}}:4322/metorial-admin\",\"horizonAppId\":\"metorial-enterprise-dev\"},\"local2\":{\"federationApi\":\"http://{{HOSTNAME}}:4321\",\"coreApi\":\"http://{{HOSTNAME}}:4310?_metorial_instance=local2\",\"adminApi\":\"http://{{HOSTNAME}}:4322/metorial-admin\",\"horizonAppId\":\"metorial-enterprise-dev\"}}"
-VITE_CUSTOM_PORTAL_API_URL = "http://{{HOSTNAME}}:4315/portal-api"
-VITE_SHELL_URL = "http://{{HOSTNAME}}:4301"
-VITE_API_EXPLORER_URL = "http://{{HOSTNAME}}:4351"

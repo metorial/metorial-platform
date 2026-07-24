@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "vitest run --config vitest.e2e.config.mts",
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
@@ -34,6 +35,7 @@
     "@lowerdeck/id": "workspace:2.0.0"
   },
   "devDependencies": {
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.8.2",
     "vitest": "^3.1.2"

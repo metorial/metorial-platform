@@ -7,14 +7,6 @@ vi.mock('../../providers', () => ({
   startBuildQueue: { add: vi.fn().mockResolvedValue({ id: 'test-job' }) }
 }));
 
-vi.mock('../../storage', () => ({
-  storage: {
-    putObject: vi.fn().mockResolvedValue({ storageKey: 'test-key' }),
-    getObject: vi.fn().mockResolvedValue({ data: Buffer.from('') }),
-    getPublicURL: vi.fn().mockResolvedValue({ url: 'http://example.com/artifact' }),
-    upsertBucket: vi.fn().mockResolvedValue(undefined)
-  }
-}));
 
 describe('provider:getDefault E2E', () => {
   beforeEach(async () => {

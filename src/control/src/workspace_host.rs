@@ -6,7 +6,9 @@ use std::{
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
 
 use crate::{
-    dev, docker, environment, manifest, process,
+    dev, docker, environment,
+    infrastructure::{self, RenderOptions, Requirements},
+    manifest, process, proxy,
     root::ProjectRoot,
     workspace::{self, ServicePorts, WorkspaceMetadata, WorkspaceRuntime},
 };
@@ -19,7 +21,6 @@ const SOURCE_DATABASE_QUERY: &str = "SELECT datname FROM pg_database \
 
 pub async fn initialize(project: &ProjectRoot, clone_root_postgres: bool) -> Result<()> {
     let metadata = host_metadata(project).await?;
-    generate_compose(project, &metadata)?;
     start_services(project).await?;
     if clone_root_postgres {
         clone_postgres(project, &metadata).await?;
@@ -111,7 +112,7 @@ pub async fn shell(project: &ProjectRoot) -> Result<()> {
 
 pub async fn stop(project: &ProjectRoot, volumes: bool) -> Result<()> {
     let metadata = host_metadata(project).await?;
-    generate_compose(project, &metadata)?;
+    proxy::unregister_workspace(project, &metadata)?;
     let compose = compose_path(project);
     let mut args = compose_args(&compose);
     if volumes {
@@ -139,7 +140,7 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
     println!("workspace: {}", metadata.id);
     println!("branch: {}", metadata.branch);
     println!("runtime: host");
-    println!("hostname: localhost");
+    println!("hostname: {}", metadata.hostname);
     println!("postgres: localhost:{}", ports.postgres);
     println!("mongo: localhost:{}", ports.mongo);
     println!("redis: localhost:{}", ports.redis);
@@ -162,14 +163,31 @@ pub async fn status(project: &ProjectRoot) -> Result<()> {
         .unwrap_or_default()
         .lines()
         .count();
-    println!("dependencies: {running}/5 running");
+    let mut total_args = compose_args(&compose_path(project));
+    total_args.extend(["config".into(), "--services".into()]);
+    let total_refs = total_args.iter().map(String::as_str).collect::<Vec<_>>();
+    let total = process::output("docker", &total_refs, &project.root)
+        .await
+        .unwrap_or_default()
+        .lines()
+        .count();
+    println!("dependencies: {running}/{total} running");
     Ok(())
 }
 
 async fn start_services(project: &ProjectRoot) -> Result<()> {
     let mut manifests = manifest::discover(&project.root)?;
-    workspace::configure_manifests(project, &mut manifests)?;
-    let selected = manifest::select(&manifests, &[], &project.kind)?;
+    workspace::configure_manifests(project, &mut manifests).await?;
+    let externals = manifest::load_externals(&project.root, &mut manifests)?;
+    let mut selected =
+        manifest::select_with_dependencies_excluding(&manifests, &[], &project.kind, &externals)?;
+    selected.retain(|loaded| {
+        loaded
+            .manifest
+            .package
+            .as_ref()
+            .is_none_or(|package| !externals.contains(&package.name))
+    });
     let env = environment::root_environment(project)?;
     docker::start(&project.root, &selected, &env)
         .await
@@ -332,22 +350,31 @@ fn parse_database_names(output: &str) -> Vec<String> {
 }
 
 fn source_services_compose(metadata: &WorkspaceMetadata) -> Result<PathBuf> {
-    [
-        metadata
-            .source_root
-            .join("oss/scripts/dev-tools/services.docker-compose.yml"),
-        metadata
-            .source_root
-            .join("scripts/dev-tools/services.docker-compose.yml"),
-    ]
-    .into_iter()
-    .find(|path| path.is_file())
-    .ok_or_else(|| {
-        miette::miette!(
-            "could not find root services.docker-compose.yml below {}",
-            metadata.source_root.display()
-        )
-    })
+    let path = metadata
+        .source_root
+        .join(".control/dev/services.docker-compose.yml");
+    let ports = ServicePorts {
+        postgres: 35432,
+        mongo: 32707,
+        redis: 36379,
+        nats: 34222,
+        etcd_client: 32379,
+        etcd_peer: 32380,
+    };
+    infrastructure::write_compose(
+        &path,
+        &Requirements {
+            postgres: true,
+            ..Default::default()
+        },
+        &RenderOptions {
+            project_name: Some("control_source_services"),
+            network: "control-services",
+            network_name: None,
+            ports: Some(&ports),
+            restart: true,
+        },
+    )
 }
 
 fn source_compose_args(compose: &Path) -> Vec<String> {
@@ -360,55 +387,10 @@ fn source_compose_args(compose: &Path) -> Vec<String> {
     ]
 }
 
-fn generate_compose(project: &ProjectRoot, metadata: &WorkspaceMetadata) -> Result<PathBuf> {
-    let source = default_compose(project);
-    let source_contents = fs::read_to_string(&source)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not read {}", source.display()))?;
-    let contents = render_compose(&source_contents, metadata)?;
-
-    let path = compose_path(project);
-    let parent = path
-        .parent()
-        .ok_or_else(|| miette::miette!("generated Compose path has no parent"))?;
-    fs::create_dir_all(parent).into_diagnostic()?;
-    let temporary = parent.join(".services.docker-compose.tmp");
-    fs::write(&temporary, contents).into_diagnostic()?;
-    fs::rename(&temporary, &path)
-        .into_diagnostic()
-        .wrap_err_with(|| format!("could not install {}", path.display()))?;
-    Ok(path)
-}
-
-fn render_compose(source: &str, metadata: &WorkspaceMetadata) -> Result<String> {
-    let ports = required_ports(metadata)?;
-    let mut contents = source.to_string();
-    for (from, to) in [
-        ("32379:2379", format!("{}:2379", ports.etcd_client)),
-        ("32380:2380", format!("{}:2380", ports.etcd_peer)),
-        ("32707:27017", format!("{}:27017", ports.mongo)),
-        ("36379:6379", format!("{}:6379", ports.redis)),
-        ("35432:5432", format!("{}:5432", ports.postgres)),
-        ("34222:4222", format!("{}:4222", ports.nats)),
-    ] {
-        contents = contents.replace(from, &to);
-    }
-    contents = contents.replace(
-        "    name: control_services",
-        &format!("    name: control_{}_services", metadata.id),
-    );
-    contents = format!("name: control_host_{}\n{contents}", metadata.id);
-    Ok(contents)
-}
-
-fn default_compose(project: &ProjectRoot) -> PathBuf {
-    project
-        .oss
-        .join("scripts/dev-tools/services.docker-compose.yml")
-}
-
 fn compose_path(project: &ProjectRoot) -> PathBuf {
-    project.root.join(".control/services.docker-compose.yml")
+    project
+        .root
+        .join(".control/dev/services.docker-compose.yml")
 }
 
 fn compose_args(compose: &Path) -> Vec<String> {
@@ -443,7 +425,6 @@ fn required_ports(metadata: &WorkspaceMetadata) -> Result<&ServicePorts> {
 mod tests {
     use super::*;
     use crate::root::RootKind;
-    use crate::workspace::{ServicePorts, WorkspaceRuntime};
     use tempfile::tempdir;
 
     #[test]
@@ -456,33 +437,6 @@ mod tests {
                 "/code/.control/services.docker-compose.yml"
             ]
         );
-    }
-
-    #[test]
-    fn renders_workspace_project_and_custom_ports() {
-        let metadata = WorkspaceMetadata {
-            id: "feature-auth".into(),
-            hostname: "feature-auth.localhost".into(),
-            branch: "feature/auth".into(),
-            source_root: "/code/metorial".into(),
-            runtime: WorkspaceRuntime::Host,
-            service_ports: Some(ServicePorts {
-                postgres: 40001,
-                mongo: 40002,
-                redis: 40003,
-                nats: 40004,
-                etcd_client: 40005,
-                etcd_peer: 40006,
-            }),
-        };
-        let rendered = render_compose(
-            "services:\n  postgres:\n    ports:\n      - '35432:5432'\nnetworks:\n  control-services:\n    name: control_services\n",
-            &metadata,
-        )
-        .unwrap();
-        assert!(rendered.starts_with("name: control_host_feature-auth\n"));
-        assert!(rendered.contains("'40001:5432'"));
-        assert!(rendered.contains("name: control_feature-auth_services"));
     }
 
     #[test]

@@ -1,11 +1,25 @@
 name = "@metorial/forge"
 group = "oss"
 
-[dev]
-run = ["bun --watch ./src/server.ts"]
+[[dependencies]]
+identifier = "@metorial/object-storage"
+env = [
+  { endpoint = "rpc", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
 
-[[dev.expose]]
+[test.e2e]
+start = ["test:start-e2e"]
+
+[dev]
+run = ["dev:start"]
+
+[endpoints.api]
 port = 52020
+env = [{ key = "FORGE_API_PORT", value = "{{BIND_PORT}}" }]
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
 [dev.env]
 METORIAL_ENV = "development"
@@ -13,14 +27,13 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
 ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
 DEFAULT_PROVIDER = "local"
-OBJECT_STORAGE_URL = "http://services:52010"
 ARTIFACT_BUCKET_NAME = "artifacts"
 LOG_BUCKET_NAME = "logs"
 
 [dev.db.main]
+package = "@metorial/forge"
 name = "forge"
 engine = "postgres"
 env = "DATABASE_URL"
