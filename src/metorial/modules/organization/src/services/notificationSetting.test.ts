@@ -33,7 +33,7 @@ vi.mock('@metorial/db', () => ({
     })
 }));
 
-vi.mock('../definitions', () => ({
+vi.mock('../definitions/notifications', () => ({
   OrganizationNotificationTypes: {
     organization_notification: Promise.resolve({
       oid: 1n,

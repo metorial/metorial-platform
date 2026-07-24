@@ -34,7 +34,7 @@ vi.mock('@metorial/db', () => ({
     })
 }));
 
-vi.mock('../definitions', () => ({
+vi.mock('../definitions/notifications', () => ({
   OrganizationNotificationTypes: {
     organization_notification: mocks.type,
     billing_alert: Promise.resolve({ oid: 11n, identifier: 'billing_alert' })
