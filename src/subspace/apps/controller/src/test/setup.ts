@@ -10,7 +10,9 @@ setupVoyagerStub();
 
 let db = await setupPrismaTestDb<PrismaClient>({
   guard: 'subspace-test',
-  prismaClientFactory: url => new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
+  excludeTables: ['Backend'],
+  prismaClientFactory: url =>
+    new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
 });
 
 afterAll(async () => {

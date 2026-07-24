@@ -56,7 +56,9 @@ const createLockedVersionTestContext = async (): Promise<LockedVersionTestContex
 
   let [tenantRecord, environmentRecord, solutionRecord] = await Promise.all([
     testDb.tenant.findUnique({ where: { id: tenant.id } }),
-    testDb.environment.findFirst({ where: { tenantOid: (await testDb.tenant.findUnique({ where: { id: tenant.id } }))!.oid } }),
+    testDb.environment.findFirst({
+      where: { tenantOid: (await testDb.tenant.findUnique({ where: { id: tenant.id } }))!.oid }
+    }),
     testDb.solution.findUnique({ where: { id: solution.id } })
   ]);
 
@@ -220,6 +222,15 @@ const createLockedVersionTestContext = async (): Promise<LockedVersionTestContex
       tag: `pro-other-lv-${otherRunId}`
     }
   });
+  let otherProviderEntry = await testDb.providerEntry.create({
+    data: {
+      ...getId('providerEntry'),
+      identifier: `entry-other-lv-${otherRunId}`,
+      name: 'Other Locked Version Provider Entry',
+      description: 'Entry for the other locked version provider',
+      publisherOid: publisher.oid
+    }
+  });
   let otherProvider = await testDb.provider.create({
     data: {
       ...getId('provider'),
@@ -230,7 +241,7 @@ const createLockedVersionTestContext = async (): Promise<LockedVersionTestContex
       name: 'Other Locked Version Provider',
       description: 'Other provider for locked version tests',
       tag: otherProviderTag.tag,
-      entryOid: providerEntry.oid,
+      entryOid: otherProviderEntry.oid,
       publisherOid: publisher.oid,
       typeOid: providerType.oid
     }
@@ -288,7 +299,10 @@ const createLockedVersionTestContext = async (): Promise<LockedVersionTestContex
   };
 };
 
-const createDeployment = async (ctx: LockedVersionTestContext, opts?: { isEphemeral?: boolean }) => {
+const createDeployment = async (
+  ctx: LockedVersionTestContext,
+  opts?: { isEphemeral?: boolean }
+) => {
   return await ctx.client.providerDeployment.create({
     tenantId: ctx.tenantId,
     environmentId: ctx.environmentId,

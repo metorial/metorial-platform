@@ -234,4 +234,23 @@ describe('buildIntegrationProviderToolFilterChain', () => {
       allowed: false
     });
   });
+
+  it('lets session provider filters reset deployment and config filters', () => {
+    let addTool = createTool('add');
+    let divideTool = createTool('divide');
+    let sessionProviderWithOverride = {
+      ...sessionProvider,
+      toolFilter: {
+        ...toolKeysFilter(['divide']),
+        ignoreParentFilters: true
+      }
+    } as any;
+
+    expect(checkToolAccess(addTool, sessionProviderWithOverride, 'list')).toEqual({
+      allowed: false
+    });
+    expect(checkToolAccess(divideTool, sessionProviderWithOverride, 'list')).toEqual({
+      allowed: true
+    });
+  });
 });

@@ -53,7 +53,7 @@ let createCustomProviderFixture = async (
 ) => {
   let actor = await testDb.tenantActor.create({
     data: {
-      ...getId('actor'),
+      ...getId('tenantActor'),
       type: 'system',
       identifier: 'custom-provider-visibility-system',
       name: 'Custom Provider Visibility System',
@@ -61,8 +61,10 @@ let createCustomProviderFixture = async (
     }
   });
 
-  let backend = await testDb.backend.create({
-    data: {
+  let backend = await testDb.backend.upsert({
+    where: { type: 'shuttle' },
+    update: {},
+    create: {
       ...getId('backend'),
       type: 'shuttle',
       identifier: 'custom-provider-visibility-shuttle',
@@ -310,7 +312,10 @@ let createCustomProviderFixture = async (
     }
   });
 
-  let publishToEnvironment = async (environmentOid: bigint, customProviderEnvironmentOid: bigint) => {
+  let publishToEnvironment = async (
+    environmentOid: bigint,
+    customProviderEnvironmentOid: bigint
+  ) => {
     let providerEnvironment = await testDb.providerEnvironment.create({
       data: {
         ...getId('providerEnvironment'),

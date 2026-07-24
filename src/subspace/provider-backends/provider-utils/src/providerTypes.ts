@@ -10,7 +10,15 @@ export let ensureProviderType = async (
   attributes: PrismaJson.ProviderTypeAttributes
 ) => {
   let identifier = `provider::type::${await Hash.sha256(canonicalize({ attributes }))}`;
-  if (cachedProviderTypes[identifier]) return cachedProviderTypes[identifier];
+  let cachedProviderType = cachedProviderTypes[identifier];
+  if (cachedProviderType) {
+    let persistedProviderType = await db.providerType.findUnique({
+      where: { oid: cachedProviderType.oid }
+    });
+
+    if (persistedProviderType) return persistedProviderType;
+    delete cachedProviderTypes[identifier];
+  }
 
   let inner = {
     identifier,

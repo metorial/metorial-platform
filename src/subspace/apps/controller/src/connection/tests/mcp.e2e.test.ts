@@ -122,9 +122,33 @@ describe('mcp.e2e', () => {
       expect(sessionId).toBeTruthy();
       expect(connectionId).toBeTruthy();
       expect(connectionToken).toBeTruthy();
-      expect(initializeMessages.find(message => message.id === 'initialize-request')?.result).toBeTruthy();
+      expect(
+        initializeMessages.find(message => message.id === 'initialize-request')?.result
+      ).toBeTruthy();
 
-      let toolsResponse = await localFetch(ctx.proxyUrl, {
+      let toolsListResponse = await localFetch(ctx.proxyUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json, text/event-stream',
+          'Content-Type': 'application/json',
+          'MCP-Session-ID': sessionId!
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 'tools-list-request',
+          method: 'tools/list',
+          params: {}
+        })
+      });
+      let toolMessages = await getStreamableHttpSseMessages(toolsListResponse);
+      let tools =
+        toolMessages.find(message => message.id === 'tools-list-request')?.result?.tools ?? [];
+      let addTool = tools.find((tool: { name: string }) =>
+        /(^|[_.-])add([_.-]|$)/.test(tool.name)
+      );
+      expect(addTool).toBeTruthy();
+
+      let toolCallResponse = await localFetch(ctx.proxyUrl, {
         method: 'POST',
         headers: {
           Accept: 'application/json, text/event-stream',
@@ -136,7 +160,7 @@ describe('mcp.e2e', () => {
           id: 'tool-call-request',
           method: 'tools/call',
           params: {
-            name: 'add',
+            name: addTool!.name,
             arguments: {
               a: 1,
               b: 2
@@ -145,10 +169,11 @@ describe('mcp.e2e', () => {
         })
       });
 
-      let toolMessages = await getStreamableHttpSseMessages(toolsResponse);
-      expect(toolMessages.find(message => message.id === 'tool-call-request')?.result?.content?.[0]?.text).toContain(
-        'Result: 3'
-      );
+      let toolCallMessages = await getStreamableHttpSseMessages(toolCallResponse);
+      expect(
+        toolCallMessages.find(message => message.id === 'tool-call-request')?.result
+          ?.content?.[0]?.text
+      ).toContain('Result: 3');
     }
   );
 
@@ -171,7 +196,7 @@ describe('mcp.e2e', () => {
         await mcp.connect();
 
         let tools = await mcp.client.listTools();
-        let slowTool = tools.tools.find(tool => /slow_operation/.test(tool.name));
+        let slowTool = tools.tools.find(tool => /slow[_.-]operation/.test(tool.name));
         expect(slowTool).toBeTruthy();
 
         let result = await mcp.client.callTool({
@@ -215,7 +240,7 @@ describe('mcp.e2e', () => {
         await mcp.connect();
 
         let tools = await mcp.client.listTools();
-        let slowTool = tools.tools.find(tool => /slow_operation/.test(tool.name));
+        let slowTool = tools.tools.find(tool => /slow[_.-]operation/.test(tool.name));
         expect(slowTool).toBeTruthy();
 
         await expect(
@@ -292,7 +317,7 @@ describe('mcp.e2e', () => {
         expect(mcp.transport).toBeInstanceOf(StreamableHTTPClientTransport);
 
         let tools = await mcp.client.listTools();
-        let slowTool = tools.tools.find(tool => /slow_operation/.test(tool.name));
+        let slowTool = tools.tools.find(tool => /slow[_.-]operation/.test(tool.name));
         expect(slowTool).toBeTruthy();
 
         let sessionId = (mcp.transport as StreamableHTTPClientTransport).sessionId!;
@@ -321,12 +346,14 @@ describe('mcp.e2e', () => {
         let progressMessages = withProgressMessages.filter(
           message => message.method === 'notifications/progress'
         );
-        let finalMessage = withProgressMessages.find(message => message.id === 'call-with-progress');
+        let finalMessage = withProgressMessages.find(
+          message => message.id === 'call-with-progress'
+        );
 
         expect(progressMessages.length).toBeGreaterThan(0);
-        expect(progressMessages.every(message => message.params?.progressToken === progressToken)).toBe(
-          true
-        );
+        expect(
+          progressMessages.every(message => message.params?.progressToken === progressToken)
+        ).toBe(true);
         expect(finalMessage?.result?.content?.[0]?.text).toContain(
           'Slow operation completed after 6500ms'
         );
@@ -349,14 +376,15 @@ describe('mcp.e2e', () => {
           })
         });
 
-        let withoutProgressMessages = await getStreamableHttpSseMessages(withoutProgressResponse);
+        let withoutProgressMessages =
+          await getStreamableHttpSseMessages(withoutProgressResponse);
 
         expect(
           withoutProgressMessages.some(message => message.method === 'notifications/progress')
         ).toBe(false);
         expect(
-          withoutProgressMessages.find(message => message.id === 'call-without-progress')?.result
-            ?.content?.[0]?.text
+          withoutProgressMessages.find(message => message.id === 'call-without-progress')
+            ?.result?.content?.[0]?.text
         ).toContain('Slow operation completed after 6500ms');
       } finally {
         await mcp.cleanup();
@@ -453,15 +481,15 @@ describe('mcp.e2e', () => {
 
         let resourceTemplates = await mcp.client.listResourceTemplates();
         let templateUris = resourceTemplates.resourceTemplates.map(t => t.uriTemplate);
-        expect(templateUris.some(uri => uri.startsWith('test://user/{id}'))).toBe(true);
-        expect(templateUris.some(uri => uri.startsWith('test://log/{date}'))).toBe(false);
+        expect(templateUris.some(uri => uri.includes('test://user/{id}'))).toBe(true);
+        expect(templateUris.some(uri => uri.includes('test://log/{date}'))).toBe(false);
 
         let resources = await mcp.client.listResources();
         let resourceUris = resources.resources.map(r => r.uri);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/config_'))).toBe(true);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/users_'))).toBe(false);
+        expect(resourceUris.some(uri => uri.includes('test://data/config'))).toBe(true);
+        expect(resourceUris.some(uri => uri.includes('test://data/users'))).toBe(false);
 
-        let configResource = resourceUris.find(uri => uri.startsWith('test://data/config_'));
+        let configResource = resourceUris.find(uri => uri.includes('test://data/config'));
         expect(configResource).toBeTruthy();
 
         let configContents = await mcp.client.readResource({ uri: configResource! });
@@ -519,15 +547,15 @@ describe('mcp.e2e', () => {
 
         let resources = await mcp.client.listResources();
         let resourceUris = resources.resources.map(r => r.uri);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/config_'))).toBe(true);
-        expect(resourceUris.some(uri => uri.startsWith('test://data/users_'))).toBe(false);
+        expect(resourceUris.some(uri => uri.includes('test://data/config'))).toBe(true);
+        expect(resourceUris.some(uri => uri.includes('test://data/users'))).toBe(false);
 
-        let configResource = resourceUris.find(uri => uri.startsWith('test://data/config_'));
+        let configResource = resourceUris.find(uri => uri.includes('test://data/config'));
         expect(configResource).toBeTruthy();
 
         let blockedUsersResource = configResource!.replace(
-          'test://data/config_',
-          'test://data/users_'
+          'test://data/config',
+          'test://data/users'
         );
 
         await expect(mcp.client.readResource({ uri: blockedUsersResource })).rejects.toThrow(
