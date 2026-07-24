@@ -282,6 +282,8 @@ export type DB = typeof db;
 declare global {
   namespace PrismaJson {
     type Record = { [key: string]: any };
+    type OrganizationConfigValue = any;
+    type OrganizationLayoutValue = any;
 
     type OrganizationNotificationPayload = { [key: string]: any };
     type OrganizationNotificationActions = {

@@ -18,6 +18,10 @@ export let ID = createIdGenerator({
   organizationNotificationSetting: idType.sorted('ons'),
   organizationNotificationDigestSetting: idType.sorted('onds'),
   organizationNotificationEmailDigest: idType.sorted('oned'),
+  organizationConfigType: idType.sorted('oct'),
+  organizationConfig: idType.sorted('ocf'),
+  organizationLayoutType: idType.sorted('olt'),
+  organizationLayout: idType.sorted('oly'),
   account: idType.sorted('acc'),
 
   project: idType.sorted('prj'),

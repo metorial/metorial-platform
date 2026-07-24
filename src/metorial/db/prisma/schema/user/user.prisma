@@ -59,6 +59,8 @@ model User {
   workspaceProfiles                      WorkspaceProfile[]
   organizationNotificationSettings       OrganizationNotificationSetting[]
   organizationNotificationDigestSettings OrganizationNotificationDigestSetting[]
+  organizationConfigs                    OrganizationConfig[]
+  organizationLayouts                    OrganizationLayout[]
 }
 
 model UserSession {

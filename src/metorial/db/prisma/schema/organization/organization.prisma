@@ -52,7 +52,6 @@ model Organization {
   members                                OrganizationMember[]
   actors                                 OrganizationActor[]
   instances                              Instance[]
-  userConfigs                            OrganizationUserConfig[]
   projects                               Project[]
   machineAccesses                        MachineAccess[]
   files                                  File[]
@@ -97,6 +96,8 @@ model Organization {
   organizationNotificationSettings       OrganizationNotificationSetting[]
   organizationNotificationDigestSettings OrganizationNotificationDigestSetting[]
   organizationNotificationEmailDigests   OrganizationNotificationEmailDigest[]
+  configs                                OrganizationConfig[]
+  layouts                                OrganizationLayout[]
 
   @@index([authVersion])
   @@index([previousSlugs])

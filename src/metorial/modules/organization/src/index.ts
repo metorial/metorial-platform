@@ -16,7 +16,9 @@ import { syncProfileQueueProcessor } from './queues/syncProfile';
 import { syncSubspaceTenantProcessors } from './queues/syncSubspaceTenant';
 export { syncSubspaceTenantQueue } from './queues/syncSubspaceTenant';
 
-export * from './definitions';
+export * from './definitions/config';
+export * from './definitions/layout';
+export * from './definitions/notifications';
 export * from './services';
 
 export let organizationQueueProcessor = combineQueueProcessors([
