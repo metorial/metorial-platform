@@ -534,6 +534,21 @@ fn generate(
         ));
     }
 
+    let build_filters = plan
+        .sources
+        .iter()
+        .map(|loaded| {
+            Ok(format!(
+                " --filter={}",
+                shell_quote(&format!("{}...", package_name(loaded)?))
+            ))
+        })
+        .collect::<Result<String>>()?;
+    script.push_str(&format!(
+        "echo 'Building selected E2E package dependency graphs'\n\
+         bun --env-file={root_env} x turbo run build --ui=stream --env-mode=loose --concurrency=3{build_filters}\n"
+    ));
+
     let mut runner_index = 0;
 
     for loaded in &plan.sources {
@@ -1515,7 +1530,7 @@ mod tests {
     }
 
     #[test]
-    fn generated_runner_skips_root_build_and_uses_main_test_env_for_npm_suite() {
+    fn generated_runner_builds_source_dependency_graphs_and_uses_main_test_env_for_npm_suite() {
         let temp = tempdir().unwrap();
         package(temp.path(), "db", Some("name='db'"), false);
         package(
@@ -1555,9 +1570,24 @@ mod tests {
         assert!(runner.contains("main-db-test"));
         assert!(runner.contains("control:db:generate"));
         assert!(runner.contains("control:db:push"));
+        assert!(runner.contains("turbo run build"));
+        assert!(runner.contains("--filter='db...'"));
+        assert!(runner.contains("--filter='api...'"));
         assert!(runner.contains("turbo run 'seed'"));
-        assert!(!runner.contains("bun run build"));
         assert!(runner.contains("Waiting for api port "));
+        let install = runner
+            .find("Installing E2E container dependencies")
+            .unwrap();
+        let database_push = runner.find("Pushing selected database schemas").unwrap();
+        let build = runner
+            .find("Building selected E2E package dependency graphs")
+            .unwrap();
+        let prepare = runner.find("Preparing api: turbo run seed").unwrap();
+        let start = runner.find("Starting api:dev").unwrap();
+        assert!(install < database_push);
+        assert!(database_push < build);
+        assert!(build < prepare);
+        assert!(prepare < start);
         let env_files = fs::read_dir(temp.path().join(".control/test/test-run/runners"))
             .unwrap()
             .filter_map(|entry| entry.ok())

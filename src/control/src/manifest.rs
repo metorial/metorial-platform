@@ -1400,9 +1400,19 @@ pub fn select<'a>(
 mod tests {
     use std::fs;
 
+    use miette::Report;
     use tempfile::tempdir;
 
     use super::*;
+
+    fn assert_diagnostic_contains(error: &Report, expected: &str) {
+        let messages = error.chain().map(ToString::to_string).collect::<Vec<_>>();
+        assert!(
+            messages.iter().any(|message| message.contains(expected)),
+            "expected diagnostic chain to contain {expected:?}, got:\n{}",
+            messages.join("\n")
+        );
+    }
 
     #[test]
     fn parses_manifest_and_rejects_unknown_fields() {
@@ -1598,20 +1608,20 @@ mod tests {
                 &format!("name='api'\ndependencies=['{dependency}']"),
             );
             let error = discover(temp.path()).unwrap_err();
-            assert!(format!("{error:?}").contains(expected));
+            assert_diagnostic_contains(&error, expected);
         }
 
         let temp = tempdir().unwrap();
         write_package(temp.path(), "a", "name='a'\ndependencies=['b']");
         write_package(temp.path(), "b", "name='b'\ndependencies=['a']");
         let error = discover(temp.path()).unwrap_err();
-        assert!(format!("{error:?}").contains("a -> b -> a"));
+        assert_diagnostic_contains(&error, "a -> b -> a");
 
         let temp = tempdir().unwrap();
         write_package(temp.path(), "both", "name='both'\ndependencies=['oss']");
         write_package(temp.path(), "oss", "name='oss'\nmode='oss'");
         let error = discover(temp.path()).unwrap_err();
-        assert!(format!("{error:?}").contains("incompatible mode"));
+        assert_diagnostic_contains(&error, "incompatible mode");
     }
 
     #[test]
@@ -1688,7 +1698,7 @@ mod tests {
             "consumer",
             "name='consumer'\n[[dependencies]]\nidentifier='upstream'\n[[dependencies.env]]\nendpoint='missing'\nkey='URL'\nvalue='http://{{HOSTNAME}}:{{PORT}}'",
         );
-        assert!(format!("{:?}", discover(temp.path()).unwrap_err()).contains("unknown endpoint"));
+        assert_diagnostic_contains(&discover(temp.path()).unwrap_err(), "unknown endpoint");
 
         let temp = tempdir().unwrap();
         write_package(
@@ -1696,7 +1706,7 @@ mod tests {
             "invalid",
             "name='invalid'\n[[resources]]\ntype='redis'\n[[resources.env]]\nkey='URL'\nvalue='{{UNKNOWN}}'",
         );
-        assert!(format!("{:?}", discover(temp.path()).unwrap_err()).contains("unknown template"));
+        assert_diagnostic_contains(&discover(temp.path()).unwrap_err(), "unknown template");
     }
 
     #[test]
@@ -1821,10 +1831,7 @@ mod tests {
             let temp = tempdir().unwrap();
             write_package(temp.path(), "api", manifest);
             let error = discover(temp.path()).unwrap_err();
-            assert!(
-                format!("{error:?}").contains("environment key \"URL\" is declared by both"),
-                "{error:?}"
-            );
+            assert_diagnostic_contains(&error, "environment key \"URL\" is declared by both");
         }
     }
 
@@ -1846,9 +1853,9 @@ mod tests {
             "consumer",
             "name='consumer'\n[[dependencies]]\nidentifier='one'\n[[dependencies.env]]\nendpoint='http'\nkey='URL'\nvalue='{{HOSTNAME}}:{{PORT}}'\n[[dependencies]]\nidentifier='two'\n[[dependencies.env]]\nendpoint='http'\nkey='URL'\nvalue='{{HOSTNAME}}:{{PORT}}'",
         );
-        assert!(
-            format!("{:?}", discover(temp.path()).unwrap_err())
-                .contains("environment key \"URL\" is declared by both")
+        assert_diagnostic_contains(
+            &discover(temp.path()).unwrap_err(),
+            "environment key \"URL\" is declared by both",
         );
     }
 }
