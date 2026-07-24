@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
-import { SubspaceSkill } from '@metorial/module-subspace';
+import type { SkillResource } from '@metorial/cargo-module-skill';
 import { Presenter } from '@metorial/presenter';
 import { skillType } from '../../types';
 import {
@@ -12,7 +12,7 @@ import { v1IntegrationPreviewPresenter, v1ProviderPreview } from '../provider';
 export let v1SkillPreviewPresenter = Object.assign(
   async (
     skill: Pick<
-      SubspaceSkill,
+      SkillResource,
       | 'id'
       | 'status'
       | 'slug'

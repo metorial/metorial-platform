@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeItemService } from '@metorial/module-file';
+import { storeItemService } from '@metorial/cargo-module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -19,15 +19,10 @@ export let storeItemGroup = storeGroup.use(async ctx => {
 
   let storeItem = await storeItemService.getStoreItemById({
     itemId: ctx.params.itemId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
-  if (storeItem.storeId !== ctx.store.id) {
+  if (storeItem.store.id !== ctx.store.id) {
     throw new ServiceError(notFoundError('store.item', ctx.params.itemId));
   }
 
@@ -73,12 +68,7 @@ export let storeItemController = Controller.create(
         let paginator = await storeItemService.listStoreItems({
           storeId: ctx.store.id,
           types: normalizeArrayParam(ctx.query.type),
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx),
+          ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           fileIds: normalizeArrayParam(ctx.query.file_id),
           documentIds: normalizeArrayParam(ctx.query.document_id),

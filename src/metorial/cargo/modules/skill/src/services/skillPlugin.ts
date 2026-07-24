@@ -1,0 +1,511 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
+import { Paginator } from '@lowerdeck/pagination';
+import { Service } from '@lowerdeck/service';
+import { slugify } from '@lowerdeck/slugify';
+import { getId } from '@metorial/cargo-config/id';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveSkillConfigurations,
+  resolveSkillMarketplacePlugins,
+  resolveSkillMarketplaces,
+  resolveSkillPlugins
+} from '@metorial/cargo-list-utils';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
+import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
+import type {
+  EntityImage,
+  Prisma,
+  SkillMarketplacePluginStatus,
+  SkillPluginStatus
+} from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
+import { internalImageService } from '../internal/image';
+import {
+  createSkillDestination,
+  forceSkillDestinationSync,
+  getSkillDestinationEditorUrl
+} from '../internal/skillDestination';
+import { enqueueSkillPluginLifecycle } from '../queues/lifecycle';
+
+let skillInclude = {
+  store: true,
+  parentSkill: {
+    select: {
+      id: true
+    }
+  },
+  parentSkillTemplate: {
+    select: {
+      id: true
+    }
+  }
+} satisfies Prisma.SkillInclude;
+
+export let skillPluginInclude = {
+  destination: {
+    include: {
+      syncs: {
+        where: {
+          status: {
+            in: ['pending', 'processing', 'waiting_for_review']
+          }
+        }
+      }
+    }
+  },
+  skillConfiguration: {
+    select: {
+      id: true
+    }
+  },
+  skillPluginSkills: {
+    where: {
+      status: 'active'
+    },
+    orderBy: {
+      createdAt: 'asc'
+    },
+    include: {
+      skillConfiguration: {
+        select: {
+          id: true
+        }
+      },
+      skill: {
+        include: skillInclude
+      }
+    }
+  }
+} satisfies Prisma.SkillPluginInclude;
+
+export type SkillPluginRecord = Prisma.SkillPluginGetPayload<{
+  include: typeof skillPluginInclude;
+}>;
+
+export type SkillPluginStatusFilter = SkillPluginStatus;
+
+export let assertPluginIsNotManaged = (plugin: { isManaged: boolean }) => {
+  if (!plugin.isManaged) return;
+
+  throw new ServiceError(
+    badRequestError({
+      message: 'This plugin is managed and cannot be deleted'
+    })
+  );
+};
+
+type SkillPluginInput = {
+  imageFileId?: string | null;
+  image?: EntityImage | null;
+  providerOverrides?: Prisma.InputJsonValue | null;
+  name?: string;
+  description?: string | null;
+  longDescription?: string | null;
+  category?: string | null;
+  skillConfigurationId?: string | null;
+};
+
+class SkillPluginServiceImpl {
+  private assertName(name: string) {
+    if (name.trim()) return;
+
+    throw new ServiceError(
+      badRequestError({
+        message: 'Skill plugin name cannot be empty'
+      })
+    );
+  }
+
+  private hasUpdate(input: SkillPluginInput) {
+    return (
+      input.imageFileId !== undefined ||
+      input.image !== undefined ||
+      input.providerOverrides !== undefined ||
+      input.name !== undefined ||
+      input.description !== undefined ||
+      input.longDescription !== undefined ||
+      input.category !== undefined ||
+      input.skillConfigurationId !== undefined
+    );
+  }
+
+  private async getSkillConfigurationOid(
+    d: ResourceScope & {
+      skillConfigurationId: string | null | undefined;
+    }
+  ) {
+    if (d.skillConfigurationId === undefined) return undefined;
+    if (d.skillConfigurationId === null) return null;
+
+    let skillConfiguration = await db.skillConfiguration.findFirst({
+      where: {
+        resourceTenantOid: d.resourceTenant.oid,
+        resourceGroupOid: d.resourceGroup.oid,
+        id: d.skillConfigurationId
+      },
+      select: {
+        oid: true
+      }
+    });
+    if (!skillConfiguration) {
+      throw new ServiceError(notFoundError('skill.configuration', d.skillConfigurationId));
+    }
+
+    return skillConfiguration.oid;
+  }
+
+  private async getSkillPluginRecord(
+    d: ResourceScope & {
+      skillPluginId: string;
+    }
+  ) {
+    return await withTransaction(
+      async db => {
+        let skillPlugin = await db.skillPlugin.findFirst({
+          where: {
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
+            id: d.skillPluginId
+          },
+          include: skillPluginInclude
+        });
+
+        if (!skillPlugin)
+          throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
+
+        return skillPlugin;
+      },
+      { ifExists: true }
+    );
+  }
+
+  async listSkillPlugins(
+    d: ResourceScope & {
+      ids?: string[];
+      skillMarketplaceIds?: string[];
+      skillMarketplacePluginIds?: string[];
+      skillConfigurationIds?: string[];
+      statuses?: SkillPluginStatusFilter[];
+      search?: string;
+      category?: string;
+      createdAt?: DateFilter;
+      updatedAt?: DateFilter;
+    }
+  ) {
+    let skillPlugins = await resolveSkillPlugins(d, d.ids);
+    let skillMarketplaces = await resolveSkillMarketplaces(d, d.skillMarketplaceIds);
+    let skillMarketplacePlugins = await resolveSkillMarketplacePlugins(
+      d,
+      d.skillMarketplacePluginIds
+    );
+    let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
+    let statuses: SkillPluginStatus[] = d.statuses?.length ? d.statuses : ['active'];
+    let activeMarketplacePluginStatus: SkillMarketplacePluginStatus = 'active';
+    d.search = d.search?.trim();
+    if (!d.search?.length) d.search = undefined;
+
+    let search = d.search
+      ? await voyager.record.search({
+          tenantId: d.resourceTenant!.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.skillPlugin.id,
+          query: d.search
+        })
+      : null;
+
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.skillPlugin.findMany({
+            ...opts,
+            where: {
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid,
+              isManaged: false,
+              AND: [
+                skillPlugins ? { oid: skillPlugins.in } : undefined!,
+                skillConfigurations
+                  ? { skillConfigurationOid: skillConfigurations.in }
+                  : undefined!,
+                skillMarketplaces || skillMarketplacePlugins
+                  ? {
+                      skillMarketplacePlugins: {
+                        some: {
+                          status: activeMarketplacePluginStatus,
+                          oid: skillMarketplacePlugins?.in,
+                          skillMarketplaceOid: skillMarketplaces?.in,
+                          skillMarketplace: {
+                            resourceTenantOid: d.resourceTenant.oid,
+                            resourceGroupOid: d.resourceGroup.oid
+                          }
+                        }
+                      }
+                    }
+                  : undefined!,
+                { status: { in: statuses } },
+                d.category ? { category: d.category } : undefined!,
+                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
+              ].filter(Boolean)
+            },
+            include: skillPluginInclude
+          })
+      )
+    );
+  }
+
+  async reconcileSkillPlugins(d: {}) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.skillPlugin.findMany({
+            ...opts,
+            where: {},
+            include: {
+              ...skillPluginInclude,
+              resourceTenant: true,
+              resourceGroup: true
+            }
+          })
+      )
+    );
+  }
+
+  async getSkillPluginById(
+    d: ResourceScope & {
+      skillPluginId: string;
+    }
+  ) {
+    return await this.getSkillPluginRecord(d);
+  }
+
+  async createSkillPlugin(
+    d: ResourceScope & {
+      input: {
+        name: string;
+        description?: string | null;
+        longDescription?: string | null;
+        category?: string | null;
+        slug?: string;
+        providerOverrides?: Prisma.InputJsonValue | null;
+        imageFileId?: string | null;
+        skillConfigurationId?: string | null;
+      };
+    }
+  ) {
+    this.assertName(d.input.name);
+
+    let skillConfigurationOid = await this.getSkillConfigurationOid({
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      skillConfigurationId: d.input.skillConfigurationId
+    });
+    let ownerScope = await resolveInstanceResourceScope(d);
+
+    return await withTransaction(async db => {
+      let destination = await createSkillDestination({ resourceTenant: d.resourceTenant });
+      let skillPlugin = await db.skillPlugin.create({
+        data: {
+          ...getId('skillPlugin'),
+          status: 'active',
+          isManaged: false,
+          providerOverrides: d.input.providerOverrides as any,
+          name: d.input.name,
+          description: d.input.description,
+          longDescription: d.input.longDescription,
+          category: d.input.category,
+          slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
+          resourceTenantOid: d.resourceTenant.oid,
+          resourceGroupOid: d.resourceGroup.oid,
+          ...ownerScope,
+          skillConfigurationOid,
+          destinationOid: destination.oid
+        },
+        include: skillPluginInclude
+      });
+
+      if (d.input.imageFileId !== undefined) {
+        let image = await internalImageService.resolveImageEntityImage({
+          resourceTenant: d.resourceTenant!,
+          resourceGroup: d.resourceGroup,
+          entity: { id: skillPlugin.id, type: 'skill_plugin' },
+          imageFileId: d.input.imageFileId,
+          clearedImage: { type: 'default' }
+        });
+
+        skillPlugin = await db.skillPlugin.update({
+          where: {
+            id: skillPlugin.id
+          },
+          data: {
+            image
+          },
+          include: skillPluginInclude
+        });
+      }
+
+      await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
+
+      return skillPlugin;
+    });
+  }
+
+  async updateSkillPlugin(
+    d: ResourceScope & {
+      skillPlugin: SkillPluginRecord;
+      input: SkillPluginInput;
+    }
+  ) {
+    assertPluginIsNotManaged(d.skillPlugin);
+
+    if (!this.hasUpdate(d.input)) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'At least one skill plugin field must be updated'
+        })
+      );
+    }
+
+    if (d.input.name !== undefined) this.assertName(d.input.name);
+
+    let skillConfigurationOid = await this.getSkillConfigurationOid({
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      skillConfigurationId: d.input.skillConfigurationId
+    });
+    let nextImage = d.input.image;
+    if (d.input.imageFileId !== undefined) {
+      nextImage = await internalImageService.resolveImageEntityImage({
+        resourceTenant: d.resourceTenant!,
+        resourceGroup: d.resourceGroup,
+        entity: { id: d.skillPlugin.id, type: 'skill_plugin' },
+        imageFileId: d.input.imageFileId,
+        clearedImage: { type: 'default' }
+      });
+    }
+
+    await db.skillPlugin.update({
+      where: {
+        id: d.skillPlugin.id
+      },
+      data: {
+        image: nextImage as any,
+        providerOverrides: d.input.providerOverrides as any,
+        name: d.input.name,
+        description: d.input.description,
+        longDescription: d.input.longDescription,
+        category: d.input.category,
+        skillConfigurationOid
+      }
+    });
+
+    if (
+      d.input.imageFileId !== undefined &&
+      d.skillPlugin.image &&
+      canonicalize(d.skillPlugin.image) !== canonicalize(nextImage)
+    ) {
+      await internalImageService.cleanupImageEntityImage({
+        image: d.skillPlugin.image as EntityImage
+      });
+    }
+
+    await enqueueSkillPluginLifecycle({
+      skillPluginId: d.skillPlugin.id,
+      event: 'updated'
+    });
+
+    return await this.getSkillPluginRecord({
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      skillPluginId: d.skillPlugin.id
+    });
+  }
+
+  async archiveSkillPlugin(d: ResourceScope & { skillPlugin: SkillPluginRecord }) {
+    assertPluginIsNotManaged(d.skillPlugin);
+
+    await withTransaction(async db => {
+      await db.skillPluginSkill.updateMany({
+        where: {
+          skillPluginOid: d.skillPlugin.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          clientName: null,
+          clientDescription: null,
+          clientMetadata: null,
+          license: null,
+          compatibility: null,
+          skillConfigurationOid: null
+        }
+      });
+
+      await db.skillMarketplacePlugin.updateMany({
+        where: {
+          skillPluginOid: d.skillPlugin.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'archived',
+          skillConfigurationOid: null
+        }
+      });
+
+      await db.skillPlugin.update({
+        where: {
+          id: d.skillPlugin.id
+        },
+        data: {
+          status: 'archived'
+        }
+      });
+
+      await enqueueSkillPluginLifecycle({
+        skillPluginId: d.skillPlugin.id,
+        event: 'archived'
+      });
+    });
+
+    return await this.getSkillPluginRecord({
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      skillPluginId: d.skillPlugin.id
+    });
+  }
+
+  async getSkillPluginEditorUrl(
+    d: ResourceScope & {
+      skillPlugin: SkillPluginRecord;
+      isReadOnly?: boolean;
+    }
+  ) {
+    return await getSkillDestinationEditorUrl({
+      resourceTenant: d.resourceTenant!,
+      destination: d.skillPlugin.destination!,
+      isReadOnly: d.isReadOnly
+    });
+  }
+
+  async forceSkillPluginSync(d: ResourceScope & { skillPlugin: SkillPluginRecord }) {
+    await forceSkillDestinationSync({
+      destination: d.skillPlugin.destination!
+    });
+
+    return await this.getSkillPluginRecord({
+      resourceTenant: d.resourceTenant!,
+      resourceGroup: d.resourceGroup,
+      skillPluginId: d.skillPlugin.id
+    });
+  }
+}
+
+export let skillPluginService = Service.create(
+  'cargoSkillPluginService',
+  () => new SkillPluginServiceImpl()
+).build();

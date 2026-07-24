@@ -2,8 +2,10 @@ import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck
 import { Service } from '@lowerdeck/service';
 import { db, type ConsumerProfile, type ConsumerSurface, type Instance } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
-import { skillPluginService } from '@metorial/module-file';
+import { skillPluginService } from '@metorial/cargo-module-skill';
 import { magicMcpEndpointService } from '@metorial/module-magic';
+import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
+import { subspaceSkillService } from '@metorial/module-subspace';
 import { addMinutes } from 'date-fns';
 import { consumerIntegrationService } from '../consumerEntities/consumerIntegration';
 import {
@@ -230,16 +232,25 @@ class ConsumerOAuthDashboardService {
   }) {
     if (!d.skillPlugin) return [];
 
+    let owner = getSkillPluginOwner(d.skillPlugin);
+    let scope = await resolveResourceScopeForOwner({
+      type: 'instance',
+      instance: owner.instance
+    });
     let skillPlugin = await skillPluginService.getSkillPluginById({
-      owner: getSkillPluginOwner(d.skillPlugin),
+      ...scope,
       skillPluginId: d.skillPlugin.id
     });
-    let providers = await skillPluginService.getSkillPluginProviders({
-      owner: getSkillPluginOwner(d.skillPlugin),
-      skillPlugin
+    let resources = await subspaceSkillService.hydrateResources({
+      instance: owner.instance,
+      skillIds: skillPlugin.skillPluginSkills
+        .filter(skill => skill.status === 'active')
+        .map(skill => skill.skill.id)
     });
 
-    return Array.from(new Set(providers.map(provider => provider.id)));
+    return Array.from(
+      new Set(resources.flatMap(resource => resource.providers.map(provider => provider.id)))
+    );
   }
 }
 

@@ -48,7 +48,9 @@ export let normalizeRedirectDomain = (domain: string) => {
     throw invalidRedirectDomainError();
   }
 
-  if (isWildcard && !hostname.includes('.')) {
+  // `localhost` is a single-label name but is used as a public suffix for
+  // workspace hosts like `ws-foo.localhost`, so `*.localhost` must be allowed.
+  if (isWildcard && !hostname.includes('.') && hostname !== 'localhost') {
     throw invalidRedirectDomainError();
   }
 

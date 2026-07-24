@@ -53,8 +53,10 @@ import {
   OrganizationInvite,
   OrganizationMember,
   Portal,
+  Prisma,
   Profile,
   Project,
+  ResourceActor,
   Sandbox,
   ProviderTemplate,
   Secret,
@@ -62,10 +64,33 @@ import {
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
+  SkillAgent,
+  SkillConfiguration,
+  SkillDestinationSync,
+  SkillExport,
+  SkillForkSync,
   SkillGroup,
   SkillMarketplace,
+  SkillMarketplacePlugin,
+  SkillMarketplaceRepository,
+  SkillMergeRequest,
+  SkillMergeRequestComment,
+  SkillMergeRequestEvent,
+  SkillMergeRequestItem,
+  SkillParticipant,
   SkillPlugin,
+  SkillPluginRepository,
+  SkillPluginSkill,
   SkillTemplate,
+  SkillVersion,
+  Store,
+  StoreItem,
+  StoreParticipant,
+  Document,
+  DocumentParticipant,
+  DocumentVersion,
+  File,
+  FileLink,
   Team,
   TeamMember,
   TeamProject,
@@ -88,38 +113,6 @@ import {
   ConsumerProviderCatalogEntry,
   EnrichedConsumerSurface
 } from '@metorial/module-consumer';
-import type {
-  CargoDocumentPermissions,
-  CargoFileLink,
-  CargoSkillAgent,
-  CargoSkillConfiguration,
-  CargoSkillForkSync,
-  CargoSkillImport,
-  CargoSkillVersion,
-  CargoSkillVersionSnapshot,
-  CargoStore,
-  CargoStorePermissions,
-  EnrichedCargoDocument,
-  EnrichedCargoDocumentParticipant,
-  EnrichedCargoDocumentVersion,
-  EnrichedCargoFile,
-  EnrichedCargoSkillExport,
-  EnrichedCargoSkillMarketplace,
-  EnrichedCargoSkillMarketplacePlugin,
-  EnrichedCargoSkillMarketplaceRepository,
-  EnrichedCargoSkillMergePlan,
-  EnrichedCargoSkillMergeRequest,
-  EnrichedCargoSkillMergeRequestComment,
-  EnrichedCargoSkillMergeRequestEvent,
-  EnrichedCargoSkillMergeRequestItem,
-  EnrichedCargoSkillParticipant,
-  EnrichedCargoSkillPlugin,
-  EnrichedCargoSkillPluginRepository,
-  EnrichedCargoSkillPluginSkill,
-  EnrichedCargoSkillSync,
-  EnrichedCargoStoreItem,
-  EnrichedCargoStoreParticipant
-} from '@metorial/module-file';
 import { Flags } from '@metorial/module-flags';
 import type {
   OAuthAuthorizationLogWithRelations,
@@ -216,14 +209,17 @@ import {
   SubspaceSessionTemplate,
   SubspaceSessionTemplateProvider,
   SubspaceSessionWarning,
-  SubspaceSkill,
-  SubspaceSkillGroup,
-  SubspaceSkillGroupItem,
-  SubspaceSkillItem,
-  SubspaceSkillTemplate,
-  SubspaceSkillTemplateItem,
   SubspaceToolCall
 } from '@metorial/module-subspace';
+import type {
+  SkillGroupItemResource,
+  SkillGroupResource,
+  SkillItemResource,
+  SkillResource,
+  SkillSyncRepositoryCheck,
+  SkillTemplateItemResource,
+  SkillTemplateResource
+} from '@metorial/cargo-module-skill';
 import { PresentableType } from '@metorial/presenter';
 
 type UserPresenterInput = {
@@ -515,15 +511,37 @@ export let serviceAccountCredentialType = PresentableType.create<{
 }>()('service_account_credential');
 
 export let fileType = PresentableType.create<{
-  file: EnrichedCargoFile;
+  file: File & {
+    purpose: Prisma.FilePurposeGetPayload<{}>;
+    createdByResourceActor?: ResourceActor | null;
+    effectiveStoreId?: string;
+    signedDownloadUrl?: string;
+  };
 }>()('file');
 
 export let fileLinkType = PresentableType.create<{
-  fileLink: CargoFileLink;
+  fileLink: FileLink & {
+    file: File;
+  };
 }>()('fileLink');
 
 export let documentType = PresentableType.create<{
-  document: EnrichedCargoDocument;
+  document: Prisma.DocumentGetPayload<{
+    include: {
+      parentDocument: true;
+      content: true;
+      currentVersion: true;
+      file: {
+        include: {
+          purpose: true;
+        };
+      };
+    };
+  }> & {
+    createdByResourceActor?: ResourceActor | null;
+    resolvedTitle?: string;
+    resolvedContent?: string;
+  };
 }>()('document');
 
 export let documentEditTokenType = PresentableType.create<{
@@ -535,115 +553,570 @@ export let documentEditTokenType = PresentableType.create<{
 }>()('document.edit_token');
 
 export let documentPermissionsType = PresentableType.create<{
-  permissions: CargoDocumentPermissions;
+  permissions: {
+    documentId: string;
+    isOwner: boolean;
+    hasFullAccess: boolean;
+    permissions: ('content_read' | 'content_write')[];
+    relevantStoreIds: string[];
+    readableStoreIds: string[];
+    writableStoreIds: string[];
+  };
 }>()('documentPermissions');
 
 export let documentVersionType = PresentableType.create<{
-  documentVersion: EnrichedCargoDocumentVersion;
+  documentVersion: Prisma.DocumentVersionGetPayload<{
+    include: {
+      document: true;
+      previousVersion: true;
+      content: true;
+      documentVersionEditors: {
+        include: {
+          resourceActor: true;
+        };
+      };
+    };
+  }>;
 }>()('documentVersion');
 
 export let documentParticipantType = PresentableType.create<{
-  documentParticipant: EnrichedCargoDocumentParticipant;
+  documentParticipant: DocumentParticipant & {
+    document: Document;
+    resourceActor: ResourceActor;
+  };
 }>()('documentParticipant');
 
 export let storeType = PresentableType.create<{
-  store: CargoStore;
+  store: Store;
 }>()('store');
 
 export let storePermissionsType = PresentableType.create<{
-  permissions: CargoStorePermissions;
+  permissions: {
+    storeId: string;
+    hasFullAccess: boolean;
+    permissions: ('content_read' | 'content_write')[];
+    relevantStoreIds: string[];
+    readableStoreIds: string[];
+    writableStoreIds: string[];
+  };
 }>()('storePermissions');
 
 export let storeItemType = PresentableType.create<{
-  storeItem: EnrichedCargoStoreItem;
+  storeItem: Prisma.StoreItemGetPayload<{
+    include: {
+      store: {
+        select: {
+          id: true;
+        };
+      };
+      directory: {
+        select: {
+          id: true;
+          path: true;
+          isAutoCreated: true;
+        };
+      };
+      parentDirectory: {
+        select: {
+          id: true;
+          path: true;
+          isAutoCreated: true;
+        };
+      };
+      file: {
+        include: {
+          purpose: true;
+        };
+      };
+      document: {
+        include: {
+          parentDocument: true;
+          content: true;
+          currentVersion: true;
+          file: {
+            include: {
+              purpose: true;
+            };
+          };
+        };
+      };
+    };
+  }>;
 }>()('storeItem');
 
 export let storeItemListType = PresentableType.create<{
-  storeItems: EnrichedCargoStoreItem[];
+  storeItems: Prisma.StoreItemGetPayload<{
+    include: {
+      store: {
+        select: {
+          id: true;
+        };
+      };
+      directory: {
+        select: {
+          id: true;
+          path: true;
+          isAutoCreated: true;
+        };
+      };
+      parentDirectory: {
+        select: {
+          id: true;
+          path: true;
+          isAutoCreated: true;
+        };
+      };
+      file: {
+        include: {
+          purpose: true;
+        };
+      };
+      document: {
+        include: {
+          parentDocument: true;
+          content: true;
+          currentVersion: true;
+          file: {
+            include: {
+              purpose: true;
+            };
+          };
+        };
+      };
+    };
+  }>[];
 }>()('storeItemList');
 
 export let storeParticipantType = PresentableType.create<{
-  storeParticipant: EnrichedCargoStoreParticipant;
+  storeParticipant: StoreParticipant & {
+    store: Store;
+    resourceActor: ResourceActor;
+  };
 }>()('storeParticipant');
 
 export let skillAgentType = PresentableType.create<{
-  skillAgent: CargoSkillAgent;
+  skillAgent: Prisma.SkillAgentGetPayload<{
+    include: {
+      skill: {
+        include: {
+          store: true;
+        };
+      };
+      storeItem: {
+        select: {
+          id: true;
+          path: true;
+        };
+      };
+      document: {
+        select: {
+          id: true;
+        };
+      };
+    };
+  }>;
 }>()('skillAgent');
 
 export let skillConfigurationType = PresentableType.create<{
-  skillConfiguration: CargoSkillConfiguration;
+  skillConfiguration: SkillConfiguration;
 }>()('skillConfiguration');
 
 export let skillExportType = PresentableType.create<{
-  skillExport: EnrichedCargoSkillExport;
+  skillExport: SkillExport & {
+    file:
+      | (Prisma.FileGetPayload<{
+          include: {
+            purpose: true;
+            createdByResourceActor: true;
+          };
+        }> & {
+          effectiveStoreId?: string;
+          signedDownloadUrl?: string;
+        })
+      | null;
+    fileLink: (FileLink & { file: File }) | null;
+    creatorResourceActor: ResourceActor | null;
+  };
 }>()('skillExport');
 
 export let skillImportType = PresentableType.create<{
-  skillImport: CargoSkillImport;
+  skillImport: Prisma.SkillImportGetPayload<{
+    include: {
+      items: {
+        include: {
+          skill: true;
+        };
+      };
+    };
+  }>;
 }>()('skillImport');
 
 export let skillForkSyncType = PresentableType.create<{
-  skillForkSync: CargoSkillForkSync;
+  skillForkSync: SkillForkSync & {
+    forkSkill: Skill;
+    upstreamSkill: Skill;
+    generatedMergeRequest: SkillMergeRequest | null;
+  };
 }>()('skillForkSync');
 
 export let skillMarketplaceType = PresentableType.create<{
-  skillMarketplace: EnrichedCargoSkillMarketplace;
+  skillMarketplace: Prisma.SkillMarketplaceGetPayload<{
+    include: {
+      destination: {
+        include: {
+          syncs: true;
+        };
+      };
+      skillConfiguration: {
+        select: {
+          id: true;
+        };
+      };
+      plugins: {
+        include: {
+          skillConfiguration: {
+            select: {
+              id: true;
+            };
+          };
+          skillPlugin: {
+            include: {
+              destination: {
+                include: {
+                  syncs: true;
+                };
+              };
+              skillConfiguration: {
+                select: {
+                  id: true;
+                };
+              };
+              skillPluginSkills: {
+                include: {
+                  skillConfiguration: {
+                    select: {
+                      id: true;
+                    };
+                  };
+                  skill: true;
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+  }>;
 }>()('skillMarketplace');
 
 export let skillMarketplacePluginType = PresentableType.create<{
-  skillMarketplacePlugin: EnrichedCargoSkillMarketplacePlugin;
+  skillMarketplacePlugin: SkillMarketplacePlugin & {
+    skillConfiguration: {
+      id: string;
+    } | null;
+    skillMarketplace?: {
+      id: string;
+    } | null;
+    skillPlugin?: Prisma.SkillPluginGetPayload<{
+      include: {
+        destination: {
+          include: {
+            syncs: true;
+          };
+        };
+        skillConfiguration: {
+          select: {
+            id: true;
+          };
+        };
+        skillPluginSkills: {
+          include: {
+            skillConfiguration: {
+              select: {
+                id: true;
+              };
+            };
+            skill: true;
+          };
+        };
+      };
+    }> | null;
+  };
 }>()('skillMarketplacePlugin');
 
 export let skillMarketplaceRepositoryType = PresentableType.create<{
-  skillMarketplaceRepository: EnrichedCargoSkillMarketplaceRepository;
+  skillMarketplaceRepository: SkillMarketplaceRepository & {
+    skillMarketplace: SkillMarketplace;
+    skillRepository: Prisma.SkillRepositoryGetPayload<{
+      include: {
+        marketplaceRepository: true;
+        pluginRepository: true;
+      };
+    }> & {
+      originRepository: {
+        id: string;
+        provider: 'github' | 'gitlab' | 'bitbucket';
+        externalName: string;
+        externalUrl: string;
+        externalIsPrivate: boolean;
+        defaultBranch: string;
+      } | null;
+    };
+  };
 }>()('skillMarketplaceRepository');
 
 export let skillPluginType = PresentableType.create<{
-  skillPlugin: EnrichedCargoSkillPlugin;
+  skillPlugin: Prisma.SkillPluginGetPayload<{
+    include: {
+      destination: {
+        include: {
+          syncs: true;
+        };
+      };
+      skillConfiguration: {
+        select: {
+          id: true;
+        };
+      };
+      skillPluginSkills: {
+        include: {
+          skillConfiguration: {
+            select: {
+              id: true;
+            };
+          };
+          skill: true;
+        };
+      };
+    };
+  }>;
 }>()('skillPlugin');
 
 export let skillPluginRepositoryType = PresentableType.create<{
-  skillPluginRepository: EnrichedCargoSkillPluginRepository;
+  skillPluginRepository: SkillPluginRepository & {
+    skillPlugin: SkillPlugin;
+    skillRepository: Prisma.SkillRepositoryGetPayload<{
+      include: {
+        marketplaceRepository: true;
+        pluginRepository: true;
+      };
+    }> & {
+      originRepository: {
+        id: string;
+        provider: 'github' | 'gitlab' | 'bitbucket';
+        externalName: string;
+        externalUrl: string;
+        externalIsPrivate: boolean;
+        defaultBranch: string;
+      } | null;
+    };
+  };
 }>()('skillPluginRepository');
 
 export let skillPluginSkillType = PresentableType.create<{
-  skillPluginSkill: EnrichedCargoSkillPluginSkill;
+  skillPluginSkill: SkillPluginSkill & {
+    skillConfiguration: {
+      id: string;
+    } | null;
+    skill: Skill;
+  };
 }>()('skillPluginSkill');
 
 export let skillSyncType = PresentableType.create<{
-  skillSync: EnrichedCargoSkillSync;
+  skillSync: Prisma.SkillDestinationSyncGetPayload<{
+    include: {
+      destination: {
+        include: {
+          skillMarketplace: {
+            select: {
+              id: true;
+              resourceTenantOid: true;
+              resourceGroupOid: true;
+            };
+          };
+          skillPlugin: {
+            select: {
+              id: true;
+              resourceTenantOid: true;
+              resourceGroupOid: true;
+            };
+          };
+        };
+      };
+      repositoryPropagations: {
+        include: {
+          skillRepository: true;
+        };
+      };
+    };
+  }>;
 }>()('skillSync');
 
+export let skillSyncRepositoryChecksType = PresentableType.create<{
+  repositoryChecks: SkillSyncRepositoryCheck[];
+}>()('skillSyncRepositoryChecks');
+
 export let skillParticipantType = PresentableType.create<{
-  skillParticipant: EnrichedCargoSkillParticipant;
+  skillParticipant: SkillParticipant & {
+    skill: Skill;
+    resourceActor: ResourceActor;
+  };
 }>()('skillParticipant');
 
 export let skillVersionType = PresentableType.create<{
-  skillVersion: CargoSkillVersion;
+  skillVersion: Prisma.SkillVersionGetPayload<{
+    include: {
+      skill: {
+        select: {
+          id: true;
+          store: {
+            select: {
+              id: true;
+            };
+          };
+        };
+      };
+      storeVersion: {
+        select: {
+          id: true;
+        };
+      };
+    };
+  }>;
 }>()('skillVersion');
 
 export let skillVersionSnapshotType = PresentableType.create<{
-  skillVersionSnapshot: CargoSkillVersionSnapshot;
+  skillVersionSnapshot: {
+    id: string;
+    skillId: string;
+    storeId: string;
+    storeVersionId: string;
+    versionNumber: number;
+    createdAt: Date;
+    items: {
+      id: string;
+      kind: 'file' | 'document' | 'directory';
+      path: string;
+      fileId?: string;
+      documentId?: string;
+      documentVersionId?: string;
+      content?: string;
+      createdAt: Date;
+    }[];
+  };
 }>()('skillVersionSnapshot');
 
 export let skillMergeRequestType = PresentableType.create<{
-  skillMergeRequest: EnrichedCargoSkillMergeRequest;
+  skillMergeRequest: Prisma.SkillMergeRequestGetPayload<{
+    include: {
+      sourceSkill: true;
+      targetSkill: true;
+      baseTargetSkillVersion: true;
+      requestedSourceSkillVersion: true;
+      requestedTargetSkillVersion: true;
+      preMergeTargetSkillVersion: true;
+      mergedTargetSkillVersion: true;
+      rollbackTargetSkillVersion: true;
+      createdByResourceActor: true;
+      _count: {
+        select: {
+          items: true;
+          comments: true;
+        };
+      };
+    };
+  }>;
 }>()('skillMergeRequest');
 
 export let skillMergeRequestItemType = PresentableType.create<{
-  skillMergeRequestItem: EnrichedCargoSkillMergeRequestItem;
+  skillMergeRequestItem: SkillMergeRequestItem & {
+    skillMergeRequest: SkillMergeRequest;
+    resolvedByResourceActor: ResourceActor | null;
+  };
 }>()('skillMergeRequestItem');
 
 export let skillMergeRequestCommentType = PresentableType.create<{
-  skillMergeRequestComment: EnrichedCargoSkillMergeRequestComment;
+  skillMergeRequestComment: SkillMergeRequestComment & {
+    skillMergeRequestItem: SkillMergeRequestItem | null;
+    resourceActor: ResourceActor;
+    inReplyToComment: SkillMergeRequestComment | null;
+  };
 }>()('skillMergeRequestComment');
 
 export let skillMergeRequestEventType = PresentableType.create<{
-  skillMergeRequestEvent: EnrichedCargoSkillMergeRequestEvent;
+  skillMergeRequestEvent: SkillMergeRequestEvent & {
+    resourceActor: ResourceActor | null;
+    comment:
+      | (SkillMergeRequestComment & {
+          skillMergeRequestItem: SkillMergeRequestItem | null;
+          resourceActor: ResourceActor;
+          inReplyToComment: SkillMergeRequestComment | null;
+        })
+      | null;
+  };
 }>()('skillMergeRequestEvent');
 
 export let skillMergePlanType = PresentableType.create<{
-  skillMergePlan: EnrichedCargoSkillMergePlan;
+  skillMergePlan: {
+    mergeRequest: Prisma.SkillMergeRequestGetPayload<{
+      include: {
+        sourceSkill: true;
+        targetSkill: true;
+        baseTargetSkillVersion: true;
+        requestedSourceSkillVersion: true;
+        requestedTargetSkillVersion: true;
+        preMergeTargetSkillVersion: true;
+        mergedTargetSkillVersion: true;
+        rollbackTargetSkillVersion: true;
+        createdByResourceActor: true;
+        _count: {
+          select: {
+            items: true;
+            comments: true;
+          };
+        };
+      };
+    }>;
+    items: {
+      item: SkillMergeRequestItem & {
+        skillMergeRequest: SkillMergeRequest;
+        resolvedByResourceActor: ResourceActor | null;
+      };
+      base?: {
+        kind: 'file' | 'document' | 'directory';
+        path: string;
+        fileId?: string;
+        documentId?: string;
+        documentTitle?: string;
+        documentVersionId?: string;
+        content?: string;
+      };
+      source?: {
+        kind: 'file' | 'document' | 'directory';
+        path: string;
+        fileId?: string;
+        documentId?: string;
+        documentTitle?: string;
+        documentVersionId?: string;
+        content?: string;
+      };
+      target?: {
+        kind: 'file' | 'document' | 'directory';
+        path: string;
+        fileId?: string;
+        documentId?: string;
+        documentTitle?: string;
+        documentVersionId?: string;
+        content?: string;
+      };
+      documentMerge?: {
+        baseContent?: string;
+        sourceContent?: string;
+        targetContent?: string;
+        hasConflict: boolean;
+      };
+    }[];
+  };
 }>()('skillMergePlan');
 
 export let secretType = PresentableType.create<{
@@ -1315,27 +1788,27 @@ export let sessionTemplateProviderType = PresentableType.create<{
 }>()('sessionTemplateProvider');
 
 export let skillType = PresentableType.create<{
-  skill: SubspaceSkill;
+  skill: SkillResource;
 }>()('skill');
 
 export let skillGroupType = PresentableType.create<{
-  skillGroup: SubspaceSkillGroup;
+  skillGroup: SkillGroupResource;
 }>()('skill.group');
 
 export let skillGroupItemType = PresentableType.create<{
-  skillGroupItem: SubspaceSkillGroupItem;
+  skillGroupItem: SkillGroupItemResource;
 }>()('skill.group.item');
 
 export let skillItemType = PresentableType.create<{
-  skillItem: SubspaceSkillItem;
+  skillItem: SkillItemResource;
 }>()('skill.item');
 
 export let skillTemplateType = PresentableType.create<{
-  skillTemplate: SubspaceSkillTemplate;
+  skillTemplate: SkillTemplateResource;
 }>()('skill.template');
 
 export let skillTemplateItemType = PresentableType.create<{
-  skillTemplateItem: SubspaceSkillTemplateItem;
+  skillTemplateItem: SkillTemplateItemResource;
 }>()('skill.template.item');
 
 export let networkType = PresentableType.create<{

@@ -25,9 +25,31 @@ import {
 } from '../lib/scmProviderError';
 import { createRepoWebhookQueue } from '../queues/scm/createRepoWebhook';
 import { createHandleRepoPushQueue } from '../queues/scm/handleRepoPush';
+import { accelerateRepositorySyncsForProviderEvent } from '../queues/scm/repositorySync/recover';
 import type { ScmAccountPreview, ScmRepoPreview } from '../types';
 
 let defaultRepositoryPreviewLimit = 50;
+
+export let normalizeGitLabDefaultBranch = (value: unknown, fallback = 'main') => {
+  if (typeof value !== 'string') return fallback;
+  let normalized = value.trim();
+  if (!normalized || ['null', 'undefined'].includes(normalized.toLowerCase())) return fallback;
+  return normalized;
+};
+
+export let getGitLabCreateProjectInput = (i: {
+  name: string;
+  description?: string;
+  isPrivate: boolean;
+  namespaceId: number;
+}) => ({
+  name: i.name,
+  description: i.description,
+  visibility: i.isPrivate ? ('private' as const) : ('public' as const),
+  namespaceId: i.namespaceId,
+  initializeWithReadme: true,
+  defaultBranch: 'main'
+});
 
 let decodeRepositoryPreviewCursor = (
   cursor: string | undefined,
@@ -606,7 +628,9 @@ class scmRepoServiceImpl {
         installationOid: i.installation.oid,
         externalIsPrivate: project.visibility === 'private',
         externalName: String(project.path),
-        defaultBranch: String(project.default_branch),
+        defaultBranch: normalizeGitLabDefaultBranch(
+          project.default_branch ?? project.defaultBranch
+        ),
         externalOwner: String(project.namespace.path),
         externalUrl: String(project.web_url)
       };
@@ -731,12 +755,14 @@ class scmRepoServiceImpl {
 
       let projectRes;
       try {
-        projectRes = await gitlab.Projects.create({
-          name: i.name,
-          description: i.description,
-          visibility: i.isPrivate ? 'private' : 'public',
-          namespaceId
-        });
+        projectRes = await gitlab.Projects.create(
+          getGitLabCreateProjectInput({
+            name: i.name,
+            description: i.description,
+            isPrivate: i.isPrivate,
+            namespaceId
+          })
+        );
       } catch (error: any) {
         if (isGitLabNamespaceError(error)) {
           throw new ServiceError(
@@ -931,37 +957,55 @@ class scmRepoServiceImpl {
     };
 
     if (webhook.repo.provider == 'github') {
-      await db.scmRepositoryWebhookReceivedEvent.create({
-        data: {
-          webhookOid: webhook.oid,
-          eventType: i.eventType,
-          payload: i.payload,
-          idempotencyKey: i.idempotencyKey
-        }
-      });
-
       let branchName = event.ref?.replace('refs/heads/', '');
-
-      if (i.eventType == 'push') {
-        let push = await db.scmRepositoryPush.create({
-          data: {
-            ...getId('scmRepositoryPush'),
-            repoOid: webhook.repo.oid,
-            tenantOid: webhook.repo.tenantOid,
-
-            sha: event.after,
-            branchName,
-
-            pusherEmail: event.pusher.email,
-            pusherName: event.pusher.name,
-
-            senderIdentifier: `github.com/${event.sender.login}`,
-            commitMessage: event.commits?.[0]?.message || null
-          }
+      let push: { id: string } | undefined;
+      try {
+        push = await db.$transaction(async tx => {
+          let received = await tx.scmRepositoryWebhookReceivedEvent.create({
+            data: {
+              webhookOid: webhook.oid,
+              eventType: i.eventType,
+              payload: i.payload,
+              idempotencyKey: i.idempotencyKey
+            }
+          });
+          if (i.eventType != 'push') return undefined;
+          return tx.scmRepositoryPush.create({
+            data: {
+              ...getId('scmRepositoryPush'),
+              repoOid: webhook.repo.oid,
+              tenantOid: webhook.repo.tenantOid,
+              webhookReceivedEventOid: received.oid,
+              sha: event.after,
+              branchName,
+              pusherEmail: event.pusher.email,
+              pusherName: event.pusher.name,
+              senderIdentifier: `github.com/${event.sender.login}`,
+              commitMessage: event.commits?.[0]?.message || null
+            },
+            select: { id: true }
+          });
         });
-
-        await createHandleRepoPushQueue.add({ pushId: push.id });
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'P2002') throw error;
+        let received = await db.scmRepositoryWebhookReceivedEvent.findUniqueOrThrow({
+          where: {
+            webhookOid_idempotencyKey: {
+              webhookOid: webhook.oid,
+              idempotencyKey: i.idempotencyKey
+            }
+          },
+          include: { pushes: { select: { id: true }, take: 1 } }
+        });
+        push = received.pushes[0];
       }
+      if (push) await createHandleRepoPushQueue.add({ pushId: push.id }, { id: push.id });
+      let providerPrId = String((event as any).pull_request?.number ?? (event as any).number ?? '');
+      await accelerateRepositorySyncsForProviderEvent({
+        repoOid: webhook.repo.oid,
+        providerPrId: providerPrId || undefined,
+        idempotencyKey: i.idempotencyKey
+      });
 
       return;
     }
@@ -1013,39 +1057,59 @@ class scmRepoServiceImpl {
     };
 
     if (webhook.repo.provider == 'gitlab') {
-      await db.scmRepositoryWebhookReceivedEvent.create({
-        data: {
-          webhookOid: webhook.oid,
-          eventType: i.eventType,
-          payload: i.payload,
-          idempotencyKey: i.idempotencyKey
-        }
-      });
-
       let branchName = event.ref?.replace('refs/heads/', '');
-
-      if (i.eventType == 'Push Hook') {
-        let hostname = new URL(webhook.repo.installation.backend.webUrl).hostname;
-
-        let push = await db.scmRepositoryPush.create({
-          data: {
-            ...getId('scmRepositoryPush'),
-            repoOid: webhook.repo.oid,
-            tenantOid: webhook.repo.tenantOid,
-
-            sha: event.after,
-            branchName,
-
-            pusherEmail: event.user_email,
-            pusherName: event.user_name,
-
-            senderIdentifier: `${hostname}/${event.user_username}`,
-            commitMessage: event.commits?.[0]?.message || null
-          }
+      let push: { id: string } | undefined;
+      try {
+        push = await db.$transaction(async tx => {
+          let received = await tx.scmRepositoryWebhookReceivedEvent.create({
+            data: {
+              webhookOid: webhook.oid,
+              eventType: i.eventType,
+              payload: i.payload,
+              idempotencyKey: i.idempotencyKey
+            }
+          });
+          if (i.eventType != 'Push Hook') return undefined;
+          let hostname = new URL(webhook.repo.installation.backend.webUrl).hostname;
+          return tx.scmRepositoryPush.create({
+            data: {
+              ...getId('scmRepositoryPush'),
+              repoOid: webhook.repo.oid,
+              tenantOid: webhook.repo.tenantOid,
+              webhookReceivedEventOid: received.oid,
+              sha: event.after,
+              branchName,
+              pusherEmail: event.user_email,
+              pusherName: event.user_name,
+              senderIdentifier: `${hostname}/${event.user_username}`,
+              commitMessage: event.commits?.[0]?.message || null
+            },
+            select: { id: true }
+          });
         });
-
-        await createHandleRepoPushQueue.add({ pushId: push.id });
+      } catch (error) {
+        if ((error as { code?: string }).code !== 'P2002') throw error;
+        let received = await db.scmRepositoryWebhookReceivedEvent.findUniqueOrThrow({
+          where: {
+            webhookOid_idempotencyKey: {
+              webhookOid: webhook.oid,
+              idempotencyKey: i.idempotencyKey
+            }
+          },
+          include: { pushes: { select: { id: true }, take: 1 } }
+        });
+        push = received.pushes[0];
       }
+      if (push) await createHandleRepoPushQueue.add({ pushId: push.id }, { id: push.id });
+      let providerPrId =
+        event.object_kind === 'merge_request'
+          ? String((event as any).object_attributes?.iid ?? '')
+          : '';
+      await accelerateRepositorySyncsForProviderEvent({
+        repoOid: webhook.repo.oid,
+        providerPrId: providerPrId || undefined,
+        idempotencyKey: i.idempotencyKey
+      });
     }
   }
 
@@ -1163,6 +1227,12 @@ class scmRepoServiceImpl {
         data: { webhookDispatchedAt: new Date() }
       });
     }
+    let providerPrId = String(event.pullrequest?.id ?? event.pullRequest?.id ?? '');
+    await accelerateRepositorySyncsForProviderEvent({
+      repoOid: webhook.repo.oid,
+      providerPrId: providerPrId || undefined,
+      idempotencyKey: i.idempotencyKey
+    });
   }
 
   async createPushForCurrentCommitOnDefaultBranch(i: {

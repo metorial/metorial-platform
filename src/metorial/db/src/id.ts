@@ -198,7 +198,7 @@ export let ID = createIdGenerator({
   consumerProviderSetupSessionBinding: idType.sorted('cpsb'),
   consumerSkill: idType.sorted('cosk'),
   skillTemplate: idType.sorted('skt'),
-  skill: idType.sorted('csk_'),
+  skill: idType.sorted('skl_'),
   skillConfiguration: idType.sorted('skc_'),
   skillAgent: idType.sorted('ska_'),
   skillVersion: idType.sorted('skv_'),

@@ -7,9 +7,8 @@ let monitorFindMany = vi.fn();
 let monitorUpdate = vi.fn();
 let notificationFindUnique = vi.fn();
 let notificationFindMany = vi.fn();
-let monitorAlertFindUnique = vi.fn();
-let monitorAlertCreate = vi.fn();
-let monitorAlertUpdate = vi.fn();
+let monitorAlertCreateMany = vi.fn();
+let monitorAlertUpdateMany = vi.fn();
 let monitorAlertEventCreate = vi.fn();
 
 let db = {
@@ -23,9 +22,8 @@ let db = {
     findMany: notificationFindMany
   },
   monitorAlert: {
-    findUnique: monitorAlertFindUnique,
-    create: monitorAlertCreate,
-    update: monitorAlertUpdate
+    createMany: monitorAlertCreateMany,
+    updateMany: monitorAlertUpdateMany
   },
   monitorAlertEvent: {
     create: monitorAlertEventCreate
@@ -101,9 +99,8 @@ describe('schema change alert queues', () => {
     monitorUpdate.mockReset();
     notificationFindUnique.mockReset();
     notificationFindMany.mockReset();
-    monitorAlertFindUnique.mockReset();
-    monitorAlertCreate.mockReset();
-    monitorAlertUpdate.mockReset();
+    monitorAlertCreateMany.mockReset();
+    monitorAlertUpdateMany.mockReset();
     monitorAlertEventCreate.mockReset();
   });
 
@@ -148,8 +145,7 @@ describe('schema change alert queues', () => {
 
     monitorFindUnique.mockResolvedValue(baseMonitor);
     notificationFindUnique.mockResolvedValue(baseNotification);
-    monitorAlertFindUnique.mockResolvedValue(null);
-    monitorAlertCreate.mockResolvedValue({ oid: BigInt(11) });
+    monitorAlertCreateMany.mockResolvedValue({ count: 1 });
 
     await queues['sub/mon/schema/alert/single'].processor({
       monitorId: 'monitor_1',
@@ -157,18 +153,19 @@ describe('schema change alert queues', () => {
       status: 'ignored'
     });
 
-    expect(monitorAlertCreate).toHaveBeenCalledWith({
+    expect(monitorAlertCreateMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
         status: 'ignored',
         monitorOid: baseMonitor.oid,
         specificationChangeNotificationOid: baseNotification.oid,
         createdAt: baseNotification.createdAt
-      })
+      }),
+      skipDuplicates: true
     });
     expect(monitorAlertEventCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         type: 'created',
-        monitorAlertOid: BigInt(11),
+        monitorAlertOid: BigInt(100),
         createdAt: baseNotification.createdAt
       })
     });
@@ -192,10 +189,7 @@ describe('schema change alert queues', () => {
 
     monitorFindUnique.mockResolvedValue(monitor);
     notificationFindUnique.mockResolvedValue(baseNotification);
-    monitorAlertFindUnique.mockResolvedValue({
-      oid: BigInt(12),
-      status: 'pending'
-    });
+    monitorAlertCreateMany.mockResolvedValue({ count: 0 });
 
     await queues['sub/mon/schema/alert/single'].processor({
       monitorId: 'monitor_1',
@@ -203,8 +197,8 @@ describe('schema change alert queues', () => {
       status: 'ignored'
     });
 
-    expect(monitorAlertUpdate).not.toHaveBeenCalled();
-    expect(monitorAlertCreate).not.toHaveBeenCalled();
+    expect(monitorAlertUpdateMany).not.toHaveBeenCalled();
+    expect(monitorAlertEventCreate).not.toHaveBeenCalled();
     expect(monitorUpdate).toHaveBeenCalledWith({
       where: { oid: baseMonitor.oid },
       data: {
@@ -212,5 +206,33 @@ describe('schema change alert queues', () => {
         lastAlertAt: monitor.lastAlertAt
       }
     });
+  });
+
+  it('upgrades an existing ignored alert without creating another event', async () => {
+    await import('./index');
+
+    monitorFindUnique.mockResolvedValue(baseMonitor);
+    notificationFindUnique.mockResolvedValue(baseNotification);
+    monitorAlertCreateMany.mockResolvedValue({ count: 0 });
+    monitorAlertUpdateMany.mockResolvedValue({ count: 1 });
+
+    await queues['sub/mon/schema/alert/single'].processor({
+      monitorId: 'monitor_1',
+      notificationId: 'notification_1',
+      status: 'pending'
+    });
+
+    expect(monitorAlertUpdateMany).toHaveBeenCalledWith({
+      where: {
+        monitorOid: baseMonitor.oid,
+        specificationChangeNotificationOid: baseNotification.oid,
+        status: 'ignored'
+      },
+      data: {
+        status: 'pending',
+        resolvedAt: null
+      }
+    });
+    expect(monitorAlertEventCreate).not.toHaveBeenCalled();
   });
 });

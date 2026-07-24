@@ -174,7 +174,8 @@ describe('Bitbucket OAuth and REST client', () => {
       id: '42',
       name: 'Tobias',
       slug: 'tobias',
-      type: 'user'
+      type: 'user',
+      imageUrl: null
     });
     expect(fetch.mock.calls[0]?.[0]).toBe(
       'https://stash.example.com/plugins/servlet/applinks/whoami'
@@ -243,6 +244,45 @@ describe('Bitbucket OAuth and REST client', () => {
     expect(JSON.parse(String(fetch.mock.calls[1]?.[1]?.body))).toEqual({
       name: 'metorial/sync',
       target: { hash: 'base-sha' }
+    });
+  });
+
+  it('reads and normalizes Cloud webhook configuration', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      Response.json({
+        uuid: '{hook-id}',
+        url: 'https://origin.example/hook',
+        active: true,
+        events: ['repo:push', 'pullrequest:created']
+      })
+    );
+    let client = createBitbucketClientWithToken('token', backend());
+
+    await expect(client.getWebhook('workspace/repo', '{hook-id}')).resolves.toEqual({
+      id: '{hook-id}',
+      url: 'https://origin.example/hook',
+      active: true,
+      events: ['repo:push', 'pullrequest:created']
+    });
+  });
+
+  it('uses the adapter-provided event set when updating a webhook', async () => {
+    let fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({}));
+    let client = createBitbucketClientWithToken('token', backend());
+
+    await client.updateWebhook({
+      repositoryId: 'workspace/repo',
+      webhookId: '{hook-id}',
+      url: 'https://origin.example/hook',
+      secret: 'secret',
+      events: ['repo:push']
+    });
+
+    expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toMatchObject({
+      url: 'https://origin.example/hook',
+      active: true,
+      secret: 'secret',
+      events: ['repo:push']
     });
   });
 

@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeParticipantService } from '@metorial/module-file';
+import { storeParticipantService } from '@metorial/cargo-module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -16,15 +16,10 @@ export let storeParticipantGroup = storeGroup.use(async ctx => {
 
   let storeParticipant = await storeParticipantService.getStoreParticipantById({
     storeParticipantId: ctx.params.storeParticipantId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...getInstanceCargoAccess(ctx)
+    ...(await getInstanceCargoAccess(ctx))
   });
 
-  if (storeParticipant.storeId !== ctx.store.id) {
+  if (storeParticipant.store.id !== ctx.store.id) {
     throw new ServiceError(notFoundError('store.participant', ctx.params.storeParticipantId));
   }
 
@@ -47,13 +42,8 @@ export let storeParticipantController = Controller.create(
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await storeParticipantService.listStoreParticipants({
-          storeId: ctx.store.id,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...getInstanceCargoAccess(ctx)
+          storeIds: [ctx.store.id],
+          ...(await getInstanceCargoAccess(ctx))
         });
         let list = await paginator.run(ctx.query);
 

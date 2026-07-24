@@ -22,5 +22,21 @@ export let scmRepositorySyncController = app.controller({
       return {
         syncs: syncs.map(scmRepositorySyncPresenter)
       };
+    }),
+
+  checkStatus: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        scmRepositorySyncId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let sync = await scmRepositorySyncService.checkScmRepositorySyncStatus({
+        tenant: ctx.tenant,
+        id: ctx.input.scmRepositorySyncId
+      });
+      return scmRepositorySyncPresenter(sync);
     })
 });

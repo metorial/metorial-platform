@@ -2,7 +2,6 @@ import {
   db,
   type Consumer,
   type Instance,
-  type Organization,
   type OrganizationActor,
   type Prisma,
   type Project,
@@ -13,7 +12,6 @@ import {
   getConsumerInternalActorIdentifier,
   getInstanceInternalEnvironmentIdentifier,
   getOrganizationActorInternalActorIdentifier,
-  getOrganizationInternalTenantIdentifier,
   getProjectInternalTenantIdentifier,
   getUserInternalTenantIdentifier
 } from '../ids';
@@ -38,8 +36,6 @@ export let getProjectServiceTenantId = (
   project: InternalProject
 ) => {
   switch (service) {
-    case 'cargo':
-      return project.cargoTenantId;
     case 'synthesis':
       return project.synthesisTenantId;
     case 'subspace':
@@ -54,8 +50,6 @@ export let getInstanceServiceTenantId = (
   instance: InternalInstance
 ) => {
   switch (service) {
-    case 'cargo':
-      return instance.cargoTenantId;
     case 'synthesis':
       return instance.synthesisTenantId;
     case 'subspace':
@@ -68,8 +62,6 @@ export let getInstanceServiceEnvironmentId = (
   instance: InternalInstance
 ) => {
   switch (service) {
-    case 'cargo':
-      return instance.cargoEnvironmentId;
     case 'synthesis':
       return instance.synthesisEnvironmentId;
     case 'subspace':
@@ -77,27 +69,17 @@ export let getInstanceServiceEnvironmentId = (
   }
 };
 
-export let getOrganizationServiceTenantId = (service: 'cargo', organization: Organization) =>
-  organization.cargoTenantId;
+export let getUserServiceTenantId = (service: 'synthesis', user: User) =>
+  user.synthesisTenantId;
 
-export let getOrganizationServiceEnvironmentId = (
-  service: 'cargo',
-  organization: Organization
-) => organization.cargoEnvironmentId;
-
-export let getUserServiceTenantId = (service: 'cargo' | 'synthesis', user: User) =>
-  service == 'cargo' ? user.cargoTenantId : user.synthesisTenantId;
-
-export let getUserServiceEnvironmentId = (service: 'cargo' | 'synthesis', user: User) =>
-  service == 'cargo' ? user.cargoEnvironmentId : user.synthesisEnvironmentId;
+export let getUserServiceEnvironmentId = (service: 'synthesis', user: User) =>
+  user.synthesisEnvironmentId;
 
 export let getOrganizationActorServiceId = (
   service: InternalService,
   organizationActor: Pick<OrganizationActor, 'id'> & Partial<OrganizationActor>
 ) => {
   switch (service) {
-    case 'cargo':
-      return organizationActor.cargoActorId;
     case 'synthesis':
       return organizationActor.synthesisActorId;
     case 'subspace':
@@ -110,8 +92,6 @@ export let getConsumerServiceId = (
   consumer: Pick<Consumer, 'id'> & Partial<Consumer>
 ) => {
   switch (service) {
-    case 'cargo':
-      return consumer.cargoActorId;
     case 'synthesis':
       return consumer.synthesisActorId;
     case 'subspace':
@@ -231,7 +211,6 @@ export let persistProjectTenantLink = async (d: {
     ...(d.project.internalTenantIdentifier
       ? {}
       : { internalTenantIdentifier: d.tenantIdentifier }),
-    ...(d.service == 'cargo' && !d.project.cargoTenantId ? { cargoTenantId: d.tenantId } : {}),
     ...(d.service == 'synthesis' && !d.project.synthesisTenantId
       ? { synthesisTenantId: d.tenantId }
       : {}),
@@ -253,37 +232,8 @@ export let persistProjectTenantLink = async (d: {
   });
 };
 
-export let persistOrganizationScope = async (d: {
-  service: 'cargo';
-  organization: Organization;
-  tenantId: string;
-  tenantIdentifier: string;
-  environmentId: string;
-}) => {
-  let update: Prisma.OrganizationUpdateInput = {
-    ...(d.organization.internalTenantIdentifier
-      ? {}
-      : { internalTenantIdentifier: d.tenantIdentifier }),
-    ...(d.service == 'cargo' && !d.organization.cargoTenantId
-      ? { cargoTenantId: d.tenantId }
-      : {}),
-    ...(d.service == 'cargo' && !d.organization.cargoEnvironmentId
-      ? { cargoEnvironmentId: d.environmentId }
-      : {})
-  };
-
-  if (!hasUpdates(update)) return;
-
-  await db.organization.update({
-    where: {
-      id: d.organization.id
-    },
-    data: update
-  });
-};
-
 export let persistUserScope = async (d: {
-  service: 'cargo' | 'synthesis';
+  service: 'synthesis';
   user: User;
   tenantId: string;
   tenantIdentifier: string;
@@ -293,10 +243,6 @@ export let persistUserScope = async (d: {
     ...(d.user.internalTenantIdentifier
       ? {}
       : { internalTenantIdentifier: d.tenantIdentifier }),
-    ...(d.service == 'cargo' && !d.user.cargoTenantId ? { cargoTenantId: d.tenantId } : {}),
-    ...(d.service == 'cargo' && !d.user.cargoEnvironmentId
-      ? { cargoEnvironmentId: d.environmentId }
-      : {}),
     ...(d.service == 'synthesis' && !d.user.synthesisTenantId
       ? { synthesisTenantId: d.tenantId }
       : {}),
@@ -330,12 +276,6 @@ export let persistInstanceScope = async (d: {
     ...(d.instance.internalEnvironmentIdentifier
       ? {}
       : { internalEnvironmentIdentifier: d.environmentIdentifier }),
-    ...(d.service == 'cargo' && !d.instance.cargoTenantId
-      ? { cargoTenantId: d.tenantId }
-      : {}),
-    ...(d.service == 'cargo' && !d.instance.cargoEnvironmentId
-      ? { cargoEnvironmentId: d.environmentId }
-      : {}),
     ...(d.service == 'synthesis' && !d.instance.synthesisTenantId
       ? { synthesisTenantId: d.tenantId }
       : {}),
@@ -373,9 +313,6 @@ export let persistOrganizationActorLink = async (d: {
     ...(d.organizationActor.internalActorIdentifier
       ? {}
       : { internalActorIdentifier: d.actorIdentifier }),
-    ...(d.service == 'cargo' && !d.organizationActor.cargoActorId
-      ? { cargoActorId: d.actorId }
-      : {}),
     ...(d.service == 'synthesis' && !d.organizationActor.synthesisActorId
       ? { synthesisActorId: d.actorId }
       : {}),
@@ -404,7 +341,6 @@ export let persistConsumerLink = async (d: {
     ...(d.consumer.internalActorIdentifier
       ? {}
       : { internalActorIdentifier: d.actorIdentifier }),
-    ...(d.service == 'cargo' && !d.consumer.cargoActorId ? { cargoActorId: d.actorId } : {}),
     ...(d.service == 'synthesis' && !d.consumer.synthesisActorId
       ? { synthesisActorId: d.actorId }
       : {}),
@@ -429,10 +365,6 @@ export let getProjectTenantIdentifier = (project: InternalProject) => {
 
   throw new Error(`Project ${project.id} is missing oid and internalTenantIdentifier`);
 };
-
-export let getOrganizationTenantIdentifier = (organization: Organization) =>
-  organization.internalTenantIdentifier ??
-  getOrganizationInternalTenantIdentifier(organization);
 
 export let getUserTenantIdentifier = (user: User) =>
   user.internalTenantIdentifier ?? getUserInternalTenantIdentifier(user);

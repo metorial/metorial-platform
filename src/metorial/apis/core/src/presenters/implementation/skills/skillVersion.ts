@@ -18,9 +18,9 @@ export let v1SkillVersionPresenter = Presenter.create(skillVersionType)
   .presenter(async ({ skillVersion }) => ({
     object: 'skill.version' as const,
     id: skillVersion.id,
-    skill_id: skillVersion.skillId,
-    store_id: skillVersion.storeId,
-    store_version_id: skillVersion.storeVersionId,
+    skill_id: skillVersion.skill.id,
+    store_id: skillVersion.skill.store!.id,
+    store_version_id: skillVersion.storeVersion.id,
     version_number: skillVersion.versionNumber,
     created_at: skillVersion.createdAt
   }))

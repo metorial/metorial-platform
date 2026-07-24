@@ -10,8 +10,8 @@ export let v1StoreItemPresenter = Presenter.create(storeItemType)
     id: storeItem.id,
     kind: storeItem.kind,
     path: storeItem.path,
-    store_id: storeItem.storeId,
-    directory_id: storeItem.parentDirectoryId ?? null,
+    store_id: storeItem.store.id,
+    directory_id: storeItem.parentDirectory?.id ?? null,
 
     file: storeItem.file
       ? await v1FilePresenter.present({ file: storeItem.file }, opts).run()

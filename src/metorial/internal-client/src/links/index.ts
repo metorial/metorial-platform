@@ -1,6 +1,5 @@
 export * from './actor';
 export * from './instance';
-export * from './organization';
 export * from './project';
 export * from './scope';
 export * from './shared';

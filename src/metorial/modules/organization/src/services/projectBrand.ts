@@ -11,8 +11,8 @@ import {
   type ProjectBrand,
   withTransaction
 } from '@metorial/db';
-import { fileReferenceService } from '@metorial/module-file';
 import { getTenantForSubspace, subspaceBrandService } from '@metorial/module-subspace';
+import { cleanupFileImage, resolveFileImage } from '../lib/fileImage';
 import { syncBrandQueue } from '../queues/syncBrand';
 
 export type ProjectBrandOverride = Omit<ProjectBrand, 'image'> & {
@@ -70,16 +70,17 @@ class ProjectBrandService {
     let nextImage: PrismaJson.EntityImage | undefined;
 
     if (d.input.imageFileId !== undefined) {
-      nextImage = await fileReferenceService.resolveImageEntityImage({
+      nextImage = await resolveFileImage({
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' },
         owner: {
           type: 'organization',
-          organizationId: d.project.organization.id
+          organization: d.project.organization
         },
-        purpose: 'project_brand_image',
-        entityType: 'project_brand',
-        entityId: d.project.id
+        entity: {
+          type: 'project_brand',
+          id: d.project.id
+        }
       });
     } else if (d.input.image !== undefined) {
       nextImage = d.input.image;
@@ -154,9 +155,7 @@ class ProjectBrandService {
     });
 
     if (didImageChange) {
-      await fileReferenceService.cleanupImageEntityImage({
-        image: currentImage
-      });
+      await cleanupFileImage(currentImage);
     }
 
     return brand;

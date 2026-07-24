@@ -87,7 +87,9 @@ export class MemFS implements vscode.FileSystemProvider {
     await this.ensureLoaded();
 
     const entry = await this._lookup(uri, false);
-    if (!this.remoteConfig.readonly) return entry;
+    if (!this.remoteConfig.readonly) {
+      return entry;
+    }
 
     return {
       ...entry,
@@ -264,10 +266,16 @@ export class MemFS implements vscode.FileSystemProvider {
   // --- lookup
 
   private async ensureLoaded(): Promise<void> {
-    if (this.isLoaded) return;
-    if (!this.remoteConfig.token) return;
+    if (this.isLoaded) {
+      return;
+    }
+    if (!this.remoteConfig.token) {
+      return;
+    }
 
-    if (this.loadingPromise) return this.loadingPromise;
+    if (this.loadingPromise) {
+      return this.loadingPromise;
+    }
 
     this.loadingPromise = this.loadAllFiles();
     await this.loadingPromise;
@@ -378,10 +386,14 @@ export class MemFS implements vscode.FileSystemProvider {
 
   private decodeTokenReadonly(token: string): boolean {
     let parts = token.split('.');
-    if (parts.length !== 3) return false;
+    if (parts.length !== 3) {
+      return false;
+    }
 
     let base64Payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    while (base64Payload.length % 4) base64Payload += '=';
+    while (base64Payload.length % 4) {
+      base64Payload += '=';
+    }
 
     try {
       return JSON.parse(atob(base64Payload)).is_read_only === true;
@@ -497,7 +509,9 @@ export class MemFS implements vscode.FileSystemProvider {
 
     try {
       let apiPath = this.getApiPath(vscode.Uri.parse(fileInfo.path));
-      if (!apiPath.startsWith('/')) apiPath = `/${apiPath}`;
+      if (!apiPath.startsWith('/')) {
+        apiPath = `/${apiPath}`;
+      }
 
       // Get file content
       const response = await this.makeRequest('GET', `/files${apiPath}`);
@@ -637,7 +651,9 @@ export class MemFS implements vscode.FileSystemProvider {
     }
 
     let apiPath = this.getApiPath(operation.uri);
-    if (!apiPath.startsWith('/')) apiPath = `/${apiPath}`;
+    if (!apiPath.startsWith('/')) {
+      apiPath = `/${apiPath}`;
+    }
     const url = `/files${apiPath}`;
 
     switch (operation.type) {

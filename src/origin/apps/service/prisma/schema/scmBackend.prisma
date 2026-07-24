@@ -36,9 +36,9 @@ model ScmBackend {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  installations        ScmInstallation[]
+  installations                ScmInstallation[]
   selectedInstallationSessions ScmInstallationSession[] @relation("selectedScmBackend")
-  backendSetupSessions ScmBackendSetupSession[]
-  accounts             ScmAccount[]
-  repositories         ScmRepository[]
+  backendSetupSessions         ScmBackendSetupSession[]
+  accounts                     ScmAccount[]
+  repositories                 ScmRepository[]
 }

@@ -60,6 +60,15 @@
         "VITE_*"
       ]
     },
+    "admin:build": {
+      "dependsOn": [
+        "^build",
+        "^admin:build"
+      ]
+    },
+    "setup_vscode": {
+      "cache": false
+    },
     "deploy:only": {
       "env": [
         "SENTRY_AUTH_TOKEN",

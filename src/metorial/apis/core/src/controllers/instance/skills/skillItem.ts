@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { ConsumerProfile, Skill } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
+import { skillResourceService } from '@metorial/cargo-module-skill';
 import { subspaceSkillItemService } from '@metorial/module-subspace';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -121,7 +122,9 @@ export let skillItemController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, skillItem => skillItemPresenter.present({ skillItem }));
+        return Paginator.present(list, skillItem =>
+          skillItemPresenter.present({ skillItem })
+        );
       }),
 
     get: skillItemGroup
@@ -147,6 +150,7 @@ export let skillItemController = Controller.create(
       .output(skillItemPresenter)
       .do(async ctx => {
         await assertConsumerCanWriteSkillItems(ctx);
+        await skillResourceService.ensureDelegatedSkill(ctx.skill);
 
         let skillItem =
           ctx.body.type === 'integration'
@@ -154,16 +158,14 @@ export let skillItemController = Controller.create(
                 instance: ctx.instance,
                 skillId: ctx.skill.id,
                 type: 'integration',
-
-                // @ts-ignore
+                // @ts-ignore validation narrows the matching union branch
                 integrationId: ctx.body.integration_id
               })
             : await subspaceSkillItemService.create({
                 instance: ctx.instance,
                 skillId: ctx.skill.id,
                 type: 'provider',
-
-                // @ts-ignore
+                // @ts-ignore validation narrows the matching union branch
                 providerId: ctx.body.provider_id
               });
 

@@ -26,19 +26,19 @@ export let v1SkillImportPresenter = Presenter.create(skillImportType)
     id: skillImport.id,
     status: skillImport.status,
     source:
-      skillImport.source.type === 'public'
+      skillImport.sourceType === 'public_repository'
         ? {
             type: 'public' as const,
-            repository_url: skillImport.source.repositoryUrl,
-            repository_name: skillImport.source.repositoryName,
-            ref: skillImport.source.ref
+            repository_url: skillImport.repositoryUrl!,
+            repository_name: skillImport.repositoryName,
+            ref: skillImport.ref
           }
         : {
             type: 'origin' as const,
-            repository_id: skillImport.source.repositoryId,
-            repository_name: skillImport.source.repositoryName,
-            ref: skillImport.source.ref,
-            path: skillImport.source.path
+            repository_id: skillImport.repositoryId!,
+            repository_name: skillImport.repositoryName,
+            ref: skillImport.ref,
+            path: skillImport.path
           },
     code_bucket_id: skillImport.codeBucketId,
     error: skillImport.error,

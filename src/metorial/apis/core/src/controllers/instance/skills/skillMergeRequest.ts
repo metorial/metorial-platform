@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMergeRequestService } from '@metorial/module-file';
+import { skillMergeRequestService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -42,14 +42,7 @@ let resolutionValidator = v.optional(
   )
 );
 
-export let getSkillMergeRequestAccess = (ctx: any) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+export let getSkillMergeRequestAccess = (ctx: any) => getInstanceCargoAccess(ctx);
 
 export let skillMergeRequestGroup = instanceGroup
   .use(hasFlags(['skills-enabled']))
@@ -64,7 +57,7 @@ export let skillMergeRequestGroup = instanceGroup
     }
 
     let skillMergeRequest = await skillMergeRequestService.getSkillMergeRequestById({
-      ...getSkillMergeRequestAccess(ctx),
+      ...(await getSkillMergeRequestAccess(ctx)),
       skillMergeRequestId: ctx.params.skillMergeRequestId
     });
 
@@ -101,7 +94,7 @@ export let skillMergeRequestController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await skillMergeRequestService.listSkillMergeRequests({
-          ...getSkillMergeRequestAccess(ctx),
+          ...(await getSkillMergeRequestAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           sourceSkillIds: normalizeArrayParam(ctx.query.source_skill_id),
           targetSkillIds: normalizeArrayParam(ctx.query.target_skill_id),
@@ -135,7 +128,7 @@ export let skillMergeRequestController = Controller.create(
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.createSkillMergeRequest({
-          ...getSkillMergeRequestAccess(ctx),
+          ...(await getSkillMergeRequestAccess(ctx)),
           sourceSkillId: ctx.body.source_skill_id,
           targetSkillId: ctx.body.target_skill_id,
           title: ctx.body.title,
@@ -174,8 +167,7 @@ export let skillMergeRequestController = Controller.create(
       .output(skillMergePlanPresenter)
       .do(async ctx => {
         let skillMergePlan = await skillMergeRequestService.getSkillMergePlan({
-          ...getSkillMergeRequestAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id
+          mergeRequest: ctx.skillMergeRequest
         });
 
         return skillMergePlanPresenter.present({ skillMergePlan });
@@ -203,9 +195,9 @@ export let skillMergeRequestController = Controller.create(
       .output(skillMergeRequestItemPresenter)
       .do(async ctx => {
         let skillMergeRequestItem =
-          await skillMergeRequestService.resolveSkillMergeRequestItem({
-            ...getSkillMergeRequestAccess(ctx),
-            skillMergeRequestId: ctx.skillMergeRequest.id,
+          await skillMergeRequestService.saveSkillMergeRequestItemResolution({
+            ...(await getSkillMergeRequestAccess(ctx)),
+            mergeRequest: ctx.skillMergeRequest,
             itemId: ctx.params.itemId,
             resolutionType: ctx.body.resolution_type,
             resolution: ctx.body.resolution
@@ -240,9 +232,9 @@ export let skillMergeRequestController = Controller.create(
       )
       .outputList(skillMergeRequestItemPresenter)
       .do(async ctx => {
-        let items = await skillMergeRequestService.bulkResolveSkillMergeRequestItems({
-          ...getSkillMergeRequestAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id,
+        let items = await skillMergeRequestService.bulkSaveSkillMergeRequestItemResolutions({
+          ...(await getSkillMergeRequestAccess(ctx)),
+          mergeRequest: ctx.skillMergeRequest,
           items: ctx.body.items.map(item => ({
             itemId: item.item_id,
             resolutionType: item.resolution_type,
@@ -278,8 +270,8 @@ export let skillMergeRequestController = Controller.create(
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.performSkillMergeRequest({
-          ...getSkillMergeRequestAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id
+          ...(await getSkillMergeRequestAccess(ctx)),
+          mergeRequest: ctx.skillMergeRequest
         });
 
         return skillMergeRequestPresenter.present({ skillMergeRequest });
@@ -300,8 +292,8 @@ export let skillMergeRequestController = Controller.create(
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.closeSkillMergeRequest({
-          ...getSkillMergeRequestAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id
+          ...(await getSkillMergeRequestAccess(ctx)),
+          mergeRequest: ctx.skillMergeRequest
         });
 
         return skillMergeRequestPresenter.present({ skillMergeRequest });
@@ -322,8 +314,8 @@ export let skillMergeRequestController = Controller.create(
       .output(skillMergeRequestPresenter)
       .do(async ctx => {
         let skillMergeRequest = await skillMergeRequestService.rollbackSkillMergeRequest({
-          ...getSkillMergeRequestAccess(ctx),
-          skillMergeRequestId: ctx.skillMergeRequest.id
+          ...(await getSkillMergeRequestAccess(ctx)),
+          mergeRequest: ctx.skillMergeRequest
         });
 
         return skillMergeRequestPresenter.present({ skillMergeRequest });

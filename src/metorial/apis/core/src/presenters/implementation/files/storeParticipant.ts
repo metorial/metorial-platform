@@ -10,9 +10,9 @@ export let v1StoreParticipantPresenter = Presenter.create(storeParticipantType)
   .presenter(async ({ storeParticipant }, opts) => ({
     object: 'store.participant',
     id: storeParticipant.id,
-    store_id: storeParticipant.storeId,
+    store_id: storeParticipant.store.id,
     permissions: storeParticipant.permissions,
-    actor: await presentDocumentParticipantActor(storeParticipant.actor, opts),
+    actor: await presentDocumentParticipantActor(storeParticipant.resourceActor, opts),
     created_at: storeParticipant.createdAt
   }))
   .schema(

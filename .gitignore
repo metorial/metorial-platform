@@ -181,6 +181,11 @@ venv/
 *.swo
 
 bin
+!src/control/bin/
+!src/control/bin/**
 .DS_Store
 
 env.json
+.control/
+HOST.md
+src/control/target/

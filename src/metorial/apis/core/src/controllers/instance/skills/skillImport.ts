@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillImportService } from '@metorial/module-file';
+import { skillImportService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -29,14 +29,7 @@ let sourceValidator = v.union([
   })
 ]);
 
-let getAccess = (ctx: any) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+let getAccess = (ctx: any) => getInstanceCargoAccess(ctx);
 
 let getCreateInput = (source: {
   type: 'public' | 'origin';
@@ -76,9 +69,9 @@ export let skillImportGroup = instanceGroup
     }
 
     let skillImport = await skillImportService.getSkillImportById({
-      ...getAccess(ctx),
+      ...(await getAccess(ctx)),
       skillImportId: ctx.params.skillImportId,
-      filterByCreator: false
+      actorId: undefined
     });
 
     return { skillImport };
@@ -111,10 +104,10 @@ export let skillImportController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await skillImportService.listSkillImports({
-          ...getAccess(ctx),
+          ...(await getAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           statuses: normalizeArrayParam(ctx.query.status),
-          filterByCreator: false
+          actorId: undefined
         });
         let list = await paginator.run(ctx.query);
 
@@ -144,7 +137,7 @@ export let skillImportController = Controller.create(
       .output(skillImportPresenter)
       .do(async ctx => {
         let skillImport = await skillImportService.createSkillImport({
-          ...getAccess(ctx),
+          ...(await getAccess(ctx)),
           input: getCreateInput(ctx.body.source)
         });
 

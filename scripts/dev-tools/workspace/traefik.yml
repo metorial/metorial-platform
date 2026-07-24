@@ -1,0 +1,145 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+
+api:
+  dashboard: false
+
+ping:
+  entryPoint: health
+
+providers:
+  docker:
+    endpoint: unix:///var/run/docker.sock
+    exposedByDefault: false
+    network: control_proxy
+    watch: true
+
+entryPoints:
+  health:
+    address: ':8082'
+  port-80:
+    address: ':80'
+    http:
+      redirections:
+        entryPoint:
+          to: port-4300
+          scheme: http
+          permanent: false
+  port-3103:
+    address: ':3103'
+  port-3300:
+    address: ':3300'
+  port-3301:
+    address: ':3301'
+  port-3302:
+    address: ':3302'
+  port-4300:
+    address: ':4300'
+  port-4301:
+    address: ':4301'
+  port-4304:
+    address: ':4304'
+  port-4310:
+    address: ':4310'
+  port-4311:
+    address: ':4311'
+  port-4312:
+    address: ':4312'
+  port-4315:
+    address: ':4315'
+  port-4318:
+    address: ':4318'
+  port-4319:
+    address: ':4319'
+  port-4320:
+    address: ':4320'
+  port-4321:
+    address: ':4321'
+  port-4322:
+    address: ':4322'
+  port-4323:
+    address: ':4323'
+  port-4350:
+    address: ':4350'
+  port-4351:
+    address: ':4351'
+  port-5175:
+    address: ':5175'
+  port-5176:
+    address: ':5176'
+  port-6050:
+    address: ':6050'
+  port-8080:
+    address: ':8080'
+  port-12121:
+    address: ':12121'
+  port-52020:
+    address: ':52020'
+  port-52030:
+    address: ':52030'
+  port-52040:
+    address: ':52040'
+  port-52041:
+    address: ':52041'
+  port-52042:
+    address: ':52042'
+  port-52045:
+    address: ':52045'
+  port-52046:
+    address: ':52046'
+  port-52050:
+    address: ':52050'
+  port-52060:
+    address: ':52060'
+  port-52070:
+    address: ':52070'
+  port-52071:
+    address: ':52071'
+  port-52072:
+    address: ':52072'
+  port-52080:
+    address: ':52080'
+  port-52081:
+    address: ':52081'
+  port-52090:
+    address: ':52090'
+  port-52091:
+    address: ':52091'
+  port-52092:
+    address: ':52092'
+  port-52093:
+    address: ':52093'
+  port-52110:
+    address: ':52110'
+  port-52120:
+    address: ':52120'
+  port-52121:
+    address: ':52121'
+  port-52122:
+    address: ':52122'
+  port-52123:
+    address: ':52123'
+  port-52130:
+    address: ':52130'
+  port-52131:
+    address: ':52131'
+  port-52132:
+    address: ':52132'
+  port-52133:
+    address: ':52133'
+  port-52134:
+    address: ':52134'
+  port-52135:
+    address: ':52135'
+  port-52150:
+    address: ':52150'
+  port-52151:
+    address: ':52151'
+  port-52160:
+    address: ':52160'
+  port-52170:
+    address: ':52170'

@@ -1,9 +1,14 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSkillTemplateService } from '@metorial/module-subspace';
+import {
+  skillResourceService,
+  skillTemplateService
+} from '@metorial/cargo-module-skill';
+import { ID } from '@metorial/db';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
@@ -23,13 +28,14 @@ export let skillTemplateGroup = instanceGroup
       );
     }
 
-    let skillTemplate = await subspaceSkillTemplateService.get({
-      instance: ctx.instance,
+    let access = await getInstanceCargoAccess(ctx);
+    let localTemplate = await skillTemplateService.getSkillTemplateById({
+      resourceTenant: access.resourceTenant,
+      resourceGroup: access.resourceGroup,
       skillTemplateId: ctx.params.skillTemplateId,
-      allowDeleted: true,
-      consumerProfile: ctx.consumerProfile,
-      consumerGroups: ctx.consumerGroups
+      accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
     });
+    let skillTemplate = await skillResourceService.hydrateSkillTemplate(localTemplate);
 
     return { skillTemplate };
   });
@@ -80,24 +86,25 @@ export let skillTemplateController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSkillTemplateService.list({
-          instance: ctx.instance,
-          consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups,
+        let access = await getInstanceCargoAccess(ctx);
+        let paginator = await skillTemplateService.listSkillTemplates({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
           search: ctx.query.search,
-          allowDeleted: true,
-          status: normalizeArrayParam(ctx.query.status),
-          owner: normalizeArrayParam(ctx.query.owner),
+          statuses: normalizeArrayParam(ctx.query.status),
+          owners: normalizeArrayParam(ctx.query.owner),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          updatedAt: ctx.query.updated_at,
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
         });
 
         let list = await paginator.run(ctx.query);
+        let items = await skillResourceService.hydrateSkillTemplates(list.items);
 
-        return Paginator.present(list, skillTemplate =>
+        return Paginator.present({ ...list, items }, skillTemplate =>
           skillTemplatePresenter.present({ skillTemplate })
         );
       }),
@@ -139,13 +146,26 @@ export let skillTemplateController = Controller.create(
       )
       .output(skillTemplatePresenter)
       .do(async ctx => {
-        let skillTemplate = await subspaceSkillTemplateService.create({
-          instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          skillId: ctx.body.from_skill_Id
+        let access = await getInstanceCargoAccess(ctx);
+        let localTemplate = await skillTemplateService.createSkillTemplate({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
+          input: {
+            id: await ID.generateId('skillTemplate'),
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata as any,
+            skillId: ctx.body.from_skill_Id
+          }
         });
+        await skillResourceService.ensureDelegatedSkillTemplate(localTemplate);
+        if (ctx.body.from_skill_Id) {
+          await skillResourceService.copyDelegatedSkillResourcesToTemplate({
+            skill: { id: ctx.body.from_skill_Id },
+            skillTemplate: localTemplate
+          });
+        }
+        let skillTemplate = await skillResourceService.hydrateSkillTemplate(localTemplate);
 
         return skillTemplatePresenter.present({ skillTemplate });
       }),
@@ -168,14 +188,19 @@ export let skillTemplateController = Controller.create(
       )
       .output(skillTemplatePresenter)
       .do(async ctx => {
-        let skillTemplate = await subspaceSkillTemplateService.update({
-          instance: ctx.instance,
+        let access = await getInstanceCargoAccess(ctx);
+        let localTemplate = await skillTemplateService.updateSkillTemplate({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
           skillTemplateId: ctx.skillTemplate.id,
-          allowDeleted: true,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata as any
+          }
         });
+        await skillResourceService.ensureDelegatedSkillTemplate(localTemplate);
+        let skillTemplate = await skillResourceService.hydrateSkillTemplate(localTemplate);
 
         return skillTemplatePresenter.present({ skillTemplate });
       }),
@@ -190,11 +215,14 @@ export let skillTemplateController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .output(skillTemplatePresenter)
       .do(async ctx => {
-        let skillTemplate = await subspaceSkillTemplateService.delete({
-          instance: ctx.instance,
-          skillTemplateId: ctx.skillTemplate.id,
-          allowDeleted: true
+        let access = await getInstanceCargoAccess(ctx);
+        let localTemplate = await skillTemplateService.deleteSkillTemplate({
+          resourceTenant: access.resourceTenant,
+          resourceGroup: access.resourceGroup,
+          skillTemplateId: ctx.skillTemplate.id
         });
+        await skillResourceService.ensureDelegatedSkillTemplate(localTemplate);
+        let skillTemplate = await skillResourceService.hydrateSkillTemplate(localTemplate);
 
         return skillTemplatePresenter.present({ skillTemplate });
       })

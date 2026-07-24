@@ -3,6 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { changeNotificationPresenter } from '../presenters/changeNotification';
 import { changeNotificationService } from '../services';
 import { app } from './_app';
+import { tenantApp } from './tenant';
 
 export let changeNotificationApp = app.use(async ctx => {
   let changeNotificationId = ctx.body.changeNotificationId;
@@ -43,5 +44,26 @@ export let changeNotificationController = app.controller({
         changeNotificationId: v.string()
       })
     )
-    .do(async ctx => changeNotificationPresenter(ctx.changeNotification))
+    .do(async ctx => changeNotificationPresenter(ctx.changeNotification)),
+
+  poll: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        afterCursor: v.optional(v.string()),
+        limit: v.optional(v.number({ modifiers: [v.integer(), v.positive()] }))
+      })
+    )
+    .do(async ctx => {
+      let result = await changeNotificationService.pollChangeNotifications({
+        tenantOid: ctx.tenant.oid,
+        afterCursor: ctx.input.afterCursor,
+        limit: ctx.input.limit ?? 100
+      });
+      return {
+        items: result.notifications.map(changeNotificationPresenter),
+        nextCursor: result.nextCursor
+      };
+    })
 });

@@ -152,6 +152,8 @@ export let SkillLayout = () => {
           );
         }
 
+        skill.refetch();
+
         return skillForkSync;
       },
       {

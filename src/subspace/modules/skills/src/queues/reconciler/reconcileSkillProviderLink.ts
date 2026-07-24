@@ -1,7 +1,6 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
 import { env } from '../../env';
-import { indexSkillQueue } from '../search/skill';
 
 export let reconcileSkillProviderLinksQueue = createQueue<{ skillId: string }>({
   name: 'sub/sk/lc/reconcileSkillProviderLinks',
@@ -70,7 +69,6 @@ export let reconcileSkillProviderLinks = async (d: { skillId: string }) => {
     }
   });
 
-  await indexSkillQueue.add({ skillId: d.skillId });
 };
 
 export let reconcileSkillProviderLinksQueueProcessor =

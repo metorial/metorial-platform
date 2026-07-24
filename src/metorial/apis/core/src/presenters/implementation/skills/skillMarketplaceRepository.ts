@@ -9,9 +9,9 @@ export let v1SkillMarketplaceRepositoryPresenter = Presenter.create(
   .presenter(async ({ skillMarketplaceRepository }) => ({
     object: 'skill.marketplace_repository' as const,
     id: skillMarketplaceRepository.id,
-    skill_marketplace_id: skillMarketplaceRepository.skillMarketplaceId,
-    repo_id: skillMarketplaceRepository.repoId,
-    repository: presentSkillRepository(skillMarketplaceRepository.repository),
+    skill_marketplace_id: skillMarketplaceRepository.skillMarketplace.id,
+    repo_id: skillMarketplaceRepository.skillRepository.repoId,
+    repository: presentSkillRepository(skillMarketplaceRepository.skillRepository),
     created_at: skillMarketplaceRepository.createdAt,
     updated_at: skillMarketplaceRepository.updatedAt
   }))

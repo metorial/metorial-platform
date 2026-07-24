@@ -6,7 +6,7 @@ import {
   consumerProfileService,
   grantConsumerOwnedMagicMcpEndpointAccess
 } from '@metorial/module-consumer';
-import { skillPluginService } from '@metorial/module-file';
+import { skillPluginService } from '@metorial/cargo-module-skill';
 import {
   magicMcpEndpointService,
   magicMcpServerService,
@@ -215,10 +215,10 @@ export let magicMcpEndpointController = Controller.create(
         let skillPlugin = ctx.body.skill_plugin_id
           ? (
               await skillPluginService.getSkillPluginById({
-                ...getSkillPluginAccess(ctx),
+                ...(await getSkillPluginAccess(ctx)),
                 skillPluginId: ctx.body.skill_plugin_id
               })
-            ).backing
+            )
           : undefined;
         let servers = resolveMagicMcpEndpointServers({
           magicMcpServer: ctx.body.magic_mcp_servers

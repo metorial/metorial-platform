@@ -9,7 +9,7 @@
     "test": "bun test ./src/id.test.ts",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "bun prisma generate --schema prisma/schema --config ../prisma.config.ts",
-    "prisma:push": "sh -c 'set -a; . .env; set +a; bun prisma db push --accept-data-loss --schema prisma/schema --config ../prisma.config.ts'"
+    "prisma:push": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --accept-data-loss --schema prisma/schema --config ../prisma.config.ts'"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { fileService, hasInstanceConsumerAccess, purposeSlugs } from '@metorial/module-file';
+import { fileService } from '@metorial/cargo-module-file';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -10,17 +10,21 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { filePresenter } from '../../../presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 
+let purposeSlugs = [
+  'user_image',
+  'organization_image',
+  'project_brand_image',
+  'skill_image',
+  'skill_export',
+  'generic'
+] as const;
+
 export let fileGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.fileId) throw new Error('fileId is required');
 
   let file = await fileService.getFileById({
     fileId: ctx.params.fileId,
-    owner: {
-      type: 'instance',
-      instance: ctx.instance,
-      organization: ctx.organization
-    },
-    ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
+    ...(await getInstanceCargoAccess(ctx))
   });
 
   return { file };
@@ -63,13 +67,8 @@ export let fileController = Controller.create(
       )
       .do(async ctx => {
         let paginator = await fileService.listFiles({
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
           purpose: normalizeArrayParam(ctx.query.purpose) as any,
-          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {}),
+          ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           storeIds: normalizeArrayParam(ctx.query.store_id),
           documentIds: normalizeArrayParam(ctx.query.document_id),
@@ -102,15 +101,7 @@ export let fileController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.file:write'] }))
       .output(filePresenter)
       .do(async ctx => {
-        let file = await fileService.deleteFile({
-          file: ctx.file,
-          owner: {
-            type: 'instance',
-            instance: ctx.instance,
-            organization: ctx.organization
-          },
-          ...(hasInstanceConsumerAccess(ctx) ? getInstanceCargoAccess(ctx) : {})
-        });
+        let file = await fileService.deleteFile({ file: ctx.file });
 
         return filePresenter.present({ file });
       })

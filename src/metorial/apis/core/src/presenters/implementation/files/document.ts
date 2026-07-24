@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { db } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { documentType } from '../../types';
 import {
@@ -7,21 +8,31 @@ import {
 } from './documentParticipant';
 
 export let v1DocumentPresenter = Presenter.create(documentType)
-  .presenter(async ({ document }, opts) => ({
-    object: 'document',
-    id: document.id,
-    status: document.status,
-    title: document.title,
-    content: document.content,
-    file_id: document.fileId,
-    parent_document_id: document.parentDocumentId ?? null,
-    current_version_id: document.currentVersionId ?? null,
-    created_by: document.createdBy
-      ? await presentDocumentParticipantActor(document.createdBy, opts)
-      : null,
-    created_at: document.createdAt,
-    updated_at: document.updatedAt
-  }))
+  .presenter(async ({ document }, opts) => {
+    let createdBy =
+      document.createdByResourceActor ??
+      (document.createdByResourceActorOid
+        ? await db.resourceActor.findUnique({
+            where: {
+              oid: document.createdByResourceActorOid
+            }
+          })
+        : null);
+
+    return {
+      object: 'document',
+      id: document.id,
+      status: document.file.status,
+      title: document.resolvedTitle ?? document.title,
+      content: document.resolvedContent ?? document.content.content,
+      file_id: document.file.id,
+      parent_document_id: document.parentDocument?.id ?? null,
+      current_version_id: document.currentVersion?.id ?? null,
+      created_by: createdBy ? await presentDocumentParticipantActor(createdBy, opts) : null,
+      created_at: document.createdAt,
+      updated_at: document.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('document', {

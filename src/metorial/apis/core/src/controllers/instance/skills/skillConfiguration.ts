@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import type { Instance, Organization } from '@metorial/db';
-import { skillConfigurationService } from '@metorial/module-file';
+import { skillConfigurationService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -23,14 +23,7 @@ type SkillConfigurationContext = Parameters<typeof getInstanceCargoAccess>[0] & 
   organization: Organization;
 };
 
-let getSkillConfigurationInput = (ctx: SkillConfigurationContext) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+let getSkillConfigurationInput = (ctx: SkillConfigurationContext) => getInstanceCargoAccess(ctx);
 
 export let skillConfigurationGroup = instanceGroup
   .use(hasFlags(['skills-enabled']))
@@ -40,7 +33,7 @@ export let skillConfigurationGroup = instanceGroup
     }
 
     let skillConfiguration = await skillConfigurationService.getSkillConfigurationById({
-      ...getSkillConfigurationInput(ctx),
+      ...(await getSkillConfigurationInput(ctx)),
       skillConfigurationId: ctx.params.skillConfigurationId
     });
 
@@ -64,7 +57,7 @@ export let skillConfigurationController = Controller.create(
       .output(skillConfigurationPresenter)
       .do(async ctx => {
         let skillConfiguration = await skillConfigurationService.createSkillConfiguration({
-          ...getSkillConfigurationInput(ctx),
+          ...(await getSkillConfigurationInput(ctx)),
           input: {
             allowScripts: ctx.body.allow_scripts,
             allowedFileExtensions: ctx.body.allowed_file_extensions,
@@ -86,7 +79,7 @@ export let skillConfigurationController = Controller.create(
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
         let paginator = await skillConfigurationService.listSkillConfigurations({
-          ...getSkillConfigurationInput(ctx)
+          ...(await getSkillConfigurationInput(ctx))
         });
         let list = await paginator.run(ctx.query);
 
@@ -130,8 +123,8 @@ export let skillConfigurationController = Controller.create(
       .body('default', v.object(skillConfigurationInput))
       .output(skillConfigurationPresenter)
       .do(async ctx => {
-        let skillConfiguration = await skillConfigurationService.updateSkillConfigurationById({
-          ...getSkillConfigurationInput(ctx),
+        let skillConfiguration = await skillConfigurationService.updateSkillConfiguration({
+          ...(await getSkillConfigurationInput(ctx)),
           skillConfigurationId: ctx.params.skillConfigurationId,
           input: {
             allowScripts: ctx.body.allow_scripts,
@@ -159,8 +152,8 @@ export let skillConfigurationController = Controller.create(
       .output(skillConfigurationPresenter)
       .do(async ctx => {
         let skillConfiguration = await skillConfigurationService.deleteSkillConfiguration({
-          ...getSkillConfigurationInput(ctx),
-          skillConfiguration: ctx.skillConfiguration
+          ...(await getSkillConfigurationInput(ctx)),
+          skillConfigurationId: ctx.skillConfiguration.id
         });
 
         return skillConfigurationPresenter.present({ skillConfiguration });

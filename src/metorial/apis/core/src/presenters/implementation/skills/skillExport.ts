@@ -20,8 +20,8 @@ export let v1SkillExportPresenter = Presenter.create(skillExportType)
     file_link: skillExport.fileLink
       ? await v1FileLinkPresenter.present({ fileLink: skillExport.fileLink }, opts).run()
       : null,
-    created_by: skillExport.createdBy
-      ? await presentDocumentParticipantActor(skillExport.createdBy, opts)
+    created_by: skillExport.creatorResourceActor
+      ? await presentDocumentParticipantActor(skillExport.creatorResourceActor, opts)
       : null,
     created_at: skillExport.createdAt,
     started_at: skillExport.startedAt,

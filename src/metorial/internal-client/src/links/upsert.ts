@@ -1,11 +1,5 @@
-import { cargo, nebula, subspace, synthesis } from '../clients';
+import { nebula, subspace, synthesis } from '../clients';
 import type { InternalActorLink } from './types';
-
-export let upsertCargoTenant = async (d: { identifier: string; name: string }) =>
-  await cargo.tenant.upsert({
-    identifier: d.identifier,
-    name: d.name
-  });
 
 export let upsertSynthesisTenant = async (d: { identifier: string; name: string }) =>
   await synthesis.tenant.upsert({
@@ -36,19 +30,6 @@ export let upsertSubspaceTenant = async (d: {
     environments: d.environments
   });
 
-export let upsertCargoEnvironment = async (d: {
-  tenantId: string;
-  identifier: string;
-  name: string;
-  type: 'development' | 'production';
-}) =>
-  await cargo.environment.upsert({
-    tenantId: d.tenantId,
-    identifier: d.identifier,
-    name: d.name,
-    type: d.type
-  });
-
 export let upsertSynthesisEnvironment = async (d: {
   tenantId: string;
   identifier: string;
@@ -73,23 +54,6 @@ export let upsertSubspaceEnvironment = async (d: {
     identifier: d.identifier,
     name: d.name,
     type: d.type
-  });
-
-export let upsertCargoActor = async (d: {
-  tenantId: string;
-  identifier: string;
-  name: string;
-  type?: 'external' | 'system';
-  organizationActorId?: string;
-  consumerId?: string;
-}): Promise<InternalActorLink> =>
-  await cargo.actor.upsert({
-    tenantId: d.tenantId,
-    identifier: d.identifier,
-    name: d.name,
-    type: d.type,
-    organizationActorId: d.organizationActorId,
-    consumerId: d.consumerId
   });
 
 export let upsertSynthesisActor = async (d: {

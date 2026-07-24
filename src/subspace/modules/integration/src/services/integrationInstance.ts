@@ -44,12 +44,12 @@ import { sessionService, sessionTemplateService } from '@metorial-subspace/modul
 import { enqueueSyncIntegrationInstanceSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import { checkTenant } from '@metorial-subspace/module-tenant';
+import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   integrationInstanceArchivedQueue,
   integrationInstanceCreatedQueue,
   integrationInstanceUpdatedQueue
 } from '../queues/lifecycle/integrationInstance';
-import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   integrationInstanceProviderService,
   type SetIntegrationInstanceProviderInput

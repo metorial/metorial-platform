@@ -21,6 +21,19 @@ export let backendEnv: Env = [
   },
 
   {
+    key: 'SIGNED_DOWNLOAD_URL_TOKEN_SECRET',
+    defaultValue: 'dev-cargo-download-token-secret'
+  },
+  {
+    key: 'CARGO_REGION',
+    defaultValue: 'dev'
+  },
+  {
+    key: 'DOWNLOAD_PUBLIC_URL',
+    defaultValue: `http://${HOSTNAME}:4318`
+  },
+
+  {
     key: 'PORTAL_HOST_TEMPLATE',
     defaultValue: 'http://localhost:4304/{portalId}'
   },
@@ -32,6 +45,10 @@ export let backendEnv: Env = [
   {
     key: 'DATABASE_URL',
     defaultValue: `postgres://postgres:postgres@localhost:35432/${DB_PREFIX}`
+  },
+  {
+    key: 'SUBSPACE_DATABASE_URL',
+    defaultValue: 'postgresql://postgres:postgres@localhost:35432/subspace'
   },
   {
     key: 'CARGO_DATABASE_URL',
@@ -190,6 +207,14 @@ export let backendEnv: Env = [
   {
     key: 'VOYAGER_URL',
     defaultValue: 'http://localhost:52060/metorial-voyager'
+  },
+  {
+    key: 'ORIGIN_URL',
+    defaultValue: `http://${HOSTNAME}:52090/metorial-origin`
+  },
+  {
+    key: 'CODE_BUCKET_SERVICE_URL',
+    defaultValue: `${HOSTNAME}:5050`
   },
   {
     key: 'NEBULA_API_URL',

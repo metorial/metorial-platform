@@ -895,7 +895,13 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
         }
       : null
   );
-  let toolItems = tools.data?.items ?? [];
+  let retainedToolItemsRef = useRef<NonNullable<typeof tools.data>['items']>([]);
+  let hasLoadedToolsRef = useRef(false);
+  if (tools.data) {
+    retainedToolItemsRef.current = tools.data.items;
+    hasLoadedToolsRef.current = true;
+  }
+  let toolItems = tools.data?.items ?? retainedToolItemsRef.current;
   let requiresProviderConfig =
     showConfigSection &&
     (p.forceConfigSectionVisible || provider.data?.type.config.status == 'enabled');
@@ -1093,7 +1099,10 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     };
   }, [requiresProviderConfig, requiresAuthConfig, showToolFilters, toolItems.length]);
 
-  if (provider.isLoading || (showToolFilters && !!providerVersionId && tools.isLoading)) {
+  if (
+    provider.isLoading ||
+    (showToolFilters && !!providerVersionId && tools.isLoading && !hasLoadedToolsRef.current)
+  ) {
     return <CenteredSpinner />;
   }
 

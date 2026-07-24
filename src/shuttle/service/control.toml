@@ -1,0 +1,39 @@
+name = "@metorial/shuttle"
+group = "oss"
+
+[dev]
+run = ["bun --watch ./src/server.ts"]
+
+[[dev.expose]]
+port = 52080
+
+[[dev.expose]]
+port = 52081
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
+PROVIDER_OAUTH_URL = "http://localhost:52081"
+ENCRYPTION_KEY = "local-dev-encryption-key"
+HOLOPOD_HTTP_ENDPOINT = "http://holopod:3000"
+SHUTTLE_ALLOW_PRIVATE_URLS = "true"
+SHUTTLE_UNSAFE_SSRF_BYPASS = "true"
+OBJECT_STORAGE_URL = "http://services:52010"
+LOGS_BUCKET_NAME = "shuttle-logs"
+FUNCTION_BAY_API_URL = "http://localhost:52030/metorial-function-bay"
+FUNCTION_BAY_TENANT_IDENTIFIER = "dev-tenant"
+FUNCTION_BAY_DEFAULT_MEMORY_MB = "512"
+FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS = "15"
+NEBULA_API_URL = "http://localhost:52170/metorial-nebula"
+NEBULA_CONSUMER_IDENTIFIER = "dev-shuttle"
+NEBULA_CONSUMER_TOKEN = "local-dev-nebula-shuttle-registration-secret"
+SHUTTLE_DELEGATE_SECRETS_TO_NEBULA = "true"
+
+[dev.db.main]
+name = "shuttle"
+engine = "postgres"
+env = "DATABASE_URL"

@@ -1,29 +1,44 @@
 import { v } from '@lowerdeck/validation';
+import { getSignedFileDownloadUrl } from '@metorial/cargo-module-file';
+import { db } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { fileType } from '../../types';
-import { documentParticipantActorSchema, presentDocumentParticipantActor } from './documentParticipant';
+import {
+  documentParticipantActorSchema,
+  presentDocumentParticipantActor
+} from './documentParticipant';
 
 export let v1FilePresenter = Presenter.create(fileType)
-  .presenter(async ({ file }, opts) => ({
-    object: 'file',
+  .presenter(async ({ file }, opts) => {
+    let createdBy =
+      file.createdByResourceActor ??
+      (file.createdByResourceActorOid
+        ? await db.resourceActor.findUnique({
+            where: {
+              oid: file.createdByResourceActorOid
+            }
+          })
+        : null);
 
-    id: file.id,
-    status: file.status,
+    return {
+      object: 'file',
 
-    file_name: file.fileName,
-    file_size: file.fileSize,
-    file_type: file.fileType,
+      id: file.id,
+      status: file.status,
 
-    title: file.title,
+      file_name: file.fileName,
+      file_size: file.fileSize,
+      file_type: file.fileType,
 
-    purpose: file.purpose.slug,
-    created_by: file.createdBy
-      ? await presentDocumentParticipantActor(file.createdBy, opts)
-      : null,
+      title: file.title,
 
-    created_at: file.createdAt,
-    updated_at: file.updatedAt
-  }))
+      purpose: file.purpose.slug,
+      created_by: createdBy ? await presentDocumentParticipantActor(createdBy, opts) : null,
+
+      created_at: file.createdAt,
+      updated_at: file.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('file', { description: "String representing the object's type" }),
@@ -78,7 +93,7 @@ export let dashboardFilePresenter = Presenter.create(fileType)
 
     return {
       ...inner,
-      download_url: file.signedDownloadUrl ?? null
+      download_url: (await getSignedFileDownloadUrl(file)) ?? null
     };
   })
   .schema(

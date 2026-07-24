@@ -95,10 +95,19 @@ vi.mock('@metorial/module-magic', () => ({
   resolveMagicMcpTargetByIdOrAlias: vi.fn()
 }));
 
-vi.mock('@metorial/module-file', () => ({
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveResourceScopeForOwner: vi.fn()
+}));
+
+vi.mock('@metorial/cargo-module-skill', () => ({
   skillPluginService: {
-    getSkillPluginById: vi.fn(),
-    getSkillPluginProviders: vi.fn()
+    getSkillPluginById: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-subspace', () => ({
+  subspaceSkillService: {
+    getMany: vi.fn()
   }
 }));
 

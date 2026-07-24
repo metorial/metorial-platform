@@ -56,12 +56,29 @@ vi.mock('../src/queues/syncUserUpdate', () => ({
   }
 }));
 
-vi.mock('@metorial/module-file', () => ({
+vi.mock('@metorial/config', () => ({
+  getConfig: vi.fn(() => ({
+    urls: {
+      filesUrl: 'https://files.example.com'
+    }
+  }))
+}));
+
+vi.mock('@metorial/cargo-module-file', () => ({
+  fileService: {
+    getFileById: vi.fn()
+  },
+  fileLinkService: {
+    createFileLink: vi.fn()
+  },
   fileReferenceService: {
-    resolveImageEntityImage: vi.fn(),
-    createImageEntityImage: vi.fn(),
-    cleanupImageEntityImage: vi.fn()
+    upsertFileReference: vi.fn(),
+    deleteFileReferenceByIdAndCleanup: vi.fn()
   }
+}));
+
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveResourceScopeForOwner: vi.fn()
 }));
 
 // Mock Bun.password
@@ -89,7 +106,7 @@ describe('userService', () => {
     const fabricModule = await import('@metorial/fabric');
     Fabric = fabricModule.Fabric;
 
-    const fileModule = await import('@metorial/module-file');
+    let fileModule = await import('@metorial/cargo-module-file');
     fileReferenceService = fileModule.fileReferenceService;
 
     const queueModule = await import('../src/queues/syncUserUpdate');
@@ -440,8 +457,8 @@ describe('userService', () => {
         context: mockContext
       });
 
-      expect(fileReferenceService.cleanupImageEntityImage).toHaveBeenCalledWith({
-        image: mockUser.image
+      expect(fileReferenceService.deleteFileReferenceByIdAndCleanup).toHaveBeenCalledWith({
+        fileReferenceId: 'frf_old'
       });
     });
   });

@@ -1,0 +1,25 @@
+{
+  "name": "@metorial/cargo-list-utils",
+  "module": "index.ts",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@metorial/tsconfig": "^1.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@metorial/db": "^1.0.0"
+  },
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

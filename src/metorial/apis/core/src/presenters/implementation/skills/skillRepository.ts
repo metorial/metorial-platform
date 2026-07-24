@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { EnrichedCargoSkillMarketplaceRepository } from '@metorial/module-file';
+import type { SkillRepository } from '@metorial/db';
 
 export let skillRepositorySchema = v.object({
   object: v.literal('scm.repository#skill'),
@@ -16,7 +16,15 @@ export let skillRepositorySchema = v.object({
 });
 
 export let presentSkillRepository = (
-  skillRepository: EnrichedCargoSkillMarketplaceRepository['repository']
+  skillRepository: SkillRepository & {
+    originRepository: {
+      provider: 'github' | 'gitlab' | 'bitbucket';
+      externalName: string;
+      externalUrl: string;
+      externalIsPrivate: boolean;
+      defaultBranch: string;
+    } | null;
+  }
 ) => ({
   object: 'scm.repository#skill' as const,
   id: skillRepository.repoId,

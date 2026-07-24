@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillPluginService } from '@metorial/module-file';
+import { skillPluginSkillService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -34,8 +34,8 @@ export let skillPluginSkillGroup = skillPluginGroup.use(async ctx => {
     );
   }
 
-  let skillPluginSkill = await skillPluginService.getSkillPluginSkillById({
-    ...getSkillPluginAccess(ctx),
+  let skillPluginSkill = await skillPluginSkillService.getSkillPluginSkillById({
+    ...(await getSkillPluginAccess(ctx)),
     skillPlugin: ctx.skillPlugin,
     skillPluginSkillId: ctx.params.skillPluginSkillId
   });
@@ -77,8 +77,8 @@ export let skillPluginSkillController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await skillPluginService.listSkillPluginSkills({
-          ...getSkillPluginAccess(ctx),
+        let paginator = await skillPluginSkillService.listSkillPluginSkills({
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin,
           ids: normalizeArrayParam(ctx.query.id),
           skillIds: normalizeArrayParam(ctx.query.skill_id),
@@ -111,8 +111,8 @@ export let skillPluginSkillController = Controller.create(
       )
       .output(skillPluginSkillPresenter)
       .do(async ctx => {
-        let skillPluginSkill = await skillPluginService.addSkillPluginSkill({
-          ...getSkillPluginAccess(ctx),
+        let skillPluginSkill = await skillPluginSkillService.addSkillPluginSkill({
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin,
           input: {
             skillId: ctx.body.skill_id,
@@ -164,10 +164,9 @@ export let skillPluginSkillController = Controller.create(
       .body('default', v.object(skillPluginSkillInput))
       .output(skillPluginSkillPresenter)
       .do(async ctx => {
-        let skillPluginSkill = await skillPluginService.updateSkillPluginSkill({
-          ...getSkillPluginAccess(ctx),
-          skillPlugin: ctx.skillPlugin,
-          skillPluginSkillId: ctx.skillPluginSkill.id,
+        let skillPluginSkill = await skillPluginSkillService.updateSkillPluginSkill({
+          ...(await getSkillPluginAccess(ctx)),
+          skillPluginSkill: ctx.skillPluginSkill,
           input: {
             clientName: ctx.body.client_name,
             clientDescription: ctx.body.client_description,
@@ -196,10 +195,9 @@ export let skillPluginSkillController = Controller.create(
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
       .output(skillPluginSkillPresenter)
       .do(async ctx => {
-        let skillPluginSkill = await skillPluginService.removeSkillPluginSkill({
-          ...getSkillPluginAccess(ctx),
-          skillPlugin: ctx.skillPlugin,
-          skillPluginSkillId: ctx.skillPluginSkill.id
+        let skillPluginSkill = await skillPluginSkillService.removeSkillPluginSkill({
+          ...(await getSkillPluginAccess(ctx)),
+          skillPluginSkill: ctx.skillPluginSkill
         });
 
         return skillPluginSkillPresenter.present({ skillPluginSkill });

@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
+import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
   logRepositorySyncQueueError,
@@ -21,17 +22,14 @@ export let startRepositorySyncQueueProcessor = startRepositorySyncQueue.process(
       expectedStatus: 'pending'
     });
 
-    let updated = await db.scmRepositorySync.updateMany({
+    let existing = await db.scmRepositorySync.findFirst({
       where: {
         id: data.syncId,
         status: 'pending'
-      },
-      data: {
-        status: 'creating_branch'
       }
     });
 
-    if (updated.count === 0) {
+    if (!existing) {
       logRepositorySyncQueueEvent(
         'start',
         'skipped sync because expected status was not present',
@@ -42,6 +40,47 @@ export let startRepositorySyncQueueProcessor = startRepositorySyncQueue.process(
       );
       return;
     }
+    if (existing.repositoryAccessMode === 'default_branch') {
+      let blockingDefaultBranchWrite = await db.scmRepositorySync.findFirst({
+        where: {
+          repoOid: existing.repoOid,
+          id: { not: existing.id },
+          OR: [
+            {
+              repositoryAccessMode: 'default_branch',
+              oid: { lt: existing.oid },
+              status: {
+                notIn: [
+                  'merged',
+                  'failed',
+                  'cancelled',
+                  'complete_unmerged',
+                  'complete_direct_push',
+                  'complete_no_changes'
+                ]
+              }
+            },
+            { status: 'merging' }
+          ]
+        },
+        select: { id: true }
+      });
+      if (blockingDefaultBranchWrite) {
+        logRepositorySyncQueueEvent('start', 'waiting for earlier direct push', {
+          syncId: existing.id,
+          blockingSyncId: blockingDefaultBranchWrite.id
+        });
+        await startRepositorySyncQueue.add(
+          { syncId: existing.id },
+          { delay: 2_000 + Math.floor(Math.random() * 1_000) }
+        );
+        return;
+      }
+    }
+    let updated = await transitionRepositorySyncState(data.syncId, 'pending', {
+      status: 'creating_branch'
+    });
+    if (!updated) return;
 
     await appendRepositorySyncLog(data.syncId, 'Starting repository update.');
 

@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillPluginService } from '@metorial/module-file';
+import { skillPluginService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -30,14 +30,7 @@ let skillPluginInput = {
 
 export let getSkillPluginAccess = (
   ctx: Parameters<typeof getInstanceCargoAccess>[0] & any
-) => ({
-  owner: {
-    type: 'instance' as const,
-    instance: ctx.instance,
-    organization: ctx.organization
-  },
-  ...getInstanceCargoAccess(ctx)
-});
+) => getInstanceCargoAccess(ctx);
 
 export let skillPluginGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillPluginId) {
@@ -55,7 +48,7 @@ export let skillPluginGroup = instanceGroup.use(hasFlags(['skills-enabled'])).us
       consumerGroups: ctx.consumerGroups
     });
     let paginator = await skillPluginService.listSkillPlugins({
-      ...getSkillPluginAccess(ctx),
+      ...(await getSkillPluginAccess(ctx)),
       ids: [ctx.params.skillPluginId],
       skillMarketplaceIds: accessibleMarketplaceIds
     });
@@ -69,7 +62,7 @@ export let skillPluginGroup = instanceGroup.use(hasFlags(['skills-enabled'])).us
   }
 
   let skillPlugin = await skillPluginService.getSkillPluginById({
-    ...getSkillPluginAccess(ctx),
+    ...(await getSkillPluginAccess(ctx)),
     skillPluginId: ctx.params.skillPluginId
   });
 
@@ -122,7 +115,7 @@ export let skillPluginController = Controller.create(
               : marketplaceFilter;
 
         let paginator = await skillPluginService.listSkillPlugins({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           skillMarketplaceIds,
           statuses: normalizeArrayParam(ctx.query.status),
@@ -161,7 +154,7 @@ export let skillPluginController = Controller.create(
       .output(skillPluginPresenter)
       .do(async ctx => {
         let skillPlugin = await skillPluginService.createSkillPlugin({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -186,7 +179,7 @@ export let skillPluginController = Controller.create(
       .output(skillPluginPresenter)
       .do(async ctx => {
         let skillPlugin = await skillPluginService.updateSkillPlugin({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin,
           input: {
             name: ctx.body.name,
@@ -211,7 +204,7 @@ export let skillPluginController = Controller.create(
       .output(skillPluginPresenter)
       .do(async ctx => {
         let skillPlugin = await skillPluginService.archiveSkillPlugin({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin
         });
 
@@ -229,7 +222,7 @@ export let skillPluginController = Controller.create(
       .output(skillPluginPresenter)
       .do(async ctx => {
         let skillPlugin = await skillPluginService.forceSkillPluginSync({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin
         });
 

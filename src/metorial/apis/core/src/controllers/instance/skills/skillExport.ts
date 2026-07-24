@@ -1,8 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillExportService, skillPluginService } from '@metorial/module-file';
-import { subspaceSkillService } from '@metorial/module-subspace';
+import {
+  skillExportService,
+  skillPluginService,
+  skillService
+} from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -32,10 +35,11 @@ export let skillExportGroup = instanceGroup.use(hasFlags(['skills-enabled'])).us
     );
   }
 
+  let access = await getSkillPluginAccess(ctx);
   let skillExport = await skillExportService.getSkillExportById({
-    ...getSkillPluginAccess(ctx),
+    ...access,
     skillExportId: ctx.params.skillExportId,
-    filterByCreator: hasInstanceConsumerAccess(ctx)
+    actorId: hasInstanceConsumerAccess(ctx) ? access.actorId : undefined
   });
 
   return { skillExport };
@@ -82,11 +86,13 @@ let assertConsumerCanCreateExport = async (
   if (!hasInstanceConsumerAccess(ctx)) return;
 
   if (input.target === 'skill') {
-    await subspaceSkillService.get({
-      instance: ctx.instance,
+    let access = await getSkillPluginAccess(ctx);
+    await skillService.getSkillById({
+      resourceTenant: access.resourceTenant,
+      resourceGroup: access.resourceGroup,
       skillId: input.skillId,
-      consumerProfile: ctx.consumerProfile,
-      consumerGroups: ctx.consumerGroups
+      accessTags: ctx.accessTags,
+      consumerProfileOid: ctx.consumerProfile.oid
     });
     return;
   }
@@ -101,7 +107,7 @@ let assertConsumerCanCreateExport = async (
     consumerGroups: ctx.consumerGroups
   });
   let paginator = await skillPluginService.listSkillPlugins({
-    ...getSkillPluginAccess(ctx),
+    ...(await getSkillPluginAccess(ctx)),
     ids: [input.skillPluginId],
     skillMarketplaceIds: accessibleMarketplaceIds
   });
@@ -137,12 +143,13 @@ export let skillExportController = Controller.create(
         )
       )
       .do(async ctx => {
+        let access = await getSkillPluginAccess(ctx);
         let paginator = await skillExportService.listSkillExports({
-          ...getSkillPluginAccess(ctx),
+          ...access,
           ids: normalizeArrayParam(ctx.query.id),
           targets: normalizeArrayParam(ctx.query.target),
           statuses: normalizeArrayParam(ctx.query.status),
-          filterByCreator: hasInstanceConsumerAccess(ctx)
+          actorId: hasInstanceConsumerAccess(ctx) ? access.actorId : undefined
         });
         let list = await paginator.run(ctx.query);
 
@@ -185,7 +192,7 @@ export let skillExportController = Controller.create(
         await assertConsumerCanCreateExport(ctx, input);
 
         let skillExport = await skillExportService.createSkillExport({
-          ...getSkillPluginAccess(ctx),
+          ...(await getSkillPluginAccess(ctx)),
           input
         });
 

@@ -8,7 +8,7 @@ import {
   useCurrentProject,
   useSkillMarketplace
 } from '@metorial/state';
-import { Button, Callout, Flex, LinkTabs, Spacer, toast } from '@metorial/ui';
+import { Button, Flex, LinkTabs, toast } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useInterval } from 'react-use';
 
@@ -28,7 +28,6 @@ export let SkillMarketplaceLayout = () => {
   let project = useCurrentProject();
   let { skillMarketplaceId } = useParams();
   let marketplace = useSkillMarketplace(instance.data?.id, skillMarketplaceId);
-  let syncMarketplace = marketplace.syncMutator();
   let createSkillExport = useCreateSkillExport();
   let pathname = useLocation().pathname;
 
@@ -68,14 +67,14 @@ export let SkillMarketplaceLayout = () => {
     marketplace.refetch();
   }, 10_000);
 
-  useInterval(
-    () => {
-      if (marketplace.data?.syncStatus !== 'synced' && !syncMarketplace.isLoading) {
-        syncMarketplace.mutate({});
-      }
-    },
-    marketplace.data?.syncStatus === 'pending' ? 10_000 : 60_000
-  );
+  // useInterval(
+  //   () => {
+  //     if (marketplace.data?.syncStatus !== 'synced' && !syncMarketplace.isLoading) {
+  //       syncMarketplace.mutate({});
+  //     }
+  //   },
+  //   marketplace.data?.syncStatus === 'pending' ? 10_000 : 60_000
+  // );
 
   return (
     <ContentLayout>
@@ -122,43 +121,11 @@ export let SkillMarketplaceLayout = () => {
                   to: Paths.instance.skillMarketplace(...marketplacePathParams)
                 },
                 {
-                  label: 'Preview',
-                  to: Paths.instance.skillMarketplace(...marketplacePathParams, 'editor')
-                },
-                {
-                  label: 'Syncs',
-                  to: Paths.instance.skillMarketplace(...marketplacePathParams, 'syncs')
-                },
-                {
                   label: 'Settings',
                   to: Paths.instance.skillMarketplace(...marketplacePathParams, 'settings')
                 }
               ]}
             />
-
-            {marketplace.data?.syncStatus !== 'synced' && (
-              <>
-                <Callout color="blue">
-                  <span>
-                    <strong>Upcoming changes:</strong> Plugins, skills, or configurations
-                    linked to this marketplace have changed. Metorial is processing these
-                    changes and updating the marketplace. This can take a few minutes.
-                  </span>
-                  {/* {marketplace.data?.syncStatus === 'pending' && (
-                    <Button
-                      size="2"
-                      loading={syncMarketplace.isLoading}
-                      onClick={() => syncMarketplace.mutate({})}
-                      style={{ marginLeft: 16 }}
-                    >
-                      Sync Now
-                    </Button>
-                  )} */}
-                </Callout>
-
-                <Spacer height={20} />
-              </>
-            )}
 
             <Outlet />
           </>

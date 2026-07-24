@@ -1,6 +1,7 @@
 import { ConsumerGroup, ConsumerProfile, Instance } from '@metorial/db';
+import { skillService } from '@metorial/cargo-module-skill';
 import { consumerSkillService } from '@metorial/module-consumer';
-import { subspaceSkillService } from '@metorial/module-subspace';
+import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
 
 export let assertConsumerCanWriteSkillGroupItem = async (d: {
   instance: Instance;
@@ -10,16 +11,23 @@ export let assertConsumerCanWriteSkillGroupItem = async (d: {
 }) => {
   if (!d.consumerProfile) return;
 
-  let skill = await subspaceSkillService.get({
-    instance: d.instance,
+  let scope = await resolveResourceScopeForOwner({
+    type: 'instance',
+    instance: {
+      id: d.instance.id
+    }
+  });
+
+  let skill = await skillService.getSkillById({
+    resourceTenant: scope.resourceTenant,
+    resourceGroup: scope.resourceGroup,
     skillId: d.skillId,
     allowDeleted: true,
-    consumerProfile: d.consumerProfile,
-    consumerGroups: d.consumerGroups ?? []
+    consumerProfileOid: d.consumerProfile.oid
   });
 
   await consumerSkillService.assertConsumerCanWriteSkill({
-    skill: skill.localSkill,
+    skill,
     consumerProfile: d.consumerProfile
   });
 };

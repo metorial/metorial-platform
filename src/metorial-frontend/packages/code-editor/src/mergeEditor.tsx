@@ -34,10 +34,7 @@ export let MergeEditor = ({
         extensions: [
           sparkTheme,
           EditorState.readOnly.of(readOnly),
-          EditorView.editable.of(!readOnly),
-          EditorView.updateListener.of(update => {
-            if (update.docChanged) onChangeRef.current?.(update.state.doc.toString());
-          })
+          EditorView.editable.of(!readOnly)
         ]
       },
       parent: parentRef.current,
@@ -46,6 +43,19 @@ export let MergeEditor = ({
       highlightChanges: true,
       gutter: true
     });
+
+    // MergeView supplies its own transaction dispatcher. That bypasses the normal
+    // update-listener route, so observe the editable pane's dispatcher directly.
+    // Read after the original dispatcher has applied the transaction.
+    let currentValue = value;
+    let dispatch = mergeView.b.dispatch.bind(mergeView.b) as (...transactions: any[]) => void;
+    mergeView.b.dispatch = (...transactions) => {
+      dispatch(...transactions);
+      let nextValue = mergeView.b.state.doc.toString();
+      if (nextValue == currentValue) return;
+      currentValue = nextValue;
+      onChangeRef.current?.(nextValue);
+    };
 
     return () => mergeView.destroy();
   }, [original, readOnly]);

@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useSkillMarketplaceEditorUrl, useSkillPluginEditorUrl } from '@metorial/state';
 import { Button, theme } from '@metorial/ui';
-import { RiExpandDiagonal2Line } from '@remixicon/react';
+import { RiCloseLine, RiExpandDiagonal2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -46,8 +46,8 @@ let Iframe = styled.iframe`
   background: #fff;
 `;
 
-let EmbeddedEditor = (p: { url: string }) => {
-  let [isExpanded, setIsExpanded] = useState(false);
+let EmbeddedEditor = (p: { url: string; fullScreen?: boolean; onClose?: () => void }) => {
+  let [isExpanded, setIsExpanded] = useState(p.fullScreen ?? false);
 
   return (
     <Wrapper data-expanded={isExpanded}>
@@ -59,10 +59,10 @@ let EmbeddedEditor = (p: { url: string }) => {
         <Button
           size="1"
           variant="outline"
-          iconLeft={<RiExpandDiagonal2Line />}
-          onClick={() => setIsExpanded(expanded => !expanded)}
+          iconLeft={p.fullScreen ? <RiCloseLine /> : <RiExpandDiagonal2Line />}
+          onClick={p.fullScreen ? p.onClose : () => setIsExpanded(expanded => !expanded)}
         >
-          {isExpanded ? 'Collapse' : 'Expand'}
+          {p.fullScreen ? 'Close' : isExpanded ? 'Collapse' : 'Expand'}
         </Button>
       </Nav>
 
@@ -74,11 +74,13 @@ let EmbeddedEditor = (p: { url: string }) => {
 export let SkillMarketplaceEditorScene = (p: {
   instanceId: string | null | undefined;
   skillMarketplaceId: string | null | undefined;
+  fullScreen?: boolean;
+  onClose?: () => void;
 }) => {
   let editorUrl = useSkillMarketplaceEditorUrl(p.instanceId, p.skillMarketplaceId);
 
   return renderWithLoader({ editorUrl })(({ editorUrl }) => (
-    <EmbeddedEditor url={editorUrl.data.url} />
+    <EmbeddedEditor url={editorUrl.data.url} fullScreen={p.fullScreen} onClose={p.onClose} />
   ));
 };
 

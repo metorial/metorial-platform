@@ -1,6 +1,6 @@
 import type {
-  DashboardInstanceSkillsMarketplacesGetEditorUrlOutput,
   DashboardInstanceSkillsMarketplacesCreateBody,
+  DashboardInstanceSkillsMarketplacesGetEditorUrlOutput,
   DashboardInstanceSkillsMarketplacesGetOutput,
   DashboardInstanceSkillsMarketplacesListQuery,
   DashboardInstanceSkillsMarketplacesPluginsAddBody,
@@ -16,6 +16,7 @@ import { useEffect } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+import { skillSyncLoader, skillSyncsLoader } from './skillSyncs';
 
 export type SkillMarketplace = DashboardInstanceSkillsMarketplacesGetOutput;
 export type SkillMarketplacePlugin = DashboardInstanceSkillsMarketplacesPluginsGetOutput;
@@ -98,7 +99,15 @@ export let skillMarketplaceLoader = createLoader({
       {
         input: { instanceId, skillMarketplaceId }
       }: { input: { instanceId: string; skillMarketplaceId: string } }
-    ) => withAuth(sdk => sdk.skillMarketplaces.sync(instanceId, skillMarketplaceId, {}))
+    ) =>
+      withAuth(async sdk => {
+        let res = await sdk.skillMarketplaces.sync(instanceId, skillMarketplaceId, {});
+
+        skillSyncsLoader.refetchAll();
+        skillSyncLoader.refetchAll();
+
+        return res;
+      })
   }
 });
 
@@ -206,11 +215,7 @@ export let useCreateSkillMarketplaceRepository =
       }
     ) =>
       withAuth(sdk =>
-        sdk.skillMarketplaces.repositories.create(
-          i.instanceId,
-          i.skillMarketplaceId,
-          i
-        )
+        sdk.skillMarketplaces.repositories.create(i.instanceId, i.skillMarketplaceId, i)
       )
   );
 

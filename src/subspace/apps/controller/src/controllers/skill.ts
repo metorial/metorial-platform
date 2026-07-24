@@ -1,91 +1,19 @@
-import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillService } from '@metorial-subspace/module-skills';
+import { skillItemInclude, skillService } from '@metorial-subspace/module-skills';
+import { db } from '@metorial-subspace/db';
 import { actorService } from '@metorial-subspace/module-tenant';
-import { skillPresenter } from '@metorial-subspace/presenters';
+import { skillItemPresenter, skillPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
-import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { tenantApp } from './tenant';
 
-export let skillApp = tenantApp.use(async ctx => {
-  let skillId = ctx.body.skillId;
-  if (!skillId) throw new Error('Skill ID is required');
-
-  let skill = await skillService.getSkillById({
-    skillId,
-    tenant: ctx.tenant,
-    environment: ctx.environment,
-    solution: ctx.solution,
-    allowDeleted: ctx.body.allowDeleted
-  });
-
-  return { skill };
-});
-
 export let skillController = app.controller({
-  list: tenantApp
-    .handler()
-    .input(
-      Paginator.validate(
-        v.object({
-          tenantId: v.string(),
-          environmentId: v.string(),
-
-          search: v.optional(v.string()),
-
-          status: v.optional(v.array(v.enumOf(['active', 'archived', 'deleted']))),
-          allowDeleted: v.optional(v.boolean()),
-
-          ids: v.optional(v.array(v.string())),
-          skillGroupIds: v.optional(v.array(v.string())),
-          integrationIds: v.optional(v.array(v.string())),
-          providerIds: v.optional(v.array(v.string())),
-
-          createdAt: createdAtValidator,
-          updatedAt: updatedAtValidator
-        })
-      )
-    )
-    .do(async ctx => {
-      let paginator = await skillService.listSkills({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        search: ctx.input.search,
-        status: ctx.input.status,
-        allowDeleted: ctx.input.allowDeleted,
-        ids: ctx.input.ids,
-        skillGroupIds: ctx.input.skillGroupIds,
-        integrationIds: ctx.input.integrationIds,
-        providerIds: ctx.input.providerIds,
-        createdAt: ctx.input.createdAt,
-        updatedAt: ctx.input.updatedAt
-      });
-
-      let list = await paginator.run(ctx.input);
-      return Paginator.presentLight(list, skillPresenter);
-    }),
-
-  get: skillApp
+  hydrateResources: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        skillId: v.string(),
-        allowDeleted: v.optional(v.boolean())
-      })
-    )
-    .do(async ctx => skillPresenter(ctx.skill)),
-
-  getMany: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        skillIds: v.array(v.string()),
-        allowDeleted: v.optional(v.boolean())
+        skillIds: v.array(v.string())
       })
     )
     .do(async ctx => {
@@ -94,233 +22,49 @@ export let skillController = app.controller({
         environment: ctx.environment,
         solution: ctx.solution,
         skillIds: ctx.input.skillIds,
-        allowDeleted: ctx.input.allowDeleted
+        allowDeleted: true
       });
-
-      return skills.map(skillPresenter);
-    }),
-
-  registerCargo: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        actorId: v.optional(v.string()),
-        skillId: v.string()
-      })
-    )
-    .do(async ctx => {
-      let actor = ctx.input.actorId
-        ? await actorService.getActorById({
-            tenant: ctx.tenant,
-            id: ctx.input.actorId
-          })
-        : undefined;
-      let skill = await skillService.registerCargoSkill({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skillId: ctx.input.skillId,
-        tenantActor: actor
-      });
-
-      return skillPresenter(skill);
-    }),
-
-  create: tenantApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        actorId: v.optional(v.string()),
-
-        name: v.string(),
-        description: v.optional(v.string()),
-        clientName: v.optional(v.string()),
-        clientDescription: v.optional(v.string()),
-        license: v.optional(v.string()),
-        compatibility: v.optional(v.string()),
-        clientMetadata: v.optional(v.record(v.any())),
-        metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any())),
-        imageFileId: v.optional(v.nullable(v.string())),
-        templateId: v.optional(v.string())
-      })
-    )
-    .do(async ctx => {
-      let actor = ctx.input.actorId
-        ? await actorService.getActorById({
-            tenant: ctx.tenant,
-            id: ctx.input.actorId
-          })
-        : undefined;
-
-      let skill = await skillService.createSkill({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        input: {
-          name: ctx.input.name,
-          description: ctx.input.description,
-          clientName: ctx.input.clientName,
-          clientDescription: ctx.input.clientDescription,
-          license: ctx.input.license,
-          compatibility: ctx.input.compatibility,
-          clientMetadata: ctx.input.clientMetadata,
-          metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata,
-          imageFileId: ctx.input.imageFileId,
-          templateId: ctx.input.templateId
+      let items = await db.skillItem.findMany({
+        where: {
+          status: 'active',
+          skill: { id: { in: skills.map(skill => skill.id) } }
         },
-        _operation: {
-          type: 'create',
-          tenantActor: actor
-        }
+        include: skillItemInclude
       });
-
-      return skillPresenter(skill);
+      return skills.map(skill => {
+        let presented = skillPresenter(skill);
+        return {
+          skillId: skill.id,
+          items: items.filter(item => item.skill.id === skill.id).map(skillItemPresenter),
+          integrations: presented.integrations,
+          providers: presented.providers
+        };
+      });
     }),
 
-  update: skillApp
+  syncResourceTarget: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
         environmentId: v.string(),
-        skillId: v.string(),
-        allowDeleted: v.optional(v.boolean()),
-
-        name: v.optional(v.string()),
+        actorId: v.optional(v.string()),
+        id: v.string(),
+        status: v.enumOf(['active', 'archived', 'deleted']),
+        slug: v.optional(v.nullable(v.string())),
+        name: v.string(),
         description: v.optional(v.nullable(v.string())),
-        clientName: v.optional(v.string()),
-        clientDescription: v.optional(v.string()),
+        metadata: v.optional(v.nullable(v.record(v.any()))),
+        image: v.optional(v.nullable(v.any())),
+        clientName: v.optional(v.nullable(v.string())),
+        clientDescription: v.optional(v.nullable(v.string())),
+        clientMetadata: v.optional(v.nullable(v.record(v.any()))),
         license: v.optional(v.nullable(v.string())),
         compatibility: v.optional(v.nullable(v.string())),
-        clientMetadata: v.optional(v.nullable(v.record(v.any()))),
-        metadata: v.optional(v.nullable(v.record(v.any()))),
-        privateMetadata: v.optional(v.nullable(v.record(v.any()))),
-        imageFileId: v.optional(v.nullable(v.string()))
-      })
-    )
-    .do(async ctx => {
-      let skill = await skillService.updateSkill({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skill: ctx.skill,
-        input: {
-          name: ctx.input.name,
-          description: ctx.input.description,
-          clientName: ctx.input.clientName,
-          clientDescription: ctx.input.clientDescription,
-          license: ctx.input.license,
-          compatibility: ctx.input.compatibility,
-          clientMetadata: ctx.input.clientMetadata,
-          metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata,
-          imageFileId: ctx.input.imageFileId
-        }
-      });
-
-      return skillPresenter(skill);
-    }),
-
-  delete: skillApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        skillId: v.string(),
-        allowDeleted: v.optional(v.boolean())
-      })
-    )
-    .do(async ctx => {
-      let skill = await skillService.archiveSkill({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skill: ctx.skill
-      });
-
-      return skillPresenter(skill);
-    }),
-
-  fork: skillApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        actorId: v.string(),
-
-        skillId: v.string(),
-        allowDeleted: v.optional(v.boolean()),
-
-        name: v.string(),
-        description: v.optional(v.string()),
-        clientName: v.optional(v.string()),
-        clientDescription: v.optional(v.string()),
-        license: v.optional(v.string()),
-        compatibility: v.optional(v.string()),
-        clientMetadata: v.optional(v.record(v.any())),
-        metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any())),
-        imageFileId: v.optional(v.nullable(v.string()))
-      })
-    )
-    .do(async ctx => {
-      let tenantActor = await actorService.getActorById({
-        tenant: ctx.tenant,
-        id: ctx.input.actorId
-      });
-
-      let skill = await skillService.forkSkill({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skill: ctx.skill,
-        tenantActor,
-        input: {
-          name: ctx.input.name,
-          description: ctx.input.description,
-          clientName: ctx.input.clientName,
-          clientDescription: ctx.input.clientDescription,
-          license: ctx.input.license,
-          compatibility: ctx.input.compatibility,
-          clientMetadata: ctx.input.clientMetadata,
-          metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata,
-          imageFileId: ctx.input.imageFileId
-        }
-      });
-
-      return skillPresenter(skill);
-    }),
-
-  duplicate: skillApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        actorId: v.optional(v.string()),
-
-        skillId: v.string(),
-        allowDeleted: v.optional(v.boolean()),
-
-        name: v.string(),
-        description: v.optional(v.string()),
-        clientName: v.optional(v.string()),
-        clientDescription: v.optional(v.string()),
-        license: v.optional(v.string()),
-        compatibility: v.optional(v.string()),
-        clientMetadata: v.optional(v.record(v.any())),
-        metadata: v.optional(v.record(v.any())),
-        privateMetadata: v.optional(v.record(v.any())),
-        imageFileId: v.optional(v.nullable(v.string()))
+        storeId: v.string(),
+        parentSkillId: v.optional(v.nullable(v.string())),
+        parentType: v.optional(v.nullable(v.enumOf(['fork', 'duplicate']))),
+        parentTemplateId: v.optional(v.nullable(v.string()))
       })
     )
     .do(async ctx => {
@@ -330,57 +74,30 @@ export let skillController = app.controller({
             id: ctx.input.actorId
           })
         : undefined;
-
-      let skill = await skillService.duplicateSkill({
+      let skill = await skillService.upsertMetorialSkill({
         tenant: ctx.tenant,
         environment: ctx.environment,
         solution: ctx.solution,
-        skill: ctx.skill,
-        actor,
         input: {
+          id: ctx.input.id,
+          status: ctx.input.status,
+          slug: ctx.input.slug,
           name: ctx.input.name,
           description: ctx.input.description,
+          metadata: ctx.input.metadata,
+          image: ctx.input.image,
           clientName: ctx.input.clientName,
           clientDescription: ctx.input.clientDescription,
+          clientMetadata: ctx.input.clientMetadata,
           license: ctx.input.license,
           compatibility: ctx.input.compatibility,
-          clientMetadata: ctx.input.clientMetadata,
-          metadata: ctx.input.metadata,
-          privateMetadata: ctx.input.privateMetadata,
-          imageFileId: ctx.input.imageFileId
-        }
+          storeId: ctx.input.storeId,
+          parentSkillId: ctx.input.parentSkillId,
+          parentType: ctx.input.parentType,
+          parentTemplateId: ctx.input.parentTemplateId
+        },
+        tenantActor: actor
       });
-
-      return skillPresenter(skill);
-    }),
-
-  upsertActor: skillApp
-    .handler()
-    .input(
-      v.object({
-        tenantId: v.string(),
-        environmentId: v.string(),
-        actorId: v.string(),
-        skillId: v.string(),
-        allowDeleted: v.optional(v.boolean()),
-        permissions: v.array(v.enumOf(['content_read', 'content_write'])),
-        overridePermissions: v.optional(v.boolean())
-      })
-    )
-    .do(async ctx => {
-      let tenantActor = await actorService.getActorById({
-        tenant: ctx.tenant,
-        id: ctx.input.actorId
-      });
-
-      return await skillService.upsertSkillActor({
-        tenant: ctx.tenant,
-        environment: ctx.environment,
-        solution: ctx.solution,
-        skill: ctx.skill,
-        tenantActor,
-        permissions: ctx.input.permissions,
-        overridePermissions: ctx.input.overridePermissions
-      });
+      return { skillId: skill.id };
     })
 });

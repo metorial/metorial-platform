@@ -2,22 +2,38 @@ import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { skillMarketplaceType } from '../../types';
+import { skillDestinationSyncStatusPresenter } from './skillDestination';
 import { v1SkillMarketplacePluginPresenter } from './skillMarketplacePlugin';
 
 export let v1SkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
   .presenter(async ({ skillMarketplace }, opts) => ({
     object: 'skill.marketplace' as const,
-    id: skillMarketplace.backing.id,
+    id: skillMarketplace.id,
     status: skillMarketplace.status,
-    sync_status: skillMarketplace.syncStatus,
+    repository_access_mode: skillMarketplace.repositoryAccessMode,
+    force_merge_or_push: skillMarketplace.forceMergeOrPush,
+    merge_before_checks_pass: skillMarketplace.mergeBeforeChecksPass,
+    sync_status: skillDestinationSyncStatusPresenter(skillMarketplace.destination),
     image_url: await getImageUrl(skillMarketplace),
-    name: skillMarketplace.name,
+    name: skillMarketplace.name!,
     description: skillMarketplace.description,
-    slug: skillMarketplace.slug,
-    skill_configuration_id: skillMarketplace.skillConfigurationId ?? null,
+    slug: skillMarketplace.slug!,
+    skill_configuration_id: skillMarketplace.skillConfiguration?.id ?? null,
     plugins: await Promise.all(
       skillMarketplace.plugins.map(skillMarketplacePlugin =>
-        v1SkillMarketplacePluginPresenter.present({ skillMarketplacePlugin }, opts).run()
+        v1SkillMarketplacePluginPresenter
+          .present(
+            {
+              skillMarketplacePlugin: {
+                ...skillMarketplacePlugin,
+                skillMarketplace: {
+                  id: skillMarketplace.id
+                }
+              }
+            },
+            opts
+          )
+          .run()
       )
     ),
     created_at: skillMarketplace.createdAt,
@@ -28,6 +44,9 @@ export let v1SkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
       object: v.literal('skill.marketplace'),
       id: v.string(),
       status: v.enumOf(['active', 'archived', 'deleted']),
+      repository_access_mode: v.enumOf(['pull_request', 'default_branch']),
+      force_merge_or_push: v.boolean(),
+      merge_before_checks_pass: v.boolean(),
       sync_status: v.enumOf(['pending', 'processing', 'synced']),
       image_url: v.string(),
       name: v.string(),

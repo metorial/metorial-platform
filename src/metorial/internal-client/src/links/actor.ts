@@ -11,34 +11,7 @@ import {
   persistOrganizationActorLink
 } from './shared';
 import type { InternalActorLink } from './types';
-import { upsertCargoActor, upsertSubspaceActor, upsertSynthesisActor } from './upsert';
-
-export let ensureCargoOrganizationActor = async (
-  tenantId: string,
-  organizationActor: Pick<OrganizationActor, 'id'> & Partial<OrganizationActor>
-): Promise<InternalActorLink> => {
-  let actorId = getOrganizationActorServiceId('cargo', organizationActor);
-  if (actorId) return { id: actorId };
-
-  let loadedOrganizationActor = await loadOrganizationActor(organizationActor);
-  let actorIdentifier = getOrganizationActorIdentifier(loadedOrganizationActor);
-  let actor = await upsertCargoActor({
-    tenantId,
-    identifier: actorIdentifier,
-    name: loadedOrganizationActor.name,
-    type: getOrganizationActorType(loadedOrganizationActor),
-    organizationActorId: loadedOrganizationActor.id
-  });
-
-  await persistOrganizationActorLink({
-    service: 'cargo',
-    organizationActor: loadedOrganizationActor,
-    actorId: actor.id,
-    actorIdentifier
-  });
-
-  return actor;
-};
+import { upsertSubspaceActor, upsertSynthesisActor } from './upsert';
 
 export let ensureSynthesisOrganizationActor = async (
   tenantId: string,
@@ -86,33 +59,6 @@ export let ensureSubspaceOrganizationActor = async (
   await persistOrganizationActorLink({
     service: 'subspace',
     organizationActor: loadedOrganizationActor,
-    actorId: actor.id,
-    actorIdentifier
-  });
-
-  return actor;
-};
-
-export let ensureCargoConsumerActor = async (
-  tenantId: string,
-  consumer: Pick<Consumer, 'id'> & Partial<Consumer>
-): Promise<InternalActorLink> => {
-  let actorId = getConsumerServiceId('cargo', consumer);
-  if (actorId) return { id: actorId };
-
-  let loadedConsumer = await loadConsumer(consumer);
-  let actorIdentifier = getConsumerActorIdentifier(loadedConsumer);
-  let actor = await upsertCargoActor({
-    tenantId,
-    identifier: actorIdentifier,
-    name: loadedConsumer.name,
-    type: 'external',
-    consumerId: loadedConsumer.id
-  });
-
-  await persistConsumerLink({
-    service: 'cargo',
-    consumer: loadedConsumer,
     actorId: actor.id,
     actorIdentifier
   });

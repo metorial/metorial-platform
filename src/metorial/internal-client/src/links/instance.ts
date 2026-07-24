@@ -1,9 +1,5 @@
 import { db } from '@metorial/db';
-import {
-  ensureCargoProjectTenant,
-  ensureSubspaceProjectTenant,
-  ensureSynthesisProjectTenant
-} from './project';
+import { ensureSubspaceProjectTenant, ensureSynthesisProjectTenant } from './project';
 import {
   getInstanceEnvironmentIdentifier,
   getInstanceServiceEnvironmentId,
@@ -15,76 +11,7 @@ import {
   toScope
 } from './shared';
 import type { InternalInstance, InternalScope } from './types';
-import {
-  upsertCargoEnvironment,
-  upsertSubspaceEnvironment,
-  upsertSynthesisEnvironment
-} from './upsert';
-
-export let ensureCargoInstanceScope = async (
-  instance: InternalInstance
-): Promise<InternalScope> => {
-  let tenantId = getInstanceServiceTenantId('cargo', instance);
-  let environmentId = getInstanceServiceEnvironmentId('cargo', instance);
-  let tenantIdentifier = getInstanceTenantIdentifier(instance);
-
-  if (
-    tenantId &&
-    environmentId &&
-    tenantIdentifier &&
-    instance.internalEnvironmentIdentifier &&
-    instance.project?.name &&
-    instance.name &&
-    instance.type
-  ) {
-    return toScope({
-      tenantId,
-      environmentId,
-      tenantIdentifier,
-      environmentIdentifier: instance.internalEnvironmentIdentifier,
-      tenantName: instance.project.name,
-      environmentName: instance.name,
-      environmentType: instance.type
-    });
-  }
-
-  let loadedInstance = await loadInstanceWithProject(instance);
-  let environmentIdentifier = getInstanceEnvironmentIdentifier(loadedInstance);
-  let tenant = await ensureCargoProjectTenant(loadedInstance.project!);
-
-  tenantIdentifier = tenant.tenantIdentifier;
-  environmentId = getInstanceServiceEnvironmentId('cargo', loadedInstance);
-
-  if (!environmentId) {
-    environmentId = (
-      await upsertCargoEnvironment({
-        tenantId: tenant.tenantId,
-        identifier: environmentIdentifier,
-        name: loadedInstance.name,
-        type: loadedInstance.type
-      })
-    ).id;
-  }
-
-  await persistInstanceScope({
-    service: 'cargo',
-    instance: loadedInstance,
-    tenantId: tenant.tenantId,
-    tenantIdentifier,
-    environmentId,
-    environmentIdentifier
-  });
-
-  return toScope({
-    tenantId: tenant.tenantId,
-    environmentId,
-    tenantIdentifier,
-    environmentIdentifier,
-    tenantName: loadedInstance.project!.name,
-    environmentName: loadedInstance.name,
-    environmentType: loadedInstance.type
-  });
-};
+import { upsertSubspaceEnvironment, upsertSynthesisEnvironment } from './upsert';
 
 export let ensureSynthesisInstanceScope = async (
   instance: InternalInstance

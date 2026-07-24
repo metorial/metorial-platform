@@ -9,11 +9,13 @@ import {
   useSkillMarketplaceRepositories,
   useSkillPluginRepositories,
   useSkillSync,
+  useSkillSyncRepositoryChecks,
   useSkillSyncs
 } from '@metorial/state';
 import {
   Attributes,
   Badge,
+  Button,
   Callout,
   Panel,
   RenderDate,
@@ -24,25 +26,38 @@ import {
 import { ID, Table } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useInterval } from 'react-use';
 import styled from 'styled-components';
 import { RouterPanel } from '../../scenes/routerPanel';
+import { getRepositoryActionMessage } from './skillSyncMessages';
 
 type SkillSync = DashboardInstanceSkillsSyncsGetOutput;
 type SkillRepository = SkillMarketplaceRepository | SkillPluginRepository;
 type RepositoryPropagation = SkillSync['repositoryPropagations'][number];
+type RepositoryCheck = NonNullable<
+  ReturnType<typeof useSkillSyncRepositoryChecks>['data']
+>['items'][number];
 
 let statusColor = (status: SkillSync['status']): 'blue' | 'gray' | 'red' | 'orange' =>
   status === 'completed'
     ? 'blue'
     : status === 'failed' || status === 'canceled'
       ? 'red'
-      : status === 'pending' || status === 'processing'
+      : status === 'pending' || status === 'processing' || status === 'waiting_for_review'
         ? 'orange'
         : 'gray';
 
-let SkillSyncStatusBadge = ({ status }: { status: SkillSync['status'] }) => (
-  <Badge color={statusColor(status)}>{status}</Badge>
+let statusLabel = (status: SkillSync['status']) =>
+  ({
+    pending: 'Pending',
+    processing: 'Syncing',
+    waiting_for_review: 'Action required',
+    completed: 'Completed',
+    failed: 'Failed',
+    canceled: 'Canceled'
+  })[status] ?? status;
+
+export let SkillSyncStatusBadge = ({ status }: { status: SkillSync['status'] }) => (
+  <Badge color={statusColor(status)}>{statusLabel(status)}</Badge>
 );
 
 let getRepositoryId = (repository: SkillRepository) => repository.repoId;
@@ -58,6 +73,12 @@ let getRepositoryLabel = (repository: SkillRepository) => {
     r.repository?.url?.match(/[:/]([^/:]+)\/[^/]+?$/)?.[1];
 
   return owner ? `${owner}/${name}` : name;
+};
+
+let getRepositoryUrl = (repository: SkillRepository) => {
+  let r = repository as any;
+  let url = r.repository?.url ?? r.url;
+  return typeof url === 'string' ? url : null;
 };
 
 let getErrorMessage = (value: unknown) => {
@@ -76,11 +97,14 @@ let getRepositoryError = (
 ) => {
   let r = repository as any;
   let p = propagation as any;
+  let propagationError = propagation && ['failed', 'canceled'].includes(propagation.status);
   return (
-    getErrorMessage(p?.error) ??
-    getErrorMessage(p?.lastError) ??
-    getErrorMessage(p?.syncError) ??
-    getErrorMessage(p?.errorMessage) ??
+    (propagationError
+      ? (getErrorMessage(p?.error) ??
+        getErrorMessage(p?.lastError) ??
+        getErrorMessage(p?.syncError) ??
+        getErrorMessage(p?.errorMessage))
+      : null) ??
     getErrorMessage(r?.error) ??
     getErrorMessage(r?.lastError) ??
     getErrorMessage(r?.syncError) ??
@@ -88,11 +112,107 @@ let getRepositoryError = (
   );
 };
 
-let RepositorySyncStatus = ({ propagation }: { propagation?: RepositoryPropagation }) =>
-  propagation ? (
-    <SkillSyncStatusBadge status={propagation.status} />
+let getPullRequestsUrl = (repositoryCheck: RepositoryCheck) => {
+  if (repositoryCheck.pullRequestUrl) return repositoryCheck.pullRequestUrl;
+  if (!repositoryCheck.repositoryUrl) return null;
+  let repositoryUrl = repositoryCheck.repositoryUrl
+    .replace(/\.git\/?$/, '')
+    .replace(/\/+$/, '');
+  if (repositoryCheck.provider === 'github') return `${repositoryUrl}/pulls`;
+  if (repositoryCheck.provider === 'gitlab') return `${repositoryUrl}/-/merge_requests`;
+  if (repositoryCheck.provider === 'bitbucket') return `${repositoryUrl}/pull-requests`;
+  return null;
+};
+
+let RepositoryAction = ({ repositoryCheck }: { repositoryCheck: RepositoryCheck }) => {
+  let isDirectPush = repositoryCheck.repositoryAccessMode === 'default_branch';
+  let actionableBlockers = [
+    'checks_failed',
+    'reviews_required',
+    'merge_conflict',
+    'merge_permission_required',
+    'merge_blocked',
+    'provider_unavailable'
+  ];
+  if (
+    !(
+      isDirectPush &&
+      (repositoryCheck.errorMessage ||
+        repositoryCheck.blockers.includes('provider_unavailable'))
+    ) &&
+    repositoryCheck.status !== 'waiting_for_review' &&
+    repositoryCheck.overrideAttemptStatus !== 'attempting' &&
+    repositoryCheck.overrideAttemptStatus !== 'refused' &&
+    !repositoryCheck.blockers.some(blocker => actionableBlockers.includes(blocker))
+  ) {
+    return null;
+  }
+  let pullRequestsUrl = getPullRequestsUrl(repositoryCheck);
+  let relevantChecks = repositoryCheck.checks.filter(check =>
+    ['failed', 'failure', 'pending', 'running', 'in_progress'].includes(check.status)
+  );
+  let visibleChecks = relevantChecks.slice(0, 5);
+
+  return (
+    <Callout color={isDirectPush && repositoryCheck.status === 'failed' ? 'red' : 'orange'}>
+      <RepositoryActionContent>
+        <div>
+          <Text size="2" weight="strong">
+            {repositoryCheck.repositoryName}
+          </Text>
+          <Text size="2">{getRepositoryActionMessage(repositoryCheck)}</Text>
+          {visibleChecks.length > 0 && (
+            <CheckList>
+              {visibleChecks.map(check => (
+                <li key={`${check.name}:${check.status}`}>
+                  {check.url ? (
+                    <ExternalLink href={check.url} target="_blank" rel="noopener noreferrer">
+                      {check.name}
+                    </ExternalLink>
+                  ) : (
+                    check.name
+                  )}{' '}
+                  — {check.status}
+                </li>
+              ))}
+              {relevantChecks.length > visibleChecks.length && (
+                <li>{relevantChecks.length - visibleChecks.length} more checks</li>
+              )}
+            </CheckList>
+          )}
+        </div>
+        <RepositoryLinks>
+          {!isDirectPush && pullRequestsUrl && (
+            <a href={pullRequestsUrl} target="_blank" rel="noopener noreferrer">
+              <Button as="span" size="1">
+                Open {repositoryCheck.provider === 'gitlab' ? 'merge request' : 'pull request'}
+              </Button>
+            </a>
+          )}
+          {repositoryCheck.repositoryUrl && (
+            <a href={repositoryCheck.repositoryUrl} target="_blank" rel="noopener noreferrer">
+              <Button as="span" size="1">
+                Open repository
+              </Button>
+            </a>
+          )}
+        </RepositoryLinks>
+      </RepositoryActionContent>
+    </Callout>
+  );
+};
+
+let RepositorySyncStatus = ({
+  propagation,
+  syncStatus
+}: {
+  propagation?: RepositoryPropagation;
+  syncStatus: SkillSync['status'];
+}) =>
+  propagation || ['pending', 'processing', 'waiting_for_review'].includes(syncStatus) ? (
+    <SkillSyncStatusBadge status={propagation?.status ?? 'pending'} />
   ) : (
-    <Badge color="gray">Not queued</Badge>
+    <Badge color="gray">Skipped</Badge>
   );
 
 export let SkillSyncsTable = ({
@@ -113,10 +233,6 @@ export let SkillSyncsTable = ({
       : null
   );
   let [_, setSearchParams] = useSearchParams();
-
-  useInterval(() => {
-    syncs.refetch();
-  }, 10_000);
 
   return (
     <>
@@ -171,9 +287,23 @@ let SyncDuration = ({ sync }: { sync: SkillSync }) => {
   return <span>{Math.max(0, Math.round(durationMs / 1000))}s</span>;
 };
 
-let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
+export let SkillSyncDetails = ({
+  syncId,
+  compact = false,
+  logs = 'always',
+  pollInterval
+}: {
+  syncId: string;
+  compact?: boolean;
+  logs?: 'always' | 'active-or-failed' | 'never';
+  pollInterval?: number | null;
+}) => {
   let instance = useCurrentInstance();
-  let sync = useSkillSync(instance.data?.id, syncId);
+  let sync = useSkillSync(instance.data?.id, syncId, { pollInterval });
+  let repositoryChecks = useSkillSyncRepositoryChecks(instance.data?.id, syncId);
+  let repositoryChecksRefetchRef = useRef(repositoryChecks.refetch);
+  repositoryChecksRefetchRef.current = repositoryChecks.refetch;
+  let wasActiveRef = useRef(false);
   let repos1 = useSkillMarketplaceRepositories(
     instance.data?.id,
     sync.data?.skillMarketplaceId
@@ -181,12 +311,39 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
   let repos2 = useSkillPluginRepositories(instance.data?.id, sync.data?.skillPluginId);
   let reposLoader = sync.data?.skillMarketplaceId ? repos1 : repos2;
 
+  useEffect(() => {
+    let active = Boolean(
+      sync.data?.status &&
+      ['pending', 'processing', 'waiting_for_review'].includes(sync.data.status)
+    );
+    if (!active) {
+      if (wasActiveRef.current) repositoryChecksRefetchRef.current();
+      wasActiveRef.current = false;
+      return;
+    }
+    wasActiveRef.current = true;
+    let id = setInterval(() => repositoryChecksRefetchRef.current(), 5_000);
+    return () => clearInterval(id);
+  }, [sync.data?.status]);
+
   return renderWithLoader({ sync })(({ sync }) => {
     let repositories = reposLoader.data?.items ?? [];
     let propagationByRepositoryId = new Map(
       sync.data.repositoryPropagations.map(
         propagation => [getPropagationRepositoryId(propagation), propagation] as const
       )
+    );
+    let repositoryCheckByRepositoryId = new Map(
+      (repositoryChecks.data?.items ?? []).map(check => [check.repoId, check] as const)
+    );
+    let directCheckRepositoryIds = new Set(
+      (repositoryChecks.data?.items ?? [])
+        .filter(
+          check =>
+            check.repositoryAccessMode === 'default_branch' &&
+            (check.errorMessage || check.blockers.includes('provider_unavailable'))
+        )
+        .map(check => check.repoId)
     );
     let repositoryRows = repositories.map(repository => ({
       repository,
@@ -204,10 +361,12 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
       reposLoader.error;
     let repositoryErrors = [
       ...repositoryRows.flatMap(({ repository, propagation }) => {
+        if (directCheckRepositoryIds.has(getRepositoryId(repository))) return [];
         let error = getRepositoryError(repository, propagation);
         return error ? [{ repository: getRepositoryLabel(repository), error }] : [];
       }),
       ...unmatchedPropagations.flatMap(propagation => {
+        if (directCheckRepositoryIds.has(getPropagationRepositoryId(propagation))) return [];
         let error = getRepositoryError(undefined, propagation);
         return error ? [{ repository: getPropagationRepositoryId(propagation), error }] : [];
       })
@@ -215,33 +374,35 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
 
     return (
       <>
-        <Attributes
-          itemWidth="320px"
-          attributes={[
-            { label: 'Sync ID', content: <ID id={sync.data.id} /> },
-            { label: 'Status', content: <SkillSyncStatusBadge status={sync.data.status} /> },
-            {
-              label: 'Started',
-              content: sync.data.startedAt ? <RenderDate date={sync.data.startedAt} /> : 'N/A'
-            },
-            {
-              label: 'Completed',
-              content: sync.data.completedAt ? (
-                <RenderDate date={sync.data.completedAt} />
-              ) : (
-                'N/A'
-              )
-            }
-          ]}
-        />
+        {!compact && (
+          <Attributes
+            itemWidth="320px"
+            attributes={[
+              { label: 'Sync ID', content: <ID id={sync.data.id} /> },
+              { label: 'Status', content: <SkillSyncStatusBadge status={sync.data.status} /> },
+              {
+                label: 'Started',
+                content: sync.data.startedAt ? (
+                  <RenderDate date={sync.data.startedAt} />
+                ) : (
+                  'N/A'
+                )
+              },
+              {
+                label: 'Completed',
+                content: sync.data.completedAt ? (
+                  <RenderDate date={sync.data.completedAt} />
+                ) : (
+                  'N/A'
+                )
+              }
+            ]}
+          />
+        )}
 
         {shouldShowRepositories && (
           <>
-            <Spacer height={20} />
-            <Text size="3" weight="strong">
-              Repositories
-            </Text>
-            <Spacer height={10} />
+            {!compact && <Spacer height={20} />}
 
             {reposLoader.error && (
               <>
@@ -262,36 +423,96 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
             )}
 
             <Table
-              headers={['Repository', 'Status', 'Branch', 'PR', 'Completed']}
+              headers={
+                compact
+                  ? ['Repository', 'Status', 'Branch']
+                  : ['Repository', 'Status', 'Branch', 'Completed']
+              }
               data={[
-                ...repositoryRows.map(({ repository, propagation }) => ({
-                  data: [
-                    getRepositoryLabel(repository),
-                    <RepositorySyncStatus propagation={propagation} />,
-                    propagation?.branchName ?? 'N/A',
-                    propagation?.prName ?? 'N/A',
-                    propagation?.completedAt ? (
-                      <RenderDate date={propagation.completedAt} />
-                    ) : (
-                      'N/A'
-                    )
-                  ]
-                })),
+                ...repositoryRows.map(({ repository, propagation }) => {
+                  let repositoryCheck = repositoryCheckByRepositoryId.get(
+                    getRepositoryId(repository)
+                  );
+                  let isDirectPush =
+                    propagation?.repositoryAccessMode === 'default_branch' ||
+                    repositoryCheck?.repositoryAccessMode === 'default_branch';
+                  return {
+                    data: [
+                      getRepositoryUrl(repository) ? (
+                        <ExternalLink
+                          href={getRepositoryUrl(repository)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={event => event.stopPropagation()}
+                        >
+                          {getRepositoryLabel(repository)}
+                        </ExternalLink>
+                      ) : (
+                        getRepositoryLabel(repository)
+                      ),
+                      <RepositorySyncStatus
+                        propagation={propagation}
+                        syncStatus={sync.data.status}
+                      />,
+                      repositoryCheck?.targetBranch ?? propagation?.branchName ?? 'N/A',
+                      // isDirectPush ? 'Direct push' : (propagation?.prName ?? 'N/A'),
+                      ...(compact
+                        ? []
+                        : [
+                            propagation?.completedAt ? (
+                              <RenderDate date={propagation.completedAt} />
+                            ) : (
+                              'N/A'
+                            )
+                          ])
+                    ]
+                  };
+                }),
                 ...unmatchedPropagations.map(propagation => ({
                   data: [
                     getPropagationRepositoryId(propagation) ?? 'Unknown repository',
                     <SkillSyncStatusBadge status={propagation.status} />,
-                    propagation.branchName,
-                    propagation.prName,
-                    propagation.completedAt ? (
-                      <RenderDate date={propagation.completedAt} />
-                    ) : (
-                      'N/A'
-                    )
+                    repositoryCheckByRepositoryId.get(propagation.repoId)?.targetBranch ??
+                      propagation.branchName,
+                    propagation.repositoryAccessMode === 'default_branch'
+                      ? 'Direct push'
+                      : propagation.prName,
+                    ...(compact
+                      ? []
+                      : [
+                          propagation.completedAt ? (
+                            <RenderDate date={propagation.completedAt} />
+                          ) : (
+                            'N/A'
+                          )
+                        ])
                   ]
                 }))
               ]}
             />
+
+            {repositoryChecks.error && (
+              <>
+                <Spacer height={10} />
+                <Text size="2" color="gray600">
+                  We couldn't load repository checks. Syncing will continue in the background.
+                </Text>
+              </>
+            )}
+
+            {repositoryChecks.data?.items.length ? (
+              <>
+                <Spacer height={10} />
+                <RepositoryActions>
+                  {repositoryChecks.data.items.map(repositoryCheck => (
+                    <RepositoryAction
+                      key={repositoryCheck.propagationId}
+                      repositoryCheck={repositoryCheck}
+                    />
+                  ))}
+                </RepositoryActions>
+              </>
+            ) : null}
 
             {repositoryErrors.length > 0 && (
               <>
@@ -311,12 +532,18 @@ let SkillSyncDetails = ({ syncId }: { syncId: string }) => {
           </>
         )}
 
-        <Spacer height={20} />
-        <Text size="3" weight="strong">
-          Logs
-        </Text>
-        <Spacer height={10} />
-        <SkillSyncLogs logs={sync.data.logs} />
+        {logs === 'always' ||
+        (logs === 'active-or-failed' &&
+          ['processing', 'failed'].includes(sync.data.status)) ? (
+          <>
+            <Spacer height={20} />
+            <Text size="2" weight="strong">
+              Logs
+            </Text>
+            <Spacer height={6} />
+            <SkillSyncLogs logs={sync.data.logs} />
+          </>
+        ) : null}
       </>
     );
   });
@@ -381,4 +608,42 @@ let LogTimestamp = styled.div`
 let LogMessage = styled.div`
   font-size: 13px;
   white-space: pre-wrap;
+`;
+
+let RepositoryActions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+let RepositoryActionContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+`;
+
+let RepositoryLinks = styled.div`
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 10px;
+`;
+
+let ExternalLink = styled.a`
+  color: ${theme.colors.primary};
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+let CheckList = styled.ul`
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: ${theme.colors.gray700};
+  font-size: 13px;
 `;

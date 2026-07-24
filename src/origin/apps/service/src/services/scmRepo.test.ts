@@ -13,7 +13,11 @@ vi.mock('../queues/scm/handleRepoPush', () => ({
   createHandleRepoPushQueue: { add: vi.fn() }
 }));
 
-import { scmRepoService } from './scmRepo';
+import {
+  getGitLabCreateProjectInput,
+  normalizeGitLabDefaultBranch,
+  scmRepoService
+} from './scmRepo';
 
 let createGitLabClient = vi.mocked(createGitLabClientWithInstallation);
 
@@ -63,5 +67,34 @@ describe('SCM repository GitLab authentication', () => {
       expect.objectContaining({ imageUrl: 'https://gitlab.com/uploads/user.png' }),
       expect.objectContaining({ imageUrl: 'https://gitlab.com/uploads/group.png' })
     ]);
+  });
+
+  it.each([
+    [null, 'main'],
+    [undefined, 'main'],
+    ['', 'main'],
+    ['null', 'main'],
+    [' undefined ', 'main'],
+    [' master ', 'master']
+  ])('normalizes GitLab default branch %j to %s', (value, expected) => {
+    expect(normalizeGitLabDefaultBranch(value)).toBe(expected);
+  });
+
+  it('initializes GitLab projects with an explicit default branch', async () => {
+    expect(
+      getGitLabCreateProjectInput({
+      name: 'new-project',
+      description: 'Project description',
+        isPrivate: true,
+        namespaceId: 8
+      })
+    ).toEqual({
+      name: 'new-project',
+      description: 'Project description',
+      visibility: 'private',
+      namespaceId: 8,
+      initializeWithReadme: true,
+      defaultBranch: 'main'
+    });
   });
 });

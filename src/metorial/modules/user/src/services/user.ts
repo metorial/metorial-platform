@@ -10,7 +10,7 @@ import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import { db, ID, User, UserType, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { fileReferenceService } from '@metorial/module-file';
+import { cleanupUserFileImage, resolveUserFileImage } from '../lib/fileImage';
 import { syncUserUpdateQueue } from '../queues/syncUserUpdate';
 
 class UserService {
@@ -90,16 +90,10 @@ class UserService {
 
       let nextImage = d.input.image;
       if (d.input.imageFileId !== undefined) {
-        nextImage = await fileReferenceService.resolveImageEntityImage({
+        nextImage = await resolveUserFileImage({
+          user: d.user,
           imageFileId: d.input.imageFileId,
-          clearedImage: { type: 'default' },
-          owner: {
-            type: 'user',
-            userId: d.user.id
-          },
-          purpose: 'user_image',
-          entityType: 'user',
-          entityId: d.user.id
+          clearedImage: { type: 'default' }
         });
       }
 
@@ -119,12 +113,11 @@ class UserService {
       });
 
       if (d.input.image !== undefined || d.input.imageFileId !== undefined) {
-        await fileReferenceService.cleanupImageEntityImage({
-          image:
-            d.user.image && canonicalize(d.user.image) !== canonicalize(nextImage)
-              ? (d.user.image as any)
-              : undefined
-        });
+        await cleanupUserFileImage(
+          d.user.image && canonicalize(d.user.image) !== canonicalize(nextImage)
+            ? (d.user.image as any)
+            : undefined
+        );
       }
 
       await syncUserUpdateQueue.add({

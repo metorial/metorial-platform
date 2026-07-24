@@ -1,0 +1,30 @@
+{
+  "name": "@metorial/cargo-module-search",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "_test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/programmable-promise": "workspace:2.0.0",
+    "@metorial-platform-systems/voyager-client": "workspace:*",
+    "@metorial/cargo-config": "^1.0.0"
+  },
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
