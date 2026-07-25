@@ -28,6 +28,12 @@ describe('security headers', () => {
     expect(response.headers.get('content-security-policy')).toContain(
       "script-src 'self' 'unsafe-inline'"
     );
+    expect(response.headers.get('content-security-policy')).toContain(
+      "img-src 'self' *.metorial-cdn.com metorial.com *.metorial.com"
+    );
+    expect(response.headers.get('content-security-policy')).toContain(
+      '*.metorial-staging.com'
+    );
   });
 
   it('does not add production headers for localhost', async () => {

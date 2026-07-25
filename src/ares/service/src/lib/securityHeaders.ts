@@ -2,7 +2,7 @@ let cspDirectives = [
   `default-src 'self'`,
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' *.metorial-cdn.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com`,
+  `img-src 'self' *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
   `font-src 'self' *.metorial-cdn.com`,
   `connect-src 'self' *.metorial.com *.metorial.net *.metorial.dev`,
   `frame-src https://challenges.cloudflare.com`,
