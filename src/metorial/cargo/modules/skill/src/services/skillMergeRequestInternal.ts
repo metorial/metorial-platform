@@ -44,6 +44,7 @@ import {
   type Snapshot,
   type SnapshotItem
 } from '../lib/mergeSnapshot';
+import { getVisibleSkillMergeRequestWhere } from './skillMergeRequestAccess';
 import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 
 export let skillMergeRequestInclude = {
@@ -664,43 +665,9 @@ class SkillMergeRequestInternalServiceImpl {
   async getVisibleMergeRequestWhere(d: {
     resourceTenantOid: bigint;
     resourceGroupOid: bigint;
-    actorOid?: bigint;
+    authorization: ResourceAuthorization;
   }) {
-    let readableStoreWhere: Prisma.StoreWhereInput = {
-      OR: d.actorOid
-        ? [
-            { access: { in: ['public_read', 'public_write'] } },
-            { createdByResourceActorOid: d.actorOid },
-            {
-              storeParticipants: {
-                some: {
-                  resourceActorOid: d.actorOid,
-                  permissions: {
-                    hasSome: [storeReadPermission, storeWritePermission]
-                  }
-                }
-              }
-            }
-          ]
-        : [{ access: { in: ['public_read', 'public_write'] } }]
-    };
-
-    return {
-      resourceTenantOid: d.resourceTenantOid,
-      resourceGroupOid: d.resourceGroupOid,
-      OR: [
-        {
-          sourceSkill: {
-            store: readableStoreWhere
-          }
-        },
-        {
-          targetSkill: {
-            store: readableStoreWhere
-          }
-        }
-      ]
-    } satisfies Prisma.SkillMergeRequestWhereInput;
+    return getVisibleSkillMergeRequestWhere(d);
   }
 
   async createSkillMergeRequest(
@@ -1001,14 +968,10 @@ class SkillMergeRequestInternalServiceImpl {
       authorization: ResourceAuthorization;
     }
   ) {
-    let actor =
-      d.authorization.type === 'restricted'
-        ? d.authorization.resourceActor
-        : undefined;
     let visibleWhere = await this.getVisibleMergeRequestWhere({
       resourceTenantOid: d.resourceTenant.oid,
       resourceGroupOid: d.resourceGroup.oid,
-      actorOid: actor?.oid
+      authorization: d.authorization
     });
     let sourceSkills = await resolveSkills(d, d.sourceSkillIds);
     let targetSkills = await resolveSkills(d, d.targetSkillIds);

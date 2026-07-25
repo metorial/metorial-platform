@@ -201,6 +201,20 @@ describe('native consumer skill store access', () => {
     expect(result.accessibleStoreOids).toEqual([store.oid]);
   });
 
+  it('allows privileged actors to write private stores', async () => {
+    let result = await storeAccessService.assertStoreAccessForStore({
+      ...scope,
+      authorization: {
+        type: 'privileged',
+        resourceActor: actor
+      },
+      requiredPermission: storeWritePermission,
+      store
+    });
+
+    expect(result.accessibleStoreOids).toEqual([store.oid]);
+  });
+
   it('does not recognize creator columns as skill access', async () => {
     authorization = {
       ...authorization,
