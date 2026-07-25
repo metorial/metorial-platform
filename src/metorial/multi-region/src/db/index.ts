@@ -3,7 +3,6 @@ import { delay } from '@lowerdeck/delay';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type pg from 'pg';
 import { PrismaClient } from '../../prisma/generated/client.js';
-import { env } from '../env';
 export * from '../../prisma/generated/client.js';
 
 let getPositiveInteger = (value: number | undefined, fallback: number) => {
@@ -15,27 +14,27 @@ let getPositiveInteger = (value: number | undefined, fallback: number) => {
 };
 
 let GLOBAL_DB_TRANSACTION_MAX_WAIT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_TRANSACTION_MAX_WAIT_MS,
+  Number(process.env.GLOBAL_DB_TRANSACTION_MAX_WAIT_MS),
   15_000
 );
 
 let GLOBAL_DB_TRANSACTION_TIMEOUT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_TRANSACTION_TIMEOUT_MS,
+  Number(process.env.GLOBAL_DB_TRANSACTION_TIMEOUT_MS),
   30_000
 );
 
 let GLOBAL_DB_KEEPALIVE_INTERVAL_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_KEEPALIVE_INTERVAL_MS,
+  Number(process.env.GLOBAL_DB_KEEPALIVE_INTERVAL_MS),
   30_000
 );
 
 let GLOBAL_DB_POOL_IDLE_TIMEOUT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_POOL_IDLE_TIMEOUT_MS,
+  Number(process.env.GLOBAL_DB_POOL_IDLE_TIMEOUT_MS),
   5 * 60_000
 );
 
 let GLOBAL_DB_CONNECTION_TIMEOUT_MS = getPositiveInteger(
-  env.service.GLOBAL_DB_CONNECTION_TIMEOUT_MS,
+  Number(process.env.GLOBAL_DB_CONNECTION_TIMEOUT_MS),
   10_000
 );
 
