@@ -27,9 +27,9 @@ export let scmResultHtml = (d: {
   let pending = d.kind === 'pending_approval';
   let succeeded = d.kind === 'succeeded';
   let title = pending
-    ? 'Approval requested'
+    ? 'Approval Requested'
     : succeeded
-      ? 'GitHub connected'
+      ? 'GitHub Connected'
       : 'Connection request expired';
   let description = pending
     ? `A GitHub organization owner needs to approve the Metorial app${d.accountName ? ` for <strong>${escapeHtml(d.accountName)}</strong>` : ''}. Let your admin know that the request is waiting for them.`
@@ -106,6 +106,15 @@ export let scmResultHtml = (d: {
       ${succeeded ? 'notifyComplete();' : ''}
       try { window.close(); } catch {}
     }
+    function notifyAndCloseIfOpener() {
+      if (window.opener) {
+        setTimeout(() => {
+          notifyAndClose();
+        }, 1500);
+      } else {
+        notifyComplete();
+      }
+    }
     async function recheckApproval() {
       let button = document.getElementById('recheck');
       let feedback = document.getElementById('feedback');
@@ -135,7 +144,7 @@ export let scmResultHtml = (d: {
         button.textContent = 'Recheck approval';
       }
     }
-    ${succeeded ? 'notifyComplete();' : ''}
+    ${succeeded ? 'notifyAndCloseIfOpener();' : ''}
   </script>
 </body>
 </html>`;
