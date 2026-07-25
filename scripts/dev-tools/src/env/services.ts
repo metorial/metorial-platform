@@ -51,6 +51,10 @@ export let originServiceEnv: Env = [
     isRequired: false
   },
   {
+    key: 'SCM_GITHUB_APP_WEBHOOK_SECRET',
+    isRequired: false
+  },
+  {
     key: 'SCM_GITLAB_CLIENT_ID',
     isRequired: false
   },

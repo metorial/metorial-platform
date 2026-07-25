@@ -10,11 +10,12 @@ export let presentScmInstallationSession = (
   id: session.id,
   url: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/scm/installation-session/${session.id}`,
 
-  status: session.installation
-    ? ('completed' as const)
-    : session.expiresAt < new Date()
-      ? ('expired' as const)
-      : ('pending' as const),
+  status:
+    session.status === 'succeeded' || session.installation
+      ? ('completed' as const)
+      : session.expiresAt < new Date()
+        ? ('expired' as const)
+        : ('pending' as const),
 
   installation: session.installation ? scmInstallationPresenter(session.installation) : null,
 

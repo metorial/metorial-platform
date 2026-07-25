@@ -10,7 +10,8 @@ export let scmInstallationSessionApp = tenantApp.use(async ctx => {
 
   let session = await scmInstallationSessionService.getInstallationSession({
     sessionId,
-    tenant: ctx.tenant
+    tenant: ctx.tenant,
+    allowExpired: true
   });
 
   return { session };

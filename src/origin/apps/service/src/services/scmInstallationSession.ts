@@ -34,7 +34,11 @@ class ScmInstallationSessionServiceImpl {
     });
   }
 
-  async getInstallationSession(d: { sessionId: string; tenant: Tenant }) {
+  async getInstallationSession(d: {
+    sessionId: string;
+    tenant: Tenant;
+    allowExpired?: boolean;
+  }) {
     let session = await db.scmInstallationSession.findUnique({
       where: { id: d.sessionId, tenantOid: d.tenant.oid },
       include: { installation: true }
@@ -44,28 +48,60 @@ class ScmInstallationSessionServiceImpl {
       throw new ServiceError(notFoundError('scm_installation_session'));
     }
 
-    if (session.expiresAt < new Date()) {
+    if (!d.allowExpired && session.expiresAt < new Date()) {
       throw new ServiceError(badRequestError({ message: 'Installation session expired' }));
     }
 
     return session;
   }
 
-  async getInstallationSessionPublic(d: { sessionId: string }) {
+  async getInstallationSessionPublic(d: { sessionId: string; allowExpired?: boolean }) {
     let session = await db.scmInstallationSession.findUnique({
       where: { id: d.sessionId },
-      include: { tenant: true, installation: true }
+      include: { tenant: true, installation: true, selectedBackend: true }
     });
 
     if (!session) {
       throw new ServiceError(notFoundError('scm_installation_session'));
     }
 
-    if (session.expiresAt < new Date()) {
+    if (!d.allowExpired && session.expiresAt < new Date()) {
       throw new ServiceError(badRequestError({ message: 'Installation session expired' }));
     }
 
     return session;
+  }
+
+  async setGitHubInstallationRequestBaseline(d: { sessionId: string; requestIds: string[] }) {
+    return await db.scmInstallationSession.update({
+      where: { id: d.sessionId },
+      data: { githubInstallationRequestBaselineIds: d.requestIds }
+    });
+  }
+
+  async markPendingApproval(d: {
+    sessionId: string;
+    requestId?: string;
+    accountId?: string;
+    accountLogin?: string;
+    accountType?: 'user' | 'organization';
+    requesterId?: string;
+  }) {
+    let now = new Date();
+    return await db.scmInstallationSession.update({
+      where: { id: d.sessionId },
+      data: {
+        status: 'pending_approval',
+        githubInstallationRequestId: d.requestId,
+        githubPendingAccountId: d.accountId,
+        githubPendingAccountLogin: d.accountLogin,
+        githubPendingAccountType: d.accountType,
+        githubPendingRequesterId: d.requesterId,
+        githubPendingApprovalAt: now,
+        expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+      },
+      include: { installation: true, selectedBackend: true }
+    });
   }
 
   async getInstallationSessionByState(d: { state: string }) {
@@ -92,19 +128,13 @@ class ScmInstallationSessionServiceImpl {
         include: { installation: true }
       });
 
-      if (session.installationOid === d.installationOid) return session;
-
-      await tx.scmInstallationSession.updateMany({
-        where: {
-          installationOid: d.installationOid,
-          id: { not: d.sessionId }
-        },
-        data: { installationOid: null }
-      });
+      if (session.installationOid === d.installationOid && session.status === 'succeeded') {
+        return session;
+      }
 
       return await tx.scmInstallationSession.update({
         where: { id: d.sessionId },
-        data: { installationOid: d.installationOid },
+        data: { installationOid: d.installationOid, status: 'succeeded' },
         include: { installation: true }
       });
     });
@@ -207,7 +237,9 @@ class ScmInstallationSessionServiceImpl {
   }
 
   private isUniqueConstraintError(error: unknown) {
-    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
+    return (
+      typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002'
+    );
   }
 
   async getAvailableBackends(d: { tenant: Tenant }): Promise<ScmBackend[]> {
