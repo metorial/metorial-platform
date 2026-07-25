@@ -1,6 +1,8 @@
 import { createHono } from '@lowerdeck/hono';
 import { db } from '../db';
 import { installationSessionHtml } from '../lib/templates/installationSession';
+import { scmResultHtml } from '../lib/templates/scmResult';
+import { presentScmInstallationSession } from '../presenters/scmInstallationSession';
 import { scmAuthService, scmBackendService, scmInstallationSessionService } from '../services';
 
 export let scmInstallationSessionPublicController = createHono()
@@ -8,8 +10,29 @@ export let scmInstallationSessionPublicController = createHono()
     let sessionId = c.req.param('sessionId');
 
     let session = await scmInstallationSessionService.getInstallationSessionPublic({
-      sessionId
+      sessionId,
+      allowExpired: true
     });
+
+    if (session.status === 'succeeded') {
+      return c.html(scmResultHtml({ kind: 'succeeded', redirectUrl: session.redirectUrl }));
+    }
+    if (session.expiresAt <= new Date()) {
+      return c.html(scmResultHtml({ kind: 'expired', redirectUrl: session.redirectUrl }));
+    }
+    if (session.status === 'pending_approval') {
+      return c.html(
+        scmResultHtml({
+          kind: 'pending_approval',
+          sessionId: session.id,
+          redirectUrl: session.redirectUrl,
+          accountName: session.githubPendingAccountLogin,
+          canRecheck: Boolean(
+            session.githubPendingAccountLogin && session.githubPendingAccountType
+          )
+        })
+      );
+    }
 
     let tenant = await db.tenant.findUniqueOrThrow({ where: { oid: session.tenantOid } });
     let backends = await scmInstallationSessionService.getAvailableBackends({ tenant });
@@ -26,6 +49,12 @@ export let scmInstallationSessionPublicController = createHono()
         }))
       })
     );
+  })
+  .post('/:sessionId/recheck', async c => {
+    let session = await scmAuthService.recheckGitHubInstallationSession({
+      sessionId: c.req.param('sessionId')
+    });
+    return c.json(presentScmInstallationSession(session));
   })
   .get('/:sessionId/select-backend/:backendId', async c => {
     let sessionId = c.req.param('sessionId');
@@ -45,6 +74,13 @@ export let scmInstallationSessionPublicController = createHono()
       where: { oid: session.oid },
       data: { selectedBackendOid: backend.oid }
     });
+
+    if (backend.type === 'github' || backend.type === 'github_enterprise') {
+      await scmAuthService.prepareGitHubInstallationRequest({
+        sessionId: session.id,
+        backend
+      });
+    }
 
     let authUrl = await scmAuthService.getAuthorizationUrl({
       tenant,
