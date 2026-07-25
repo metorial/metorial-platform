@@ -1,8 +1,10 @@
 import { db } from '@metorial/db';
+import { fileReferenceService } from '@metorial/cargo-module-file';
 import { createQueue } from '@metorial/queue';
 import {
   acquireOriginRepository,
   acquirePublicRepository,
+  acquireUploadedSkillFile,
   getImportCodeBucket
 } from '../../import/repository';
 import { skillImportDiscoverQueue } from './discover';
@@ -19,17 +21,47 @@ export let skillImportAcquireQueue = createQueue<{ skillImportId: string }>({
 let errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Repository acquisition failed';
 
+export let releaseSkillImportSourceFile = async (skillImport: {
+  id: string;
+  sourceFileReference?: { id: string } | null;
+}) => {
+  if (!skillImport.sourceFileReference) return;
+  await fileReferenceService.deleteFileReferenceByIdAndCleanup({
+    fileReferenceId: skillImport.sourceFileReference.id
+  });
+  await db.skillImport.updateMany({
+    where: { id: skillImport.id },
+    data: {
+      sourceFileReferenceOid: null,
+      sourceFileLinkOid: null
+    }
+  });
+};
+
+let tryReleaseSourceFile = async (
+  skillImport: Parameters<typeof releaseSkillImportSourceFile>[0]
+) => {
+  try {
+    await releaseSkillImportSourceFile(skillImport);
+  } catch {
+    // Recovery retries terminal imports whose source reference is still attached.
+  }
+};
+
 export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(async data => {
   let skillImport = await db.skillImport.findUnique({
     where: { id: data.skillImportId },
     include: {
       resourceTenant: true,
-      resourceGroup: true
+      resourceGroup: true,
+      sourceFile: true,
+      sourceFileReference: true
     }
   });
   if (!skillImport || ['completed', 'failed'].includes(skillImport.status)) return;
 
   if (Date.now() - skillImport.createdAt.getTime() > importTimeoutMs) {
+    await tryReleaseSourceFile(skillImport);
     await db.skillImport.updateMany({
       where: { id: skillImport.id, status: { in: ['pending', 'processing'] } },
       data: {
@@ -68,7 +100,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
         where: { id: skillImport.id },
         data: { codeBucketId }
       });
-    } else if (!codeBucketId) {
+    } else if (!codeBucketId && skillImport.sourceType === 'origin_repository') {
       if (!skillImport.repositoryId) throw new Error('Origin repository ID is missing');
       let bucket = await acquireOriginRepository({
         resourceTenant: skillImport.resourceTenant!,
@@ -77,6 +109,21 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
         path: skillImport.path
       });
       codeBucketId = bucket.id;
+      await db.skillImport.update({
+        where: { id: skillImport.id },
+        data: { codeBucketId }
+      });
+    } else if (!codeBucketId) {
+      if (!skillImport.sourceFile || !skillImport.sourceFileFormat) {
+        throw new Error('Uploaded skill source file is missing');
+      }
+      codeBucketId = (
+        await acquireUploadedSkillFile({
+          resourceTenant: skillImport.resourceTenant!,
+          file: skillImport.sourceFile,
+          format: skillImport.sourceFileFormat
+        })
+      ).codeBucketId;
       await db.skillImport.update({
         where: { id: skillImport.id },
         data: { codeBucketId }
@@ -97,11 +144,13 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
       }
     }
 
+    await tryReleaseSourceFile(skillImport);
     await skillImportDiscoverQueue.add(
       { skillImportId: skillImport.id },
       { id: `skillImport:discover:${skillImport.id}` }
     );
   } catch (error) {
+    await tryReleaseSourceFile(skillImport);
     await db.skillImport.updateMany({
       where: { id: skillImport.id, status: 'processing' },
       data: {

@@ -7,12 +7,12 @@ import {
   resolveDocumentVersions,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import {
-  type StoreAccessInput,
-  storeAccessService,
-  storeReadPermission
-} from '@metorial/cargo-module-store';
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
+import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 
@@ -22,7 +22,9 @@ export let documentVersionInclude = {
   content: true,
   documentVersionEditors: {
     include: {
-      resourceActor: true
+      resourceActor: {
+        include: resourceActorPresentationInclude
+      }
     }
   }
 } satisfies Prisma.DocumentVersionInclude;
@@ -31,8 +33,7 @@ class DocumentVersionServiceImpl {
   async getDocumentVersionById(
     d: ResourceScope & {
       documentVersionId: string;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -58,8 +59,7 @@ class DocumentVersionServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document: version.document,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -75,8 +75,7 @@ class DocumentVersionServiceImpl {
       editorActorIds?: string[];
       createdAt?: DateFilter;
       listEditedAt?: DateFilter;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -107,8 +106,7 @@ class DocumentVersionServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission

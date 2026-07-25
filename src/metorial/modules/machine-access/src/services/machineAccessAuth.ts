@@ -8,8 +8,18 @@ import { differenceInMinutes } from 'date-fns';
 export let machineAccessInclude = {
   organization: true,
   user: true,
-  instance: { include: { project: true } },
-  actor: true
+  instance: {
+    include: {
+      project: true,
+      resourceTenant: true,
+      resourceGroup: true
+    }
+  },
+  actor: {
+    include: {
+      resourceActors: true
+    }
+  }
 } as const;
 
 let apiKeySecretInclude = {

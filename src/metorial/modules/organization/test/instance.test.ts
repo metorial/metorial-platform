@@ -627,7 +627,9 @@ describe('InstanceService', () => {
         include: {
           organization: true,
           project: true,
-          sandbox: true
+          sandbox: true,
+          resourceTenant: true,
+          resourceGroup: true
         }
       });
     });

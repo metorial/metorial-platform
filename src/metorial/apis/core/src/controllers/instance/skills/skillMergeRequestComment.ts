@@ -76,7 +76,7 @@ export let skillMergeRequestCommentController = Controller.create(
             mergeRequest: ctx.skillMergeRequest,
             itemId: ctx.body.item_id,
             inReplyToCommentId: ctx.body.in_reply_to_comment_id,
-            actorId: access.actorId!,
+            actor: access.actor!,
             body: ctx.body.body,
             path: ctx.body.path
           });
@@ -131,7 +131,7 @@ export let skillMergeRequestCommentController = Controller.create(
               mergeRequest: ctx.skillMergeRequest,
               commentId: ctx.params.commentId
             }),
-            actorId: access.actorId!,
+            actor: access.actor!,
             body: ctx.body.body,
             canManageComments: !!ctx.member?.actor
           });
@@ -162,7 +162,7 @@ export let skillMergeRequestCommentController = Controller.create(
               mergeRequest: ctx.skillMergeRequest,
               commentId: ctx.params.commentId
             }),
-            actorId: access.actorId!,
+            actor: access.actor!,
             canManageComments: !!ctx.member?.actor
           });
 

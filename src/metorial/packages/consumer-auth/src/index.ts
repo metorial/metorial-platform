@@ -20,6 +20,7 @@ export let consumerSessionInclude = {
   consumerProfile: {
     include: {
       consumer: true,
+      resourceActors: true,
       surface: {
         include: {
           portal: true
@@ -227,7 +228,7 @@ let getConsumerAccessContextForConsumerProfileSingle = async (d: {
   return {
     ssoGroupIds,
     consumerGroups,
-    accessTags: [d.profile.accessTagOid, ...consumerGroups.map(group => group.accessTagOid)]
+    accessTags: consumerGroups.map(group => group.accessTagOid)
   };
 };
 

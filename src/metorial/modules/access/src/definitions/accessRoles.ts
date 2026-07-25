@@ -21,6 +21,7 @@ export let consumerAssistantConversationWriteRoles = [
 ] as const;
 export let consumerSkillReadRoles = ['consumer#instance.skill:read'] as const;
 export let consumerSkillWriteRoles = ['consumer#instance.skill:write'] as const;
+export let consumerSkillManageAccessRoles = ['consumer#instance.skill:manage_access'] as const;
 export let consumerMagicMcpReadRoles = ['consumer#instance.magic_mcp:read'] as const;
 export let consumerMagicMcpConnectRoles = ['consumer#instance.magic_mcp:connect'] as const;
 export let consumerMagicMcpWriteRoles = ['consumer#instance.magic_mcp:write'] as const;
@@ -56,7 +57,8 @@ export let consumerAssistantConversationAccessRoles = [
 ] as const;
 export let consumerSkillAccessRoles = [
   ...consumerSkillReadRoles,
-  ...consumerSkillWriteRoles
+  ...consumerSkillWriteRoles,
+  ...consumerSkillManageAccessRoles
 ] as const;
 export let consumerMagicMcpAccessRoles = [
   ...consumerMagicMcpReadRoles,

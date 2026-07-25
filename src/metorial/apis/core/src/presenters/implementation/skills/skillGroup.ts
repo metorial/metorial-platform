@@ -11,6 +11,7 @@ export let v1SkillGroupPresenter = Presenter.create(skillGroupType)
     name: skillGroup.name,
     description: skillGroup.description,
     metadata: skillGroup.metadata,
+    allow_consumer_skill_assignment: skillGroup.allowConsumerSkillAssignment,
     skills: await Promise.all(skillGroup.skills.map(skill => v1SkillPreviewPresenter(skill))),
     created_at: skillGroup.createdAt,
     updated_at: skillGroup.updatedAt
@@ -23,6 +24,7 @@ export let v1SkillGroupPresenter = Presenter.create(skillGroupType)
       name: v.string(),
       description: v.nullable(v.string()),
       metadata: v.nullable(v.record(v.any())),
+      allow_consumer_skill_assignment: v.boolean(),
       skills: v.array(v1SkillPreviewPresenter.schema),
       created_at: v.date(),
       updated_at: v.date()

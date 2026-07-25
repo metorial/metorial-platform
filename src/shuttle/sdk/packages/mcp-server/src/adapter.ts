@@ -75,40 +75,50 @@ export type McpServerInstanceMessage =
   | OauthTokenRefreshMessage
   | HandleMcpMessage;
 
+let handleServerMessage = async (
+  instance: McpServerInstance,
+  message: McpServerInstanceMessage
+) => {
+  let parsed = allMessages.parse(message);
+
+  switch (parsed.type) {
+    case 'metorial-mcp.discover': {
+      return instance.discover();
+    }
+    case 'metorial-mcp.get-oauth-authorization-url': {
+      return instance.getOauthAuthorizationUrl(parsed.params);
+    }
+    case 'metorial-mcp.handle-oauth-callback': {
+      return instance.handleOauthCallback(parsed.params);
+    }
+    case 'metorial-mcp.handle-oauth-token-refresh': {
+      return instance.handleOauthTokenRefresh(parsed.params);
+    }
+    case 'metorial-mcp.handle-mcp-message': {
+      return instance.handleMcpMessages({
+        config: parsed.params.config || {},
+        authConfig: parsed.params.authConfig || {},
+        client: parsed.params.client as any,
+        message: parsed.params.messages
+      });
+    }
+  }
+
+  throw new Error(`Unknown message type: ${(message as any).type}`);
+};
+
 export let serverAdapter = async (
   instance: McpServerInstance,
   messages: McpServerInstanceMessage[]
-) =>
-  Promise.all(
-    messages.map(async message => {
-      let parsed = allMessages.parse(message);
+) => {
+  let responses: Awaited<ReturnType<typeof handleServerMessage>>[] = [];
 
-      switch (parsed.type) {
-        case 'metorial-mcp.discover': {
-          return instance.discover();
-        }
-        case 'metorial-mcp.get-oauth-authorization-url': {
-          return instance.getOauthAuthorizationUrl(parsed.params);
-        }
-        case 'metorial-mcp.handle-oauth-callback': {
-          return instance.handleOauthCallback(parsed.params);
-        }
-        case 'metorial-mcp.handle-oauth-token-refresh': {
-          return instance.handleOauthTokenRefresh(parsed.params);
-        }
-        case 'metorial-mcp.handle-mcp-message': {
-          return instance.handleMcpMessages({
-            config: parsed.params.config || {},
-            authConfig: parsed.params.authConfig || {},
-            client: parsed.params.client as any,
-            message: parsed.params.messages
-          });
-        }
-      }
+  for (let message of messages) {
+    responses.push(await handleServerMessage(instance, message));
+  }
 
-      throw new Error(`Unknown message type: ${(message as any).type}`);
-    })
-  );
+  return responses;
+};
 
 export type McpServerInstanceAdapterResponses = Awaited<ReturnType<typeof serverAdapter>>;
 

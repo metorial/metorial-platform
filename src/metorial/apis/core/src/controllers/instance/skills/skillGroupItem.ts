@@ -33,8 +33,7 @@ export let skillGroupItemGroup = skillGroupGroup.use(async ctx => {
     skillGroupItemId: ctx.params.skillGroupItemId,
     skillGroupId: ctx.skillGroup.id,
     allowDeleted: true,
-    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
-    consumerProfileOid: ctx.consumerProfile?.oid
+    accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
   });
   let skillGroupItem = await skillResourceService.hydrateSkillGroupItem(localSkillGroupItem);
 
@@ -87,8 +86,7 @@ export let skillGroupItemController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           skillIds: normalizeArrayParam(ctx.query.skill_id),
           createdAt: ctx.query.created_at,
-          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
-          consumerProfileOid: ctx.consumerProfile?.oid
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
         });
 
         let list = await paginator.run(ctx.query);
@@ -140,9 +138,13 @@ export let skillGroupItemController = Controller.create(
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
           instance: ctx.instance,
+          resourceTenant: ctx.resourceTenant,
+          resourceGroup: ctx.resourceGroup,
+          skillGroupId: ctx.skillGroup.id,
           skillId: ctx.body.skill_id,
           consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups
+          accessTags: ctx.accessTags,
+          authorization: (await getInstanceCargoAccess(ctx)).authorization
         });
 
         let access = await getInstanceCargoAccess(ctx);
@@ -178,9 +180,13 @@ export let skillGroupItemController = Controller.create(
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
           instance: ctx.instance,
+          resourceTenant: ctx.resourceTenant,
+          resourceGroup: ctx.resourceGroup,
+          skillGroupId: ctx.skillGroup.id,
           skillId: ctx.skillGroupItem.skill.id,
           consumerProfile: ctx.consumerProfile,
-          consumerGroups: ctx.consumerGroups
+          accessTags: ctx.accessTags,
+          authorization: (await getInstanceCargoAccess(ctx)).authorization
         });
 
         let access = await getInstanceCargoAccess(ctx);

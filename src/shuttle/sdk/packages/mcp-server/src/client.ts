@@ -16,22 +16,30 @@ export interface ClientOpts {
   capabilities: ClientCapabilities;
 }
 
-export let getClient = async (
+export let withClient = async <T>(
   server: McpServer,
   notificationListener: (notification: Notification) => Promise<void>,
-  opts: ClientOpts
+  opts: ClientOpts,
+  handler: (client: Client) => Promise<T> | T
 ) => {
   let transport = createInMemoryTransport();
-  await server.connect(transport.server);
-
   let client = new Client(opts.client);
 
   client.registerCapabilities(opts.capabilities);
   client.fallbackNotificationHandler = notificationListener;
 
-  await client.connect(transport.client);
+  try {
+    await server.connect(transport.server);
+    await client.connect(transport.client);
 
-  return client;
+    return await handler(client);
+  } finally {
+    try {
+      await client.close();
+    } finally {
+      await server.close();
+    }
+  }
 };
 
 export let handleMcpMessages = async (
@@ -40,8 +48,9 @@ export let handleMcpMessages = async (
   messages: JSONRPCMessage[]
 ) => {
   let responses: JSONRPCMessage[] = [];
+  let error: Error | null = null;
 
-  let client = await getClient(
+  await withClient(
     server,
     async notification => {
       responses.push({
@@ -49,28 +58,27 @@ export let handleMcpMessages = async (
         jsonrpc: '2.0'
       });
     },
-    opts
-  );
-
-  let error: Error | null = null;
-
-  for (let message of messages) {
-    try {
-      if ('id' in message && message.id !== undefined) {
-        let res = await client.request(message as any, z.any() as any);
-        responses.push({
-          id: message.id,
-          jsonrpc: '2.0',
-          result: res
-        });
-      } else {
-        await client.notification(message as any);
+    opts,
+    async client => {
+      for (let message of messages) {
+        try {
+          if ('id' in message && message.id !== undefined) {
+            let res = await client.request(message as any, z.any() as any);
+            responses.push({
+              id: message.id,
+              jsonrpc: '2.0',
+              result: res
+            });
+          } else {
+            await client.notification(message as any);
+          }
+        } catch (err) {
+          error = err as Error;
+          break;
+        }
       }
-    } catch (err) {
-      error = err as Error;
-      break;
     }
-  }
+  );
 
   return { messages: responses, error };
 };

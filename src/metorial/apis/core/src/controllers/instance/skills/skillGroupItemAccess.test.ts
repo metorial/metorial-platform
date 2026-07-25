@@ -1,75 +1,186 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  resolveResourceScopeForOwner: vi.fn(),
+  getSkillGroupById: vi.fn(),
   getSkillById: vi.fn(),
-  assertConsumerCanWriteSkill: vi.fn()
-}));
-
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveResourceScopeForOwner: mocks.resolveResourceScopeForOwner
+  assertSkillWriteAccess: vi.fn()
 }));
 
 vi.mock('@metorial/cargo-module-skill', () => ({
+  skillGroupService: {
+    getSkillGroupById: mocks.getSkillGroupById
+  },
   skillService: {
-    getSkillById: mocks.getSkillById
-  }
-}));
-
-vi.mock('@metorial/module-consumer', () => ({
-  consumerSkillService: {
-    assertConsumerCanWriteSkill: mocks.assertConsumerCanWriteSkill
+    getSkillById: mocks.getSkillById,
+    assertSkillWriteAccess: mocks.assertSkillWriteAccess
   }
 }));
 
 import { assertConsumerCanWriteSkillGroupItem } from './skillGroupItemAccess';
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 });
 
 describe('assertConsumerCanWriteSkillGroupItem', () => {
-  it('lazily resolves the instance scope before checking consumer access', async () => {
+  it('uses the authenticated instance scope before checking consumer access', async () => {
     let resourceTenant = { oid: 1n, id: 'rtn_1' };
     let resourceGroup = { oid: 2n, id: 'rgr_1' };
     let skill = { oid: 3n, id: 'skl_1' };
     let consumerProfile = { oid: 4n, id: 'cpr_1' };
 
-    mocks.resolveResourceScopeForOwner.mockResolvedValue({
-      resourceTenant,
-      resourceGroup
-    });
     mocks.getSkillById.mockResolvedValue(skill);
+    mocks.getSkillGroupById.mockResolvedValue({
+      id: 'skg_1',
+      allowConsumerSkillAssignment: true
+    });
 
     await assertConsumerCanWriteSkillGroupItem({
       instance: { id: 'ins_1' } as any,
+      resourceTenant: resourceTenant as any,
+      resourceGroup: resourceGroup as any,
+      skillGroupId: 'skg_1',
       skillId: 'skl_1',
-      consumerProfile: consumerProfile as any
+      consumerProfile: consumerProfile as any,
+      accessTags: [{ accessTagOid: 5n }],
+      authorization: { type: 'restricted' } as any
     });
 
-    expect(mocks.resolveResourceScopeForOwner).toHaveBeenCalledWith({
-      type: 'instance',
-      instance: { id: 'ins_1' }
-    });
     expect(mocks.getSkillById).toHaveBeenCalledWith({
       resourceTenant,
       resourceGroup,
       skillId: 'skl_1',
       allowDeleted: true,
-      consumerProfileOid: 4n
+      accessTags: [{ accessTagOid: 5n }]
     });
-    expect(mocks.assertConsumerCanWriteSkill).toHaveBeenCalledWith({
+    expect(mocks.getSkillGroupById).toHaveBeenCalledWith({
+      resourceTenant,
+      resourceGroup,
+      skillGroupId: 'skg_1',
+      accessTags: [{ accessTagOid: 5n }]
+    });
+    expect(mocks.assertSkillWriteAccess).toHaveBeenCalledWith({
+      resourceTenant,
+      resourceGroup,
       skill,
-      consumerProfile
+      authorization: { type: 'restricted' }
     });
   });
 
   it('does not provision a scope for non-consumer requests', async () => {
     await assertConsumerCanWriteSkillGroupItem({
       instance: { id: 'ins_1' } as any,
-      skillId: 'skl_1'
+      resourceTenant: {} as any,
+      resourceGroup: {} as any,
+      skillGroupId: 'skg_1',
+      skillId: 'skl_1',
+      authorization: { type: 'privileged' }
     });
 
-    expect(mocks.resolveResourceScopeForOwner).not.toHaveBeenCalled();
+    expect(mocks.getSkillGroupById).not.toHaveBeenCalled();
+  });
+
+  it('rejects consumer assignment when the shared group disables it', async () => {
+    let resourceTenant = { oid: 1n, id: 'rtn_1' };
+    let resourceGroup = { oid: 2n, id: 'rgr_1' };
+    mocks.getSkillGroupById.mockResolvedValue({
+      id: 'skg_1',
+      allowConsumerSkillAssignment: false
+    });
+    mocks.getSkillById.mockResolvedValue({ oid: 3n, id: 'skl_1' });
+
+    await expect(
+      assertConsumerCanWriteSkillGroupItem({
+        instance: { id: 'ins_1' } as any,
+        resourceTenant: resourceTenant as any,
+        resourceGroup: resourceGroup as any,
+        skillGroupId: 'skg_1',
+        skillId: 'skl_1',
+        consumerProfile: { oid: 4n } as any,
+        accessTags: [{ accessTagOid: 5n }],
+        authorization: { type: 'restricted' } as any
+      })
+    ).rejects.toThrow('Consumers are not allowed to assign skills to this group.');
+
+    expect(mocks.assertSkillWriteAccess).not.toHaveBeenCalled();
+  });
+
+  it('rejects a group that is not shared with the consumer', async () => {
+    mocks.getSkillGroupById.mockRejectedValue(new Error('not found'));
+    mocks.getSkillById.mockResolvedValue({ oid: 3n, id: 'skl_1' });
+
+    await expect(
+      assertConsumerCanWriteSkillGroupItem({
+        instance: { id: 'ins_1' } as any,
+        resourceTenant: { oid: 1n } as any,
+        resourceGroup: { oid: 2n } as any,
+        skillGroupId: 'skg_unshared',
+        skillId: 'skl_1',
+        consumerProfile: { oid: 4n } as any,
+        accessTags: [{ accessTagOid: 5n }],
+        authorization: { type: 'restricted' } as any
+      })
+    ).rejects.toThrow('not found');
+
+    expect(mocks.assertSkillWriteAccess).not.toHaveBeenCalled();
+  });
+
+  it('rejects a skill the consumer cannot write', async () => {
+    let skill = { oid: 3n, id: 'skl_read_only' };
+    mocks.getSkillGroupById.mockResolvedValue({
+      id: 'skg_1',
+      allowConsumerSkillAssignment: true
+    });
+    mocks.getSkillById.mockResolvedValue(skill);
+    mocks.assertSkillWriteAccess.mockRejectedValue(new Error('forbidden'));
+
+    await expect(
+      assertConsumerCanWriteSkillGroupItem({
+        instance: { id: 'ins_1' } as any,
+        resourceTenant: { oid: 1n } as any,
+        resourceGroup: { oid: 2n } as any,
+        skillGroupId: 'skg_1',
+        skillId: skill.id,
+        consumerProfile: { oid: 4n } as any,
+        accessTags: [{ accessTagOid: 5n }],
+        authorization: { type: 'restricted' } as any
+      })
+    ).rejects.toThrow('forbidden');
+  });
+
+  it('rejects cross-instance tags through the scoped group lookup', async () => {
+    mocks.getSkillGroupById.mockRejectedValue(new Error('cross-instance access'));
+    mocks.getSkillById.mockResolvedValue({ oid: 3n, id: 'skl_1' });
+
+    await expect(
+      assertConsumerCanWriteSkillGroupItem({
+        instance: { id: 'ins_1' } as any,
+        resourceTenant: { oid: 1n } as any,
+        resourceGroup: { oid: 2n } as any,
+        skillGroupId: 'skg_1',
+        skillId: 'skl_1',
+        consumerProfile: { oid: 4n } as any,
+        accessTags: [{ accessTagOid: 999n }],
+        authorization: { type: 'restricted' } as any
+      })
+    ).rejects.toThrow('cross-instance access');
+  });
+
+  it('rejects inactive groups through the scoped group lookup', async () => {
+    mocks.getSkillGroupById.mockRejectedValue(new Error('inactive group'));
+    mocks.getSkillById.mockResolvedValue({ oid: 3n, id: 'skl_1' });
+
+    await expect(
+      assertConsumerCanWriteSkillGroupItem({
+        instance: { id: 'ins_1' } as any,
+        resourceTenant: { oid: 1n } as any,
+        resourceGroup: { oid: 2n } as any,
+        skillGroupId: 'skg_archived',
+        skillId: 'skl_1',
+        consumerProfile: { oid: 4n } as any,
+        accessTags: [{ accessTagOid: 5n }],
+        authorization: { type: 'restricted' } as any
+      })
+    ).rejects.toThrow('inactive group');
   });
 });

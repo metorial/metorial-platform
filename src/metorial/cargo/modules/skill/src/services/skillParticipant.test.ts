@@ -9,6 +9,7 @@ let { db } = vi.hoisted(() => ({
       findMany: vi.fn()
     },
     skillParticipant: {
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
@@ -43,8 +44,26 @@ vi.mock('@metorial/cargo-module-store', () => ({
 import { skillParticipantService } from './skillParticipant';
 
 let scope = {
-  resourceTenant: { oid: 1n, id: 'rtn_1' },
-  resourceGroup: { oid: 2n, id: 'rgr_1' }
+  resourceTenant: {
+    oid: 1n,
+    id: 'rtn_1',
+    identifier: 'tenant',
+    name: 'Tenant',
+    image: null,
+    organizationName: null,
+    createdAt: new Date(0),
+    updatedAt: new Date(0)
+  },
+  resourceGroup: {
+    oid: 2n,
+    id: 'rgr_1',
+    identifier: 'instance',
+    name: 'Instance',
+    type: 'production' as const,
+    resourceTenantOid: 1n,
+    createdAt: new Date(0),
+    updatedAt: new Date(0)
+  }
 };
 let skill = {
   oid: 3n,
@@ -62,10 +81,88 @@ describe('skill participant store projection', () => {
 
     db.skill.findFirst.mockResolvedValue(skill);
     db.storeParticipant.findMany.mockResolvedValue([]);
+    db.skillParticipant.findUnique.mockResolvedValue(null);
     db.skillParticipant.findMany.mockResolvedValue([]);
   });
 
-  it('promotes an existing viewer to editor after write permission is projected', async () => {
+  it('creates a participant role without a store authorization grant', async () => {
+    db.skillParticipant.create.mockImplementation(async ({ data }: any) => ({
+      ...data,
+      skill,
+      resourceActor
+    }));
+
+    await skillParticipantService.setSkillParticipantAccessRole({
+      skill,
+      actor: resourceActor,
+      permission: 'read'
+    });
+
+    expect(db.skillParticipant.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          skillOid: skill.oid,
+          resourceActorOid: resourceActor.oid,
+          roles: ['viewer']
+        })
+      })
+    );
+    expect(db.storeParticipant.findMany).not.toHaveBeenCalled();
+  });
+
+  it('retains the participant identity when individual access is removed', async () => {
+    let existing = {
+      oid: 6n,
+      id: 'skp_1',
+      skillOid: skill.oid,
+      resourceActorOid: resourceActor.oid,
+      roles: ['viewer'],
+      skill,
+      resourceActor
+    };
+    db.skillParticipant.findUnique.mockResolvedValue(existing);
+    db.skillParticipant.update.mockImplementation(async ({ data }: any) => ({
+      ...existing,
+      ...data
+    }));
+
+    await skillParticipantService.setSkillParticipantAccessRole({
+      skill,
+      actor: resourceActor,
+      permission: 'none'
+    });
+
+    expect(db.skillParticipant.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: existing.id },
+        data: { roles: [] }
+      })
+    );
+    expect(db.skillParticipant.delete).not.toHaveBeenCalled();
+  });
+
+  it('does not downgrade an editor when recording read access', async () => {
+    db.skillParticipant.findUnique.mockResolvedValue({
+      oid: 6n,
+      id: 'skp_1',
+      skillOid: skill.oid,
+      resourceActorOid: resourceActor.oid,
+      roles: ['editor'],
+      skill,
+      resourceActor
+    });
+
+    await skillParticipantService.ensureSkillParticipantAccessRole({
+      skill,
+      actor: resourceActor,
+      permission: 'read'
+    });
+
+    expect(db.skillParticipant.update).not.toHaveBeenCalled();
+    expect(db.skillParticipant.create).not.toHaveBeenCalled();
+  });
+
+  it('does not reconcile participant roles while listing', async () => {
     let existing = {
       oid: 6n,
       id: 'skp_1',
@@ -94,19 +191,11 @@ describe('skill participant store projection', () => {
       skillId: skill.id
     });
 
-    expect(db.skillParticipant.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          id: existing.id
-        },
-        data: {
-          roles: ['editor']
-        }
-      })
-    );
+    expect(db.skillParticipant.update).not.toHaveBeenCalled();
+    expect(db.skillParticipant.create).not.toHaveBeenCalled();
   });
 
-  it('removes the store-backed role after projected permissions are cleared', async () => {
+  it('does not delete stale participant roles while listing', async () => {
     let existing = {
       oid: 6n,
       id: 'skp_1',
@@ -131,14 +220,10 @@ describe('skill participant store projection', () => {
       skillId: skill.id
     });
 
-    expect(db.skillParticipant.delete).toHaveBeenCalledWith({
-      where: {
-        id: existing.id
-      }
-    });
+    expect(db.skillParticipant.delete).not.toHaveBeenCalled();
   });
 
-  it('preserves explicit roles when projected permissions are cleared', async () => {
+  it('leaves explicit participant roles unchanged while listing', async () => {
     let existing = {
       oid: 6n,
       id: 'skp_1',
@@ -167,16 +252,7 @@ describe('skill participant store projection', () => {
       skillId: skill.id
     });
 
-    expect(db.skillParticipant.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          id: existing.id
-        },
-        data: {
-          roles: ['creator']
-        }
-      })
-    );
+    expect(db.skillParticipant.update).not.toHaveBeenCalled();
     expect(db.skillParticipant.delete).not.toHaveBeenCalled();
   });
 });

@@ -3,19 +3,26 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
-import { resourceActorService } from '@metorial/module-resource-tenant';
-import { type ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { SkillMergeRequestEventType, TransactionDB } from '@metorial/db';
 import { db, type Prisma } from '@metorial/db';
 import type { SkillMergeRequestRecord } from './skillMergeRequestInternal';
 
 export let skillMergeRequestEventInclude = {
-  resourceActor: true,
+  resourceActor: {
+    include: resourceActorPresentationInclude
+  },
   comment: {
     include: {
       skillMergeRequestItem: true,
-      resourceActor: true,
+      resourceActor: {
+        include: resourceActorPresentationInclude
+      },
       inReplyToComment: true
     }
   }
@@ -56,21 +63,15 @@ class SkillMergeRequestEventServiceImpl {
   private async assertReadAccess(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
     }
   ) {
-    let actor = d.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant!,
-          actorId: d.actorId
-        })
-      : undefined;
     let readable = async (store: SkillMergeRequestRecord['sourceSkill']['store']) =>
       await storeAccessService.assertStoreAccessForStore({
         resourceTenant: d.resourceTenant!,
         resourceGroup: d.resourceGroup,
         store: store!,
-        actorId: actor?.id,
+        authorization: d.authorization,
         requiredPermission: storeReadPermission
       });
 
@@ -78,7 +79,7 @@ class SkillMergeRequestEventServiceImpl {
       await readable(d.mergeRequest.sourceSkill.store);
       return;
     } catch (err) {
-      if (!actor) throw err;
+      if (!d.authorization.resourceActor) throw err;
     }
 
     await readable(d.mergeRequest.targetSkill.store);
@@ -87,7 +88,7 @@ class SkillMergeRequestEventServiceImpl {
   async listEvents(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
       types?: SkillMergeRequestEventType[];
       createdAt?: DateFilter;
     }
@@ -113,7 +114,7 @@ class SkillMergeRequestEventServiceImpl {
   async getEventById(
     d: ResourceScope & {
       mergeRequest: SkillMergeRequestRecord;
-      actorId?: string;
+      authorization: ResourceAuthorization;
       eventId: string;
     }
   ) {

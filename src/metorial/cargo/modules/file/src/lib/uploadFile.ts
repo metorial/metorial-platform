@@ -1,5 +1,6 @@
 import { generatePlainId } from '@lowerdeck/id';
 import type { StoreParticipantPermissions } from '@metorial/db';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { fileService } from '../services/file';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { getCargoFilesBucketName, getStorage } from '../storage';
@@ -13,7 +14,7 @@ export let uploadCargoFile = async (
     storeId?: string;
     title?: string;
     fileId?: string;
-    actorId?: string;
+    authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
     store?: {
@@ -25,12 +26,7 @@ export let uploadCargoFile = async (
   let storeId = d.storeId ?? generatePlainId(20);
   let mimeType = d.mimeType || d.file.type || 'application/octet-stream';
 
-  await getStorage().putObject(
-    getCargoFilesBucketName(),
-    storeId,
-    d.file,
-    mimeType
-  );
+  await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
 
   return await fileService.createFile({
     resourceTenant: d.resourceTenant,
@@ -43,7 +39,7 @@ export let uploadCargoFile = async (
       mimeType,
       size: d.file.size,
       title: d.title,
-      actorId: d.actorId,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       store: d.store

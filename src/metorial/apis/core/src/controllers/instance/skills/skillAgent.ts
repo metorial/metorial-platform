@@ -82,8 +82,7 @@ export let skillAgentController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             content: ctx.body.content,
-            actorId: access.actorId,
-            accessTags: access.accessTags,
+            authorization: access.authorization,
             defaultPermissions: access.defaultPermissions,
             overridePermissions: access.overridePermissions
           }

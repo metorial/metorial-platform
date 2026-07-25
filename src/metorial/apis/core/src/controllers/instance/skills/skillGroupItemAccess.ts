@@ -1,33 +1,48 @@
-import { ConsumerGroup, ConsumerProfile, Instance } from '@metorial/db';
-import { skillService } from '@metorial/cargo-module-skill';
-import { consumerSkillService } from '@metorial/module-consumer';
-import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
+import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { ConsumerProfile, Instance } from '@metorial/db';
+import { skillGroupService, skillService } from '@metorial/cargo-module-skill';
+import type { AnyAccessTagSelector, ResourceAuthorization } from '@metorial/module-access';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 
-export let assertConsumerCanWriteSkillGroupItem = async (d: {
-  instance: Instance;
-  skillId: string;
-  consumerProfile?: ConsumerProfile;
-  consumerGroups?: Pick<ConsumerGroup, 'oid'>[];
-}) => {
+export let assertConsumerCanWriteSkillGroupItem = async (
+  d: ResourceScope & {
+    instance: Instance;
+    skillGroupId: string;
+    skillId: string;
+    consumerProfile?: ConsumerProfile;
+    accessTags?: AnyAccessTagSelector;
+    authorization: ResourceAuthorization;
+  }
+) => {
   if (!d.consumerProfile) return;
 
-  let scope = await resolveResourceScopeForOwner({
-    type: 'instance',
-    instance: {
-      id: d.instance.id
-    }
-  });
+  let [skillGroup, skill] = await Promise.all([
+    skillGroupService.getSkillGroupById({
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
+      skillGroupId: d.skillGroupId,
+      accessTags: d.accessTags
+    }),
+    skillService.getSkillById({
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
+      skillId: d.skillId,
+      allowDeleted: true,
+      accessTags: d.accessTags
+    })
+  ]);
+  if (!skillGroup.allowConsumerSkillAssignment) {
+    throw new ServiceError(
+      preconditionFailedError({
+        message: 'Consumers are not allowed to assign skills to this group.'
+      })
+    );
+  }
 
-  let skill = await skillService.getSkillById({
-    resourceTenant: scope.resourceTenant,
-    resourceGroup: scope.resourceGroup,
-    skillId: d.skillId,
-    allowDeleted: true,
-    consumerProfileOid: d.consumerProfile.oid
-  });
-
-  await consumerSkillService.assertConsumerCanWriteSkill({
+  await skillService.assertSkillWriteAccess({
+    resourceTenant: d.resourceTenant,
+    resourceGroup: d.resourceGroup,
     skill,
-    consumerProfile: d.consumerProfile
+    authorization: d.authorization
   });
 };

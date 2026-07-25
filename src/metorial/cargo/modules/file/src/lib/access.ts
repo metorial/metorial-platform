@@ -1,9 +1,15 @@
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import type { Instance, ResourceActor } from '@metorial/db';
+import {
+  createResourceAuthorization,
+  type AnyAccessTagSelector,
+  type ResourceAuthorization
+} from '@metorial/module-access';
 import {
   resolveResourceScopeForOwner,
+  resourceActorService,
+  type ResourceScope,
   type ResourceScopeOwner
 } from '@metorial/module-resource-tenant';
-import type { AnyAccessTagSelector } from '@metorial/module-access';
 
 let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
 
@@ -16,34 +22,56 @@ export type InstanceCargoAccessContext = {
     };
   };
   consumerProfile?: {
+    oid: bigint;
+    id: string;
+    name: string;
+    instanceOid: bigint;
     consumer: {
       oid: bigint;
       id: string;
       name: string;
     };
   };
+  instance: Pick<Instance, 'oid' | 'resourceTenantOid' | 'resourceGroupOid'>;
+  resourceTenant: ResourceScope['resourceTenant'];
+  resourceGroup: ResourceScope['resourceGroup'];
+  resourceActor?: ResourceActor;
   accessTags?: AnyAccessTagSelector;
 };
 
 export type CargoAccessActor = {
+  resourceActorId?: string;
   identifier?: string;
   name: string;
   organizationActorOid?: bigint;
-  consumerOid?: bigint;
+  consumerProfileOid?: bigint;
 };
 
 export type CargoStorePermission = 'content_read' | 'content_write';
 export type CargoStoreAccess = 'private' | 'public_read' | 'public_write';
 
 export type CargoAccessInput = {
-  owner: ResourceScopeOwner;
+  owner?: ResourceScopeOwner;
+  scope?: ResourceScope;
+  resourceActor?: ResourceActor;
   accessActor?: CargoAccessActor;
   accessTags?: AnyAccessTagSelector;
   defaultPermissions?: CargoStorePermission[];
   overridePermissions?: boolean;
+  authorization?: ResourceAuthorization;
 };
 
 export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
+  let authorization = createResourceAuthorization({
+    restricted: hasInstanceConsumerAccess(ctx),
+    resourceActor: ctx.resourceActor,
+    accessTags: ctx.accessTags,
+    resourceTenant: ctx.resourceTenant,
+    resourceGroup: ctx.resourceGroup,
+    instance: ctx.instance,
+    consumerProfile: ctx.consumerProfile
+  });
+
   if (ctx.member?.actor) {
     return {
       accessActor: {
@@ -52,52 +80,89 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
         organizationActorOid: ctx.member.actor.oid
       },
       defaultPermissions: [...fullCargoAccessPermissions],
-      overridePermissions: true
+      overridePermissions: true,
+      scope: {
+        resourceTenant: ctx.resourceTenant,
+        resourceGroup: ctx.resourceGroup
+      },
+      resourceActor: ctx.resourceActor,
+      authorization
     };
   }
 
   if (ctx.consumerProfile?.consumer) {
     return {
       accessActor: {
-        identifier: `mte-con-${ctx.consumerProfile.consumer.id}`,
-        name: ctx.consumerProfile.consumer.name,
-        consumerOid: ctx.consumerProfile.consumer.oid
+        identifier: `mte-cpf-${ctx.consumerProfile.id}`,
+        name: ctx.consumerProfile.name,
+        consumerProfileOid: ctx.consumerProfile.oid
       },
-      accessTags: ctx.accessTags
+      scope: {
+        resourceTenant: ctx.resourceTenant,
+        resourceGroup: ctx.resourceGroup
+      },
+      resourceActor: ctx.resourceActor,
+      authorization
     };
   }
 
-  return {};
+  return {
+    scope: {
+      resourceTenant: ctx.resourceTenant,
+      resourceGroup: ctx.resourceGroup
+    },
+    resourceActor: ctx.resourceActor,
+    authorization
+  };
 };
 
 export let hasInstanceConsumerAccess = (ctx: InstanceCargoAccessContext) =>
   !!ctx.consumerProfile?.consumer && !ctx.member?.actor;
 
 export let resolveCargoAccess = async (d: CargoAccessInput) => {
-  let scope = await resolveResourceScopeForOwner(d.owner);
+  let scope = d.scope
+    ? d.scope
+    : d.owner
+      ? await resolveResourceScopeForOwner(d.owner)
+      : undefined;
+  if (!scope) {
+    throw new Error('Cargo access requires either a concrete scope or an owner');
+  }
+
   let actor =
-    d.accessActor?.organizationActorOid != null
-      ? await resourceActorService.ensureOrganizationActor({
+    d.resourceActor ??
+    (d.accessActor?.resourceActorId
+      ? await resourceActorService.getActorById({
           resourceTenant: scope.resourceTenant,
-          organizationActorOid: d.accessActor.organizationActorOid
+          actorId: d.accessActor.resourceActorId
         })
-      : d.accessActor?.consumerOid != null
-        ? await resourceActorService.ensureConsumerActor({
+      : d.accessActor?.organizationActorOid != null
+        ? await resourceActorService.ensureOrganizationActor({
             resourceTenant: scope.resourceTenant,
-            consumerOid: d.accessActor.consumerOid
+            organizationActorOid: d.accessActor.organizationActorOid
           })
-        : d.accessActor
-          ? await resourceActorService.upsertActor({
+        : d.accessActor?.consumerProfileOid != null
+          ? await resourceActorService.ensureConsumerProfileActor({
               resourceTenant: scope.resourceTenant,
-              input: {
-                identifier: d.accessActor.identifier ?? d.accessActor.name,
-                name: d.accessActor.name
-              }
+              consumerProfileOid: d.accessActor.consumerProfileOid
             })
-          : undefined;
+          : d.accessActor
+            ? await resourceActorService.upsertActor({
+                resourceTenant: scope.resourceTenant,
+                input: {
+                  identifier: d.accessActor.identifier ?? d.accessActor.name,
+                  name: d.accessActor.name
+                }
+              })
+            : undefined);
 
   return {
     scope,
+    actor,
+    authorization: d.authorization ?? {
+      type: 'privileged',
+      resourceActor: actor
+    },
     actorId: actor?.id,
     accessTags: d.accessTags,
     defaultPermissions: d.defaultPermissions,

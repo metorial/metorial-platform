@@ -17,6 +17,7 @@ import {
 } from '@metorial/cargo-module-file';
 import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { storeItemInclude } from '../services/storeItem';
 import { storeItemMutationService } from '../services/storeItemMutation';
 import { storeVersionService } from '../services/storeVersion';
@@ -309,11 +310,11 @@ class InternalStoreTemplateSyncServiceImpl {
     };
   }
 
-  private async ensureBackingStore(d: {
-    storeTemplate: StoreTemplateSyncRecord;
-    resourceTenant: { oid: bigint; id: string };
-    resourceGroup: { oid: bigint; id: string };
-  }) {
+  private async ensureBackingStore(
+    d: ResourceScope & {
+      storeTemplate: StoreTemplateSyncRecord;
+    }
+  ) {
     return await withTransaction(async db => {
       let existing = await db.storeTemplateBacking.findFirst({
         where: {
@@ -411,12 +412,12 @@ class InternalStoreTemplateSyncServiceImpl {
     });
   }
 
-  private async removeItems(d: {
-    resourceTenant: { oid: bigint; id: string };
-    resourceGroup: { oid: bigint; id: string };
-    store: Store;
-    items: Array<{ id: string; path: string; kind: StoreItemKind }>;
-  }) {
+  private async removeItems(
+    d: ResourceScope & {
+      store: Store;
+      items: Array<{ id: string; path: string; kind: StoreItemKind }>;
+    }
+  ) {
     for (let item of sortStoreItemsForRemoval(d.items)) {
       let currentItem = await db.storeItem.findFirst({
         where: {
@@ -444,13 +445,13 @@ class InternalStoreTemplateSyncServiceImpl {
     }
   }
 
-  private async upsertFileItem(d: {
-    resourceTenant: { oid: bigint; id: string };
-    resourceGroup: { oid: bigint; id: string };
-    store: Store;
-    item: StoreTemplateSyncItem;
-    existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
-  }) {
+  private async upsertFileItem(
+    d: ResourceScope & {
+      store: Store;
+      item: StoreTemplateSyncItem;
+      existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
+    }
+  ) {
     let filePurpose = await filePurposeService.ensureGenericFilePurpose();
     let name = getStoreTemplateItemName(d.item.path);
     let mimeType = d.item.mimeType ?? 'application/octet-stream';
@@ -492,7 +493,8 @@ class InternalStoreTemplateSyncServiceImpl {
               name,
               mimeType,
               size,
-              title: name
+              title: name,
+              authorization: { type: 'privileged' }
             },
             internal: {
               isReadOnly: true,
@@ -513,13 +515,13 @@ class InternalStoreTemplateSyncServiceImpl {
     });
   }
 
-  private async upsertDocumentItem(d: {
-    resourceTenant: { oid: bigint; id: string };
-    resourceGroup: { oid: bigint; id: string };
-    store: Store;
-    item: StoreTemplateSyncItem;
-    existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
-  }) {
+  private async upsertDocumentItem(
+    d: ResourceScope & {
+      store: Store;
+      item: StoreTemplateSyncItem;
+      existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
+    }
+  ) {
     let content = decodeStoreTemplateItemContent(d.item)!.toString('utf8');
     let title = getDocumentTitle(d.item, content);
 
@@ -619,7 +621,8 @@ class InternalStoreTemplateSyncServiceImpl {
       input: {
         title,
         content,
-        fileStoreId: d.item.fileStoreId
+        fileStoreId: d.item.fileStoreId,
+        authorization: { type: 'privileged' }
       },
       internal: {
         isReadOnly: true,

@@ -1,8 +1,10 @@
 import { env } from '@metorial/cargo-config';
+import { fileService } from '@metorial/cargo-module-file';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
+import type { File, SkillImportFileFormat } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
+import { extractSkillArchive, normalizeUploadedSkillFile } from './archive';
 import {
-  extractRepositoryArchive,
   fetchRepositoryArchive,
   getPublicRepositoryArchiveUrl,
   parsePublicRepositoryUrl
@@ -15,18 +17,12 @@ let maxCodeBucketMessageBytes = 3 * 1024 * 1024;
 
 export * from './publicRepository';
 
-export let acquirePublicRepository = async (d: {
+export let createImportCodeBucketFromFiles = async (d: {
   resourceTenant: { oid: bigint; id: string };
-  repositoryUrl: string;
-  ref?: string | null;
+  files: { path: string; content: Uint8Array }[];
 }) => {
-  let repository = parsePublicRepositoryUrl(d.repositoryUrl);
-  let archive = await fetchRepositoryArchive(
-    getPublicRepositoryArchiveUrl(repository, d.ref ?? 'HEAD')
-  );
-  let files = await extractRepositoryArchive(archive);
-  if (files.some(file => file.content.byteLength > maxCodeBucketMessageBytes)) {
-    throw new Error('Repository contains a file that is too large to import');
+  if (d.files.some(file => file.content.byteLength > maxCodeBucketMessageBytes)) {
+    throw new Error('Skill import contains a file that is too large');
   }
   let originTenant = await getOriginTenant(d.resourceTenant);
   let bucket = await origin.codeBucket.create({
@@ -35,7 +31,7 @@ export let acquirePublicRepository = async (d: {
     isReadOnly: false
   });
 
-  let batch: typeof files = [];
+  let batch: typeof d.files = [];
   let batchBytes = 0;
   let flushBatch = async () => {
     if (batch.length === 0) return;
@@ -50,14 +46,49 @@ export let acquirePublicRepository = async (d: {
     batchBytes = 0;
   };
 
-  for (let file of files) {
+  for (let file of d.files) {
     if (batchBytes + file.content.byteLength > maxCodeBucketMessageBytes) await flushBatch();
     batch.push(file);
     batchBytes += file.content.byteLength;
   }
   await flushBatch();
 
+  return bucket;
+};
+
+export let acquirePublicRepository = async (d: {
+  resourceTenant: { oid: bigint; id: string };
+  repositoryUrl: string;
+  ref?: string | null;
+}) => {
+  let repository = parsePublicRepositoryUrl(d.repositoryUrl);
+  let archive = await fetchRepositoryArchive(
+    getPublicRepositoryArchiveUrl(repository, d.ref ?? 'HEAD')
+  );
+  let files = await extractSkillArchive(archive);
+  let bucket = await createImportCodeBucketFromFiles({
+    resourceTenant: d.resourceTenant,
+    files
+  });
+
   return { codeBucketId: bucket.id, repository };
+};
+
+export let acquireUploadedSkillFile = async (d: {
+  resourceTenant: { oid: bigint; id: string };
+  file: Pick<File, 'status' | 'storeId'>;
+  format: SkillImportFileFormat;
+}) => {
+  let content = await fileService.downloadFileContent({ file: d.file });
+  let files = await normalizeUploadedSkillFile({
+    format: d.format,
+    content: new Uint8Array(content)
+  });
+  let bucket = await createImportCodeBucketFromFiles({
+    resourceTenant: d.resourceTenant,
+    files
+  });
+  return { codeBucketId: bucket.id };
 };
 
 export let acquireOriginRepository = async (d: {

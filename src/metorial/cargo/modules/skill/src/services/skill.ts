@@ -1,5 +1,10 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -15,14 +20,14 @@ import {
   resolveStores
 } from '@metorial/cargo-list-utils';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
-import {
-  resourceActorService,
-  resolveInstanceResourceScope
-} from '@metorial/module-resource-tenant';
+import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import {
   accessTagService,
+  assertResourceAuthorizationScope,
+  assertResourceActorScope,
   type AnyAccessTagSelector,
-  consumerSkillReadRoles
+  consumerSkillReadRoles,
+  type ResourceAuthorization
 } from '@metorial/module-access';
 import { subspaceSkillService } from '@metorial/module-subspace';
 import {
@@ -32,11 +37,17 @@ import {
   storeWritePermission,
   storeVersionService
 } from '@metorial/cargo-module-store';
-import type { EntityImage, Prisma, StoreParticipantPermissions } from '@metorial/db';
+import type {
+  EntityImage,
+  Prisma,
+  ResourceActor,
+  StoreParticipantPermissions
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillParticipantService } from './skillParticipant';
+import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
 import type { SkillTemplateRecord } from './skillTemplate';
 
 let skillInclude = {
@@ -59,7 +70,6 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 
 export let getConsumerSkillAccessWhere = async (d: {
   accessTags?: AnyAccessTagSelector;
-  consumerProfileOid?: bigint;
 }): Promise<Prisma.SkillWhereInput | undefined> => {
   if (!d.accessTags) return undefined;
 
@@ -67,27 +77,24 @@ export let getConsumerSkillAccessWhere = async (d: {
     tags: d.accessTags,
     roles: [...consumerSkillReadRoles]
   });
-  if (!accessTagFilter) return undefined;
 
-  let accessFilters: Prisma.SkillWhereInput[] = [
-    { accessTagEntities: accessTagFilter },
-    {
-      skillGroupItems: {
-        some: {
-          status: 'active',
-          skillGroup: {
-            status: 'active',
-            accessTagEntities: accessTagFilter
+  let accessFilters: Prisma.SkillWhereInput[] = accessTagFilter
+    ? [
+        { accessTagEntities: accessTagFilter },
+        {
+          skillGroupItems: {
+            some: {
+              status: 'active',
+              skillGroup: {
+                status: 'active',
+                accessTagEntities: accessTagFilter
+              }
+            }
           }
         }
-      }
-    }
-  ];
-  if (d.consumerProfileOid) {
-    accessFilters.unshift({ createdByConsumerProfileOid: d.consumerProfileOid });
-  }
-
-  return { OR: accessFilters };
+      ]
+    : [];
+  return accessFilters.length ? { OR: accessFilters } : { oid: { in: [] } };
 };
 
 class SkillServiceImpl {
@@ -96,7 +103,6 @@ class SkillServiceImpl {
       skillId: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     let accessWhere = await getConsumerSkillAccessWhere(d);
@@ -128,7 +134,7 @@ class SkillServiceImpl {
       parentSkillCloneType?: 'fork' | 'duplicate';
       input: {
         id: string;
-        actorId?: string;
+        authorization: ResourceAuthorization;
         name: string;
         description?: string | null;
         metadata?: Prisma.InputJsonValue | null;
@@ -157,12 +163,7 @@ class SkillServiceImpl {
       );
     }
 
-    let actor = d.input.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant!,
-          actorId: d.input.actorId
-        })
-      : undefined;
+    let actor = d.input.authorization.resourceActor;
     let forkBaseSkillVersion =
       d.parentSkill && d.parentSkillCloneType === 'fork'
         ? await this.createForkBaseSkillVersion({
@@ -176,6 +177,7 @@ class SkillServiceImpl {
         ? await storeService.createStoreFromTemplate({
             resourceTenant: d.resourceTenant!,
             resourceGroup: d.resourceGroup,
+            authorization: d.input.authorization,
             input: {
               templateId: d.parentSkillTemplate.storeTemplate!.id,
               name: d.input.name,
@@ -192,6 +194,7 @@ class SkillServiceImpl {
               resourceGroup: d.resourceGroup,
               store: d.parentSkill.store!,
               actor,
+              authorization: d.input.authorization,
               defaultPermissions: [storeReadPermission],
               input: {
                 name: d.input.name,
@@ -247,7 +250,7 @@ class SkillServiceImpl {
           entity: { id: skill.id, type: 'skill' },
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' },
-          actorId: d.input.actorId
+          actor
         });
 
         skill = await db.skill.update({
@@ -276,8 +279,6 @@ class SkillServiceImpl {
           });
         }
       }
-
-      await skillParticipantService.syncSkillParticipantsFromStore({ skill });
 
       await enqueueSkillLifecycle({ skillId: skill.id, event: 'created' });
 
@@ -326,7 +327,6 @@ class SkillServiceImpl {
       providerIds?: string[];
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     let skills = await resolveSkills(d, d.ids);
@@ -450,17 +450,51 @@ class SkillServiceImpl {
       skillId: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     return await this.getSkillRecord(d);
   }
 
+  async assertSkillWriteAccess(
+    d: ResourceScope & {
+      skill: SkillRecord;
+      authorization: ResourceAuthorization;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ) {
+    assertResourceAuthorizationScope(d);
+    assertSkillRecordScope(d);
+    if (d.authorization.type == 'restricted') {
+      let accessWhere = await getSkillMetadataWriteAccessWhere(d);
+      let writableSkill = await db.skill.findFirst({
+        where: accessWhere!,
+        select: { oid: true }
+      });
+      if (!writableSkill) {
+        throw new ServiceError(
+          forbiddenError({
+            message: 'Consumer does not have write access to this skill.'
+          })
+        );
+      }
+    }
+
+    await storeAccessService.assertStoreAccessForStore({
+      resourceTenant: d.resourceTenant,
+      resourceGroup: d.resourceGroup,
+      store: d.skill.store!,
+      authorization: d.authorization,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions,
+      requiredPermission: storeWritePermission
+    });
+  }
+
   async updateSkill(
     d: ResourceScope & {
       skill: SkillRecord;
-      actorId?: string;
-      accessTags?: AnyAccessTagSelector;
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
       input: {
@@ -496,16 +530,7 @@ class SkillServiceImpl {
       );
     }
 
-    await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
-      store: d.skill.store!,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
-      defaultPermissions: d.defaultPermissions,
-      overridePermissions: d.overridePermissions,
-      requiredPermission: storeWritePermission
-    });
+    await this.assertSkillWriteAccess(d);
 
     if (d.input.name !== undefined && !d.input.name.trim()) {
       throw new ServiceError(
@@ -523,7 +548,7 @@ class SkillServiceImpl {
         entity: { id: d.skill.id, type: 'skill' },
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' },
-        actorId: d.actorId,
+        actor: d.authorization.resourceActor,
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions
       });
@@ -534,6 +559,7 @@ class SkillServiceImpl {
           resourceGroup: d.resourceGroup,
           resourceTenant: d.resourceTenant!,
           store: d.skill.store!,
+          authorization: d.authorization,
           input: {
             name: d.input.name
           }
@@ -591,22 +617,12 @@ class SkillServiceImpl {
   async archiveSkill(
     d: ResourceScope & {
       skill: SkillRecord;
-      actorId?: string;
-      accessTags?: AnyAccessTagSelector;
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
   ) {
-    await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
-      store: d.skill.store!,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
-      defaultPermissions: d.defaultPermissions,
-      overridePermissions: d.overridePermissions,
-      requiredPermission: storeWritePermission
-    });
+    await this.assertSkillWriteAccess(d);
 
     await withTransaction(async db => {
       await db.skillPluginSkill.updateMany({
@@ -640,62 +656,36 @@ class SkillServiceImpl {
     return d.skill;
   }
 
-  async upsertSkillActor(
-    d: ResourceScope & {
-      skill: SkillRecord;
-      actorId: string;
-      permissions: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
-    let actor = await resourceActorService.getActorById({
-      resourceTenant: d.resourceTenant!,
-      actorId: d.actorId
-    });
-
-    let participant = await storeAccessService.ensureActorStorePermissions({
-      store: d.skill.store!,
-      actor,
-      permissions: d.permissions,
-      overridePermissions: d.overridePermissions
-    });
-    if (!participant) {
-      throw new ServiceError(notFoundError('store.participant'));
-    }
-
-    await skillParticipantService.syncSkillParticipantsFromStore({
-      skill: d.skill
-    });
-
-    return {
-      skillId: d.skill.id,
-      storeId: d.skill.store!.id,
-      actorId: actor.id,
-      storeParticipantId: participant.id,
-      permissions: participant.permissions
-    };
-  }
-
   async markSkillUse(
     d: ResourceScope & {
       skill: SkillRecord;
-      actorId: string;
+      actor: ResourceActor;
     }
   ) {
-    let actor = await resourceActorService.getActorById({
-      resourceTenant: d.resourceTenant!,
-      actorId: d.actorId
+    assertResourceActorScope({
+      resourceTenant: d.resourceTenant,
+      resourceActor: d.actor
     });
-
-    await skillParticipantService.syncSkillParticipantsFromStore({
-      skill: d.skill
+    await storeAccessService.ensureActorStorePermissions({
+      store: d.skill.store!,
+      actor: d.actor,
+      permissions: d.actor.organizationActorOid
+        ? [storeReadPermission, storeWritePermission]
+        : [storeReadPermission]
     });
-
-    return await skillParticipantService.ensureSkillParticipantRoles({
+    await skillParticipantService.ensureSkillParticipantAccessRole({
       skill: d.skill,
-      actor,
-      roles: ['user']
+      actor: d.actor,
+      permission: d.actor.organizationActorOid ? 'write' : 'read'
     });
+
+    if (d.actor.consumerProfileOid) {
+      return await skillParticipantService.ensureSkillParticipantRoles({
+        skill: d.skill,
+        actor: d.actor,
+        roles: ['user']
+      });
+    }
   }
 }
 

@@ -32,7 +32,6 @@ class SkillGroupItemServiceImpl {
       skillIds?: string[];
       createdAt?: DateFilter;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
@@ -81,7 +80,6 @@ class SkillGroupItemServiceImpl {
       skillGroupId?: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
-      consumerProfileOid?: bigint;
     }
   ) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({

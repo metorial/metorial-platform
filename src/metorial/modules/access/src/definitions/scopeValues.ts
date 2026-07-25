@@ -14,6 +14,7 @@ export let instanceScopes = [
 
   'instance.skill:read' as const,
   'instance.skill:write' as const,
+  'instance.skill:manage_access' as const,
 
   'instance.session:read' as const,
   'instance.session:write' as const,
@@ -141,6 +142,7 @@ export let consumerScopes = [
 
   'consumer#instance.skill:read' as const,
   'consumer#instance.skill:write' as const,
+  'consumer#instance.skill:manage_access' as const,
 
   'consumer#instance.magic_mcp:read' as const,
   'consumer#instance.magic_mcp:connect' as const,

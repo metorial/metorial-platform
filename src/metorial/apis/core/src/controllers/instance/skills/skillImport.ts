@@ -1,18 +1,23 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillImportService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
-import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { getInstanceCargoAccess, hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { isDashboardGroup } from '../../../middleware/isDashboard';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillImportPresenter } from '../../../presenters';
 
-let readScopes = ['instance.skill:read'] as const;
-let writeScopes = ['instance.skill:write'] as const;
+let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
+let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
 let statusValidator = v.enumOf(['pending', 'processing', 'completed', 'failed']);
 let sourceValidator = v.union([
@@ -26,17 +31,22 @@ let sourceValidator = v.union([
     repository_id: v.string(),
     ref: v.optional(v.string()),
     path: v.optional(v.string())
+  }),
+  v.object({
+    type: v.literal('file'),
+    file_id: v.string()
   })
 ]);
 
 let getAccess = (ctx: any) => getInstanceCargoAccess(ctx);
 
 let getCreateInput = (source: {
-  type: 'public' | 'origin';
+  type: 'public' | 'origin' | 'file';
   repository_url?: string;
   repository_id?: string;
   ref?: string;
   path?: string;
+  file_id?: string;
 }) => {
   if (source.type === 'public') {
     return {
@@ -46,18 +56,25 @@ let getCreateInput = (source: {
     };
   }
 
+  if (source.type === 'origin') {
+    return {
+      type: 'origin' as const,
+      repositoryId: source.repository_id!,
+      ref: source.ref,
+      path: source.path
+    };
+  }
+
   return {
-    type: 'origin' as const,
-    repositoryId: source.repository_id!,
-    ref: source.ref,
-    path: source.path
+    type: 'file' as const,
+    fileId: source.file_id!
   };
 };
 
 export let skillImportGroup = instanceGroup
   .use(hasFlags(['skills-enabled']))
-  .use(isDashboardGroup())
   .use(checkAccess({ possibleScopes: [...readScopes] }))
+  .use(requireConsumerTokenForPublishableKey())
   .use(async ctx => {
     if (!ctx.params.skillImportId) {
       throw new ServiceError(
@@ -68,10 +85,11 @@ export let skillImportGroup = instanceGroup
       );
     }
 
+    let access = await getAccess(ctx);
     let skillImport = await skillImportService.getSkillImportById({
-      ...(await getAccess(ctx)),
+      ...access,
       skillImportId: ctx.params.skillImportId,
-      actorId: undefined
+      actor: hasInstanceConsumerAccess(ctx) ? access.actor : undefined
     });
 
     return { skillImport };
@@ -80,8 +98,7 @@ export let skillImportGroup = instanceGroup
 export let skillImportController = Controller.create(
   {
     name: 'Skill Imports',
-    description: 'Import skills from public or configured source repositories.',
-    hideInDocs: true
+    description: 'Import skills from public repositories or uploaded files.'
   },
   {
     list: instanceGroup
@@ -90,8 +107,8 @@ export let skillImportController = Controller.create(
         description: 'Returns a paginated list of skill imports.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(isDashboardGroup())
       .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .outputList(skillImportPresenter)
       .query(
         'default',
@@ -103,11 +120,12 @@ export let skillImportController = Controller.create(
         )
       )
       .do(async ctx => {
+        let access = await getAccess(ctx);
         let paginator = await skillImportService.listSkillImports({
-          ...(await getAccess(ctx)),
+          ...access,
           ids: normalizeArrayParam(ctx.query.id),
           statuses: normalizeArrayParam(ctx.query.status),
-          actorId: undefined
+          actor: hasInstanceConsumerAccess(ctx) ? access.actor : undefined
         });
         let list = await paginator.run(ctx.query);
 
@@ -128,17 +146,34 @@ export let skillImportController = Controller.create(
     create: instanceGroup
       .post(instancePath('skill-imports', 'skills.imports.create'), {
         name: 'Create skill import',
-        description: 'Queues a skill import from a public or configured source repository.'
+        description: 'Queues a skill import from a repository or uploaded file.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(isDashboardGroup())
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .body('default', v.object({ source: sourceValidator }))
       .output(skillImportPresenter)
       .do(async ctx => {
+        let input = getCreateInput(ctx.body.source);
+        if (hasInstanceConsumerAccess(ctx)) {
+          if (!ctx.consumerSurface?.allowConsumerSkillAuthoring) {
+            throw new ServiceError(
+              preconditionFailedError({
+                message: 'Consumers are not allowed to import skills on this surface.'
+              })
+            );
+          }
+          if (input.type === 'origin') {
+            throw new ServiceError(
+              forbiddenError({ message: 'Consumers cannot import private repositories' })
+            );
+          }
+        }
+        let access = await getAccess(ctx);
         let skillImport = await skillImportService.createSkillImport({
-          ...(await getAccess(ctx)),
-          input: getCreateInput(ctx.body.source)
+          ...access,
+          actor: access.actor,
+          input
         });
 
         return skillImportPresenter.present({ skillImport });

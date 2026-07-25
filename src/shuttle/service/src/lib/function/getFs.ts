@@ -82,15 +82,17 @@ export let getFunctionFs = (d: { payload: PrismaJson.UpcomingFunctionServerPaylo
     {
       filename: 'shuttle_entry_point.js',
       content: `
-        import instance, { server as mcpServer } from '${functionEntrypoint}';
+        import instance from '${functionEntrypoint}';
         import { serverAdapter } from '@metorial/mcp-server';
 
         export default async (input) => {
-          if (mcpServer && typeof mcpServer.close === 'function') {
-            try { await mcpServer.close(); } catch {}
+          try {
+            return await serverAdapter(instance, input.messages);
+          } finally {
+            if (instance && typeof instance.close === 'function') {
+              try { await instance.close(); } catch {}
+            }
           }
-
-          return await serverAdapter(instance, input.messages);
         };
         `
     }

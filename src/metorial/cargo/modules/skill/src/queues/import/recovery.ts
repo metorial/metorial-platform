@@ -1,6 +1,6 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import { skillImportAcquireQueue } from './acquire';
+import { releaseSkillImportSourceFile, skillImportAcquireQueue } from './acquire';
 import { skillImportItemQueue } from './item';
 
 let staleAfterMs = 30 * 60 * 1000;
@@ -12,6 +12,26 @@ export let skillImportRecoveryCron = createCron(
   },
   async () => {
     let staleBefore = new Date(Date.now() - staleAfterMs);
+    let importsWithReleasableSourceFiles = await db.skillImport.findMany({
+      where: {
+        sourceFileReferenceOid: { not: null },
+        OR: [{ codeBucketId: { not: null } }, { status: { in: ['completed', 'failed'] } }]
+      },
+      select: {
+        id: true,
+        sourceFileReference: {
+          select: { id: true }
+        }
+      }
+    });
+    for (let skillImport of importsWithReleasableSourceFiles) {
+      try {
+        await releaseSkillImportSourceFile(skillImport);
+      } catch {
+        // Retry on the next recovery pass without blocking other imports.
+      }
+    }
+
     let staleItems = await db.skillImportItem.findMany({
       where: {
         status: 'processing',

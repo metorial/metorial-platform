@@ -20,7 +20,8 @@ export let resolveUserFileImage = async <ClearImage extends EntityImage | null>(
   });
   let file = await fileService.getFileById({
     ...scope,
-    fileId: d.imageFileId
+    fileId: d.imageFileId,
+    authorization: { type: 'privileged' }
   });
   let link = await fileLinkService.createFileLink({
     ...scope,

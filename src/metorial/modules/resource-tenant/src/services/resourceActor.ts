@@ -1,7 +1,50 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID } from '@metorial/db';
+import { db, ID, type Prisma } from '@metorial/db';
 import type { ResourceScope } from './resourceScope';
+
+export let resourceActorPresentationInclude = {
+  organizationActor: {
+    include: {
+      organization: true,
+      member: true,
+      teams: {
+        include: {
+          team: true
+        }
+      }
+    }
+  },
+  consumerProfile: {
+    include: {
+      consumer: {
+        include: {
+          instanceConsumers: {
+            include: {
+              consumer: true
+            }
+          }
+        }
+      },
+      organizationMember: true,
+      surface: true
+    }
+  },
+  consumer: {
+    include: {
+      instanceConsumers: {
+        include: {
+          consumer: true
+        }
+      },
+      organizationMember: true
+    }
+  }
+} satisfies Prisma.ResourceActorInclude;
+
+export type ResourceActorPresentationRecord = Prisma.ResourceActorGetPayload<{
+  include: typeof resourceActorPresentationInclude;
+}>;
 
 class ResourceActorServiceImpl {
   async upsertActor(
@@ -13,9 +56,18 @@ class ResourceActorServiceImpl {
         name: string;
         organizationActorOid?: bigint;
         consumerOid?: bigint;
+        consumerProfileOid?: bigint;
       };
     }
   ) {
+    if (d.input.consumerOid && !d.input.consumerProfileOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Consumer resource actors must be linked to a consumer profile.'
+        })
+      );
+    }
+
     if (!d.input.id) {
       return await db.resourceActor.upsert({
         where: {
@@ -28,7 +80,8 @@ class ResourceActorServiceImpl {
           type: d.input.type,
           name: d.input.name,
           organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid
+          consumerOid: d.input.consumerOid,
+          consumerProfileOid: d.input.consumerProfileOid
         },
         create: {
           id: await ID.generateId('resourceActor'),
@@ -37,7 +90,8 @@ class ResourceActorServiceImpl {
           type: d.input.type ?? 'external',
           name: d.input.name,
           organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid
+          consumerOid: d.input.consumerOid,
+          consumerProfileOid: d.input.consumerProfileOid
         }
       });
     }
@@ -61,7 +115,8 @@ class ResourceActorServiceImpl {
           type: d.input.type ?? existing.type,
           name: d.input.name,
           organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid
+          consumerOid: d.input.consumerOid,
+          consumerProfileOid: d.input.consumerProfileOid
         }
       });
     }
@@ -74,7 +129,8 @@ class ResourceActorServiceImpl {
         type: d.input.type ?? 'external',
         name: d.input.name,
         organizationActorOid: d.input.organizationActorOid,
-        consumerOid: d.input.consumerOid
+        consumerOid: d.input.consumerOid,
+        consumerProfileOid: d.input.consumerProfileOid
       }
     });
   }
@@ -127,31 +183,44 @@ class ResourceActorServiceImpl {
     });
   }
 
-  async ensureConsumerActor(
+  async ensureConsumerProfileActor(
     d: Pick<ResourceScope, 'resourceTenant'> & {
-      consumerOid: bigint;
+      consumerProfileOid?: bigint;
+      consumerProfile?: {
+        oid: bigint;
+      };
     }
   ) {
-    let consumer = await db.consumer.findUnique({
+    let consumerProfileOid = d.consumerProfileOid ?? d.consumerProfile?.oid;
+    if (!consumerProfileOid) {
+      throw new ServiceError(notFoundError('consumerProfile'));
+    }
+
+    let consumerProfile = await db.consumerProfile.findFirst({
       where: {
-        oid: d.consumerOid
+        oid: consumerProfileOid,
+        instance: {
+          resourceTenantOid: d.resourceTenant.oid
+        }
       },
       select: {
         oid: true,
         id: true,
-        name: true
+        name: true,
+        consumerOid: true
       }
     });
-    if (!consumer) {
-      throw new ServiceError(notFoundError('consumer', d.consumerOid.toString()));
+    if (!consumerProfile) {
+      throw new ServiceError(notFoundError('consumerProfile', consumerProfileOid.toString()));
     }
 
     return await this.upsertActor({
       resourceTenant: d.resourceTenant,
       input: {
-        identifier: `mte-con-${consumer.id}`,
-        name: consumer.name,
-        consumerOid: consumer.oid
+        identifier: `mte-cpf-${consumerProfile.id}`,
+        name: consumerProfile.name,
+        consumerOid: consumerProfile.consumerOid,
+        consumerProfileOid: consumerProfile.oid
       }
     });
   }

@@ -51,8 +51,26 @@ import { skillGroupService } from './skillGroup';
 import { skillGroupItemService } from './skillGroupItem';
 
 let scope = {
-  resourceTenant: { oid: 1n, id: 'rtn_1' },
-  resourceGroup: { oid: 2n, id: 'rgr_1' }
+  resourceTenant: {
+    oid: 1n,
+    id: 'rtn_1',
+    identifier: 'tenant',
+    name: 'Tenant',
+    image: null,
+    organizationName: null,
+    createdAt: new Date(0),
+    updatedAt: new Date(0)
+  },
+  resourceGroup: {
+    oid: 2n,
+    id: 'rgr_1',
+    identifier: 'instance',
+    name: 'Instance',
+    type: 'production' as const,
+    resourceTenantOid: 1n,
+    createdAt: new Date(0),
+    updatedAt: new Date(0)
+  }
 };
 let accessTags = [{ accessTagOid: 3n }];
 let accessTagFilter = {
@@ -66,7 +84,7 @@ describe('consumer skill group lifecycle filtering', () => {
     vi.clearAllMocks();
     getAccessTagFilterMock.mockResolvedValue(accessTagFilter);
     getConsumerSkillAccessWhereMock.mockResolvedValue({
-      OR: [{ createdByConsumerProfileOid: 4n }, { accessTagEntities: accessTagFilter }]
+      accessTagEntities: accessTagFilter
     });
   });
 
@@ -106,8 +124,7 @@ describe('consumer skill group lifecycle filtering', () => {
         ...scope,
         skillGroupItemId: 'sgi_archived_skill',
         allowDeleted: true,
-        accessTags,
-        consumerProfileOid: 4n
+        accessTags
       })
     ).rejects.toThrow();
 
@@ -118,10 +135,7 @@ describe('consumer skill group lifecycle filtering', () => {
             status: 'active',
             AND: [
               {
-                OR: [
-                  { createdByConsumerProfileOid: 4n },
-                  { accessTagEntities: accessTagFilter }
-                ]
+                accessTagEntities: accessTagFilter
               }
             ]
           }
@@ -129,7 +143,7 @@ describe('consumer skill group lifecycle filtering', () => {
       })
     );
     expect(getConsumerSkillAccessWhereMock).toHaveBeenCalledWith(
-      expect.objectContaining({ accessTags, consumerProfileOid: 4n })
+      expect.objectContaining({ accessTags })
     );
   });
 });

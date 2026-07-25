@@ -11,10 +11,7 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillMarketplacePresenter } from '../../../presenters';
-import {
-  assertConsumerCanAccessSkillMarketplace,
-  getReadSkillMarketplaceFilter
-} from './_marketplaceAccess';
+import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write'] as const;
@@ -45,11 +42,10 @@ export let skillMarketplaceGroup = instanceGroup
       );
     }
 
-    await assertConsumerCanAccessSkillMarketplace(ctx, ctx.params.skillMarketplaceId);
-
     let skillMarketplace = await skillMarketplaceService.getSkillMarketplaceById({
       ...(await getSkillMarketplaceAccess(ctx)),
-      skillMarketplaceId: ctx.params.skillMarketplaceId
+      skillMarketplaceId: ctx.params.skillMarketplaceId,
+      ...getSkillMarketplaceAccessInput(ctx)
     });
 
     return { skillMarketplace };
@@ -89,18 +85,10 @@ export let skillMarketplaceController = Controller.create(
         )
       )
       .do(async ctx => {
-        let marketplaceFilter = await getReadSkillMarketplaceFilter(ctx);
-        let queryIds = normalizeArrayParam(ctx.query.id);
-        let ids =
-          marketplaceFilter == null
-            ? queryIds
-            : queryIds?.length
-              ? queryIds.filter(id => marketplaceFilter.includes(id))
-              : marketplaceFilter;
-
         let paginator = await skillMarketplaceService.listSkillMarketplaces({
           ...(await getSkillMarketplaceAccess(ctx)),
-          ids,
+          ...getSkillMarketplaceAccessInput(ctx),
+          ids: normalizeArrayParam(ctx.query.id),
           statuses: normalizeArrayParam(ctx.query.status),
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
           search: ctx.query.search,

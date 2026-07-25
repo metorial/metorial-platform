@@ -144,6 +144,7 @@ model ConsumerProfile {
   invite                         ConsumerInvite?
   createdSkills                  Skill[]
   consumerSkills                 ConsumerSkill[]
+  resourceActors                 ResourceActor[]
   workspaceProfile               WorkspaceProfile?
 
   @@unique([surfaceOid, aresUserId])

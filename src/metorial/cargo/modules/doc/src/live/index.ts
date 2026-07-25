@@ -2,7 +2,7 @@ import { internalServerError, isServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
 import { db, type StoreParticipantPermissions } from '@metorial/db';
-import type { AnyAccessTagSelector } from '@metorial/module-access';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
@@ -75,7 +75,6 @@ type LiveSession = {
   documentId: string;
   actorId: string;
   canWrite: boolean;
-  accessTags?: AnyAccessTagSelector;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
   lastPingAt: number;
@@ -496,7 +495,6 @@ type DocumentLiveConnection = {
   documentId: string;
   actorId: string;
   canWrite: boolean;
-  accessTags?: AnyAccessTagSelector;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
@@ -522,18 +520,11 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
               documentId: url.searchParams.get('documentId'),
               actorId: url.searchParams.get('actorId'),
               canWrite: url.searchParams.get('canWrite') === 'true',
-              accessTags: undefined,
               defaultPermissions: undefined,
               overridePermissions: undefined
             };
-        let {
-          documentId,
-          actorId,
-          canWrite,
-          accessTags,
-          defaultPermissions,
-          overridePermissions
-        } = connection;
+        let { documentId, actorId, canWrite, defaultPermissions, overridePermissions } =
+          connection;
 
         if (!documentId || !actorId) {
           throw new Error('documentId and actorId query params are required');
@@ -542,13 +533,20 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
         let scopedDocument = await documentService.getScopedDocumentById({
           documentId
         });
+        let resourceActor = await resourceActorService.getActorById({
+          resourceTenant: scopedDocument.resourceTenant,
+          actorId
+        });
+        let authorization = {
+          type: 'privileged' as const,
+          resourceActor
+        };
 
         await documentService.getDocumentById({
           resourceTenant: scopedDocument.resourceTenant,
           resourceGroup: scopedDocument.resourceGroup,
           documentId,
-          actorId,
-          accessTags,
+          authorization,
           defaultPermissions,
           overridePermissions
         });
@@ -562,7 +560,6 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
               documentId,
               actorId,
               canWrite,
-              accessTags,
               defaultPermissions,
               overridePermissions,
               lastPingAt: Date.now()
@@ -753,8 +750,7 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
                 resourceTenant: currentScopedDocument.resourceTenant,
                 resourceGroup: currentScopedDocument.resourceGroup,
                 documentId: session.documentId,
-                actorId: session.actorId,
-                accessTags: session.accessTags,
+                authorization,
                 defaultPermissions: session.defaultPermissions,
                 overridePermissions: session.overridePermissions
               });
@@ -764,10 +760,7 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
                 resourceGroup: currentScopedDocument.resourceGroup,
                 document: currentScopedDocument.document,
                 input: {
-                  actorId: session.actorId,
-                  accessTags: session.accessTags,
-                  defaultPermissions: session.defaultPermissions,
-                  overridePermissions: session.overridePermissions,
+                  authorization,
                   title: parsed.data.title,
                   content:
                     parsed.type === 'document_update' ||

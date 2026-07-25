@@ -8,13 +8,18 @@ import {
   resolveStoreParticipants,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 
 export let storeParticipantInclude = {
   store: true,
-  resourceActor: true
+  resourceActor: {
+    include: resourceActorPresentationInclude
+  }
 } satisfies Prisma.StoreParticipantInclude;
 
 class StoreParticipantServiceImpl {

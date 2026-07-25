@@ -515,6 +515,7 @@ export let magnetarController = Controller.create<any>(
     skillVersionController,
     skillExportController,
     skillForkSyncController,
+    skillImportController,
     skillMarketplaceController,
     skillMarketplacePluginController,
     skillMergeRequestController,

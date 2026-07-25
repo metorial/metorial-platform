@@ -109,6 +109,7 @@ export let storeController = Controller.create(
           ? await storeService.createStoreFromTemplate({
               resourceTenant: access.resourceTenant,
               resourceGroup: access.resourceGroup,
+              authorization: access.authorization,
               input: {
                 templateId: ctx.body.template_id,
                 name: ctx.body.name,

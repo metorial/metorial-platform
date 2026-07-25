@@ -11,6 +11,7 @@ import {
   skillRepositoryInclude,
   skillRepositoryService
 } from './skillRepository';
+import { skillPluginService } from './skillPlugin';
 
 export let skillPluginRepositoryInclude = {
   skillRepository: {
@@ -31,21 +32,6 @@ export type EnrichedSkillPluginRepositoryRecord = Omit<
 };
 
 class SkillPluginRepositoryServiceImpl {
-  private async getPlugin(d: ResourceScope & { skillPluginId: string }) {
-    let plugin = await db.skillPlugin.findFirst({
-      where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        id: d.skillPluginId,
-        status: 'active',
-        isManaged: false
-      }
-    });
-
-    if (!plugin) throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
-    return plugin;
-  }
-
   private async enrichRepositories<T extends SkillPluginRepositoryRecord>(
     d: ResourceScope & { repositories: T[] }
   ): Promise<
@@ -71,7 +57,10 @@ class SkillPluginRepositoryServiceImpl {
       skillPluginId: string;
     }
   ) {
-    let plugin = await this.getPlugin(d);
+    let plugin = await skillPluginService.getSkillPluginById(d);
+    if (plugin.status !== 'active' || plugin.isManaged) {
+      throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
+    }
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -98,7 +87,10 @@ class SkillPluginRepositoryServiceImpl {
       skillPluginRepositoryId: string;
     }
   ) {
-    let plugin = await this.getPlugin(d);
+    let plugin = await skillPluginService.getSkillPluginById(d);
+    if (plugin.status !== 'active' || plugin.isManaged) {
+      throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
+    }
     let repository = await db.skillPluginRepository.findFirst({
       where: {
         id: d.skillPluginRepositoryId,
@@ -128,7 +120,10 @@ class SkillPluginRepositoryServiceImpl {
       repoId: string;
     }
   ) {
-    let plugin = await this.getPlugin(d);
+    let plugin = await skillPluginService.getSkillPluginById(d);
+    if (plugin.status !== 'active' || plugin.isManaged) {
+      throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
+    }
     let skillRepository = await skillRepositoryService.ensureSkillRepositoryForRepo({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,

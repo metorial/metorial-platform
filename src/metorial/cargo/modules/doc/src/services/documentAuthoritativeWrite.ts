@@ -1,5 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
 import { flushDocumentDraft } from '../queues/documentFlush';
@@ -12,7 +13,7 @@ class DocumentAuthoritativeWriteService {
       input: {
         title: string;
         content: string;
-        actorId?: string;
+        authorization: ResourceAuthorization;
       };
     }
   ) {
@@ -56,7 +57,7 @@ class DocumentAuthoritativeWriteService {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       documentId: d.document.id,
-      actorId: d.input.actorId
+      authorization: d.input.authorization
     });
   }
 }

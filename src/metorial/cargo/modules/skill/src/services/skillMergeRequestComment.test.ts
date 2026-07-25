@@ -5,7 +5,6 @@ let mocks = vi.hoisted(() => ({
   findItem: vi.fn(),
   createComment: vi.fn(),
   getItem: vi.fn(),
-  getActor: vi.fn(),
   createEvent: vi.fn()
 }));
 
@@ -33,10 +32,8 @@ vi.mock('@metorial/cargo-config/id', () => ({
   })
 }));
 
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resourceActorService: {
-    getActorById: mocks.getActor
-  }
+vi.mock('@metorial/module-access', () => ({
+  assertResourceActorScope: vi.fn()
 }));
 
 vi.mock('./skillMergeRequestEvent', () => ({
@@ -59,7 +56,7 @@ let context = {
   resourceTenant: { oid: 2n },
   resourceGroup: { oid: 3n },
   mergeRequest,
-  actorId: 'act_test',
+  actor: { oid: 30n, id: 'act_test' },
   body: 'A reply'
 } as any;
 
@@ -81,7 +78,6 @@ let parentComment = (overrides?: {
 describe('skillMergeRequestCommentService replies', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getActor.mockResolvedValue({ oid: 30n });
     mocks.findItem.mockResolvedValue({ oid: 20n });
     mocks.createComment.mockImplementation(async ({ data }: { data: unknown }) => data);
     mocks.createEvent.mockResolvedValue(undefined);

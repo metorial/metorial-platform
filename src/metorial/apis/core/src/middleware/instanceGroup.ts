@@ -2,6 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
 import { consumerProfileService } from '@metorial/module-consumer';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
 
@@ -24,6 +25,9 @@ export let instanceGroup = apiGroup.use(async ctx => {
       },
       organization: ctx.auth.restrictions.organization,
       project: ctx.auth.restrictions.instance.project,
+      resourceTenant: ctx.auth.restrictions.resourceTenant,
+      resourceGroup: ctx.auth.restrictions.resourceGroup,
+      resourceActor: undefined,
       accessTagGrants: ctx.auth.restrictions.accessTagGrants,
       member: undefined,
       ...consumerPlaceholder
@@ -39,6 +43,9 @@ export let instanceGroup = apiGroup.use(async ctx => {
       },
       organization: ctx.auth.restrictions.organization,
       actor: ctx.auth.restrictions.actor,
+      resourceTenant: ctx.auth.restrictions.resourceTenant,
+      resourceGroup: ctx.auth.restrictions.resourceGroup,
+      resourceActor: ctx.auth.restrictions.resourceActor,
       member: undefined,
       ...consumerPlaceholder
     };
@@ -80,10 +87,25 @@ export let instanceGroup = apiGroup.use(async ctx => {
       instance: res.instance,
       consumerProfileId: consumerId
     });
+    if (consumerProfile.surface.type != 'portal' || !consumerProfile.surface.portal) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only portal consumer profiles can be used as restricted resources.'
+        })
+      );
+    }
 
     let consumerRes = await getConsumerAccessContextForConsumerProfile({
       profile: consumerProfile
     });
+    let resourceActor =
+      consumerProfile.resourceActors.find(
+        actor => actor.resourceTenantOid == res.resourceTenant.oid
+      ) ??
+      (await resourceActorService.ensureConsumerProfileActor({
+        resourceTenant: res.resourceTenant,
+        consumerProfile
+      }));
 
     return Object.assign(res, consumerPlaceholder, {
       consumerGroups: consumerRes.consumerGroups,
@@ -91,7 +113,12 @@ export let instanceGroup = apiGroup.use(async ctx => {
 
       consumerSurface: consumerProfile.surface,
       portal: consumerProfile.surface.portal,
-      consumerProfile: consumerProfile
+      consumerProfile: consumerProfile,
+      resourceActor,
+      // Selecting a consumer profile changes the effective Cargo principal. Keep the
+      // high-level organization actor on `actor`, but do not let member permissions
+      // turn this restricted profile context into privileged resource access.
+      member: undefined
     });
   }
 

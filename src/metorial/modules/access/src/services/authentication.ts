@@ -19,6 +19,9 @@ import {
   OrganizationActor,
   Portal,
   Project,
+  ResourceActor,
+  ResourceGroup,
+  ResourceTenant,
   User,
   UserSession
 } from '@metorial/db';
@@ -28,6 +31,10 @@ import {
   type OAuthTokenWithAuthorization
 } from '@metorial/module-machine-access';
 import { userAuthService } from '@metorial/module-user';
+import {
+  resolveResourceScopeForOwner,
+  resourceActorService
+} from '@metorial/module-resource-tenant';
 import {
   instancePublishableTokenScopes,
   instancePublishableTokenWithConsumerScopes,
@@ -47,12 +54,20 @@ export type FineGrainedAccessTagGrant = {
 export type AuthenticatedConsumerContext = {
   consumerSurface: ConsumerSurface;
   consumerSession: ConsumerSession;
-  consumerProfile: ConsumerProfile & { consumer: Consumer };
+  consumerProfile: ConsumerProfile & {
+    consumer: Consumer;
+    resourceActors: ResourceActor[];
+  };
   consumerGroups: Awaited<
     ReturnType<typeof getConsumerAccessContextForSession>
   >['consumerGroups'];
   accessTags: bigint[];
   portal: Portal | null;
+};
+
+type AuthenticatedResourceScope = {
+  resourceTenant: ResourceTenant;
+  resourceGroup: ResourceGroup;
 };
 
 export type AuthInfo =
@@ -65,7 +80,7 @@ export type AuthInfo =
     }
   | {
       type: 'machine';
-      user: User | undefined;
+      user?: User;
       apiKey?: ApiKey;
       oauthToken?: OAuthTokenWithAuthorization;
       machineAccess: MachineAccess;
@@ -81,6 +96,9 @@ export type AuthInfo =
             organization: Organization;
             actor: OrganizationActor;
             instance: Instance & { project: Project };
+            resourceTenant: ResourceTenant;
+            resourceGroup: ResourceGroup;
+            resourceActor: ResourceActor;
             consumer?: AuthenticatedConsumerContext | undefined;
           };
     }
@@ -92,11 +110,64 @@ export type AuthInfo =
         type: 'instance';
         organization: Organization;
         instance: Instance & { project: Project };
+        resourceTenant: ResourceTenant;
+        resourceGroup: ResourceGroup;
         accessTagGrants: FineGrainedAccessTagGrant[];
       };
     };
 
 class AuthenticationService {
+  private async getResourceScopeForOwner(
+    owner: Parameters<typeof resolveResourceScopeForOwner>[0],
+    included?: {
+      resourceTenant?: ResourceTenant | null;
+      resourceGroup?: ResourceGroup | null;
+    }
+  ) {
+    if (
+      included?.resourceTenant &&
+      included.resourceGroup &&
+      included.resourceGroup.resourceTenantOid == included.resourceTenant.oid
+    ) {
+      return {
+        resourceTenant: included.resourceTenant,
+        resourceGroup: included.resourceGroup
+      };
+    }
+
+    return await resolveResourceScopeForOwner(owner);
+  }
+
+  private async getOrganizationResourceActor(d: {
+    resourceTenant: ResourceTenant;
+    actor: OrganizationActor & { resourceActors?: ResourceActor[] };
+  }) {
+    let includedActor = d.actor.resourceActors?.find(
+      actor => actor.resourceTenantOid == d.resourceTenant.oid
+    );
+    if (includedActor) return includedActor;
+
+    return await resourceActorService.ensureOrganizationActor({
+      resourceTenant: d.resourceTenant,
+      organizationActorOid: d.actor.oid
+    });
+  }
+
+  private async getConsumerProfileResourceActor(d: {
+    resourceTenant: ResourceTenant;
+    consumerProfile: ConsumerProfile & { resourceActors?: ResourceActor[] };
+  }) {
+    let includedActor = d.consumerProfile.resourceActors?.find(
+      actor => actor.resourceTenantOid == d.resourceTenant.oid
+    );
+    if (includedActor) return includedActor;
+
+    return await resourceActorService.ensureConsumerProfileActor({
+      resourceTenant: d.resourceTenant,
+      consumerProfile: d.consumerProfile
+    });
+  }
+
   async authenticate(
     d:
       | {
@@ -128,7 +199,6 @@ class AuthenticationService {
       sessionClientSecret: d.sessionClientSecret,
       context: d.context
     });
-
     return {
       type: 'user',
       user: res.user,
@@ -145,7 +215,6 @@ class AuthenticationService {
       userId: d.userId,
       context: d.context
     });
-
     return {
       type: 'user',
       user: res.user,
@@ -173,6 +242,13 @@ class AuthenticationService {
         token: d.apiKey,
         context: d.context
       });
+      let resourceScope = await this.getResourceScopeForOwner(
+        {
+          type: 'instance',
+          instance: res.fineGrainedKey.instance
+        },
+        res.fineGrainedKey.instance
+      );
 
       return {
         type: 'fine_grained',
@@ -182,6 +258,7 @@ class AuthenticationService {
           type: 'instance',
           organization: res.fineGrainedKey.instance.organization,
           instance: res.fineGrainedKey.instance,
+          ...resourceScope,
           accessTagGrants: res.accessTagGrants
         }
       };
@@ -281,6 +358,22 @@ class AuthenticationService {
               portal: consumerRes.consumerProfile.surface.portal
             }
           : undefined;
+      let resourceScope = await this.getResourceScopeForOwner(
+        {
+          type: 'instance',
+          instance: machineAccess.instance
+        },
+        machineAccess.instance
+      );
+      let resourceActor = consumer
+        ? await this.getConsumerProfileResourceActor({
+            resourceTenant: resourceScope.resourceTenant,
+            consumerProfile: consumer.consumerProfile
+          })
+        : await this.getOrganizationResourceActor({
+            resourceTenant: resourceScope.resourceTenant,
+            actor: machineAccess.actor
+          });
 
       return {
         type: 'machine',
@@ -304,6 +397,8 @@ class AuthenticationService {
           organization: machineAccess.organization,
           actor: machineAccess.actor,
           instance: machineAccess.instance,
+          ...resourceScope,
+          resourceActor,
           consumer
         }
       };

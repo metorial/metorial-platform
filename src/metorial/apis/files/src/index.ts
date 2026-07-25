@@ -99,7 +99,7 @@ let createFileUploadHandler =
           file,
           title,
           fileName: file.name,
-          actorId: access.actorId,
+          authorization: access.authorization,
           defaultPermissions: access.defaultPermissions,
           overridePermissions: access.overridePermissions,
           store:
@@ -274,16 +274,14 @@ let createDocumentsLiveHandler = (
               let document = await documentService.getDocumentById({
                 ...access.scope,
                 documentId,
-                actorId: access.actorId,
-                accessTags: access.accessTags,
+                authorization: access.authorization,
                 defaultPermissions: access.defaultPermissions,
                 overridePermissions: access.overridePermissions
               });
               let permissions = await documentService.getDocumentPermissions({
                 ...access.scope,
                 document,
-                actorId: access.actorId,
-                accessTags: access.accessTags,
+                authorization: access.authorization,
                 defaultPermissions: access.defaultPermissions,
                 overridePermissions: access.overridePermissions
               });

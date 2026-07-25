@@ -19,6 +19,7 @@
     "@metorial/consumer-auth": "1.0.0",
     "@metorial-platform-systems/ares-client": "^1.0.0",
     "@metorial/cargo-module-skill": "1.0.0",
+    "@metorial/cargo-module-store": "1.0.0",
     "@metorial/config": "1.0.0",
     "@metorial/context": "1.0.0",
     "@metorial/db": "1.0.0",

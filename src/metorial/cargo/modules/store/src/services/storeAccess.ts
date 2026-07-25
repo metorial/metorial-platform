@@ -5,10 +5,11 @@ import {
   accessTagService,
   type AnyAccessTagSelector,
   consumerSkillReadRoles,
-  consumerSkillWriteRoles
+  consumerSkillWriteRoles,
+  assertResourceAuthorizationScope,
+  type ResourceAuthorization
 } from '@metorial/module-access';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resourceActorService } from '@metorial/module-resource-tenant';
 import type {
   ResourceActor,
   Prisma,
@@ -20,8 +21,7 @@ import type {
 import { withTransaction } from '@metorial/db';
 
 export type StoreAccessInput = {
-  actorId?: string;
-  accessTags?: AnyAccessTagSelector;
+  authorization: ResourceAuthorization;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
@@ -82,6 +82,22 @@ let getPublicStorePermissions = (d: {
 };
 
 class StoreAccessServiceImpl {
+  private getActor(d: StoreAccessInput) {
+    return d.authorization.resourceActor;
+  }
+
+  private getAccessTags(d: StoreAccessInput): AnyAccessTagSelector | undefined {
+    return d.authorization.type === 'restricted' ? d.authorization.accessTags : undefined;
+  }
+
+  private isPrivileged(d: StoreAccessInput) {
+    return d.authorization.type === 'privileged';
+  }
+
+  private getAccessInput(d: StoreAccessInput): StoreAccessInput {
+    return { authorization: d.authorization };
+  }
+
   private async resolveStoreIds(storeOids: bigint[]) {
     let uniqueStoreOids = uniqueBigInts(storeOids);
     if (uniqueStoreOids.length === 0) return [];
@@ -133,15 +149,6 @@ class StoreAccessServiceImpl {
     }
 
     return permissions;
-  }
-
-  async getActorForAccess(d: Pick<ResourceScope, 'resourceTenant'> & StoreAccessInput) {
-    if (!d.actorId) return undefined;
-
-    return await resourceActorService.getActorById({
-      resourceTenant: d.resourceTenant,
-      actorId: d.actorId
-    });
   }
 
   async getStoreById(
@@ -405,21 +412,7 @@ class StoreAccessServiceImpl {
       tags: d.accessTags,
       roles
     });
-    let accessFilters: Prisma.SkillWhereInput[] = [
-      {
-        createdByResourceActorOid: d.actor.oid
-      }
-    ];
-    if (d.actor.consumerOid) {
-      accessFilters.push({
-        createdByConsumerOid: d.actor.consumerOid
-      });
-    }
-    if (d.actor.organizationActorOid) {
-      accessFilters.push({
-        createdByOrganizationActorOid: d.actor.organizationActorOid
-      });
-    }
+    let accessFilters: Prisma.SkillWhereInput[] = [];
 
     if (accessTagFilter) {
       accessFilters.push({
@@ -590,22 +583,14 @@ class StoreAccessServiceImpl {
   ) {
     return await withTransaction(
       async db => {
-        let relevantStoreOids = uniqueBigInts(d.storeOids);
-        if (!d.actorId) {
-          return {
-            actor: undefined,
-            relevantStoreOids,
-            accessibleStoreOids: relevantStoreOids
-          };
-        }
-
-        let actor = await this.getActorForAccess(d);
+        assertResourceAuthorizationScope(d);
+        let requestedStoreOids = uniqueBigInts(d.storeOids);
         let stores = await db.store.findMany({
           where: {
             resourceTenantOid: d.resourceTenant.oid,
             resourceGroupOid: d.resourceGroup.oid,
             oid: {
-              in: relevantStoreOids
+              in: requestedStoreOids
             }
           },
           select: {
@@ -613,6 +598,16 @@ class StoreAccessServiceImpl {
             access: true
           }
         });
+        let relevantStoreOids = stores.map(store => store.oid);
+        let actor = await this.getActor(d);
+        if (this.isPrivileged(d)) {
+          return {
+            actor,
+            relevantStoreOids,
+            accessibleStoreOids: relevantStoreOids
+          };
+        }
+
         let participants = actor
           ? await this.upsertStoreParticipants({
               storeOids: relevantStoreOids,
@@ -647,7 +642,7 @@ class StoreAccessServiceImpl {
               resourceTenant: d.resourceTenant,
               resourceGroup: d.resourceGroup,
               actor,
-              accessTags: d.accessTags,
+              accessTags: this.getAccessTags(d),
               requiredPermission: d.requiredPermission,
               storeOids: relevantStoreOids
             })
@@ -658,7 +653,7 @@ class StoreAccessServiceImpl {
         let participantStoreOids = this.getAccessibleStoreOids(
           participants,
           d.requiredPermission
-        ).filter(storeOid => !d.accessTags || !skillStoreOidSet.has(storeOid.toString()));
+        ).filter(storeOid => !skillStoreOidSet.has(storeOid.toString()));
 
         return {
           actor,
@@ -695,8 +690,7 @@ class StoreAccessServiceImpl {
         return await this.resolveAccessibleStoreOids({
           resourceTenant: d.resourceTenant,
           resourceGroup: d.resourceGroup,
-          actorId: d.actorId,
-          accessTags: d.accessTags,
+          ...this.getAccessInput(d),
           defaultPermissions: d.defaultPermissions,
           overridePermissions: d.overridePermissions,
           requiredPermission: d.requiredPermission,
@@ -717,15 +711,17 @@ class StoreAccessServiceImpl {
     let result = await this.resolveAccessibleStoreOids({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
       storeOids: [d.store.oid]
     });
 
-    if (d.actorId && !result.accessibleStoreOids.some(storeOid => storeOid === d.store.oid)) {
+    if (
+      !this.isPrivileged(d) &&
+      !result.accessibleStoreOids.some(storeOid => storeOid === d.store.oid)
+    ) {
       throw new ServiceError(
         forbiddenError({
           message: `Missing ${d.requiredPermission} access for store ${d.store.id}`
@@ -748,7 +744,7 @@ class StoreAccessServiceImpl {
     if (d.store.isReadOnly) {
       return {
         storeId: d.store.id,
-        actorId: d.actorId || undefined,
+        actorId: (await this.getActor(d))?.id,
         hasFullAccess: false,
         permissions: [storeReadPermission],
         relevantStoreIds: [d.store.id],
@@ -757,10 +753,10 @@ class StoreAccessServiceImpl {
       } satisfies StorePermissionsResult;
     }
 
-    if (!d.actorId) {
+    if (this.isPrivileged(d)) {
       return {
         storeId: d.store.id,
-        actorId: d.actorId || undefined,
+        actorId: (await this.getActor(d))?.id,
         hasFullAccess: true,
         permissions: [storeReadPermission, storeWritePermission],
         relevantStoreIds: [d.store.id],
@@ -773,8 +769,7 @@ class StoreAccessServiceImpl {
       this.resolveAccessibleStoreOids({
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
-        actorId: d.actorId,
-        accessTags: d.accessTags,
+        ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeReadPermission,
@@ -783,8 +778,7 @@ class StoreAccessServiceImpl {
       this.resolveAccessibleStoreOids({
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
-        actorId: d.actorId,
-        accessTags: d.accessTags,
+        ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeWritePermission,
@@ -795,14 +789,14 @@ class StoreAccessServiceImpl {
     let readableStoreIds = await this.resolveStoreIds(readAccess.accessibleStoreOids);
     let writableStoreIds = await this.resolveStoreIds(writeAccess.accessibleStoreOids);
     let permissions = this.buildPermissions({
-      actorId: d.actorId,
+      actorId: (await this.getActor(d))?.id,
       readableStoreIds,
       writableStoreIds
     });
 
     return {
       storeId: d.store.id,
-      actorId: d.actorId,
+      actorId: (await this.getActor(d))?.id,
       hasFullAccess:
         permissions.includes(storeReadPermission) &&
         permissions.includes(storeWritePermission),
@@ -834,7 +828,7 @@ class StoreAccessServiceImpl {
       );
     }
 
-    let actor = await this.getActorForAccess(d);
+    let actor = await this.getActor(d);
     let isOwner = !!actor && d.document.createdByResourceActorOid === actor.oid;
     let relevantStoreOids = await this.listRelevantStoreOidsForDocument({
       document: d.document
@@ -842,15 +836,14 @@ class StoreAccessServiceImpl {
     let access = await this.resolveAccessibleStoreOids({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
       storeOids: relevantStoreOids
     });
 
-    if (d.actorId && !isOwner && access.accessibleStoreOids.length === 0) {
+    if (!this.isPrivileged(d) && !isOwner && access.accessibleStoreOids.length === 0) {
       throw new ServiceError(
         forbiddenError({
           message: `Missing ${d.requiredPermission} access for document ${d.document.id}`
@@ -878,7 +871,7 @@ class StoreAccessServiceImpl {
         };
       }
   ) {
-    let actor = await this.getActorForAccess(d);
+    let actor = await this.getActor(d);
     let isOwner = !!actor && d.document.createdByResourceActorOid === actor.oid;
     let relevantStoreOids = await this.listRelevantStoreOidsForDocument({
       document: d.document
@@ -888,7 +881,7 @@ class StoreAccessServiceImpl {
     if (d.document.isReadOnly) {
       return {
         documentId: d.document.id,
-        actorId: d.actorId || undefined,
+        actorId: actor?.id,
         isOwner,
         hasFullAccess: false,
         permissions: [storeReadPermission],
@@ -898,10 +891,10 @@ class StoreAccessServiceImpl {
       } satisfies DocumentPermissionsResult;
     }
 
-    if (!d.actorId || isOwner) {
+    if (this.isPrivileged(d) || isOwner) {
       return {
         documentId: d.document.id,
-        actorId: d.actorId || undefined,
+        actorId: actor?.id,
         isOwner,
         hasFullAccess: true,
         permissions: [storeReadPermission, storeWritePermission],
@@ -915,8 +908,7 @@ class StoreAccessServiceImpl {
       this.resolveAccessibleStoreOids({
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
-        actorId: d.actorId,
-        accessTags: d.accessTags,
+        ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeReadPermission,
@@ -925,8 +917,7 @@ class StoreAccessServiceImpl {
       this.resolveAccessibleStoreOids({
         resourceTenant: d.resourceTenant,
         resourceGroup: d.resourceGroup,
-        actorId: d.actorId,
-        accessTags: d.accessTags,
+        ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
         requiredPermission: storeWritePermission,
@@ -937,7 +928,7 @@ class StoreAccessServiceImpl {
     let readableStoreIds = await this.resolveStoreIds(readAccess.accessibleStoreOids);
     let writableStoreIds = await this.resolveStoreIds(writeAccess.accessibleStoreOids);
     let permissions = this.buildPermissions({
-      actorId: d.actorId,
+      actorId: actor?.id,
       isOwner,
       readableStoreIds,
       writableStoreIds
@@ -945,7 +936,7 @@ class StoreAccessServiceImpl {
 
     return {
       documentId: d.document.id,
-      actorId: d.actorId,
+      actorId: actor?.id,
       isOwner,
       hasFullAccess:
         permissions.includes(storeReadPermission) &&
@@ -968,7 +959,7 @@ class StoreAccessServiceImpl {
         requiredPermission: StoreParticipantPermissions;
       }
   ) {
-    let actor = await this.getActorForAccess(d);
+    let actor = await this.getActor(d);
     let isOwner = !!actor && d.file.createdByResourceActorOid === actor.oid;
     let relevantStoreOids = await this.listRelevantStoreOidsForFile({
       file: d.file
@@ -976,15 +967,14 @@ class StoreAccessServiceImpl {
     let access = await this.resolveAccessibleStoreOids({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
       storeOids: relevantStoreOids
     });
 
-    if (d.actorId && !isOwner && access.accessibleStoreOids.length === 0) {
+    if (!this.isPrivileged(d) && !isOwner && access.accessibleStoreOids.length === 0) {
       throw new ServiceError(
         forbiddenError({
           message: `Missing ${d.requiredPermission} access for file ${d.file.id}`
@@ -1013,15 +1003,14 @@ class StoreAccessServiceImpl {
     let access = await this.resolveAccessibleStoreOids({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
       storeOids: [d.item.storeOid]
     });
 
-    if (d.actorId && access.accessibleStoreOids.length === 0) {
+    if (!this.isPrivileged(d) && access.accessibleStoreOids.length === 0) {
       throw new ServiceError(
         forbiddenError({
           message: `Missing ${d.requiredPermission} access for store item ${d.item.id}`

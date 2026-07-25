@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { resolveResourceScopeMock, upsertActorMock } = vi.hoisted(() => ({
-  resolveResourceScopeMock: vi.fn(),
-  upsertActorMock: vi.fn()
-}));
-
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveResourceScopeForOwner: resolveResourceScopeMock,
-  resourceActorService: {
-    upsertActor: upsertActorMock
-  }
+vi.mock('@metorial/module-access', () => ({
+  createResourceAuthorization: ({
+    restricted,
+    resourceActor,
+    accessTags
+  }: {
+    restricted: boolean;
+    resourceActor?: unknown;
+    accessTags?: unknown;
+  }) =>
+    restricted
+      ? { type: 'restricted', resourceActor, accessTags }
+      : { type: 'privileged', resourceActor }
 }));
 
 import {
@@ -22,12 +25,29 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+let resourceTenant = { oid: 4n, id: 'rtn_1' } as any;
+let resourceGroup = { oid: 5n, id: 'rgr_1' } as any;
+let profileActor = {
+  oid: 6n,
+  id: 'rac_1',
+  identifier: 'mte-cpf-cpf_1',
+  name: 'Portal Profile',
+  resourceTenantOid: 4n,
+  consumerProfileOid: 2n
+} as any;
+
 describe('cargoAccess', () => {
   it('treats consumer-only requests as consumer-scoped', () => {
     expect(
       hasInstanceConsumerAccess({
-        instance: { id: 'ins_1' },
+        instance: { id: 'ins_1' } as any,
+        resourceTenant,
+        resourceGroup,
         consumerProfile: {
+          oid: 2n,
+          id: 'cpf_1',
+          name: 'Portal Profile',
+          instanceOid: 1n,
           consumer: {
             id: 'con_1',
             name: 'Portal Consumer'
@@ -40,7 +60,9 @@ describe('cargoAccess', () => {
   it('keeps member requests on the member bypass path', () => {
     expect(
       hasInstanceConsumerAccess({
-        instance: { id: 'ins_1' },
+        instance: { id: 'ins_1' } as any,
+        resourceTenant,
+        resourceGroup,
         member: {
           actor: {
             id: 'ora_1',
@@ -48,6 +70,10 @@ describe('cargoAccess', () => {
           }
         } as any,
         consumerProfile: {
+          oid: 2n,
+          id: 'cpf_1',
+          name: 'Portal Profile',
+          instanceOid: 1n,
           consumer: {
             id: 'con_1',
             name: 'Portal Consumer'
@@ -60,8 +86,14 @@ describe('cargoAccess', () => {
   it('maps consumer requests to a local Cargo actor input', () => {
     expect(
       getInstanceCargoActorInput({
-        instance: { id: 'ins_1' },
+        instance: { id: 'ins_1' } as any,
+        resourceTenant,
+        resourceGroup,
         consumerProfile: {
+          oid: 2n,
+          id: 'cpf_1',
+          name: 'Portal Profile',
+          instanceOid: 1n,
           consumer: {
             oid: 1n,
             id: 'con_1',
@@ -70,16 +102,18 @@ describe('cargoAccess', () => {
         }
       })
     ).toEqual({
-      identifier: 'mte-con-con_1',
-      name: 'Portal Consumer',
-      consumerOid: 1n
+      identifier: 'mte-cpf-cpf_1',
+      name: 'Portal Profile',
+      consumerProfileOid: 2n
     });
   });
 
   it('maps members to a full-access local Cargo actor input', () => {
     expect(
       getInstanceCargoActorInput({
-        instance: { id: 'ins_1' },
+        instance: { id: 'ins_1' } as any,
+        resourceTenant,
+        resourceGroup,
         member: {
           actor: {
             oid: 2n,
@@ -95,20 +129,24 @@ describe('cargoAccess', () => {
     });
   });
 
-  it('lazily resolves the instance scope and passes consumer access tags', async () => {
+  it('passes the normalized instance scope, profile actor, and consumer access tags', async () => {
     let accessTags = [{ accessTagOid: 3n }];
-    resolveResourceScopeMock.mockResolvedValue({
-      resourceTenant: { oid: 4n, id: 'rtn_1' },
-      resourceGroup: { oid: 5n, id: 'rgr_1' }
-    });
-    upsertActorMock.mockResolvedValue({
-      oid: 6n,
-      id: 'rac_1'
-    });
 
     let access = await getInstanceCargoAccess({
-      instance: { id: 'ins_1' },
+      instance: {
+        oid: 1n,
+        id: 'ins_1',
+        resourceTenantOid: 4n,
+        resourceGroupOid: 5n
+      },
+      resourceTenant,
+      resourceGroup,
+      resourceActor: profileActor,
       consumerProfile: {
+        oid: 2n,
+        id: 'cpf_1',
+        name: 'Portal Profile',
+        instanceOid: 1n,
         consumer: {
           oid: 1n,
           id: 'con_1',
@@ -118,22 +156,15 @@ describe('cargoAccess', () => {
       accessTags
     });
 
-    expect(resolveResourceScopeMock).toHaveBeenCalledWith({
-      type: 'instance',
-      instance: { id: 'ins_1' }
-    });
-    expect(upsertActorMock).toHaveBeenCalledWith({
-      resourceTenant: { oid: 4n, id: 'rtn_1' },
-      input: {
-        identifier: 'mte-con-con_1',
-        name: 'Portal Consumer',
-        consumerOid: 1n
-      }
-    });
     expect(access).toEqual({
-      resourceTenant: { oid: 4n, id: 'rtn_1' },
-      resourceGroup: { oid: 5n, id: 'rgr_1' },
-      actor: { oid: 6n, id: 'rac_1' },
+      resourceTenant,
+      resourceGroup,
+      authorization: {
+        type: 'restricted',
+        resourceActor: profileActor,
+        accessTags
+      },
+      actor: profileActor,
       actorId: 'rac_1',
       accessTags,
       defaultPermissions: undefined,
@@ -142,17 +173,16 @@ describe('cargoAccess', () => {
   });
 
   it('preserves full Cargo access for organization members', async () => {
-    resolveResourceScopeMock.mockResolvedValue({
-      resourceTenant: { oid: 4n, id: 'rtn_1' },
-      resourceGroup: { oid: 5n, id: 'rgr_1' }
-    });
-    upsertActorMock.mockResolvedValue({
-      oid: 6n,
-      id: 'rac_1'
-    });
-
     let access = await getInstanceCargoAccess({
-      instance: { id: 'ins_1' },
+      instance: {
+        oid: 1n,
+        id: 'ins_1',
+        resourceTenantOid: 4n,
+        resourceGroupOid: 5n
+      },
+      resourceTenant,
+      resourceGroup,
+      resourceActor: profileActor,
       member: {
         actor: {
           oid: 2n,
@@ -163,9 +193,13 @@ describe('cargoAccess', () => {
     });
 
     expect(access).toEqual({
-      resourceTenant: { oid: 4n, id: 'rtn_1' },
-      resourceGroup: { oid: 5n, id: 'rgr_1' },
-      actor: { oid: 6n, id: 'rac_1' },
+      resourceTenant,
+      resourceGroup,
+      authorization: {
+        type: 'privileged',
+        resourceActor: profileActor
+      },
+      actor: profileActor,
       actorId: 'rac_1',
       accessTags: undefined,
       defaultPermissions: ['content_read', 'content_write'],

@@ -2,7 +2,10 @@ import { Service } from '@lowerdeck/service';
 import { db } from '@metorial/db';
 import { fileService } from './file';
 import { fileLinkService } from './fileLink';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
 import { filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 
@@ -107,7 +110,8 @@ class ReconcileServiceImpl {
           name: input.name,
           mimeType: input.mimeType,
           size: input.size,
-          title: input.title
+          title: input.title,
+          authorization: { type: 'privileged' }
         }
       });
 
@@ -125,7 +129,9 @@ class ReconcileServiceImpl {
                 id: true
               }
             },
-            createdByResourceActor: true,
+            createdByResourceActor: {
+              include: resourceActorPresentationInclude
+            },
             purpose: true,
             resourceTenant: true,
             resourceGroup: true

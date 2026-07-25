@@ -11,6 +11,7 @@ import {
   skillRepositoryInclude,
   skillRepositoryService
 } from './skillRepository';
+import { skillMarketplaceService } from './skillMarketplace';
 
 export let skillMarketplaceRepositoryInclude = {
   skillRepository: {
@@ -31,21 +32,6 @@ export type EnrichedSkillMarketplaceRepositoryRecord = Omit<
 };
 
 class SkillMarketplaceRepositoryServiceImpl {
-  private async getMarketplace(d: ResourceScope & { skillMarketplaceId: string }) {
-    let marketplace = await db.skillMarketplace.findFirst({
-      where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        id: d.skillMarketplaceId,
-        status: 'active'
-      }
-    });
-
-    if (!marketplace)
-      throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
-    return marketplace;
-  }
-
   private async enrichRepositories<T extends SkillMarketplaceRepositoryRecord>(
     d: ResourceScope & { repositories: T[] }
   ): Promise<
@@ -71,7 +57,10 @@ class SkillMarketplaceRepositoryServiceImpl {
       skillMarketplaceId: string;
     }
   ) {
-    let marketplace = await this.getMarketplace(d);
+    let marketplace = await skillMarketplaceService.getSkillMarketplaceById(d);
+    if (marketplace.status !== 'active') {
+      throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
+    }
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -98,7 +87,10 @@ class SkillMarketplaceRepositoryServiceImpl {
       skillMarketplaceRepositoryId: string;
     }
   ) {
-    let marketplace = await this.getMarketplace(d);
+    let marketplace = await skillMarketplaceService.getSkillMarketplaceById(d);
+    if (marketplace.status !== 'active') {
+      throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
+    }
     let repository = await db.skillMarketplaceRepository.findFirst({
       where: {
         id: d.skillMarketplaceRepositoryId,
@@ -128,7 +120,10 @@ class SkillMarketplaceRepositoryServiceImpl {
       repoId: string;
     }
   ) {
-    let marketplace = await this.getMarketplace(d);
+    let marketplace = await skillMarketplaceService.getSkillMarketplaceById(d);
+    if (marketplace.status !== 'active') {
+      throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
+    }
     let skillRepository = await skillRepositoryService.ensureSkillRepositoryForRepo({
       resourceTenant: d.resourceTenant!,
       resourceGroup: d.resourceGroup,

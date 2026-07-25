@@ -34,6 +34,7 @@ import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurfac
 
 let include = {
   consumer: true,
+  resourceActors: true,
   surface: {
     include: {
       ...consumerSurfaceInclude,

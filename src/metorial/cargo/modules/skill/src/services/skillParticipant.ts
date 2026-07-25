@@ -8,20 +8,18 @@ import {
   resolveResourceActors,
   resolveSkillParticipants
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { storeReadPermission, storeWritePermission } from '@metorial/cargo-module-store';
-import type {
-  Prisma,
-  ResourceActor,
-  Skill,
-  SkillParticipantRole,
-  StoreParticipantPermissions
-} from '@metorial/db';
+import type { Prisma, ResourceActor, Skill, SkillParticipantRole } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
 
 export let skillParticipantInclude = {
   skill: true,
-  resourceActor: true
+  resourceActor: {
+    include: resourceActorPresentationInclude
+  }
 } satisfies Prisma.SkillParticipantInclude;
 
 export type SkillParticipantRecord = Prisma.SkillParticipantGetPayload<{
@@ -47,14 +45,6 @@ let sameRoles = (
 
 let withoutStoreBackedRoles = (roles: SkillParticipantRole[]) =>
   roles.filter(role => !storeBackedRoles.includes(role));
-
-let getStoreBackedRole = (
-  permissions: StoreParticipantPermissions[]
-): SkillParticipantRole | undefined => {
-  if (permissions.includes(storeWritePermission)) return 'editor';
-  if (permissions.includes(storeReadPermission)) return 'viewer';
-  return undefined;
-};
 
 class SkillParticipantServiceImpl {
   private async upsertRoles(d: {
@@ -124,132 +114,84 @@ class SkillParticipantServiceImpl {
     });
   }
 
-  async syncSkillParticipantsFromStore(d: { skill: Pick<Skill, 'oid' | 'storeOid'> }) {
+  async setSkillParticipantAccessRole(d: {
+    skill: Pick<Skill, 'oid'>;
+    actor: Pick<ResourceActor, 'oid'>;
+    permission: 'read' | 'write' | 'none';
+  }) {
     return await withTransaction(async db => {
-      let storeParticipants = await db.storeParticipant.findMany({
+      let existing = await db.skillParticipant.findUnique({
         where: {
-          storeOid: d.skill.storeOid!
-        },
-        include: {
-          resourceActor: true
-        }
-      });
-      let existingParticipants = await db.skillParticipant.findMany({
-        where: {
-          skillOid: d.skill.oid
+          skillOid_resourceActorOid: {
+            skillOid: d.skill.oid,
+            resourceActorOid: d.actor.oid
+          }
         },
         include: skillParticipantInclude
       });
-      let existingByActorOid = new Map(
-        existingParticipants.map(participant => [
-          participant.resourceActorOid.toString(),
-          participant
-        ])
-      );
-      let syncedActorOids = new Set<string>();
-      let syncedParticipants: SkillParticipantRecord[] = [];
+      let nextRoles = [
+        ...withoutStoreBackedRoles(existing?.roles ?? []),
+        ...(d.permission == 'write'
+          ? (['editor'] as const)
+          : d.permission == 'read'
+            ? (['viewer'] as const)
+            : [])
+      ];
 
-      for (let storeParticipant of storeParticipants) {
-        let storeRole = getStoreBackedRole(storeParticipant.permissions);
-        if (!storeRole) continue;
-
-        syncedActorOids.add(storeParticipant.resourceActorOid.toString());
-
-        let existing = existingByActorOid.get(storeParticipant.resourceActorOid.toString());
-        let nextRoles = sortRoles([
-          ...withoutStoreBackedRoles(existing?.roles ?? []),
-          storeRole
-        ]);
-
-        if (existing) {
-          if (sameRoles(existing.roles, nextRoles)) {
-            syncedParticipants.push(existing);
-            continue;
-          }
-
-          syncedParticipants.push(
-            await db.skillParticipant.update({
-              where: {
-                id: existing.id
-              },
-              data: {
-                roles: nextRoles
-              },
-              include: skillParticipantInclude
-            })
-          );
-          continue;
-        }
-
-        let generated = getId('skillParticipant');
-
-        syncedParticipants.push(
-          await db.skillParticipant.create({
-            data: {
-              oid: generated.oid,
-              id: generated.id,
-              skillOid: d.skill.oid,
-              resourceActorOid: storeParticipant.resourceActorOid,
-              roles: [storeRole]
-            },
+      if (existing) {
+        if (nextRoles.length == 0) {
+          return await db.skillParticipant.update({
+            where: { id: existing.id },
+            data: { roles: [] },
             include: skillParticipantInclude
-          })
-        );
-      }
-
-      for (let participant of existingParticipants) {
-        if (syncedActorOids.has(participant.resourceActorOid.toString())) continue;
-        if (!participant.roles.some(role => storeBackedRoles.includes(role))) continue;
-
-        let nextRoles = withoutStoreBackedRoles(participant.roles);
-
-        if (nextRoles.length === 0) {
-          await db.skillParticipant.delete({
-            where: {
-              id: participant.id
-            }
           });
-          continue;
         }
+        if (sameRoles(existing.roles, nextRoles)) return existing;
 
-        if (sameRoles(participant.roles, nextRoles)) continue;
-
-        syncedParticipants.push(
-          await db.skillParticipant.update({
-            where: {
-              id: participant.id
-            },
-            data: {
-              roles: nextRoles
-            },
-            include: skillParticipantInclude
-          })
-        );
+        return await db.skillParticipant.update({
+          where: { id: existing.id },
+          data: { roles: nextRoles },
+          include: skillParticipantInclude
+        });
       }
+      if (nextRoles.length == 0) return undefined;
 
-      return syncedParticipants;
+      let generated = getId('skillParticipant');
+      return await db.skillParticipant.create({
+        data: {
+          oid: generated.oid,
+          id: generated.id,
+          skillOid: d.skill.oid,
+          resourceActorOid: d.actor.oid,
+          roles: nextRoles
+        },
+        include: skillParticipantInclude
+      });
     });
   }
 
-  async syncAllSkillParticipantsFromStores(d: ResourceScope) {
-    let skills = await withTransaction(
-      async db =>
-        await db.skill.findMany({
-          where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid
-          },
-          select: {
-            oid: true,
-            storeOid: true
-          }
-        }),
-      { ifExists: true }
-    );
-
-    for (let skill of skills) {
-      await this.syncSkillParticipantsFromStore({ skill });
+  async ensureSkillParticipantAccessRole(d: {
+    skill: Pick<Skill, 'oid'>;
+    actor: Pick<ResourceActor, 'oid'>;
+    permission: 'read' | 'write';
+  }) {
+    let existing = await db.skillParticipant.findUnique({
+      where: {
+        skillOid_resourceActorOid: {
+          skillOid: d.skill.oid,
+          resourceActorOid: d.actor.oid
+        }
+      },
+      include: skillParticipantInclude
+    });
+    if (
+      existing?.roles.includes('editor') ||
+      (d.permission == 'read' && existing?.roles.includes('viewer'))
+    ) {
+      return existing;
     }
+
+    return await this.setSkillParticipantAccessRole(d);
   }
 
   async getSkillParticipantById(
@@ -272,22 +214,7 @@ class SkillParticipantServiceImpl {
       throw new ServiceError(notFoundError('skill.participant', d.skillParticipantId));
     }
 
-    await this.syncSkillParticipantsFromStore({
-      skill: participant.skill
-    });
-
-    let syncedParticipant = await db.skillParticipant.findUnique({
-      where: {
-        id: participant.id
-      },
-      include: skillParticipantInclude
-    });
-
-    if (!syncedParticipant) {
-      throw new ServiceError(notFoundError('skill.participant', d.skillParticipantId));
-    }
-
-    return syncedParticipant;
+    return participant;
   }
 
   async listSkillParticipants(
@@ -299,21 +226,6 @@ class SkillParticipantServiceImpl {
       updatedAt?: DateFilter;
     }
   ) {
-    if (d.skillId) {
-      let skill = await db.skill.findFirst({
-        where: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
-          id: d.skillId
-        }
-      });
-
-      if (!skill) throw new ServiceError(notFoundError('skill', d.skillId));
-
-      await this.syncSkillParticipantsFromStore({ skill });
-    } else {
-      await this.syncAllSkillParticipantsFromStores(d);
-    }
     let participants = await resolveSkillParticipants(d, d.ids);
     let actors = await resolveResourceActors(d, d.actorIds);
 

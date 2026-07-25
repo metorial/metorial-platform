@@ -4,6 +4,7 @@ import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/a
 import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
 import { materializeMagicMcpSessionOwnershipQueueProcessor } from './queues/materializeMagicMcpSessionOwnership';
+import { resourceAuthorizationMigrationQueueProcessor } from './queues/resourceAuthorizationMigration';
 import { consumerSearchQueueProcessor } from './queues/search';
 import {
   reconcileConsumerActorQueueProcessor,
@@ -36,6 +37,7 @@ export let consumerQueueProcessor = combineQueueProcessors([
   syncIdentityConsumerQueueProcessor,
   reconcileConsumerActorQueueProcessor,
   materializeMagicMcpSessionOwnershipQueueProcessor,
+  resourceAuthorizationMigrationQueueProcessor,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

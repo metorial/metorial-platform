@@ -8,6 +8,12 @@ import type {
   SkillGroupsForSkillScene as _SkillGroupsForSkillScene,
   SkillGroupSkillsScene as _SkillGroupSkillsScene
 } from './skillGroups';
+export {
+  showPublicSkillImportModal,
+  showSkillImportStatusPanel,
+  useSkillImportActions,
+  validateSkillImportFile
+} from './skillImport';
 import type {
   SkillLinkProvidersScene as _SkillLinkProvidersScene,
   SkillTemplateLinkProvidersScene as _SkillTemplateLinkProvidersScene

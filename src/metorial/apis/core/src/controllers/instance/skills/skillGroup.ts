@@ -1,10 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillGroupService,
-  skillResourceService
-} from '@metorial/cargo-module-skill';
+import { skillGroupService, skillResourceService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
@@ -127,7 +124,8 @@ export let skillGroupController = Controller.create(
           name: v.string(),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          skill_ids: v.optional(v.array(v.string()))
+          skill_ids: v.optional(v.array(v.string())),
+          allow_consumer_skill_assignment: v.optional(v.boolean())
         })
       )
       .output(skillGroupPresenter)
@@ -140,7 +138,8 @@ export let skillGroupController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata as any,
-            skillIds: ctx.body.skill_ids
+            skillIds: ctx.body.skill_ids,
+            allowConsumerSkillAssignment: ctx.body.allow_consumer_skill_assignment
           }
         });
         let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);
@@ -161,7 +160,8 @@ export let skillGroupController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
-          skill_ids: v.optional(v.array(v.string()))
+          skill_ids: v.optional(v.array(v.string())),
+          allow_consumer_skill_assignment: v.optional(v.boolean())
         })
       )
       .output(skillGroupPresenter)
@@ -175,7 +175,8 @@ export let skillGroupController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata as any,
-            skillIds: ctx.body.skill_ids
+            skillIds: ctx.body.skill_ids,
+            allowConsumerSkillAssignment: ctx.body.allow_consumer_skill_assignment
           }
         });
         let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);

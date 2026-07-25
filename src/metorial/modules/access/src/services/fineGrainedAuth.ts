@@ -28,7 +28,14 @@ class FineGrainedAuthService {
         secret: d.token
       },
       include: {
-        instance: { include: { project: true, organization: true } },
+        instance: {
+          include: {
+            project: true,
+            organization: true,
+            resourceTenant: true,
+            resourceGroup: true
+          }
+        },
         accessTag: {
           include: {
             accessTagEntities: {

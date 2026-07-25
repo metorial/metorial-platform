@@ -97,4 +97,25 @@ describe('getFunctionFs', () => {
 
     expect(getFile(res, 'shuttle_entry_point.js')?.content).toContain("from './index.js'");
   });
+
+  it('closes the default MCP server instance after every invocation', () => {
+    let res = getFunctionFs({
+      payload: payload([
+        {
+          filename: 'index.js',
+          content: 'export default {};'
+        }
+      ])
+    });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('Expected function fs to be valid');
+
+    let entrypoint = getFile(res, 'shuttle_entry_point.js')?.content;
+
+    expect(entrypoint).toContain("import instance from './index.js'");
+    expect(entrypoint).toContain('finally');
+    expect(entrypoint).toContain("typeof instance.close === 'function'");
+    expect(entrypoint).not.toContain('server as mcpServer');
+  });
 });

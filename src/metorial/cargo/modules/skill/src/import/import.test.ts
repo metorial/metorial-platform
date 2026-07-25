@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
+import {
+  detectUploadedSkillFileFormat,
+  extractSkillArchive,
+  normalizeUploadedSkillFile
+} from './archive';
 import { discoverSkillPaths, getRelativeSkillPath, shouldImportSkillPath } from './discovery';
 import {
   extractRepositoryArchive,
@@ -75,6 +80,46 @@ describe('skill repository imports', () => {
     await expect(
       extractRepositoryArchive(await zip.generateAsync({ type: 'uint8array' }))
     ).rejects.toThrow('unsafe path');
+  });
+
+  it('preserves a root SKILL.md when it is the only archive entry', async () => {
+    let zip = new JSZip();
+    zip.file('SKILL.md', '# Root skill');
+
+    let files = await extractSkillArchive(await zip.generateAsync({ type: 'uint8array' }));
+    expect(files.map(file => file.path)).toEqual(['/SKILL.md']);
+    expect(Buffer.from(files[0]!.content).toString('utf8')).toBe('# Root skill');
+  });
+
+  it('detects uploaded ZIP and Markdown files', () => {
+    expect(
+      detectUploadedSkillFileFormat({
+        fileName: 'skills.zip',
+        fileType: 'application/octet-stream'
+      })
+    ).toBe('zip');
+    expect(
+      detectUploadedSkillFileFormat({
+        fileName: 'instructions',
+        fileType: 'text/markdown; charset=utf-8'
+      })
+    ).toBe('markdown');
+    expect(
+      detectUploadedSkillFileFormat({
+        fileName: 'skill.json',
+        fileType: 'application/json'
+      })
+    ).toBeNull();
+  });
+
+  it('normalizes an uploaded Markdown file as the root skill document', async () => {
+    let content = new TextEncoder().encode('---\nname: Uploaded\n---\n# Uploaded');
+    await expect(normalizeUploadedSkillFile({ format: 'markdown', content })).resolves.toEqual([
+      {
+        path: '/SKILL.md',
+        content
+      }
+    ]);
   });
 
   it('discovers case-insensitive skill roots and prunes nested skills', () => {

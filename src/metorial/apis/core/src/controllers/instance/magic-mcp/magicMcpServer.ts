@@ -107,10 +107,6 @@ let getAccessTagsForConsumerProfiles = async (d: {
   let consumerProfilesBySurfaceId = new Map<string, typeof d.consumerProfiles>();
 
   for (let consumerProfile of d.consumerProfiles) {
-    accessTags.set(consumerProfile.accessTagOid, {
-      accessTagOid: consumerProfile.accessTagOid
-    });
-
     let current = consumerProfilesBySurfaceId.get(consumerProfile.surface.id) ?? [];
     current.push(consumerProfile);
     consumerProfilesBySurfaceId.set(consumerProfile.surface.id, current);

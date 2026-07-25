@@ -15,9 +15,12 @@ import {
   resolveResourceActors,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { filePurposeService, fileService } from '@metorial/cargo-module-file';
-import { resourceActorService } from '@metorial/module-resource-tenant';
 import {
   type StoreAccessInput,
   storeAccessService,
@@ -25,7 +28,12 @@ import {
   storeReadPermission,
   storeWritePermission
 } from '@metorial/cargo-module-store';
-import type { Prisma, StoreCloneType, StoreParticipantPermissions } from '@metorial/db';
+import type {
+  Prisma,
+  ResourceActor,
+  StoreCloneType,
+  StoreParticipantPermissions
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { internalDocumentContentService } from '../internal/documentContent';
 import { internalDocumentContentStoreService } from '../internal/documentContentStore';
@@ -42,7 +50,9 @@ let documentMimeType = 'text/markdown';
 export let documentInclude = {
   parentDocument: true,
   content: true,
-  createdByResourceActor: true,
+  createdByResourceActor: {
+    include: resourceActorPresentationInclude
+  },
   currentVersion: {
     include: {
       content: true
@@ -51,7 +61,9 @@ export let documentInclude = {
   file: {
     include: {
       purpose: true,
-      createdByResourceActor: true
+      createdByResourceActor: {
+        include: resourceActorPresentationInclude
+      }
     }
   }
 } satisfies Prisma.DocumentInclude;
@@ -87,8 +99,7 @@ type DocumentWithEffectiveStoreId<T extends { file: { storeId: string } }> = T &
   };
 };
 type DocumentAccessInput = {
-  actorId?: string;
-  accessTags?: StoreAccessInput['accessTags'];
+  authorization: ResourceAuthorization;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
@@ -198,8 +209,7 @@ class DocumentServiceImpl {
         title: string;
         content: string;
         fileStoreId?: string | null;
-        actorId?: string;
-        accessTags?: StoreAccessInput['accessTags'];
+        authorization: ResourceAuthorization;
         store?: {
           id: string;
           path: string;
@@ -211,12 +221,7 @@ class DocumentServiceImpl {
   ) {
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
 
-    let actor = d.input.actorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant,
-          actorId: d.input.actorId
-        })
-      : undefined;
+    let actor = d.input.authorization.resourceActor;
 
     return await withTransaction(async db => {
       let documentIds = d.input.id
@@ -236,7 +241,7 @@ class DocumentServiceImpl {
           mimeType: documentMimeType,
           size: getTextByteSize(d.input.content),
           title: d.input.title,
-          actorId: d.input.actorId
+          authorization: d.input.authorization
         }
       });
 
@@ -308,8 +313,7 @@ class DocumentServiceImpl {
           resourceTenant: d.resourceTenant,
           resourceGroup: d.resourceGroup,
           store,
-          actorId: d.input.actorId,
-          accessTags: d.input.accessTags,
+          authorization: d.input.authorization,
           defaultPermissions: d.input.defaultPermissions,
           overridePermissions: d.input.overridePermissions,
           requiredPermission: storeWritePermission
@@ -340,8 +344,7 @@ class DocumentServiceImpl {
     d: ResourceScope & {
       documentId: string;
       includeDeleted?: boolean;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -351,8 +354,7 @@ class DocumentServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -380,8 +382,7 @@ class DocumentServiceImpl {
         isReadOnly?: boolean;
         createdByResourceActorOid?: bigint | null;
       };
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -390,8 +391,7 @@ class DocumentServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document: d.document,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions
     });
@@ -419,18 +419,8 @@ class DocumentServiceImpl {
       },
       include: {
         ...documentInclude,
-        resourceTenant: {
-          select: {
-            id: true,
-            oid: true
-          }
-        },
-        resourceGroup: {
-          select: {
-            id: true,
-            oid: true
-          }
-        }
+        resourceTenant: true,
+        resourceGroup: true
       }
     });
 
@@ -491,7 +481,7 @@ class DocumentServiceImpl {
       ].filter(Boolean)
     };
 
-    if (!d.actorId) {
+    if (d.authorization.type === 'privileged') {
       return Paginator.create(({ prisma }) =>
         prisma(
           async opts =>
@@ -507,8 +497,7 @@ class DocumentServiceImpl {
     let access = await storeAccessService.listAccessibleStoreOidsForTenantEnvironment({
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -548,8 +537,7 @@ class DocumentServiceImpl {
       input: {
         title?: string;
         content?: string;
-        actorId?: string;
-        accessTags?: StoreAccessInput['accessTags'];
+        authorization: ResourceAuthorization;
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
       };
@@ -567,8 +555,7 @@ class DocumentServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document: d.document,
-      actorId: d.input.actorId,
-      accessTags: d.input.accessTags,
+      authorization: d.input.authorization,
       defaultPermissions: d.input.defaultPermissions,
       overridePermissions: d.input.overridePermissions,
       requiredPermission: storeWritePermission
@@ -677,9 +664,8 @@ class DocumentServiceImpl {
         title?: string;
         cloneType?: StoreCloneType;
         rewriteContentTitle?: boolean;
-        actorId?: string;
-        accessTags?: StoreAccessInput['accessTags'];
-        creatorActorId?: string;
+        authorization: ResourceAuthorization;
+        creatorActor?: ResourceActor;
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
       };
@@ -689,18 +675,13 @@ class DocumentServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document: d.document,
-      actorId: d.input.actorId,
-      accessTags: d.input.accessTags,
+      authorization: d.input.authorization,
       defaultPermissions: d.input.defaultPermissions,
       overridePermissions: d.input.overridePermissions,
       requiredPermission: storeReadPermission
     });
-    let creatorActor = d.input.creatorActorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: d.resourceTenant,
-          actorId: d.input.creatorActorId
-        })
-      : access.actor;
+    let creatorActor =
+      d.input.creatorActor ?? d.input.authorization.resourceActor ?? access.actor;
 
     this.ensureDocumentActive(d.document);
 
@@ -737,7 +718,10 @@ class DocumentServiceImpl {
           mimeType: documentMimeType,
           size: getTextByteSize(nextContent),
           title: nextTitle,
-          actorId: creatorActor?.id
+          authorization: {
+            type: 'privileged',
+            resourceActor: creatorActor
+          }
         }
       });
 
@@ -808,8 +792,7 @@ class DocumentServiceImpl {
   async deleteDocument(
     d: ResourceScope & {
       document: ResolvedDocumentRecord;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -818,8 +801,7 @@ class DocumentServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document: d.document,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission

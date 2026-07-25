@@ -8,27 +8,28 @@ import {
   resolveDocuments,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import {
-  type StoreAccessInput,
-  storeAccessService,
-  storeReadPermission
-} from '@metorial/cargo-module-store';
+  resourceActorPresentationInclude,
+  type ResourceScope
+} from '@metorial/module-resource-tenant';
+import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 
 export let documentParticipantInclude = {
   document: true,
-  resourceActor: true
+  resourceActor: {
+    include: resourceActorPresentationInclude
+  }
 } satisfies Prisma.DocumentParticipantInclude;
 
 class DocumentParticipantServiceImpl {
   async getDocumentParticipantById(
     d: ResourceScope & {
       documentParticipantId: string;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -55,8 +56,7 @@ class DocumentParticipantServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document: participant.document,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
@@ -73,8 +73,7 @@ class DocumentParticipantServiceImpl {
       createdAt?: DateFilter;
       lastEditedAt?: DateFilter;
       lastViewedAt?: DateFilter;
-      actorId?: string;
-      accessTags?: StoreAccessInput['accessTags'];
+      authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
       overridePermissions?: boolean;
     }
@@ -96,8 +95,7 @@ class DocumentParticipantServiceImpl {
       resourceTenant: d.resourceTenant,
       resourceGroup: d.resourceGroup,
       document,
-      actorId: d.actorId,
-      accessTags: d.accessTags,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeReadPermission
