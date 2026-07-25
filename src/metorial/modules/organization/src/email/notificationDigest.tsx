@@ -21,8 +21,8 @@ export let sendOrganizationNotificationDigestEmail = notificationClient.createTe
         preview: notifications[0]?.message ?? subject,
         content: (
           <Layout
-            title="Your notification digest"
-            description={`Here is what happened in ${organization.name}.`}
+            title="Your Metorial digest"
+            description={`Recent updates for ${organization.name}.`}
           >
             {notifications.map(notification => {
               let action = notification.actions[0];
@@ -32,14 +32,14 @@ export let sendOrganizationNotificationDigestEmail = notificationClient.createTe
                   : null;
 
               return (
-                <React.Fragment key={notification.id}>
+                <div key={notification.id} style={{ marginBottom: '1rem' }}>
                   <Text>
                     <strong>{notification.title}</strong>
                     <br />
                     {notification.message}
                   </Text>
                   {!!actionUrl && <Button href={actionUrl}>{action.text}</Button>}
-                </React.Fragment>
+                </div>
               );
             })}
           </Layout>

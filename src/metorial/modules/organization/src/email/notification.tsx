@@ -25,7 +25,9 @@ export let sendOrganizationNotificationEmail = notificationClient.createTemplate
         content: (
           <Layout title={notification.title} description={notification.message}>
             {!!actionUrl && <Button href={actionUrl}>{action.text}</Button>}
-            <Text>This notification was sent for your organization, {organization.name}.</Text>
+            <Text>
+              This notification was sent for your Metorial organization, {organization.name}.
+            </Text>
           </Layout>
         )
       });
