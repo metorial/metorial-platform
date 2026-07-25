@@ -53,8 +53,11 @@ describe('createBullMqQueue', () => {
   });
 
   it('waits for the worker connection before reporting the processor as started', async () => {
-    let ready = Promise.withResolvers<void>();
-    mocks.workerWaitUntilReady.mockReturnValue(ready.promise);
+    let resolveReady: () => void = () => {};
+    let ready = new Promise<void>(resolve => {
+      resolveReady = resolve;
+    });
+    mocks.workerWaitUntilReady.mockReturnValue(ready);
 
     let processor = createBullMqQueue({
       name: 'ready-worker',
@@ -65,7 +68,7 @@ describe('createBullMqQueue', () => {
     await vi.waitFor(() => expect(mocks.workerConstructed).toHaveBeenCalledOnce());
     expect(mocks.workerRun).not.toHaveBeenCalled();
 
-    ready.resolve();
+    resolveReady();
     await starting;
     expect(mocks.workerRun).toHaveBeenCalledOnce();
   });
