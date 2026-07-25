@@ -9,7 +9,6 @@ export let ssoTenantPresenter = (tenant: SsoTenant) => ({
   clientId: tenant.clientId,
   externalId: tenant.externalId,
   metadata: tenant.metadata,
-  isGlobal: tenant.isGlobal,
   createdAt: tenant.createdAt,
   updatedAt: tenant.updatedAt
 });

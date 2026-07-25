@@ -16,6 +16,8 @@ import type {
   SsoUserProfileRole,
   SsoUserRole
 } from '../../../../prisma/generated/client';
+import { env } from '../../../env';
+import { jackson } from '../../../lib/jackson';
 
 export let ssoTenantRefPresenter = (
   tenant: Pick<SsoTenant, 'id' | 'name' | 'status' | 'clientId' | 'externalId'>
@@ -128,10 +130,23 @@ export let ssoScimOperationPresenter = (operation: SsoScimOperation) => ({
   createdAt: operation.createdAt
 });
 
+export let ssoScimLogPresenter = (operation: SsoScimOperation) => ({
+  ...ssoScimOperationPresenter(operation),
+  query: operation.query,
+  requestBody: operation.requestBody,
+  responseBody: operation.responseBody
+});
+
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
     app?: { id: string; clientId: string } | null;
+    account?: {
+      id: string;
+      clientId: string;
+      identifier: string;
+      name: string;
+    } | null;
   }
 ) => ({
   object: 'ares#ssoTenant' as const,
@@ -141,8 +156,13 @@ export let ssoTenantPresenter = (
   clientId: tenant.clientId,
   externalId: tenant.externalId,
   metadata: tenant.metadata,
-  isGlobal: tenant.isGlobal,
+  enrollment: tenant.enrollment,
   hideInUI: tenant.hideInUI,
+  entityId: env.sso.SAML_AUDIENCE,
+  replyUrl: jackson.defaultRedirectUrl.saml,
+  redirectUri: jackson.defaultRedirectUrl.oidc,
+  source: tenant.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  isEditable: !tenant.importedDelegationOid,
   counts: {
     connections: tenant._count?.connections ?? 0
   },
@@ -151,6 +171,15 @@ export let ssoTenantPresenter = (
         object: 'ares#app' as const,
         id: tenant.app.id,
         clientId: tenant.app.clientId
+      }
+    : null,
+  account: tenant.account
+    ? {
+        object: 'ares#account' as const,
+        id: tenant.account.id,
+        clientId: tenant.account.clientId,
+        identifier: tenant.account.identifier,
+        name: tenant.account.name
       }
     : null,
   createdAt: tenant.createdAt,
@@ -172,6 +201,9 @@ export let ssoConnectionPresenter = (
   providerType: connection.providerType,
   providerName: connection.providerName,
   metadata: connection.metadata,
+  source: connection.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  sourceId: connection.sourceId,
+  isEditable: !connection.importedDelegationOid,
   tenant: connection.tenant ? ssoTenantRefPresenter(connection.tenant) : null,
   directories: (connection.directories ?? []).map(ssoDirectoryRefPresenter),
   groups: (connection.groups ?? []).map(ssoConnectionGroupRefPresenter),

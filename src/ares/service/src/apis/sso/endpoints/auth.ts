@@ -6,6 +6,7 @@ import { db } from '../../../db';
 import { env } from '../../../env';
 import { jackson } from '../../../lib/jackson';
 import { ssoAuthService } from '../../../services/sso/auth';
+import { getSsoAuthCompletionRedirect } from '../../../services/sso/authRedirect';
 import { ssoConnectionService } from '../../../services/sso/connection';
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { authSelectConnectionHtml } from '../pages/auth-select-connection';
@@ -52,7 +53,7 @@ export let ssoAuthApp = createHono()
         );
       }
 
-      if (auth.email && connections.length > 1) {
+      if (auth.email && !auth.connectionOid && connections.length > 1) {
         let user = await db.ssoUser.findFirst({
           where: { tenantOid: auth.tenant.oid, email: auth.email }
         });
@@ -67,12 +68,13 @@ export let ssoAuthApp = createHono()
         }
       }
 
-      let connection: (typeof connections)[number] | null = null;
+      let connection: (typeof connections)[number] | null =
+        connections.find(connection => connection.oid == auth.connectionOid) ?? null;
       let connectionId = c.req.query('connection_id');
 
-      if (connections.length == 1) {
+      if (!connection && connections.length == 1) {
         connection = connections[0]!;
-      } else if (connectionId) {
+      } else if (!connection && connectionId) {
         connection = connections.find(c => c.id === connectionId) || null;
       }
 
@@ -84,6 +86,11 @@ export let ssoAuthApp = createHono()
             clientSecret: body.client_secret,
             currentUrl: c.req.url
           })
+        );
+      }
+      if (!connection.internalClientId || !connection.internalClientSecret) {
+        throw new ServiceError(
+          badRequestError({ message: 'Imported connections must use delegation auth.' })
         );
       }
 
@@ -147,6 +154,9 @@ export let ssoAuthApp = createHono()
       let auth = await ssoAuthService.getAuthByClientSecret({
         clientSecret: body.state
       });
+      if (auth.account && auth.account.status != 'active') {
+        throw new ServiceError(badRequestError({ message: 'Account is not active.' }));
+      }
       if (auth.status === 'completed') {
         return c.redirect(auth.redirectUri);
       }
@@ -159,6 +169,11 @@ export let ssoAuthApp = createHono()
           badRequestError({
             message: 'Connection not found or disabled for auth.'
           })
+        );
+      }
+      if (!connection.internalClientId || !connection.internalClientSecret) {
+        throw new ServiceError(
+          badRequestError({ message: 'Imported connections must use delegation auth.' })
         );
       }
 
@@ -208,11 +223,38 @@ export let ssoAuthApp = createHono()
         }
       });
 
-      let finalRedirectUri = new URL(auth.redirectUri);
-      finalRedirectUri.searchParams.set('tenant_id', auth.tenant.id);
-      finalRedirectUri.searchParams.set('auth_id', auth.id);
+      let testSso =
+        auth.purpose === 'connection_test'
+          ? await db.ssoTest.findUnique({ where: { authOid: auth.oid } })
+          : null;
+      if (auth.purpose === 'connection_test' && !testSso) {
+        throw new ServiceError(badRequestError({ message: 'SSO test record not found.' }));
+      }
+      if (testSso) {
+        await db.ssoTest.update({
+          where: { oid: testSso.oid },
+          data: {
+            status: 'completed',
+            userOid: user.oid,
+            userProfileOid: profile.oid,
+            completedAt: new Date()
+          }
+        });
+      }
 
-      return c.redirect(finalRedirectUri.toString());
+      let completionRedirect = getSsoAuthCompletionRedirect({
+        redirectUri: auth.redirectUri,
+        purpose: auth.purpose,
+        tenantId: auth.tenant.id,
+        authId: auth.id,
+        userId: user.id,
+        testSsoId: testSso?.id
+      });
+      if (completionRedirect.consumeAuth) {
+        await db.ssoAuth.delete({ where: { oid: auth.oid } });
+        return c.redirect(completionRedirect.url);
+      }
+      return c.redirect(completionRedirect.url);
     } catch (error: any) {
       return c.html(
         errorHtml({

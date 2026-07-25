@@ -36,6 +36,9 @@ model AuthIntent {
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid])
 
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
   expiresAt  DateTime
@@ -135,6 +138,9 @@ model AuthAttempt {
 
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid])
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
 
   authIntentOid BigInt?
   authIntent    AuthIntent? @relation(fields: [authIntentOid], references: [oid], onDelete: SetNull)

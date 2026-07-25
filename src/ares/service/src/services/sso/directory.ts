@@ -43,13 +43,29 @@ class SsoDirectoryServiceImpl {
     if (d.connection.status !== 'active') {
       throw new ServiceError(badRequestError({ message: 'Connection is disabled' }));
     }
+    if (d.connection.importedDelegationOid || !d.connection.internalId) {
+      throw new ServiceError(
+        badRequestError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
 
-    let res = await jackson.directorySyncController.directories.create({
-      name: d.input.name,
-      type: d.input.type,
-      tenant: d.connection.internalId,
-      product: 'metorial'
-    });
+    let res;
+    try {
+      res = await jackson.directorySyncController.directories.create({
+        name: d.input.name,
+        type: d.input.type,
+        tenant: d.connection.internalId,
+        product: 'metorial'
+      });
+    } catch (error) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Could not create SCIM directory: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        })
+      );
+    }
 
     if (res.error || !res.data) {
       throw new ServiceError(
@@ -191,6 +207,11 @@ class SsoDirectoryServiceImpl {
       tenant: d.tenant,
       directoryId: d.directory.id
     });
+    if (existing.connection.importedDelegationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
 
     if (d.input.status && d.input.status !== existing.status) {
       return await this.setDirectoryStatus({
@@ -217,6 +238,11 @@ class SsoDirectoryServiceImpl {
     directory: SsoDirectory;
     status: SsoDirectoryStatus;
   }) {
+    if (d.connection.importedDelegationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
     if (
       d.connection.tenantOid !== d.tenant.oid ||
       d.directory.connectionOid !== d.connection.oid
@@ -237,6 +263,10 @@ class SsoDirectoryServiceImpl {
     });
 
     if (d.status === 'disabled' && d.directory.status !== 'disabled') {
+      await Promise.all([
+        db.ssoDirectoryGroup.deleteMany({ where: { directoryOid: directory.oid } }),
+        db.ssoDirectoryRole.deleteMany({ where: { directoryOid: directory.oid } })
+      ]);
       await enqueueDisableSsoDirectoryUsers({
         directoryId: directory.id
       });

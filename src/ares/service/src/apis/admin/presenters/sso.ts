@@ -1,14 +1,20 @@
 import type {
   SsoConnection,
   SsoDirectory,
-  SsoTenant,
-  SsoTenantDomain
+  SsoTenant
 } from '../../../../prisma/generated/client';
+import { env } from '../../../env';
+import { jackson } from '../../../lib/jackson';
 
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
-    ssoTenantDomain?: SsoTenantDomain[];
+    account?: {
+      id: string;
+      clientId: string;
+      identifier: string;
+      name: string;
+    } | null;
   }
 ) => ({
   object: 'ares#ssoTenant' as const,
@@ -18,18 +24,24 @@ export let ssoTenantPresenter = (
   status: tenant.status,
   clientId: tenant.clientId,
   externalId: tenant.externalId,
-  isGlobal: tenant.isGlobal,
+  enrollment: tenant.enrollment,
+  entityId: env.sso.SAML_AUDIENCE,
+  replyUrl: jackson.defaultRedirectUrl.saml,
+  redirectUri: jackson.defaultRedirectUrl.oidc,
+  source: tenant.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  isEditable: !tenant.importedDelegationOid,
+  account: tenant.account
+    ? {
+        id: tenant.account.id,
+        clientId: tenant.account.clientId,
+        identifier: tenant.account.identifier,
+        name: tenant.account.name
+      }
+    : null,
 
   counts: {
     connections: tenant._count?.connections ?? 0
   },
-
-  domains: (tenant.ssoTenantDomain ?? []).map(domain => ({
-    id: domain.id,
-    domain: domain.domain,
-    createdAt: domain.createdAt,
-    updatedAt: domain.updatedAt
-  })),
 
   createdAt: tenant.createdAt,
   updatedAt: tenant.updatedAt
@@ -43,6 +55,9 @@ export let ssoConnectionPresenter = (connection: SsoConnection) => ({
   status: connection.status,
   providerType: connection.providerType,
   providerName: connection.providerName,
+  source: connection.importedDelegationOid ? ('imported' as const) : ('local' as const),
+  sourceId: connection.sourceId,
+  isEditable: !connection.importedDelegationOid,
 
   createdAt: connection.createdAt
 });

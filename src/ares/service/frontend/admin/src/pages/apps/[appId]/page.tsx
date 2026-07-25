@@ -1,6 +1,5 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
 import {
-  Badge,
   Button,
   Checkbox,
   Datalist,
@@ -18,7 +17,6 @@ import {
   accessGroupsState,
   appAccessGroupAssignmentsState,
   appState,
-  globalSsoTenantsState,
   oauthProvidersState,
   ssoTenantsState
 } from '../../../state';
@@ -29,7 +27,6 @@ export let AppPage = () => {
   let app = appState.use({ id: appId! });
   let ssoTenants = ssoTenantsState.use({ appId: appId! });
   let ssoTenantsRoot = ssoTenants;
-  let globalSsoTenants = globalSsoTenantsState.use();
   let oauthProviders = oauthProvidersState.use({ appId: appId! });
   let oauthProvidersRoot = oauthProviders;
   let accessGroups = accessGroupsState.use({ appId: appId! });
@@ -39,11 +36,10 @@ export let AppPage = () => {
   return renderWithLoader({
     app,
     ssoTenants,
-    globalSsoTenants,
     oauthProviders,
     accessGroups,
     appAssignments
-  })(({ app, ssoTenants, globalSsoTenants, oauthProviders, accessGroups, appAssignments }) => (
+  })(({ app, ssoTenants, oauthProviders, accessGroups, appAssignments }) => (
     <>
       <Title weight="strong" as="h1" size="7">
         {app.data.clientId}
@@ -263,19 +259,23 @@ export let AppPage = () => {
       </div>
 
       <Table
-        headers={['Name', 'Status', 'Connections', 'Created At', '']}
-        data={[
-          ...ssoTenants.data.items.map((tenant: any) => ({
+        headers={[
+          'Name',
+          'Status',
+          'Source',
+          'Enrollment',
+          'Account',
+          'Connections',
+          'Created At',
+          ''
+        ]}
+        data={ssoTenants.data.items.map((tenant: any) => ({
             data: [
-              <>
-                {tenant.name}
-                {tenant.isGlobal && (
-                  <Badge color="blue" style={{ marginLeft: 8 }}>
-                    Global
-                  </Badge>
-                )}
-              </>,
+              tenant.name,
               tenant.status,
+              tenant.source,
+              tenant.enrollment,
+              tenant.account?.name ?? '-',
               tenant.counts.connections,
               new Date(tenant.createdAt).toLocaleDateString('de-at'),
               <Button as="span" size="1">
@@ -283,27 +283,7 @@ export let AppPage = () => {
               </Button>
             ],
             href: `/apps/${appId}/sso/${tenant.id}`
-          })),
-          ...globalSsoTenants.data.items
-            .filter((gt: any) => !ssoTenants.data.items.some((t: any) => t.id === gt.id))
-            .map((tenant: any) => ({
-              data: [
-                <>
-                  {tenant.name}{' '}
-                  <Badge color="blue" style={{ marginLeft: 8 }}>
-                    Global
-                  </Badge>
-                </>,
-                tenant.status,
-                tenant.counts.connections,
-                new Date(tenant.createdAt).toLocaleDateString('de-at'),
-                <Button as="span" size="1">
-                  View
-                </Button>
-              ],
-              href: `/apps/${tenant.app.id}/sso/${tenant.id}`
-            }))
-        ]}
+          }))}
       />
 
       <div

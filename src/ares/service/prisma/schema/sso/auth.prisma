@@ -3,20 +3,29 @@ enum SsoAuthStatus {
   completed
 }
 
+enum SsoAuthPurpose {
+  authentication
+  connection_test
+}
+
 model SsoAuth {
   oid          BigInt @id
   id           String @unique
   clientSecret String @unique
 
   status SsoAuthStatus @default(pending)
+  purpose SsoAuthPurpose @default(authentication)
 
   redirectUri  String
-  state        String
+  state        String  @unique
   codeVerifier String?
   email        String?
 
   tenantOid BigInt
   tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  accountOid BigInt?
+  account    Account? @relation(fields: [accountOid], references: [oid], onDelete: SetNull)
 
   connectionOid BigInt?
   connection    SsoConnection? @relation(fields: [connectionOid], references: [oid], onDelete: SetNull)
@@ -29,4 +38,8 @@ model SsoAuth {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  expiresAt DateTime?
+
+  delegationAuthRequest SsoDelegationAuthRequest?
+  testSso              SsoTest?
 }

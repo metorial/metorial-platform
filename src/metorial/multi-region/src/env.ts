@@ -9,6 +9,9 @@ export let env = createValidatedEnv({
     GLOBAL_DB_KEEPALIVE_INTERVAL_MS: v.optional(v.number()),
     GLOBAL_DB_POOL_IDLE_TIMEOUT_MS: v.optional(v.number()),
     GLOBAL_DB_CONNECTION_TIMEOUT_MS: v.optional(v.number()),
+    GLOBAL_DB_READY_MAX_ATTEMPTS: v.optional(v.number()),
+    GLOBAL_DB_READY_RETRY_BASE_MS: v.optional(v.number()),
+    GLOBAL_DB_READY_RETRY_MAX_MS: v.optional(v.number()),
     INTERNAL_MULTI_REGION_ENDPOINT: v.string(),
     EXTERNAL_MULTI_REGION_ENDPOINT: v.string()
   }

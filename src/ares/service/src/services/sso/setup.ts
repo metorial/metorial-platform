@@ -7,6 +7,11 @@ import { ssoConnectionService } from './connection';
 
 class SsoSetupServiceImpl {
   async createSetup(d: { tenant: SsoTenant; input: { redirectUri: string } }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Imported SSO tenants are read-only' })
+      );
+    }
     return await db.ssoConnectionSetup.create({
       data: {
         ...getId('ssoConnectionSetup'),

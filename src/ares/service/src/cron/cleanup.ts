@@ -11,7 +11,7 @@ export let cleanupCron = createCron(
   async () => {
     let now = new Date();
     let oneWeekAgo = subDays(now, 7);
-    let twoWeeksAgo = subDays(now, 14);
+    let thirtyDaysAgo = subDays(now, 30);
 
     await db.authAttempt.deleteMany({
       where: { createdAt: { lt: oneWeekAgo } }
@@ -26,7 +26,27 @@ export let cleanupCron = createCron(
     });
 
     await db.ssoScimOperation.deleteMany({
-      where: { createdAt: { lt: twoWeeksAgo } }
+      where: { createdAt: { lt: thirtyDaysAgo } }
+    });
+
+    await db.ssoDelegationAuthRequest.deleteMany({
+      where: { expiresAt: { lt: now } }
+    });
+
+    await db.ssoDelegationAuthorizationCode.deleteMany({
+      where: { expiresAt: { lt: now } }
+    });
+
+    await db.ssoDelegationToken.deleteMany({
+      where: { expiresAt: { lt: now } }
+    });
+
+    await db.ssoTest.deleteMany({
+      where: { createdAt: { lt: oneWeekAgo } }
+    });
+
+    await db.ssoAuth.deleteMany({
+      where: { expiresAt: { lt: now } }
     });
   }
 );

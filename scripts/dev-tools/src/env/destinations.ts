@@ -65,6 +65,17 @@ export let destinations: Destination[] = [
   })),
 
   {
+    type: 'enterprise' as const,
+    env: backendEnv.filter(
+      e =>
+        !['DATABASE_URL', 'PAYMENT_DATABASE_URL', 'FEDERATION_CORE_DATABASE_URL'].includes(
+          e.key
+        )
+    ),
+    path: `src/metorial/services/hyperplane`
+  },
+
+  {
     type: 'oss',
     env: subspaceDevEnv,
     path: 'src/subspace/apps/dev'

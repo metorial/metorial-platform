@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -31,22 +31,38 @@ class SsoConnectionServiceImpl {
       samlMetadata: { type: 'xml'; payload: string } | { type: 'url'; url: string };
     };
   }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
     let connectionId = getId('ssoConnection');
 
-    let con = await jackson.apiController.createSAMLConnection({
-      product: 'metorial',
-      tenant: d.tenant.id,
-      name: d.input.name,
-      redirectUrl: jackson.redirectUrl,
-      defaultRedirectUrl: getSamlConnectionDefaultRedirectUrl({
-        callbackUrl: jackson.defaultRedirectUrl.saml,
-        tenantId: d.tenant.id,
-        connectionId: connectionId.id
-      }),
-      rawMetadata:
-        d.input.samlMetadata.type === 'xml' ? d.input.samlMetadata.payload : undefined!,
-      metadataUrl: d.input.samlMetadata.type === 'url' ? d.input.samlMetadata.url : undefined
-    });
+    let con;
+    try {
+      con = await jackson.apiController.createSAMLConnection({
+        product: 'metorial',
+        tenant: d.tenant.id,
+        name: d.input.name,
+        redirectUrl: jackson.redirectUrl,
+        defaultRedirectUrl: getSamlConnectionDefaultRedirectUrl({
+          callbackUrl: jackson.defaultRedirectUrl.saml,
+          tenantId: d.tenant.id,
+          connectionId: connectionId.id
+        }),
+        rawMetadata:
+          d.input.samlMetadata.type === 'xml' ? d.input.samlMetadata.payload : undefined!,
+        metadataUrl: d.input.samlMetadata.type === 'url' ? d.input.samlMetadata.url : undefined
+      });
+    } catch (error) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Could not create SAML connection: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        })
+      );
+    }
 
     if (d.tenant.status == 'pending') {
       await db.ssoTenant.update({
@@ -82,19 +98,35 @@ class SsoConnectionServiceImpl {
       clientSecret: string;
     };
   }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
     let internalId = generatePlainId(20);
 
-    let con = await jackson.apiController.createOIDCConnection({
-      product: 'metorial',
-      tenant: internalId,
-      name: d.input.name,
-      oidcMetadata: undefined,
-      oidcDiscoveryUrl: d.input.oidcDiscoveryUrl,
-      oidcClientId: d.input.clientId,
-      oidcClientSecret: d.input.clientSecret,
-      redirectUrl: jackson.redirectUrl,
-      defaultRedirectUrl: jackson.defaultRedirectUrl.oidc
-    });
+    let con;
+    try {
+      con = await jackson.apiController.createOIDCConnection({
+        product: 'metorial',
+        tenant: internalId,
+        name: d.input.name,
+        oidcMetadata: undefined,
+        oidcDiscoveryUrl: d.input.oidcDiscoveryUrl,
+        oidcClientId: d.input.clientId,
+        oidcClientSecret: d.input.clientSecret,
+        redirectUrl: jackson.redirectUrl,
+        defaultRedirectUrl: jackson.defaultRedirectUrl.oidc
+      });
+    } catch (error) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Could not create OIDC connection: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        })
+      );
+    }
 
     if (d.tenant.status == 'pending') {
       await db.ssoTenant.update({
@@ -139,6 +171,12 @@ class SsoConnectionServiceImpl {
           clientSecret: string;
         };
   }) {
+    if (d.tenant.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
+
     if (d.input.providerType === 'saml') {
       return await this.createSamlConnection({
         tenant: d.tenant,
@@ -269,6 +307,12 @@ class SsoConnectionServiceImpl {
       status?: SsoConnectionStatus;
     };
   }) {
+    if (d.connection.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
+
     if (d.connection.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('sso.connection'));
     }
@@ -298,6 +342,12 @@ class SsoConnectionServiceImpl {
     connection: SsoConnection;
     status: SsoConnectionStatus;
   }) {
+    if (d.connection.importedDelegationOid) {
+      throw new ServiceError(
+        conflictError({ message: 'Imported SSO connections are read-only' })
+      );
+    }
+
     if (d.connection.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('sso.connection'));
     }

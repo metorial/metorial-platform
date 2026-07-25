@@ -1,4 +1,4 @@
-import { globalDB } from './db';
+import { ensureGlobalDatabaseReady, globalDB } from './db';
 import { env } from './env';
 
 export let deploymentIdentifier = env.service.METORIAL_REGION ?? 'default';
@@ -9,12 +9,15 @@ let getSecureRandomInt = () => {
   return array[0] & 0x7fffffff;
 };
 
-export let cell = globalDB.cell.upsert({
-  where: { identifier: deploymentIdentifier },
-  create: {
-    identifier: deploymentIdentifier,
-    oid: getSecureRandomInt(),
-    endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT
-  },
-  update: { endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT }
-});
+export let cell = ensureGlobalDatabaseReady().then(
+  async () =>
+    await globalDB.cell.upsert({
+      where: { identifier: deploymentIdentifier },
+      create: {
+        identifier: deploymentIdentifier,
+        oid: getSecureRandomInt(),
+        endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT
+      },
+      update: { endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT }
+    })
+);

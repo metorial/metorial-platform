@@ -34,6 +34,7 @@ export let ssoGroupsController = tenantApp.controller({
           userIds: v.optional(v.array(v.string())),
           userProfileIds: v.optional(v.array(v.string())),
           connectionIds: v.optional(v.array(v.string())),
+          directoryIds: v.optional(v.array(v.string())),
           groupIds: v.optional(v.array(v.string()))
         })
       )

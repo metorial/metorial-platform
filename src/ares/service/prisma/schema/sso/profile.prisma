@@ -18,6 +18,7 @@ model SsoConnectionGroup {
   updatedAt DateTime @default(now()) @updatedAt
 
   userProfiles SsoUserProfileGroup[]
+  directories  SsoDirectoryGroup[]
 
   @@unique([connectionOid, value])
   @@index([rootGroupOid])
@@ -43,6 +44,7 @@ model SsoConnectionRole {
   updatedAt DateTime @default(now()) @updatedAt
 
   userProfiles SsoUserProfileRole[]
+  directories  SsoDirectoryRole[]
 
   @@unique([connectionOid, value])
   @@index([rootRoleOid])
@@ -135,7 +137,10 @@ model SsoUserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  auths SsoAuth[]
+  auths                        SsoAuth[]
+  ssoTests                     SsoTest[]
+  delegationAuthorizationCodes SsoDelegationAuthorizationCode[]
+  delegationTokens             SsoDelegationToken[]
 
   userIdentities UserIdentity[]
   ownedUser      SsoUser?                  @relation("SsoUserOwnerProfile")

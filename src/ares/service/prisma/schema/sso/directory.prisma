@@ -23,9 +23,45 @@ model SsoDirectory {
 
   ownedUserProfiles SsoUserProfile[]          @relation("SsoUserProfileOwnerDirectory")
   userProfiles      SsoDirectoryUserProfile[]
+  groups            SsoDirectoryGroup[]
+  roles             SsoDirectoryRole[]
   scimOperations    SsoScimOperation[]
 
   @@unique([connectionOid, internalId])
+}
+
+model SsoDirectoryGroup {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt
+  directory    SsoDirectory @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  groupOid BigInt
+  group    SsoConnectionGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([directoryOid, groupOid])
+  @@index([groupOid])
+}
+
+model SsoDirectoryRole {
+  oid BigInt @id
+  id  String @unique
+
+  directoryOid BigInt
+  directory    SsoDirectory @relation(fields: [directoryOid], references: [oid], onDelete: Cascade)
+
+  roleOid BigInt
+  role    SsoConnectionRole @relation(fields: [roleOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([directoryOid, roleOid])
+  @@index([roleOid])
 }
 
 model SsoScimOperation {

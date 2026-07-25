@@ -16,6 +16,27 @@ import { parseEmail } from '../lib/parseEmail';
 import { auditLogService } from './auditLog';
 
 class UserServiceImpl {
+  async linkToAccount(d: { user: User }) {
+    let { domain } = parseEmail(d.user.email);
+    let accountDomain = await db.accountDomain.findUnique({
+      where: {
+        appOid_domain: {
+          appOid: d.user.appOid,
+          domain
+        }
+      },
+      include: { account: true }
+    });
+    let accountOid =
+      accountDomain?.account.status == 'active' ? accountDomain.accountOid : null;
+
+    if (d.user.accountOid == accountOid) return d.user;
+    return await db.user.update({
+      where: { oid: d.user.oid },
+      data: { accountOid }
+    });
+  }
+
   async findByEmailSafe(d: { email: string; app: App }) {
     return await db.user.findFirst({
       where: {
@@ -62,6 +83,16 @@ class UserServiceImpl {
 
     return withTransaction(async tdb => {
       try {
+        let { domain } = parseEmail(d.email);
+        let accountDomain = await tdb.accountDomain.findUnique({
+          where: {
+            appOid_domain: {
+              appOid: d.app.oid,
+              domain
+            }
+          },
+          include: { account: true }
+        });
         let user = await tdb.user.create({
           data: {
             ...getId('user'),
@@ -75,6 +106,8 @@ class UserServiceImpl {
             owner: 'self',
             status: 'active',
             appOid: d.app.oid,
+            accountOid:
+              accountDomain?.account.status == 'active' ? accountDomain.accountOid : null,
             tenantOid: d.app.defaultTenantOid!,
 
             isFullyCreated: d.type === 'standard_user',
@@ -135,7 +168,7 @@ class UserServiceImpl {
           include: {
             oauthProvider: true,
             ssoTenant: {
-              include: { ssoTenantDomain: true }
+              include: { account: true }
             }
           }
         },
@@ -295,9 +328,23 @@ class UserServiceImpl {
         data: { isPrimary: true }
       });
 
+      let parsedEmail = parseEmail(d.email.email);
+      let accountDomain = await tdb.accountDomain.findUnique({
+        where: {
+          appOid_domain: {
+            appOid: d.user.appOid,
+            domain: parsedEmail.domain
+          }
+        },
+        include: { account: true }
+      });
       let user = await tdb.user.update({
         where: { oid: d.user.oid },
-        data: { email: d.email.email }
+        data: {
+          email: d.email.email,
+          accountOid:
+            accountDomain?.account.status == 'active' ? accountDomain.accountOid : null
+        }
       });
 
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
@@ -520,9 +567,23 @@ class UserServiceImpl {
       // Sync the user's primary email field
       let primary = results.find(e => e.isPrimary);
       if (primary && primary.email !== d.user.email) {
+        let parsedEmail = parseEmail(primary.email);
+        let accountDomain = await tdb.accountDomain.findUnique({
+          where: {
+            appOid_domain: {
+              appOid: d.user.appOid,
+              domain: parsedEmail.domain
+            }
+          },
+          include: { account: true }
+        });
         await tdb.user.update({
           where: { oid: d.user.oid },
-          data: { email: primary.email }
+          data: {
+            email: primary.email,
+            accountOid:
+              accountDomain?.account.status == 'active' ? accountDomain.accountOid : null
+          }
         });
       }
 

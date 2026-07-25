@@ -20,8 +20,10 @@ import {
   OAuthToken,
   Organization,
   OrganizationActor,
+  OrganizationConfig,
   OrganizationInvite,
   OrganizationInviteJoin,
+  OrganizationLayout,
   OrganizationMember,
   Portal,
   Project,
@@ -167,6 +169,38 @@ export type FabricEnterpriseInvite = {
   rejectedAt: Date | null;
 };
 
+export type FabricBillingPlan = {
+  id: string;
+};
+
+export type FabricEnterpriseUser = {
+  id: string;
+};
+
+export type FabricBillingAccount = {
+  id: string;
+  organizationId: string;
+};
+
+export type FabricOrganizationSubscription = {
+  id: string;
+  organizationId: string;
+  planId: string;
+};
+
+export type FabricUserTenant = {
+  oid: bigint;
+  id: string;
+  type: 'account_system_users';
+  accountOid: bigint;
+  canEditName: boolean;
+  canEditEmail: boolean;
+  canEditImage: boolean;
+  canJoinOrganization: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type KeyProviderEventKeyProvider = {
   object: 'nebula#key_provider';
   id: string;
@@ -208,6 +242,13 @@ export interface FabricEvents {
   'user.deleted:before': { user: User, performedBy: User; context?: Context };
   'user.deleted:after': { user: User, performedBy: User; context?: Context };
 
+  'user_tenant.created:after': { userTenant: FabricUserTenant };
+
+  'enterprise.user.created:after': { user: FabricEnterpriseUser };
+  'enterprise.user.updated:after': { user: FabricEnterpriseUser };
+  'enterprise.user.deleted:after': { user: FabricEnterpriseUser };
+  'enterprise.updated:after': { enterprise: FabricEnterprise };
+
   'user.session.created:before': { user: User, performedBy: User; context?: Context };
   'user.session.created:after': { user: User, session: UserSession, performedBy: User; context?: Context };
   'user.session.deleted:before': { user: User, session: UserSession, performedBy: User; context?: Context };
@@ -231,6 +272,11 @@ export interface FabricEvents {
   'organization.member.updated:after': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
   'organization.member.deleted:before': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
   'organization.member.deleted:after': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
+
+  'organization.config.updated:before': { organization: Organization; user: User; config: OrganizationConfig; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
+  'organization.config.updated:after': { organization: Organization; user: User; config: OrganizationConfig; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
+  'organization.layout.updated:before': { organization: Organization; user: User; layout: OrganizationLayout; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
+  'organization.layout.updated:after': { organization: Organization; user: User; layout: OrganizationLayout; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
 
   'organization.invitation.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
   'organization.invitation.created:after': { organization: Organization, invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
@@ -318,6 +364,11 @@ export interface FabricEvents {
   'organization.access_policy.assignment.service_account.created:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
   'organization.access_policy.assignment.service_account.deleted:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
   'organization.access_policy.assignment.service_account.deleted:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+
+  'billing.plan.created:after': { plan: FabricBillingPlan };
+  'billing.plan.updated:after': { plan: FabricBillingPlan };
+  'billing.account.created:after': { account: FabricBillingAccount };
+  'billing.subscription.updated:after': { subscription: FabricOrganizationSubscription };
 
   'machine_access.created:before': MachineAccessInput & { context?: Context };
   'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };

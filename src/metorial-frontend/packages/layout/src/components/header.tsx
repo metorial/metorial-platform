@@ -57,16 +57,7 @@ let Layer = styled.div`
   display: flex;
 `;
 
-export let PageHeader = ({
-  title,
-  description,
-  actions,
-  top,
-  subHeader,
-  pagination,
-  size = '7',
-  inline
-}: {
+export interface PageHeaderProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
@@ -78,7 +69,18 @@ export let PageHeader = ({
   }[];
   size?: '7' | '3' | '1' | '2' | '4' | '5' | '6' | '8' | '9';
   inline?: boolean;
-}) => {
+}
+
+export let PageHeader = ({
+  title,
+  description,
+  actions,
+  top,
+  subHeader,
+  pagination,
+  size = '7',
+  inline
+}: PageHeaderProps) => {
   return (
     <Wrapper
       data-size={size}
@@ -127,5 +129,18 @@ export let PageHeader = ({
         </HeaderSection>
       )}
     </Wrapper>
+  );
+};
+
+export let PageHeaderSection = ({
+  children,
+  ...props
+}: { children: React.ReactNode } & PageHeaderProps) => {
+  return (
+    <div>
+      <PageHeader {...props} size={props.size ?? '5'} />
+
+      {children}
+    </div>
   );
 };

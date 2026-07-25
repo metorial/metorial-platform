@@ -6,7 +6,7 @@ import { Button } from '../button';
 import { theme } from '../theme';
 import {
   DialogProvider,
-  preventDialogDismissWhenSelectOpen,
+  preventDialogDismissForSelectInteraction,
   useDialogZIndex
 } from './state';
 import { ContentSide, Overlay } from './styles';
@@ -87,7 +87,9 @@ export let Panel = {
 
             <Wrapper
               ref={contentRef}
-              onPointerDownOutside={preventDialogDismissWhenSelectOpen}
+              onPointerDownOutside={preventDialogDismissForSelectInteraction}
+              onInteractOutside={preventDialogDismissForSelectInteraction}
+              onFocusOutside={preventDialogDismissForSelectInteraction}
               style={{
                 ...style,
 

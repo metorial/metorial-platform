@@ -65,7 +65,8 @@ export let jxnApp = createHono()
           id: connectionId,
           tenant: tenantId ? { id: tenantId, status: 'completed' } : { status: 'completed' },
           providerType: 'saml',
-          status: 'active'
+          status: 'active',
+          importedDelegationOid: null
         },
         include: {
           tenant: {
@@ -89,6 +90,7 @@ export let jxnApp = createHono()
           }
         | undefined;
       for (let connection of connections) {
+        if (!connection.internalClientId || !connection.internalClientSecret) continue;
         try {
           let tokenRes = await jackson.oauthController.token({
             grant_type: 'authorization_code',
