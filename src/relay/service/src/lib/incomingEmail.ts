@@ -2,10 +2,22 @@ import EmailForwardParser from 'email-forward-parser';
 import EmailReplyParser from 'email-reply-parser';
 import { htmlToText } from 'html-to-text';
 import PostalMime from 'postal-mime';
+import { normalizeEmailAddress } from './emailAddress';
+
+export { normalizeEmailAddress } from './emailAddress';
 
 type ParsedAddress = {
   address?: string;
   name?: string;
+};
+
+export type ParsedEmailAttachment = {
+  filename: string | null;
+  contentType: string;
+  disposition: string | null;
+  contentId: string | null;
+  content: Uint8Array<ArrayBuffer>;
+  size: number;
 };
 
 let normalizeWhitespace = (text: string) =>
@@ -13,9 +25,6 @@ let normalizeWhitespace = (text: string) =>
     .replace(/\r\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-
-export let normalizeEmailAddress = (email: string | null | undefined) =>
-  email?.trim().replace(/^<|>$/g, '').toLowerCase();
 
 let normalizeMessageId = (messageId: string | null | undefined) =>
   messageId?.trim().replace(/^<|>$/g, '').toLowerCase();
@@ -132,6 +141,18 @@ let processText = (text: string, subject: string) => {
   return replyText;
 };
 
+let toBytes = (content: unknown): Uint8Array<ArrayBuffer> => {
+  if (content instanceof Uint8Array) return Uint8Array.from(content);
+  if (content instanceof ArrayBuffer) return new Uint8Array(content);
+  if (typeof content == 'string') return Uint8Array.from(new TextEncoder().encode(content));
+  return new Uint8Array();
+};
+
+export let getIncomingEmailHash = async (raw: string) => {
+  let digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 export let parseIncomingEmail = async (raw: string) => {
   let email = await PostalMime.parse(raw);
   let headers = getHeaders(email);
@@ -153,11 +174,28 @@ export let parseIncomingEmail = async (raw: string) => {
     recipients: [...new Set(getRecipientAddresses(email, headers))],
     subject,
     text: processText(text, subject),
+    html: email.html || null,
     messageId: normalizeMessageId(email.messageId ?? getHeader(headers, 'message-id')),
     inReplyToIds: extractMessageIdsFromHeader(
       email.inReplyTo ?? getHeader(headers, 'in-reply-to')
     ),
-    referenceIds: extractMessageIdsFromHeader(email.references ?? getHeader(headers, 'references')),
-    headers
+    referenceIds: extractMessageIdsFromHeader(
+      email.references ?? getHeader(headers, 'references')
+    ),
+    headers,
+    attachments: ((email.attachments ?? []) as any[]).map(
+      (attachment): ParsedEmailAttachment => {
+        let content = toBytes(attachment.content);
+
+        return {
+          filename: attachment.filename || null,
+          contentType: attachment.mimeType || 'application/octet-stream',
+          disposition: attachment.disposition || null,
+          contentId: attachment.contentId || null,
+          content,
+          size: content.byteLength
+        };
+      }
+    )
   };
 };

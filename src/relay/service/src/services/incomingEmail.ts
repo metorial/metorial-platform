@@ -1,16 +1,25 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { IncomingEmailThread, Sender } from '../../prisma/generated/client';
+import type { IncomingEmailThread, Prisma, Sender } from '../../prisma/generated/client';
 import { db } from '../db';
-import { getId } from '../id';
-import { normalizeThreadSubject, parseIncomingEmail } from '../lib/incomingEmail';
+import { getId, snowflake } from '../id';
+import {
+  getIncomingEmailHash,
+  normalizeThreadSubject,
+  parseIncomingEmail
+} from '../lib/incomingEmail';
 import { emailService } from './email';
 
 let include = {
   inbox: true,
-  thread: true
-};
+  thread: true,
+  attachments: true
+} as const;
+
+type IncomingEmailWithRelations = Prisma.IncomingEmailGetPayload<{
+  include: typeof include;
+}>;
 
 let unique = <T>(items: T[]) => [...new Set(items)];
 
@@ -18,13 +27,20 @@ let getReplySubject = (subject: string) =>
   /^re\s*:/i.test(subject) ? subject : `Re: ${subject || '(no subject)'}`;
 
 class IncomingEmailService {
-  async receiveEmail(d: { sender: Sender; raw: string }) {
+  async receiveEmail(d: { sender: Sender; raw: string }): Promise<IncomingEmailWithRelations> {
     let parsed = await parseIncomingEmail(d.raw);
 
     if (parsed.recipients.length == 0) {
       throw new ServiceError(
         badRequestError({
           message: 'Incoming email does not contain a supported recipient'
+        })
+      );
+    }
+    if (!parsed.from) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Incoming email does not contain a valid sender'
         })
       );
     }
@@ -44,52 +60,98 @@ class IncomingEmailService {
       );
     }
 
-    if (parsed.messageId) {
-      let existing = await db.incomingEmail.findFirst({
+    let totalAttachmentSize = parsed.attachments.reduce(
+      (total, attachment) => total + attachment.size,
+      0
+    );
+    if (
+      parsed.attachments.length > 20 ||
+      parsed.attachments.some(attachment => attachment.size > 10 * 1024 * 1024) ||
+      totalAttachmentSize > 25 * 1024 * 1024
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Incoming email attachments exceed Relay size limits'
+        })
+      );
+    }
+
+    let dedupKey = parsed.messageId
+      ? `message-id:${parsed.messageId}`
+      : `sha256:${await getIncomingEmailHash(d.raw)}`;
+    let messageIds = unique([...parsed.inReplyToIds, ...parsed.referenceIds]);
+
+    try {
+      return await db.$transaction<IncomingEmailWithRelations>(async tx => {
+        let existing = await tx.incomingEmail.findUnique({
+          where: {
+            inboxOid_dedupKey: {
+              inboxOid: inbox.oid,
+              dedupKey
+            }
+          },
+          include
+        });
+        if (existing) return existing;
+
+        let thread = await this.resolveThread({
+          sender: d.sender,
+          inboxOid: inbox.oid,
+          messageIds,
+          tx
+        });
+
+        if (!thread) {
+          thread = await tx.incomingEmailThread.create({
+            data: {
+              ...getId('incomingEmailThread'),
+              inboxOid: inbox.oid,
+              subject: normalizeThreadSubject(parsed.subject)
+            },
+            include: {
+              inbox: true
+            }
+          });
+        }
+
+        return await tx.incomingEmail.create({
+          data: {
+            ...getId('incomingEmail'),
+            inboxOid: inbox.oid,
+            threadOid: thread.oid,
+            from: parsed.from,
+            to: inbox.email,
+            subject: parsed.subject,
+            text: parsed.text,
+            html: parsed.html,
+            messageId: parsed.messageId,
+            dedupKey,
+            headers: parsed.headers,
+            attachments: {
+              create: parsed.attachments.map(attachment => ({
+                id: snowflake.nextId(),
+                ...attachment
+              }))
+            }
+          },
+          include
+        });
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code != 'P2002') throw error;
+
+      let existing = await db.incomingEmail.findUnique({
         where: {
-          messageId: parsed.messageId,
-          inboxOid: inbox.oid
+          inboxOid_dedupKey: {
+            inboxOid: inbox.oid,
+            dedupKey
+          }
         },
         include
       });
-
       if (existing) return existing;
+      throw error;
     }
-
-    let messageIds = unique([...parsed.inReplyToIds, ...parsed.referenceIds]);
-    let thread = await this.resolveThread({
-      sender: d.sender,
-      inboxOid: inbox.oid,
-      messageIds
-    });
-
-    if (!thread) {
-      thread = await db.incomingEmailThread.create({
-        data: {
-          ...getId('incomingEmailThread'),
-          inboxOid: inbox.oid,
-          subject: normalizeThreadSubject(parsed.subject)
-        },
-        include: {
-          inbox: true
-        }
-      });
-    }
-
-    return await db.incomingEmail.create({
-      data: {
-        ...getId('incomingEmail'),
-        inboxOid: inbox.oid,
-        threadOid: thread.oid,
-        from: parsed.from,
-        to: inbox.email,
-        subject: parsed.subject,
-        text: parsed.text,
-        messageId: parsed.messageId,
-        headers: parsed.headers
-      },
-      include
-    });
   }
 
   async getIncomingEmailById(d: { sender: Sender; id: string }) {
@@ -157,6 +219,16 @@ class IncomingEmailService {
     input: {
       to?: string[];
       template?: any;
+      fromName?: string;
+      replyTo?: string;
+      idempotencyKey?: string;
+      attachments?: {
+        filename: string;
+        contentType: string;
+        content: string;
+        disposition?: string;
+        contentId?: string;
+      }[];
       content: {
         subject?: string;
         html: string;
@@ -187,6 +259,10 @@ class IncomingEmailService {
       type: 'email',
       to,
       template: d.input.template ?? {},
+      fromName: d.input.fromName,
+      replyTo: d.input.replyTo,
+      idempotencyKey: d.input.idempotencyKey,
+      attachments: d.input.attachments,
       content: {
         subject: d.input.content.subject ?? getReplySubject(incomingEmail.subject),
         html: d.input.content.html,
@@ -201,15 +277,15 @@ class IncomingEmailService {
     sender: Sender;
     inboxOid: bigint;
     messageIds: string[];
+    tx?: any;
   }): Promise<IncomingEmailThread | null> {
     if (d.messageIds.length == 0) return null;
+    let client = d.tx ?? db;
 
-    let previousIncomingEmail = await db.incomingEmail.findFirst({
+    let previousIncomingEmail = await client.incomingEmail.findFirst({
       where: {
         messageId: { in: d.messageIds },
-        inbox: {
-          senderOid: d.sender.oid
-        }
+        inboxOid: d.inboxOid
       },
       include: {
         thread: true
@@ -218,14 +294,26 @@ class IncomingEmailService {
 
     if (previousIncomingEmail) return previousIncomingEmail.thread;
 
-    let previousOutgoingSend = await db.outgoingEmailSend.findFirst({
+    let previousOutgoingSend = await client.outgoingEmailSend.findFirst({
       where: {
         messageId: { in: d.messageIds },
         destination: {
           email: {
             identity: {
               senderOid: d.sender.oid
-            }
+            },
+            OR: [
+              {
+                incomingEmailThread: {
+                  inboxOid: d.inboxOid
+                }
+              },
+              {
+                replyToIncomingEmail: {
+                  inboxOid: d.inboxOid
+                }
+              }
+            ]
           }
         }
       },
@@ -249,11 +337,13 @@ class IncomingEmailService {
 
     let outgoingEmail = previousOutgoingSend?.destination.email;
     let outgoingThread =
-      outgoingEmail?.incomingEmailThread ?? outgoingEmail?.replyToIncomingEmail?.thread ?? null;
+      outgoingEmail?.incomingEmailThread ??
+      outgoingEmail?.replyToIncomingEmail?.thread ??
+      null;
 
     if (outgoingThread) return outgoingThread;
 
-    return await db.incomingEmailThread.findFirst({
+    return await client.incomingEmailThread.findFirst({
       where: {
         inboxOid: d.inboxOid,
         emails: {

@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 let db = vi.hoisted(() => ({
+  $transaction: vi.fn(
+    async (callback: (transaction: any) => Promise<any>) => await callback(db)
+  ),
   inbox: {
     findFirst: vi.fn()
   },
   incomingEmail: {
+    findUnique: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn()
@@ -20,12 +24,16 @@ let db = vi.hoisted(() => ({
     findFirst: vi.fn()
   },
   outgoingEmail: {
+    findUnique: vi.fn(),
     create: vi.fn()
   },
   outgoingEmailContent: {
-    createMany: vi.fn()
+    create: vi.fn()
   },
   outgoingEmailDestination: {
+    createMany: vi.fn()
+  },
+  outgoingEmailAttachment: {
     createMany: vi.fn()
   }
 }));
@@ -77,6 +85,9 @@ let incomingEmail = {
   text: 'Fresh reply',
   messageId: 'reply@example.com',
   headers: [],
+  html: null,
+  dedupKey: 'message-id:reply@example.com',
+  attachments: [],
   createdAt: new Date()
 };
 
@@ -96,12 +107,25 @@ describe('incomingEmailService', () => {
   test('rejects messages for unregistered inboxes', async () => {
     db.inbox.findFirst.mockResolvedValue(null);
 
-    await expect(incomingEmailService.receiveEmail({ sender, raw: rawEmail })).rejects.toThrow();
+    await expect(
+      incomingEmailService.receiveEmail({ sender, raw: rawEmail })
+    ).rejects.toThrow();
+  });
+
+  test('rejects messages without a valid sender address', async () => {
+    let raw = `From: invalid-address
+To: Relay <inbox@example.com>
+Subject: Support
+
+Hello`;
+
+    await expect(incomingEmailService.receiveEmail({ sender, raw })).rejects.toThrow();
+    expect(db.inbox.findFirst).not.toHaveBeenCalled();
   });
 
   test('returns existing incoming email for duplicate message ids', async () => {
     db.inbox.findFirst.mockResolvedValue(inbox);
-    db.incomingEmail.findFirst.mockResolvedValue(incomingEmail);
+    db.incomingEmail.findUnique.mockResolvedValue(incomingEmail);
 
     await expect(incomingEmailService.receiveEmail({ sender, raw: rawEmail })).resolves.toBe(
       incomingEmail
@@ -111,13 +135,12 @@ describe('incomingEmailService', () => {
 
   test('reuses existing thread from In-Reply-To message id', async () => {
     db.inbox.findFirst.mockResolvedValue(inbox);
-    db.incomingEmail.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        ...incomingEmail,
-        messageId: 'original@example.com',
-        thread
-      });
+    db.incomingEmail.findUnique.mockResolvedValue(null);
+    db.incomingEmail.findFirst.mockResolvedValueOnce({
+      ...incomingEmail,
+      messageId: 'original@example.com',
+      thread
+    });
     db.outgoingEmailSend.findFirst.mockResolvedValue(null);
     db.incomingEmail.create.mockImplementation(async ({ data }: any) => ({
       ...incomingEmail,
@@ -129,11 +152,20 @@ describe('incomingEmailService', () => {
     await incomingEmailService.receiveEmail({ sender, raw: rawEmail });
 
     expect(db.incomingEmailThread.create).not.toHaveBeenCalled();
+    expect(db.incomingEmail.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          messageId: { in: ['original@example.com'] },
+          inboxOid: inbox.oid
+        }
+      })
+    );
     expect(db.incomingEmail.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           threadOid: thread.oid,
-          text: 'Fresh reply'
+          text: 'Fresh reply',
+          dedupKey: 'message-id:reply@example.com'
         })
       })
     );
@@ -185,7 +217,7 @@ describe('incomingEmailService', () => {
       updatedAt: new Date()
     });
     db.outgoingEmail.create.mockResolvedValue({ oid: 50n, id: 'oe_1' });
-    db.outgoingEmailContent.createMany.mockResolvedValue({});
+    db.outgoingEmailContent.create.mockResolvedValue({});
     db.outgoingEmailDestination.createMany.mockResolvedValue({});
 
     await incomingEmailService.replyToIncomingEmail({

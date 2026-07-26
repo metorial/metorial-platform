@@ -58,13 +58,17 @@ model EmailIdentity {
 
 model OutgoingEmail {
   oid BigInt @id
-  id  String
+  id  String @unique
 
   numberOfDestinations          Int
   numberOfDestinationsCompleted Int
 
   identityId Int
   identity   EmailIdentity @relation(fields: [identityId], references: [oid], onDelete: Cascade)
+
+  fromName       String?
+  replyTo        String?
+  idempotencyKey String?
 
   incomingEmailThreadOid BigInt?
   incomingEmailThread    IncomingEmailThread? @relation(fields: [incomingEmailThreadOid], references: [oid], onDelete: SetNull)
@@ -84,6 +88,10 @@ model OutgoingEmail {
 
   content      OutgoingEmailContent?
   destinations OutgoingEmailDestination[]
+  attachments  OutgoingEmailAttachment[]
+
+  @@unique([identityId, idempotencyKey])
+  @@index([identityId])
 }
 
 enum OutgoingEmailDestinationStatus {
@@ -114,6 +122,22 @@ model OutgoingEmailContent {
   subject String
 }
 
+model OutgoingEmailAttachment {
+  id BigInt @id
+
+  emailId BigInt
+  email   OutgoingEmail @relation(fields: [emailId], references: [oid], onDelete: Cascade)
+
+  filename    String
+  contentType String
+  disposition String?
+  contentId   String?
+  content     Bytes
+  size        Int
+
+  @@index([emailId])
+}
+
 enum OutgoingEmailSendStatus {
   success
   failed
@@ -127,7 +151,7 @@ model OutgoingEmailSend {
   destination   OutgoingEmailDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
 
   messageId String?
-  result Json
+  result    Json
 
   createdAt DateTime @default(now())
 
@@ -181,13 +205,34 @@ model IncomingEmail {
   to        String
   subject   String
   text      String
+  html      String?
   messageId String?
+  dedupKey  String
   headers   Json
 
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime                  @default(now())
   outgoingEmails OutgoingEmail[]
+  attachments    IncomingEmailAttachment[]
 
+  @@unique([inboxOid, messageId])
+  @@unique([inboxOid, dedupKey])
   @@index([inboxOid])
   @@index([threadOid])
   @@index([messageId])
+}
+
+model IncomingEmailAttachment {
+  id BigInt @id
+
+  emailOid BigInt
+  email    IncomingEmail @relation(fields: [emailOid], references: [oid], onDelete: Cascade)
+
+  filename    String?
+  contentType String
+  disposition String?
+  contentId   String?
+  content     Bytes
+  size        Int
+
+  @@index([emailOid])
 }

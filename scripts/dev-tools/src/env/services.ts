@@ -776,6 +776,14 @@ export let horizonServiceEnv: Env = [
     isRequired: false
   },
   {
+    key: 'SLACK_SUPPORT_BOT_TOKEN',
+    isRequired: false
+  },
+  {
+    key: 'SLACK_SUPPORT_SIGNING_SECRET',
+    isRequired: false
+  },
+  {
     key: 'ITEM_WEBHOOK_URL',
     isRequired: false
   },
@@ -794,6 +802,34 @@ export let horizonServiceEnv: Env = [
   {
     key: 'SUPPORT_CRISP_TOKEN_KEY',
     isRequired: false
+  },
+  {
+    key: 'SUPPORT_RELAY_SENDER_IDENTIFIER',
+    defaultValue: 'metorial-horizon-support'
+  },
+  {
+    key: 'SUPPORT_EMAIL_NAME',
+    defaultValue: 'Metorial Support'
+  },
+  {
+    key: 'SUPPORT_EMAIL_ADDRESS',
+    defaultValue: 'support@metorial.com'
+  },
+  {
+    key: 'SUPPORT_MAIN_INBOX_ADDRESS',
+    defaultValue: 'support@metorial.com'
+  },
+  {
+    key: 'SUPPORT_REPLY_ADDRESS_DOMAIN',
+    defaultValue: 'metorial.com'
+  },
+  {
+    key: 'SUPPORT_REPLY_ADDRESS_LOCAL_PART',
+    defaultValue: 'support'
+  },
+  {
+    key: 'SUPPORT_RELAY_POLL_CRON',
+    defaultValue: '* * * * *'
   },
   {
     key: 'ENTERPRISE_FILES_SIGNATURE_PASSWORD',

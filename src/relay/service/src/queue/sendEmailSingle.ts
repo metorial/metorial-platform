@@ -8,6 +8,7 @@ import { db } from '../db';
 import { env } from '../env';
 import { snowflake } from '../id';
 import { getReplyHeadersForIncomingEmail } from '../lib/emailHeaders';
+import { isOutgoingEmailComplete } from '../lib/outgoingEmail';
 import { send } from '../lib/send';
 
 let Sentry = getSentry();
@@ -47,6 +48,7 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       email: {
         include: {
           content: true,
+          attachments: true,
           identity: true,
           replyToIncomingEmail: true
         }
@@ -66,6 +68,9 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       html: email.content.html.replaceAll('EMAIL_ID', email.id),
       text: email.content.text.replaceAll('EMAIL_ID', email.id),
       identity: email.identity,
+      fromName: email.fromName ?? undefined,
+      replyTo: email.replyTo ?? undefined,
+      attachments: email.attachments,
       headers: getReplyHeadersForIncomingEmail(email.replyToIncomingEmail)
     });
   } catch (err) {
@@ -100,11 +105,6 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       where: { id: destination.id },
       data: { status: 'retry' }
     });
-
-    await sendEmailSingleQueue.add(
-      { destinationId: destination.id },
-      { delay: 1000 * 60 * 5 }
-    );
   } else {
     updatedDest = await db.outgoingEmailDestination.update({
       where: { id: destination.id },
@@ -124,10 +124,12 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
 
     // Get rid of the email content if all destinations have been sent
     // This is to save space in the database
-    if (email.numberOfDestinations >= email.numberOfDestinationsCompleted) {
+    if (isOutgoingEmailComplete(email)) {
       await db.outgoingEmailContent.deleteMany({
         where: { emailId: email.oid }
       });
     }
   }
+
+  if (updatedDest.status == 'retry') throw new QueueRetryError();
 });

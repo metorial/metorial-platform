@@ -28,9 +28,14 @@ export let sendEmailQueueProcessor = sendEmailQueue.process(async data => {
   });
   if (!email) throw new QueueRetryError();
 
-  await sendEmailSingleQueue.addMany(
-    email.destinations.map(d => ({
-      destinationId: d.id
+  await sendEmailSingleQueue.addManyWithOps(
+    email.destinations.map(destination => ({
+      data: {
+        destinationId: destination.id
+      },
+      opts: {
+        id: `relay-send-destination-${destination.id}`
+      }
     }))
   );
 });

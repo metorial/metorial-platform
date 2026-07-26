@@ -14,6 +14,74 @@ Relay is an email delivery service that provides a centralized platform for mana
 - **Environment Prefixes**: Automatic [STAGING] or [DEV] subject prefixes for non-production environments
 - **Automatic Cleanup**: Daily cron job removes email records older than 30 days
 - **Subject Markers**: Custom subject markers per email identity for filtering and organization
+- **Inbound Inboxes**: Idempotent inbox provisioning, MIME parsing, threading, and per-inbox deduplication
+- **Idempotent Delivery**: Optional per-identity idempotency keys prevent duplicate outbound emails
+- **Replies and Attachments**: Persisted reply headers, reply-to addresses, HTML, and bounded attachments
+- **Aggregate Status**: Query one outbound email and its per-destination delivery state
+
+### Inbox and delivery foundation
+
+Inbox provisioning is idempotent for a normalized email address owned by the same sender:
+
+```typescript
+let inbox = await client.inbox.create({
+  senderId: sender.id,
+  email: 'support-inbox@example.com'
+});
+```
+
+`email.receive` accepts a raw RFC 822 message. Relay deduplicates concurrently delivered messages
+using `(inbox, Message-ID)`. Messages without a `Message-ID` use a deterministic SHA-256 hash of the
+raw message. Thread references are resolved only inside the selected inbox.
+
+Relay does not receive mail from SES, SMTP, or IMAP by itself. An external inbound-mail gateway must
+accept mail for the configured inbox domains and forward the raw RFC 822 message to `email.receive`
+over Relay's trusted service network. The current RPC has no request signature of its own and must
+not be exposed directly to the public internet.
+
+Outbound send and reply requests accept immutable delivery options:
+
+```typescript
+let queued = await client.email.send({
+  senderId: sender.id,
+  emailIdentityId: identity.id,
+  to: ['user@example.com'],
+  fromName: 'Customer Success',
+  replyTo: 'support@example.com',
+  idempotencyKey: 'welcome:user_123',
+  template: {},
+  attachments: [
+    {
+      filename: 'welcome.txt',
+      contentType: 'text/plain',
+      content: Buffer.from('Welcome').toString('base64')
+    }
+  ],
+  content: {
+    subject: 'Welcome',
+    html: '<p>Welcome</p>',
+    text: 'Welcome'
+  }
+});
+
+let delivery = await client.email.getOutgoing({
+  senderId: sender.id,
+  outgoingEmailId: queued.id
+});
+```
+
+`email.status` is an alias for the same aggregate outgoing delivery response. It reports aggregate
+status plus each destination's status, latest provider message ID, and attachment metadata.
+
+Inbound HTML and attachment bytes, and outbound attachment bytes, are currently stored directly in
+PostgreSQL because Relay does not have an object-storage abstraction wired into its email path.
+Attachments are limited to 20 files, 10 MiB each, and 25 MiB total per message. This foundation does
+not provide streaming uploads or external object URLs; migrating payload bytes to object storage
+remains future work.
+
+The schema migration under `service/prisma/migrations` is the deployable database artifact. Prisma
+clients under `service/prisma/generated` and generated Relay client declarations are build artifacts
+and remain ignored; regenerate them in the build/workspace before typechecking or packaging.
 
 ## Quick Start
 
@@ -56,7 +124,7 @@ services:
   relay:
     image: ghcr.io/metorial/relay:latest
     ports:
-      - "25050:52050"
+      - '25050:52050'
     environment:
       DATABASE_URL: postgresql://relay:relay@postgres:5432/relay
       REDIS_URL: redis://redis:6379/0
@@ -113,7 +181,7 @@ bun add @metorial-platform-systems/relay-client
 import { createRelayClient } from '@metorial-platform-systems/relay-client';
 
 let client = createRelayClient({
-  endpoint: 'http://localhost:25050',
+  endpoint: 'http://localhost:25050'
 });
 ```
 
@@ -127,7 +195,7 @@ Senders represent applications or services that send emails:
 // Create/update a sender
 let sender = await client.sender.upsert({
   name: 'My Application',
-  identifier: 'my-app',
+  identifier: 'my-app'
 });
 
 console.log('Sender ID:', sender.id);
@@ -135,7 +203,7 @@ console.log('Identifier:', sender.identifier);
 
 // Get a sender
 let retrievedSender = await client.sender.get({
-  senderId: sender.id,
+  senderId: sender.id
 });
 
 console.log('Sender Name:', retrievedSender.name);
@@ -151,7 +219,7 @@ Email identities define the "from" addresses for your emails:
 let identity = await client.emailIdentity.upsert({
   senderId: sender.id,
   name: 'Support Team',
-  email: 'support@example.com',
+  email: 'support@example.com'
 });
 
 console.log('Identity ID:', identity.id);
@@ -162,7 +230,7 @@ console.log('Slug:', identity.slug); // URL-friendly identifier
 // Get an email identity
 let retrievedIdentity = await client.emailIdentity.get({
   senderId: sender.id,
-  emailIdentityId: identity.id,
+  emailIdentityId: identity.id
 });
 
 console.log('Identity Type:', retrievedIdentity.type); // "email"
@@ -181,7 +249,7 @@ let emailResult = await client.email.send({
   to: ['user@example.com'],
   subject: 'Welcome to Our Service',
   html: '<h1>Welcome!</h1><p>Thank you for signing up.</p>',
-  text: 'Welcome! Thank you for signing up.',
+  text: 'Welcome! Thank you for signing up.'
 });
 
 console.log('Email queued successfully');
@@ -194,9 +262,9 @@ let bulkEmailResult = await client.email.send({
   cc: ['manager@example.com'],
   bcc: ['archive@example.com'],
   subject: 'Monthly Newsletter',
-  html: '<h1>Newsletter</h1><p>Here are this month\'s updates...</p>',
-  text: 'Newsletter\n\nHere are this month\'s updates...',
-  replyTo: 'noreply@example.com',
+  html: "<h1>Newsletter</h1><p>Here are this month's updates...</p>",
+  text: "Newsletter\n\nHere are this month's updates...",
+  replyTo: 'noreply@example.com'
 });
 
 // Send with custom headers
@@ -209,8 +277,8 @@ let customEmailResult = await client.email.send({
   text: 'Order #12345\n\nYour order has been confirmed.',
   headers: {
     'X-Order-ID': '12345',
-    'X-Customer-ID': 'cust_456',
-  },
+    'X-Customer-ID': 'cust_456'
+  }
 });
 ```
 
@@ -225,7 +293,7 @@ await client.email.send({
   emailIdentityId: identity.id,
   to: ['test@example.com'],
   subject: 'Test Email',
-  html: '<p>Testing...</p>',
+  html: '<p>Testing...</p>'
 });
 // Subject will be: "[DEV] Test Email"
 
@@ -235,7 +303,7 @@ await client.email.send({
   emailIdentityId: identity.id,
   to: ['test@example.com'],
   subject: 'Test Email',
-  html: '<p>Testing...</p>',
+  html: '<p>Testing...</p>'
 });
 // Subject will be: "[STAGING] Test Email"
 
@@ -245,7 +313,7 @@ await client.email.send({
   emailIdentityId: identity.id,
   to: ['customer@example.com'],
   subject: 'Welcome',
-  html: '<p>Welcome!</p>',
+  html: '<p>Welcome!</p>'
 });
 // Subject will be: "Welcome" (no prefix)
 ```
@@ -262,7 +330,7 @@ Email identities can have custom subject markers for filtering:
 let identity = await client.emailIdentity.upsert({
   senderId: sender.id,
   name: 'Billing Team',
-  email: 'billing@example.com',
+  email: 'billing@example.com'
   // Subject marker can be set via database or API if extended
 });
 
@@ -278,25 +346,25 @@ Manage different senders for different parts of your application:
 // Marketing emails
 let marketingSender = await client.sender.upsert({
   name: 'Marketing Team',
-  identifier: 'marketing',
+  identifier: 'marketing'
 });
 
 let marketingIdentity = await client.emailIdentity.upsert({
   senderId: marketingSender.id,
   name: 'Marketing',
-  email: 'marketing@example.com',
+  email: 'marketing@example.com'
 });
 
 // Transactional emails
 let transactionalSender = await client.sender.upsert({
   name: 'Transaction Service',
-  identifier: 'transactions',
+  identifier: 'transactions'
 });
 
 let transactionalIdentity = await client.emailIdentity.upsert({
   senderId: transactionalSender.id,
   name: 'Transactions',
-  email: 'noreply@example.com',
+  email: 'noreply@example.com'
 });
 
 // Send from different identities
@@ -305,7 +373,7 @@ await client.email.send({
   emailIdentityId: marketingIdentity.id,
   to: ['customer@example.com'],
   subject: 'Special Offer',
-  html: '<p>Check out our special offer!</p>',
+  html: '<p>Check out our special offer!</p>'
 });
 
 await client.email.send({
@@ -313,7 +381,7 @@ await client.email.send({
   emailIdentityId: transactionalIdentity.id,
   to: ['customer@example.com'],
   subject: 'Payment Receipt',
-  html: '<p>Your payment has been processed.</p>',
+  html: '<p>Your payment has been processed.</p>'
 });
 ```
 
@@ -444,34 +512,41 @@ Delivery Tracking
 ### Local Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/metorial/relay.git
 cd relay
 ```
 
 2. Install dependencies:
+
 ```bash
 bun install
 ```
 
 3. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
 4. Start dependencies with Docker Compose:
+
 ```bash
 docker-compose -f docker-compose.dev.yml up -d
 ```
 
-5. Run database migrations:
+5. Apply database migrations and regenerate the ignored Prisma client:
+
 ```bash
 cd service
-bun run prisma:push
+bun prisma migrate deploy
+bun run prisma:generate
 ```
 
 6. Start the development server:
+
 ```bash
 bun run dev
 ```

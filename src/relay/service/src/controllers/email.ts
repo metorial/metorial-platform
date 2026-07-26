@@ -1,9 +1,17 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { incomingEmailPresenter } from '../presenters';
+import { incomingEmailPresenter, outgoingEmailPresenter } from '../presenters';
 import { emailService, incomingEmailService } from '../services';
 import { app } from './_app';
 import { senderApp } from './sender';
+
+let attachmentInput = v.object({
+  filename: v.string(),
+  contentType: v.string(),
+  content: v.string(),
+  disposition: v.optional(v.string()),
+  contentId: v.optional(v.string())
+});
 
 export let emailController = app.controller({
   send: senderApp
@@ -16,6 +24,10 @@ export let emailController = app.controller({
         type: v.optional(v.enumOf(['email'])),
         to: v.array(v.string()),
         template: v.record(v.any()),
+        fromName: v.optional(v.string()),
+        replyTo: v.optional(v.string()),
+        idempotencyKey: v.optional(v.string()),
+        attachments: v.optional(v.array(attachmentInput)),
         content: v.object({
           subject: v.string(),
           html: v.string(),
@@ -35,6 +47,10 @@ export let emailController = app.controller({
         type: ctx.input.type || 'email',
         to: ctx.input.to,
         template: ctx.input.template,
+        fromName: ctx.input.fromName,
+        replyTo: ctx.input.replyTo,
+        idempotencyKey: ctx.input.idempotencyKey,
+        attachments: ctx.input.attachments,
         content: ctx.input.content
       });
 
@@ -56,6 +72,40 @@ export let emailController = app.controller({
       });
 
       return incomingEmailPresenter(email);
+    }),
+
+  getOutgoing: senderApp
+    .handler()
+    .input(
+      v.object({
+        senderId: v.string(),
+        outgoingEmailId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let email = await emailService.getOutgoingEmailById({
+        sender: ctx.sender,
+        id: ctx.input.outgoingEmailId
+      });
+
+      return outgoingEmailPresenter(email);
+    }),
+
+  status: senderApp
+    .handler()
+    .input(
+      v.object({
+        senderId: v.string(),
+        outgoingEmailId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let email = await emailService.getOutgoingEmailById({
+        sender: ctx.sender,
+        id: ctx.input.outgoingEmailId
+      });
+
+      return outgoingEmailPresenter(email);
     }),
 
   get: senderApp
@@ -127,6 +177,10 @@ export let emailController = app.controller({
         emailIdentityId: v.string(),
         to: v.optional(v.array(v.string())),
         template: v.optional(v.record(v.any())),
+        fromName: v.optional(v.string()),
+        replyTo: v.optional(v.string()),
+        idempotencyKey: v.optional(v.string()),
+        attachments: v.optional(v.array(attachmentInput)),
         content: v.object({
           subject: v.optional(v.string()),
           html: v.string(),
@@ -142,6 +196,10 @@ export let emailController = app.controller({
         input: {
           to: ctx.input.to,
           template: ctx.input.template,
+          fromName: ctx.input.fromName,
+          replyTo: ctx.input.replyTo,
+          idempotencyKey: ctx.input.idempotencyKey,
+          attachments: ctx.input.attachments,
           content: ctx.input.content
         }
       });

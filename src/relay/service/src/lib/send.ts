@@ -46,11 +46,23 @@ export let send = async (opts: {
   html: string;
   text: string;
   identity: EmailIdentity;
+  fromName?: string;
+  replyTo?: string;
+  attachments?: {
+    filename: string;
+    contentType: string;
+    disposition?: string | null;
+    contentId?: string | null;
+    content: Uint8Array;
+  }[];
   headers?: {
     inReplyTo?: string;
     references?: string[];
   };
 }) => {
+  let fromName = (opts.fromName ?? opts.identity.fromName).replace(/[\r\n]+/g, ' ').trim();
+  let from = `${fromName} <${opts.identity.fromEmail}>`;
+
   if (process.env.METORIAL_ENV == 'staging') {
     opts.subject = `[STAGING] ${opts.subject}`;
   } else if (process.env.METORIAL_ENV == 'development') {
@@ -82,7 +94,8 @@ export let send = async (opts: {
         Destination: {
           ToAddresses: [opts.to]
         },
-        FromEmailAddress: `${opts.identity.fromName} <${opts.identity.fromEmail}>`,
+        FromEmailAddress: from,
+        ReplyToAddresses: opts.replyTo ? [opts.replyTo] : undefined,
         Content: {
           Simple: {
             Subject: {
@@ -99,7 +112,16 @@ export let send = async (opts: {
                 Data: opts.text
               }
             },
-            Headers: headers.length ? headers : undefined
+            Headers: headers.length ? headers : undefined,
+            Attachments: opts.attachments?.map(attachment => ({
+              FileName: attachment.filename,
+              ContentType: attachment.contentType,
+              ContentDisposition:
+                attachment.disposition?.toLowerCase() == 'inline' ? 'INLINE' : 'ATTACHMENT',
+              ContentTransferEncoding: 'BASE64',
+              ContentId: attachment.contentId ?? undefined,
+              RawContent: attachment.content
+            }))
           }
         }
       })
@@ -108,14 +130,25 @@ export let send = async (opts: {
     return result;
   }
 
-  let result = await transport.client.sendMail({
-    from: `${opts.identity.fromName} <${opts.identity.fromEmail}>`,
+  let result: any = await transport.client.sendMail({
+    from,
     to: opts.to,
+    replyTo: opts.replyTo,
     subject: `${opts.identity.subjectMarker || ''}${opts.subject}`,
     html: opts.html,
     text: opts.text,
     inReplyTo: opts.headers?.inReplyTo,
-    references: opts.headers?.references
+    references: opts.headers?.references,
+    attachments: opts.attachments?.map(attachment => ({
+      filename: attachment.filename,
+      contentType: attachment.contentType,
+      contentDisposition:
+        attachment.disposition?.toLowerCase() == 'inline'
+          ? ('inline' as const)
+          : ('attachment' as const),
+      cid: attachment.contentId ?? undefined,
+      content: Buffer.from(attachment.content)
+    }))
   });
 
   return {

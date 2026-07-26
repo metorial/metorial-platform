@@ -1,10 +1,10 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Inbox, Sender } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
-import { normalizeEmailAddress } from '../lib/incomingEmail';
+import { normalizeEmailAddress } from '../lib/emailAddress';
 
 class InboxService {
   async createInbox(d: {
@@ -13,13 +13,34 @@ class InboxService {
       email: string;
     };
   }) {
-    return await db.inbox.create({
-      data: {
+    let email = normalizeEmailAddress(d.input.email);
+    if (!email) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Inbox email is required'
+        })
+      );
+    }
+
+    let inbox = await db.inbox.upsert({
+      where: { email },
+      create: {
         ...getId('inbox'),
-        email: normalizeEmailAddress(d.input.email)!,
+        email,
         senderOid: d.sender.oid
-      }
+      },
+      update: {}
     });
+
+    if (inbox.senderOid != d.sender.oid) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Inbox email is already provisioned by another sender'
+        })
+      );
+    }
+
+    return inbox;
   }
 
   async getInboxById(d: { sender: Sender; id: string }) {
