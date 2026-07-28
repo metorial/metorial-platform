@@ -159,7 +159,7 @@ export let destinations: Destination[] = [
   {
     type: 'enterprise',
     env: horizonServiceEnv,
-    path: 'src/horizon/apps/horizon'
+    path: 'src/horizon/services/core'
   },
 
   ...['admin', 'dashboard', 'portal'].map(v => ({
