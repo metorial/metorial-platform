@@ -13,6 +13,7 @@ import { db, withTransaction } from '../db';
 import { getId, snowflake } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
+import { markAresUserChanged } from '../queues/userSyncCallback';
 
 class DeviceService {
   async getAllUsersForDevice(d: { device: AuthDevice }) {
@@ -147,6 +148,7 @@ class DeviceService {
         where: { oid: user.oid },
         data: { lastLoginAt: new Date() }
       });
+      await markAresUserChanged({ userId: user.id });
 
       auditLogService.log({
         appOid: user.appOid,
@@ -350,6 +352,7 @@ class DeviceService {
             where: { oid: d.session.userOid },
             data: { lastActiveAt: new Date() }
           });
+          await markAresUserChanged({ userOid: d.session.userOid });
 
           await db.authDeviceUserSession.update({
             where: { id: d.session.id },

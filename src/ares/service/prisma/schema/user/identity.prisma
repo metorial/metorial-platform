@@ -40,5 +40,5 @@ model UserIdentity {
 
   authIntents AuthIntent[]
 
-  @@index([providerOid, uid])
+  @@unique([providerOid, uid])
 }

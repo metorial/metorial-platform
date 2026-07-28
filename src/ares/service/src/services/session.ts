@@ -8,6 +8,7 @@ import { getId } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
 import { deviceService } from './device';
+import { markAresUserChanged } from '../queues/userSyncCallback';
 
 let cacheTTLSecs = 60 * 5;
 let findAuthSessionCached = createCachedFunction<
@@ -41,6 +42,7 @@ let findAuthSessionCached = createCachedFunction<
         data: { lastActiveAt: new Date() },
         include: { userEmails: true }
       });
+      await markAresUserChanged({ userId: user.id });
     }
 
     return { device, session, user };

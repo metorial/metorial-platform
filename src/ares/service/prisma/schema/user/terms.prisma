@@ -27,4 +27,6 @@ model UserTermsAgreement {
   ua String? @db.Text
 
   createdAt DateTime @default(now())
+
+  @@unique([userOid, typeOid])
 }

@@ -36,3 +36,15 @@ model App {
   ssoScimOperations      SsoScimOperation[]
   importedSsoDelegations SsoImportedDelegation[]
 }
+
+model UserSyncListener {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  callbackUrl String
+  secret      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

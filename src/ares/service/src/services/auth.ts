@@ -36,6 +36,7 @@ import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
 import { userService } from './user';
+import { markAresUserChanged } from '../queues/userSyncCallback';
 
 class AuthServiceImpl {
   async ensureEmailAuthEnabled(d: {
@@ -147,10 +148,7 @@ class AuthServiceImpl {
           status: 'completed',
           ...(d.includeHidden ? {} : { hideInUI: false }),
           appOid: d.app.oid,
-          OR: [
-            { importedDelegationOid: null },
-            { importedDelegation: { status: 'active' } }
-          ],
+          OR: [{ importedDelegationOid: null }, { importedDelegation: { status: 'active' } }],
           ...(account
             ? { enrollment: 'account', accountOid: account.oid }
             : { enrollment: 'app' })
@@ -511,6 +509,19 @@ class AuthServiceImpl {
           userOid: null
         }
       });
+    } else {
+      let name = socialRes.name || socialRes.email.split('@')[0]!;
+      let nameParts = name.split(' ');
+      userIdentity = await db.userIdentity.update({
+        where: { oid: userIdentity.oid },
+        data: {
+          email: socialRes.email,
+          name,
+          firstName: nameParts[0]!,
+          lastName: nameParts.slice(1).join(' '),
+          photoUrl: socialRes.photoUrl ?? null
+        }
+      });
     }
 
     if (!userIdentity.userOid) {
@@ -532,6 +543,7 @@ class AuthServiceImpl {
       : null;
     if (user) {
       user = await userService.linkToAccount({ user });
+      await markAresUserChanged({ userId: user.id });
     }
 
     if (
@@ -681,6 +693,7 @@ class AuthServiceImpl {
     let user = await db.user.findUnique({ where: { oid: userIdentity.userOid! } });
     if (!user) throw new Error('User not found after SSO identity linking');
     user = await userService.linkToAccount({ user });
+    await markAresUserChanged({ userId: user.id });
 
     auditLogService.log({
       appOid: d.app.oid,

@@ -42,6 +42,8 @@ model User {
 
   lastLoginAt  DateTime?
   lastActiveAt DateTime?
+  syncRevision BigInt @default(0)
+  hyperplaneRevision BigInt?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt
