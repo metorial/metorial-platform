@@ -1,4 +1,4 @@
-import { markdownToYjsUpdate } from '@metorial/docs-editor-schema';
+import { markdownToYjsUpdate, replaceYjsBodyFromMarkdown } from '@metorial/docs-editor-schema';
 import type { SkillSharePanelContext } from '@metorial/scene-skills';
 import {
   DocumentParticipant,
@@ -999,19 +999,40 @@ let DocumentEditorLoaded = (p: {
       let text = await file.text();
       let split = splitFrontMatter(text);
       let titleSplit = splitTitleFromBody(split.body);
-      titleRef.current = titleSplit.title || file.name.replace(/\.md$/i, '');
+      let importedTitle = titleSplit.title || file.name.replace(/\.md$/i, '');
+      titleRef.current = importedTitle;
       frontMatterRef.current = split.frontMatter;
       markdownRef.current = titleSplit.body;
-      setTitle(titleSplit.title || file.name.replace(/\.md$/i, ''));
+      setTitle(importedTitle);
       setFrontMatter(split.frontMatter);
       setFrontMatterOpen(split.frontMatter.trim().length > 0);
       setMarkdown(titleSplit.body);
-      setLastUpdatedAt(new Date());
-      setEditorKey(k => k + 1);
+
+      if (collaboration.isFallback) {
+        setEditorKey(k => k + 1);
+      } else {
+        collaboration.ydoc.transact(() => {
+          collaborationMeta.set('title', importedTitle);
+          collaborationMeta.set('frontMatter', split.frontMatter);
+          replaceYjsBodyFromMarkdown({
+            ydoc: collaboration.ydoc,
+            markdown: titleSplit.body
+          });
+        });
+      }
+
+      markChanged();
       e.target.value = '';
       showToast(`Imported ${file.name}`);
     },
-    [readOnly, showToast]
+    [
+      collaboration.isFallback,
+      collaboration.ydoc,
+      collaborationMeta,
+      markChanged,
+      readOnly,
+      showToast
+    ]
   );
 
   let handleRequestLinkEdit = useCallback(() => {
