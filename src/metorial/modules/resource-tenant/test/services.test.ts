@@ -109,6 +109,25 @@ describe('resource tenant services', () => {
     });
   });
 
+  it('returns the existing tenant after a concurrent unique conflict', async () => {
+    let resourceTenant = { oid: 1n, id: 'crg_tn_1', identifier: 'tenant-one' };
+    mocks.resourceTenant.upsert.mockRejectedValue({ code: 'P2002' });
+    mocks.resourceTenant.findFirst.mockResolvedValue(resourceTenant);
+
+    await expect(
+      resourceTenantService.upsertResourceTenant({
+        input: {
+          identifier: 'tenant-one',
+          name: 'Tenant One'
+        }
+      })
+    ).resolves.toBe(resourceTenant);
+
+    expect(mocks.resourceTenant.findFirst).toHaveBeenCalledWith({
+      where: { identifier: 'tenant-one' }
+    });
+  });
+
   it('fires the group-created event only for a new group', async () => {
     let resourceTenant = { oid: 1n, id: 'crg_tn_1' };
     let resourceGroup = {
@@ -145,6 +164,35 @@ describe('resource tenant services', () => {
       resourceTenant,
       resourceGroup
     });
+  });
+
+  it('returns the existing group after a concurrent unique conflict', async () => {
+    let resourceTenant = { oid: 1n, id: 'crg_tn_1' };
+    let resourceGroup = { oid: 2n, id: 'crg_en_1', resourceTenant };
+    mocks.resourceGroup.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(resourceGroup);
+    mocks.resourceGroup.upsert.mockRejectedValue({ code: 'P2002' });
+
+    await expect(
+      resourceGroupService.upsertResourceGroup({
+        resourceTenant,
+        input: {
+          identifier: 'default',
+          name: 'Default',
+          type: 'production'
+        }
+      })
+    ).resolves.toBe(resourceGroup);
+
+    expect(mocks.resourceGroup.findFirst).toHaveBeenLastCalledWith({
+      where: {
+        resourceTenantOid: 1n,
+        identifier: 'default'
+      },
+      include: { resourceTenant: true }
+    });
+    expect(mocks.fire).not.toHaveBeenCalled();
   });
 
   it('atomically upserts and looks up actors within their tenant', async () => {
@@ -194,6 +242,29 @@ describe('resource tenant services', () => {
       where: {
         resourceTenantOid: 1n,
         OR: [{ id: 'crg_ta_1' }, { identifier: 'crg_ta_1' }]
+      }
+    });
+  });
+
+  it('returns the existing actor after a concurrent unique conflict', async () => {
+    let resourceActor = { oid: 3n, id: 'crg_ta_1', identifier: 'actor-one' };
+    mocks.resourceActor.upsert.mockRejectedValue({ code: 'P2002' });
+    mocks.resourceActor.findFirst.mockResolvedValue(resourceActor);
+
+    await expect(
+      resourceActorService.upsertActor({
+        resourceTenant: { oid: 1n, id: 'crg_tn_1' },
+        input: {
+          identifier: 'actor-one',
+          name: 'Actor One'
+        }
+      })
+    ).resolves.toBe(resourceActor);
+
+    expect(mocks.resourceActor.findFirst).toHaveBeenCalledWith({
+      where: {
+        resourceTenantOid: 1n,
+        identifier: 'actor-one'
       }
     });
   });

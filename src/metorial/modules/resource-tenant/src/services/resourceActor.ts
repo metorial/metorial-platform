@@ -69,31 +69,45 @@ class ResourceActorServiceImpl {
     }
 
     if (!d.input.id) {
-      return await db.resourceActor.upsert({
-        where: {
-          resourceTenantOid_identifier: {
+      try {
+        return await db.resourceActor.upsert({
+          where: {
+            resourceTenantOid_identifier: {
+              resourceTenantOid: d.resourceTenant.oid,
+              identifier: d.input.identifier
+            }
+          },
+          update: {
+            type: d.input.type,
+            name: d.input.name,
+            organizationActorOid: d.input.organizationActorOid,
+            consumerOid: d.input.consumerOid,
+            consumerProfileOid: d.input.consumerProfileOid
+          },
+          create: {
+            id: await ID.generateId('resourceActor'),
+            resourceTenantOid: d.resourceTenant.oid,
+            identifier: d.input.identifier,
+            type: d.input.type ?? 'external',
+            name: d.input.name,
+            organizationActorOid: d.input.organizationActorOid,
+            consumerOid: d.input.consumerOid,
+            consumerProfileOid: d.input.consumerProfileOid
+          }
+        });
+      } catch (error: any) {
+        if (error?.code !== 'P2002') throw error;
+
+        let resourceActor = await db.resourceActor.findFirst({
+          where: {
             resourceTenantOid: d.resourceTenant.oid,
             identifier: d.input.identifier
           }
-        },
-        update: {
-          type: d.input.type,
-          name: d.input.name,
-          organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid,
-          consumerProfileOid: d.input.consumerProfileOid
-        },
-        create: {
-          id: await ID.generateId('resourceActor'),
-          resourceTenantOid: d.resourceTenant.oid,
-          identifier: d.input.identifier,
-          type: d.input.type ?? 'external',
-          name: d.input.name,
-          organizationActorOid: d.input.organizationActorOid,
-          consumerOid: d.input.consumerOid,
-          consumerProfileOid: d.input.consumerProfileOid
-        }
-      });
+        });
+        if (!resourceActor) throw error;
+
+        return resourceActor;
+      }
     }
 
     let existing = d.input.id
@@ -121,18 +135,32 @@ class ResourceActorServiceImpl {
       });
     }
 
-    return await db.resourceActor.create({
-      data: {
-        id: d.input.id ?? (await ID.generateId('resourceActor')),
-        resourceTenantOid: d.resourceTenant.oid,
-        identifier: d.input.identifier,
-        type: d.input.type ?? 'external',
-        name: d.input.name,
-        organizationActorOid: d.input.organizationActorOid,
-        consumerOid: d.input.consumerOid,
-        consumerProfileOid: d.input.consumerProfileOid
-      }
-    });
+    try {
+      return await db.resourceActor.create({
+        data: {
+          id: d.input.id ?? (await ID.generateId('resourceActor')),
+          resourceTenantOid: d.resourceTenant.oid,
+          identifier: d.input.identifier,
+          type: d.input.type ?? 'external',
+          name: d.input.name,
+          organizationActorOid: d.input.organizationActorOid,
+          consumerOid: d.input.consumerOid,
+          consumerProfileOid: d.input.consumerProfileOid
+        }
+      });
+    } catch (error: any) {
+      if (error?.code !== 'P2002') throw error;
+
+      let resourceActor = await db.resourceActor.findFirst({
+        where: {
+          resourceTenantOid: d.resourceTenant.oid,
+          OR: [{ id: d.input.id }, { identifier: d.input.identifier }]
+        }
+      });
+      if (!resourceActor) throw error;
+
+      return resourceActor;
+    }
   }
 
   async getActorById(

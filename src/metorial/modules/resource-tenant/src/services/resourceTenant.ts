@@ -9,19 +9,32 @@ class ResourceTenantServiceImpl {
       identifier: string;
     };
   }) {
-    return await db.resourceTenant.upsert({
-      where: {
-        identifier: d.input.identifier
-      },
-      update: {
-        name: d.input.name
-      },
-      create: {
-        id: await ID.generateId('resourceTenant'),
-        name: d.input.name,
-        identifier: d.input.identifier
-      }
-    });
+    try {
+      return await db.resourceTenant.upsert({
+        where: {
+          identifier: d.input.identifier
+        },
+        update: {
+          name: d.input.name
+        },
+        create: {
+          id: await ID.generateId('resourceTenant'),
+          name: d.input.name,
+          identifier: d.input.identifier
+        }
+      });
+    } catch (error: any) {
+      if (error?.code !== 'P2002') throw error;
+
+      let resourceTenant = await db.resourceTenant.findFirst({
+        where: {
+          identifier: d.input.identifier
+        }
+      });
+      if (!resourceTenant) throw error;
+
+      return resourceTenant;
+    }
   }
 
   async getResourceTenantById(d: { id: string }) {

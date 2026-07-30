@@ -37,26 +37,42 @@ class ResourceGroupServiceImpl {
       });
     }
 
-    let resourceGroup = await db.resourceGroup.upsert({
-      where: {
-        resourceTenantOid_identifier: {
+    let resourceGroup;
+    try {
+      resourceGroup = await db.resourceGroup.upsert({
+        where: {
+          resourceTenantOid_identifier: {
+            resourceTenantOid: d.resourceTenant.oid,
+            identifier: d.input.identifier
+          }
+        },
+        update: {
+          name: d.input.name,
+          type: d.input.type
+        },
+        create: {
+          id: await ID.generateId('resourceGroup'),
+          resourceTenantOid: d.resourceTenant.oid,
+          identifier: d.input.identifier,
+          name: d.input.name,
+          type: d.input.type
+        },
+        include
+      });
+    } catch (error: any) {
+      if (error?.code !== 'P2002') throw error;
+
+      resourceGroup = await db.resourceGroup.findFirst({
+        where: {
           resourceTenantOid: d.resourceTenant.oid,
           identifier: d.input.identifier
-        }
-      },
-      update: {
-        name: d.input.name,
-        type: d.input.type
-      },
-      create: {
-        id: await ID.generateId('resourceGroup'),
-        resourceTenantOid: d.resourceTenant.oid,
-        identifier: d.input.identifier,
-        name: d.input.name,
-        type: d.input.type
-      },
-      include
-    });
+        },
+        include
+      });
+      if (!resourceGroup) throw error;
+
+      return resourceGroup;
+    }
 
     await addAfterTransactionHook(() =>
       Fabric.fire('resource_tenant.resource_group.created:after', {
