@@ -5,3 +5,7 @@ type ClientOpts = Parameters<typeof createClient>[0];
 
 export let createAresInternalClient = (o: ClientOpts): InternalClient =>
   createClient<InternalClient>(o);
+
+export type { AresSyncEvent, AresSyncEventType } from '../../../service/src/lib/syncEvents';
+
+export { parseAresSyncEvent, verifyAresSignature } from './syncEvents';
