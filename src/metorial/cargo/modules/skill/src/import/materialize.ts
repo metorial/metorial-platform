@@ -5,12 +5,11 @@ import type { Prisma, ResourceActor } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { type ResourceScope } from '@metorial/module-resource-tenant';
 import { posix as path } from 'node:path';
-import { parse } from 'yaml';
+import { parseSkillDocumentFrontmatter } from '../serializers/skill/frontmatter';
 import { skillService } from '../services/skill';
 import { getRelativeSkillPath, shouldImportSkillPath } from './discovery';
 import { getCodeBucketFiles } from './repository';
 
-let frontmatterRegex = /^---[ \t]*\r?\n([\s\S]*?)^---[ \t]*(?:\r?\n|$)/m;
 let maxSkillFiles = 1000;
 let maxSkillBytes = 100 * 1024 * 1024;
 
@@ -25,9 +24,7 @@ export let parseImportedSkillMetadata = (d: {
   rootPath: string;
   repositoryName?: string | null;
 }) => {
-  let match = d.content.match(frontmatterRegex);
-  let parsed = match ? parse(match[1] ?? '') : {};
-  let frontmatter = isRecord(parsed) ? parsed : {};
+  let { frontmatter } = parseSkillDocumentFrontmatter(d.content);
   let rootName = d.rootPath === '/' ? d.repositoryName : path.basename(d.rootPath);
   let name = optionalString(frontmatter.name) ?? rootName ?? 'Imported skill';
 
