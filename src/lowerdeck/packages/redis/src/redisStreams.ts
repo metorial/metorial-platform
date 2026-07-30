@@ -61,6 +61,12 @@ export class RedisStreams<Message> {
             this.name,
             '>' // Next entry ID that no consumer in this group has read
           );
+        } catch (error) {
+          // close() disconnects the blocking read so it can finish promptly.
+          // That rejection is expected during shutdown and must not turn a
+          // graceful close into a receiver failure.
+          if (!stopped) throw error;
+          break;
         } finally {
           isolatedRedis.disconnect();
           isolatedRedis = undefined;

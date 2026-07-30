@@ -9,7 +9,7 @@ import type {
   AuthDeviceUserSession,
   User
 } from '../../prisma/generated/client';
-import { db, withTransaction } from '../db';
+import { db, type TransactionDB, withTransaction } from '../db';
 import { getId, snowflake } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
@@ -86,8 +86,15 @@ class DeviceService {
     return [...loggedInSessions, ...loggedOutSessionsUnique];
   }
 
-  async getSessionForLoggedInUser(d: { user: User; device: AuthDevice; app?: App }) {
-    return await db.authDeviceUserSession.findFirst({
+  async getSessionForLoggedInUser(d: {
+    user: User;
+    device: AuthDevice;
+    app?: App;
+    db?: TransactionDB;
+  }) {
+    let tdb = d.db ?? db;
+
+    return await tdb.authDeviceUserSession.findFirst({
       where: {
         userOid: d.user.oid,
         deviceOid: d.device.oid,
@@ -140,7 +147,8 @@ class DeviceService {
 
       let existingSession = await this.getSessionForLoggedInUser({
         user,
-        device
+        device,
+        db
       });
       if (existingSession) return existingSession;
 
@@ -148,7 +156,7 @@ class DeviceService {
         where: { oid: user.oid },
         data: { lastLoginAt: new Date() }
       });
-      await markAresUserChanged({ userId: user.id });
+      await markAresUserChanged({ userId: user.id, db });
 
       auditLogService.log({
         appOid: user.appOid,

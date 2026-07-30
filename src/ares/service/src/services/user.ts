@@ -133,6 +133,23 @@ class UserServiceImpl {
     }
 
     return await withTransaction(async tdb => {
+      if (existing) {
+        await tdb.$queryRaw`
+          SELECT "oid"
+          FROM "User"
+          WHERE "oid" = ${existing.oid}
+          FOR UPDATE
+        `;
+        existing = await tdb.user.findUniqueOrThrow({ where: { oid: existing.oid } });
+
+        if (
+          existing.hyperplaneRevision != null &&
+          existing.hyperplaneRevision >= authorityRevision
+        ) {
+          return existing;
+        }
+      }
+
       let lastLoginAt =
         !existing?.lastLoginAt ||
         (d.input.lastLoginAt && d.input.lastLoginAt > existing.lastLoginAt)
@@ -324,7 +341,8 @@ class UserServiceImpl {
         await this.createTermsAgreement({
           user,
           context: d.context,
-          terms: [terms.privacyPolicy, terms.termsOfService]
+          terms: [terms.privacyPolicy, terms.termsOfService],
+          suppressSync: true
         });
 
         await this.createEmail({
@@ -332,7 +350,8 @@ class UserServiceImpl {
           user,
           app: d.app,
           context: d.context,
-          isForNewUser: true
+          isForNewUser: true,
+          suppressSync: true
         });
 
         addAfterTransactionHook(() => userEvents.fire('create', user));
@@ -398,6 +417,7 @@ class UserServiceImpl {
     app: App;
     context: Context;
     isForNewUser?: boolean;
+    suppressSync?: boolean;
   }) {
     d.email = d.email.trim().toLowerCase();
 
@@ -463,7 +483,9 @@ class UserServiceImpl {
         });
       }
 
-      await markAresUserChanged({ userId: d.user.id, db: tdb });
+      if (!d.suppressSync) {
+        await markAresUserChanged({ userId: d.user.id, db: tdb });
+      }
 
       return email;
     });
@@ -605,6 +627,7 @@ class UserServiceImpl {
     user: User;
     terms: (UserTermsType | Promise<UserTermsType>)[];
     context: Context;
+    suppressSync?: boolean;
   }) {
     return withTransaction(async db => {
       for (let termProm of i.terms) {
@@ -631,7 +654,9 @@ class UserServiceImpl {
           metadata: { terms: term.identifier, version: term.version }
         });
       }
-      await markAresUserChanged({ userId: i.user.id, db });
+      if (!i.suppressSync) {
+        await markAresUserChanged({ userId: i.user.id, db });
+      }
     });
   }
 
