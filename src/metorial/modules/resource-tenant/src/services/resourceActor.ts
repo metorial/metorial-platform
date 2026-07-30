@@ -42,6 +42,17 @@ export let resourceActorPresentationInclude = {
   }
 } satisfies Prisma.ResourceActorInclude;
 
+export let exposedParticipantResourceActorWhere = {
+  NOT: [
+    { type: 'system' },
+    {
+      organizationActor: {
+        is: { type: 'system' }
+      }
+    }
+  ]
+} satisfies Prisma.ResourceActorWhereInput;
+
 export type ResourceActorPresentationRecord = Prisma.ResourceActorGetPayload<{
   include: typeof resourceActorPresentationInclude;
 }>;
