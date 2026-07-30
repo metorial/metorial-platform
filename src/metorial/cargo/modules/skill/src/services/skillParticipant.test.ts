@@ -10,6 +10,7 @@ let { db } = vi.hoisted(() => ({
     },
     skillParticipant: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
@@ -82,6 +83,7 @@ describe('skill participant store projection', () => {
     db.skill.findFirst.mockResolvedValue(skill);
     db.storeParticipant.findMany.mockResolvedValue([]);
     db.skillParticipant.findUnique.mockResolvedValue(null);
+    db.skillParticipant.findFirst.mockResolvedValue(null);
     db.skillParticipant.findMany.mockResolvedValue([]);
   });
 
@@ -254,5 +256,65 @@ describe('skill participant store projection', () => {
 
     expect(db.skillParticipant.update).not.toHaveBeenCalled();
     expect(db.skillParticipant.delete).not.toHaveBeenCalled();
+  });
+
+  it('excludes system organization actors from participant lists', async () => {
+    let paginator = await skillParticipantService.listSkillParticipants({
+      ...scope,
+      skillId: skill.id
+    });
+
+    await paginator.run({ limit: 100, order: 'desc' });
+
+    expect(db.skillParticipant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          resourceActor: {
+            OR: [
+              { organizationActorOid: null },
+              {
+                organizationActor: {
+                  is: {
+                    type: { not: 'system' }
+                  }
+                }
+              }
+            ]
+          }
+        })
+      })
+    );
+  });
+
+  it('filters system organization actors when looking up a participant by ID', async () => {
+    db.skillParticipant.findFirst.mockResolvedValue({
+      id: 'skp_1',
+      skill,
+      resourceActor
+    });
+
+    await skillParticipantService.getSkillParticipantById({
+      ...scope,
+      skillParticipantId: 'skp_1'
+    });
+
+    expect(db.skillParticipant.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          resourceActor: {
+            OR: [
+              { organizationActorOid: null },
+              {
+                organizationActor: {
+                  is: {
+                    type: { not: 'system' }
+                  }
+                }
+              }
+            ]
+          }
+        })
+      })
+    );
   });
 });

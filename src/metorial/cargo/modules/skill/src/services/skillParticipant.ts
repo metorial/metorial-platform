@@ -11,6 +11,7 @@ import {
 import type { Prisma, ResourceActor, Skill, SkillParticipantRole } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
+  externallyVisibleParticipantResourceActorWhere,
   resourceActorPresentationInclude,
   type ResourceScope
 } from '@metorial/module-resource-tenant';
@@ -205,7 +206,8 @@ class SkillParticipantServiceImpl {
         skill: {
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid
-        }
+        },
+        resourceActor: externallyVisibleParticipantResourceActorWhere
       },
       include: skillParticipantInclude
     });
@@ -242,6 +244,7 @@ class SkillParticipantServiceImpl {
                 id: d.skillId
               },
               resourceActorOid: actors ? actors.in : undefined,
+              resourceActor: externallyVisibleParticipantResourceActorWhere,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
               updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined
             },

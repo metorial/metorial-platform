@@ -9,6 +9,7 @@ import {
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
 import {
+  externallyVisibleParticipantResourceActorWhere,
   resourceActorPresentationInclude,
   type ResourceScope
 } from '@metorial/module-resource-tenant';
@@ -43,6 +44,7 @@ class DocumentParticipantServiceImpl {
             status: 'active'
           }
         },
+        resourceActor: externallyVisibleParticipantResourceActorWhere,
         id: d.documentParticipantId
       },
       include: documentParticipantInclude
@@ -124,6 +126,7 @@ class DocumentParticipantServiceImpl {
                 }
               },
               resourceActorOid: actors ? actors.in : undefined,
+              resourceActor: externallyVisibleParticipantResourceActorWhere,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
               lastEditedAt: d.lastEditedAt ? normalizeDateFilter(d.lastEditedAt) : undefined,
               lastViewedAt: d.lastViewedAt ? normalizeDateFilter(d.lastViewedAt) : undefined

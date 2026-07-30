@@ -9,6 +9,7 @@ import {
   resolveStores
 } from '@metorial/cargo-list-utils';
 import {
+  externallyVisibleParticipantResourceActorWhere,
   resourceActorPresentationInclude,
   type ResourceScope
 } from '@metorial/module-resource-tenant';
@@ -34,7 +35,8 @@ class StoreParticipantServiceImpl {
         store: {
           resourceTenantOid: d.resourceTenant.oid,
           resourceGroupOid: d.resourceGroup.oid
-        }
+        },
+        resourceActor: externallyVisibleParticipantResourceActorWhere
       },
       include: storeParticipantInclude
     });
@@ -71,6 +73,7 @@ class StoreParticipantServiceImpl {
                 oid: stores ? stores.in : undefined
               },
               resourceActorOid: actors ? actors.in : undefined,
+              resourceActor: externallyVisibleParticipantResourceActorWhere,
               createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined
             },
             include: storeParticipantInclude
