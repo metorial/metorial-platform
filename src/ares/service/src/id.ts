@@ -34,7 +34,7 @@ export let ID = createIdGenerator({
 
   oauthProvider: idType.sorted('oap_'),
   userIdentityProvider: idType.sorted('uip_'),
-  userSyncListener: idType.sorted('usl_'),
+  syncListener: idType.sorted('usl_'),
 
   emailDomain: idType.sorted('emd_'),
 

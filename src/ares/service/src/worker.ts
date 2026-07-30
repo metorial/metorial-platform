@@ -5,8 +5,8 @@ import { reconcileAccountUsersProcessor } from './queues/reconcileAccountUsers';
 import { recordSsoUserChangesProcessor } from './queues/recordSsoUserChanges';
 import { reconcileSsoGroupRoleMembershipsProcessor } from './queues/reconcileSsoGroupRoleMemberships';
 import { reconcileSsoUsersProcessor } from './queues/reconcileSsoUsers';
+import { syncCallbackQueueProcessor } from './queues/syncCallback';
 import { syncImportedDelegationsProcessor } from './queues/syncImportedDelegations';
-import { userSyncCallbackQueueProcessor } from './queues/userSyncCallback';
 
 await runQueueProcessors([
   cleanupCron,
@@ -15,6 +15,6 @@ await runQueueProcessors([
   recordSsoUserChangesProcessor,
   reconcileSsoGroupRoleMembershipsProcessor,
   reconcileSsoUsersProcessor,
-  syncImportedDelegationsProcessor,
-  userSyncCallbackQueueProcessor
+  syncCallbackQueueProcessor,
+  syncImportedDelegationsProcessor
 ]);

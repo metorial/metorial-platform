@@ -14,7 +14,7 @@ import { getId } from '../id';
 import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
 import { auditLogService } from './auditLog';
-import { markAresUserChanged } from '../queues/userSyncCallback';
+import { markAresUserChanged } from '../queues/syncCallback';
 
 class UserServiceImpl {
   async getSyncSnapshot(d: { user: User }) {

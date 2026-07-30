@@ -12,6 +12,10 @@ import { db } from '../../db';
 import { getId } from '../../id';
 import { reconcileSingleSsoUserQueue } from '../../queues/reconcileSsoUsers';
 import type { SsoUserChangeSource } from '../../queues/recordSsoUserChanges';
+import {
+  markAresSsoTenantChanged,
+  markAresSsoTenantChangedForConnection
+} from '../../queues/syncCallback';
 import { ssoGroupRoleService } from './groupRole';
 import { ssoIdentityService } from './identity';
 import type { SsoDirectoryWithApp } from './types';
@@ -506,6 +510,9 @@ class SsoDirectorySyncServiceImpl {
     }
 
     await db.ssoConnectionGroup.delete({ where: { oid: legacyGroup.oid } });
+    await markAresSsoTenantChangedForConnection({
+      connectionOid: d.directory.connectionOid
+    });
 
     for (let profile of affectedProfiles.values()) {
       let groups = await getPersistedUserProfileGroups(profile.oid);
@@ -804,9 +811,13 @@ class SsoDirectorySyncServiceImpl {
       include: { userProfile: { include: { ownedUser: true } } }
     });
 
-    await db.ssoDirectoryGroup.deleteMany({
+    let removedDirectoryGroups = await db.ssoDirectoryGroup.deleteMany({
       where: { directoryOid: directory.oid, groupOid: group.oid }
     });
+
+    if (removedDirectoryGroups.count) {
+      await markAresSsoTenantChanged({ tenantOid: directory.connection.tenantOid });
+    }
 
     for (let link of affectedLinks) {
       let otherSource = await db.ssoDirectoryGroup.findFirst({

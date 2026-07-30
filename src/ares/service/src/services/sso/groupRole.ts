@@ -1,3 +1,4 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -14,7 +15,17 @@ import type {
 } from '../../../prisma/generated/client';
 import { db, withTransaction } from '../../db';
 import { getId } from '../../id';
+import {
+  markAresSsoTenantChanged,
+  markAresSsoTenantChangedForConnection
+} from '../../queues/syncCallback';
 import { isUniqueConstraintError, uniqueValues } from './utils';
+
+type CatalogEntry = { displayName: string | null; metadata: unknown };
+
+let hasCatalogChange = (before: CatalogEntry, after: CatalogEntry) =>
+  before.displayName !== after.displayName ||
+  canonicalize(before.metadata ?? null) !== canonicalize(after.metadata ?? null);
 
 let ssoRootGroupInclude = {
   connectionGroups: { include: { connection: true, rootGroup: true } }
@@ -40,27 +51,45 @@ class SsoGroupRoleServiceImpl {
       throw new ServiceError(notFoundError('sso.group'));
     }
 
-    return await db.ssoDirectoryGroup.upsert({
-      where: {
+    return await withTransaction(async tdb => {
+      let key = {
         directoryOid_groupOid: {
           directoryOid: d.directory.oid,
           groupOid: d.group.oid
         }
-      },
-      create: {
-        ...getId('ssoDirectoryGroup'),
-        directoryOid: d.directory.oid,
-        groupOid: d.group.oid
-      },
-      update: {}
+      };
+
+      let existing = await tdb.ssoDirectoryGroup.findUnique({ where: key });
+      if (existing) return existing;
+
+      let link = await tdb.ssoDirectoryGroup.upsert({
+        where: key,
+        create: {
+          ...getId('ssoDirectoryGroup'),
+          directoryOid: d.directory.oid,
+          groupOid: d.group.oid
+        },
+        update: {}
+      });
+
+      await markAresSsoTenantChangedForConnection({
+        connectionOid: d.directory.connectionOid
+      });
+
+      return link;
     });
   }
 
   async reconcileDirectoryRoles(d: { directory: SsoDirectory }) {
     if (d.directory.status !== 'active') {
-      await db.ssoDirectoryRole.deleteMany({
+      let removed = await db.ssoDirectoryRole.deleteMany({
         where: { directoryOid: d.directory.oid }
       });
+      if (removed.count) {
+        await markAresSsoTenantChangedForConnection({
+          connectionOid: d.directory.connectionOid
+        });
+      }
       return;
     }
 
@@ -85,27 +114,41 @@ class SsoGroupRoleServiceImpl {
     let roleOids = roles.map(role => role.oid);
 
     await withTransaction(async tdb => {
-      await tdb.ssoDirectoryRole.deleteMany({
+      let removed = await tdb.ssoDirectoryRole.deleteMany({
         where: {
           directoryOid: d.directory.oid,
           roleOid: roleOids.length ? { notIn: roleOids } : undefined
         }
       });
 
+      let created = 0;
+
       for (let role of roles) {
+        let key = {
+          directoryOid_roleOid: {
+            directoryOid: d.directory.oid,
+            roleOid: role.oid
+          }
+        };
+
+        let existing = await tdb.ssoDirectoryRole.findUnique({ where: key });
+        if (existing) continue;
+
         await tdb.ssoDirectoryRole.upsert({
-          where: {
-            directoryOid_roleOid: {
-              directoryOid: d.directory.oid,
-              roleOid: role.oid
-            }
-          },
+          where: key,
           create: {
             ...getId('ssoDirectoryRole'),
             directoryOid: d.directory.oid,
             roleOid: role.oid
           },
           update: {}
+        });
+        created += 1;
+      }
+
+      if (removed.count || created) {
+        await markAresSsoTenantChangedForConnection({
+          connectionOid: d.directory.connectionOid
         });
       }
     });
@@ -147,6 +190,8 @@ class SsoGroupRoleServiceImpl {
           where: { oid: d.group.oid },
           data: { rootGroupOid: rootGroup.oid }
         });
+
+        await markAresSsoTenantChanged({ tenantOid: connection.tenantOid });
 
         return { group, rootGroup };
       },
@@ -191,6 +236,8 @@ class SsoGroupRoleServiceImpl {
           data: { rootRoleOid: rootRole.oid }
         });
 
+        await markAresSsoTenantChanged({ tenantOid: connection.tenantOid });
+
         return { role, rootRole };
       },
       { ifExists: true }
@@ -215,7 +262,7 @@ class SsoGroupRoleServiceImpl {
         });
 
         if (existing) {
-          return await db.ssoGroup.update({
+          let group = await db.ssoGroup.update({
             where: { oid: existing.oid },
             data: {
               displayName: d.displayName ?? undefined,
@@ -223,10 +270,16 @@ class SsoGroupRoleServiceImpl {
             },
             include: ssoRootGroupInclude
           });
+
+          if (hasCatalogChange(existing, group)) {
+            await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+          }
+
+          return group;
         }
 
         try {
-          return await db.ssoGroup.create({
+          let group = await db.ssoGroup.create({
             data: {
               ...getId('ssoGroup'),
               tenantOid: d.tenant.oid,
@@ -236,6 +289,10 @@ class SsoGroupRoleServiceImpl {
             },
             include: ssoRootGroupInclude
           });
+
+          await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+          return group;
         } catch (error) {
           if (!isUniqueConstraintError(error)) throw error;
 
@@ -268,7 +325,7 @@ class SsoGroupRoleServiceImpl {
         });
 
         if (existing) {
-          return await db.ssoRole.update({
+          let role = await db.ssoRole.update({
             where: { oid: existing.oid },
             data: {
               displayName: d.displayName ?? undefined,
@@ -276,10 +333,16 @@ class SsoGroupRoleServiceImpl {
             },
             include: ssoRootRoleInclude
           });
+
+          if (hasCatalogChange(existing, role)) {
+            await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+          }
+
+          return role;
         }
 
         try {
-          return await db.ssoRole.create({
+          let role = await db.ssoRole.create({
             data: {
               ...getId('ssoRole'),
               tenantOid: d.tenant.oid,
@@ -289,6 +352,10 @@ class SsoGroupRoleServiceImpl {
             },
             include: ssoRootRoleInclude
           });
+
+          await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+          return role;
         } catch (error) {
           if (!isUniqueConstraintError(error)) throw error;
 
@@ -338,6 +405,10 @@ class SsoGroupRoleServiceImpl {
             }
           });
 
+          if (hasCatalogChange(existing, group)) {
+            await markAresSsoTenantChanged({ tenantOid: d.connection.tenantOid });
+          }
+
           return (
             await this.syncConnectionGroupRoot({
               group,
@@ -358,6 +429,8 @@ class SsoGroupRoleServiceImpl {
               metadata: d.metadata ?? undefined
             }
           });
+
+          await markAresSsoTenantChanged({ tenantOid: d.connection.tenantOid });
 
           return (
             await this.syncConnectionGroupRoot({
@@ -420,6 +493,10 @@ class SsoGroupRoleServiceImpl {
             }
           });
 
+          if (hasCatalogChange(existing, role)) {
+            await markAresSsoTenantChanged({ tenantOid: d.connection.tenantOid });
+          }
+
           return (
             await this.syncConnectionRoleRoot({
               role,
@@ -440,6 +517,8 @@ class SsoGroupRoleServiceImpl {
               metadata: d.metadata ?? undefined
             }
           });
+
+          await markAresSsoTenantChanged({ tenantOid: d.connection.tenantOid });
 
           return (
             await this.syncConnectionRoleRoot({
@@ -467,6 +546,47 @@ class SsoGroupRoleServiceImpl {
       },
       { ifExists: true }
     );
+  }
+
+  async getTenantCatalog(d: { tenant: SsoTenant | { oid: bigint } }) {
+    let byIdAscending = { orderBy: { id: 'asc' } } as const;
+
+    let [groups, roles, connectionGroups, connectionRoles] = await Promise.all([
+      db.ssoGroup.findMany({ where: { tenantOid: d.tenant.oid }, ...byIdAscending }),
+      db.ssoRole.findMany({ where: { tenantOid: d.tenant.oid }, ...byIdAscending }),
+      db.ssoConnectionGroup.findMany({
+        where: { connection: { tenantOid: d.tenant.oid } },
+        include: { connection: { select: { id: true } }, rootGroup: { select: { id: true } } },
+        ...byIdAscending
+      }),
+      db.ssoConnectionRole.findMany({
+        where: { connection: { tenantOid: d.tenant.oid } },
+        include: { connection: { select: { id: true } }, rootRole: { select: { id: true } } },
+        ...byIdAscending
+      })
+    ]);
+
+    let [directoryGroups, directoryRoles] = await Promise.all([
+      db.ssoDirectoryGroup.findMany({
+        where: { directory: { connection: { tenantOid: d.tenant.oid } } },
+        include: { directory: { select: { id: true } }, group: { select: { id: true } } },
+        ...byIdAscending
+      }),
+      db.ssoDirectoryRole.findMany({
+        where: { directory: { connection: { tenantOid: d.tenant.oid } } },
+        include: { directory: { select: { id: true } }, role: { select: { id: true } } },
+        ...byIdAscending
+      })
+    ]);
+
+    return {
+      groups,
+      roles,
+      connectionGroups,
+      connectionRoles,
+      directoryGroups,
+      directoryRoles
+    };
   }
 
   async listRootGroups(d: {
@@ -557,14 +677,20 @@ class SsoGroupRoleServiceImpl {
       throw new ServiceError(notFoundError('sso.group'));
     }
 
-    return await db.ssoGroup.update({
-      where: { oid: d.group.oid },
-      data: {
-        value: d.input.value,
-        displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
-        metadata: d.input.metadata
-      },
-      include: ssoRootGroupInclude
+    return await withTransaction(async tdb => {
+      let group = await tdb.ssoGroup.update({
+        where: { oid: d.group.oid },
+        data: {
+          value: d.input.value,
+          displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
+          metadata: d.input.metadata
+        },
+        include: ssoRootGroupInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return group;
     });
   }
 
@@ -573,9 +699,15 @@ class SsoGroupRoleServiceImpl {
       throw new ServiceError(notFoundError('sso.group'));
     }
 
-    return await db.ssoGroup.delete({
-      where: { oid: d.group.oid },
-      include: ssoRootGroupInclude
+    return await withTransaction(async tdb => {
+      let group = await tdb.ssoGroup.delete({
+        where: { oid: d.group.oid },
+        include: ssoRootGroupInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return group;
     });
   }
 
@@ -667,14 +799,20 @@ class SsoGroupRoleServiceImpl {
       throw new ServiceError(notFoundError('sso.role'));
     }
 
-    return await db.ssoRole.update({
-      where: { oid: d.role.oid },
-      data: {
-        value: d.input.value,
-        displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
-        metadata: d.input.metadata
-      },
-      include: ssoRootRoleInclude
+    return await withTransaction(async tdb => {
+      let role = await tdb.ssoRole.update({
+        where: { oid: d.role.oid },
+        data: {
+          value: d.input.value,
+          displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
+          metadata: d.input.metadata
+        },
+        include: ssoRootRoleInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return role;
     });
   }
 
@@ -683,9 +821,15 @@ class SsoGroupRoleServiceImpl {
       throw new ServiceError(notFoundError('sso.role'));
     }
 
-    return await db.ssoRole.delete({
-      where: { oid: d.role.oid },
-      include: ssoRootRoleInclude
+    return await withTransaction(async tdb => {
+      let role = await tdb.ssoRole.delete({
+        where: { oid: d.role.oid },
+        include: ssoRootRoleInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return role;
     });
   }
 
@@ -775,15 +919,21 @@ class SsoGroupRoleServiceImpl {
       metadata: nextMetadata
     });
 
-    return await db.ssoConnectionGroup.update({
-      where: { oid: d.group.oid },
-      data: {
-        value: d.input.value,
-        displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
-        metadata: d.input.metadata,
-        rootGroupOid: rootGroup.oid
-      },
-      include: ssoConnectionGroupInclude
+    return await withTransaction(async tdb => {
+      let group = await tdb.ssoConnectionGroup.update({
+        where: { oid: d.group.oid },
+        data: {
+          value: d.input.value,
+          displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
+          metadata: d.input.metadata,
+          rootGroupOid: rootGroup.oid
+        },
+        include: ssoConnectionGroupInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return group;
     });
   }
 
@@ -793,9 +943,15 @@ class SsoGroupRoleServiceImpl {
       groupId: d.group.id
     });
 
-    return await db.ssoConnectionGroup.delete({
-      where: { oid: existing.oid },
-      include: ssoConnectionGroupInclude
+    return await withTransaction(async tdb => {
+      let group = await tdb.ssoConnectionGroup.delete({
+        where: { oid: existing.oid },
+        include: ssoConnectionGroupInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return group;
     });
   }
 
@@ -885,15 +1041,21 @@ class SsoGroupRoleServiceImpl {
       metadata: nextMetadata
     });
 
-    return await db.ssoConnectionRole.update({
-      where: { oid: d.role.oid },
-      data: {
-        value: d.input.value,
-        displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
-        metadata: d.input.metadata,
-        rootRoleOid: rootRole.oid
-      },
-      include: ssoConnectionRoleInclude
+    return await withTransaction(async tdb => {
+      let role = await tdb.ssoConnectionRole.update({
+        where: { oid: d.role.oid },
+        data: {
+          value: d.input.value,
+          displayName: d.input.displayName !== undefined ? d.input.displayName : undefined,
+          metadata: d.input.metadata,
+          rootRoleOid: rootRole.oid
+        },
+        include: ssoConnectionRoleInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return role;
     });
   }
 
@@ -903,9 +1065,15 @@ class SsoGroupRoleServiceImpl {
       roleId: d.role.id
     });
 
-    return await db.ssoConnectionRole.delete({
-      where: { oid: existing.oid },
-      include: ssoConnectionRoleInclude
+    return await withTransaction(async tdb => {
+      let role = await tdb.ssoConnectionRole.delete({
+        where: { oid: existing.oid },
+        include: ssoConnectionRoleInclude
+      });
+
+      await markAresSsoTenantChanged({ tenantOid: d.tenant.oid });
+
+      return role;
     });
   }
 

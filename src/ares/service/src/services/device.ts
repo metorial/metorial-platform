@@ -13,7 +13,7 @@ import { db, type TransactionDB, withTransaction } from '../db';
 import { getId, snowflake } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
-import { markAresUserChanged } from '../queues/userSyncCallback';
+import { markAresUserChanged } from '../queues/syncCallback';
 
 class DeviceService {
   async getAllUsersForDevice(d: { device: AuthDevice }) {

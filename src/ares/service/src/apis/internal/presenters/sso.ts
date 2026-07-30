@@ -3,6 +3,8 @@ import type {
   SsoConnectionGroup,
   SsoConnectionRole,
   SsoDirectory,
+  SsoDirectoryGroup,
+  SsoDirectoryRole,
   SsoDirectoryUserProfile,
   SsoGroup,
   SsoRole,
@@ -229,6 +231,88 @@ export let ssoDirectoryPresenter = (
   connection: directory.connection ? ssoConnectionRefPresenter(directory.connection) : null,
   createdAt: directory.createdAt,
   updatedAt: directory.updatedAt
+});
+
+export let ssoCatalogGroupPresenter = (group: SsoGroup) => ({
+  object: 'ares#ssoCatalogGroup' as const,
+  id: group.id,
+  value: group.value,
+  displayName: group.displayName,
+  metadata: group.metadata,
+  createdAt: group.createdAt,
+  updatedAt: group.updatedAt
+});
+
+export let ssoCatalogRolePresenter = (role: SsoRole) => ({
+  object: 'ares#ssoCatalogRole' as const,
+  id: role.id,
+  value: role.value,
+  displayName: role.displayName,
+  metadata: role.metadata,
+  createdAt: role.createdAt,
+  updatedAt: role.updatedAt
+});
+
+export let ssoCatalogConnectionGroupPresenter = (
+  group: SsoConnectionGroup & {
+    connection: Pick<SsoConnection, 'id'>;
+    rootGroup: Pick<SsoGroup, 'id'> | null;
+  }
+) => ({
+  object: 'ares#ssoCatalogConnectionGroup' as const,
+  id: group.id,
+  connectionId: group.connection.id,
+  groupId: group.rootGroup?.id ?? null,
+  value: group.value,
+  displayName: group.displayName,
+  metadata: group.metadata,
+  createdAt: group.createdAt,
+  updatedAt: group.updatedAt
+});
+
+export let ssoCatalogConnectionRolePresenter = (
+  role: SsoConnectionRole & {
+    connection: Pick<SsoConnection, 'id'>;
+    rootRole: Pick<SsoRole, 'id'> | null;
+  }
+) => ({
+  object: 'ares#ssoCatalogConnectionRole' as const,
+  id: role.id,
+  connectionId: role.connection.id,
+  roleId: role.rootRole?.id ?? null,
+  value: role.value,
+  displayName: role.displayName,
+  metadata: role.metadata,
+  createdAt: role.createdAt,
+  updatedAt: role.updatedAt
+});
+
+export let ssoCatalogDirectoryGroupPresenter = (
+  link: Pick<SsoDirectoryGroup, 'id' | 'createdAt' | 'updatedAt'> & {
+    directory: Pick<SsoDirectory, 'id'>;
+    group: Pick<SsoConnectionGroup, 'id'>;
+  }
+) => ({
+  object: 'ares#ssoCatalogDirectoryGroup' as const,
+  id: link.id,
+  directoryId: link.directory.id,
+  connectionGroupId: link.group.id,
+  createdAt: link.createdAt,
+  updatedAt: link.updatedAt
+});
+
+export let ssoCatalogDirectoryRolePresenter = (
+  link: Pick<SsoDirectoryRole, 'id' | 'createdAt' | 'updatedAt'> & {
+    directory: Pick<SsoDirectory, 'id'>;
+    role: Pick<SsoConnectionRole, 'id'>;
+  }
+) => ({
+  object: 'ares#ssoCatalogDirectoryRole' as const,
+  id: link.id,
+  directoryId: link.directory.id,
+  connectionRoleId: link.role.id,
+  createdAt: link.createdAt,
+  updatedAt: link.updatedAt
 });
 
 export let ssoGroupPresenter = (

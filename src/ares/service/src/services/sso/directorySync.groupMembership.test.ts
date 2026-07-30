@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, reconcileSingleSsoUserQueue, ssoGroupRoleService } = vi.hoisted(() => ({
+let {
+  db,
+  reconcileSingleSsoUserQueue,
+  ssoGroupRoleService,
+  markAresSsoTenantChanged,
+  markAresSsoTenantChangedForConnection
+} = vi.hoisted(() => ({
   db: {
     ssoDirectory: { findUnique: vi.fn() },
     ssoConnectionGroup: { findFirst: vi.fn(), delete: vi.fn() },
@@ -20,7 +26,9 @@ let { db, reconcileSingleSsoUserQueue, ssoGroupRoleService } = vi.hoisted(() => 
     reconcileDirectoryRoles: vi.fn(),
     replaceUserProfileGroups: vi.fn(),
     replaceUserProfileRoles: vi.fn()
-  }
+  },
+  markAresSsoTenantChanged: vi.fn(),
+  markAresSsoTenantChangedForConnection: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -43,6 +51,11 @@ vi.mock('../../id', () => ({
 
 vi.mock('../../queues/reconcileSsoUsers', () => ({
   reconcileSingleSsoUserQueue
+}));
+
+vi.mock('../../queues/syncCallback', () => ({
+  markAresSsoTenantChanged,
+  markAresSsoTenantChangedForConnection
 }));
 
 vi.mock('./groupRole', () => ({
@@ -238,6 +251,9 @@ describe('SCIM directory group membership replacement', () => {
         connectionGroups: { none: {} },
         users: { none: {} }
       }
+    });
+    expect(markAresSsoTenantChangedForConnection).toHaveBeenCalledWith({
+      connectionOid: directory.connectionOid
     });
   });
 

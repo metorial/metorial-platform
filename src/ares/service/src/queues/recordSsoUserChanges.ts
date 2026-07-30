@@ -113,6 +113,9 @@ export let enqueueSsoUserChange = async (d: {
   ]);
 };
 
+// TODO: this is the firing point for the deferred `sso_user.changed` and
+// `sso_user_membership.changed` sync events (SAML and SCIM alike) -- `changedFields` already
+// distinguishes profile attributes from `assignedGroups` / `assignedRoles`.
 export let recordSsoUserChangeQueueProcessor = recordSsoUserChangeQueue.process(async data => {
   let latestChange = await db.ssoUserChange.findFirst({
     where: { userId: data.snapshot.user.id },

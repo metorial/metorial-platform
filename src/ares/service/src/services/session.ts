@@ -8,7 +8,7 @@ import { getId } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
 import { deviceService } from './device';
-import { markAresUserChanged } from '../queues/userSyncCallback';
+import { markAresUserChanged } from '../queues/syncCallback';
 
 let cacheTTLSecs = 60 * 5;
 let findAuthSessionCached = createCachedFunction<

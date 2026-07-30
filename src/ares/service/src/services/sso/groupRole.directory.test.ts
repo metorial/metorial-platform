@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db } = vi.hoisted(() => ({
+let { db, markAresSsoTenantChangedForConnection } = vi.hoisted(() => ({
   db: {
-    ssoDirectoryGroup: { upsert: vi.fn() },
-    ssoDirectoryRole: { deleteMany: vi.fn(), upsert: vi.fn() },
+    ssoDirectoryGroup: { findUnique: vi.fn(), upsert: vi.fn() },
+    ssoDirectoryRole: { findUnique: vi.fn(), deleteMany: vi.fn(), upsert: vi.fn() },
     ssoConnectionRole: { findMany: vi.fn() },
     ssoGroup: { findMany: vi.fn() },
     ssoRole: { findMany: vi.fn() }
-  }
+  },
+  markAresSsoTenantChangedForConnection: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -37,6 +38,11 @@ vi.mock('../../id', () => ({
   getId: vi.fn((type: string) => ({ oid: 100n, id: `${type}_generated` }))
 }));
 
+vi.mock('../../queues/syncCallback', () => ({
+  markAresSsoTenantChanged: vi.fn(),
+  markAresSsoTenantChangedForConnection
+}));
+
 import { ssoGroupRoleService } from './groupRole';
 
 let directory = {
@@ -47,7 +53,12 @@ let directory = {
 } as any;
 
 describe('directory group and role provenance', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.ssoDirectoryGroup.findUnique.mockResolvedValue(null);
+    db.ssoDirectoryRole.findUnique.mockResolvedValue(null);
+    db.ssoDirectoryRole.deleteMany.mockResolvedValue({ count: 0 });
+  });
 
   it('stores an explicit directory-group association', async () => {
     let group = { oid: 3n, id: 'group_1', connectionOid: directory.connectionOid } as any;
@@ -69,6 +80,19 @@ describe('directory group and role provenance', () => {
       },
       update: {}
     });
+    expect(markAresSsoTenantChangedForConnection).toHaveBeenCalledWith({
+      connectionOid: directory.connectionOid
+    });
+  });
+
+  it('does not mark the tenant changed when the directory-group link already exists', async () => {
+    let group = { oid: 3n, id: 'group_1', connectionOid: directory.connectionOid } as any;
+    db.ssoDirectoryGroup.findUnique.mockResolvedValue({ oid: 9n, id: 'sdg_1' });
+
+    await ssoGroupRoleService.linkDirectoryGroup({ directory, group });
+
+    expect(db.ssoDirectoryGroup.upsert).not.toHaveBeenCalled();
+    expect(markAresSsoTenantChangedForConnection).not.toHaveBeenCalled();
   });
 
   it('reconciles the persisted directory-role catalog', async () => {
@@ -83,6 +107,19 @@ describe('directory group and role provenance', () => {
       }
     });
     expect(db.ssoDirectoryRole.upsert).toHaveBeenCalledTimes(2);
+    expect(markAresSsoTenantChangedForConnection).toHaveBeenCalledWith({
+      connectionOid: directory.connectionOid
+    });
+  });
+
+  it('leaves the tenant revision untouched when the directory-role catalog is unchanged', async () => {
+    db.ssoConnectionRole.findMany.mockResolvedValue([{ oid: 4n }]);
+    db.ssoDirectoryRole.findUnique.mockResolvedValue({ oid: 10n });
+
+    await ssoGroupRoleService.reconcileDirectoryRoles({ directory });
+
+    expect(db.ssoDirectoryRole.upsert).not.toHaveBeenCalled();
+    expect(markAresSsoTenantChangedForConnection).not.toHaveBeenCalled();
   });
 
   it('filters groups through stored directory provenance', async () => {

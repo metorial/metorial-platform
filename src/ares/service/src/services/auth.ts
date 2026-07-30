@@ -36,7 +36,7 @@ import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
 import { userService } from './user';
-import { markAresUserChanged } from '../queues/userSyncCallback';
+import { markAresUserChanged } from '../queues/syncCallback';
 
 class AuthServiceImpl {
   async ensureEmailAuthEnabled(d: {
