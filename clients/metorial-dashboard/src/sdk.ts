@@ -502,50 +502,59 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       let base = manager.apiHost;
       if (!base.endsWith('/')) base += '/';
 
-      try {
-        let res = await fetch(`${base}files`, {
-          method: 'POST',
-          body,
-          headers: manager.getHeaders(manager.config),
-          credentials: 'include',
-          redirect: 'follow',
-          referrerPolicy: 'no-referrer-when-downgrade',
-          cache: 'no-cache',
-          mode: 'cors'
-        });
+      let tries = 0;
+      while (true) {
+        try {
+          let res = await fetch(`${base}files`, {
+            method: 'POST',
+            body,
+            headers: manager.getHeaders(manager.config),
+            credentials: 'include',
+            redirect: 'follow',
+            referrerPolicy: 'no-referrer-when-downgrade',
+            cache: 'no-cache',
+            mode: 'cors'
+          });
 
-        let json = await res.json();
+          let json = await res.json();
 
-        if (!res.ok) {
-          let errorData: {
-            status: number;
-            code: string;
-            message: string;
-          };
-          try {
-            errorData = json;
-          } catch {
-            errorData = {
-              status: res.status,
-              code: 'file_upload_failed',
-              message: `File upload failed with status ${res.status}`
+          if (!res.ok) {
+            let errorData: {
+              status: number;
+              code: string;
+              message: string;
             };
+            try {
+              errorData = json;
+            } catch {
+              errorData = {
+                status: res.status,
+                code: 'file_upload_failed',
+                message: `File upload failed with status ${res.status}`
+              };
+            }
+
+            throw new MetorialSDKError(errorData);
           }
 
-          throw new MetorialSDKError(errorData);
+          let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
+
+          return mapped;
+        } catch (error) {
+          if (tries < 2) {
+            console.warn('File upload failed, retrying...', error);
+            tries++;
+            continue;
+          }
+
+          console.error('File upload failed:', error);
+
+          throw new MetorialSDKError({
+            status: 500,
+            code: 'file_upload_failed',
+            message: 'File upload failed due to an unexpected error'
+          });
         }
-
-        let mapped = mapDashboardInstanceFilesGetOutput.transformFrom(json);
-
-        return mapped;
-      } catch (error) {
-        console.error('File upload failed:', error);
-
-        throw new MetorialSDKError({
-          status: 500,
-          code: 'file_upload_failed',
-          message: 'File upload failed due to an unexpected error'
-        });
       }
     }
   }),
