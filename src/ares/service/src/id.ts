@@ -2,7 +2,7 @@ import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
 export let ID = createIdGenerator({
-  app: idType.sorted('app_'),
+  app: idType.sorted('ssap_'),
   tenant: idType.sorted('atn_'),
 
   app_clientId: idType.key('app_client_'),
