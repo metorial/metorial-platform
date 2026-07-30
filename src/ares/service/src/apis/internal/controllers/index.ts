@@ -5,15 +5,15 @@ import { oauthController } from './oauth';
 import { sessionController } from './session';
 import { ssoController } from './sso';
 import { ssoV2Controller } from './ssoV2';
+import { syncListenerController } from './syncListener';
 import { tenantController } from './tenant';
 import { userController } from './user';
-import { userSyncListenerController } from './userSyncListener';
 
 let rootController = internalApp.controller({
   app: appController,
   tenant: tenantController,
   user: userController,
-  userSyncListener: userSyncListenerController,
+  syncListener: syncListenerController,
   sso: ssoController,
   ssoV2: ssoV2Controller,
   oauth: oauthController,

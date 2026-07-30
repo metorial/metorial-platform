@@ -35,6 +35,8 @@ model SsoTenant {
   importedDelegationOid BigInt?                @unique
   importedDelegation    SsoImportedDelegation? @relation(fields: [importedDelegationOid], references: [oid], onDelete: Cascade)
 
+  syncRevision BigInt @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

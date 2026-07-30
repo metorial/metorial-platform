@@ -37,13 +37,14 @@ model App {
   importedSsoDelegations SsoImportedDelegation[]
 }
 
-model UserSyncListener {
+model SyncListener {
   oid BigInt @id
   id  String @unique
 
   identifier String @unique
   callbackUrl String
   secret      String
+  eventTypes  String[] @default(["user.changed"])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
