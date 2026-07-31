@@ -90,6 +90,13 @@ export type Controller<
 
 export type InferControllerType<T> = T extends Controller<infer U> ? U : never;
 
+export type InferClientCallOpts = {
+  headers?: Record<string, string>;
+  query?: Record<string, string>;
+  timeoutMs?: number;
+  signal?: AbortSignal;
+};
+
 export type InferClient<
   HandlersAndSubControllers extends { [key: string]: Handler<any, any, any> | Controller<any> }
 > = {
@@ -98,13 +105,10 @@ export type InferClient<
     infer O,
     infer C
   >
-    ? ((
-        input: I,
-        opts?: { headers?: Record<string, string>; query?: Record<string, string> }
-      ) => Promise<O>) & {
+    ? ((input: I, opts?: InferClientCallOpts) => Promise<O>) & {
         getFull: (
           input: I,
-          opts?: { headers?: Record<string, string>; query?: Record<string, string> }
+          opts?: InferClientCallOpts
         ) => Promise<{
           data: O;
           status: number;

@@ -14,6 +14,7 @@ export interface ClientOpts {
   referrerPolicy?: RequestInit['referrerPolicy'];
   disableBatching?: boolean;
   useDirectMethodRoute?: boolean;
+  timeoutMs?: number;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
   getSignatureToken?: () => Promise<SignatureTokenResult> | SignatureTokenResult;
@@ -30,6 +31,8 @@ export interface ClientRequestOpts {
   headers?: Record<string, string | undefined>;
   query?: Record<string, string | undefined>;
   disableBatching?: boolean;
+  timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 let noopWithContext = (cb: (ctx: any) => any) => cb({});
@@ -72,6 +75,8 @@ export let clientBuilder =
         await withContext(async context => {
           let disableBatching = requestOpts?.disableBatching ?? clientOpts.disableBatching;
           let useDirectMethodRoute = clientOpts.useDirectMethodRoute ?? false;
+          let timeoutMs = requestOpts?.timeoutMs ?? clientOpts.timeoutMs;
+          let signal = requestOpts?.signal;
           let signature = await clientOpts.getSignatureToken?.();
 
           let headers = {
@@ -105,6 +110,8 @@ export let clientBuilder =
               referrerPolicy: clientOpts.referrerPolicy,
               disableBatching,
               useDirectMethodRoute,
+              timeoutMs,
+              signal,
               context
             });
           }
@@ -123,6 +130,8 @@ export let clientBuilder =
               referrerPolicy: clientOpts.referrerPolicy,
               disableBatching,
               useDirectMethodRoute,
+              timeoutMs,
+              signal,
               context
             })
           ).data;
