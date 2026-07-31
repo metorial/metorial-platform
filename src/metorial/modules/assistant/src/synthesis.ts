@@ -1,25 +1,18 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
+import type { AssistantMessageSerializedContent } from '@metorial-platform-systems/synthesis-client';
+import {
+  db,
+  type Consumer,
+  type Instance,
+  type OrganizationActor,
+  type Prisma
+} from '@metorial/db';
 import {
   ensureInternalActor,
   ensureInternalScope,
   synthesis as internalSynthesis,
   type InternalScope
 } from '@metorial/internal-clients';
-import type { AssistantMessageSerializedContent } from '@metorial-platform-systems/synthesis-client';
-import {
-  db,
-  type Consumer,
-  type ConsumerProfile,
-  type ConsumerSurface,
-  type Instance,
-  type InstanceConsumer,
-  type Organization,
-  type OrganizationActor,
-  type OrganizationMember,
-  type Team,
-  type TeamMember
-} from '@metorial/db';
-import { consumerService } from '@metorial/module-consumer';
 import { env } from './env';
 
 export let synthesis = internalSynthesis;
@@ -29,6 +22,7 @@ type SynthesisActor = Awaited<ReturnType<typeof synthesis.actor.get>>;
 
 let organizationActorInclude = {
   organization: true,
+  member: true,
   teams: {
     include: {
       team: true
@@ -36,26 +30,45 @@ let organizationActorInclude = {
   }
 } as const;
 
-type EnrichedOrganizationActor = OrganizationActor & {
-  organization: Organization;
-  teams: Array<TeamMember & { team: Team }>;
-};
+let consumerInclude = {
+  organizationMember: true,
+  instanceConsumers: {
+    include: {
+      consumer: true
+    }
+  },
+  profiles: {
+    include: {
+      consumer: {
+        include: {
+          instanceConsumers: {
+            include: {
+              consumer: true
+            }
+          }
+        }
+      },
+      organizationMember: true,
+      surface: true
+    }
+  }
+} satisfies Prisma.ConsumerInclude;
 
-type EnrichedConsumer = InstanceConsumer & {
-  consumer: Consumer & {
-    organizationMember: OrganizationMember | null;
-    profiles: Array<
-      ConsumerProfile & {
-        surface: ConsumerSurface;
-      }
-    >;
-  };
-};
+type EnrichedOrganizationActor = Prisma.OrganizationActorGetPayload<{
+  include: typeof organizationActorInclude;
+}>;
+
+type EnrichedConsumer = Prisma.ConsumerGetPayload<{
+  include: typeof consumerInclude;
+}>;
+
+type EnrichedConsumerProfile = EnrichedConsumer['profiles'][number];
 
 export type EnrichedAssistantActor = {
   name: string;
   organizationActor: EnrichedOrganizationActor | null;
   consumer: EnrichedConsumer | null;
+  consumerProfile: EnrichedConsumerProfile | null;
   synthesisActor: SynthesisActor;
 };
 
@@ -128,18 +141,21 @@ export let getSynthesisActorsByIds = async (d: {
   scope: Pick<SynthesisScope, 'tenantId'>;
   actorIds: Array<string | null | undefined>;
 }) => {
-  let actorIds = Array.from(new Set(d.actorIds.filter((actorId): actorId is string => !!actorId)));
+  let actorIds = Array.from(
+    new Set(d.actorIds.filter((actorId): actorId is string => !!actorId))
+  );
   if (!actorIds.length) return new Map<string, SynthesisActor>();
 
   let actors = await Promise.all(
-    actorIds.map(async actorId =>
-      [
-        actorId,
-        await synthesis.actor.get({
-          tenantId: d.scope.tenantId,
-          actorId
-        })
-      ] as const
+    actorIds.map(
+      async actorId =>
+        [
+          actorId,
+          await synthesis.actor.get({
+            tenantId: d.scope.tenantId,
+            actorId
+          })
+        ] as const
     )
   );
 
@@ -156,9 +172,7 @@ export let enrichSynthesisActors = async (d: {
 
   let organizationActorIds = Array.from(
     new Set(
-      d.actors.flatMap(actor =>
-        actor.organizationActorId ? [actor.organizationActorId] : []
-      )
+      d.actors.flatMap(actor => (actor.organizationActorId ? [actor.organizationActorId] : []))
     )
   );
   let consumerIds = Array.from(
@@ -179,15 +193,54 @@ export let enrichSynthesisActors = async (d: {
     include: organizationActorInclude
   });
 
-  let consumers = await consumerService.findConsumersById({
-    instance: d.instance,
-    consumerIds
+  let consumers = await db.consumer.findMany({
+    where: {
+      OR: [
+        {
+          id: {
+            in: consumerIds
+          },
+          instanceConsumers: {
+            some: {
+              instanceOid: d.instance.oid
+            }
+          }
+        },
+        {
+          instanceConsumers: {
+            some: {
+              instanceOid: d.instance.oid,
+              id: {
+                in: consumerIds
+              }
+            }
+          }
+        }
+      ]
+    },
+    include: {
+      ...consumerInclude,
+      profiles: {
+        ...consumerInclude.profiles,
+        where: {
+          instanceOid: d.instance.oid,
+          status: 'active'
+        }
+      }
+    }
   });
 
   let organizationActorById = new Map(
     organizationActors.map(organizationActor => [organizationActor.id, organizationActor])
   );
-  let consumerById = new Map(consumers.map(consumer => [consumer.consumer.id, consumer]));
+  let consumerById = new Map(
+    consumers.flatMap(consumer => [
+      [consumer.id, consumer] as const,
+      ...consumer.instanceConsumers.map(
+        instanceConsumer => [instanceConsumer.id, consumer] as const
+      )
+    ])
+  );
 
   return d.actors.map(actor => {
     let organizationActor = actor.organizationActorId
@@ -202,6 +255,7 @@ export let enrichSynthesisActors = async (d: {
       name: organizationActor?.name ?? consumer?.name ?? actor.name,
       organizationActor,
       consumer,
+      consumerProfile: consumer?.profiles[0] ?? null,
       synthesisActor: actor
     };
   });

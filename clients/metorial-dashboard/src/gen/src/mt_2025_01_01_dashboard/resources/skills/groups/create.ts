@@ -7,6 +7,7 @@ export type SkillsGroupsCreateOutput = {
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
+  allowConsumerSkillAssignment: boolean;
   skills: {
     object: 'skill';
     id: string;
@@ -36,6 +37,10 @@ export let mapSkillsGroupsCreateOutput = mtMap.object<SkillsGroupsCreateOutput>(
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     metadata: mtMap.objectField('metadata', mtMap.passthrough()),
+    allowConsumerSkillAssignment: mtMap.objectField(
+      'allow_consumer_skill_assignment',
+      mtMap.passthrough()
+    ),
     skills: mtMap.objectField(
       'skills',
       mtMap.array(
@@ -77,12 +82,17 @@ export type SkillsGroupsCreateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   skillIds?: string[] | undefined;
+  allowConsumerSkillAssignment?: boolean | undefined;
 };
 
 export let mapSkillsGroupsCreateBody = mtMap.object<SkillsGroupsCreateBody>({
   name: mtMap.objectField('name', mtMap.passthrough()),
   description: mtMap.objectField('description', mtMap.passthrough()),
   metadata: mtMap.objectField('metadata', mtMap.passthrough()),
-  skillIds: mtMap.objectField('skill_ids', mtMap.array(mtMap.passthrough()))
+  skillIds: mtMap.objectField('skill_ids', mtMap.array(mtMap.passthrough())),
+  allowConsumerSkillAssignment: mtMap.objectField(
+    'allow_consumer_skill_assignment',
+    mtMap.passthrough()
+  )
 });
 

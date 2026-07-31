@@ -52,6 +52,12 @@ export type DashboardBootOutput = {
         name: string;
         email: string | null;
         imageUrl: string;
+        member: {
+          object: 'organization.member#preview';
+          id: string;
+          status: 'active' | 'deleted';
+          role: 'member' | 'admin';
+        } | null;
         teams: {
           id: string;
           name: string;
@@ -200,6 +206,21 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
                       'image_url',
                       mtMap.passthrough()
                     ),
+                    member: mtMap.objectField(
+                      'member',
+                      mtMap.object({
+                        object: mtMap.objectField(
+                          'object',
+                          mtMap.passthrough()
+                        ),
+                        id: mtMap.objectField('id', mtMap.passthrough()),
+                        status: mtMap.objectField(
+                          'status',
+                          mtMap.passthrough()
+                        ),
+                        role: mtMap.objectField('role', mtMap.passthrough())
+                      })
+                    ),
                     teams: mtMap.objectField(
                       'teams',
                       mtMap.array(
@@ -331,8 +352,4 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
     )
   )
 });
-
-export type DashboardBootBody = {};
-
-export let mapDashboardBootBody = mtMap.object<DashboardBootBody>({});
 
