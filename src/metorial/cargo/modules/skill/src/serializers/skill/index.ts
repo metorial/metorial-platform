@@ -5,7 +5,7 @@ import { fileService } from '@metorial/cargo-module-file';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import PQueue from 'p-queue';
-import { parse, stringify } from 'yaml';
+import { stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
 import { scriptsFolder } from '../../lib/files';
 import { assertSkillStoreFileLimit } from '../../lib/limits';
@@ -18,6 +18,7 @@ import {
   isRootSkillDocument,
   normalizeSkillPath
 } from './config';
+import { parseSkillDocumentFrontmatter } from './frontmatter';
 
 export let getSkillPath = (d: SkillSerializerInput) => {
   let inner = `skills/${d.skillPluginSkill.pluginSkillSlug}`;
@@ -36,8 +37,6 @@ let storeItemInclude = {
   },
   file: true
 } satisfies Prisma.StoreItemInclude;
-
-let frontmatterRegex = /^---[ \t]*\r?\n([\s\S]*?)^---[ \t]*(?:\r?\n|$)/m;
 
 let sanitizeSkillDocumentFileNamePart = (part: string) =>
   part
@@ -67,19 +66,6 @@ let isRecord = (value: unknown): value is Record<string, unknown> =>
 
 let stripUndefined = (value: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined && v !== null));
-
-let parseSkillDocumentFrontmatter = (content: string) => {
-  let match = content.match(frontmatterRegex);
-  if (!match) return { frontmatter: {}, body: content, hasFrontmatter: false };
-
-  let parsed = parse(match[1] ?? '');
-
-  return {
-    frontmatter: isRecord(parsed) ? parsed : {},
-    body: content.slice(match[0].length),
-    hasFrontmatter: true
-  };
-};
 
 let applySkillDocumentFrontmatter = (content: string, input: SkillSerializerInput) => {
   let {

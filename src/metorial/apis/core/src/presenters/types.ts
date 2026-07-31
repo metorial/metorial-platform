@@ -1,3 +1,12 @@
+import type {
+  SkillGroupItemResource,
+  SkillGroupResource,
+  SkillItemResource,
+  SkillResource,
+  SkillSyncRepositoryCheck,
+  SkillTemplateItemResource,
+  SkillTemplateResource
+} from '@metorial/cargo-module-skill';
 import {
   AccessPolicy,
   AccessPolicyAssignment,
@@ -33,6 +42,10 @@ import {
   ConsumerSurface,
   ConsumerSurfaceProviderGroup,
   ConsumerToken,
+  Document,
+  DocumentParticipant,
+  File,
+  FileLink,
   Instance,
   InstanceConsumer,
   MachineAccess,
@@ -60,16 +73,14 @@ import {
   Prisma,
   Profile,
   Project,
-  Sandbox,
   ProviderTemplate,
+  Sandbox,
   Secret,
   SecretType,
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
-  SkillAgent,
   SkillConfiguration,
-  SkillDestinationSync,
   SkillExport,
   SkillForkSync,
   SkillGroup,
@@ -85,15 +96,8 @@ import {
   SkillPluginRepository,
   SkillPluginSkill,
   SkillTemplate,
-  SkillVersion,
   Store,
-  StoreItem,
   StoreParticipant,
-  Document,
-  DocumentParticipant,
-  DocumentVersion,
-  File,
-  FileLink,
   Team,
   TeamMember,
   TeamProject,
@@ -101,22 +105,18 @@ import {
   UserStatus,
   UserType
 } from '@metorial/db';
-import {
-  resourceActorPresentationInclude,
-  type ResourceActorPresentationRecord
-} from '@metorial/module-resource-tenant';
 import type {
   AssistantConversationItemWithMessage,
   AssistantConversationWithAssistant,
   AvailableAssistant
 } from '@metorial/module-assistant';
 import {
+  ConsumerActivityAgent,
+  ConsumerActivitySessionConnection,
   ConsumerAresApp,
   ConsumerAresSsoConnection,
   ConsumerAresSsoTenant,
   ConsumerAresSsoTenantSetup,
-  ConsumerActivityAgent,
-  ConsumerActivitySessionConnection,
   ConsumerProviderCatalogEntry,
   EnrichedConsumerSurface
 } from '@metorial/module-consumer';
@@ -127,6 +127,10 @@ import type {
 } from '@metorial/module-machine-access';
 import type { EnrichedProviderTemplate } from '@metorial/module-magic';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
+import {
+  resourceActorPresentationInclude,
+  type ResourceActorPresentationRecord
+} from '@metorial/module-resource-tenant';
 import {
   SubspaceAgent,
   SubspaceAgentInstance,
@@ -168,6 +172,8 @@ import {
   SubspaceNetwork,
   SubspaceNetworkPolicy,
   SubspaceNetworkPolicyRule,
+  SubspaceProtoGuardAlert,
+  SubspaceProtoGuardConfig,
   SubspaceProvider,
   SubspaceProviderAuthConfig,
   SubspaceProviderAuthConfigSchema,
@@ -195,8 +201,6 @@ import {
   SubspaceProviderTrigger,
   SubspaceProviderType,
   SubspaceProviderVersion,
-  SubspaceProtoGuardAlert,
-  SubspaceProtoGuardConfig,
   SubspacePublisher,
   SubspaceScmAccountPreviews,
   SubspaceScmConnection,
@@ -218,15 +222,6 @@ import {
   SubspaceSessionWarning,
   SubspaceToolCall
 } from '@metorial/module-subspace';
-import type {
-  SkillGroupItemResource,
-  SkillGroupResource,
-  SkillItemResource,
-  SkillResource,
-  SkillSyncRepositoryCheck,
-  SkillTemplateItemResource,
-  SkillTemplateResource
-} from '@metorial/cargo-module-skill';
 import { PresentableType } from '@metorial/presenter';
 
 type UserPresenterInput = {
@@ -381,6 +376,7 @@ export let organizationActorType = PresentableType.create<{
   organizationActor: OrganizationActor & {
     organization: Organization;
     teams?: (TeamMember & { team: Team })[] | null | undefined;
+    member?: OrganizationMember | null;
   };
 }>()('organization_actor');
 
@@ -1389,10 +1385,10 @@ export let consumerInviteType = PresentableType.create<{
 export let consumerType = PresentableType.create<{
   consumer: InstanceConsumer & {
     consumer: Consumer & {
-      organizationMember: OrganizationMember | null;
-      profiles: (ConsumerProfile & {
-        surface: ConsumerSurface;
-      })[];
+      // organizationMember: OrganizationMember | null;
+      // profiles: (ConsumerProfile & {
+      //   surface: ConsumerSurface;
+      // })[];
     };
   };
 }>()('consumer');
@@ -1432,9 +1428,9 @@ export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
     consumer: Consumer;
     surface: EnrichedConsumerSurface;
-    groups: (ConsumerProfileGroup & {
-      group: ConsumerGroup;
-    })[];
+    // groups: (ConsumerProfileGroup & {
+    //   group: ConsumerGroup;
+    // })[];
   };
   instanceConsumer: InstanceConsumer | null;
   assignedConsumerGroups:

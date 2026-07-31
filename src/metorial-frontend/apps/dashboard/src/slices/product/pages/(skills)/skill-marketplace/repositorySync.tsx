@@ -19,10 +19,12 @@ import {
 import { Button, Dialog, Flex, Menu, Spacer, Text, showModal } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { RiMore2Line } from '@remixicon/react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterval } from 'react-use';
 import { shleemy } from 'shleemy';
 import { SkillSyncDetails } from '../skillSyncs';
+import { shouldShowRepositorySyncLogs } from './repositorySyncVisibility';
 
 let showRepositoryAccessSettings = (
   p: {
@@ -143,6 +145,21 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
       : null,
     { pollInterval: null }
   );
+  let syncDataCacheRef = useRef<{
+    skillMarketplaceId: string | null | undefined;
+    data: typeof syncs.data;
+  }>({ skillMarketplaceId: p.skillMarketplaceId, data: syncs.data });
+  if (syncDataCacheRef.current.skillMarketplaceId !== p.skillMarketplaceId) {
+    syncDataCacheRef.current = { skillMarketplaceId: p.skillMarketplaceId, data: null };
+  }
+  if (syncs.data) syncDataCacheRef.current.data = syncs.data;
+  let stableSyncData = syncs.data ?? syncDataCacheRef.current.data;
+  let stableSyncs = {
+    ...syncs,
+    data: stableSyncData,
+    isLoading: syncs.isLoading && !stableSyncData,
+    error: stableSyncData ? null : syncs.error
+  };
   let repositoryManager = useSkillMarketplaceRepositoriesManager({
     instanceId: instance.data?.id,
     skillMarketplaceId: p.skillMarketplaceId,
@@ -214,7 +231,7 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
         </Flex>
       }
     >
-      {renderWithLoader({ syncs })(({ syncs }) => {
+      {renderWithLoader({ syncs: stableSyncs })(({ syncs }) => {
         let latestSync = syncs.data.items[0];
         if (!latestSync) {
           return (
@@ -233,7 +250,7 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
             <SkillSyncDetails
               syncId={latestSync.id}
               compact
-              logs="active-or-failed"
+              logs={shouldShowRepositorySyncLogs(latestSync) ? 'always' : 'never'}
               pollInterval={5_000}
             />
           </>

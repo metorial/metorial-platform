@@ -1,81 +1,57 @@
 import { v } from '@lowerdeck/validation';
-import type { AssistantConversationWithAssistant } from '@metorial/module-assistant';
 import type { ResourceActorPresentationRecord } from '@metorial/module-resource-tenant';
 import type { PresenterContext } from '@metorial/presenter';
 import { Presenter } from '@metorial/presenter';
 import { documentParticipantType } from '../../types';
+import { v1ConsumerProfilePresenter } from '../consumer';
 import { v1ConsumerPresenter } from '../consumer/consumer';
 import { v1OrganizationActorPresenter } from '../organization/organizationActor';
 
 export let documentParticipantActorSchema = v.object({
-  type: v.enumOf(['organization_actor', 'consumer', 'unknown']),
+  type: v.enumOf(['organization_actor', 'consumer', 'resource_actor']),
   name: v.string(),
   image_url: v.nullable(v.string()),
   email: v.nullable(v.string()),
   organization_actor: v.nullable(v1OrganizationActorPresenter.schema),
   consumer: v.nullable(v1ConsumerPresenter.schema),
-  resource_actor: v.nullable(
-    v.object({
-      id: v.string(),
-      type: v.enumOf(['external', 'system']),
-      name: v.string()
-    })
-  ),
-  consumer_profile: v.nullable(
-    v.object({
-      id: v.string(),
-      name: v.string(),
-      status: v.enumOf(['active', 'deleted'])
-    })
-  ),
-  organization_member: v.nullable(
-    v.object({
-      id: v.string(),
-      status: v.enumOf(['active', 'deleted']),
-      role: v.enumOf(['admin', 'member'])
-    })
-  )
+  consumer_profile: v.nullable(v1ConsumerProfilePresenter.schema)
 });
 
 export let presentDocumentParticipantActor = async (
-  actor:
-    | ResourceActorPresentationRecord
-    | AssistantConversationWithAssistant['createdByActor'],
+  actor: Pick<
+    ResourceActorPresentationRecord,
+    'name' | 'organizationActor' | 'consumer' | 'consumerProfile'
+  >,
   opts: PresenterContext
 ) => {
-  let actorRecord: any = actor;
-  let isResourceActor = 'resourceTenantOid' in actorRecord;
-  let resourceActor: any = isResourceActor ? actorRecord : null;
-  let organizationActor = isResourceActor
-    ? (resourceActor.organizationActor ?? null)
-    : actorRecord.organizationActor;
-  let consumerProfile = isResourceActor
-    ? (resourceActor.consumerProfile ?? null)
-    : null;
-  let instanceConsumer = isResourceActor
-    ? consumerProfile
-      ? (consumerProfile.consumer.instanceConsumers.find(
-          (consumer: any) => consumer.instanceOid == consumerProfile.instanceOid
-        ) ?? null)
-      : (resourceActor.consumer?.instanceConsumers
-          .slice()
-          .sort(
-            (a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime()
-          )[0] ?? null)
-    : actorRecord.consumer;
-  let organizationMember =
-    organizationActor?.member ??
-    consumerProfile?.organizationMember ??
-    resourceActor?.consumer?.organizationMember ??
-    null;
+  let instanceConsumer =
+    actor.consumer && actor.consumerProfile
+      ? actor.consumer.instanceConsumers.find(
+          i => i.instanceOid === actor.consumerProfile!.instanceOid
+        )
+      : null;
+  let consumerProfile =
+    actor.consumerProfile && instanceConsumer
+      ? await v1ConsumerProfilePresenter
+          .present(
+            {
+              consumerProfile: actor.consumerProfile as any,
+              instanceConsumer,
+              assignedConsumerGroups: undefined
+            },
+            opts
+          )
+          .run()
+      : null;
+  let consumer =
+    instanceConsumer && actor.consumerProfile && actor.consumer
+      ? await v1ConsumerPresenter.present({ consumer: instanceConsumer }, opts).run()
+      : null;
 
-  let orgActor = organizationActor
+  let organizationActor = actor.organizationActor
     ? await v1OrganizationActorPresenter
-        .present({ organizationActor }, opts)
+        .present({ organizationActor: actor.organizationActor }, opts)
         .run()
-    : null;
-  let consumer = instanceConsumer
-    ? await v1ConsumerPresenter.present({ consumer: instanceConsumer }, opts).run()
     : null;
 
   return {
@@ -83,34 +59,16 @@ export let presentDocumentParticipantActor = async (
       ? ('organization_actor' as const)
       : instanceConsumer
         ? ('consumer' as const)
-        : ('unknown' as const),
+        : ('resource_actor' as const),
 
     name: organizationActor?.name ?? instanceConsumer?.name ?? actor.name,
-    image_url: orgActor?.image_url ?? consumer?.image_url ?? null,
-    email: orgActor?.email ?? consumer?.email ?? null,
-    organization_actor: orgActor,
+    image_url: organizationActor?.image_url ?? consumer?.image_url ?? null,
+    email: organizationActor?.email ?? consumer?.email ?? null,
+
+    organization_actor: organizationActor,
+
     consumer,
-    resource_actor: resourceActor
-      ? {
-          id: resourceActor.id,
-          type: resourceActor.type,
-          name: resourceActor.name
-        }
-      : null,
     consumer_profile: consumerProfile
-      ? {
-          id: consumerProfile.id,
-          name: consumerProfile.name,
-          status: consumerProfile.status
-        }
-      : null,
-    organization_member: organizationMember
-      ? {
-          id: organizationMember.id,
-          status: organizationMember.status,
-          role: organizationMember.role
-        }
-      : null
   };
 };
 

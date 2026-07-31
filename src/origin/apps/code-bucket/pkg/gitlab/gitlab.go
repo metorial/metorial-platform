@@ -13,11 +13,15 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 )
 
-const maxGitlabCommitPayloadBytes = 8 * 1024 * 1024
+const (
+	maxGitlabCommitPayloadBytes = 8 * 1024 * 1024
+	maxGitlabFileInfoAttempts   = 4
+)
 
 func DownloadRepo(projectID int64, repoPath, ref, token, gitlabAPIURL string) (*zipImporter.ZipFileIterator, error) {
 	// GitLab API endpoint for downloading repository archive
@@ -260,6 +264,12 @@ func sha256Hex(content []byte) string {
 
 // Helper function to get file metadata in the repository
 func getFileInfo(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string) (gitlabFileInfo, error) {
+	return getFileInfoWithRetry(client, projectID, filePath, branch, token, gitlabAPIURL, func(attempt int) {
+		time.Sleep(250 * time.Millisecond * time.Duration(1<<(attempt-1)))
+	})
+}
+
+func getFileInfoWithRetry(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string, wait func(int)) (gitlabFileInfo, error) {
 	fileURL, err := url.Parse(fmt.Sprintf("%s/projects/%d/repository/files/%s",
 		gitlabAPIURL,
 		projectID,
@@ -272,32 +282,49 @@ func getFileInfo(client *http.Client, projectID int64, filePath, branch, token, 
 	query.Set("ref", branch)
 	fileURL.RawQuery = query.Encode()
 
-	req, err := http.NewRequest("GET", fileURL.String(), nil)
-	if err != nil {
-		return gitlabFileInfo{}, err
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	for attempt := 1; attempt <= maxGitlabFileInfoAttempts; attempt++ {
+		if attempt > 1 {
+			wait(attempt - 1)
+		}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return gitlabFileInfo{}, err
-	}
-	defer resp.Body.Close()
+		req, err := http.NewRequest("GET", fileURL.String(), nil)
+		if err != nil {
+			return gitlabFileInfo{}, err
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	if resp.StatusCode == http.StatusNotFound {
-		return gitlabFileInfo{Exists: false}, nil
+		resp, err := client.Do(req)
+		if err != nil {
+			if attempt < maxGitlabFileInfoAttempts {
+				continue
+			}
+			return gitlabFileInfo{}, err
+		}
+
+		if (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= http.StatusInternalServerError) && attempt < maxGitlabFileInfoAttempts {
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			return gitlabFileInfo{Exists: false}, nil
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata (status %d): %s", resp.StatusCode, string(body))
+		}
+
+		var info gitlabFileInfo
+		if err := json.Unmarshal(body, &info); err != nil {
+			return gitlabFileInfo{}, err
+		}
+		info.Exists = true
+
+		return info, nil
 	}
 
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	var info gitlabFileInfo
-	if err := json.Unmarshal(body, &info); err != nil {
-		return gitlabFileInfo{}, err
-	}
-	info.Exists = true
-
-	return info, nil
+	return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata after %d attempts", maxGitlabFileInfoAttempts)
 }

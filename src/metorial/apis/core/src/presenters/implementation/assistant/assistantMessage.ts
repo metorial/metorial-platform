@@ -56,13 +56,7 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
       request: v.object({
         object: v.literal('assistant.request'),
         id: v.string(),
-        status: v.enumOf([
-          'pending',
-          'waiting_for_user',
-          'completed',
-          'cancelled',
-          'failed'
-        ]),
+        status: v.enumOf(['pending', 'waiting_for_user', 'completed', 'cancelled', 'failed']),
         actor: v.nullable(documentParticipantActorSchema),
         created_at: v.date(),
         updated_at: v.date()

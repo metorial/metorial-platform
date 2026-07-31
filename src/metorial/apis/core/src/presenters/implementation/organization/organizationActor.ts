@@ -16,6 +16,16 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
     email: organizationActor.email,
     image_url: await getImageUrl(organizationActor),
 
+    member: organizationActor.member
+      ? {
+          object: 'organization.member#preview' as const,
+
+          id: organizationActor.member.id,
+          status: organizationActor.member.status,
+          role: organizationActor.member.role
+        }
+      : null,
+
     teams:
       organizationActor.teams?.map(t => ({
         id: t.team.id,
@@ -66,6 +76,28 @@ export let v1OrganizationActorPresenter = Presenter.create(organizationActorType
         description: `The organization member's image URL`,
         examples: ['https://avatar-cdn.metorial.com/aimg_1234567890']
       }),
+
+      member: v.nullable(
+        v.object({
+          object: v.literal('organization.member#preview', {
+            description: "String representing the organization's member preview type"
+          }),
+
+          id: v.string({
+            name: 'id',
+            description: `The organization member's unique identifier`,
+            examples: ['ome_7hNkPqRsTuVwXyZa']
+          }),
+          status: v.enumOf(['active', 'deleted'], {
+            name: 'status',
+            description: `The organization member's status`
+          }),
+          role: v.enumOf(['member', 'admin'], {
+            name: 'role',
+            description: `The organization member's role`
+          })
+        })
+      ),
 
       teams: v.array(
         v.object(

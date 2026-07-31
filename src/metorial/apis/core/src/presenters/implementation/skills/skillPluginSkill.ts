@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { skillPluginSkillType } from '../../types';
+import { v1SkillPreviewPresenter } from './skill';
 
 export let v1SkillPluginSkillPresenter = Presenter.create(skillPluginSkillType)
   .presenter(async ({ skillPluginSkill }) => ({
@@ -15,6 +16,7 @@ export let v1SkillPluginSkillPresenter = Presenter.create(skillPluginSkillType)
     compatibility: skillPluginSkill.compatibility,
     skill_configuration_id: skillPluginSkill.skillConfiguration?.id ?? null,
     skill_id: skillPluginSkill.skill.id,
+    skill: await v1SkillPreviewPresenter(skillPluginSkill.skill),
     created_at: skillPluginSkill.createdAt,
     updated_at: skillPluginSkill.updatedAt
   }))
@@ -31,6 +33,7 @@ export let v1SkillPluginSkillPresenter = Presenter.create(skillPluginSkillType)
       compatibility: v.nullable(v.string()),
       skill_configuration_id: v.nullable(v.string()),
       skill_id: v.string(),
+      skill: v1SkillPreviewPresenter.schema,
       created_at: v.date(),
       updated_at: v.date()
     })

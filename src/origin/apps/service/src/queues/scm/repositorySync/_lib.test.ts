@@ -166,4 +166,33 @@ describe('repository sync failure diagnostics', () => {
       })
     ).toBe(true);
   });
+
+  it('retries transient code-bucket failures for pull-request syncs', () => {
+    let error = Object.assign(
+      new Error(
+        '/rpc.rpc.CodeBucket/ExportBucketToGitlab INTERNAL: failed to get file info: http2: server sent GOAWAY and closed the connection; ErrCode=ENHANCE_YOUR_CALM'
+      ),
+      { code: 13 }
+    );
+
+    expect(
+      shouldRetryRepositorySyncContents({
+        repositoryAccessMode: 'pull_request',
+        status: 'syncing_contents',
+        attemptCount: 0,
+        error
+      })
+    ).toBe(true);
+  });
+
+  it('does not retry branch conflicts for pull-request syncs', () => {
+    expect(
+      shouldRetryRepositorySyncContents({
+        repositoryAccessMode: 'pull_request',
+        status: 'syncing_contents',
+        attemptCount: 0,
+        error: { status: 409, description: 'branch changed' }
+      })
+    ).toBe(false);
+  });
 });

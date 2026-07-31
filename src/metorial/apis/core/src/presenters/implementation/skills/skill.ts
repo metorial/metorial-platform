@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
-import { getImageUrl } from '@metorial/db';
 import type { SkillResource } from '@metorial/cargo-module-skill';
+import { getImageUrl } from '@metorial/db';
 import { Presenter } from '@metorial/presenter';
 import { skillType } from '../../types';
 import {

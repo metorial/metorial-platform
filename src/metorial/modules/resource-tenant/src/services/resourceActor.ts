@@ -42,14 +42,12 @@ export let resourceActorPresentationInclude = {
   }
 } satisfies Prisma.ResourceActorInclude;
 
-export let externallyVisibleParticipantResourceActorWhere = {
-  OR: [
-    { organizationActorOid: null },
+export let exposedParticipantResourceActorWhere = {
+  NOT: [
+    { type: 'system' },
     {
       organizationActor: {
-        is: {
-          type: { not: 'system' }
-        }
+        is: { type: 'system' }
       }
     }
   ]

@@ -1,5 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import { isAllowedBySkillConfig } from './config';
+import { parseSkillDocumentFrontmatter } from './frontmatter';
+
+describe('skill document frontmatter parsing', () => {
+  it('does not treat markdown horizontal rules as frontmatter', () => {
+    let content = `# Review
+
+Introduction
+
+---
+
+Details
+
+---
+`;
+
+    expect(parseSkillDocumentFrontmatter(content)).toEqual({
+      frontmatter: {},
+      body: content,
+      hasFrontmatter: false
+    });
+  });
+
+  it('ignores invalid frontmatter fields and preserves the document body', () => {
+    let content = `---
+name: review
+invalid: *missing-alias
+---
+# Review
+`;
+
+    expect(parseSkillDocumentFrontmatter(content)).toEqual({
+      frontmatter: {},
+      body: '# Review\n',
+      hasFrontmatter: true
+    });
+  });
+});
 
 describe('skill serializer config filtering', () => {
   it('always allows the root SKILL.md document', () => {

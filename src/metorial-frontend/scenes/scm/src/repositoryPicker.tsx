@@ -192,7 +192,7 @@ let SearchRow = styled.div`
   display: flex;
   align-items: end;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 10px;
 
   > :first-child {
     flex: 1;
@@ -931,25 +931,29 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
             {publicRepositoryOption}
 
             {!installations.data.items.length && !publicRepository && (
-              <EmptyState>
-                <Text size="2" weight="strong">
-                  Select a public repository or add a connection
-                </Text>
-                <Spacer size={4} />
-                <Text size="2" color="gray600">
-                  Paste a public GitHub, GitLab, or Bitbucket repository URL above.
-                </Text>
-                <Spacer size={12} />
-                <Button
-                  size="2"
-                  variant="outline"
-                  onClick={connect}
-                  loading={createInstallation.isLoading}
-                  iconLeft={<RiAddLine />}
-                >
-                  Add connection
-                </Button>
-              </EmptyState>
+              <>
+                <Spacer height={20} />
+
+                <EmptyState>
+                  <Text size="2" weight="strong">
+                    Select a public repository or add a connection
+                  </Text>
+                  <Spacer size={4} />
+                  <Text size="2" color="gray600">
+                    Paste a public GitHub, GitLab, or Bitbucket repository URL above.
+                  </Text>
+                  <Spacer size={12} />
+                  <Button
+                    size="2"
+                    variant="outline"
+                    onClick={connect}
+                    loading={createInstallation.isLoading}
+                    iconLeft={<RiAddLine />}
+                  >
+                    Add connection
+                  </Button>
+                </EmptyState>
+              </>
             )}
 
             {selectedAccount ? (

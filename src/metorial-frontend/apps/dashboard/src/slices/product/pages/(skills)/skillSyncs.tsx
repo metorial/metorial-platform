@@ -300,21 +300,36 @@ export let SkillSyncDetails = ({
 }) => {
   let instance = useCurrentInstance();
   let sync = useSkillSync(instance.data?.id, syncId, { pollInterval });
+  let syncDataCacheRef = useRef<{ syncId: string; data: typeof sync.data }>({
+    syncId,
+    data: sync.data
+  });
+  if (syncDataCacheRef.current.syncId !== syncId) {
+    syncDataCacheRef.current = { syncId, data: null };
+  }
+  if (sync.data) syncDataCacheRef.current.data = sync.data;
+  let stableSyncData = sync.data ?? syncDataCacheRef.current.data;
+  let stableSync = {
+    ...sync,
+    data: stableSyncData,
+    isLoading: sync.isLoading && !stableSyncData,
+    error: stableSyncData ? null : sync.error
+  };
   let repositoryChecks = useSkillSyncRepositoryChecks(instance.data?.id, syncId);
   let repositoryChecksRefetchRef = useRef(repositoryChecks.refetch);
   repositoryChecksRefetchRef.current = repositoryChecks.refetch;
   let wasActiveRef = useRef(false);
   let repos1 = useSkillMarketplaceRepositories(
     instance.data?.id,
-    sync.data?.skillMarketplaceId
+    stableSyncData?.skillMarketplaceId
   );
-  let repos2 = useSkillPluginRepositories(instance.data?.id, sync.data?.skillPluginId);
-  let reposLoader = sync.data?.skillMarketplaceId ? repos1 : repos2;
+  let repos2 = useSkillPluginRepositories(instance.data?.id, stableSyncData?.skillPluginId);
+  let reposLoader = stableSyncData?.skillMarketplaceId ? repos1 : repos2;
 
   useEffect(() => {
     let active = Boolean(
-      sync.data?.status &&
-      ['pending', 'processing', 'waiting_for_review'].includes(sync.data.status)
+      stableSyncData?.status &&
+      ['pending', 'processing', 'waiting_for_review'].includes(stableSyncData.status)
     );
     if (!active) {
       if (wasActiveRef.current) repositoryChecksRefetchRef.current();
@@ -324,9 +339,9 @@ export let SkillSyncDetails = ({
     wasActiveRef.current = true;
     let id = setInterval(() => repositoryChecksRefetchRef.current(), 5_000);
     return () => clearInterval(id);
-  }, [sync.data?.status]);
+  }, [stableSyncData?.status]);
 
-  return renderWithLoader({ sync })(({ sync }) => {
+  return renderWithLoader({ sync: stableSync })(({ sync }) => {
     let repositories = reposLoader.data?.items ?? [];
     let propagationByRepositoryId = new Map(
       sync.data.repositoryPropagations.map(
