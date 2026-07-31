@@ -5,21 +5,20 @@ import {
   type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
+  type PointerSensorProps,
   closestCenter,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors
 } from '@dnd-kit/core';
-import { renderWithLoader, useForm } from '@metorial/data-hooks';
+import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
 import { PageHeaderSection } from '@metorial/layout';
 import {
   type Skill,
   type SkillMarketplacePlugin,
   type SkillPlugin,
   useAllSkillMarketplacePlugins,
-  useAllSkillPlugins,
-  useAllSkills,
   useCreateSkillMarketplacePlugin,
   useCreateSkillPlugin,
   useCreateSkillPluginSkill,
@@ -27,6 +26,8 @@ import {
   useDeleteSkillPlugin,
   useDeleteSkillPluginSkill,
   useSkillMarketplace,
+  useSkillPlugins,
+  useSkills,
   useUpdateSkillPlugin
 } from '@metorial/state';
 import {
@@ -49,10 +50,26 @@ import {
   RiMore2Line as RiMoreVerticalLine,
   RiPuzzle2Line
 } from '@remixicon/react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 type EmbeddedPluginSkill = SkillPlugin['skills'][number];
+
+class SkillPointerSensor extends PointerSensor {
+  constructor(props: PointerSensorProps) {
+    let target = props.event.target;
+    let isDragHandle =
+      target instanceof Element && Boolean(target.closest('[data-skill-drag-handle]'));
+
+    super({
+      ...props,
+      options: {
+        ...props.options,
+        activationConstraint: { distance: isDragHandle ? 6 : 20 }
+      }
+    });
+  }
+}
 
 let Tree = styled.div`
   display: flex;
@@ -211,6 +228,12 @@ let PickerScroll = styled.div`
   padding-right: 2px;
 `;
 
+let PickerStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
 let PickerActions = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -230,6 +253,17 @@ let FormStack = styled.div`
 `;
 
 let normalizeName = (value: string | null | undefined) => value?.trim().toLowerCase();
+
+let useDebouncedSearch = (value: string, delay = 500) => {
+  let [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    let timeout = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timeout);
+  }, [value, delay]);
+
+  return debouncedValue.trim() || undefined;
+};
 
 export let isCollapsedMarketplacePlugin = (item: SkillMarketplacePlugin) => {
   let plugin = item.skillPlugin;
@@ -374,14 +408,23 @@ let PluginPickerPanel = (p: {
   close: () => void;
   onSelect: (plugin: SkillPlugin) => Promise<boolean>;
 }) => {
-  let [selectedIds, setSelectedIds] = useState<string[]>([]);
+  let [search, setSearch] = useState('');
+  let searchQuery = useDebouncedSearch(search);
+  let [selectedPlugins, setSelectedPlugins] = useState<SkillPlugin[]>([]);
   let [isAdding, setIsAdding] = useState(false);
-  let plugins = useAllSkillPlugins(p.instanceId, { order: 'asc', status: ['active'] });
+  let plugins = useSkillPlugins(p.instanceId, {
+    order: 'asc',
+    status: ['active'],
+    limit: 30,
+    ...(searchQuery ? { search: searchQuery } : {})
+  });
   let excluded = useMemo(() => new Set(p.excludePluginIds), [p.excludePluginIds]);
 
-  let toggleSelected = (id: string, checked: boolean) =>
-    setSelectedIds(current =>
-      checked ? [...current, id] : current.filter(selectedId => selectedId !== id)
+  let toggleSelected = (plugin: SkillPlugin, checked: boolean) =>
+    setSelectedPlugins(current =>
+      checked
+        ? [...current, plugin]
+        : current.filter(selectedPlugin => selectedPlugin.id !== plugin.id)
     );
 
   return (
@@ -395,30 +438,28 @@ let PluginPickerPanel = (p: {
         </div>
       </Panel.Header>
       <Panel.Content>
-        {renderWithLoader({ plugins })(({ plugins }) => {
-          let items = plugins.data.filter(plugin => !excluded.has(plugin.id));
-          if (!items.length)
+        <PickerStack>
+          <Input
+            label="Search plugins"
+            hideLabel
+            placeholder="Search plugins..."
+            value={search}
+            onInput={setSearch}
+          />
+          {renderWithPagination(plugins, { hidePaginationWhenUnavailable: true })(plugins => {
+            let items = plugins.data.items.filter(plugin => !excluded.has(plugin.id));
+            let selected = new Set(selectedPlugins.map(plugin => plugin.id));
+
+            if (!items.length)
+              return (
+                <Text size="2" color="gray600">
+                  {search.trim()
+                    ? 'No available plugins match your search.'
+                    : 'All plugins on this page are already in this marketplace.'}
+                </Text>
+              );
+
             return (
-              <Text size="2" color="gray600">
-                All active plugins are already in this marketplace.
-              </Text>
-            );
-
-          let selected = new Set(selectedIds);
-          let addSelected = async () => {
-            setIsAdding(true);
-            try {
-              for (let plugin of items.filter(plugin => selected.has(plugin.id))) {
-                if (!(await p.onSelect(plugin))) return;
-              }
-              p.close();
-            } finally {
-              setIsAdding(false);
-            }
-          };
-
-          return (
-            <>
               <PickerScroll>
                 <Table
                   headers={['Name', 'Identifier', '']}
@@ -435,27 +476,37 @@ let PluginPickerPanel = (p: {
                           hideLabel
                           checked={selected.has(plugin.id)}
                           disabled={isAdding}
-                          onCheckedChange={checked => toggleSelected(plugin.id, checked)}
+                          onCheckedChange={checked => toggleSelected(plugin, checked)}
                         />
                       </PickerCheckbox>
                     ],
                     onClick: () =>
-                      !isAdding && toggleSelected(plugin.id, !selected.has(plugin.id))
+                      !isAdding && toggleSelected(plugin, !selected.has(plugin.id))
                   }))}
                 />
               </PickerScroll>
-              <PickerActions>
-                <Button
-                  loading={isAdding}
-                  disabled={!selectedIds.length}
-                  onClick={addSelected}
-                >
-                  Add
-                </Button>
-              </PickerActions>
-            </>
-          );
-        })}
+            );
+          })}
+          <PickerActions>
+            <Button
+              loading={isAdding}
+              disabled={!selectedPlugins.length}
+              onClick={async () => {
+                setIsAdding(true);
+                try {
+                  for (let plugin of selectedPlugins) {
+                    if (!(await p.onSelect(plugin))) return;
+                  }
+                  p.close();
+                } finally {
+                  setIsAdding(false);
+                }
+              }}
+            >
+              Add
+            </Button>
+          </PickerActions>
+        </PickerStack>
       </Panel.Content>
     </>
   );
@@ -467,14 +518,23 @@ let SkillPickerPanel = (p: {
   close: () => void;
   onSelect: (skill: Skill) => Promise<boolean>;
 }) => {
-  let [selectedIds, setSelectedIds] = useState<string[]>([]);
+  let [search, setSearch] = useState('');
+  let searchQuery = useDebouncedSearch(search);
+  let [selectedSkills, setSelectedSkills] = useState<Skill[]>([]);
   let [isAdding, setIsAdding] = useState(false);
-  let skills = useAllSkills(p.instanceId, { order: 'asc', status: ['active'] });
+  let skills = useSkills(p.instanceId, {
+    order: 'asc',
+    status: ['active'],
+    limit: 30,
+    ...(searchQuery ? { search: searchQuery } : {})
+  });
   let linked = useMemo(() => new Set(p.linkedSkillIds), [p.linkedSkillIds]);
 
-  let toggleSelected = (id: string, checked: boolean) =>
-    setSelectedIds(current =>
-      checked ? [...current, id] : current.filter(selectedId => selectedId !== id)
+  let toggleSelected = (skill: Skill, checked: boolean) =>
+    setSelectedSkills(current =>
+      checked
+        ? [...current, skill]
+        : current.filter(selectedSkill => selectedSkill.id !== skill.id)
     );
 
   return (
@@ -486,30 +546,28 @@ let SkillPickerPanel = (p: {
         </div>
       </Panel.Header>
       <Panel.Content>
-        {renderWithLoader({ skills })(({ skills }) => {
-          let items = skills.data.filter(skill => !linked.has(skill.id));
-          if (!items.length)
+        <PickerStack>
+          <Input
+            label="Search skills"
+            hideLabel
+            placeholder="Search skills..."
+            value={search}
+            onInput={setSearch}
+          />
+          {renderWithPagination(skills, { hidePaginationWhenUnavailable: true })(skills => {
+            let items = skills.data.items.filter(skill => !linked.has(skill.id));
+            let selected = new Set(selectedSkills.map(skill => skill.id));
+
+            if (!items.length)
+              return (
+                <Text size="2" color="gray600">
+                  {search.trim()
+                    ? 'No available skills match your search.'
+                    : 'All skills on this page are already in this marketplace.'}
+                </Text>
+              );
+
             return (
-              <Text size="2" color="gray600">
-                All active skills are already in this marketplace.
-              </Text>
-            );
-
-          let selected = new Set(selectedIds);
-          let addSelected = async () => {
-            setIsAdding(true);
-            try {
-              for (let skill of items.filter(skill => selected.has(skill.id))) {
-                if (!(await p.onSelect(skill))) return;
-              }
-              p.close();
-            } finally {
-              setIsAdding(false);
-            }
-          };
-
-          return (
-            <>
               <PickerScroll>
                 <Table
                   headers={['Name', 'Identifier', '']}
@@ -526,27 +584,36 @@ let SkillPickerPanel = (p: {
                           hideLabel
                           checked={selected.has(skill.id)}
                           disabled={isAdding}
-                          onCheckedChange={checked => toggleSelected(skill.id, checked)}
+                          onCheckedChange={checked => toggleSelected(skill, checked)}
                         />
                       </PickerCheckbox>
                     ],
-                    onClick: () =>
-                      !isAdding && toggleSelected(skill.id, !selected.has(skill.id))
+                    onClick: () => !isAdding && toggleSelected(skill, !selected.has(skill.id))
                   }))}
                 />
               </PickerScroll>
-              <PickerActions>
-                <Button
-                  loading={isAdding}
-                  disabled={!selectedIds.length}
-                  onClick={addSelected}
-                >
-                  Add
-                </Button>
-              </PickerActions>
-            </>
-          );
-        })}
+            );
+          })}
+          <PickerActions>
+            <Button
+              loading={isAdding}
+              disabled={!selectedSkills.length}
+              onClick={async () => {
+                setIsAdding(true);
+                try {
+                  for (let skill of selectedSkills) {
+                    if (!(await p.onSelect(skill))) return;
+                  }
+                  p.close();
+                } finally {
+                  setIsAdding(false);
+                }
+              }}
+            >
+              Add
+            </Button>
+          </PickerActions>
+        </PickerStack>
       </Panel.Content>
     </>
   );
@@ -705,12 +772,22 @@ let SkillRow = (p: {
         ref={drag.setActivatorNodeRef}
         {...drag.listeners}
         {...drag.attributes}
+        data-skill-drag-handle
         disabled={p.disabled}
         aria-label={`Move ${p.skill.skill.name}`}
       >
         <RiDraggable size={17} />
       </DragHandle>
-      {p.href ? <SkillLink href={p.href}>{content}</SkillLink> : content}
+      {p.href ? (
+        <SkillLink
+          href={p.href}
+          onPointerDown={event => drag.listeners?.onPointerDown?.(event)}
+        >
+          {content}
+        </SkillLink>
+      ) : (
+        content
+      )}
       {p.combined && (
         <Badge size="1" color="purple">
           Single Skill
@@ -1199,10 +1276,7 @@ export let SkillMarketplacePluginsScene = (p: {
     }
   };
 
-  let sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor)
-  );
+  let sensors = useSensors(useSensor(SkillPointerSensor), useSensor(KeyboardSensor));
   return renderWithLoader({ marketplace, marketplacePlugins })(
     ({ marketplace, marketplacePlugins }) => (
       <PageHeaderSection
