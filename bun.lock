@@ -1968,6 +1968,7 @@
       "name": "@metorial/scene-skills",
       "version": "1.0.0",
       "dependencies": {
+        "@dnd-kit/core": "^6.3.1",
         "@metorial/code": "^1.0.0",
         "@metorial/code-editor": "workspace:*",
         "@metorial/data-hooks": "^1.0.0",
