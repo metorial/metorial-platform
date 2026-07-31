@@ -508,6 +508,56 @@ export let ssoUserPresenter = (
   updatedAt: user.updatedAt
 });
 
+export let ssoUserSyncSnapshotPresenter = (d: {
+  tenant: Pick<SsoTenant, 'id'> & { app: { id: string } };
+  user: SsoUser & {
+    groupLinks: (Pick<SsoUserGroup, 'id'> & { group: Pick<SsoGroup, 'id'> })[];
+    roleLinks: (Pick<SsoUserRole, 'id'> & { role: Pick<SsoRole, 'id'> })[];
+    profiles: (SsoUserProfile & {
+      connection: Pick<SsoConnection, 'id'>;
+      ownerDirectory: Pick<SsoDirectory, 'id'> | null;
+      groupLinks: (Pick<SsoUserProfileGroup, 'id'> & {
+        group: Pick<SsoConnectionGroup, 'id'>;
+      })[];
+      roleLinks: (Pick<SsoUserProfileRole, 'id'> & { role: Pick<SsoConnectionRole, 'id'> })[];
+    })[];
+  };
+}) => ({
+  object: 'ares#ssoUserSyncSnapshot' as const,
+  revision: d.user.syncRevision.toString(),
+  tenant: { id: d.tenant.id, appId: d.tenant.app.id },
+  user: {
+    id: d.user.id,
+    status: d.user.status,
+    email: d.user.email,
+    firstName: d.user.firstName,
+    lastName: d.user.lastName,
+    ownerProfileId:
+      d.user.profiles.find(profile => profile.oid === d.user.ownerProfileOid)?.id ?? null,
+    createdAt: d.user.createdAt,
+    updatedAt: d.user.updatedAt
+  },
+  groups: d.user.groupLinks.map(link => ({ id: link.id, groupId: link.group.id })),
+  roles: d.user.roleLinks.map(link => ({ id: link.id, roleId: link.role.id })),
+  profiles: d.user.profiles.map(profile => ({
+    id: profile.id,
+    connectionId: profile.connection.id,
+    status: profile.status,
+    email: profile.email,
+    uid: profile.uid,
+    sub: profile.sub,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    ownerDirectoryId: profile.ownerDirectory?.id ?? null,
+    attributes: profile.raw,
+    metadata: profile.metadata,
+    groups: profile.groupLinks.map(link => ({ id: link.id, connectionGroupId: link.group.id })),
+    roles: profile.roleLinks.map(link => ({ id: link.id, connectionRoleId: link.role.id })),
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt
+  }))
+});
+
 let sanitizeSsoUserChangeSnapshot = (snapshot: any) => {
   if (!snapshot) return null;
 

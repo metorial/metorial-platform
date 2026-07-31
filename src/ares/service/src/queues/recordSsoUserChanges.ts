@@ -1,7 +1,10 @@
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { db } from '../db';
 import { ID, snowflake } from '../id';
+import type { AresSsoUserSyncEventType } from '../lib/syncEvents';
+import { markAresSsoUserChanged } from './syncCallback';
 import {
+  byId,
   byValueThenId,
   getChangedSsoUserFields,
   type SsoUserChangeSnapshot
@@ -40,7 +43,15 @@ export let buildSsoUserChangeSnapshot = async (ssoUserId: string) => {
     include: {
       ownerProfile: true,
       groupLinks: { include: { group: true } },
-      roleLinks: { include: { role: true } }
+      roleLinks: { include: { role: true } },
+      profiles: {
+        include: {
+          connection: { select: { id: true } },
+          ownerDirectory: { select: { id: true } },
+          groupLinks: { include: { group: true } },
+          roleLinks: { include: { role: true } }
+        }
+      }
     }
   });
 
@@ -61,6 +72,34 @@ export let buildSsoUserChangeSnapshot = async (ssoUserId: string) => {
       displayName: link.role.displayName
     }))
     .sort(byValueThenId);
+
+  let profiles = user.profiles
+    .map(profile => ({
+      id: profile.id,
+      connectionId: profile.connection.id,
+      status: profile.status,
+      email: profile.email,
+      uid: profile.uid,
+      sub: profile.sub,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      ownerDirectoryId: profile.ownerDirectory?.id ?? null,
+      groups: profile.groupLinks
+        .map(link => ({
+          id: link.group.id,
+          value: link.group.value,
+          displayName: link.group.displayName
+        }))
+        .sort(byValueThenId),
+      roles: profile.roleLinks
+        .map(link => ({
+          id: link.role.id,
+          value: link.role.value,
+          displayName: link.role.displayName
+        }))
+        .sort(byValueThenId)
+    }))
+    .sort(byId);
 
   return {
     user: {
@@ -84,7 +123,8 @@ export let buildSsoUserChangeSnapshot = async (ssoUserId: string) => {
         }
       : null,
     assignedGroups,
-    assignedRoles
+    assignedRoles,
+    profiles
   } satisfies SsoUserChangeSnapshot;
 };
 
@@ -113,9 +153,31 @@ export let enqueueSsoUserChange = async (d: {
   ]);
 };
 
-// TODO: this is the firing point for the deferred `sso_user.changed` and
-// `sso_user_membership.changed` sync events (SAML and SCIM alike) -- `changedFields` already
-// distinguishes profile attributes from `assignedGroups` / `assignedRoles`.
+let attributeChangedFields = [
+  'status',
+  'email',
+  'firstName',
+  'lastName',
+  'ownerProfile',
+  'profiles'
+];
+
+let membershipChangedFields = ['assignedGroups', 'assignedRoles', 'profileMemberships'];
+
+let resolveSsoUserSyncEventTypes = (changedFields: string[]) => {
+  let types: AresSsoUserSyncEventType[] = [];
+
+  if (changedFields.some(field => attributeChangedFields.includes(field))) {
+    types.push('sso_user.changed');
+  }
+
+  if (changedFields.some(field => membershipChangedFields.includes(field))) {
+    types.push('sso_user_membership.changed');
+  }
+
+  return types;
+};
+
 export let recordSsoUserChangeQueueProcessor = recordSsoUserChangeQueue.process(async data => {
   let latestChange = await db.ssoUserChange.findFirst({
     where: { userId: data.snapshot.user.id },
@@ -165,7 +227,13 @@ export let recordSsoUserChangeQueueProcessor = recordSsoUserChangeQueue.process(
     });
   } catch (error) {
     if (!isUniqueConstraintError(error)) throw error;
+    return;
   }
+
+  await markAresSsoUserChanged({
+    ssoUserId: data.snapshot.user.id,
+    types: resolveSsoUserSyncEventTypes(changedFields)
+  });
 });
 
 export let recordSsoUserChangesProcessor = combineQueueProcessors([

@@ -242,6 +242,30 @@ class SsoIdentityServiceImpl {
     return user;
   }
 
+  async getUserSyncSnapshot(d: { tenant: SsoTenant; userId: string }) {
+    let user = await db.ssoUser.findFirst({
+      where: { tenantOid: d.tenant.oid, id: d.userId },
+      include: {
+        groupLinks: { include: { group: { select: { id: true } } }, orderBy: { id: 'asc' } },
+        roleLinks: { include: { role: { select: { id: true } } }, orderBy: { id: 'asc' } },
+        profiles: {
+          orderBy: { id: 'asc' },
+          include: {
+            connection: { select: { id: true } },
+            ownerDirectory: { select: { id: true } },
+            groupLinks: {
+              include: { group: { select: { id: true } } },
+              orderBy: { id: 'asc' }
+            },
+            roleLinks: { include: { role: { select: { id: true } } }, orderBy: { id: 'asc' } }
+          }
+        }
+      }
+    });
+    if (!user) throw new ServiceError(notFoundError('sso.user'));
+    return user;
+  }
+
   async updateUser(d: {
     tenant: SsoTenant;
     user: SsoUser;

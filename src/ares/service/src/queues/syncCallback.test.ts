@@ -1,23 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, handlers, queueAdd, queueAddMany, afterTransactionHooks } = vi.hoisted(() => ({
-  db: {
-    user: { findUnique: vi.fn(), update: vi.fn() },
-    ssoTenant: { findUnique: vi.fn(), update: vi.fn() },
-    ssoConnection: { findUnique: vi.fn() },
-    syncListener: { findMany: vi.fn(), findUnique: vi.fn() }
-  },
-  handlers: [] as ((input: any) => Promise<void>)[],
-  queueAdd: vi.fn(),
-  queueAddMany: vi.fn(),
-  afterTransactionHooks: [] as (() => Promise<unknown>)[]
-}));
+let { db, handlers, queueAdd, queueAddMany, queueAddManyWithOps, afterTransactionHooks } =
+  vi.hoisted(() => ({
+    db: {
+      user: { findUnique: vi.fn(), update: vi.fn() },
+      ssoTenant: { findUnique: vi.fn(), update: vi.fn() },
+      ssoUser: { findUnique: vi.fn(), update: vi.fn() },
+      ssoConnection: { findUnique: vi.fn() },
+      syncListener: { findMany: vi.fn(), findUnique: vi.fn() }
+    },
+    handlers: [] as ((input: any) => Promise<void>)[],
+    queueAdd: vi.fn(),
+    queueAddMany: vi.fn(),
+    queueAddManyWithOps: vi.fn(),
+    afterTransactionHooks: [] as (() => Promise<unknown>)[]
+  }));
 
 vi.mock('@lowerdeck/queue', () => ({
   combineQueueProcessors: vi.fn(() => ({})),
   createQueue: vi.fn(() => ({
     add: queueAdd,
     addMany: queueAddMany,
+    addManyWithOps: queueAddManyWithOps,
     process: (handler: (input: any) => Promise<void>) => {
       handlers.push(handler);
       return {};
@@ -41,7 +45,8 @@ vi.mock('../env', () => ({
 
 import {
   markAresSsoTenantChanged,
-  markAresSsoTenantChangedForConnection
+  markAresSsoTenantChangedForConnection,
+  markAresSsoUserChanged
 } from './syncCallback';
 
 let [fanoutHandler, deliveryHandler] = handlers;
@@ -188,5 +193,83 @@ describe('ares tenant revision marking', () => {
     await markAresSsoTenantChangedForConnection({ connectionOid: 2n });
 
     expect(db.ssoTenant.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('ares sso user revision marking', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    afterTransactionHooks.length = 0;
+    db.ssoUser.update.mockResolvedValue({ id: 'ssu_1', syncRevision: 3n });
+    db.ssoUser.findUnique.mockResolvedValue({
+      id: 'ssu_1',
+      tenant: { id: 'tenant_1', app: { id: 'app_1' } }
+    });
+  });
+
+  it('bumps the revision once and enqueues one job per event type', async () => {
+    await markAresSsoUserChanged({
+      ssoUserOid: 5n,
+      types: ['sso_user.changed', 'sso_user_membership.changed']
+    });
+    await flushAfterTransactionHooks();
+
+    expect(db.ssoUser.update).toHaveBeenCalledTimes(1);
+    expect(queueAddManyWithOps).toHaveBeenCalledWith([
+      {
+        data: { type: 'sso_user.changed', ssoUserId: 'ssu_1', revision: '3' },
+        opts: { id: 'ssu_1-3-sso_user.changed' }
+      },
+      {
+        data: { type: 'sso_user_membership.changed', ssoUserId: 'ssu_1', revision: '3' },
+        opts: { id: 'ssu_1-3-sso_user_membership.changed' }
+      }
+    ]);
+  });
+
+  it('does not touch the revision when no event type applies', async () => {
+    let result = await markAresSsoUserChanged({ ssoUserOid: 5n, types: [] });
+
+    expect(result).toBeNull();
+    expect(db.ssoUser.update).not.toHaveBeenCalled();
+    expect(queueAddManyWithOps).not.toHaveBeenCalled();
+  });
+
+  it('resolves the app and tenant of an sso user event before fanning out', async () => {
+    db.syncListener.findMany.mockResolvedValue([{ id: 'usl_cell_eu' }]);
+
+    await fanoutHandler!({
+      type: 'sso_user_membership.changed',
+      ssoUserId: 'ssu_1',
+      revision: '3'
+    });
+
+    expect(db.syncListener.findMany).toHaveBeenCalledWith({
+      where: { eventTypes: { has: 'sso_user_membership.changed' } },
+      select: { id: true }
+    });
+    expect(queueAddMany).toHaveBeenCalledWith([
+      {
+        listenerId: 'usl_cell_eu',
+        event: {
+          type: 'sso_user_membership.changed',
+          data: {
+            appId: 'app_1',
+            tenantId: 'tenant_1',
+            ssoUserId: 'ssu_1',
+            revision: '3'
+          }
+        }
+      }
+    ]);
+  });
+
+  it('drops events for sso users that no longer exist', async () => {
+    db.ssoUser.findUnique.mockResolvedValue(null);
+
+    await fanoutHandler!({ type: 'sso_user.changed', ssoUserId: 'ssu_gone', revision: '1' });
+
+    expect(db.syncListener.findMany).not.toHaveBeenCalled();
+    expect(queueAddMany).not.toHaveBeenCalled();
   });
 });

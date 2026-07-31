@@ -1,7 +1,11 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { ssoIdentityService } from '../../../../services/sso/identity';
-import { ssoUserPresenter, ssoUserUpdatePresenter } from '../../presenters';
+import {
+  ssoUserPresenter,
+  ssoUserSyncSnapshotPresenter,
+  ssoUserUpdatePresenter
+} from '../../presenters';
 import { tenantApp } from './_middleware';
 
 export let ssoUsersController = tenantApp.controller({
@@ -47,6 +51,22 @@ export let ssoUsersController = tenantApp.controller({
         userId: input.userId
       });
       return ssoUserPresenter(user);
+    }),
+
+  getSyncSnapshot: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        userId: v.string()
+      })
+    )
+    .do(async ({ input, tenant }) => {
+      let user = await ssoIdentityService.getUserSyncSnapshot({
+        tenant,
+        userId: input.userId
+      });
+      return ssoUserSyncSnapshotPresenter({ tenant, user });
     }),
 
   update: tenantApp

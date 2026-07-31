@@ -1,12 +1,21 @@
 import { createHmac } from 'crypto';
 
-export let aresSyncEventTypes = ['user.changed', 'sso_tenant.changed'] as const;
+export let aresSyncEventTypes = [
+  'user.changed',
+  'sso_tenant.changed',
+  'sso_user.changed',
+  'sso_user_membership.changed'
+] as const;
 
 export type AresSyncEventType = (typeof aresSyncEventTypes)[number];
 
-// TODO: ares still needs to emit `sso_user.changed` for SSO user attribute updates and
-// `sso_user_membership.changed` for group/role assignment changes (SAML and SCIM). Consumers
-// then have to apply them; until that exists only the group/role catalog is delivered.
+export let aresSsoUserSyncEventTypes = [
+  'sso_user.changed',
+  'sso_user_membership.changed'
+] as const satisfies readonly AresSyncEventType[];
+
+export type AresSsoUserSyncEventType = (typeof aresSsoUserSyncEventTypes)[number];
+
 export type AresSyncEvent =
   | {
       type: 'user.changed';
@@ -15,6 +24,10 @@ export type AresSyncEvent =
   | {
       type: 'sso_tenant.changed';
       data: { appId: string; tenantId: string; revision: string };
+    }
+  | {
+      type: AresSsoUserSyncEventType;
+      data: { appId: string; tenantId: string; ssoUserId: string; revision: string };
     };
 
 export let signAresSyncEventBody = (input: { secret: string; body: string }) => {
