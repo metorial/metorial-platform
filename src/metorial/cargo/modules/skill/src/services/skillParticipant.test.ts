@@ -270,13 +270,11 @@ describe('skill participant store projection', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           resourceActor: {
-            OR: [
-              { organizationActorOid: null },
+            NOT: [
+              { type: 'system' },
               {
                 organizationActor: {
-                  is: {
-                    type: { not: 'system' }
-                  }
+                  is: { type: 'system' }
                 }
               }
             ]
@@ -302,13 +300,11 @@ describe('skill participant store projection', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           resourceActor: {
-            OR: [
-              { organizationActorOid: null },
+            NOT: [
+              { type: 'system' },
               {
                 organizationActor: {
-                  is: {
-                    type: { not: 'system' }
-                  }
+                  is: { type: 'system' }
                 }
               }
             ]
