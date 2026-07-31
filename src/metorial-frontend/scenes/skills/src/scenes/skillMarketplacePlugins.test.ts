@@ -4,6 +4,7 @@ import {
   getMoveSkillInput,
   isCollapsedMarketplacePlugin,
   moveSkillOptimistically,
+  moveSkillToStandaloneOptimistically,
   sortMarketplacePluginHierarchy,
   shouldDeleteSourcePluginAfterMove
 } from './skillMarketplacePlugins';
@@ -183,6 +184,20 @@ describe('moveSkillOptimistically', () => {
 
     expect(result.map(item => item.skillPlugin!.id)).toEqual(['destination']);
     expect(result[0].skillPlugin!.skills[0].skillId).toBe('one');
+  });
+
+  it('keeps the standalone replacement while removing the skill from its source', () => {
+    let source = makePlugin('source', ['one', 'two']);
+    let standalone = makePlugin('standalone', ['one']);
+    let result = moveSkillToStandaloneOptimistically(
+      [source],
+      'source',
+      source.skillPlugin!.skills[0],
+      standalone
+    );
+
+    expect(result.map(item => item.skillPlugin!.id)).toEqual(['source', 'standalone']);
+    expect(result[0].skillPlugin!.skills.map(item => item.skillId)).toEqual(['two']);
   });
 });
 

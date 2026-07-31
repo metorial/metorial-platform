@@ -49,7 +49,7 @@ import {
   RiMore2Line as RiMoreVerticalLine,
   RiPuzzle2Line
 } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 type EmbeddedPluginSkill = SkillPlugin['skills'][number];
@@ -294,6 +294,30 @@ export let moveSkillOptimistically = (
 
     return [item];
   });
+
+export let moveSkillToStandaloneOptimistically = (
+  items: SkillMarketplacePlugin[],
+  sourcePluginId: string,
+  skill: EmbeddedPluginSkill,
+  standalonePlugin: SkillMarketplacePlugin
+) => [
+  ...items.flatMap(item => {
+    let plugin = item.skillPlugin;
+    if (!plugin || plugin.id !== sourcePluginId) return [item];
+    if (plugin.skills.length === 1) return [];
+
+    return [
+      {
+        ...item,
+        skillPlugin: {
+          ...plugin,
+          skills: plugin.skills.filter(current => current.id !== skill.id)
+        }
+      }
+    ];
+  }),
+  standalonePlugin
+];
 
 let compareNames = (
   aName: string | null | undefined,
@@ -809,6 +833,7 @@ export let SkillMarketplacePluginsScene = (p: {
   let createPlugin = useCreateSkillPlugin();
   let addPluginSkill = useCreateSkillPluginSkill();
   let removePluginSkill = useDeleteSkillPluginSkill();
+  let moveVersionRef = useRef(0);
   let [movingSkill, setMovingSkill] = useState<EmbeddedPluginSkill | null>(null);
   let [movePending, setMovePending] = useState(false);
   let [optimisticPlugins, setOptimisticPlugins] = useState<SkillMarketplacePlugin[] | null>(
@@ -835,7 +860,13 @@ export let SkillMarketplacePluginsScene = (p: {
   );
   let refresh = async () => {
     await marketplacePlugins.refetch();
-    await marketplace.refetch();
+  };
+  let finishMove = (version: number, plugins: SkillMarketplacePlugin[]) => {
+    setOptimisticPlugins(plugins);
+    setMovePending(false);
+    void refresh().finally(() => {
+      if (moveVersionRef.current === version) setOptimisticPlugins(null);
+    });
   };
   let actionsDisabled =
     movePending ||
@@ -932,8 +963,6 @@ export let SkillMarketplacePluginsScene = (p: {
   }) => {
     if (!p.instanceId || !p.skillMarketplaceId) return;
 
-    setMovePending(true);
-
     let sourcePluginId = p2.sourceItem.skillPlugin!.id;
     let [plugin] = await createPlugin.mutate({
       instanceId: p.instanceId,
@@ -1022,7 +1051,7 @@ export let SkillMarketplacePluginsScene = (p: {
       }
     }
 
-    await refresh();
+    return marketplaceMembership;
   };
 
   let onDragEnd = async (event: DragEndEvent) => {
@@ -1039,24 +1068,41 @@ export let SkillMarketplacePluginsScene = (p: {
       (!destinationId && !createStandalonePlugin)
     )
       return;
-    let sourceItem = marketplacePlugins.data?.find(
-      item => item.skillPlugin?.id === data.pluginId
-    );
+    let sourceItem = displayedPlugins.find(item => item.skillPlugin?.id === data.pluginId);
     if (!sourceItem?.skillPlugin) return;
 
     if (createStandalonePlugin) {
       if (isCollapsedMarketplacePlugin(sourceItem)) return;
+      let moveVersion = ++moveVersionRef.current;
+      let moveCompleted = false;
+      setMovePending(true);
       try {
-        await moveSkillToStandalonePlugin({ sourceItem, skill: data.skill });
+        let standalonePlugin = await moveSkillToStandalonePlugin({
+          sourceItem,
+          skill: data.skill
+        });
+        if (!standalonePlugin) return;
+        moveCompleted = true;
+        finishMove(
+          moveVersion,
+          moveSkillToStandaloneOptimistically(
+            displayedPlugins,
+            data.pluginId,
+            data.skill,
+            standalonePlugin
+          )
+        );
       } finally {
-        setOptimisticPlugins(null);
-        setMovePending(false);
+        if (!moveCompleted && moveVersionRef.current === moveVersion) {
+          setOptimisticPlugins(null);
+          setMovePending(false);
+        }
       }
       return;
     }
 
     if (!destinationId || destinationId === data.pluginId) return;
-    let destination = marketplacePlugins.data?.find(
+    let destination = displayedPlugins.find(
       item => item.skillPlugin?.id === destinationId
     )?.skillPlugin;
     if (
@@ -1064,15 +1110,16 @@ export let SkillMarketplacePluginsScene = (p: {
       destination.skills.some(skill => skill.skillId === data.skill!.skillId)
     )
       return;
-    setOptimisticPlugins(
-      moveSkillOptimistically(
-        marketplacePlugins.data ?? [],
-        data.pluginId,
-        destinationId,
-        data.skill
-      )
+    let moveVersion = ++moveVersionRef.current;
+    let nextPlugins = moveSkillOptimistically(
+      displayedPlugins,
+      data.pluginId,
+      destinationId,
+      data.skill
     );
+    setOptimisticPlugins(nextPlugins);
     setMovePending(true);
+    let moveCompleted = false;
     try {
       let [created] = await addPluginSkill.mutate({
         instanceId: p.instanceId,
@@ -1142,10 +1189,13 @@ export let SkillMarketplacePluginsScene = (p: {
           return;
         }
       }
-      await refresh();
+      moveCompleted = true;
+      finishMove(moveVersion, nextPlugins);
     } finally {
-      setOptimisticPlugins(null);
-      setMovePending(false);
+      if (!moveCompleted && moveVersionRef.current === moveVersion) {
+        setOptimisticPlugins(null);
+        setMovePending(false);
+      }
     }
   };
 
