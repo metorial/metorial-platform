@@ -129,27 +129,24 @@ export let markAresSsoTenantChanged = async (input: {
   tenantId?: string;
   tenantOid?: bigint;
 }) =>
-  await withTransaction(
-    async tdb => {
-      let tenant = await tdb.ssoTenant.update({
-        where: input.tenantId ? { id: input.tenantId } : { oid: input.tenantOid! },
-        data: { syncRevision: { increment: 1 } },
-        select: { id: true, syncRevision: true }
-      });
-      addAfterTransactionHook(() =>
-        syncCallbackQueue.add(
-          {
-            type: 'sso_tenant.changed',
-            tenantId: tenant.id,
-            revision: tenant.syncRevision.toString()
-          },
-          { id: `${tenant.id}-${tenant.syncRevision}` }
-        )
-      );
-      return tenant;
-    },
-    { ifExists: true }
-  );
+  await withTransaction(async tdb => {
+    let tenant = await tdb.ssoTenant.update({
+      where: input.tenantId ? { id: input.tenantId } : { oid: input.tenantOid! },
+      data: { syncRevision: { increment: 1 } },
+      select: { id: true, syncRevision: true }
+    });
+    addAfterTransactionHook(() =>
+      syncCallbackQueue.add(
+        {
+          type: 'sso_tenant.changed',
+          tenantId: tenant.id,
+          revision: tenant.syncRevision.toString()
+        },
+        { id: `${tenant.id}-${tenant.syncRevision}` }
+      )
+    );
+    return tenant;
+  });
 
 export let markAresSsoUserChanged = async (input: {
   ssoUserId?: string;
@@ -158,46 +155,38 @@ export let markAresSsoUserChanged = async (input: {
 }) => {
   if (input.types.length === 0) return null;
 
-  return await withTransaction(
-    async tdb => {
-      let ssoUser = await tdb.ssoUser.update({
-        where: input.ssoUserId ? { id: input.ssoUserId } : { oid: input.ssoUserOid! },
-        data: { syncRevision: { increment: 1 } },
-        select: { id: true, syncRevision: true }
-      });
-      addAfterTransactionHook(() =>
-        syncCallbackQueue.addManyWithOps(
-          input.types.map(type => ({
-            data: {
-              type,
-              ssoUserId: ssoUser.id,
-              revision: ssoUser.syncRevision.toString()
-            },
-            opts: { id: `${ssoUser.id}-${ssoUser.syncRevision}-${type}` }
-          }))
-        )
-      );
-      return ssoUser;
-    },
-    { ifExists: true }
-  );
+  return await withTransaction(async tdb => {
+    let ssoUser = await tdb.ssoUser.update({
+      where: input.ssoUserId ? { id: input.ssoUserId } : { oid: input.ssoUserOid! },
+      data: { syncRevision: { increment: 1 } },
+      select: { id: true, syncRevision: true }
+    });
+    addAfterTransactionHook(() =>
+      syncCallbackQueue.addManyWithOps(
+        input.types.map(type => ({
+          data: {
+            type,
+            ssoUserId: ssoUser.id,
+            revision: ssoUser.syncRevision.toString()
+          },
+          opts: { id: `${ssoUser.id}-${ssoUser.syncRevision}-${type}` }
+        }))
+      )
+    );
+    return ssoUser;
+  });
 };
 
-export let markAresSsoTenantChangedForConnection = async (input: {
-  connectionOid: bigint;
-}) =>
-  await withTransaction(
-    async tdb => {
-      let connection = await tdb.ssoConnection.findUnique({
-        where: { oid: input.connectionOid },
-        select: { tenantOid: true }
-      });
-      if (!connection) return null;
+export let markAresSsoTenantChangedForConnection = async (input: { connectionOid: bigint }) =>
+  await withTransaction(async tdb => {
+    let connection = await tdb.ssoConnection.findUnique({
+      where: { oid: input.connectionOid },
+      select: { tenantOid: true }
+    });
+    if (!connection) return null;
 
-      return await markAresSsoTenantChanged({ tenantOid: connection.tenantOid });
-    },
-    { ifExists: true }
-  );
+    return await markAresSsoTenantChanged({ tenantOid: connection.tenantOid });
+  });
 
 export let syncCallbackQueueProcessor = combineQueueProcessors([
   syncCallbackProcessor,
