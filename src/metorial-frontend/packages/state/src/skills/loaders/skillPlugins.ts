@@ -59,6 +59,20 @@ export let useCreateSkillPlugin = skillPluginsLoader.createExternalMutator(
     withAuth(sdk => sdk.skillPlugins.create(i.instanceId, i))
 );
 
+export let useUpdateSkillPlugin = skillPluginsLoader.createExternalMutator(
+  (
+    i: DashboardInstanceSkillsPluginsUpdateBody & {
+      instanceId: string;
+      skillPluginId: string;
+    }
+  ) => withAuth(sdk => sdk.skillPlugins.update(i.instanceId, i.skillPluginId, i))
+);
+
+export let useDeleteSkillPlugin = skillPluginsLoader.createExternalMutator(
+  (i: { instanceId: string; skillPluginId: string }) =>
+    withAuth(sdk => sdk.skillPlugins.archive(i.instanceId, i.skillPluginId))
+);
+
 export let useSkillPlugins = (
   instanceId: string | null | undefined,
   query?: DashboardInstanceSkillsPluginsListQuery | null
@@ -71,6 +85,39 @@ export let useSkillPlugins = (
     instanceId ? `${instanceId}:skillPlugins:${JSON.stringify(query ?? {})}` : null
   );
 };
+
+export let allSkillPluginsLoader = createLoader({
+  name: 'allSkillPlugins',
+  parents: [skillPluginsLoader],
+  fetch: (
+    i: { instanceId: string } & Omit<
+      DashboardInstanceSkillsPluginsListQuery,
+      'after' | 'before' | 'cursor'
+    >
+  ) =>
+    withAuth(sdk =>
+      autoPaginate(cursor =>
+        sdk.skillPlugins.list(
+          i.instanceId,
+          normalizeSkillPluginsListQuery({
+            ...i,
+            ...cursor,
+            limit: i.limit ?? 100,
+            order: i.order ?? 'asc'
+          })
+        )
+      )
+    ),
+  mutators: {}
+});
+
+export let useAllSkillPlugins = (
+  instanceId: string | null | undefined,
+  query?: Omit<DashboardInstanceSkillsPluginsListQuery, 'after' | 'before' | 'cursor'> | null
+) =>
+  allSkillPluginsLoader.use(
+    instanceId && query !== null ? { instanceId, ...(query ?? {}) } : null
+  );
 
 export let skillPluginLoader = createLoader({
   name: 'skillPlugin',
