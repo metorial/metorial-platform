@@ -32,6 +32,7 @@ import {
 import {
   Badge,
   Button,
+  Checkbox,
   Dialog,
   Input,
   Menu,
@@ -41,7 +42,7 @@ import {
   showModal,
   theme
 } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
+import { Table } from '@metorial/ui-product';
 import {
   RiAddLine,
   RiDraggable,
@@ -204,16 +205,22 @@ let EmptyState = styled.div`
   padding: 10px 8px 12px 58px;
 `;
 
-let PickerStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
 let PickerScroll = styled.div`
   max-height: calc(100vh - 205px);
   overflow: auto;
   padding-right: 2px;
+`;
+
+let PickerActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+`;
+
+let PickerCheckbox = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
 `;
 
 let FormStack = styled.div`
@@ -341,71 +348,90 @@ let PluginPickerPanel = (p: {
   instanceId: string;
   excludePluginIds: string[];
   close: () => void;
-  onSelect: (plugin: SkillPlugin) => Promise<void> | void;
+  onSelect: (plugin: SkillPlugin) => Promise<boolean>;
 }) => {
-  let [search, setSearch] = useState('');
-  let [selectedId, setSelectedId] = useState<string | null>(null);
+  let [selectedIds, setSelectedIds] = useState<string[]>([]);
+  let [isAdding, setIsAdding] = useState(false);
   let plugins = useAllSkillPlugins(p.instanceId, { order: 'asc', status: ['active'] });
   let excluded = useMemo(() => new Set(p.excludePluginIds), [p.excludePluginIds]);
+
+  let toggleSelected = (id: string, checked: boolean) =>
+    setSelectedIds(current =>
+      checked ? [...current, id] : current.filter(selectedId => selectedId !== id)
+    );
 
   return (
     <>
       <Panel.Header>
         <div>
-          <Panel.Title>Import Skill</Panel.Title>
+          <Panel.Title>Add Plugin</Panel.Title>
           <Panel.Description>
             Choose an existing plugin to add to this marketplace.
           </Panel.Description>
         </div>
       </Panel.Header>
       <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search plugins"
-            hideLabel
-            placeholder="Search plugins..."
-            value={search}
-            onInput={setSearch}
-          />
-          <PickerScroll>
-            {renderWithLoader({ plugins })(({ plugins }) => {
-              let needle = normalizeName(search) ?? '';
-              let items = plugins.data.filter(
-                plugin =>
-                  !excluded.has(plugin.id) &&
-                  (!needle ||
-                    [plugin.name, plugin.slug, plugin.description].some(value =>
-                      normalizeName(value)?.includes(needle)
-                    ))
-              );
-              if (!items.length)
-                return (
-                  <Text size="2" color="gray600">
-                    No available plugins match your search.
-                  </Text>
-                );
-              return (
-                <ItemGrid.Root width="270px">
-                  {items.map(plugin => (
-                    <ItemGrid.Item
-                      key={plugin.id}
-                      title={plugin.name}
-                      height={100}
-                      onClick={async () => {
-                        if (selectedId) return;
-                        setSelectedId(plugin.id);
-                        await p.onSelect(plugin);
-                        p.close();
-                      }}
-                      disabled={selectedId !== null && selectedId !== plugin.id}
-                      loading={selectedId === plugin.id}
-                    />
-                  ))}
-                </ItemGrid.Root>
-              );
-            })}
-          </PickerScroll>
-        </PickerStack>
+        {renderWithLoader({ plugins })(({ plugins }) => {
+          let items = plugins.data.filter(plugin => !excluded.has(plugin.id));
+          if (!items.length)
+            return (
+              <Text size="2" color="gray600">
+                All active plugins are already in this marketplace.
+              </Text>
+            );
+
+          let selected = new Set(selectedIds);
+          let addSelected = async () => {
+            setIsAdding(true);
+            try {
+              for (let plugin of items.filter(plugin => selected.has(plugin.id))) {
+                if (!(await p.onSelect(plugin))) return;
+              }
+              p.close();
+            } finally {
+              setIsAdding(false);
+            }
+          };
+
+          return (
+            <>
+              <PickerScroll>
+                <Table
+                  headers={['Name', 'Identifier', '']}
+                  data={items.map(plugin => ({
+                    data: [
+                      plugin.name,
+                      plugin.slug,
+                      <PickerCheckbox
+                        key={plugin.id}
+                        onClick={event => event.stopPropagation()}
+                      >
+                        <Checkbox
+                          label={`Select ${plugin.name}`}
+                          hideLabel
+                          checked={selected.has(plugin.id)}
+                          disabled={isAdding}
+                          onCheckedChange={checked => toggleSelected(plugin.id, checked)}
+                        />
+                      </PickerCheckbox>
+                    ],
+                    onClick: () =>
+                      !isAdding && toggleSelected(plugin.id, !selected.has(plugin.id))
+                  }))}
+                />
+              </PickerScroll>
+              <PickerActions>
+                <Button
+                  loading={isAdding}
+                  disabled={!selectedIds.length}
+                  onClick={addSelected}
+                >
+                  Add
+                </Button>
+              </PickerActions>
+            </>
+          );
+        })}
       </Panel.Content>
     </>
   );
@@ -415,12 +441,17 @@ let SkillPickerPanel = (p: {
   instanceId: string;
   linkedSkillIds: string[];
   close: () => void;
-  onSelect: (skill: Skill) => Promise<void> | void;
+  onSelect: (skill: Skill) => Promise<boolean>;
 }) => {
-  let [search, setSearch] = useState('');
-  let [selectedId, setSelectedId] = useState<string | null>(null);
+  let [selectedIds, setSelectedIds] = useState<string[]>([]);
+  let [isAdding, setIsAdding] = useState(false);
   let skills = useAllSkills(p.instanceId, { order: 'asc', status: ['active'] });
   let linked = useMemo(() => new Set(p.linkedSkillIds), [p.linkedSkillIds]);
+
+  let toggleSelected = (id: string, checked: boolean) =>
+    setSelectedIds(current =>
+      checked ? [...current, id] : current.filter(selectedId => selectedId !== id)
+    );
 
   return (
     <>
@@ -431,53 +462,67 @@ let SkillPickerPanel = (p: {
         </div>
       </Panel.Header>
       <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search skills"
-            hideLabel
-            placeholder="Search skills..."
-            value={search}
-            onInput={setSearch}
-          />
-          <PickerScroll>
-            {renderWithLoader({ skills })(({ skills }) => {
-              let needle = normalizeName(search) ?? '';
-              let items = skills.data.filter(
-                skill =>
-                  !linked.has(skill.id) &&
-                  (!needle ||
-                    [skill.name, skill.clientName, skill.slug].some(value =>
-                      normalizeName(value)?.includes(needle)
-                    ))
-              );
-              if (!items.length)
-                return (
-                  <Text size="2" color="gray600">
-                    No available skills match your search.
-                  </Text>
-                );
-              return (
-                <ItemGrid.Root width="270px">
-                  {items.map(skill => (
-                    <ItemGrid.Item
-                      key={skill.id}
-                      title={skill.name}
-                      height={100}
-                      onClick={async () => {
-                        if (selectedId) return;
-                        setSelectedId(skill.id);
-                        await p.onSelect(skill);
-                        p.close();
-                      }}
-                      disabled={selectedId !== null && selectedId !== skill.id}
-                      loading={selectedId === skill.id}
-                    />
-                  ))}
-                </ItemGrid.Root>
-              );
-            })}
-          </PickerScroll>
-        </PickerStack>
+        {renderWithLoader({ skills })(({ skills }) => {
+          let items = skills.data.filter(skill => !linked.has(skill.id));
+          if (!items.length)
+            return (
+              <Text size="2" color="gray600">
+                All active skills are already in this marketplace.
+              </Text>
+            );
+
+          let selected = new Set(selectedIds);
+          let addSelected = async () => {
+            setIsAdding(true);
+            try {
+              for (let skill of items.filter(skill => selected.has(skill.id))) {
+                if (!(await p.onSelect(skill))) return;
+              }
+              p.close();
+            } finally {
+              setIsAdding(false);
+            }
+          };
+
+          return (
+            <>
+              <PickerScroll>
+                <Table
+                  headers={['Name', 'Identifier', '']}
+                  data={items.map(skill => ({
+                    data: [
+                      skill.name,
+                      skill.slug,
+                      <PickerCheckbox
+                        key={skill.id}
+                        onClick={event => event.stopPropagation()}
+                      >
+                        <Checkbox
+                          label={`Select ${skill.name}`}
+                          hideLabel
+                          checked={selected.has(skill.id)}
+                          disabled={isAdding}
+                          onCheckedChange={checked => toggleSelected(skill.id, checked)}
+                        />
+                      </PickerCheckbox>
+                    ],
+                    onClick: () =>
+                      !isAdding && toggleSelected(skill.id, !selected.has(skill.id))
+                  }))}
+                />
+              </PickerScroll>
+              <PickerActions>
+                <Button
+                  loading={isAdding}
+                  disabled={!selectedIds.length}
+                  onClick={addSelected}
+                >
+                  Add
+                </Button>
+              </PickerActions>
+            </>
+          );
+        })}
       </Panel.Content>
     </>
   );
@@ -813,6 +858,7 @@ export let SkillMarketplacePluginsScene = (p: {
           skillPluginId: plugin.id
         });
         if (added) await refresh();
+        return Boolean(added);
       }
     });
   };
@@ -828,6 +874,7 @@ export let SkillMarketplacePluginsScene = (p: {
           ...getNewSkillInput(skill)
         });
         if (added) await refresh();
+        return Boolean(added);
       }
     });
   };
@@ -842,19 +889,20 @@ export let SkillMarketplacePluginsScene = (p: {
           name: skill.name,
           description: skill.description ?? undefined
         });
-        if (!plugin) return;
+        if (!plugin) return false;
         let [membership] = await addPluginSkill.mutate({
           instanceId: p.instanceId!,
           skillPluginId: plugin.id,
           ...getNewSkillInput(skill)
         });
-        if (!membership) return;
+        if (!membership) return false;
         let [added] = await addMarketplacePlugin.mutate({
           instanceId: p.instanceId!,
           skillMarketplaceId: p.skillMarketplaceId!,
           skillPluginId: plugin.id
         });
         if (added) await refresh();
+        return Boolean(added);
       }
     });
   };
@@ -1147,7 +1195,7 @@ export let SkillMarketplacePluginsScene = (p: {
                         onChanged: refresh
                       })
                     }
-                    menu={[{ label: 'Import Skill', onClick: addExistingPlugin }]}
+                    menu={[{ label: 'Import Plugin', onClick: addExistingPlugin }]}
                   >
                     Add Plugin
                   </Button>
