@@ -179,6 +179,7 @@ class UserServiceImpl {
         : await tdb.user.create({
             data: {
               ...getId('user'),
+              ...(d.input.userId ? { id: d.input.userId } : {}),
               appOid: d.app.oid,
               tenantOid: d.app.defaultTenantOid!,
               type: 'user',
