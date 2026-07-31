@@ -222,12 +222,6 @@ let EmptyState = styled.div`
   padding: 10px 8px 12px 58px;
 `;
 
-let PickerScroll = styled.div`
-  max-height: calc(100vh - 205px);
-  overflow: auto;
-  padding-right: 2px;
-`;
-
 let PickerStack = styled.div`
   display: flex;
   flex-direction: column;
@@ -460,31 +454,25 @@ let PluginPickerPanel = (p: {
               );
 
             return (
-              <PickerScroll>
-                <Table
-                  headers={['Name', 'Identifier', '']}
-                  data={items.map(plugin => ({
-                    data: [
-                      plugin.name,
-                      plugin.slug,
-                      <PickerCheckbox
-                        key={plugin.id}
-                        onClick={event => event.stopPropagation()}
-                      >
-                        <Checkbox
-                          label={`Select ${plugin.name}`}
-                          hideLabel
-                          checked={selected.has(plugin.id)}
-                          disabled={isAdding}
-                          onCheckedChange={checked => toggleSelected(plugin, checked)}
-                        />
-                      </PickerCheckbox>
-                    ],
-                    onClick: () =>
-                      !isAdding && toggleSelected(plugin, !selected.has(plugin.id))
-                  }))}
-                />
-              </PickerScroll>
+              <Table
+                headers={['Name', 'Identifier', '']}
+                data={items.map(plugin => ({
+                  data: [
+                    plugin.name,
+                    plugin.slug,
+                    <PickerCheckbox key={plugin.id} onClick={event => event.stopPropagation()}>
+                      <Checkbox
+                        label={`Select ${plugin.name}`}
+                        hideLabel
+                        checked={selected.has(plugin.id)}
+                        disabled={isAdding}
+                        onCheckedChange={checked => toggleSelected(plugin, checked)}
+                      />
+                    </PickerCheckbox>
+                  ],
+                  onClick: () => !isAdding && toggleSelected(plugin, !selected.has(plugin.id))
+                }))}
+              />
             );
           })}
           <PickerActions>
@@ -568,30 +556,25 @@ let SkillPickerPanel = (p: {
               );
 
             return (
-              <PickerScroll>
-                <Table
-                  headers={['Name', 'Identifier', '']}
-                  data={items.map(skill => ({
-                    data: [
-                      skill.name,
-                      skill.slug,
-                      <PickerCheckbox
-                        key={skill.id}
-                        onClick={event => event.stopPropagation()}
-                      >
-                        <Checkbox
-                          label={`Select ${skill.name}`}
-                          hideLabel
-                          checked={selected.has(skill.id)}
-                          disabled={isAdding}
-                          onCheckedChange={checked => toggleSelected(skill, checked)}
-                        />
-                      </PickerCheckbox>
-                    ],
-                    onClick: () => !isAdding && toggleSelected(skill, !selected.has(skill.id))
-                  }))}
-                />
-              </PickerScroll>
+              <Table
+                headers={['Name', 'Identifier', '']}
+                data={items.map(skill => ({
+                  data: [
+                    skill.name,
+                    skill.slug,
+                    <PickerCheckbox key={skill.id} onClick={event => event.stopPropagation()}>
+                      <Checkbox
+                        label={`Select ${skill.name}`}
+                        hideLabel
+                        checked={selected.has(skill.id)}
+                        disabled={isAdding}
+                        onCheckedChange={checked => toggleSelected(skill, checked)}
+                      />
+                    </PickerCheckbox>
+                  ],
+                  onClick: () => !isAdding && toggleSelected(skill, !selected.has(skill.id))
+                }))}
+              />
             );
           })}
           <PickerActions>
