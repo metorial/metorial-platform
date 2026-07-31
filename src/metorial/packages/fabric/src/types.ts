@@ -191,7 +191,7 @@ export type FabricOrganizationSubscription = {
 export type FabricUserTenant = {
   oid: bigint;
   id: string;
-  type: 'account_system_users';
+  type: 'account_system_users' | 'account_managed_users' | 'account_sso_users';
   accountOid: bigint;
   canEditName: boolean;
   canEditEmail: boolean;
