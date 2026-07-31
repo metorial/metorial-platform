@@ -4,11 +4,20 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
 
 func TestUploadToRepoEscapesFilePathAndBranch(t *testing.T) {
 	existingContent := sha256.Sum256([]byte("old"))
@@ -100,5 +109,35 @@ func TestUploadToRepoRetriesCreateAsUpdateAfterConflict(t *testing.T) {
 	}
 	if len(retriedCommit.Actions) != 1 || retriedCommit.Actions[0].Action != "update" {
 		t.Fatalf("expected retried action to be update, got %#v", retriedCommit.Actions)
+	}
+}
+
+func TestGetFileInfoRetriesTransientTransportErrors(t *testing.T) {
+	attempts := 0
+	client := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			attempts++
+			if attempts == 1 {
+				return nil, errors.New("http2: server sent GOAWAY and closed the connection; ErrCode=ENHANCE_YOUR_CALM")
+			}
+
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"content_sha256":"abc123"}`)),
+				Header:     make(http.Header),
+				Request:    req,
+			}, nil
+		}),
+	}
+
+	info, err := getFileInfoWithRetry(client, 42, "file.txt", "main", "token", "https://gitlab.test/api/v4", func(int) {})
+	if err != nil {
+		t.Fatalf("get file info: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected two attempts, got %d", attempts)
+	}
+	if !info.Exists || info.ContentSHA256 != "abc123" {
+		t.Fatalf("unexpected file info: %#v", info)
 	}
 }

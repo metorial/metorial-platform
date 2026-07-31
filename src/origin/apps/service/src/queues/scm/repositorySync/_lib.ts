@@ -17,16 +17,15 @@ export let shouldRetryRepositorySyncContents = (d: {
   attemptCount: number;
   error: unknown;
 }) => {
-  if (
-    d.repositoryAccessMode !== 'default_branch' ||
-    d.status !== 'syncing_contents' ||
-    d.attemptCount >= 3
-  ) {
+  if (d.status !== 'syncing_contents' || d.attemptCount >= 3) {
     return false;
   }
 
   let classification = getScmProviderErrorDetails(d.error).classification;
-  return classification === 'conflict' || isRetryableScmProviderError(d.error);
+  return (
+    (d.repositoryAccessMode === 'default_branch' && classification === 'conflict') ||
+    isRetryableScmProviderError(d.error)
+  );
 };
 
 export let logRepositorySyncQueueEvent = (
