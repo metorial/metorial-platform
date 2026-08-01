@@ -38,6 +38,40 @@ import { deviceService } from './device';
 import { userService } from './user';
 import { markAresUserChanged } from '../queues/syncCallback';
 
+let sendSuccessfulLoginEmail = async (d: {
+  user: User;
+  method: string;
+  ip: string;
+  ua?: string | null;
+  createdAt?: Date;
+}) => {
+  await successfulLoginVerification.send({
+    data: {
+      user: d.user,
+      method: d.method,
+      ip: d.ip,
+      ua: d.ua,
+      createdAt: d.createdAt ?? new Date()
+    },
+    to: [d.user.email]
+  });
+};
+
+let resolveAuthIntentLoginMethod = async (authIntent: AuthIntent) => {
+  if (authIntent.type == 'email_code') return 'Email Code';
+
+  if (authIntent.userIdentityOid) {
+    let identity = await db.userIdentity.findUnique({
+      where: { oid: authIntent.userIdentityOid },
+      include: { provider: true }
+    });
+
+    if (identity?.provider.name) return identity.provider.name;
+  }
+
+  return 'Social Login';
+};
+
 class AuthServiceImpl {
   async ensureEmailAuthEnabled(d: {
     app?: App;
@@ -708,6 +742,13 @@ class AuthServiceImpl {
       }
     });
 
+    await sendSuccessfulLoginEmail({
+      user,
+      method: `SSO (${d.ssoTenant.name})`,
+      ip: d.context.ip,
+      ua: d.context.ua
+    });
+
     return await this.createAuthAttempt({
       user,
       device: d.device,
@@ -1083,15 +1124,13 @@ class AuthServiceImpl {
       throw new ServiceError(forbiddenError({ message: 'Invalid account' }));
     }
 
-    if (Date.now() - user.createdAt.getTime() > 60 * 1000) {
-      await successfulLoginVerification.send({
-        data: {
-          user,
-          authIntent: d.authIntent
-        },
-        to: [user.email]
-      });
-    }
+    await sendSuccessfulLoginEmail({
+      user,
+      method: await resolveAuthIntentLoginMethod(d.authIntent),
+      ip: d.authIntent.ip,
+      ua: d.authIntent.ua,
+      createdAt: d.authIntent.createdAt
+    });
 
     return withTransaction(async tdb => {
       await tdb.authIntent.update({
