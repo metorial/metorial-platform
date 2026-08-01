@@ -59,6 +59,24 @@ describe('SCM provider errors', () => {
     expect(mapped.parent).toBe(providerError);
   });
 
+  it('retains provider classification after wrapping the error', () => {
+    let mapped = wrapScmProviderError(
+      'gitlab',
+      {
+        response: { status: 400 },
+        description: 'The refresh token is no longer valid'
+      },
+      'refresh the OAuth token'
+    );
+
+    expect(getScmProviderErrorDetails(mapped)).toMatchObject({
+      status: 400,
+      description: 'The refresh token is no longer valid',
+      classification: 'invalid_request'
+    });
+    expect(isRetryableScmProviderError(mapped)).toBe(false);
+  });
+
   it('keeps the public error short while retaining full structured log details', () => {
     let mapped = wrapScmProviderError(
       'gitlab',

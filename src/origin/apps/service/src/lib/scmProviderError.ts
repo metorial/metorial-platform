@@ -28,6 +28,8 @@ let getEmbeddedHttpStatus = (value: unknown) => {
 
 export let getScmProviderErrorStatus = (error: any): number | undefined =>
   error?.status ??
+  error?.scmProviderDiagnostic?.status ??
+  error?.data?.status ??
   error?.response?.status ??
   error?.cause?.response?.status ??
   error?.cause?.response?.statusCode ??
@@ -76,6 +78,9 @@ let sanitizeText = (value: unknown, maxLength = 1000): string | undefined => {
 
 let getDescription = (error: any) => {
   let candidates = [
+    error?.scmProviderDiagnostic?.description,
+    error?.data?.description,
+    error?.data?.message,
     error?.cause?.description,
     error?.description,
     error?.details,
@@ -177,9 +182,15 @@ let classifyScmProviderError = (
 
 export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetails => {
   let value = error as any;
+  let attached = value?.scmProviderDiagnostic;
   let request = getRequest(value);
   let response = getResponse(value);
-  let method = typeof request?.method === 'string' ? request.method.toUpperCase() : undefined;
+  let method =
+    typeof request?.method === 'string'
+      ? request.method.toUpperCase()
+      : typeof attached?.method === 'string'
+        ? attached.method.toUpperCase()
+        : undefined;
   let status = getScmProviderErrorStatus(value);
   let description = getDescription(value);
 
@@ -187,10 +198,11 @@ export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetail
     status,
     description,
     method,
-    endpoint: getSanitizedEndpoint(value),
+    endpoint: getSanitizedEndpoint(value) ?? sanitizeText(attached?.endpoint, 500),
     requestId:
       getHeader(response?.headers, 'x-request-id') ??
-      getHeader(response?.headers, 'x-gitlab-meta'),
+      getHeader(response?.headers, 'x-gitlab-meta') ??
+      sanitizeText(attached?.requestId, 200),
     classification: classifyScmProviderError(
       status,
       description,
