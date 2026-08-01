@@ -6,10 +6,14 @@ let mocks = vi.hoisted(() => ({
       findUnique: vi.fn(),
       update: vi.fn()
     }
-  }
+  },
+  usingTokenRefreshLock: vi.fn()
 }));
 
 vi.mock('../db', () => ({ db: mocks.db }));
+vi.mock('./scmTokenRefreshLock', () => ({
+  usingScmTokenRefreshLock: mocks.usingTokenRefreshLock
+}));
 
 import {
   createBitbucketClientWithToken,
@@ -44,6 +48,10 @@ describe('Bitbucket OAuth and REST client', () => {
     vi.restoreAllMocks();
     mocks.db.scmInstallation.findUnique.mockReset();
     mocks.db.scmInstallation.update.mockReset();
+    mocks.usingTokenRefreshLock.mockReset();
+    mocks.usingTokenRefreshLock.mockImplementation(
+      async (_provider, _installationOid, fn) => await fn()
+    );
   });
 
   it('builds Cloud and Data Center authorization URLs', () => {
@@ -312,12 +320,39 @@ describe('Bitbucket OAuth and REST client', () => {
   });
 
   it('uses credentials won by a concurrent rotating refresh', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
+    let fetch = vi.spyOn(globalThis, 'fetch');
     mocks.db.scmInstallation.findUnique.mockResolvedValue({
       accessToken: 'winner-access-token',
       refreshToken: 'winner-refresh-token',
       accessTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000)
     });
+
+    await expect(
+      getBitbucketAccessTokenWithInstallation(
+        installation({ accessTokenExpiresAt: new Date(0) })
+      )
+    ).resolves.toBe('winner-access-token');
+    expect(mocks.usingTokenRefreshLock).toHaveBeenCalledWith(
+      'bitbucket',
+      42n,
+      expect.any(Function)
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('uses credentials persisted while a refresh request is in flight', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
+    mocks.db.scmInstallation.findUnique
+      .mockResolvedValueOnce({
+        accessToken: 'old-access-token',
+        refreshToken: 'old-refresh-token',
+        accessTokenExpiresAt: new Date(0)
+      })
+      .mockResolvedValueOnce({
+        accessToken: 'winner-access-token',
+        refreshToken: 'winner-refresh-token',
+        accessTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000)
+      });
 
     await expect(
       getBitbucketAccessTokenWithInstallation(

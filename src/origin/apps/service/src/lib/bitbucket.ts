@@ -3,6 +3,7 @@ import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/err
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
 import { db } from '../db';
 import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
+import { usingScmTokenRefreshLock } from './scmTokenRefreshLock';
 
 type BitbucketInstallation = ScmInstallation & { backend: ScmBackend };
 type BitbucketCredentials = {
@@ -45,7 +46,7 @@ export type BitbucketPullRequestStatus = BitbucketPullRequest & {
   mergeability: 'mergeable' | 'blocked' | 'conflicting' | 'unknown';
 };
 
-let tokenRefreshes = new Map<bigint, Promise<BitbucketCredentials>>();
+let tokenRefreshes = new Map<bigint, Promise<string>>();
 
 let isDataCenter = (backend: ScmBackend) => backend.type === 'bitbucket_data_center';
 let trimSlash = (value: string) => value.replace(/\/+$/, '');
@@ -927,46 +928,54 @@ let tokenNeedsRefresh = (expiresAt: Date | null) =>
 
 let refreshInstallation = async (
   installation: BitbucketInstallation
-): Promise<BitbucketCredentials> => {
-  if (!installation.refreshToken) {
-    throw new ServiceError(
-      unauthorizedError({
-        message: 'Bitbucket authentication expired. Reconnect the integration.'
-      })
-    );
-  }
-  try {
-    let refreshed = await exchangeBitbucketToken({
-      backend: installation.backend,
-      grant: { refreshToken: installation.refreshToken }
+): Promise<string> =>
+  usingScmTokenRefreshLock('bitbucket', installation.oid, async () => {
+    let persisted = await db.scmInstallation.findUnique({
+      where: { oid: installation.oid }
     });
-    await db.scmInstallation.update({
-      where: { oid: installation.oid },
-      data: {
-        accessToken: refreshed.accessToken,
-        refreshToken: refreshed.refreshToken,
-        accessTokenExpiresAt: refreshed.expiresAt
-      }
-    });
-    return refreshed;
-  } catch (error) {
-    let current = await db.scmInstallation.findUnique({ where: { oid: installation.oid } });
-    if (
-      current?.accessToken &&
-      current.refreshToken &&
-      !tokenNeedsRefresh(current.accessTokenExpiresAt) &&
-      (current.accessToken !== installation.accessToken ||
-        current.refreshToken !== installation.refreshToken)
-    ) {
-      return {
-        accessToken: current.accessToken,
-        refreshToken: current.refreshToken,
-        expiresAt: current.accessTokenExpiresAt!
-      };
+    let current = persisted ? { ...installation, ...persisted } : installation;
+
+    if (current.accessToken && !tokenNeedsRefresh(current.accessTokenExpiresAt)) {
+      return current.accessToken;
     }
-    throw error;
-  }
-};
+    if (!current.refreshToken) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'Bitbucket authentication expired. Reconnect the integration.'
+        })
+      );
+    }
+
+    try {
+      let refreshed = await exchangeBitbucketToken({
+        backend: current.backend,
+        grant: { refreshToken: current.refreshToken }
+      });
+      await db.scmInstallation.update({
+        where: { oid: current.oid },
+        data: {
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+          accessTokenExpiresAt: refreshed.expiresAt
+        }
+      });
+      return refreshed.accessToken;
+    } catch (error) {
+      let winner = await db.scmInstallation.findUnique({
+        where: { oid: current.oid }
+      });
+      if (
+        winner?.accessToken &&
+        !tokenNeedsRefresh(winner.accessTokenExpiresAt) &&
+        (winner.accessToken !== current.accessToken ||
+          winner.refreshToken !== current.refreshToken)
+      ) {
+        return winner.accessToken;
+      }
+
+      throw error;
+    }
+  });
 
 export let getBitbucketAccessTokenWithInstallation = async (
   installation: BitbucketInstallation
@@ -985,7 +994,7 @@ export let getBitbucketAccessTokenWithInstallation = async (
     };
     void refresh.then(clear, clear);
   }
-  return (await refresh).accessToken;
+  return await refresh;
 };
 
 export let createBitbucketClientWithToken = (token: string, backend: ScmBackend) =>

@@ -43,6 +43,7 @@
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/hono": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
     "@lowerdeck/once": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
