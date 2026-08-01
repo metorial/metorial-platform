@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { createHono, type Context as HonoContext } from '@lowerdeck/hono';
 import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
@@ -21,6 +21,7 @@ import {
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { ssoLoginService } from '../../../services/sso/login';
 import { ssoDomainNotAllowedHtml } from '../../sso/pages/domain-not-allowed';
+import { errorHtml } from '../../sso/pages/error';
 import { resolveClient } from '../lib/resolveApp';
 import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
 
@@ -41,13 +42,23 @@ let getAccountLoginUrl = (d: {
 let createCodeVerifier = () => randomBytes(32).toString('base64url');
 
 // Hono hands downstream errors to the app-level handler, which answers JSON.
-// These hooks are reached by a browser redirect, so a blocked domain has to be
-// caught in the handler and rendered as a page.
-let renderSsoDomainError = (ctx: HonoContext, error: unknown) => {
+// These hooks are reached by a browser redirect, so failures have to be caught
+// in the handler and rendered as a page.
+let renderSsoError = (ctx: HonoContext, error: unknown) => {
   if (error instanceof SsoDomainNotAllowedError) {
     return ctx.html(ssoDomainNotAllowedHtml(error), 403);
   }
-  throw error;
+
+  console.error('SSO hook failed:', error);
+
+  return ctx.html(
+    errorHtml({
+      title: 'Unable to Authenticate',
+      message: 'An error occurred during authentication.',
+      details: isServiceError(error) ? error.data.message : undefined
+    }),
+    500
+  );
 };
 
 export let authHooksApp = createHono()
@@ -289,7 +300,7 @@ export let authHooksApp = createHono()
         `${env.service.ARES_SSO_URL}/sso/auth?client_secret=${ssoAuth.clientSecret}`
       );
     } catch (error) {
-      return renderSsoDomainError(ctx, error);
+      return renderSsoError(ctx, error);
     }
   })
   .get('/sso-delegation-response', async ctx => {
@@ -413,7 +424,7 @@ export let authHooksApp = createHono()
       next.searchParams.set('auth_id', auth.id);
       return ctx.redirect(next.toString());
     } catch (error) {
-      return renderSsoDomainError(ctx, error);
+      return renderSsoError(ctx, error);
     }
   })
   .get('/sso-response', async ctx => {
@@ -488,7 +499,7 @@ export let authHooksApp = createHono()
       redirectUrl.searchParams.set('code', session.authorizationCode);
       return ctx.redirect(redirectUrl.toString());
     } catch (error) {
-      return renderSsoDomainError(ctx, error);
+      return renderSsoError(ctx, error);
     }
   })
 

@@ -31,13 +31,13 @@ import { parseEmail } from '../lib/parseEmail';
 import type { OAuthCredentials } from '../lib/socials';
 import { socials } from '../lib/socials';
 import { turnstileVerifier } from '../lib/turnstile';
+import { markAresUserChanged } from '../queues/syncCallback';
 import { accessGroupService } from './accessGroup';
 import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
 import { ssoDomainPolicyService } from './sso/domainPolicy';
 import { userService } from './user';
-import { markAresUserChanged } from '../queues/syncCallback';
 
 let sendSuccessfulLoginEmail = async (d: {
   user: User;
@@ -710,22 +710,15 @@ class AuthServiceImpl {
     }
 
     if (!userIdentity.userOid) {
-      let user = await userService.findByEmailSafe({
+      let { user } = await userService.resolveOrCreateUser({
         email: d.ssoUser.email,
+        firstName: d.ssoUser.firstName,
+        lastName: d.ssoUser.lastName,
+        acceptedTerms: true,
+        type: 'standard_user',
+        context: d.context,
         app: d.app
       });
-
-      if (!user) {
-        user = await userService.createUser({
-          email: d.ssoUser.email,
-          firstName: d.ssoUser.firstName,
-          lastName: d.ssoUser.lastName,
-          acceptedTerms: true,
-          type: 'standard_user',
-          context: d.context,
-          app: d.app
-        });
-      }
 
       userIdentity = await db.userIdentity.update({
         where: { oid: userIdentity.oid },
@@ -1010,15 +1003,30 @@ class AuthServiceImpl {
       );
     }
 
-    let user = d.authIntent.identifier
-      ? await userService.findByEmailSafe({
-          email: d.authIntent.identifier,
-          app: d.app
+    if (!d.authIntent.identifier) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot create user without email identifier'
         })
-      : null;
+      );
+    }
+
+    let context = { ip: d.authIntent.ip, ua: d.authIntent.ua ?? '' };
+
+    // Resolved ahead of the transaction below so that losing the create race
+    // can be recovered from -- see userService.resolveOrCreateUser.
+    let { user, created } = await userService.resolveOrCreateUser({
+      email: d.authIntent.identifier,
+      firstName: d.input.firstName,
+      lastName: d.input.lastName,
+      acceptedTerms: d.input.acceptedTerms,
+      type: 'standard_user',
+      context,
+      app: d.app
+    });
 
     return await withTransaction(async tdb => {
-      if (user) {
+      if (!created) {
         user = await userService.linkToAccount({ user });
         user = await userService.updateUser({
           user,
@@ -1026,31 +1034,7 @@ class AuthServiceImpl {
             firstName: d.input.firstName,
             lastName: d.input.lastName
           },
-          context: {
-            ip: d.authIntent.ip,
-            ua: d.authIntent.ua ?? ''
-          }
-        });
-      } else {
-        if (!d.authIntent.identifier) {
-          throw new ServiceError(
-            badRequestError({
-              message: 'Cannot create user without email identifier'
-            })
-          );
-        }
-
-        user = await userService.createUser({
-          email: d.authIntent.identifier,
-          firstName: d.input.firstName,
-          lastName: d.input.lastName,
-          acceptedTerms: d.input.acceptedTerms,
-          type: 'standard_user',
-          context: {
-            ip: d.authIntent.ip,
-            ua: d.authIntent.ua ?? ''
-          },
-          app: d.app
+          context
         });
       }
 
