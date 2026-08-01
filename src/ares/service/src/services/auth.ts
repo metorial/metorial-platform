@@ -35,6 +35,7 @@ import { accessGroupService } from './accessGroup';
 import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
+import { ssoDomainPolicyService } from './sso/domainPolicy';
 import { userService } from './user';
 import { markAresUserChanged } from '../queues/syncCallback';
 
@@ -651,6 +652,14 @@ class AuthServiceImpl {
         forbiddenError({ message: 'SSO tenant is not available for this account' })
       );
     }
+
+    await ssoDomainPolicyService.assertEmailAllowed({
+      tenant: d.ssoTenant,
+      connection: { oid: d.ssoUserProfile.connectionOid, id: d.ssoConnectionId },
+      account: d.account,
+      email: d.ssoUser.email,
+      context: d.context
+    });
 
     let identityProvider = await db.userIdentityProvider.findFirst({
       where: { ssoTenantOid: d.ssoTenant.oid }

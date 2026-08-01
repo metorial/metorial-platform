@@ -1,8 +1,13 @@
 import { createHono } from '@lowerdeck/hono';
 import * as Cookies from 'cookie';
 import { db } from '../../../db';
+import { getRequestContext } from '../../../lib/context';
 import { getSamlConnectionDefaultRedirectUrl } from '../../../lib/ssoRedirect';
 import { deviceService } from '../../../services/device';
+import {
+  SsoDomainNotAllowedError,
+  ssoDomainPolicyService
+} from '../../../services/sso/domainPolicy';
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { ssoLoginService } from '../../../services/sso/login';
 import { jackson } from '../../../lib/jackson';
@@ -12,6 +17,7 @@ import {
   parseDeviceToken,
   SESSION_ID_COOKIE_NAME
 } from '../../auth/middleware/device';
+import { ssoDomainNotAllowedHtml } from '../pages/domain-not-allowed';
 import { errorHtml } from '../pages/error';
 
 export let jxnApp = createHono()
@@ -126,6 +132,14 @@ export let jxnApp = createHono()
 
       let { connection, accessToken } = authenticated;
       let userInfo = await jackson.oauthController.userInfo(accessToken);
+
+      await ssoDomainPolicyService.assertEmailAllowed({
+        tenant: connection.tenant,
+        connection,
+        email: userInfo.email,
+        context: getRequestContext(c)
+      });
+
       let user = await ssoIdentityService.upsertUser({
         tenant: connection.tenant,
         email: userInfo.email,
@@ -189,7 +203,11 @@ export let jxnApp = createHono()
         Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
       );
       return res;
-    } catch {
+    } catch (error) {
+      if (error instanceof SsoDomainNotAllowedError) {
+        return c.html(ssoDomainNotAllowedHtml(error), 403);
+      }
+
       return c.html(
         errorHtml({
           title: 'Authentication Error',

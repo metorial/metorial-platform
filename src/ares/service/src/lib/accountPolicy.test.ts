@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   doesAuthAttemptMatchClient,
+  evaluateSsoEmailDomain,
   getAccountEmailAuthFlow,
   getAccountSsoClientId,
   getInitialSsoTenantEnrollment,
@@ -151,5 +152,97 @@ describe('account domain policy', () => {
         allowedConnectionOids: [4n]
       })
     ).toBe(false);
+  });
+});
+
+describe('SSO asserted email domain policy', () => {
+  let base = {
+    domain: 'example.com',
+    tenantOid: 1n,
+    connectionOid: 2n
+  };
+
+  let unrestricted = {
+    accountOid: 10n,
+    allowedTenantOids: [] as bigint[],
+    allowedConnectionOids: [] as bigint[]
+  };
+
+  it('rejects malformed domains before anything else', () => {
+    expect(
+      evaluateSsoEmailDomain({
+        ...base,
+        domain: 'not a domain',
+        accountOid: null,
+        accountDomain: null
+      })
+    ).toEqual({ allowed: false, reason: 'invalid_domain' });
+  });
+
+  it('allows standalone app tenants with no account and no configured domains', () => {
+    expect(
+      evaluateSsoEmailDomain({
+        ...base,
+        domain: 'anything.example',
+        accountOid: null,
+        accountDomain: null
+      })
+    ).toEqual({ allowed: true });
+  });
+
+  it('stops app tenants from authenticating a domain an account claims', () => {
+    expect(
+      evaluateSsoEmailDomain({ ...base, accountOid: null, accountDomain: unrestricted })
+    ).toEqual({ allowed: false, reason: 'domain_other_account' });
+  });
+
+  it('blocks an unconfigured domain for account tenants', () => {
+    expect(evaluateSsoEmailDomain({ ...base, accountOid: 10n, accountDomain: null })).toEqual(
+      { allowed: false, reason: 'domain_not_configured' }
+    );
+  });
+
+  it('blocks a domain configured for a different account', () => {
+    expect(
+      evaluateSsoEmailDomain({
+        ...base,
+        accountOid: 10n,
+        accountDomain: { ...unrestricted, accountOid: 11n }
+      })
+    ).toEqual({ allowed: false, reason: 'domain_other_account' });
+  });
+
+  it('allows a configured domain without restrictions', () => {
+    expect(
+      evaluateSsoEmailDomain({ ...base, accountOid: 10n, accountDomain: unrestricted })
+    ).toEqual({ allowed: true });
+  });
+
+  it('honours tenant and connection restrictions on a configured domain', () => {
+    expect(
+      evaluateSsoEmailDomain({
+        ...base,
+        accountOid: 10n,
+        accountDomain: { ...unrestricted, allowedTenantOids: [1n] }
+      })
+    ).toEqual({ allowed: true });
+    expect(
+      evaluateSsoEmailDomain({
+        ...base,
+        accountOid: 10n,
+        accountDomain: { ...unrestricted, allowedConnectionOids: [2n] }
+      })
+    ).toEqual({ allowed: true });
+    expect(
+      evaluateSsoEmailDomain({
+        ...base,
+        accountOid: 10n,
+        accountDomain: {
+          ...unrestricted,
+          allowedTenantOids: [3n],
+          allowedConnectionOids: [4n]
+        }
+      })
+    ).toEqual({ allowed: false, reason: 'connection_not_allowed' });
   });
 });

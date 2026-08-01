@@ -1,10 +1,19 @@
 import { htmlEncode } from '../../../lib/htmlEncode';
 
-export let errorHtml = (d: {
-  title: string;
-  message: string;
-  details?: string;
-}) => `<!DOCTYPE html>
+export let ssoDomainNotAllowedHtml = (d: {
+  domain: string | null;
+  email: string;
+  tenantName: string;
+}) => {
+  let domain = d.domain ? htmlEncode(d.domain) : null;
+  let email = htmlEncode(d.email);
+  let tenantName = htmlEncode(d.tenantName);
+
+  let explanation = domain
+    ? `Your identity provider signed you in as <strong>${email}</strong>, but the domain <strong>${domain}</strong> is not configured for ${tenantName} in Metorial.`
+    : `Your identity provider signed you in as <strong>${email}</strong>, which is not a valid email address.`;
+
+  return `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -68,15 +77,13 @@ export let errorHtml = (d: {
       color: #666;
       text-align: center;
       margin-bottom: 20px;
+      line-height: 1.5;
     }
 
-    pre {
-      background: #f8f8f8;
-      padding: 10px;
-      border-radius: 4px;
-      overflow-x: auto;
-      font-size: 14px;
+    strong {
       color: #333;
+      font-weight: 600;
+      word-break: break-all;
     }
   </style>
 </head>
@@ -86,13 +93,14 @@ export let errorHtml = (d: {
     <section>
       <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" />
 
-      <h1>${htmlEncode(d.title)}</h1>
+      <h1>This email domain is not configured</h1>
 
-      <p>${htmlEncode(d.message)}</p>
+      <p>${explanation}</p>
 
-      ${d.details ? `<pre>${htmlEncode(d.details)}</pre>` : ''}
+      <p>Please contact your administrator to have this domain added and verified, then try signing in again.</p>
     </section>
   </main>
 </body>
 
 </html>`;
+};

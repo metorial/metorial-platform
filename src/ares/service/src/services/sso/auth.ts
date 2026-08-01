@@ -4,8 +4,7 @@ import { addMinutes } from 'date-fns';
 import type { Account, SsoConnection, SsoTenant } from '../../../prisma/generated/client';
 import { db } from '../../db';
 import { getId, ID } from '../../id';
-import { parseEmail } from '../../lib/parseEmail';
-import { isAccountDomainConnectionAllowed } from '../../lib/accountPolicy';
+import { ssoDomainPolicyService } from './domainPolicy';
 
 class SsoAuthServiceImpl {
   private async ensureDomainAllowsConnection(d: {
@@ -14,34 +13,14 @@ class SsoAuthServiceImpl {
     connection?: SsoConnection | null;
     email?: string | null;
   }) {
-    if (!d.account || !d.connection || !d.email) return;
-    let { domain } = parseEmail(d.email);
-    let accountDomain = await db.accountDomain.findUnique({
-      where: {
-        appOid_domain: {
-          appOid: d.tenant.appOid,
-          domain
-        }
-      },
-      include: {
-        allowedTenants: true,
-        allowedConnections: true
-      }
+    if (!d.connection || !d.email) return;
+
+    await ssoDomainPolicyService.assertEmailAllowed({
+      tenant: d.tenant,
+      connection: d.connection,
+      account: d.account,
+      email: d.email
     });
-    if (!accountDomain) return;
-    if (accountDomain.accountOid != d.account.oid) {
-      throw new ServiceError(notFoundError('sso.auth'));
-    }
-    if (
-      !isAccountDomainConnectionAllowed({
-        tenantOid: d.tenant.oid,
-        connectionOid: d.connection.oid,
-        allowedTenantOids: accountDomain.allowedTenants.map(link => link.tenantOid),
-        allowedConnectionOids: accountDomain.allowedConnections.map(link => link.connectionOid)
-      })
-    ) {
-      throw new ServiceError(notFoundError('sso.auth'));
-    }
   }
 
   async createAuth(d: {
@@ -148,12 +127,23 @@ class SsoAuthServiceImpl {
     ) {
       throw new ServiceError(notFoundError('sso.auth'));
     }
+    // The profile email is what the IdP actually asserted and what the session
+    // will be issued for, so it is the authoritative value. The login hint is
+    // checked too when present, so a valid hint cannot launder a bad assertion.
     await this.ensureDomainAllowsConnection({
       tenant: auth.tenant,
       account: auth.account,
       connection: auth.connection,
-      email: auth.email ?? auth.userProfile.email
+      email: auth.userProfile.email
     });
+    if (auth.email && auth.email != auth.userProfile.email) {
+      await this.ensureDomainAllowsConnection({
+        tenant: auth.tenant,
+        account: auth.account,
+        connection: auth.connection,
+        email: auth.email
+      });
+    }
     if (
       auth.tenant.status != 'completed' ||
       (auth.account &&

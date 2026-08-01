@@ -60,3 +60,55 @@ export let isAccountDomainConnectionAllowed = (d: {
     d.allowedConnectionOids.includes(d.connectionOid)
   );
 };
+
+export type SsoEmailDomainDenialReason =
+  | 'invalid_domain'
+  | 'domain_not_configured'
+  | 'domain_other_account'
+  | 'connection_not_allowed';
+
+export type SsoEmailDomainDecision =
+  | { allowed: true }
+  | { allowed: false; reason: SsoEmailDomainDenialReason };
+
+export let evaluateSsoEmailDomain = (d: {
+  domain: string;
+  tenantOid: bigint;
+  connectionOid: bigint;
+  accountOid: bigint | null;
+  accountDomain: {
+    accountOid: bigint;
+    allowedTenantOids: bigint[];
+    allowedConnectionOids: bigint[];
+  } | null;
+}): SsoEmailDomainDecision => {
+  if (!isValidAccountDomain(d.domain)) {
+    return { allowed: false, reason: 'invalid_domain' };
+  }
+
+  if (d.accountOid == null) {
+    if (!d.accountDomain) return { allowed: true };
+    return { allowed: false, reason: 'domain_other_account' };
+  }
+
+  if (!d.accountDomain) {
+    return { allowed: false, reason: 'domain_not_configured' };
+  }
+
+  if (d.accountDomain.accountOid != d.accountOid) {
+    return { allowed: false, reason: 'domain_other_account' };
+  }
+
+  if (
+    !isAccountDomainConnectionAllowed({
+      tenantOid: d.tenantOid,
+      connectionOid: d.connectionOid,
+      allowedTenantOids: d.accountDomain.allowedTenantOids,
+      allowedConnectionOids: d.accountDomain.allowedConnectionOids
+    })
+  ) {
+    return { allowed: false, reason: 'connection_not_allowed' };
+  }
+
+  return { allowed: true };
+};

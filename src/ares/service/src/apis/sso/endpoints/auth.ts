@@ -4,12 +4,18 @@ import { v } from '@lowerdeck/validation';
 import { createHash, randomBytes } from 'crypto';
 import { db } from '../../../db';
 import { env } from '../../../env';
+import { getRequestContext } from '../../../lib/context';
 import { jackson } from '../../../lib/jackson';
 import { ssoAuthService } from '../../../services/sso/auth';
 import { getSsoAuthCompletionRedirect } from '../../../services/sso/authRedirect';
 import { ssoConnectionService } from '../../../services/sso/connection';
+import {
+  SsoDomainNotAllowedError,
+  ssoDomainPolicyService
+} from '../../../services/sso/domainPolicy';
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { authSelectConnectionHtml } from '../pages/auth-select-connection';
+import { ssoDomainNotAllowedHtml } from '../pages/domain-not-allowed';
 import { errorHtml } from '../pages/error';
 
 function generateCodeVerifier(): string {
@@ -132,6 +138,10 @@ export let ssoAuthApp = createHono()
 
       return c.redirect(res.redirect_url!);
     } catch (error: any) {
+      if (error instanceof SsoDomainNotAllowedError) {
+        return c.html(ssoDomainNotAllowedHtml(error), 403);
+      }
+
       return c.html(
         errorHtml({
           title: 'Unable to Authenticate',
@@ -188,6 +198,14 @@ export let ssoAuthApp = createHono()
       });
 
       let userInfo = await jackson.oauthController.userInfo(tokenRes.access_token);
+
+      await ssoDomainPolicyService.assertEmailAllowed({
+        tenant: auth.tenant,
+        connection,
+        account: auth.account,
+        email: userInfo.email,
+        context: getRequestContext(c)
+      });
 
       let user = await ssoIdentityService.upsertUser({
         tenant: auth.tenant,
@@ -256,6 +274,10 @@ export let ssoAuthApp = createHono()
       }
       return c.redirect(completionRedirect.url);
     } catch (error: any) {
+      if (error instanceof SsoDomainNotAllowedError) {
+        return c.html(ssoDomainNotAllowedHtml(error), 403);
+      }
+
       return c.html(
         errorHtml({
           title: 'Unable to Authenticate',
