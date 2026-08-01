@@ -1085,29 +1085,37 @@ class SsoGroupRoleServiceImpl {
     let groups = uniqueValues(d.groups);
 
     await withTransaction(async tdb => {
-      await tdb.ssoUserProfileGroup.deleteMany({
-        where: { userProfileOid: d.userProfile.oid }
-      });
+      let groupOids: bigint[] = [];
 
+      // Upserting on the membership pair keeps link ids stable across syncs, which
+      // downstream mirrors rely on to avoid unique constraint collisions.
       for (let value of groups) {
         let group = await this.upsertGroup({
           connection: d.connection,
           value,
           displayName: value
         });
+        groupOids.push(group.oid);
 
-        try {
-          await tdb.ssoUserProfileGroup.create({
-            data: {
-              ...getId('ssoUserProfileGroup'),
+        await tdb.ssoUserProfileGroup.upsert({
+          where: {
+            userProfileOid_groupOid: {
               userProfileOid: d.userProfile.oid,
               groupOid: group.oid
             }
-          });
-        } catch (error) {
-          if (!isUniqueConstraintError(error)) throw error;
-        }
+          },
+          create: {
+            ...getId('ssoUserProfileGroup'),
+            userProfileOid: d.userProfile.oid,
+            groupOid: group.oid
+          },
+          update: {}
+        });
       }
+
+      await tdb.ssoUserProfileGroup.deleteMany({
+        where: { userProfileOid: d.userProfile.oid, groupOid: { notIn: groupOids } }
+      });
     });
   }
 
@@ -1119,9 +1127,7 @@ class SsoGroupRoleServiceImpl {
     let roles = uniqueValues(d.roles);
 
     await withTransaction(async tdb => {
-      await tdb.ssoUserProfileRole.deleteMany({
-        where: { userProfileOid: d.userProfile.oid }
-      });
+      let roleOids: bigint[] = [];
 
       for (let value of roles) {
         let role = await this.upsertRole({
@@ -1129,19 +1135,27 @@ class SsoGroupRoleServiceImpl {
           value,
           displayName: value
         });
+        roleOids.push(role.oid);
 
-        try {
-          await tdb.ssoUserProfileRole.create({
-            data: {
-              ...getId('ssoUserProfileRole'),
+        await tdb.ssoUserProfileRole.upsert({
+          where: {
+            userProfileOid_roleOid: {
               userProfileOid: d.userProfile.oid,
               roleOid: role.oid
             }
-          });
-        } catch (error) {
-          if (!isUniqueConstraintError(error)) throw error;
-        }
+          },
+          create: {
+            ...getId('ssoUserProfileRole'),
+            userProfileOid: d.userProfile.oid,
+            roleOid: role.oid
+          },
+          update: {}
+        });
       }
+
+      await tdb.ssoUserProfileRole.deleteMany({
+        where: { userProfileOid: d.userProfile.oid, roleOid: { notIn: roleOids } }
+      });
     });
   }
 
