@@ -29,4 +29,13 @@ describe('isAuthRoute', () => {
       })
     ).toBe(false);
   });
+
+  test('treats an empty authFrontendUrl as the current origin', () => {
+    expect(
+      isAuthRoute('http://localhost:3103/login', {
+        ...auth,
+        authFrontendUrl: ''
+      })
+    ).toBe(true);
+  });
 });

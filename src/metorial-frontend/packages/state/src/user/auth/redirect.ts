@@ -12,7 +12,7 @@ export let redirectToAuth = async (
 
   let config = await awaitConfig();
 
-  let u = new URL(config.auth.loginPath, config.auth.authFrontendUrl ?? location.origin);
+  let u = new URL(config.auth.loginPath, config.auth.authFrontendUrl || location.origin);
   u.searchParams.set('redirect_uri', nextUrl);
 
   if (opts?.intent) u.searchParams.set('intent', opts.intent);
@@ -27,7 +27,7 @@ export let redirectToLogout = async () => {
 
   let config = await awaitConfig();
 
-  let u = new URL(config.auth.logoutPath, config.auth.authFrontendUrl ?? location.origin);
+  let u = new URL(config.auth.logoutPath, config.auth.authFrontendUrl || location.origin);
 
   window.location.replace(u.toString());
 };

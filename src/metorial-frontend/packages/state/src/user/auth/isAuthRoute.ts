@@ -8,7 +8,7 @@ export let isAuthRoute = (
   }
 ) => {
   let current = new URL(currentUrl);
-  let authOrigin = auth.authFrontendUrl ?? current.origin;
+  let authOrigin = auth.authFrontendUrl || current.origin;
 
   return [auth.loginPath, auth.logoutPath, auth.signupPath].some(path => {
     let route = new URL(path, authOrigin);
