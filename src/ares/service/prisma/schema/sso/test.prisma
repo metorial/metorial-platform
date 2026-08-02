@@ -20,11 +20,14 @@ model SsoTest {
   connectionOid BigInt
   connection    SsoConnection @relation(fields: [connectionOid], references: [oid], onDelete: Cascade)
 
-  userOid BigInt?
-  user    SsoUser? @relation(fields: [userOid], references: [oid], onDelete: SetNull)
-
-  userProfileOid BigInt?
-  userProfile    SsoUserProfile? @relation(fields: [userProfileOid], references: [oid], onDelete: SetNull)
+  email     String?
+  firstName String?
+  lastName  String?
+  uid       String?
+  sub       String?
+  groups    String[]
+  roles     String[]
+  raw       Json?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

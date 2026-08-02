@@ -207,6 +207,41 @@ export let ssoAuthApp = createHono()
         context: getRequestContext(c)
       });
 
+      if (auth.purpose === 'connection_test') {
+        let testSso = await db.ssoTest.findUnique({ where: { authOid: auth.oid } });
+        if (!testSso) {
+          throw new ServiceError(badRequestError({ message: 'SSO test record not found.' }));
+        }
+
+        await db.ssoTest.update({
+          where: { oid: testSso.oid },
+          data: {
+            status: 'completed',
+            email: userInfo.email,
+            firstName: userInfo.firstName,
+            lastName: userInfo.lastName,
+            uid: userInfo.id,
+            sub: userInfo.sub ?? null,
+            groups: userInfo.groups ?? [],
+            roles: userInfo.roles ?? [],
+            raw: userInfo.raw,
+            completedAt: new Date()
+          }
+        });
+
+        let testRedirect = getSsoAuthCompletionRedirect({
+          redirectUri: auth.redirectUri,
+          purpose: auth.purpose,
+          tenantId: auth.tenant.id,
+          authId: auth.id,
+          testSsoId: testSso.id
+        });
+
+        // The auth was only ever a vehicle for the test, and `SsoTest.authId` keeps the audit trail.
+        await db.ssoAuth.delete({ where: { oid: auth.oid } });
+        return c.redirect(testRedirect.url);
+      }
+
       let user = await ssoIdentityService.upsertUser({
         tenant: auth.tenant,
         email: userInfo.email,
@@ -241,37 +276,12 @@ export let ssoAuthApp = createHono()
         }
       });
 
-      let testSso =
-        auth.purpose === 'connection_test'
-          ? await db.ssoTest.findUnique({ where: { authOid: auth.oid } })
-          : null;
-      if (auth.purpose === 'connection_test' && !testSso) {
-        throw new ServiceError(badRequestError({ message: 'SSO test record not found.' }));
-      }
-      if (testSso) {
-        await db.ssoTest.update({
-          where: { oid: testSso.oid },
-          data: {
-            status: 'completed',
-            userOid: user.oid,
-            userProfileOid: profile.oid,
-            completedAt: new Date()
-          }
-        });
-      }
-
       let completionRedirect = getSsoAuthCompletionRedirect({
         redirectUri: auth.redirectUri,
         purpose: auth.purpose,
         tenantId: auth.tenant.id,
-        authId: auth.id,
-        userId: user.id,
-        testSsoId: testSso?.id
+        authId: auth.id
       });
-      if (completionRedirect.consumeAuth) {
-        await db.ssoAuth.delete({ where: { oid: auth.oid } });
-        return c.redirect(completionRedirect.url);
-      }
       return c.redirect(completionRedirect.url);
     } catch (error: any) {
       if (error instanceof SsoDomainNotAllowedError) {

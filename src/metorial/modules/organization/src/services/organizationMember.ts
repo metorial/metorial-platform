@@ -127,6 +127,7 @@ class OrganizationMemberService {
             where: { oid: existingMember.oid },
             data: {
               status: 'active',
+              deletedAt: null,
               isV2Member: d.organization.authVersion == 'v2',
               role: d.input.role,
               organizationOid: d.organization.oid,

@@ -10,6 +10,7 @@ import type {
   SsoRole,
   SsoScimOperation,
   SsoTenant,
+  SsoTest,
   SsoUser,
   SsoUserChange,
   SsoUserGroup,
@@ -506,6 +507,31 @@ export let ssoUserPresenter = (
   roles: (user.roleLinks ?? []).map(link => ssoRoleRefPresenter(link.role)),
   createdAt: user.createdAt,
   updatedAt: user.updatedAt
+});
+
+export let ssoTestPresenter = (
+  test: SsoTest & { connection?: Pick<SsoConnection, 'id' | 'name' | 'status'> | null }
+) => ({
+  object: 'ares#ssoTest' as const,
+  id: test.id,
+  status: test.status,
+  connectionId: test.connection?.id ?? null,
+  // The captured assertion. Present once the test completes, and held nowhere else.
+  profile:
+    test.status === 'completed'
+      ? {
+          email: test.email,
+          firstName: test.firstName,
+          lastName: test.lastName,
+          uid: test.uid,
+          sub: test.sub,
+          groups: test.groups,
+          roles: test.roles,
+          raw: test.raw
+        }
+      : null,
+  createdAt: test.createdAt,
+  completedAt: test.completedAt
 });
 
 export let ssoUserSyncSnapshotPresenter = (d: {

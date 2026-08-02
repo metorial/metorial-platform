@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { randomUUID } from 'crypto';
@@ -13,6 +13,7 @@ import {
   ssoConnectionGroupPresenter,
   ssoConnectionPresenter,
   ssoConnectionRolePresenter,
+  ssoTestPresenter,
   ssoUserProfilePresenter
 } from '../../presenters';
 import { tenantApp } from './_middleware';
@@ -146,6 +147,34 @@ export let ssoConnectionsController = tenantApp.controller({
       let url = new URL('/sso/auth', env.service.ARES_SSO_URL);
       url.searchParams.set('client_secret', auth.clientSecret);
       return { url: url.toString() };
+    }),
+
+  getTest: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        connectionId: v.string(),
+        testId: v.string()
+      })
+    )
+    .do(async ({ input, tenant }) => {
+      let connection = await ssoConnectionService.getConnectionById({
+        tenant,
+        connectionId: input.connectionId
+      });
+
+      let test = await db.ssoTest.findFirst({
+        where: {
+          id: input.testId,
+          tenantOid: tenant.oid,
+          connectionOid: connection.oid
+        },
+        include: { connection: { select: { id: true, name: true, status: true } } }
+      });
+      if (!test) throw new ServiceError(notFoundError('ssoTest'));
+
+      return ssoTestPresenter(test);
     }),
 
   update: tenantApp

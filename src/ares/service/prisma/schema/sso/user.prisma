@@ -28,7 +28,6 @@ model SsoUser {
   groupLinks SsoUserGroup[]
   roleLinks  SsoUserRole[]
   auths      SsoAuth[]
-  ssoTests   SsoTest[]
   changes    SsoUserChange[]
 
   @@index([tenantOid, email])

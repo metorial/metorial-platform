@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let countOrganizationMembersMock = vi.fn();
 let updateOrganizationMemberMock = vi.fn();
+let findFirstOrganizationMemberMock = vi.fn();
 let fabricFireMock = vi.fn();
 let syncOrgMemberToConsumerMock = vi.fn();
 let syncMemberDefaultPoliciesMock = vi.fn();
@@ -36,7 +37,8 @@ vi.mock('@metorial/db', () => ({
     await cb({
       organizationMember: {
         count: countOrganizationMembersMock,
-        update: updateOrganizationMemberMock
+        update: updateOrganizationMemberMock,
+        findFirst: findFirstOrganizationMemberMock
       }
     })
 }));
@@ -151,5 +153,42 @@ describe('organizationMemberService admin removal safeguards', () => {
     });
 
     expect(updateOrganizationMemberMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('organizationMemberService.createOrganizationMember', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    updateOrganizationMemberMock.mockImplementation(async ({ data }: { data: unknown }) => ({
+      id: 'orgmem_1',
+      ...((data ?? {}) as object)
+    }));
+  });
+
+  // Anything asking whether the seat is live reads the timestamp, so leaving the old one behind
+  // makes a member who is back look removed.
+  it('clears the removal timestamp when a removed member is added again', async () => {
+    findFirstOrganizationMemberMock.mockResolvedValue({
+      oid: 2n,
+      status: 'deleted',
+      deletedAt: new Date(),
+      actor: { oid: 3n }
+    });
+
+    let { organizationMemberService } = await import('./organizationMember');
+
+    await organizationMemberService.createOrganizationMember({
+      user: { oid: 4n, type: 'user', email: 'a@b.c', name: 'A' } as any,
+      organization: { oid: 1n, authVersion: 'v2' } as any,
+      input: { role: 'member' },
+      context: { ip: '127.0.0.1', ua: 'test' },
+      performedBy: { type: 'actor', actor: { oid: 3n } as any }
+    });
+
+    expect(updateOrganizationMemberMock).toHaveBeenCalledTimes(1);
+    expect(updateOrganizationMemberMock.mock.calls[0]![0].data).toMatchObject({
+      status: 'active',
+      deletedAt: null
+    });
   });
 });
