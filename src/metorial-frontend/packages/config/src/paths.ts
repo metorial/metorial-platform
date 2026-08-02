@@ -1018,8 +1018,10 @@ let AdminPaths = Object.assign(
 
       return AdminPaths(accountId, 'invites', inviteId, ...subPages);
     },
+    access: (accountId: string | null | undefined, ...subPages: SubPages) =>
+      AdminPaths(accountId, 'access', ...subPages),
     groups: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'groups', ...subPages),
+      AdminPaths(accountId, 'access', ...subPages),
     group: (
       accountId: string | null | undefined,
       groupId: string | null | undefined,
@@ -1027,10 +1029,10 @@ let AdminPaths = Object.assign(
     ) => {
       if (!groupId) return '#';
 
-      return AdminPaths(accountId, 'groups', groupId, ...subPages);
+      return AdminPaths(accountId, 'access', 'groups', groupId, ...subPages);
     },
     policies: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'policies', ...subPages),
+      AdminPaths(accountId, 'access', ...subPages),
     policy: (
       accountId: string | null | undefined,
       policyId: string | null | undefined,
@@ -1038,7 +1040,7 @@ let AdminPaths = Object.assign(
     ) => {
       if (!policyId) return '#';
 
-      return AdminPaths(accountId, 'policies', policyId, ...subPages);
+      return AdminPaths(accountId, 'access', 'policies', policyId, ...subPages);
     },
     workspaces: (accountId: string | null | undefined, ...subPages: SubPages) =>
       AdminPaths(accountId, 'workspaces', ...subPages),
