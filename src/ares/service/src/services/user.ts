@@ -407,19 +407,6 @@ class UserServiceImpl {
     });
   }
 
-  /**
-   * Resolves the user owning an email, creating one if there is none yet.
-   *
-   * A user row for a given email can be written by several independent
-   * writers -- an interactive login, and the hyperplane projection that lands
-   * SCIM-provisioned users into this cell. A lookup that comes back empty is
-   * therefore not a guarantee that the insert will succeed, so treat a unique
-   * constraint violation as "somebody else got there first" and adopt their
-   * row rather than failing the caller.
-   *
-   * Must not be called from inside a transaction: recovering from the
-   * conflict requires the failed insert to have been rolled back first.
-   */
   async resolveOrCreateUser(d: {
     email: string;
     firstName: string;

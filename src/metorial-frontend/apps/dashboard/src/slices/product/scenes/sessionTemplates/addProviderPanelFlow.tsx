@@ -399,7 +399,8 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
       selectedProviderRequiresConfig ? 'config' : '',
       selectedProviderRequiresAuth ? 'auth' : ''
     ].join('::');
-    let shouldHydrateInitialSelections = initialSelectionHydrationKeyRef.current !== hydrationKey;
+    let shouldHydrateInitialSelections =
+      initialSelectionHydrationKeyRef.current !== hydrationKey;
 
     if (p.providerId && !form.values.selectedProviderId) {
       form.setFieldValue('selectedProviderId', p.providerId);
@@ -833,12 +834,6 @@ type ProviderSetupSectionsProps = {
   showToolFilters?: boolean;
   showConfigSection?: boolean;
   showAuthSection?: boolean;
-  /**
-   * Render the config section even when `provider.data?.type.config.status`
-   * isn't strictly `'enabled'`. Useful for providers that only ever take an
-   * empty config but still accept a `configId` -- callers (e.g. the edit
-   * provider flow) can opt in to surfacing the picker for those.
-   */
   forceConfigSectionVisible?: boolean;
   configRequirement?: 'required' | 'optional';
   authRequirement?: 'required' | 'optional';
@@ -1023,7 +1018,11 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     let pendingCreatedAuthConfigSelected =
       pendingCreatedAuthConfigIdRef.current === p.selectedAuthConfigId;
 
-    if (!authConfigMatchesMethod && !createdAuthConfigSelected && !pendingCreatedAuthConfigSelected) {
+    if (
+      !authConfigMatchesMethod &&
+      !createdAuthConfigSelected &&
+      !pendingCreatedAuthConfigSelected
+    ) {
       pendingCreatedAuthConfigIdRef.current = null;
       setCreatedAuthConfigSelection(null);
       p.onSelectedAuthConfigIdChange('');

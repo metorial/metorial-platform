@@ -7,10 +7,6 @@ import {
 import { parseEmail } from '../../lib/parseEmail';
 import { auditLogService } from '../auditLog';
 
-/**
- * Structural shapes so callers can pass a full Prisma row or just the fields
- * they already hold, without an extra lookup.
- */
 type PolicyTenant = {
   oid: bigint;
   id: string;

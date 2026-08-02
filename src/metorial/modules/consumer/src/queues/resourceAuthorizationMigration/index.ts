@@ -33,11 +33,6 @@ export let resourceAuthorizationMigrationQueue =
     }
   });
 
-/**
- * Explicit deployment/operator entry point. This job is never scheduled by a
- * cron. A completed run is immutable and cannot be enqueued again; a failed
- * run may be resumed after its artifacts have been reviewed or approved.
- */
 export let enqueueResourceAuthorizationMigration = async (
   runId = RESOURCE_AUTHORIZATION_MIGRATION_RUN_ID
 ) => {
