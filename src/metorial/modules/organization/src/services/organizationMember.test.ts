@@ -104,6 +104,35 @@ describe('organizationMemberService admin removal safeguards', () => {
     expect(updateOrganizationMemberMock).not.toHaveBeenCalled();
   });
 
+  it('tags the last admin rejection so callers can recognize it', async () => {
+    let { organizationMemberService } = await import('./organizationMember');
+
+    await expect(
+      organizationMemberService.deleteOrganizationMember({
+        organization: { oid: 1n } as any,
+        member: { oid: 2n, role: 'admin', status: 'active' } as any,
+        context: { ip: '127.0.0.1', ua: 'test' },
+        performedBy: { oid: 3n } as any
+      })
+    ).rejects.toMatchObject({ data: { reason: 'last_admin' } });
+  });
+
+  it('allows removing the last admin when the caller opts out of the guard', async () => {
+    let { organizationMemberService } = await import('./organizationMember');
+
+    await expect(
+      organizationMemberService.deleteOrganizationMember({
+        organization: { oid: 1n } as any,
+        member: { oid: 2n, role: 'admin', status: 'active' } as any,
+        context: { ip: '127.0.0.1', ua: 'test' },
+        performedBy: { oid: 3n } as any,
+        allowLastAdminRemoval: true
+      })
+    ).resolves.toMatchObject({ status: 'deleted' });
+
+    expect(countOrganizationMembersMock).not.toHaveBeenCalled();
+  });
+
   it('allows deleting an admin when another admin exists', async () => {
     countOrganizationMembersMock.mockResolvedValue(1);
 

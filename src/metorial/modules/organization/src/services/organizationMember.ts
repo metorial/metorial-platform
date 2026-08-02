@@ -67,7 +67,8 @@ class OrganizationMemberService {
 
       throw new ServiceError(
         forbiddenError({
-          message: 'Admins cannot be removed unless there is another admin'
+          message: 'Admins cannot be removed unless there is another admin',
+          reason: 'last_admin'
         })
       );
     });
@@ -232,14 +233,17 @@ class OrganizationMemberService {
     member: OrganizationMember;
     context: Context;
     performedBy: OrganizationActor;
+    allowLastAdminRemoval?: boolean;
   }) {
     await this.ensureOrganizationMemberActive(d.member);
 
     return withTransaction(async db => {
-      await this.assertOrganizationStillHasAnotherAdmin({
-        organization: d.organization,
-        member: d.member
-      });
+      if (!d.allowLastAdminRemoval) {
+        await this.assertOrganizationStillHasAnotherAdmin({
+          organization: d.organization,
+          member: d.member
+        });
+      }
 
       await Fabric.fire('organization.member.deleted:before', {
         ...d,
