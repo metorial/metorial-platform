@@ -27,36 +27,53 @@ var (
 	providerBearerPattern     = regexp.MustCompile(`(?i)bearer\s+[a-z0-9._~+/-]+=*`)
 )
 
-func providerExportError(provider string, err error) error {
-	message := err.Error()
-	grpcCode := codes.Internal
-
+func providerHTTPStatusToGRPCCode(message string) codes.Code {
 	if matches := providerHTTPStatusPattern.FindStringSubmatch(message); len(matches) == 2 {
 		if httpStatus, parseErr := strconv.Atoi(matches[1]); parseErr == nil {
 			switch {
 			case httpStatus == 400 || httpStatus == 422:
-				grpcCode = codes.InvalidArgument
+				return codes.InvalidArgument
 			case httpStatus == 401:
-				grpcCode = codes.Unauthenticated
+				return codes.Unauthenticated
 			case httpStatus == 403 && isProtectedBranchError(message):
-				grpcCode = codes.FailedPrecondition
+				return codes.FailedPrecondition
 			case httpStatus == 403:
-				grpcCode = codes.PermissionDenied
+				return codes.PermissionDenied
 			case httpStatus == 404:
-				grpcCode = codes.NotFound
+				return codes.NotFound
 			case httpStatus == 408 || httpStatus == 504:
-				grpcCode = codes.DeadlineExceeded
+				return codes.DeadlineExceeded
 			case httpStatus == 409:
-				grpcCode = codes.Aborted
+				return codes.Aborted
 			case httpStatus == 429:
-				grpcCode = codes.ResourceExhausted
+				return codes.ResourceExhausted
 			case httpStatus >= 500:
-				grpcCode = codes.Unavailable
+				return codes.Unavailable
 			}
 		}
 	}
 
-	return status.Errorf(grpcCode, "failed to upload to %s: %s", provider, sanitizeProviderError(message))
+	return codes.Internal
+}
+
+func providerExportError(provider string, err error) error {
+	message := err.Error()
+	return status.Errorf(
+		providerHTTPStatusToGRPCCode(message),
+		"failed to upload to %s: %s",
+		provider,
+		sanitizeProviderError(message),
+	)
+}
+
+func providerImportError(provider string, err error) error {
+	message := err.Error()
+	return status.Errorf(
+		providerHTTPStatusToGRPCCode(message),
+		"failed to download %s repository: %s",
+		provider,
+		sanitizeProviderError(message),
+	)
 }
 
 func isProtectedBranchError(message string) bool {
@@ -105,7 +122,7 @@ func (rs *RcpService) CloneBucket(ctx context.Context, req *rpc.CloneBucketReque
 func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.CreateBucketFromGithubRequest) (*rpc.CreateBucketResponse, error) {
 	iter, err := github.DownloadRepo(req.Owner, req.Repo, req.Path, req.Ref, req.Token)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to download GitHub repository: %v", err)
+		return nil, providerImportError("GitHub", err)
 	}
 	defer iter.Close()
 
@@ -306,7 +323,7 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 func (rs *RcpService) CreateBucketFromGitlab(ctx context.Context, req *rpc.CreateBucketFromGitlabRequest) (*rpc.CreateBucketResponse, error) {
 	iter, err := gitlab.DownloadRepo(req.ProjectId, req.Path, req.Ref, req.Token, req.GitlabApiUrl)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to download GitLab repository: %v", err)
+		return nil, providerImportError("GitLab", err)
 	}
 	defer iter.Close()
 
@@ -348,7 +365,7 @@ func (rs *RcpService) CreateBucketFromBitbucketCloud(ctx context.Context, req *r
 		req.BitbucketWebUrl,
 	)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to prepare Bitbucket Cloud repository: %v", err)
+		return nil, providerImportError("Bitbucket Cloud", err)
 	}
 	defer cleanup()
 
@@ -400,7 +417,7 @@ func (rs *RcpService) CreateBucketFromBitbucketDataCenter(ctx context.Context, r
 		req.Token,
 	)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to prepare Bitbucket Data Center repository: %v", err)
+		return nil, providerImportError("Bitbucket Data Center", err)
 	}
 	defer cleanup()
 	if err := rs.clearBucket(ctx, req.NewBucketId); err != nil {

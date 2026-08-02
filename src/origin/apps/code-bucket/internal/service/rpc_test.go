@@ -61,6 +61,23 @@ func TestProviderExportErrorMapsProviderFailures(t *testing.T) {
 	}
 }
 
+func TestProviderImportErrorMapsRepositoryNotFound(t *testing.T) {
+	err := providerImportError(
+		"GitHub",
+		errors.New("failed to download zip: bad status: 404 Not Found"),
+	)
+	if got := status.Code(err); got != codes.NotFound {
+		t.Fatalf("expected gRPC code NotFound, got %s", got)
+	}
+	message := status.Convert(err).Message()
+	if !strings.Contains(message, "GitHub") {
+		t.Fatalf("expected provider context in error: %s", message)
+	}
+	if !strings.Contains(message, "404") {
+		t.Fatalf("expected status in error: %s", message)
+	}
+}
+
 func TestProviderExportErrorSanitizesCredentials(t *testing.T) {
 	err := providerExportError(
 		"GitLab",

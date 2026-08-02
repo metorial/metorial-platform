@@ -139,6 +139,12 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
         await skillImportAcquireQueue.add({ skillImportId: skillImport.id }, { delay: 2000 });
         return;
       }
+      if (bucket.status === 'failed') {
+        throw new Error(
+          bucket.errorMessage ??
+            'The repository could not be imported. It may have been deleted or is no longer accessible.'
+        );
+      }
       if (bucket.status !== 'ready') {
         throw new Error(`Origin codebucket entered unexpected status: ${bucket.status}`);
       }

@@ -147,7 +147,7 @@ class codeBucketServiceImpl {
     // Set status to importing to prevent clone conflicts
     await db.codeBucket.update({
       where: { oid: d.codeBucket.oid },
-      data: { status: 'importing' }
+      data: { status: 'importing', errorMessage: null }
     });
 
     if (d.repo.provider === 'github') {
@@ -231,6 +231,16 @@ class codeBucketServiceImpl {
         where: { id: d.codeBucketId }
       });
     }
+
+    if (currentBucket.status === 'failed') {
+      throw new ServiceError(
+        badRequestError({
+          message: currentBucket.errorMessage ?? 'Code bucket import failed'
+        })
+      );
+    }
+
+    return currentBucket;
   }
 
   async cloneCodeBucket(d: { codeBucket: CodeBucket; isReadOnly?: boolean }) {

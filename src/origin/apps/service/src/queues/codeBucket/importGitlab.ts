@@ -1,10 +1,10 @@
-import { delay } from '@lowerdeck/delay';
 import { createQueue } from '@lowerdeck/queue';
 import Long from 'long';
 import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
 import { getGitLabAccessTokenWithInstallation } from '../../lib/gitlab';
+import { runCodeBucketImport } from './importError';
 
 export let importGitlabQueue = createQueue<{
   newBucketId: string;
@@ -24,22 +24,29 @@ export let importGitlabQueueProcessor = importGitlabQueue.process(async data => 
     include: { installation: { include: { backend: true } } }
   });
 
-  let token = await getGitLabAccessTokenWithInstallation(repo.installation);
-  let apiUrl = repo.installation.backend.apiUrl;
+  await runCodeBucketImport({
+    provider: 'gitlab',
+    bucketId: data.newBucketId,
+    context: {
+      owner: data.owner,
+      repo: data.repo,
+      ref: data.ref,
+      path: data.path,
+      repoId: data.repoId,
+      projectId: repo.externalId
+    },
+    importFn: async () => {
+      let token = await getGitLabAccessTokenWithInstallation(repo.installation);
+      let apiUrl = repo.installation.backend.apiUrl;
 
-  await codeBucketClient.createBucketFromGitlab({
-    newBucketId: data.newBucketId,
-    projectId: Long.fromString(repo.externalId),
-    ref: data.ref,
-    path: data.path,
-    token,
-    gitlabApiUrl: apiUrl
-  });
-
-  await delay(2000);
-
-  await db.codeBucket.updateMany({
-    where: { id: data.newBucketId },
-    data: { status: 'ready' }
+      await codeBucketClient.createBucketFromGitlab({
+        newBucketId: data.newBucketId,
+        projectId: Long.fromString(repo.externalId),
+        ref: data.ref,
+        path: data.path,
+        token,
+        gitlabApiUrl: apiUrl
+      });
+    }
   });
 });

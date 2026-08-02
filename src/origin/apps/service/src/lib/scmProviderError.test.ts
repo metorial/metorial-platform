@@ -169,15 +169,20 @@ describe('SCM provider errors', () => {
       'bitbucket',
       `failed to upload to Bitbucket Cloud: source upload failed (status 403): branch restriction rejected the push`,
       'protected_branch'
+    ],
+    [
+      'github',
+      `failed to download GitHub repository: failed to download zip: bad status: 404 Not Found`,
+      'resource_not_found'
     ]
-  ])('classifies %s code-bucket 403 details', (_provider, details, classification) => {
+  ])('classifies %s code-bucket details', (_provider, details, classification) => {
     let error = Object.assign(new Error(`/rpc.CodeBucket/Export INTERNAL: ${details}`), {
       code: 13,
       details
     });
 
     expect(getScmProviderErrorDetails(error)).toMatchObject({
-      status: 403,
+      status: classification === 'resource_not_found' ? 404 : 403,
       description: details,
       classification
     });
