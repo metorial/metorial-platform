@@ -1415,18 +1415,29 @@
         "@metorial/code-editor": "^1.0.0",
         "@metorial/dashboard-sdk": "1.0.0-internal",
         "@metorial/data-hooks": "^1.0.0",
+        "@metorial/dynamic-component": "^1.0.0",
+        "@metorial/editor-tabs": "^1.0.0",
+        "@metorial/empty-state": "^1.0.0",
+        "@metorial/explainer": "^1.0.0",
         "@metorial/frontend-config": "^1.0.0",
         "@metorial/json-viewer": "^1.0.0",
         "@metorial/layout": "^1.0.0",
         "@metorial/microfrontend": "^1.0.0",
+        "@metorial/open-switcher": "^1.0.0",
+        "@metorial/open-window": "^1.0.0",
         "@metorial/pages": "^1.0.0",
         "@metorial/scene-assistant": "^1.0.0",
         "@metorial/scene-docs": "^1.0.0",
         "@metorial/scene-scm": "^1.0.0",
+        "@metorial/split-pane": "^1.0.0",
         "@metorial/state": "^1.0.0",
         "@metorial/storage": "^1.0.0",
+        "@metorial/table": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
+        "@metorial/use-debounced": "^1.0.0",
+        "@metorial/use-now": "^1.0.0",
+        "@metorial/use-search-filter": "^1.0.0",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@radix-ui/react-popover": "^1.1.15",
@@ -1644,6 +1655,52 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial-frontend/packages/editor-tabs": {
+      "name": "@metorial/editor-tabs",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+      },
+    },
+    "src/metorial-frontend/packages/empty-state": {
+      "name": "@metorial/empty-state",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+      },
+    },
+    "src/metorial-frontend/packages/explainer": {
+      "name": "@metorial/explainer",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "apexcharts": "^4.7.0",
+        "framer-motion": "^12.12.1",
+        "react": "19.1.1",
+        "react-apexcharts": "^1.7.0",
+        "react-use": "^17.6.0",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/packages/json-viewer": {
       "name": "@metorial/json-viewer",
       "version": "1.0.0",
@@ -1695,6 +1752,7 @@
         "react-medium-image-zoom": "^5.2.14",
         "remark-gfm": "^4.0.1",
         "striptags": "^3.2.0",
+        "styled-components": "^6.1.13",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -1716,6 +1774,22 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial-frontend/packages/open-switcher": {
+      "name": "@metorial/open-switcher",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+      },
+    },
+    "src/metorial-frontend/packages/open-window": {
+      "name": "@metorial/open-window",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+      },
+    },
     "src/metorial-frontend/packages/pages": {
       "name": "@metorial/pages",
       "version": "1.0.0",
@@ -1728,6 +1802,20 @@
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/split-pane": {
+      "name": "@metorial/split-pane",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "react": "19.1.1",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
       },
     },
     "src/metorial-frontend/packages/state": {
@@ -1761,6 +1849,30 @@
       "version": "1.0.0",
       "dependencies": {
         "idb": "^8.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/table": {
+      "name": "@metorial/table",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/memo": "workspace:2.0.0",
+        "@metorial/data-hooks": "^1.0.0",
+        "@metorial/ui": "^1.0.0",
+        "@metorial/ui-product": "^1.0.0",
+        "@radix-ui/react-popover": "^1.1.16",
+        "@remixicon/react": "^4.6.0",
+        "date-fns": "^3.6.0",
+        "fast-deep-equal": "^3.1.3",
+        "framer-motion": "^12.12.1",
+        "react": "19.1.1",
+        "react-router-dom": "^6.26.1",
+        "styled-components": "^6.1.13",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -1828,6 +1940,42 @@
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial-frontend/packages/use-debounced": {
+      "name": "@metorial/use-debounced",
+      "version": "1.0.0",
+      "dependencies": {
+        "lodash": "^4.17.21",
+        "react": "19.1.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+      },
+    },
+    "src/metorial-frontend/packages/use-now": {
+      "name": "@metorial/use-now",
+      "version": "1.0.0",
+      "dependencies": {
+        "react": "19.1.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+      },
+    },
+    "src/metorial-frontend/packages/use-search-filter": {
+      "name": "@metorial/use-search-filter",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/use-debounced": "^1.0.0",
+        "react": "19.1.1",
+        "react-router-dom": "^6.26.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
       },
     },
     "src/metorial-frontend/scenes/assistant": {
@@ -6178,7 +6326,13 @@
 
     "@metorial/dynamic-component": ["@metorial/dynamic-component@workspace:src/metorial-frontend/packages/dynamic-component"],
 
+    "@metorial/editor-tabs": ["@metorial/editor-tabs@workspace:src/metorial-frontend/packages/editor-tabs"],
+
+    "@metorial/empty-state": ["@metorial/empty-state@workspace:src/metorial-frontend/packages/empty-state"],
+
     "@metorial/event": ["@metorial/event@workspace:src/metorial/packages/event"],
+
+    "@metorial/explainer": ["@metorial/explainer@workspace:src/metorial-frontend/packages/explainer"],
 
     "@metorial/fabric": ["@metorial/fabric@workspace:src/metorial/packages/fabric"],
 
@@ -6256,6 +6410,10 @@
 
     "@metorial/nebula": ["@metorial/nebula@workspace:src/nebula/service"],
 
+    "@metorial/open-switcher": ["@metorial/open-switcher@workspace:src/metorial-frontend/packages/open-switcher"],
+
+    "@metorial/open-window": ["@metorial/open-window@workspace:src/metorial-frontend/packages/open-window"],
+
     "@metorial/origin": ["@metorial/origin@workspace:src/origin/apps/service"],
 
     "@metorial/pages": ["@metorial/pages@workspace:src/metorial-frontend/packages/pages"],
@@ -6288,6 +6446,8 @@
 
     "@metorial/slates-registry": ["@metorial/slates-registry@workspace:src/slates/apps/registry"],
 
+    "@metorial/split-pane": ["@metorial/split-pane@workspace:src/metorial-frontend/packages/split-pane"],
+
     "@metorial/state": ["@metorial/state@workspace:src/metorial-frontend/packages/state"],
 
     "@metorial/storage": ["@metorial/storage@workspace:src/metorial-frontend/packages/storage"],
@@ -6296,6 +6456,8 @@
 
     "@metorial/synthesis": ["@metorial/synthesis@workspace:src/synthesis/service"],
 
+    "@metorial/table": ["@metorial/table@workspace:src/metorial-frontend/packages/table"],
+
     "@metorial/tsconfig": ["@metorial/tsconfig@workspace:src/metorial/packages/tsconfig"],
 
     "@metorial/ui": ["@metorial/ui@workspace:src/metorial-frontend/packages/ui"],
@@ -6303,6 +6465,12 @@
     "@metorial/ui-product": ["@metorial/ui-product@workspace:src/metorial-frontend/packages/ui-product"],
 
     "@metorial/unified-id": ["@metorial/unified-id@workspace:src/metorial/packages/unified-id"],
+
+    "@metorial/use-debounced": ["@metorial/use-debounced@workspace:src/metorial-frontend/packages/use-debounced"],
+
+    "@metorial/use-now": ["@metorial/use-now@workspace:src/metorial-frontend/packages/use-now"],
+
+    "@metorial/use-search-filter": ["@metorial/use-search-filter@workspace:src/metorial-frontend/packages/use-search-filter"],
 
     "@metorial/util-async-iterator": ["@metorial/util-async-iterator@1.0.0", "", {}, "sha512-Q7R+eB6E/eMirxowFvFi+EXnkFOn6EWr1SBwsMLCknu5qIZ/Kgm3yiqyaaisHm1vl7zki5+gIxYST9LxPjdrTA=="],
 
@@ -10307,6 +10475,8 @@
     "@metorial/synthesis/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
     "@metorial/synthesis/vitest": ["vitest@4.1.9", "", { "dependencies": { "@vitest/expect": "4.1.9", "@vitest/mocker": "4.1.9", "@vitest/pretty-format": "4.1.9", "@vitest/runner": "4.1.9", "@vitest/snapshot": "4.1.9", "@vitest/spy": "4.1.9", "@vitest/utils": "4.1.9", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.9", "@vitest/browser-preview": "4.1.9", "@vitest/browser-webdriverio": "4.1.9", "@vitest/coverage-istanbul": "4.1.9", "@vitest/coverage-v8": "4.1.9", "@vitest/ui": "4.1.9", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-nE3/LEyc0z87uHYLZebqCUOaJr2hdtuPp7BQ4BosVFnfltxgAvMG08NyrSGlPpOUWvR27c5flSmYFTNr78L9GQ=="],
+
+    "@metorial/table/date-fns": ["date-fns@3.6.0", "", {}, "sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww=="],
 
     "@metorial/ui/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
