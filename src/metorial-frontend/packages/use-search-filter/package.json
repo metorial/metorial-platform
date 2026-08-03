@@ -1,0 +1,16 @@
+{
+  "name": "@metorial/use-search-filter",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@metorial/use-debounced": "^1.0.0",
+    "react": "19.1.1",
+    "react-router-dom": "^6.26.1"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2"
+  }
+}
