@@ -1174,7 +1174,7 @@ let OrganizationPaths = Object.assign(
   (organization: EntityParam, ...subPages: SubPages) =>
     getNexusUrl('organization', () => {
       if (!organization) return '#';
-      return joinPaths('o', organization.slug, ...subPages);
+      return joinPaths(organization.slug, ...subPages);
     }),
   {
     settings: (organization: EntityParam, ...subPages: SubPages) =>
