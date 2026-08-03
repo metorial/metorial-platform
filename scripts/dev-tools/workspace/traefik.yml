@@ -39,8 +39,8 @@ entryPoints:
     address: ':3302'
   port-4300:
     address: ':4300'
-  port-4301:
-    address: ':4301'
+  port-4333:
+    address: ':4333'
   port-4304:
     address: ':4304'
   port-4310:

@@ -136,7 +136,7 @@ export let frontendEnv: Env = [
 
   {
     key: 'VITE_SHELL_URL',
-    defaultValue: `http://localhost:4301`
+    defaultValue: `http://localhost:4333`
   },
   {
     key: 'VITE_API_EXPLORER_URL',
