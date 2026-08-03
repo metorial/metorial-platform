@@ -26,3 +26,4 @@ export let awaitConfig = async () => {
 };
 
 export * from './paths';
+export { setNexusManifest } from './nexus';

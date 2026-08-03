@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { ConsumerProfile, db, Instance } from '@metorial/db';
 import { AnyAccessTagSelector } from '@metorial/module-access';
+import { consumerActorService } from './consumerActor';
 
 class ConsumerActivityScopeServiceImpl {
   async resolve(d: {
@@ -13,16 +14,10 @@ class ConsumerActivityScopeServiceImpl {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
 
-    let consumerActor = await db.consumerActor.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        consumerProfileOid: d.consumerProfile.oid,
-        isDefault: true
-      }
+    let consumerActor = await consumerActorService.ensureDefaultConsumerActor({
+      instance: d.instance,
+      consumerProfile: d.consumerProfile
     });
-    if (!consumerActor) {
-      throw new ServiceError(notFoundError('consumer.actor'));
-    }
 
     let magicMcpSessions = await db.magicMcpSession.findMany({
       where: {

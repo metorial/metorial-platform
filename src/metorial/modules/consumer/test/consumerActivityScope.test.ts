@@ -2,9 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/db', () => ({
   db: {
-    consumerActor: {
-      findFirst: vi.fn()
-    },
     magicMcpSession: {
       findMany: vi.fn()
     }
@@ -26,6 +23,16 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+let { ensureDefaultConsumerActor } = vi.hoisted(() => ({
+  ensureDefaultConsumerActor: vi.fn()
+}));
+
+vi.mock('../src/services/consumerEntities/consumerActor', () => ({
+  consumerActorService: {
+    ensureDefaultConsumerActor
+  }
+}));
+
 import { db } from '@metorial/db';
 import { accessTagService } from '@metorial/module-access';
 import { consumerActivityScopeService } from '../src/services/consumerEntities/consumerActivityScope';
@@ -36,7 +43,7 @@ describe('consumerActivityScopeService', () => {
   });
 
   it('resolves only the current profile actor and accessible Magic MCP sessions', async () => {
-    (db.consumerActor.findFirst as any).mockResolvedValue({
+    ensureDefaultConsumerActor.mockResolvedValue({
       id: 'coa_current',
       isDefault: true
     });
@@ -66,11 +73,11 @@ describe('consumerActivityScopeService', () => {
       accessTags: [30n]
     });
 
-    expect(db.consumerActor.findFirst).toHaveBeenCalledWith({
-      where: {
-        instanceOid: 10n,
-        consumerProfileOid: 20n,
-        isDefault: true
+    expect(ensureDefaultConsumerActor).toHaveBeenCalledWith({
+      instance: { oid: 10n },
+      consumerProfile: {
+        oid: 20n,
+        instanceOid: 10n
       }
     });
     expect(db.magicMcpSession.findMany).toHaveBeenCalledWith(
@@ -111,7 +118,7 @@ describe('consumerActivityScopeService', () => {
       })
     ).rejects.toBeDefined();
 
-    expect(db.consumerActor.findFirst).not.toHaveBeenCalled();
+    expect(ensureDefaultConsumerActor).not.toHaveBeenCalled();
     expect(db.magicMcpSession.findMany).not.toHaveBeenCalled();
   });
 });

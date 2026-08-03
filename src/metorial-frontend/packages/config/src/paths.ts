@@ -1,4 +1,5 @@
 import { joinPaths } from '@lowerdeck/join-paths';
+import { getNexusUrl } from './nexus';
 
 export type EntityParam = { slug: string } | null | undefined;
 export type SubPages = (string | null | undefined | object)[];
@@ -9,11 +10,11 @@ let InstancePaths = Object.assign(
     project: EntityParam,
     instance: EntityParam,
     ...subPages: SubPages
-  ) => {
-    if (!instance || !project || !organization) return '#';
-
-    return joinPaths('i', instance.slug, ...subPages);
-  },
+  ) =>
+    getNexusUrl('product', () => {
+      if (!instance || !project || !organization) return '#';
+      return joinPaths(instance.slug, ...subPages);
+    }),
   {
     home: (organization: EntityParam, project: EntityParam, instance: EntityParam) =>
       InstancePaths(organization, project, instance),
@@ -966,20 +967,8 @@ let InstancePaths = Object.assign(
   }
 );
 
-let ProjectPaths = Object.assign(
-  (organization: EntityParam, project: EntityParam, ...subPages: SubPages) => {
-    if (!project) return '#';
-
-    return joinPaths('p', organization?.slug, project.slug, ...subPages);
-  },
-  {
-    settings: (organization: EntityParam, project: EntityParam, ...subPages: SubPages) =>
-      ProjectPaths(organization, project, 'settings', ...subPages)
-  }
-);
-
 let AccountPaths = Object.assign(
-  (...subPages: SubPages) => joinPaths('account', ...subPages),
+  (...subPages: SubPages) => getNexusUrl('account', () => joinPaths(...subPages)),
   {
     settings: (...subPages: SubPages) => AccountPaths(...subPages),
     emails: (...subPages: SubPages) => AccountPaths('emails', ...subPages),
@@ -987,17 +976,17 @@ let AccountPaths = Object.assign(
   }
 );
 
-let AdminPaths = Object.assign(
-  (accountId: string | null | undefined, ...subPages: SubPages) => {
-    if (!accountId) return '#';
-
-    return joinPaths('admin', accountId, ...subPages);
-  },
+let EnterprisePaths = Object.assign(
+  (accountId: string | null | undefined, ...subPages: SubPages) =>
+    getNexusUrl('enterprise', () => {
+      if (!accountId) return '#';
+      return joinPaths(accountId, ...subPages);
+    }),
   {
     home: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, ...subPages),
+      EnterprisePaths(accountId, ...subPages),
     members: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'members', ...subPages),
+      EnterprisePaths(accountId, 'members', ...subPages),
     member: (
       accountId: string | null | undefined,
       memberId: string | null | undefined,
@@ -1005,10 +994,10 @@ let AdminPaths = Object.assign(
     ) => {
       if (!memberId) return '#';
 
-      return AdminPaths(accountId, 'members', memberId, ...subPages);
+      return EnterprisePaths(accountId, 'members', memberId, ...subPages);
     },
     invites: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'invites', ...subPages),
+      EnterprisePaths(accountId, 'invites', ...subPages),
     invite: (
       accountId: string | null | undefined,
       inviteId: string | null | undefined,
@@ -1016,12 +1005,12 @@ let AdminPaths = Object.assign(
     ) => {
       if (!inviteId) return '#';
 
-      return AdminPaths(accountId, 'invites', inviteId, ...subPages);
+      return EnterprisePaths(accountId, 'invites', inviteId, ...subPages);
     },
     access: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'access', ...subPages),
+      EnterprisePaths(accountId, 'access', ...subPages),
     groups: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'access', ...subPages),
+      EnterprisePaths(accountId, 'access', ...subPages),
     group: (
       accountId: string | null | undefined,
       groupId: string | null | undefined,
@@ -1029,10 +1018,10 @@ let AdminPaths = Object.assign(
     ) => {
       if (!groupId) return '#';
 
-      return AdminPaths(accountId, 'access', 'groups', groupId, ...subPages);
+      return EnterprisePaths(accountId, 'access', 'groups', groupId, ...subPages);
     },
     policies: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'access', ...subPages),
+      EnterprisePaths(accountId, 'access', ...subPages),
     policy: (
       accountId: string | null | undefined,
       policyId: string | null | undefined,
@@ -1040,10 +1029,10 @@ let AdminPaths = Object.assign(
     ) => {
       if (!policyId) return '#';
 
-      return AdminPaths(accountId, 'access', 'policies', policyId, ...subPages);
+      return EnterprisePaths(accountId, 'access', 'policies', policyId, ...subPages);
     },
     workspaces: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'workspaces', ...subPages),
+      EnterprisePaths(accountId, 'workspaces', ...subPages),
     workspace: (
       accountId: string | null | undefined,
       workspaceId: string | null | undefined,
@@ -1051,21 +1040,21 @@ let AdminPaths = Object.assign(
     ) => {
       if (!workspaceId) return '#';
 
-      return AdminPaths(accountId, 'workspaces', workspaceId, ...subPages);
+      return EnterprisePaths(accountId, 'workspaces', workspaceId, ...subPages);
     },
     auth: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'auth', ...subPages),
+      EnterprisePaths(accountId, 'auth', ...subPages),
     domains: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'auth/domains', ...subPages),
+      EnterprisePaths(accountId, 'auth/domains', ...subPages),
     authConnections: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'auth/connections', ...subPages),
+      EnterprisePaths(accountId, 'auth/connections', ...subPages),
     authConnection: (
       accountId: string | null | undefined,
       connectionId: string | null | undefined,
       ...subPages: SubPages
     ) => {
       if (!connectionId) return '#';
-      return AdminPaths(accountId, 'auth/connections', connectionId, ...subPages);
+      return EnterprisePaths(accountId, 'auth/connections', connectionId, ...subPages);
     },
     authConnectionDirectories: (
       accountId: string | null | undefined,
@@ -1073,7 +1062,7 @@ let AdminPaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!connectionId) return '#';
-      return AdminPaths(
+      return EnterprisePaths(
         accountId,
         'auth/connections',
         connectionId,
@@ -1087,7 +1076,13 @@ let AdminPaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!connectionId) return '#';
-      return AdminPaths(accountId, 'auth/connections', connectionId, 'users', ...subPages);
+      return EnterprisePaths(
+        accountId,
+        'auth/connections',
+        connectionId,
+        'users',
+        ...subPages
+      );
     },
     authConnectionUser: (
       accountId: string | null | undefined,
@@ -1095,7 +1090,7 @@ let AdminPaths = Object.assign(
       userId: string | null | undefined
     ) => {
       if (!connectionId || !userId) return '#';
-      return AdminPaths(accountId, 'auth/connections', connectionId, 'users', userId);
+      return EnterprisePaths(accountId, 'auth/connections', connectionId, 'users', userId);
     },
     authConnectionGroups: (
       accountId: string | null | undefined,
@@ -1103,7 +1098,13 @@ let AdminPaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!connectionId) return '#';
-      return AdminPaths(accountId, 'auth/connections', connectionId, 'groups', ...subPages);
+      return EnterprisePaths(
+        accountId,
+        'auth/connections',
+        connectionId,
+        'groups',
+        ...subPages
+      );
     },
     authConnectionGroup: (
       accountId: string | null | undefined,
@@ -1111,7 +1112,7 @@ let AdminPaths = Object.assign(
       groupId: string | null | undefined
     ) => {
       if (!connectionId || !groupId) return '#';
-      return AdminPaths(accountId, 'auth/connections', connectionId, 'groups', groupId);
+      return EnterprisePaths(accountId, 'auth/connections', connectionId, 'groups', groupId);
     },
     authConnectionRoles: (
       accountId: string | null | undefined,
@@ -1119,7 +1120,13 @@ let AdminPaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!connectionId) return '#';
-      return AdminPaths(accountId, 'auth/connections', connectionId, 'roles', ...subPages);
+      return EnterprisePaths(
+        accountId,
+        'auth/connections',
+        connectionId,
+        'roles',
+        ...subPages
+      );
     },
     authConnectionRole: (
       accountId: string | null | undefined,
@@ -1127,7 +1134,7 @@ let AdminPaths = Object.assign(
       roleId: string | null | undefined
     ) => {
       if (!connectionId || !roleId) return '#';
-      return AdminPaths(accountId, 'auth/connections', connectionId, 'roles', roleId);
+      return EnterprisePaths(accountId, 'auth/connections', connectionId, 'roles', roleId);
     },
     authConnectionDirectory: (
       accountId: string | null | undefined,
@@ -1136,7 +1143,7 @@ let AdminPaths = Object.assign(
       ...subPages: SubPages
     ) => {
       if (!connectionId || !directoryId) return '#';
-      return AdminPaths(
+      return EnterprisePaths(
         accountId,
         'auth/connections',
         connectionId,
@@ -1146,9 +1153,9 @@ let AdminPaths = Object.assign(
       );
     },
     auditLogs: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'audit-logs', ...subPages),
+      EnterprisePaths(accountId, 'audit-logs', ...subPages),
     billing: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'billing', ...subPages),
+      EnterprisePaths(accountId, 'billing', ...subPages),
     billingWorkspace: (
       accountId: string | null | undefined,
       workspaceId: string | null | undefined,
@@ -1156,21 +1163,19 @@ let AdminPaths = Object.assign(
     ) => {
       if (!workspaceId) return '#';
 
-      return AdminPaths(accountId, 'billing', workspaceId, ...subPages);
+      return EnterprisePaths(accountId, 'billing', workspaceId, ...subPages);
     },
     settings: (accountId: string | null | undefined, ...subPages: SubPages) =>
-      AdminPaths(accountId, 'settings', ...subPages)
+      EnterprisePaths(accountId, 'settings', ...subPages)
   }
 );
 
 let OrganizationPaths = Object.assign(
-  (organization: EntityParam, ...subPages: SubPages) => {
-    if (!organization) return '#';
-
-    let path = joinPaths('o', organization.slug, ...subPages);
-
-    return path;
-  },
+  (organization: EntityParam, ...subPages: SubPages) =>
+    getNexusUrl('organization', () => {
+      if (!organization) return '#';
+      return joinPaths('o', organization.slug, ...subPages);
+    }),
   {
     settings: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths(organization, ...subPages),
@@ -1270,9 +1275,8 @@ export let Paths = {
   join: joinPaths,
 
   instance: InstancePaths,
-  project: ProjectPaths,
   account: AccountPaths,
-  admin: AdminPaths,
+  enterprise: EnterprisePaths,
   organization: OrganizationPaths,
   welcome: WelcomePaths,
   dashboardInstanceRedirect

@@ -21,7 +21,6 @@ import {
   RiRfidLine,
   RiSafeLine,
   RiServerLine,
-  RiSettings2Line,
   RiShieldKeyholeLine,
   RiSurveyLine,
   RiUploadCloud2Line,
@@ -373,13 +372,6 @@ export let ProjectPageLayout = () => {
               icon: <RiBriefcase4Line />,
               label: 'Organization',
               to: Paths.organization.settings(organization.data),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            },
-
-            {
-              icon: <RiSettings2Line />,
-              label: 'Project',
-              to: Paths.project.settings(organization.data, instance.data?.project),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
 
