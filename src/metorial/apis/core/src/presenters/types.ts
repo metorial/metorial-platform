@@ -255,7 +255,9 @@ export let bootType = PresentableType.create<{
       surface: ConsumerSurface & {
         portal: Portal | null;
       };
+      instance: Instance & { project: Project };
     })[];
+    organization: Organization;
   })[];
 }>()('boot');
 

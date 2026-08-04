@@ -1077,9 +1077,17 @@ class ConsumerProfileServiceImpl {
       },
       include: {
         profiles: {
-          include,
+          include: {
+            ...include,
+            instance: {
+              include: {
+                project: true
+              }
+            }
+          },
           where: profileWhere
-        }
+        },
+        organization: true
       }
     });
   }

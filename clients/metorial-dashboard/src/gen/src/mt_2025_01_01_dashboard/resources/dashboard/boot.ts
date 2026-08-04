@@ -137,7 +137,62 @@ export type DashboardBootOutput = {
     isPending: boolean;
     createdAt: Date;
     updatedAt: Date;
+    organization: {
+      object: 'organization';
+      id: string;
+      type: 'default';
+      slug: string;
+      name: string;
+      imageUrl: string;
+      createdAt: Date;
+      updatedAt: Date;
+    };
     profiles: {
+      object: 'consumer.profile.item#boot';
+      id: string;
+      organization: {
+        object: 'organization';
+        id: string;
+        type: 'default';
+        slug: string;
+        name: string;
+        imageUrl: string;
+        createdAt: Date;
+        updatedAt: Date;
+      };
+      instance: {
+        object: 'organization.instance';
+        id: string;
+        slug: string;
+        name: string;
+        organizationId: string;
+        sandboxId: string | null;
+        type: 'development' | 'production';
+        createdAt: Date;
+        updatedAt: Date;
+        project: {
+          object: 'organization.project';
+          id: string;
+          status: 'active' | 'deleted';
+          slug: string;
+          name: string;
+          organizationId: string;
+          magicMcpSessionDurationMinutes: number;
+          createdAt: Date;
+          updatedAt: Date;
+        };
+      };
+      project: {
+        object: 'organization.project';
+        id: string;
+        status: 'active' | 'deleted';
+        slug: string;
+        name: string;
+        organizationId: string;
+        magicMcpSessionDurationMinutes: number;
+        createdAt: Date;
+        updatedAt: Date;
+      };
       profile: {
         object: 'consumer.profile#boot';
         id: string;
@@ -419,10 +474,98 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
         isPending: mtMap.objectField('isPending', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+        organization: mtMap.objectField(
+          'organization',
+          mtMap.object({
+            object: mtMap.objectField('object', mtMap.passthrough()),
+            id: mtMap.objectField('id', mtMap.passthrough()),
+            type: mtMap.objectField('type', mtMap.passthrough()),
+            slug: mtMap.objectField('slug', mtMap.passthrough()),
+            name: mtMap.objectField('name', mtMap.passthrough()),
+            imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+            createdAt: mtMap.objectField('created_at', mtMap.date()),
+            updatedAt: mtMap.objectField('updated_at', mtMap.date())
+          })
+        ),
         profiles: mtMap.objectField(
           'profiles',
           mtMap.array(
             mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              organization: mtMap.objectField(
+                'organization',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  slug: mtMap.objectField('slug', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
+              instance: mtMap.objectField(
+                'instance',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  slug: mtMap.objectField('slug', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  organizationId: mtMap.objectField(
+                    'organization_id',
+                    mtMap.passthrough()
+                  ),
+                  sandboxId: mtMap.objectField(
+                    'sandbox_id',
+                    mtMap.passthrough()
+                  ),
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+                  project: mtMap.objectField(
+                    'project',
+                    mtMap.object({
+                      object: mtMap.objectField('object', mtMap.passthrough()),
+                      id: mtMap.objectField('id', mtMap.passthrough()),
+                      status: mtMap.objectField('status', mtMap.passthrough()),
+                      slug: mtMap.objectField('slug', mtMap.passthrough()),
+                      name: mtMap.objectField('name', mtMap.passthrough()),
+                      organizationId: mtMap.objectField(
+                        'organization_id',
+                        mtMap.passthrough()
+                      ),
+                      magicMcpSessionDurationMinutes: mtMap.objectField(
+                        'magic_mcp_session_duration_minutes',
+                        mtMap.passthrough()
+                      ),
+                      createdAt: mtMap.objectField('created_at', mtMap.date()),
+                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                    })
+                  )
+                })
+              ),
+              project: mtMap.objectField(
+                'project',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  slug: mtMap.objectField('slug', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  organizationId: mtMap.objectField(
+                    'organization_id',
+                    mtMap.passthrough()
+                  ),
+                  magicMcpSessionDurationMinutes: mtMap.objectField(
+                    'magic_mcp_session_duration_minutes',
+                    mtMap.passthrough()
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
               profile: mtMap.objectField(
                 'profile',
                 mtMap.object({
