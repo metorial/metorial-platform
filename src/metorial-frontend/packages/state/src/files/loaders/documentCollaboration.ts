@@ -191,24 +191,7 @@ let getDocumentLiveUrl = (d: {
 }) => {
   let config = getConfig();
   let url = new URL(config.apiUrl);
-
-  if (location.hostname === 'portals-us1.metorial-staging.com') {
-    url.hostname = 'api-us1.metorial-staging.com';
-  } else if (location.hostname === 'portals-us1.metorial.com') {
-    url.hostname = 'api-us1.metorial.com';
-  } else if (location.hostname === 'portals-eu1.metorial.com') {
-    url.hostname = 'api-eu1.metorial.com';
-  }
-
-  let path = url.pathname.replace('/api', '');
-
-  if (path.includes('/dashboard/us1')) {
-    url.hostname = 'api-us1.metorial.com';
-    path = path.replace('/dashboard/us1', '');
-  } else if (path.includes('/dashboard/eu1')) {
-    url.hostname = 'api-eu1.metorial.com';
-    path = path.replace('/dashboard/eu1', '');
-  }
+  let path = url.pathname;
 
   while (path.endsWith('/')) path = path.slice(0, -1);
   path += '/documents-live';
