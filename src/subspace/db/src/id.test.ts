@@ -170,9 +170,83 @@ describe('Snowflake worker leases', () => {
     await second.release();
   });
 
-  it('fails fast in production before the lease is initialized', () => {
+  it('uses a local random worker in production before the lease is initialized', () => {
     process.env.METORIAL_ENV = 'production';
 
-    expect(() => snowflake.nextId()).toThrow('Snowflake worker lease has not been initialized');
+    expect(() => snowflake.nextId()).not.toThrow();
+  });
+
+  it('reclaims the same worker ID after its lease disappears', async () => {
+    let redis = new FakeRedis();
+    let lease = await createSnowflakeWorkerLease({
+      redis,
+      ownerId: 'process-a',
+      keyPrefix: 'test:snowflake-worker',
+      startWorkerId: 21,
+      ttlMs: 50,
+      renewIntervalMs: 5
+    });
+    let originalGenerator = lease.generator;
+
+    redis.store.delete(lease.key);
+    await Bun.sleep(20);
+
+    expect(lease.workerId).toBe(21);
+    expect(lease.generator).toBe(originalGenerator);
+    expect(redis.store.get(lease.key)).toBe('process-a');
+
+    await lease.release();
+  });
+
+  it('claims another worker ID if the previous one was taken', async () => {
+    let redis = new FakeRedis();
+    let lease = await createSnowflakeWorkerLease({
+      redis,
+      ownerId: 'process-a',
+      keyPrefix: 'test:snowflake-worker',
+      startWorkerId: 31,
+      ttlMs: 50,
+      renewIntervalMs: 5
+    });
+    let originalGenerator = lease.generator;
+
+    redis.steal(lease.key, 'process-b');
+    await Bun.sleep(20);
+
+    expect(lease.workerId).toBe(32);
+    expect(lease.generator).not.toBe(originalGenerator);
+    expect(redis.store.get(lease.key)).toBe('process-a');
+
+    await lease.release();
+  });
+
+  it('keeps the current worker active while Redis is unavailable', async () => {
+    let redis = new FakeRedis();
+    let lease = await createSnowflakeWorkerLease({
+      redis,
+      ownerId: 'process-a',
+      keyPrefix: 'test:snowflake-worker',
+      startWorkerId: 41,
+      ttlMs: 50,
+      renewIntervalMs: 5
+    });
+    let originalGenerator = lease.generator;
+    let originalEval = redis.eval.bind(redis);
+    let failuresRemaining = 2;
+
+    redis.eval = async (...args: Parameters<FakeRedis['eval']>) => {
+      if (failuresRemaining-- > 0) throw new Error('Connection is closed.');
+      return originalEval(...args);
+    };
+
+    await Bun.sleep(12);
+    expect(lease.released).toBe(false);
+    expect(lease.generator).toBe(originalGenerator);
+    expect(() => lease.generator.nextId()).not.toThrow();
+
+    await Bun.sleep(15);
+    expect(await lease.renew()).toBe(true);
+
+    await lease.release();
   });
 });

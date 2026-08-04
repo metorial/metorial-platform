@@ -239,13 +239,14 @@ export type InitializeSnowflakeWorkerLeaseOptions = {
   ttlMs?: number;
   renewIntervalMs?: number;
   allowLocalFallback?: boolean;
+  /** @deprecated Lease recovery no longer terminates the process. */
   fatal?: (error: Error) => void;
   startWorkerId?: number;
   autoRenew?: boolean;
 };
 
 let localSnowflake = createSnowflake(getRandomWorkerId());
-let activeSnowflake: SnowflakeGenerator | null = null;
+let activeSnowflake: SnowflakeGenerator = localSnowflake;
 let activeLease: SnowflakeWorkerLease | null = null;
 let signalHandlersRegistered = false;
 
@@ -286,11 +287,6 @@ let releaseScript = `
     return 0
   end
 `;
-
-let defaultFatal = (error: Error) => {
-  console.error(error);
-  process.exit(1);
-};
 
 let registerSignalHandlers = () => {
   if (signalHandlersRegistered) return;
@@ -339,7 +335,6 @@ export let createSnowflakeWorkerLease = async (
   let keyPrefix = opts.keyPrefix ?? 'subspace:snowflake-worker';
   let ttlMs = opts.ttlMs ?? 30_000;
   let renewIntervalMs = opts.renewIntervalMs ?? Math.floor(ttlMs / 3);
-  let fatal = opts.fatal ?? defaultFatal;
   let autoRenew = opts.autoRenew ?? true;
   let claimed = await claimWorkerId({
     redis,
@@ -353,14 +348,50 @@ export let createSnowflakeWorkerLease = async (
 
   let lease = {} as SnowflakeWorkerLease;
   let renewInFlight: Promise<boolean> | null = null;
+  let restoreInFlight: Promise<void> | null = null;
   let deactivateLease = () => {
     lease.released = true;
     if (lease.renewInterval) clearInterval(lease.renewInterval);
     lease.renewInterval = null;
     if (activeLease === lease) {
       activeLease = null;
-      activeSnowflake = null;
+      activeSnowflake = localSnowflake;
     }
+  };
+
+  let restoreLease = async () => {
+    if (lease.released) return;
+    if (restoreInFlight) return restoreInFlight;
+
+    restoreInFlight = (async () => {
+      let restored = await claimWorkerId({
+        redis,
+        keyPrefix,
+        ownerId,
+        ttlMs,
+        // Prefer to reclaim the worker ID whose generator remains active while
+        // Redis is unavailable. If it has been taken, claim the next free ID.
+        startWorkerId: lease.workerId
+      });
+
+      // Shutdown can race a successful claim. Do not leave that claim behind.
+      if (lease.released) {
+        await redis.eval(releaseScript, 1, restored.key, ownerId).catch(() => {});
+        return;
+      }
+
+      if (restored.workerId !== lease.workerId) {
+        lease.generator = createSnowflake(restored.workerId);
+      }
+      lease.workerId = restored.workerId;
+      lease.key = restored.key;
+
+      if (activeLease === lease) activeSnowflake = lease.generator;
+    })().finally(() => {
+      restoreInFlight = null;
+    });
+
+    return restoreInFlight;
   };
 
   lease = {
@@ -382,7 +413,7 @@ export let createSnowflakeWorkerLease = async (
         try {
           if (lease.released) return true;
 
-          let result = await redis.eval(renewScript, 1, claimed.key, ownerId, String(ttlMs));
+          let result = await redis.eval(renewScript, 1, lease.key, ownerId, String(ttlMs));
           if (lease.released) return true;
 
           return Number(result) === 1;
@@ -399,7 +430,7 @@ export let createSnowflakeWorkerLease = async (
       deactivateLease();
 
       try {
-        await redis.eval(releaseScript, 1, claimed.key, ownerId);
+        await redis.eval(releaseScript, 1, lease.key, ownerId);
       } finally {
         if (ownsRedisClient) {
           await redis.quit().catch(() => redis.disconnect());
@@ -415,15 +446,12 @@ export let createSnowflakeWorkerLease = async (
         .then(renewed => {
           if (lease.released || renewed) return;
 
-          deactivateLease();
-          fatal(new Error(`Lost Snowflake worker ID lease for worker ${claimed.workerId}`));
+          return restoreLease();
         })
-        .catch(error => {
-          if (lease.released) return;
-
-          deactivateLease();
-          fatal(error instanceof Error ? error : new Error(String(error)));
-        });
+        // Redis errors are expected during a connection loss. Keep using the
+        // current worker ID optimistically; the next interval retries renewal
+        // or restoration without taking ID generation down with Redis.
+        .catch(() => {});
     }, renewIntervalMs);
 
     (lease.renewInterval as any).unref?.();
@@ -472,19 +500,7 @@ export let releaseSnowflakeWorkerLease = async () => {
 };
 
 export let snowflake = {
-  nextId: () => {
-    let generator = activeSnowflake;
-
-    if (!generator) {
-      if (shouldRequireLease()) {
-        throw new Error('Snowflake worker lease has not been initialized');
-      }
-
-      generator = localSnowflake;
-    }
-
-    return generator.nextId();
-  }
+  nextId: () => activeSnowflake.nextId()
 };
 
 export let getId = <K extends Parameters<typeof ID.generateIdSync>[0]>(model: K) => ({
