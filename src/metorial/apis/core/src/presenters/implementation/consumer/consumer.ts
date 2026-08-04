@@ -9,12 +9,15 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
     id: consumer.id,
     name: consumer.name,
     email: consumer.email,
-    image_url: await getImageUrl({
-      id: consumer.consumer.id,
-      name: consumer.name,
-      email: consumer.email,
-      image: null
-    }),
+    image_url: await getImageUrl(
+      consumer.consumer.user ?? {
+        id: consumer.consumer.id,
+        name: consumer.name,
+        email: consumer.email,
+        image: null
+      }
+    ),
+    user_id: consumer.consumer.user?.id ?? null,
     created_at: consumer.createdAt,
     updated_at: consumer.updatedAt
   }))
@@ -25,6 +28,7 @@ export let v1ConsumerPresenter = Presenter.create(consumerType)
       name: v.string(),
       email: v.string(),
       image_url: v.string(),
+      user_id: v.nullable(v.string()),
       created_at: v.date(),
       updated_at: v.date()
     })

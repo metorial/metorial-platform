@@ -1394,10 +1394,7 @@ export let consumerInviteType = PresentableType.create<{
 export let consumerType = PresentableType.create<{
   consumer: InstanceConsumer & {
     consumer: Consumer & {
-      // organizationMember: OrganizationMember | null;
-      // profiles: (ConsumerProfile & {
-      //   surface: ConsumerSurface;
-      // })[];
+      user: User | null;
     };
   };
 }>()('consumer');
@@ -1435,7 +1432,9 @@ export let consumerSurfaceProviderGroupType = PresentableType.create<{
 
 export let consumerProfileType = PresentableType.create<{
   consumerProfile: ConsumerProfile & {
-    consumer: Consumer;
+    consumer: Consumer & {
+      user: User | null;
+    };
     surface: EnrichedConsumerSurface;
     // groups: (ConsumerProfileGroup & {
     //   group: ConsumerGroup;

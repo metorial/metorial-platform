@@ -48,6 +48,7 @@ type InstanceConsumerWithRelations = InstanceConsumer & {
 let getInclude = (d: { instanceOid: bigint }) => ({
   consumer: {
     include: {
+      user: true,
       organizationMember: true,
       profiles: {
         where: {

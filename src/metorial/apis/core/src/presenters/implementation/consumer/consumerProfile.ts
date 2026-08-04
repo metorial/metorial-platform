@@ -11,13 +11,16 @@ export let previewConsumerProfilePresenter = Presenter.create(consumerProfileTyp
     id: consumerProfile.id,
     name: consumerProfile.name,
     email: consumerProfile.email,
-    image_url: await getImageUrl({
-      id: consumerProfile.consumer.id,
-      name: consumerProfile.name,
-      email: consumerProfile.email,
-      image: null
-    }),
+    image_url: await getImageUrl(
+      consumerProfile.consumer.user ?? {
+        id: consumerProfile.consumer.id,
+        name: consumerProfile.name,
+        email: consumerProfile.email,
+        image: null
+      }
+    ),
     consumer_id: instanceConsumer?.id ?? consumerProfile.consumer.id,
+    user_id: consumerProfile.consumer.user?.id ?? null,
     status:
       consumerProfile.inviteStatus == 'invited' ? ('invited' as const) : ('active' as const),
     created_at: consumerProfile.createdAt,
@@ -31,6 +34,7 @@ export let previewConsumerProfilePresenter = Presenter.create(consumerProfileTyp
       email: v.string(),
       image_url: v.string(),
       consumer_id: v.string(),
+      user_id: v.nullable(v.string()),
       status: v.enumOf(['active', 'invited']),
       created_at: v.date(),
       updated_at: v.date()

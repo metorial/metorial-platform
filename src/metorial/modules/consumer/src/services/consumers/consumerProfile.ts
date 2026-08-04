@@ -34,7 +34,11 @@ import type { EnrichedConsumerSurface } from './consumerSurface';
 import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
 
 let include = {
-  consumer: true,
+  consumer: {
+    include: {
+      user: true
+    }
+  },
   resourceActors: true,
   surface: {
     include: {
