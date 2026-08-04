@@ -4,7 +4,7 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
-import { customPortalApi } from '@metorial/api-custom-portal';
+import { customPortalApi } from '@metorial/api-portal';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { authenticate } from '@metorial/auth';
 

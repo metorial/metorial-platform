@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { consumerProfileService } from '@metorial/module-consumer';
 import { organizationService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';
@@ -24,7 +25,14 @@ export let dashboardBootController = Controller.create(
           user: ctx.user
         });
 
-        return bootPresenter.present(res);
+        let consumers = await consumerProfileService.getConsumersForUser({
+          user: ctx.user
+        });
+
+        return bootPresenter.present({
+          ...res,
+          consumers
+        });
       })
   }
 );

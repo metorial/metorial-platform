@@ -11,6 +11,7 @@ export let v1ConsumerSurfacePresenter = Presenter.create(consumerSurfaceType)
     description: consumerSurface.description,
     allow_consumer_skill_authoring: consumerSurface.allowConsumerSkillAuthoring,
     allow_consumer_skill_publishing: consumerSurface.allowConsumerSkillPublishing,
+
     skill_configuration: {
       id: consumerSurface.skillConfiguration.id,
       is_default: consumerSurface.skillConfiguration.isDefault,

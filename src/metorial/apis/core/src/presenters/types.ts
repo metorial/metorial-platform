@@ -250,6 +250,13 @@ export let bootType = PresentableType.create<{
   })[];
   projects: (Project & { organization: Organization })[];
   instances: (Instance & { project: Project; organization: Organization })[];
+  consumers: (Consumer & {
+    profiles: (ConsumerProfile & {
+      surface: ConsumerSurface & {
+        portal: Portal | null;
+      };
+    })[];
+  })[];
 }>()('boot');
 
 export let userType = PresentableType.create<{

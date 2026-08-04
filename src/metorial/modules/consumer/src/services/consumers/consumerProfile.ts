@@ -18,6 +18,7 @@ import {
   InstanceConsumer,
   OrganizationMember,
   Prisma,
+  User,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
@@ -984,6 +985,52 @@ class ConsumerProfileServiceImpl {
     return await getEffectiveConsumerGroups({
       consumerProfile: d.consumerProfile,
       ssoGroupIds: d.ssoGroupIds ?? d.consumerProfile.ssoGroupIds ?? []
+    });
+  }
+
+  private async getConsumersForUserInternal(d: { user: User; strict?: boolean }) {
+    return await db.consumer.findMany({
+      where: {
+        OR: [
+          { userOid: d.user.oid },
+
+          ...(!d.strict
+            ? [
+                d.user.globalProfileOid
+                  ? { globalProfileOid: d.user.globalProfileOid, userOid: null }
+                  : undefined!,
+                { email: d.user.email, userOid: null },
+                { organizationMember: { userOid: d.user.oid } }
+              ]
+            : []
+          ).filter(Boolean)
+        ]
+      },
+      include: {
+        profiles: { include }
+      }
+    });
+  }
+
+  async getConsumersForUser(d: { user: User }) {
+    let consumerProfiles = await this.getConsumersForUserInternal(d);
+
+    let consumersToPatch = consumerProfiles.filter(consumer => !consumer.userOid);
+    if (!consumersToPatch.length) return consumerProfiles;
+
+    await db.consumer.updateMany({
+      where: {
+        oid: { in: consumersToPatch.map(consumer => consumer.oid) },
+        userOid: null
+      },
+      data: {
+        userOid: d.user.oid
+      }
+    });
+
+    return await this.getConsumersForUserInternal({
+      user: d.user,
+      strict: true
     });
   }
 }

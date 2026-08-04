@@ -17,6 +17,9 @@ model Consumer {
   globalProfileOid BigInt?
   globalProfile    GlobalProfile? @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
 
+  userOid BigInt?
+  user    User?   @relation(fields: [userOid], references: [oid], onDelete: SetNull)
+
   isOrganizationMember Boolean @default(false)
   isPortalConsumer     Boolean @default(false)
   isManuallyCreated    Boolean @default(false)

@@ -126,6 +126,51 @@ export type DashboardBootOutput = {
       updatedAt: Date;
     };
   })[];
+  consumers: {
+    object: 'consumer#boot';
+    id: string;
+    name: string;
+    email: string;
+    isOrganizationMember: boolean;
+    isPortalConsumer: boolean;
+    isManuallyCreated: boolean;
+    isPending: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    profiles: {
+      profile: {
+        object: 'consumer.profile#boot';
+        id: string;
+        name: string;
+        email: string;
+        imageUrl: string;
+        consumerId: string;
+        status: 'active' | 'invited';
+        createdAt: Date;
+        updatedAt: Date;
+      };
+      surface: {
+        object: 'consumer.surface';
+        id: string;
+        status: 'active' | 'archived' | 'deleted';
+        name: string;
+        description: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+      };
+      portal: {
+        object: 'portal';
+        id: string;
+        status: 'active' | 'archived' | 'deleted';
+        name: string;
+        slug: string;
+        description: string | null;
+        urls: { type: 'default'; url: string }[];
+        createdAt: Date;
+        updatedAt: Date;
+      } | null;
+    }[];
+  }[];
 };
 
 export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
@@ -349,6 +394,96 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
           })
         )
       ])
+    )
+  ),
+  consumers: mtMap.objectField(
+    'consumers',
+    mtMap.array(
+      mtMap.object({
+        object: mtMap.objectField('object', mtMap.passthrough()),
+        id: mtMap.objectField('id', mtMap.passthrough()),
+        name: mtMap.objectField('name', mtMap.passthrough()),
+        email: mtMap.objectField('email', mtMap.passthrough()),
+        isOrganizationMember: mtMap.objectField(
+          'isOrganizationMember',
+          mtMap.passthrough()
+        ),
+        isPortalConsumer: mtMap.objectField(
+          'isPortalConsumer',
+          mtMap.passthrough()
+        ),
+        isManuallyCreated: mtMap.objectField(
+          'isManuallyCreated',
+          mtMap.passthrough()
+        ),
+        isPending: mtMap.objectField('isPending', mtMap.passthrough()),
+        createdAt: mtMap.objectField('created_at', mtMap.date()),
+        updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+        profiles: mtMap.objectField(
+          'profiles',
+          mtMap.array(
+            mtMap.object({
+              profile: mtMap.objectField(
+                'profile',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  email: mtMap.objectField('email', mtMap.passthrough()),
+                  imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+                  consumerId: mtMap.objectField(
+                    'consumer_id',
+                    mtMap.passthrough()
+                  ),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
+              surface: mtMap.objectField(
+                'surface',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              ),
+              portal: mtMap.objectField(
+                'portal',
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  status: mtMap.objectField('status', mtMap.passthrough()),
+                  name: mtMap.objectField('name', mtMap.passthrough()),
+                  slug: mtMap.objectField('slug', mtMap.passthrough()),
+                  description: mtMap.objectField(
+                    'description',
+                    mtMap.passthrough()
+                  ),
+                  urls: mtMap.objectField(
+                    'urls',
+                    mtMap.array(
+                      mtMap.object({
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        url: mtMap.objectField('url', mtMap.passthrough())
+                      })
+                    )
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              )
+            })
+          )
+        )
+      })
     )
   )
 });

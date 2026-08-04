@@ -61,6 +61,7 @@ model User {
   organizationNotificationDigestSettings OrganizationNotificationDigestSetting[]
   organizationConfigs                    OrganizationConfig[]
   organizationLayouts                    OrganizationLayout[]
+  consumers                              Consumer[]
 }
 
 model UserSession {

@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { userService } from '@metorial/module-user';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
-import { userGroup, userOrConsumerGroup } from '../../middleware/userGroup';
+import { userGroup } from '../../middleware/userGroup';
 import { userPresenter } from '../../presenters';
 
 export let dashboardUserController = Controller.create(
@@ -12,7 +12,7 @@ export let dashboardUserController = Controller.create(
     description: 'Read and write user information'
   },
   {
-    get: userOrConsumerGroup
+    get: userGroup
       .get(Path('/user', 'management.user.get'), {
         name: 'Get user',
         description: 'Get the current user information'
