@@ -11,6 +11,10 @@ import {
   syncIdentityConsumerQueueProcessor
 } from './queues/syncIdentityConsumer';
 import {
+  syncUserConsumerQueueProcessor,
+  syncUserConsumersQueueProcessor
+} from './queues/syncUserConsumer';
+import {
   createOrgMemberConsumerForInstanceQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,
   syncOrgMemberQueue,
@@ -27,6 +31,7 @@ export * from './lib/oauth';
 export * from './portalUrlTemplate';
 export * from './queues/lifecycle';
 export * from './queues/materializeMagicMcpSessionOwnership';
+export * from './queues/syncUserConsumer';
 export * from './services';
 
 export let consumerQueueProcessor = combineQueueProcessors([
@@ -36,6 +41,8 @@ export let consumerQueueProcessor = combineQueueProcessors([
   sendRejectedConsumerAccessRequestEmailQueueProcessor,
   syncIdentityConsumerQueueProcessor,
   reconcileConsumerActorQueueProcessor,
+  syncUserConsumersQueueProcessor,
+  syncUserConsumerQueueProcessor,
   materializeMagicMcpSessionOwnershipQueueProcessor,
   resourceAuthorizationMigrationQueueProcessor,
 

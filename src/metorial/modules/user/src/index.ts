@@ -1,12 +1,19 @@
 import { combineQueueProcessors } from '@metorial/queue';
+import { syncUserUpdateQueueProcessor } from './queues/syncUserUpdate';
+import { syncUserUpdateConsumerManyQueueProcessor } from './queues/syncUserUpdateToConsumers';
 import {
-  syncUserUpdateQueueProcessor,
-  syncUserUpdateSingleQueueProcessor
-} from './queues/syncUserUpdate';
+  syncUserUpdateMemberManyQueueProcessor,
+  syncUserUpdateMemberQueueProcessor
+} from './queues/syncUserUpdateToMembers';
 
+export { syncUserUpdateQueue } from './queues/syncUserUpdate';
 export * from './services';
 
 export let userQueueProcessor = combineQueueProcessors([
   syncUserUpdateQueueProcessor,
-  syncUserUpdateSingleQueueProcessor
+
+  syncUserUpdateMemberManyQueueProcessor,
+  syncUserUpdateMemberQueueProcessor,
+
+  syncUserUpdateConsumerManyQueueProcessor
 ]);

@@ -143,9 +143,10 @@ describe('user module exports', () => {
     expect(syncUserUpdateQueue).toBeDefined();
   });
 
-  it('should export syncUserUpdateSingleQueue', async () => {
-    const { syncUserUpdateSingleQueue } = await import('../src/queues/syncUserUpdate');
-    expect(syncUserUpdateSingleQueue).toBeDefined();
+  it('should export syncUserUpdateMemberQueue', async () => {
+    const { syncUserUpdateMemberQueue } =
+      await import('../src/queues/syncUserUpdateToMembers');
+    expect(syncUserUpdateMemberQueue).toBeDefined();
   });
 
   it('should export syncUserUpdateQueueProcessor', async () => {
@@ -153,9 +154,10 @@ describe('user module exports', () => {
     expect(syncUserUpdateQueueProcessor).toBeDefined();
   });
 
-  it('should export syncUserUpdateSingleQueueProcessor', async () => {
-    let { syncUserUpdateSingleQueueProcessor } = await import('../src/queues/syncUserUpdate');
-    expect(syncUserUpdateSingleQueueProcessor).toBeDefined();
+  it('should export syncUserUpdateMemberQueueProcessor', async () => {
+    let { syncUserUpdateMemberQueueProcessor } =
+      await import('../src/queues/syncUserUpdateToMembers');
+    expect(syncUserUpdateMemberQueueProcessor).toBeDefined();
   });
 
   it('should have userQueueProcessor as combined processor', async () => {
@@ -204,8 +206,9 @@ describe('queue names', () => {
     expect(syncUserUpdateQueue.name).toBe('usr/syncUserUpdate');
   });
 
-  it('should have correct queue name for syncUserUpdateSingleQueue', async () => {
-    const { syncUserUpdateSingleQueue } = await import('../src/queues/syncUserUpdate');
-    expect(syncUserUpdateSingleQueue.name).toBe('usr/syncUserUpdateSingle');
+  it('should have correct queue name for syncUserUpdateMemberQueue', async () => {
+    const { syncUserUpdateMemberQueue } =
+      await import('../src/queues/syncUserUpdateToMembers');
+    expect(syncUserUpdateMemberQueue.name).toBe('usr/syncUserUpdateMember');
   });
 });
