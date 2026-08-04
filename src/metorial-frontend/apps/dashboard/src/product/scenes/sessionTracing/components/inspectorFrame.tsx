@@ -70,7 +70,6 @@ let Status = styled(motion.div)`
 
 type ExplorerRuntimeWindow = Window & {
   METORIAL_EXPLORER_URL?: string;
-  METORIAL_MCP_API_URL?: string;
 };
 
 type ExplorerConfigMessage = {
@@ -123,7 +122,8 @@ export let InspectorFrame = (p: {
   let inspectorUrl = useMemo(() => {
     if (explorerVersion !== 'v1') return undefined;
 
-    let explorerBase = runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
+    let explorerBase =
+      runtimeWindow.METORIAL_EXPLORER_URL ?? import.meta.env.VITE_EXPLORER_URL!;
     let url = new URL(explorerBase);
 
     url.searchParams.set('transport_type', 'streamable-http');

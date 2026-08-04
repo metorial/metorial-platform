@@ -1,15 +1,24 @@
-import { internalServerError, isServiceError } from '@lowerdeck/error';
+import {
+  forbiddenError,
+  internalServerError,
+  isServiceError,
+  ServiceError
+} from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
 import { db, type StoreParticipantPermissions } from '@metorial/db';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { internalDocumentSyncService } from '../internal/documentSync';
 import { queueDocumentCollaborationFlush } from '../queues/documentCollaborationFlush';
 import { documentService } from '../services/document';
-import { canSendDocumentLiveMessage } from './documentLiveAccess';
+import {
+  canSendDocumentLiveMessage,
+  hasSameDocumentLiveIdentity,
+  isDocumentLiveTokenExpired
+} from './documentLiveAccess';
 import { publishDocumentLiveBusMessage, subscribeToDocumentLiveBus } from './documentLiveBus';
 import { type DocumentLiveBusMessageType } from './documentLiveBusProtocol';
 import {
@@ -27,6 +36,13 @@ let participantCleanupIntervalMs = 10 * 1000;
 type DocumentLiveClientMessage =
   | {
       type: 'ping';
+    }
+  | {
+      type: 'document_token_update';
+      data: {
+        token: string;
+        requestId: string;
+      };
     }
   | {
       type: 'document_update';
@@ -74,12 +90,18 @@ type LiveSession = {
   id: string;
   documentId: string;
   actorId: string;
+  instanceId: string;
+  organizationId: string;
+  authorization: ResourceAuthorization;
+  permissions: ('content_read' | 'content_write')[];
   canWrite: boolean;
+  expiresAt: number;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
   lastPingAt: number;
   awarenessClientId?: number;
   awarenessUpdate?: string;
+  expiryTimer?: ReturnType<typeof setTimeout>;
 };
 
 let liveSessions = new Map<string, LiveSession>();
@@ -439,6 +461,7 @@ let removeSession = async (sessionId: string) => {
 
   liveSessions.delete(sessionId);
   socketsBySessionId.delete(sessionId);
+  if (session.expiryTimer) clearTimeout(session.expiryTimer);
   await removeLiveSession(session.documentId, sessionId);
 
   let room = sessionIdsByDocumentId.get(session.documentId);
@@ -493,55 +516,72 @@ cleanupTimer.unref?.();
 
 type DocumentLiveConnection = {
   documentId: string;
+  instanceId: string;
+  organizationId: string;
   actorId: string;
-  canWrite: boolean;
+  authorization: ResourceAuthorization;
+  permissions: ('content_read' | 'content_write')[];
+  expiresAt: Date;
   defaultPermissions?: StoreParticipantPermissions[];
   overridePermissions?: boolean;
 };
 
 type DocumentLiveApiOptions = {
   path?: string;
-  resolveConnection?: (d: { request: Request; url: URL }) => Promise<DocumentLiveConnection>;
+  resolveConnection: (d: { request: Request; url: URL }) => Promise<DocumentLiveConnection>;
+  resolveToken: (d: {
+    token: string;
+    documentId: string;
+    instanceId: string;
+    organizationId: string;
+  }) => Promise<DocumentLiveConnection>;
 };
 
-export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
+let getConnectionAccessPayload = (session: LiveSession) => ({
+  permissions: session.permissions,
+  expiresAt: new Date(session.expiresAt)
+});
+
+let scheduleSessionExpiry = (session: LiveSession, ws: WSContext<any>) => {
+  if (session.expiryTimer) clearTimeout(session.expiryTimer);
+  session.expiryTimer = setTimeout(
+    () => {
+      send(ws, 'error', {
+        code: 'document_token_expired',
+        message: 'The document edit token has expired'
+      });
+      ws.close(4001, 'Document edit token expired');
+    },
+    Math.max(0, session.expiresAt - Date.now())
+  );
+};
+
+export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
   createHono()
     .get('/ping', c => c.text('OK'))
     .get(
-      options?.path ?? '/document-live',
+      options.path ?? '/document-live',
       upgradeWebSocket(async c => {
         let url = new URL(c.req.url);
-        let connection = options?.resolveConnection
-          ? await options.resolveConnection({
-              request: c.req.raw,
-              url
-            })
-          : {
-              documentId: url.searchParams.get('documentId'),
-              actorId: url.searchParams.get('actorId'),
-              canWrite: url.searchParams.get('canWrite') === 'true',
-              defaultPermissions: undefined,
-              overridePermissions: undefined
-            };
-        let { documentId, actorId, canWrite, defaultPermissions, overridePermissions } =
-          connection;
-
-        if (!documentId || !actorId) {
-          throw new Error('documentId and actorId query params are required');
-        }
+        let connection = await options.resolveConnection({
+          request: c.req.raw,
+          url
+        });
+        let {
+          documentId,
+          instanceId,
+          organizationId,
+          actorId,
+          authorization,
+          permissions,
+          expiresAt,
+          defaultPermissions,
+          overridePermissions
+        } = connection;
 
         let scopedDocument = await documentService.getScopedDocumentById({
           documentId
         });
-        let resourceActor = await resourceActorService.getActorById({
-          resourceTenant: scopedDocument.resourceTenant,
-          actorId
-        });
-        let authorization = {
-          type: 'privileged' as const,
-          resourceActor
-        };
-
         await documentService.getDocumentById({
           resourceTenant: scopedDocument.resourceTenant,
           resourceGroup: scopedDocument.resourceGroup,
@@ -555,20 +595,31 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
 
         return {
           onOpen: async (_, ws) => {
-            let session = {
+            let session: LiveSession = {
               id: sessionId,
               documentId,
+              instanceId,
+              organizationId,
               actorId,
-              canWrite,
+              authorization,
+              permissions,
+              canWrite: permissions.includes('content_write'),
+              expiresAt: expiresAt.getTime(),
               defaultPermissions,
               overridePermissions,
               lastPingAt: Date.now()
             };
 
+            if (isDocumentLiveTokenExpired(session.expiresAt)) {
+              ws.close(4001, 'Document edit token expired');
+              return;
+            }
+
             liveSessions.set(sessionId, session);
             socketsBySessionId.set(sessionId, ws);
             getRoomSessionIds(documentId).add(sessionId);
             await persistLiveSession(session);
+            scheduleSessionExpiry(session, ws);
 
             let collaboration =
               await internalDocumentCollaborationService.getSnapshot(documentId);
@@ -578,7 +629,8 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
               document: buildDocumentPayload(scopedDocument.document),
               stateUpdate: collaboration.update,
               generation: collaboration.generation,
-              awareness: await getAwarenessPayload(documentId)
+              awareness: await getAwarenessPayload(documentId),
+              access: getConnectionAccessPayload(session)
             });
             await broadcastParticipantList(documentId);
           },
@@ -587,11 +639,63 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
             let session = liveSessions.get(sessionId);
             if (!session) return;
 
+            if (isDocumentLiveTokenExpired(session.expiresAt)) {
+              let ws = socketsBySessionId.get(sessionId);
+              if (ws) ws.close(4001, 'Document edit token expired');
+              await removeSession(sessionId);
+              return;
+            }
+
             session.lastPingAt = Date.now();
+            let tokenUpdateRequestId: string | null = null;
 
             try {
               let parsed = JSON.parse(event.data.toString()) as DocumentLiveClientMessage;
               await persistLiveSession(session);
+
+              if (parsed.type === 'document_token_update') {
+                tokenUpdateRequestId = parsed.data?.requestId ?? null;
+                if (
+                  !parsed.data ||
+                  typeof parsed.data.token != 'string' ||
+                  typeof parsed.data.requestId != 'string' ||
+                  !parsed.data.requestId
+                ) {
+                  throw new ServiceError(
+                    forbiddenError({ message: 'Invalid document token update' })
+                  );
+                }
+
+                let refreshed = await options.resolveToken({
+                  token: parsed.data.token,
+                  documentId: session.documentId,
+                  instanceId: session.instanceId,
+                  organizationId: session.organizationId
+                });
+                if (!hasSameDocumentLiveIdentity(session, refreshed)) {
+                  throw new ServiceError(
+                    forbiddenError({ message: 'Document token identity cannot be changed' })
+                  );
+                }
+
+                session.authorization = refreshed.authorization;
+                session.permissions = refreshed.permissions;
+                session.canWrite = refreshed.permissions.includes('content_write');
+                session.expiresAt = refreshed.expiresAt.getTime();
+                session.defaultPermissions = refreshed.defaultPermissions;
+                session.overridePermissions = refreshed.overridePermissions;
+                await persistLiveSession(session);
+
+                let ws = socketsBySessionId.get(sessionId);
+                if (ws) {
+                  scheduleSessionExpiry(session, ws);
+                  send(ws, 'document_token_updated', {
+                    requestId: parsed.data.requestId,
+                    ...getConnectionAccessPayload(session)
+                  });
+                }
+                return;
+              }
 
               if (parsed.type === 'ping') {
                 let ws = socketsBySessionId.get(sessionId);
@@ -750,7 +854,7 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
                 resourceTenant: currentScopedDocument.resourceTenant,
                 resourceGroup: currentScopedDocument.resourceGroup,
                 documentId: session.documentId,
-                authorization,
+                authorization: session.authorization,
                 defaultPermissions: session.defaultPermissions,
                 overridePermissions: session.overridePermissions
               });
@@ -760,7 +864,7 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
                 resourceGroup: currentScopedDocument.resourceGroup,
                 document: currentScopedDocument.document,
                 input: {
-                  authorization,
+                  authorization: session.authorization,
                   title: parsed.data.title,
                   content:
                     parsed.type === 'document_update' ||
@@ -804,7 +908,17 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
             } catch (error) {
               let ws = socketsBySessionId.get(sessionId);
               if (ws) {
-                sendError(ws, error);
+                if (tokenUpdateRequestId) {
+                  send(ws, 'error', {
+                    code: 'document_token_update_failed',
+                    requestId: tokenUpdateRequestId,
+                    error: isServiceError(error)
+                      ? error.toResponse()
+                      : internalServerError().toResponse()
+                  });
+                } else {
+                  sendError(ws, error);
+                }
               }
             }
           },
@@ -820,5 +934,3 @@ export let createDocumentLiveApi = (options?: DocumentLiveApiOptions) =>
         };
       })
     );
-
-export let documentLiveApi = createDocumentLiveApi();

@@ -7,7 +7,7 @@ import {
   removeAwarenessStates
 } from 'y-protocols/awareness';
 import * as Y from 'yjs';
-import type { Document, DocumentParticipant } from './documents';
+import type { Document, DocumentEditToken, DocumentParticipant } from './documents';
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 type SnapshotSaveStatus = 'saved' | 'pending' | 'saving' | 'error';
@@ -26,6 +26,10 @@ type CollaborationServerMessage =
           clientId: number;
           update: string;
         }[];
+        access: {
+          permissions: ('content_read' | 'content_write')[];
+          expiresAt: Date;
+        };
       };
     }
   | {
@@ -89,6 +93,14 @@ type CollaborationServerMessage =
       };
     }
   | {
+      type: 'document_token_updated';
+      data: {
+        requestId: string;
+        permissions: ('content_read' | 'content_write')[];
+        expiresAt: Date;
+      };
+    }
+  | {
       type: 'error';
       data: unknown;
     };
@@ -96,6 +108,13 @@ type CollaborationServerMessage =
 type CollaborationClientMessage =
   | {
       type: 'ping';
+    }
+  | {
+      type: 'document_token_update';
+      data: {
+        token: string;
+        requestId: string;
+      };
     }
   | {
       type: 'yjs_update';
@@ -134,6 +153,8 @@ let reconnectMaxDelayMs = 10_000;
 let reconnectMaxAttempts = 6;
 let reconnectJitterRatio = 0.25;
 let reconnectStabilityMs = 30_000;
+let tokenRefreshBufferMs = 60_000;
+let tokenRefreshRetryMaxMs = 15_000;
 
 let deferInitialConnection = (connect: () => void) => {
   let timer = setTimeout(connect, 0);
@@ -235,6 +256,9 @@ let getReconnectDelayMs = (attempt: number, random = Math.random) => {
 
 let canRetryConnection = (attempt: number) => attempt < reconnectMaxAttempts;
 
+let getTokenRefreshDelayMs = (expiresAt: Date, now = Date.now()) =>
+  Math.max(0, expiresAt.getTime() - now - tokenRefreshBufferMs);
+
 export let __documentCollaborationTestUtils = {
   encodeBase64,
   decodeBase64,
@@ -244,6 +268,7 @@ export let __documentCollaborationTestUtils = {
   resolveInitialMarkdown,
   getReconnectDelayMs,
   canRetryConnection,
+  getTokenRefreshDelayMs,
   deferInitialConnection,
   reconnectMaxAttempts
 };
@@ -259,17 +284,15 @@ export let useDocumentCollaboration = (
   documentId: string | null | undefined,
   opts?: {
     organizationId?: string | null;
-    editToken?: string | null;
-    refreshEditToken?: () => Promise<string | null | undefined>;
+    editToken?: DocumentEditToken | null;
+    refreshEditToken?: () => Promise<DocumentEditToken>;
     enabled?: boolean;
-    canWrite?: boolean;
     initialMarkdown?: string;
     getInitialMarkdown?: (document: Document) => string;
     seedInitialBody?: (d: { initialMarkdown: string; origin: unknown }) => string | null;
   }
 ) => {
   let enabled = opts?.enabled ?? true;
-  let canWrite = opts?.canWrite ?? true;
   let [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   let [snapshotSaveStatus, setSnapshotSaveStatus] = useState<SnapshotSaveStatus>('saved');
   let [snapshot, setSnapshot] = useState<Document | null>(null);
@@ -280,6 +303,7 @@ export let useDocumentCollaboration = (
   let [isFallback, setIsFallback] = useState(false);
   let [initialBodyStateReceived, setInitialBodyStateReceived] = useState(false);
   let [initialBodySeeded, setInitialBodySeeded] = useState(false);
+  let [effectiveCanWrite, setEffectiveCanWrite] = useState(false);
   let [collaborationEpoch, setCollaborationEpoch] = useState(0);
   let wsRef = useRef<WebSocket | null>(null);
   let sessionIdRef = useRef<string | null>(null);
@@ -287,7 +311,8 @@ export let useDocumentCollaboration = (
   let suppressLocalUpdateRef = useRef(false);
   let isReadyForEditorRef = useRef(false);
   let hasConnectedRef = useRef(false);
-  let editTokenRef = useRef<string | null | undefined>(opts?.editToken);
+  let editTokenRef = useRef<DocumentEditToken | null | undefined>(opts?.editToken);
+  let effectiveCanWriteRef = useRef(false);
   let refreshEditTokenRef = useRef(opts?.refreshEditToken);
   let initialMarkdownRef = useRef(opts?.initialMarkdown);
   let getInitialMarkdownRef = useRef(opts?.getInitialMarkdown);
@@ -356,6 +381,8 @@ export let useDocumentCollaboration = (
       setIsSynced(false);
       setIsReadyForEditor(false);
       setIsFallback(false);
+      effectiveCanWriteRef.current = false;
+      setEffectiveCanWrite(false);
       return;
     }
 
@@ -364,6 +391,8 @@ export let useDocumentCollaboration = (
       setIsSynced(false);
       setIsReadyForEditor(true);
       setIsFallback(true);
+      effectiveCanWriteRef.current = false;
+      setEffectiveCanWrite(false);
       return;
     }
 
@@ -373,10 +402,59 @@ export let useDocumentCollaboration = (
     let ws: WebSocket | null = null;
     let heartbeat: number | null = null;
     let stabilityTimer: number | null = null;
+    let tokenRefreshTimer: number | null = null;
+    let tokenRefreshAttempts = 0;
+    let pendingTokenUpdates = new Map<string, { token: DocumentEditToken; timeout: number }>();
     let intentionalReconnect = false;
 
+    let applyAccess = (access: {
+      permissions: ('content_read' | 'content_write')[];
+      expiresAt: Date | string;
+    }) => {
+      let writable = access.permissions.includes('content_write');
+      effectiveCanWriteRef.current = writable;
+      setEffectiveCanWrite(writable);
+      scheduleTokenRefresh(new Date(access.expiresAt));
+    };
+
+    let requestTokenRefresh = async () => {
+      if (closed || !refreshEditTokenRef.current) return;
+
+      try {
+        let refreshed = await refreshEditTokenRef.current();
+        if (closed) return;
+
+        let requestId = crypto.randomUUID();
+        if (
+          !sendJson(ws, {
+            type: 'document_token_update',
+            data: { token: refreshed.token, requestId }
+          })
+        ) {
+          throw new Error('Document live socket is not connected');
+        }
+        let timeout = window.setTimeout(() => {
+          if (!pendingTokenUpdates.delete(requestId)) return;
+          tokenRefreshAttempts++;
+          void requestTokenRefresh();
+        }, 10_000);
+        pendingTokenUpdates.set(requestId, { token: refreshed, timeout });
+      } catch (err) {
+        setError(err);
+        tokenRefreshAttempts++;
+        let delay = Math.min(1_000 * 2 ** (tokenRefreshAttempts - 1), tokenRefreshRetryMaxMs);
+        tokenRefreshTimer = window.setTimeout(() => void requestTokenRefresh(), delay);
+      }
+    };
+
+    function scheduleTokenRefresh(expiresAt: Date) {
+      if (tokenRefreshTimer) window.clearTimeout(tokenRefreshTimer);
+      let delay = getTokenRefreshDelayMs(expiresAt);
+      tokenRefreshTimer = window.setTimeout(() => void requestTokenRefresh(), delay);
+    }
+
     let handleDocUpdate = (update: Uint8Array, origin: unknown) => {
-      if (!canWrite) return;
+      if (!effectiveCanWriteRef.current) return;
       if (origin === remoteOrigin) return;
       if (origin === seedOrigin) return;
       if (suppressLocalUpdateRef.current) return;
@@ -417,6 +495,14 @@ export let useDocumentCollaboration = (
         window.clearInterval(heartbeat);
         heartbeat = null;
       }
+      if (tokenRefreshTimer) {
+        window.clearTimeout(tokenRefreshTimer);
+        tokenRefreshTimer = null;
+      }
+      for (let pending of pendingTokenUpdates.values()) {
+        window.clearTimeout(pending.timeout);
+      }
+      pendingTokenUpdates.clear();
       if (wsRef.current === ws) wsRef.current = null;
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         ws.close();
@@ -456,11 +542,7 @@ export let useDocumentCollaboration = (
       if (isReconnect && refreshEditTokenRef.current) {
         try {
           let refreshedEditToken = await refreshEditTokenRef.current();
-          if (typeof refreshedEditToken == 'string') {
-            editTokenRef.current = refreshedEditToken;
-          } else if (refreshedEditToken === null) {
-            editTokenRef.current = null;
-          }
+          editTokenRef.current = refreshedEditToken;
         } catch (err) {
           setError(err);
         }
@@ -483,7 +565,7 @@ export let useDocumentCollaboration = (
         instanceId,
         documentId,
         organizationId: opts?.organizationId,
-        editToken: editTokenRef.current
+        editToken: editTokenRef.current?.token
       });
       ws = new WebSocket(url);
       wsRef.current = ws;
@@ -504,6 +586,7 @@ export let useDocumentCollaboration = (
         let message = JSON.parse(event.data) as CollaborationServerMessage;
 
         if (message.type === 'collaboration_snapshot') {
+          applyAccess(message.data.access);
           sessionIdRef.current = message.data.sessionId;
           generationRef.current = message.data.generation ?? 0;
           setSnapshot(message.data.document);
@@ -523,7 +606,7 @@ export let useDocumentCollaboration = (
           let seedUpdate: string | null = null;
           if (
             shouldInitializeCollaboration({
-              canWrite,
+              canWrite: effectiveCanWriteRef.current,
               bodyStateReceived,
               initialMarkdown
             }) &&
@@ -558,7 +641,7 @@ export let useDocumentCollaboration = (
 
           if (!didSeedInitialBody) {
             markConnectionUsable();
-            setIsFallback(!canWrite && !bodyStateReceived);
+            setIsFallback(!effectiveCanWriteRef.current && !bodyStateReceived);
             setIsReadyForEditor(true);
             setIsSynced(true);
           }
@@ -592,7 +675,7 @@ export let useDocumentCollaboration = (
           setSnapshot(message.data.document);
           setIsSynced(false);
 
-          if (!canWrite) {
+          if (!effectiveCanWriteRef.current) {
             markConnectionUsable();
             setIsFallback(true);
             setIsReadyForEditor(true);
@@ -604,6 +687,19 @@ export let useDocumentCollaboration = (
           cleanupSocket();
           delayNextConnectionRef.current = true;
           setCollaborationEpoch(epoch => epoch + 1);
+          return;
+        }
+
+        if (message.type === 'document_token_updated') {
+          let pending = pendingTokenUpdates.get(message.data.requestId);
+          if (!pending) return;
+
+          pendingTokenUpdates.delete(message.data.requestId);
+          window.clearTimeout(pending.timeout);
+          editTokenRef.current = pending.token;
+          tokenRefreshAttempts = 0;
+          setError(null);
+          applyAccess(message.data);
           return;
         }
 
@@ -636,6 +732,26 @@ export let useDocumentCollaboration = (
         if (message.type === 'error') {
           setError(message.data);
           setSnapshotSaveStatus('error');
+
+          if (
+            message.data &&
+            typeof message.data == 'object' &&
+            'code' in message.data &&
+            message.data.code === 'document_token_update_failed' &&
+            'requestId' in message.data &&
+            typeof message.data.requestId == 'string'
+          ) {
+            let pending = pendingTokenUpdates.get(message.data.requestId);
+            if (pending) window.clearTimeout(pending.timeout);
+            pendingTokenUpdates.delete(message.data.requestId);
+            tokenRefreshAttempts++;
+            let delay = Math.min(
+              1_000 * 2 ** (tokenRefreshAttempts - 1),
+              tokenRefreshRetryMaxMs
+            );
+            if (tokenRefreshTimer) window.clearTimeout(tokenRefreshTimer);
+            tokenRefreshTimer = window.setTimeout(() => void requestTokenRefresh(), delay);
+          }
         }
       };
 
@@ -682,12 +798,20 @@ export let useDocumentCollaboration = (
         window.clearTimeout(reconnectTimer);
         reconnectTimer = null;
       }
+      if (tokenRefreshTimer) {
+        window.clearTimeout(tokenRefreshTimer);
+        tokenRefreshTimer = null;
+      }
+      for (let pending of pendingTokenUpdates.values()) {
+        window.clearTimeout(pending.timeout);
+      }
+      pendingTokenUpdates.clear();
       ydoc.off('update', handleDocUpdate);
       awareness.off('update', handleAwarenessUpdate);
       sessionIdRef.current = null;
       cleanupSocket();
     };
-  }, [awareness, canWrite, documentId, enabled, instanceId, opts?.organizationId, ydoc]);
+  }, [awareness, documentId, enabled, instanceId, opts?.organizationId, ydoc]);
 
   let saveSnapshot = useCallback((input: { title: string; content: string }) => {
     setSnapshotSaveStatus('saving');
@@ -722,6 +846,7 @@ export let useDocumentCollaboration = (
     isFallback,
     initialBodyStateReceived,
     initialBodySeeded,
+    canWrite: effectiveCanWrite,
     sessionId: sessionIdRef.current,
     saveSnapshot,
     markSnapshotPending

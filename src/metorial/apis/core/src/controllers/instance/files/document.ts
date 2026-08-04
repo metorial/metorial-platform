@@ -82,7 +82,12 @@ export let documentController = Controller.create(
       })
       .use(
         checkAccess({
-          possibleScopes: ['instance.file:write', 'consumer#instance.document:write']
+          possibleScopes: [
+            'instance.file:read',
+            'instance.file:write',
+            'consumer#instance.document:read',
+            'consumer#instance.document:write'
+          ]
         })
       )
       .body(
@@ -149,7 +154,7 @@ export let documentController = Controller.create(
       .get(instancePath('documents/:documentId/edit-token', 'documents.editToken.get'), {
         name: 'Get document edit token',
         description:
-          'Returns a short-lived token for establishing a collaborative document editing session.',
+          'Returns a short-lived read or write token for establishing a live document session.',
         confidential: true
       })
       .use(
@@ -165,11 +170,25 @@ export let documentController = Controller.create(
           ...cargoAccess
         });
 
-        if (!permissions.hasFullAccess && !permissions.permissions.includes('content_write')) {
+        let grantedPermissions = (
+          permissions.hasFullAccess
+            ? ['content_read', 'content_write']
+            : permissions.permissions.filter(
+                permission => permission == 'content_read' || permission == 'content_write'
+              )
+        ) as ('content_read' | 'content_write')[];
+        if (!grantedPermissions.includes('content_read')) {
           throw new ServiceError(
             forbiddenError({
-              message: 'You do not have permission to edit this document'
+              message: 'You do not have permission to read this document'
             })
+          );
+        }
+
+        let accessActor = getInstanceCargoActorInput(ctx);
+        if (!accessActor) {
+          throw new ServiceError(
+            forbiddenError({ message: 'Document live access requires an actor' })
           );
         }
 
@@ -178,7 +197,8 @@ export let documentController = Controller.create(
           instanceId: ctx.instance.id,
           organizationId: ctx.organization.id,
           accessTags: cargoAccess.accessTags,
-          accessActor: getInstanceCargoActorInput(ctx),
+          accessActor,
+          permissions: grantedPermissions,
           defaultPermissions: cargoAccess.defaultPermissions,
           overridePermissions: cargoAccess.overridePermissions
         });

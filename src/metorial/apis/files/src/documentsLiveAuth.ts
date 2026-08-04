@@ -1,56 +1,96 @@
-import { documentEditTokenService } from '@metorial/cargo-module-doc';
-import { resolveUploadTarget } from './uploadAccess';
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { documentEditTokenService, documentService } from '@metorial/cargo-module-doc';
+import { resolveCargoAccess } from '@metorial/cargo-module-file';
+import { db } from '@metorial/db';
+import { createResourceAuthorization } from '@metorial/module-access';
 
-let documentReadScopes = [
-  'instance.file:read',
-  'instance.file:write',
-  'consumer#instance.document:read',
-  'consumer#instance.document:write'
-] as const;
-let documentWriteScopes = ['instance.file:write', 'consumer#instance.document:write'] as const;
-
-type AuthenticateRequest = (
-  req: Request,
-  url: URL
-) => Promise<{
-  auth: any;
-}>;
-
-export let resolveDocumentsLiveTarget = async (d: {
-  req: Request;
-  url: URL;
+export let resolveDocumentsLiveToken = async (d: {
+  editToken: string;
   documentId: string;
   instanceId?: string | null;
   organizationId?: string | null;
-  editToken?: string | null;
-  authenticateRequest: AuthenticateRequest;
 }) => {
-  if (d.editToken) {
-    let { owner, accessTags, accessActor, defaultPermissions, overridePermissions } =
-      await documentEditTokenService.verifyDocumentEditToken({
-        token: d.editToken,
-        documentId: d.documentId,
-        instanceId: d.instanceId
-      });
-
-    return {
-      owner,
-      canWrite: true,
-      cargoAccess: {
-        accessTags,
-        accessActor,
-        defaultPermissions,
-        overridePermissions
-      }
-    };
+  let token = await documentEditTokenService.verifyDocumentEditToken({
+    token: d.editToken,
+    documentId: d.documentId,
+    instanceId: d.instanceId,
+    organizationId: d.organizationId
+  });
+  let access = await resolveCargoAccess({
+    owner: token.owner,
+    accessTags: token.accessTags,
+    accessActor: token.accessActor,
+    defaultPermissions: token.defaultPermissions,
+    overridePermissions: token.overridePermissions
+  });
+  if (!access.actor || !access.actorId) {
+    throw new ServiceError(forbiddenError({ message: 'Actor context is required' }));
   }
 
-  let { auth } = await d.authenticateRequest(d.req, d.url);
-  return await resolveUploadTarget({
-    auth,
-    instanceId: d.instanceId,
-    organizationId: d.organizationId,
-    possibleScopes: [...documentReadScopes],
-    writeScopes: [...documentWriteScopes]
+  let authorization = access.authorization;
+  if (access.actor.consumerProfileOid != null) {
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        oid: access.actor.consumerProfileOid,
+        status: 'active',
+        instanceOid: token.owner.instance.oid
+      },
+      select: {
+        oid: true,
+        instanceOid: true
+      }
+    });
+    if (!consumerProfile) {
+      throw new ServiceError(forbiddenError({ message: 'Invalid document edit token actor' }));
+    }
+
+    authorization = createResourceAuthorization({
+      restricted: true,
+      resourceActor: access.actor,
+      accessTags: token.accessTags,
+      resourceTenant: access.scope.resourceTenant,
+      resourceGroup: access.scope.resourceGroup,
+      instance: token.owner.instance,
+      consumerProfile
+    });
+  }
+
+  let document = await documentService.getDocumentById({
+    ...access.scope,
+    documentId: token.documentId,
+    authorization,
+    defaultPermissions: token.defaultPermissions,
+    overridePermissions: token.overridePermissions
   });
+  let permissions = await documentService.getDocumentPermissions({
+    ...access.scope,
+    document,
+    authorization,
+    defaultPermissions: token.defaultPermissions,
+    overridePermissions: token.overridePermissions
+  });
+  let hasCurrentPermission = (permission: 'content_read' | 'content_write') =>
+    permissions.hasFullAccess || permissions.permissions.includes(permission);
+  let effectivePermissions = token.permissions.filter(
+    permission =>
+      hasCurrentPermission(permission) &&
+      !(permission == 'content_write' && document.isReadOnly)
+  );
+  if (!effectivePermissions.includes('content_read')) {
+    throw new ServiceError(
+      forbiddenError({ message: 'Document edit token does not grant read access' })
+    );
+  }
+
+  return {
+    documentId: token.documentId,
+    instanceId: token.instanceId,
+    organizationId: token.organizationId,
+    actorId: access.actorId,
+    authorization,
+    defaultPermissions: token.defaultPermissions,
+    overridePermissions: token.overridePermissions,
+    permissions: effectivePermissions,
+    expiresAt: token.expiresAt
+  };
 };

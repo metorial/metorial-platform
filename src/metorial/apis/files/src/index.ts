@@ -1,9 +1,8 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
-import { documentService } from '@metorial/cargo-module-doc';
 import { createDocumentLiveApi } from '@metorial/cargo-module-doc/live';
 import {
   getCargoFileContent,
@@ -13,7 +12,7 @@ import {
 } from '@metorial/cargo-module-file';
 import { generatePlainId } from '@metorial/id';
 import { websocket } from 'hono/bun';
-import { resolveDocumentsLiveTarget } from './documentsLiveAuth';
+import { resolveDocumentsLiveToken } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
@@ -195,18 +194,15 @@ let getQueryParam = (url: URL, keys: string[]) => {
   return null;
 };
 
-let createDocumentsLiveHandler = (
-  authenticateRequest: NonNullable<FileApiOptions['authenticateRequest']>
-) =>
+let createDocumentsLiveHandler = () =>
   createHono()
     .use(async (c, next) => {
       c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
       c.res.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
       c.res.headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret'
+        'Content-Type, baggage, sentry-trace, metorial-client'
       );
-      c.res.headers.set('Access-Control-Allow-Credentials', 'true');
       c.res.headers.set('Access-Control-Max-Age', '86400');
 
       if (c.req.method === 'OPTIONS') {
@@ -241,66 +237,28 @@ let createDocumentsLiveHandler = (
                   })
                 );
               }
+              if (!editToken) {
+                throw new ServiceError(
+                  badRequestError({ message: 'Missing edit_token query parameter' })
+                );
+              }
 
-              let target = await resolveDocumentsLiveTarget({
-                req: request,
-                url,
+              return await resolveDocumentsLiveToken({
+                editToken,
                 documentId,
                 instanceId,
-                organizationId,
-                editToken,
-                authenticateRequest
+                organizationId
               });
-              if (!target.cargoAccess?.accessActor) {
-                throw new ServiceError(
-                  forbiddenError({
-                    message: 'Actor context is required',
-                    description:
-                      'Live document connections require an organization actor or consumer actor context.'
-                  })
-                );
-              }
-
-              let access = await resolveCargoAccess({
-                owner: target.owner,
-                ...target.cargoAccess
-              });
-              if (!access.actorId) {
-                throw new ServiceError(
-                  forbiddenError({ message: 'Actor context is required' })
-                );
-              }
-
-              let document = await documentService.getDocumentById({
-                ...access.scope,
-                documentId,
-                authorization: access.authorization,
-                defaultPermissions: access.defaultPermissions,
-                overridePermissions: access.overridePermissions
-              });
-              let permissions = await documentService.getDocumentPermissions({
-                ...access.scope,
-                document,
-                authorization: access.authorization,
-                defaultPermissions: access.defaultPermissions,
-                overridePermissions: access.overridePermissions
-              });
-
-              return {
-                documentId,
-                actorId: access.actorId,
-                accessTags: access.accessTags,
-                defaultPermissions: access.defaultPermissions,
-                overridePermissions: access.overridePermissions,
-                canWrite:
-                  target.canWrite &&
-                  !document.isReadOnly &&
-                  (permissions.hasFullAccess ||
-                    permissions.permissions.includes('content_write'))
-              };
             }
           );
-        }
+        },
+        resolveToken: async ({ token, documentId, instanceId, organizationId }) =>
+          await resolveDocumentsLiveToken({
+            editToken: token,
+            documentId,
+            instanceId,
+            organizationId
+          })
       })
     );
 
@@ -326,10 +284,7 @@ export let createFileUploadApi = (d?: FileApiOptions) => {
     .post('/files', createFileUploadHandler(authenticateRequest));
 };
 
-export let createDocumentsLiveApi = (d?: FileApiOptions) => {
-  let authenticateRequest = d?.authenticateRequest ?? authenticate;
-  return createDocumentsLiveHandler(authenticateRequest);
-};
+export let createDocumentsLiveApi = () => createDocumentsLiveHandler();
 
 export let createFileContentApi = () =>
   createHono()

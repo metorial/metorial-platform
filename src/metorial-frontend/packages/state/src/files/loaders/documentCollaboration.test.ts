@@ -51,6 +51,17 @@ describe('document collaboration reset helpers', () => {
     expect(__documentCollaborationTestUtils.canRetryConnection(maxAttempts - 1)).toBe(true);
     expect(__documentCollaborationTestUtils.canRetryConnection(maxAttempts)).toBe(false);
   });
+
+  it('refreshes document tokens one minute before expiry', () => {
+    let now = new Date('2030-01-01T00:00:00Z').getTime();
+
+    expect(
+      __documentCollaborationTestUtils.getTokenRefreshDelayMs(new Date(now + 5 * 60_000), now)
+    ).toBe(4 * 60_000);
+    expect(
+      __documentCollaborationTestUtils.getTokenRefreshDelayMs(new Date(now + 30_000), now)
+    ).toBe(0);
+  });
 });
 
 describe('document collaboration connection lifecycle', () => {
