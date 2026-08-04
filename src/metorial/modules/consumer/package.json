@@ -16,7 +16,6 @@
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/slugify": "workspace:2.0.0",
     "@lowerdeck/tokens": "workspace:2.0.0",
-    "@metorial/consumer-auth": "1.0.0",
     "@metorial-platform-systems/ares-client": "^1.0.0",
     "@metorial/cargo-module-skill": "1.0.0",
     "@metorial/cargo-module-store": "1.0.0",
