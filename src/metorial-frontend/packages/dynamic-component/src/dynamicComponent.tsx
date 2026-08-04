@@ -52,9 +52,9 @@ export let dynamicPage = <Params extends any[]>(
 
           let current = new URL(window.location.href);
           // Avoid infinite reload loop
-          if (current.searchParams.has('_cmp_ref')) return;
+          if (current.searchParams.has('_mt_reload')) return;
 
-          current.searchParams.set('_cmp_ref', Date.now().toString());
+          current.searchParams.set('_mt_reload', Date.now().toString());
           window.location.href = current.toString();
         });
     }, []);
