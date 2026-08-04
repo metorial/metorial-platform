@@ -9,6 +9,7 @@ export interface ConsumerSetup {
   instanceId: string;
   projectId: string;
   organizationId: string;
+  portalId: string;
 }
 let consumerSetup: {
   current: ConsumerSetup | null;
