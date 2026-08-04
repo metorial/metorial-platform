@@ -18,8 +18,10 @@ let getExpirationDate = () => {
   return date;
 };
 
-export let createSignedFileDownloadKey = async (file: Pick<File, 'id' | 'storeId'>) =>
-  await signedDownloadTokens.sign({
+let regionSuffix = `_${env.service.CARGO_REGION ?? 'ext'}`;
+
+export let createSignedFileDownloadKey = async (file: Pick<File, 'id' | 'storeId'>) => {
+  let token = await signedDownloadTokens.sign({
     type: signedDownloadTokenType,
     expiresAt: getExpirationDate(),
     data: {
@@ -27,6 +29,9 @@ export let createSignedFileDownloadKey = async (file: Pick<File, 'id' | 'storeId
       storeId: file.storeId
     } satisfies SignedDownloadTokenData
   });
+
+  return token + regionSuffix;
+};
 
 export let getSignedFileDownloadUrl = async (file: Pick<File, 'id' | 'storeId'>) => {
   if (!env.service.DOWNLOAD_PUBLIC_URL) return undefined;
@@ -37,8 +42,14 @@ export let getSignedFileDownloadUrl = async (file: Pick<File, 'id' | 'storeId'>)
 
 export let verifySignedFileDownloadKey = async (d: { fileId: string; key: string }) => {
   try {
+    let token = d.key;
+
+    if (token.endsWith(regionSuffix)) {
+      token = token.slice(0, -regionSuffix.length);
+    }
+
     let payload = await signedDownloadTokens.verify({
-      token: d.key,
+      token: token,
       expectedType: signedDownloadTokenType
     });
 
