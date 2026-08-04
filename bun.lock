@@ -2269,26 +2269,6 @@
         "vitest": "^3.1.2",
       },
     },
-    "src/metorial/apis/portal": {
-      "name": "@metorial/api-portal",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/rpc-client": "workspace:2.0.0",
-        "@lowerdeck/rpc-server": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/config": "1.0.0",
-        "@metorial/db": "1.0.0",
-        "@metorial/module-consumer": "1.0.0",
-        "@metorial/module-flags": "1.0.0",
-      },
-      "devDependencies": {
-        "@lowerdeck/serialize": "workspace:2.0.0",
-        "@metorial/tsconfig": "^1.0.0",
-        "typescript": "5.8.2",
-        "vitest": "^3.1.2",
-      },
-    },
     "src/metorial/auth": {
       "name": "@metorial/auth",
       "version": "1.0.0",
@@ -3300,7 +3280,6 @@
         "@metorial/api-connection": "1.0.0",
         "@metorial/api-core": "1.0.0",
         "@metorial/api-files": "1.0.0",
-        "@metorial/api-portal": "1.0.0",
         "@metorial/auth": "1.0.0",
         "@metorial/cargo-module-doc": "1.0.0",
         "@metorial/cargo-module-file": "1.0.0",
@@ -6265,8 +6244,6 @@
     "@metorial/api-keys": ["@metorial/api-keys@workspace:src/metorial/packages/api-keys"],
 
     "@metorial/api-oauth": ["@metorial/api-oauth@workspace:src/metorial/apis/oauth"],
-
-    "@metorial/api-portal": ["@metorial/api-portal@workspace:src/metorial/apis/portal"],
 
     "@metorial/app-api": ["@metorial/app-api@workspace:src/metorial/services/api"],
 
