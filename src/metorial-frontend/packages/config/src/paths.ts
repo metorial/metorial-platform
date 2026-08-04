@@ -976,6 +976,25 @@ let AccountPaths = Object.assign(
   }
 );
 
+let SupportPaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('support', () => joinPaths(...subPages)),
+  {
+    tickets: (organizationId: string | null | undefined, ...subPages: SubPages) => {
+      if (!organizationId) return '#';
+      return SupportPaths(organizationId, 'tickets', ...subPages);
+    },
+    newTicket: (organizationId: string | null | undefined) =>
+      SupportPaths.tickets(organizationId, 'new'),
+    ticket: (
+      organizationId: string | null | undefined,
+      ticketId: string | null | undefined
+    ) => {
+      if (!ticketId) return '#';
+      return SupportPaths.tickets(organizationId, ticketId);
+    }
+  }
+);
+
 let EnterprisePaths = Object.assign(
   (accountId: string | null | undefined, ...subPages: SubPages) =>
     getNexusUrl('enterprise', () => {
@@ -1276,6 +1295,7 @@ export let Paths = {
 
   instance: InstancePaths,
   account: AccountPaths,
+  support: SupportPaths,
   enterprise: EnterprisePaths,
   organization: OrganizationPaths,
   welcome: WelcomePaths,

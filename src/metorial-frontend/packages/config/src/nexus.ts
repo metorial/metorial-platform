@@ -10,6 +10,7 @@ export type NexusSlices =
   | 'organization'
   | 'portal'
   | 'product'
+  | 'support'
   | 'welcome';
 
 export interface NexusManifest {
