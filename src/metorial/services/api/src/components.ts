@@ -54,6 +54,4 @@ if (process.env.NODE_ENV == 'production' && process.env.METORIAL_SOURCE == 'ente
   });
 }
 
-console.log(
-  `Listening on ports ${apiPort} (api), ${filesPort} (files), ${customPortalApiPort} (portals)`
-);
+console.log(`Listening on ports ${apiPort} (api), ${filesPort} (files), (portals)`);
