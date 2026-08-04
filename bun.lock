@@ -2968,6 +2968,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
+        "@metorial/module-consumer": "^1.0.0",
         "@metorial/module-resource-tenant": "^1.0.0",
         "@metorial/queue": "^1.0.0",
       },

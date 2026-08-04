@@ -454,9 +454,9 @@ export let rpcMux = (
                             })
                           );
 
-                          headers.append('x-req-id', id);
+                          headers.append('metorial-req-id', id);
                           headers.append('content-type', 'application/rpc+json');
-                          headers.append('x-powered-by', 'lowerdeck RPC');
+                          headers.append('x-powered-by', 'Metorial');
 
                           await Promise.all(beforeSends.map(s => s()));
 

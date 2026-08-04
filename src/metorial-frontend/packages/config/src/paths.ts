@@ -972,7 +972,7 @@ let AccountPaths = Object.assign(
   {
     settings: (...subPages: SubPages) => AccountPaths(...subPages),
     emails: (...subPages: SubPages) => AccountPaths('emails', ...subPages),
-    security: (...subPages: SubPages) => AccountPaths('security', ...subPages)
+    identity: (...subPages: SubPages) => AccountPaths('identity', ...subPages)
   }
 );
 
