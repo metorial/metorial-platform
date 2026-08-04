@@ -1,7 +1,7 @@
 import { createClient } from '@lowerdeck/rpc-client';
 import type { CustomPortalClient } from './src';
 
-export let createCustomPortalClient = (endpoint: string) => {
+export let createPortalClient = (endpoint: string) => {
   return createClient<CustomPortalClient>({
     endpoint,
     referrerPolicy: 'unsafe-url',

@@ -3,7 +3,7 @@ import { getConfig } from '@metorial/config';
 import { consumerAuthService } from '@metorial/module-consumer';
 import { flagService } from '@metorial/module-flags';
 import { projectBrandService } from '@metorial/module-organization';
-import { portalFromUrlApp } from '../group';
+import { portalFromUrlApp, portalFromIdApp } from '../group';
 import {
   createAuthenticatedPortalBootResponse,
   createUnauthenticatedPortalBootResponse
@@ -71,5 +71,61 @@ export let bootController = portalFromUrlApp.controller({
         }),
         consumerSessionToken: tokens.consumerSessionToken
       });
-    })
+    }),
+
+    bootV2: portalFromIdApp
+    .handler()
+    .input(
+      v.object({
+        portalId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let sessionRes = await getPortalSessionFromCookie({
+        ctx,
+        portal: ctx.portal,
+        clearInvalidCookie: true
+      });
+
+      let brand = await projectBrandService.getProjectBrand({
+        project: {
+          ...ctx.portal.instance.project,
+          organization: ctx.portal.organization
+        }
+      });
+
+      let baseResponse = {
+        portal: await portalPresenter({ portal: ctx.portal }),
+        instance: instancePresenter({ portal: ctx.portal }),
+        portalUrl: ctx.portalUrl,
+        publishableApiKey: getPortalPublishableApiKey({ portal: ctx.portal }),
+        brand: await brandPresenter(brand),
+        portalMagicMcpUrl: `${getConfig().urls.apiUrl}/connect/portal/${ctx.portal.slug}`,
+        flags: await flagService.getFlags({
+          organization: ctx.portal.organization
+        })
+      };
+
+      if (!sessionRes) {
+        return await createUnauthenticatedPortalBootResponse(baseResponse);
+      }
+
+      let consumerAccess = await consumerAuthService.getConsumerAccessContextForSession({
+        session: sessionRes.session
+      });
+
+      let tokens = await issuePortalTokens({
+        ctx,
+        portal: ctx.portal,
+        session: sessionRes.session
+      });
+
+      return await createAuthenticatedPortalBootResponse({
+        ...baseResponse,
+        session: sessionPresenter({
+          session: sessionRes.session
+        }),
+        consumerSessionToken: tokens.consumerSessionToken
+      });
+    }),
 });
