@@ -8,6 +8,7 @@ import {
 import { Service } from '@lowerdeck/service';
 import {
   authenticateWithConsumerSessionToken,
+  consumerSessionInclude,
   type ConsumerTokenSession,
   getConsumerAccessContextForSession as getConsumerAccessContextForSessionFromToken,
   getConsumerSessionToken,
@@ -22,8 +23,10 @@ import {
   ConsumerSession,
   ConsumerSurface,
   db,
-  ID
+  ID,
+  User
 } from '@metorial/db';
+import { addDays } from 'date-fns';
 import {
   isConsumerSurfaceEmailWhitelisted,
   normalizeConsumerSurfaceEmail
@@ -42,7 +45,11 @@ class ConsumerAuthServiceImpl {
     }
   }
 
-  private getSessionExpiryDate(d: { consumerSurface: ConsumerSurface }) {
+  private getSessionExpiryDate(d: { consumerSurface: ConsumerSurface; isForUser: boolean }) {
+    if (d.isForUser) {
+      return addDays(new Date(), 365);
+    }
+
     return new Date(Date.now() + d.consumerSurface.sessionExpiryTimeInSeconds * 1000);
   }
 
@@ -199,7 +206,8 @@ class ConsumerAuthServiceImpl {
       data: {
         tokenNonce: await ID.generateId('clientSecret'),
         expiresAt: this.getSessionExpiryDate({
-          consumerSurface: d.consumerSurface
+          consumerSurface: d.consumerSurface,
+          isForUser: false
         }),
         loggedOutAt: null,
         ua: d.context.ua ?? 'unknown',
@@ -285,6 +293,7 @@ class ConsumerAuthServiceImpl {
     consumerProfile: ConsumerProfile;
     context: Context;
     aresSessionId?: string | null;
+    authSessionId?: string | null;
   }) {
     let consumerProfile =
       d.aresSessionId && d.consumerProfile.aresUserId
@@ -294,19 +303,109 @@ class ConsumerAuthServiceImpl {
           })
         : d.consumerProfile;
 
-    return await db.consumerSession.create({
-      data: {
-        id: await ID.generateId('consumerSession'),
-        tokenNonce: await ID.generateId('clientSecret'),
-        aresSessionId: d.aresSessionId ?? null,
-        consumerProfileOid: consumerProfile.oid,
-        ua: d.context.ua ?? 'unknown',
-        ip: d.context.ip,
-        expiresAt: this.getSessionExpiryDate({
-          consumerSurface: d.consumerSurface
-        })
+    if (d.authSessionId) {
+      let existingSession = await db.consumerSession.findUnique({
+        where: {
+          consumerProfileOid_authSessionId: {
+            authSessionId: d.authSessionId,
+            consumerProfileOid: consumerProfile.oid
+          }
+        }
+      });
+
+      if (existingSession) {
+        if (existingSession.loggedOutAt || existingSession.expiresAt < new Date()) {
+          return await db.consumerSession.update({
+            where: {
+              oid: existingSession.oid
+            },
+            data: {
+              tokenNonce: await ID.generateId('clientSecret'),
+              expiresAt: this.getSessionExpiryDate({
+                consumerSurface: d.consumerSurface,
+                isForUser: true
+              }),
+              loggedOutAt: null,
+              ua: d.context.ua ?? 'unknown',
+              ip: d.context.ip,
+              lastUsedAt: new Date()
+            },
+            include: consumerSessionInclude
+          });
+        }
+
+        return await db.consumerSession.update({
+          where: {
+            oid: existingSession.oid
+          },
+          data: {
+            lastUsedAt: new Date()
+          },
+          include: consumerSessionInclude
+        });
       }
+    }
+
+    try {
+      return await db.consumerSession.create({
+        data: {
+          id: await ID.generateId('consumerSession'),
+          tokenNonce: await ID.generateId('clientSecret'),
+          aresSessionId: d.aresSessionId ?? null,
+          consumerProfileOid: consumerProfile.oid,
+          authSessionId: d.authSessionId ?? null,
+          ua: d.context.ua ?? 'unknown',
+          ip: d.context.ip,
+          expiresAt: this.getSessionExpiryDate({
+            consumerSurface: d.consumerSurface,
+            isForUser: !!d.authSessionId
+          })
+        },
+        include: consumerSessionInclude
+      });
+    } catch (err: any) {
+      if (err.code === 'P2002') {
+        let res = await db.consumerSession.findUnique({
+          where: {
+            consumerProfileOid_authSessionId: {
+              authSessionId: d.authSessionId!,
+              consumerProfileOid: consumerProfile.oid
+            }
+          },
+          include: consumerSessionInclude
+        });
+        if (res) return res;
+      }
+
+      throw err;
+    }
+  }
+
+  async authenticateWithUserAuthSession(d: {
+    consumerSurface: ConsumerSurface;
+    context: Context;
+    user: User;
+    authSessionId: string;
+  }) {
+    let profile = await consumerProfileService.getConsumerProfileForUserAndSurface({
+      user: d.user,
+      consumerSurface: d.consumerSurface
     });
+
+    if (profile.inviteStatus == 'invited') {
+      profile = await consumerProfileService.activateConsumerProfile({
+        consumerProfile: profile
+      });
+    }
+
+    let session = await this.createConsumerSession({
+      consumerSurface: d.consumerSurface,
+      consumerProfile: profile,
+      context: d.context,
+      authSessionId: d.authSessionId
+    });
+
+    return session;
   }
 
   async createAresAuthExchange(d: {

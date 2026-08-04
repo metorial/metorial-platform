@@ -577,6 +577,113 @@ class ConsumerProfileServiceImpl {
     return await this.enrichConsumerProfile({ consumerProfile });
   }
 
+  async activateConsumerProfile(d: { consumerProfile: Pick<ConsumerProfile, 'oid'> }) {
+    let { consumerProfile, updatedInviteIds, wasActivated } = await withTransaction(
+      async db => {
+        let existingProfile = await db.consumerProfile.findUniqueOrThrow({
+          where: {
+            oid: d.consumerProfile.oid
+          },
+          include
+        });
+
+        if (existingProfile.inviteStatus != 'invited') {
+          return {
+            consumerProfile: existingProfile,
+            updatedInviteIds: [],
+            wasActivated: false
+          };
+        }
+
+        await Fabric.fire('consumer.profile.updated:before', {
+          consumerProfile: existingProfile,
+          surface: existingProfile.surface
+        });
+
+        let consumerProfile = await db.consumerProfile.update({
+          where: {
+            oid: existingProfile.oid
+          },
+          data: {
+            inviteStatus: 'accepted'
+          },
+          include
+        });
+        let pendingInvites = await db.consumerInvite.findMany({
+          where: {
+            consumerProfileOid: existingProfile.oid,
+            status: 'pending'
+          },
+          select: {
+            id: true
+          }
+        });
+        let updatedInviteIds = pendingInvites.map(invite => invite.id);
+
+        if (updatedInviteIds.length) {
+          await db.consumerInvite.updateMany({
+            where: {
+              consumerProfileOid: existingProfile.oid,
+              status: 'pending'
+            },
+            data: {
+              status: 'accepted',
+              acceptedAt: new Date()
+            }
+          });
+        }
+
+        return {
+          consumerProfile,
+          updatedInviteIds,
+          wasActivated: true
+        };
+      }
+    );
+
+    if (!wasActivated) return consumerProfile;
+
+    await Fabric.fire('consumer.profile.updated:after', {
+      consumerProfile,
+      surface: consumerProfile.surface
+    });
+    await consumerProfileUpdatedQueue.add({ consumerProfileId: consumerProfile.id });
+
+    if (updatedInviteIds.length > 0) {
+      let updatedInvites = await db.consumerInvite.findMany({
+        where: {
+          id: {
+            in: updatedInviteIds
+          }
+        },
+        include: {
+          consumerProfile: true,
+          invitedBy: true,
+          surface: {
+            include: {
+              portal: true
+            }
+          }
+        }
+      });
+
+      for (let updatedInvite of updatedInvites) {
+        await Fabric.fire('consumer.invite.updated:after', {
+          consumerInvite: updatedInvite,
+          consumerProfile: updatedInvite.consumerProfile,
+          consumerSurface: updatedInvite.surface,
+          performedBy: updatedInvite.invitedBy
+        });
+      }
+
+      await consumerInviteUpdatedQueue.addMany(
+        updatedInviteIds.map(consumerInviteId => ({ consumerInviteId }))
+      );
+    }
+
+    return consumerProfile;
+  }
+
   async ensureConsumerProfile(d: {
     surface: ConsumerSurface;
     email: string;
@@ -589,7 +696,6 @@ class ConsumerProfileServiceImpl {
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
-    let updatedInviteIds: string[] = [];
     let res = await ensureProfileLock.usingLock(
       `${d.surface.instanceOid}-${d.email}`,
       async () => {
@@ -600,11 +706,13 @@ class ConsumerProfileServiceImpl {
             oid: d.surface.organizationOid
           }
         });
+
         let instance = await db.instance.findFirstOrThrow({
           where: {
             oid: d.surface.instanceOid
           }
         });
+
         let instanceConsumer = await consumerService.upsertConsumer({
           organization,
           instance,
@@ -664,10 +772,10 @@ class ConsumerProfileServiceImpl {
               surface: existingProfile.surface
             });
 
-            let nextInviteStatus =
-              d.aresUserId && existingProfile.inviteStatus == 'invited'
-                ? ('accepted' as const)
-                : (d.inviteStatus ?? existingProfile.inviteStatus);
+            let nextInviteStatus = d.inviteStatus ?? existingProfile.inviteStatus;
+            let shouldActivate =
+              (d.aresUserId && existingProfile.inviteStatus == 'invited') ||
+              (nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted');
             let consumerProfile = await db.consumerProfile.update({
               where: {
                 oid: existingProfile.oid
@@ -677,7 +785,7 @@ class ConsumerProfileServiceImpl {
                 aresUserId: d.aresUserId,
                 email: d.email,
                 name: d.name,
-                inviteStatus: nextInviteStatus,
+                inviteStatus: shouldActivate ? existingProfile.inviteStatus : nextInviteStatus,
                 consumerOid: instanceConsumer.consumerOid,
                 organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
                 organizationActorOid:
@@ -688,34 +796,11 @@ class ConsumerProfileServiceImpl {
               },
               include
             });
-            if (nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted') {
-              let pendingInvites = await db.consumerInvite.findMany({
-                where: {
-                  consumerProfileOid: existingProfile.oid,
-                  status: 'pending'
-                },
-                select: {
-                  id: true
-                }
-              });
-              updatedInviteIds.push(...pendingInvites.map(invite => invite.id));
-
-              await db.consumerInvite.updateMany({
-                where: {
-                  consumerProfileOid: existingProfile.oid,
-                  status: 'pending'
-                },
-                data: {
-                  status: 'accepted',
-                  acceptedAt: new Date()
-                }
-              });
-            }
-
             return {
               lifecycleAction: 'updated' as const,
               instanceConsumer,
-              consumerProfile
+              consumerProfile,
+              shouldActivate
             };
           }
 
@@ -789,40 +874,13 @@ class ConsumerProfileServiceImpl {
       await consumerProfileUpdatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     }
 
-    if (updatedInviteIds.length > 0) {
-      let updatedInvites = await db.consumerInvite.findMany({
-        where: {
-          id: {
-            in: updatedInviteIds
-          }
-        },
-        include: {
-          consumerProfile: true,
-          invitedBy: true,
-          surface: {
-            include: {
-              portal: true
-            }
-          }
-        }
-      });
-
-      for (let updatedInvite of updatedInvites) {
-        await Fabric.fire('consumer.invite.updated:after', {
-          consumerInvite: updatedInvite,
-          consumerProfile: updatedInvite.consumerProfile,
-          consumerSurface: updatedInvite.surface,
-          performedBy: updatedInvite.invitedBy
-        });
-      }
-
-      await consumerInviteUpdatedQueue.addMany(
-        updatedInviteIds.map(consumerInviteId => ({ consumerInviteId }))
-      );
-    }
+    let consumerProfile =
+      res.lifecycleAction == 'updated' && res.shouldActivate
+        ? await this.activateConsumerProfile({ consumerProfile: res.consumerProfile })
+        : res.consumerProfile;
 
     return await this.enrichConsumerProfile({
-      consumerProfile: res.consumerProfile,
+      consumerProfile,
       instanceConsumer: res.instanceConsumer
     });
   }
@@ -988,7 +1046,16 @@ class ConsumerProfileServiceImpl {
     });
   }
 
-  private async getConsumersForUserInternal(d: { user: User; strict?: boolean }) {
+  private async resolveConsumersForUserInternal(d: {
+    user: User;
+    strict?: boolean;
+    consumerSurface?: ConsumerSurface;
+  }) {
+    let profileWhere = {
+      status: 'active' as const,
+      surfaceOid: d.consumerSurface?.oid
+    };
+
     return await db.consumer.findMany({
       where: {
         OR: [
@@ -1004,16 +1071,24 @@ class ConsumerProfileServiceImpl {
               ]
             : []
           ).filter(Boolean)
-        ]
+        ],
+
+        profiles: d.consumerSurface ? { some: profileWhere } : undefined
       },
       include: {
-        profiles: { include }
+        profiles: {
+          include,
+          where: profileWhere
+        }
       }
     });
   }
 
-  async getConsumersForUser(d: { user: User }) {
-    let consumerProfiles = await this.getConsumersForUserInternal(d);
+  private async getConsumersForUserInternal(d: {
+    user: User;
+    consumerSurface?: ConsumerSurface;
+  }) {
+    let consumerProfiles = await this.resolveConsumersForUserInternal(d);
 
     let consumersToPatch = consumerProfiles.filter(consumer => !consumer.userOid);
     if (!consumersToPatch.length) return consumerProfiles;
@@ -1028,10 +1103,37 @@ class ConsumerProfileServiceImpl {
       }
     });
 
-    return await this.getConsumersForUserInternal({
+    return await this.resolveConsumersForUserInternal({
       user: d.user,
-      strict: true
+      strict: true,
+      consumerSurface: d.consumerSurface
     });
+  }
+
+  async getConsumersForUser(d: { user: User }) {
+    return await this.getConsumersForUserInternal(d);
+  }
+
+  async getConsumerProfileForUserAndSurface(d: {
+    user: User;
+    consumerSurface: ConsumerSurface;
+  }) {
+    let consumers = await this.getConsumersForUserInternal({
+      user: d.user,
+      consumerSurface: d.consumerSurface
+    });
+
+    let consumer = consumers[0];
+    if (!consumer) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    let consumerProfile = consumer.profiles[0];
+    if (!consumerProfile || consumerProfile.surfaceOid !== d.consumerSurface.oid) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    return consumerProfile;
   }
 }
 
