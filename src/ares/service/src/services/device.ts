@@ -303,7 +303,12 @@ class DeviceService {
     }
 
     if (d.session) {
-      if (d.session.expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 5) {
+      // An owned session gets its expiry pushed in by the owner, so ares must not
+      // slide it here or the two would drift apart.
+      if (
+        !d.session.lifecycleOwner &&
+        d.session.expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 5
+      ) {
         bumpSession = true;
       }
 

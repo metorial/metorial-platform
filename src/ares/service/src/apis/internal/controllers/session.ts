@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { deviceService } from '../../../services/device';
-import { sessionService } from '../../../services/session';
+import { SESSION_LIFECYCLE_STATES, sessionService } from '../../../services/session';
 import { internalApp } from '../_app';
 import { userPresenter } from '../presenters';
 
@@ -23,7 +23,9 @@ export let sessionController = internalApp.controller({
         deviceId: session.device.id,
         loggedOutAt: session.loggedOutAt,
         expiresAt: session.expiresAt,
-        createdAt: session.createdAt
+        createdAt: session.createdAt,
+        lifecycleOwner: session.lifecycleOwner,
+        lifecycleOwnerSessionId: session.lifecycleOwnerSessionId
       };
     }),
 
@@ -52,18 +54,41 @@ export let sessionController = internalApp.controller({
       );
     }),
 
+  applyOwnerState: internalApp
+    .handler()
+    .input(
+      v.object({
+        sessionId: v.string(),
+        owner: v.string(),
+        ownerSessionId: v.string(),
+        ownerRevision: v.string(),
+        appSlug: v.string(),
+        state: v.enumOf(SESSION_LIFECYCLE_STATES),
+        expiresAt: v.date(),
+        lastActiveAt: v.optional(v.nullable(v.date())),
+        logoutUrl: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      return await sessionService.applyOwnerState({
+        ...input,
+        ownerRevision: BigInt(input.ownerRevision)
+      });
+    }),
+
   logout: internalApp
     .handler()
     .input(
       v.object({
-        sessionId: v.string()
+        sessionId: v.string(),
+        owner: v.optional(v.string())
       })
     )
     .do(async ({ input }) => {
       let session = await sessionService.getSessionSafe({ sessionId: input.sessionId });
       if (!session) throw new ServiceError(notFoundError('session', input.sessionId));
 
-      await sessionService.logout({ session });
+      await sessionService.logout({ session, owner: input.owner });
 
       return {};
     })
