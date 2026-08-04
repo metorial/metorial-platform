@@ -41,11 +41,14 @@ export let useCurrentOrganization = () => {
 
     return {
       ...bootRaw,
-      organizations: [currentProfile.organization],
-      instances: [currentProfile.instance],
-      projects: [currentProfile.project]
+      data: {
+        ...bootRaw.data,
+        organizations: [currentProfile.organization],
+        instances: [currentProfile.instance],
+        projects: [currentProfile.project]
+      }
     };
-  }, [bootRaw, !!consumerSetup]);
+  }, [bootRaw, consumerSetup?.portalId]);
 
   let params = useParams<{ organizationId: string; projectId: string; instanceId: string }>();
   let [search] = useSearchParams();
