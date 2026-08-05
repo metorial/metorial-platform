@@ -34,11 +34,11 @@ model Workspace {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
 
-  sites             Site[]
-  profiles          WorkspaceProfile[]
-  invites           WorkspaceInvite[]
-  workspaceGroups   WorkspaceGroup[]
-  workspacePolicies WorkspacePolicy[]
+  profiles            WorkspaceProfile[]
+  invites             WorkspaceInvite[]
+  workspaceGroups     WorkspaceGroup[]
+  workspacePolicies   WorkspacePolicy[]
+  namespaceProperties NamespaceProperty[]
 }
 
 enum WorkspaceProfileStatus {

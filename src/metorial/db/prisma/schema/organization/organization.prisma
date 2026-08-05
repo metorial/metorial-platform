@@ -91,13 +91,13 @@ model Organization {
   consumerAuthTestAuthorizations         ConsumerAuthTestAuthorization[]
   workspace                              Workspace?
   accounts                               Account[]                               @relation("AccountOwnerOrganization")
-  sites                                  Site[]
   organizationNotifications              OrganizationNotification[]
   organizationNotificationSettings       OrganizationNotificationSetting[]
   organizationNotificationDigestSettings OrganizationNotificationDigestSetting[]
   organizationNotificationEmailDigests   OrganizationNotificationEmailDigest[]
   configs                                OrganizationConfig[]
   layouts                                OrganizationLayout[]
+  namespaceProperties                    NamespaceProperty[]
 
   @@index([authVersion])
   @@index([previousSlugs])

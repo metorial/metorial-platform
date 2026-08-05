@@ -33,5 +33,5 @@ model Portal {
   archivedAt DateTime?
   deletedAt  DateTime?
 
-  sites Site[]
+  namespaceProperties NamespaceProperty[]
 }
