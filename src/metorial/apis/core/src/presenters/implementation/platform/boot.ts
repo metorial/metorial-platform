@@ -143,16 +143,10 @@ export let v1BootPresenter = Presenter.create(bootType)
                   slug: profile.surface.portal.slug,
                   description: profile.surface.portal.description,
 
-                  urls: [
-                    {
-                      type: 'default' as const,
-                      url: (
-                        await portalService.getPortalHost({
-                          portal: profile.surface.portal
-                        })
-                      ).host
-                    }
-                  ],
+                  urls: portalService.getPortalUrls({
+                    portal: profile.surface.portal,
+                    namespaces: profile.surface.portal.namespaces
+                  }) as any,
 
                   namespaces: await Promise.all(
                     profile.surface.portal.namespaces.map(namespaceProperty =>
@@ -273,7 +267,7 @@ export let v1BootPresenter = Presenter.create(bootType)
                   description: v.nullable(v.string()),
                   urls: v.array(
                     v.object({
-                      type: v.enumOf(['default']),
+                      type: v.enumOf(['default', 'namespace']),
                       url: v.string()
                     })
                   ),

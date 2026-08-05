@@ -21,6 +21,7 @@ model NamespaceCompartment {
 enum NamespacePurpose {
   metorial_platform
   metorial_portal
+  metorial_portal_single
 }
 
 model Namespace {
@@ -39,6 +40,7 @@ model Namespace {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @default(now()) @updatedAt
   namespaceProperties NamespaceProperty[]
+  portalsSpecificTo   Portal[]            @relation("PortalSpecificNamespace")
 
   @@unique([value, compartmentOid])
 }
@@ -57,8 +59,8 @@ model NamespaceProperty {
   namespaceOid BigInt
   namespace    Namespace @relation(fields: [namespaceOid], references: [oid], onDelete: Cascade)
 
-  workspaceOid BigInt
-  workspace    Workspace @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
+  workspaceOid BigInt?
+  workspace    Workspace? @relation(fields: [workspaceOid], references: [oid], onDelete: Cascade)
 
   accountOid BigInt
   account    Account @relation(fields: [accountOid], references: [oid], onDelete: Cascade)

@@ -5,6 +5,7 @@ import { createSlugGenerator } from '@lowerdeck/slugify';
 import { Context } from '@metorial/context';
 import { db, ID, Instance, Organization, Portal, Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import type { NamespacePropertyWithNamespace } from '@metorial/module-organization';
 import { env } from '../env';
 import {
   getPortalAllowedRedirectUrlFilters,
@@ -40,11 +41,31 @@ let include = {
   }
 } as const;
 
-let getPortalSlug = createSlugGenerator(
-  async slug =>
+// Portal slugs end up as a DNS label (the portal host) and as a URL path segment, so they may
+// only contain lowercase alphanumerics and single interior hyphens. Slug generation can
+// otherwise produce mixed case when it falls back to a random id.
+let toDnsSafeSlug = (slug: string) =>
+  slug
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+/, '')
+    .slice(0, 63)
+    .replace(/-+$/, '');
+
+// Normalization happens before the availability check, so the slug that gets reserved is the
+// same one that ends up in the database.
+let generatePortalSlug = createSlugGenerator(async candidate => {
+  let slug = toDnsSafeSlug(candidate);
+  if (!slug) return false;
+
+  return (
     !(await db.portal.findFirst({ where: { slug } })) &&
     !(await db.cellPortal.findFirst({ where: { slug } }))
-);
+  );
+});
+
+let getPortalSlug = async (d: { input: string; current?: string }) =>
+  toDnsSafeSlug(await generatePortalSlug(d));
 
 let getPortalRedirectDomains = () => {
   return env.portal.PORTAL_REDIRECT_DOMAINS.split(',')
@@ -439,6 +460,37 @@ class PortalServiceImpl {
     return {
       host: buildPortalUrlFromId(d.portal.slug)
     };
+  }
+
+  /**
+   * All URLs a portal can be reached under. When namespaces are attached, those are the only
+   * entries (ordered by compartment priority). Otherwise fall back to the configured host so
+   * callers still get a usable URL before namespaces exist. A namespace dedicated to this
+   * portal serves it at the root; shared namespaces need the slug to disambiguate.
+   */
+  getPortalUrls(d: {
+    portal: Pick<Portal, 'slug'>;
+    namespaces: NamespacePropertyWithNamespace[];
+  }) {
+    if (!d.namespaces.length) {
+      return [{ type: 'default' as const, url: this.getPortalHost({ portal: d.portal }).host }];
+    }
+
+    let urls: { type: 'namespace'; url: string }[] = [];
+    let seen = new Set<string>();
+
+    for (let { namespace } of d.namespaces) {
+      let origin = `https://${namespace.value}.${namespace.compartment.value}`;
+      let url = namespace.purposes.includes('metorial_portal_single')
+        ? origin
+        : `${origin}/p/${d.portal.slug}`;
+
+      if (seen.has(url)) continue;
+      seen.add(url);
+      urls.push({ type: 'namespace', url });
+    }
+
+    return urls;
   }
 
   parsePortalIdFromHost(d: { url: string }) {

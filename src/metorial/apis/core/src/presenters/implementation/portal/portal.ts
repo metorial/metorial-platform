@@ -1,10 +1,10 @@
 import { v } from '@lowerdeck/validation';
-import { getPortalAllowedRedirectUrlFilters } from '@metorial/module-consumer';
+import { getPortalAllowedRedirectUrlFilters, portalService } from '@metorial/module-consumer';
 import { Presenter } from '@metorial/presenter';
 import { portalType } from '../../types';
 
 export let v1PortalPresenter = Presenter.create(portalType)
-  .presenter(async ({ portal, portalUrl }) => ({
+  .presenter(async ({ portal, portalUrl, namespaces }) => ({
     object: 'portal' as const,
     id: portal.id,
     status: portal.status,
@@ -29,12 +29,9 @@ export let v1PortalPresenter = Presenter.create(portalType)
         portal.allowedRedirectUrlFilters
       )
     },
-    urls: [
-      {
-        type: 'default' as const,
-        url: portalUrl
-      }
-    ],
+    urls: namespaces
+      ? portalService.getPortalUrls({ portal, namespaces })
+      : ([{ type: 'default' as const, url: portalUrl }] as any),
     created_at: portal.createdAt,
     updated_at: portal.updatedAt
   }))
@@ -67,7 +64,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
       }),
       urls: v.array(
         v.object({
-          type: v.enumOf(['default']),
+          type: v.enumOf(['default', 'namespace']),
           url: v.string()
         })
       ),

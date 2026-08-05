@@ -1549,6 +1549,7 @@ export let portalType = PresentableType.create<{
     organization: Organization;
   };
   portalUrl: string;
+  namespaces?: NamespacePropertyWithNamespace[];
 }>()('portal');
 
 export let providerTemplateType = PresentableType.create<{
