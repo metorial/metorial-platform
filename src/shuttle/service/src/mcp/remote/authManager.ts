@@ -7,6 +7,7 @@ import type {
 } from '../../../prisma/generated/client';
 import { secretService } from '../../services';
 import { serverAuthTokenService } from '../../services/oauth/serverAuthToken';
+import { ConnectionError, toConnectionError } from '../utils/connectionError';
 import type { ConnectionLogger } from '../utils/logger';
 
 let Sentry = getSentry();
@@ -123,12 +124,13 @@ export class RemoteConnectionAuthManager {
             }
           });
 
-          this.logger.log(
-            'debug.error',
-            `Failed to obtain access token: ${(err as Error).message}`
-          );
+          let mapped = toConnectionError(err, 'auth_token_refresh_failed');
+          this.logger.log('debug.error', `Failed to obtain access token: ${mapped.message}`);
 
-          throw err;
+          // Allow a later attempt to retry instead of reusing the rejected promise.
+          this.#accessTokenPromise = null;
+
+          throw new ConnectionError(mapped);
         }
       })();
     }

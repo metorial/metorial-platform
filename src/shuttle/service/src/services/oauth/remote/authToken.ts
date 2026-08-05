@@ -33,6 +33,7 @@ let refreshToken = async (d: {
   if (token.source != 'oauth') {
     throw new ServiceError(
       badRequestError({
+        code: 'auth_token_refresh_failed',
         message: 'Cannot refresh foreign token from token import'
       })
     );
@@ -41,6 +42,7 @@ let refreshToken = async (d: {
   if (!DANGEROUS_secretData.refreshToken) {
     throw new ServiceError(
       badRequestError({
+        code: 'auth_token_refresh_failed',
         message:
           'Provider authentication token has expired and cannot be refreshed. Please reauthenticate.'
       })
@@ -102,7 +104,8 @@ let refreshToken = async (d: {
 
     throw new ServiceError(
       badRequestError({
-        message: `Failed to refresh access token`
+        code: 'auth_token_refresh_failed',
+        message: 'Failed to refresh the access token for this MCP server'
       })
     );
   }
@@ -180,6 +183,7 @@ class remoteAuthTokenServiceImpl {
       if (token.source != 'oauth' || !token.connection) {
         throw new ServiceError(
           badRequestError({
+            code: 'auth_token_refresh_failed',
             message: 'Cannot refresh foreign token from token import',
             description:
               'The token you are using is managed externally and cannot be refreshed by Metorial. Please create a new token import to refresh the token.',
