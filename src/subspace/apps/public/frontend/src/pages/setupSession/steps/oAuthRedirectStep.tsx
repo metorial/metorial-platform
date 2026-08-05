@@ -1,6 +1,6 @@
 import { Button, Flex, Spacer, Text, Title } from '@metorial/ui';
 import { RiCheckLine } from '@remixicon/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { StepContentBlock, StepWrapper } from '../components/stepLayout';
 import type { OAuthSetup } from '../types';
@@ -63,6 +63,13 @@ export let OAuthRedirectStep = ({
   isMetorialElement = false
 }: OAuthRedirectStepProps) => {
   let [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let handlePageShow = () => setLoading(false);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   let handleRedirect = () => {
     if (oauthSetup.url) {

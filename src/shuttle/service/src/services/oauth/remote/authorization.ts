@@ -6,6 +6,9 @@ import { subMinutes } from 'date-fns';
 import type {
   RemoteOAuthConfig,
   RemoteOAuthConnection,
+  RemoteOAuthConnectionSetup,
+  ServerOAuthSetup,
+  Tenant,
   RemoteOAuthConnectionProfile
 } from '../../../../prisma/generated/client';
 import { oauthCallbackUrl } from '../../../config';
@@ -31,6 +34,46 @@ export let getRemoteOAuthRedirectUri = (d: {
 };
 
 class remoteOauthAuthorizationServiceImpl {
+  private async buildAuthorizationRedirect(d: {
+    connection: RemoteOAuthConnection & {
+      config: RemoteOAuthConfig;
+    };
+    setup: Pick<RemoteOAuthConnectionSetup, 'stateIdentifier' | 'codeVerifier'> & {
+      tenant: Tenant;
+    };
+    serverOAuthSetup?: { callbackUrlOverride?: string | null } | null;
+  }) {
+    if (!d.setup.stateIdentifier) {
+      throw new ServiceError(
+        badRequestError({ message: 'OAuth authorization attempt is no longer active' })
+      );
+    }
+
+    let config = d.connection.config.config as OAuthConfiguration;
+    let codeChallenge = d.setup.codeVerifier
+      ? await OAuthUtils.generateCodeChallenge(d.setup.codeVerifier)
+      : undefined;
+
+    let DANGEROUS_unencryptedCredentials =
+      await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
+        tenant: d.setup.tenant,
+        connection: d.connection
+      });
+    let redirectUri = getRemoteOAuthRedirectUri({
+      connection: d.connection,
+      serverOAuthSetup: d.serverOAuthSetup
+    });
+
+    return OAuthUtils.buildAuthorizationUrl({
+      clientId: DANGEROUS_unencryptedCredentials.clientId,
+      redirectUri,
+      scopes: d.connection.config.scopes,
+      state: d.setup.stateIdentifier,
+      codeChallenge,
+      config
+    });
+  }
+
   async startAuthorization(d: {
     connection: RemoteOAuthConnection & {
       config: RemoteOAuthConfig;
@@ -95,33 +138,38 @@ class remoteOauthAuthorizationServiceImpl {
       }
     });
 
-    let codeChallenge = setup.codeVerifier
-      ? await OAuthUtils.generateCodeChallenge(setup.codeVerifier)
-      : undefined;
-
-    let DANGEROUS_unencryptedCredentials =
-      await remoteOAuthConnectionService.DANGEROUSLY_getCredentials({
-        tenant: setup.tenant,
-        connection: d.connection
-      });
-    let redirectUri = getRemoteOAuthRedirectUri({
+    let redirectUrl = await this.buildAuthorizationRedirect({
       connection: d.connection,
+      setup,
       serverOAuthSetup: d.serverOAuthSetup ?? setup.serverOAuthSetup
-    });
-
-    let redirectUrl = OAuthUtils.buildAuthorizationUrl({
-      clientId: DANGEROUS_unencryptedCredentials.clientId,
-      redirectUri,
-      scopes: d.connection.config.scopes,
-      state: setup.stateIdentifier!,
-      codeChallenge,
-      config
     });
 
     return {
       type: 'redirect' as const,
       setup,
       redirectUrl
+    };
+  }
+
+  async resumeAuthorization(d: {
+    connection: RemoteOAuthConnection & {
+      config: RemoteOAuthConfig;
+    };
+    setup: RemoteOAuthConnectionSetup & {
+      tenant: Tenant;
+    };
+    serverOAuthSetup: Pick<ServerOAuthSetup, 'callbackUrlOverride'>;
+  }) {
+    if (d.setup.status != 'pending') {
+      throw new ServiceError(
+        badRequestError({ message: 'OAuth authorization attempt is no longer pending' })
+      );
+    }
+
+    return {
+      type: 'redirect' as const,
+      setup: d.setup,
+      redirectUrl: await this.buildAuthorizationRedirect(d)
     };
   }
 
