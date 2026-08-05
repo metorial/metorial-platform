@@ -1,4 +1,4 @@
-import { getImageUrl } from '@metorial/db/src/lib/getImageUrl';
+import { getImageUrl } from '@metorial/image-url';
 import PQueue from 'p-queue';
 import rehypeParse from 'rehype-parse';
 import rehypeRaw from 'rehype-raw';

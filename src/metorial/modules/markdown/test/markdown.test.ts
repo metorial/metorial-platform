@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Markdown } from '../src/lib/markdown';
 
 // Mock the external dependency
-vi.mock('@metorial/db/src/lib/getImageUrl', () => ({
+vi.mock('@metorial/image-url', () => ({
   getImageUrl: vi.fn(async ({ image }) => {
     // Mock implementation returns a proxied URL
     if (image.type === 'url') {

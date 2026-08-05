@@ -2232,6 +2232,7 @@
         "@lowerdeck/execution-context": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@metorial/id": "^1.0.0",
+        "@metorial/image-url": "^1.0.0",
         "@modelcontextprotocol/sdk": "^1.11.4",
         "@prisma/adapter-pg": "6.19.0",
         "@prisma/client": "^7.4.1",
@@ -2526,6 +2527,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
+        "@metorial/image-url": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "date-fns": "^4.1.0",
         "mongoose": "^8.14.2",
@@ -2883,6 +2885,15 @@
         "nanoid": "^5.0.7",
         "short-uuid": "^5.2.0",
       },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/packages/image-url": {
+      "name": "@metorial/image-url",
+      "version": "1.0.0",
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "^5.8.3",
@@ -6051,6 +6062,8 @@
     "@metorial/generated": ["@metorial/generated@1.0.0", "", { "dependencies": { "@metorial/util-endpoint": "^1.0.0", "@metorial/util-resource-mapper": "^1.0.0", "jose": "^5.9.6" } }, "sha512-qlCVP8KFcjzgD3qZk2CPT8P6B2EcEXlFEcDDuSz432pgfoXRxdc+TFL5seT5LAgLFP1guGPdSuvlj3iVh7tiww=="],
 
     "@metorial/id": ["@metorial/id@workspace:src/metorial/packages/id"],
+
+    "@metorial/image-url": ["@metorial/image-url@workspace:src/metorial/packages/image-url"],
 
     "@metorial/internal-clients": ["@metorial/internal-clients@workspace:src/metorial/internal-client"],
 
@@ -10111,6 +10124,8 @@
     "@metorial/function-bay/vitest": ["vitest@4.0.17", "", { "dependencies": { "@vitest/expect": "4.0.17", "@vitest/mocker": "4.0.17", "@vitest/pretty-format": "4.0.17", "@vitest/runner": "4.0.17", "@vitest/snapshot": "4.0.17", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "es-module-lexer": "^1.7.0", "expect-type": "^1.2.2", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^3.10.0", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.0.17", "@vitest/browser-preview": "4.0.17", "@vitest/browser-webdriverio": "4.0.17", "@vitest/ui": "4.0.17", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-FQMeF0DJdWY0iOnbv466n/0BudNdKj1l5jYgl5JVTwjSsZSlqyXFt/9+1sEyhR6CLowbZpV7O1sCHrzBhucKKg=="],
 
     "@metorial/id/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/image-url/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/markdown/react-markdown": ["react-markdown@10.1.0", "", { "dependencies": { "@types/hast": "^3.0.0", "@types/mdast": "^4.0.0", "devlop": "^1.0.0", "hast-util-to-jsx-runtime": "^2.0.0", "html-url-attributes": "^3.0.0", "mdast-util-to-hast": "^13.0.0", "remark-parse": "^11.0.0", "remark-rehype": "^11.0.0", "unified": "^11.0.0", "unist-util-visit": "^5.0.0", "vfile": "^6.0.0" }, "peerDependencies": { "@types/react": ">=18", "react": ">=18" } }, "sha512-qKxVopLT/TyA6BX3Ue5NwabOsAzm0Q7kAPwq6L+wWDwisYs7R8vZ0nRXqq6rkueboxpkjvLGU9fWifiX/ZZFxQ=="],
 
