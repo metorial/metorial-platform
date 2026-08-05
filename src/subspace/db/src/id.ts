@@ -113,6 +113,7 @@ export let ID = createIdGenerator({
   sessionClientConnection: idType.sorted('scc'),
   sessionConnection: idType.sorted('scon'),
   sessionConnection_token: idType.unsorted('scon_tok', 30),
+  sessionConnectionProviderSpecification: idType.sorted('sconps'),
   sessionError: idType.sorted('serr'),
   sessionErrorGroup: idType.sorted('serg'),
   sessionWarning: idType.sorted('swarn'),

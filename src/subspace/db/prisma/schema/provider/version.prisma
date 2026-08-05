@@ -68,6 +68,7 @@ model ProviderVersion {
   currentVersionForEnvironments                ProviderEnvironment[]                         @relation("ProviderEnvironmentCurrentVersion")
   providerDeploymentVersions                   ProviderDeploymentVersion[]
   providerDeploymentConfigPairDiscoveries      ProviderDeploymentConfigPairDiscovery[]
+  sessionConnectionProviderSpecifications      SessionConnectionProviderSpecification[]
 
   @@index([createdAt])
   @@index([updatedAt])

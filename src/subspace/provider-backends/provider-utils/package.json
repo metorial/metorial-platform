@@ -5,9 +5,12 @@
   "private": true,
   "version": "1.0.0",
   "main": "src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "vitest": "^3.1.2"
   },
   "peerDependencies": {
     "typescript": "^5"

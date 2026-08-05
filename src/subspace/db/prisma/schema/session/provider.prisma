@@ -61,6 +61,8 @@ model SessionProvider {
   providerRuns             ProviderRun[]
   toolCalls                ToolCall[]
 
+  connectionSpecifications SessionConnectionProviderSpecification[]
+
   @@unique([sessionOid, tag])
   @@unique([sessionOid, nameTemplate])
   @@index([createdAt])

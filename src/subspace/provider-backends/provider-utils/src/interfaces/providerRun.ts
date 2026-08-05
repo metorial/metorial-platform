@@ -19,6 +19,11 @@ import type {
 } from '@metorial-subspace/db';
 import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { IProviderFunctionality } from '../providerFunctionality';
+import type {
+  ConnectionDiagnostics,
+  ConnectionToolListRes,
+  ProviderRuntimeBehavior
+} from '../types/connection';
 
 export abstract class IProviderRun extends IProviderFunctionality {
   abstract createProviderRun(
@@ -26,6 +31,8 @@ export abstract class IProviderRun extends IProviderFunctionality {
   ): Promise<ProviderRunCreateRes & { connection: IProviderRunConnection }>;
 
   abstract getProviderRunLogs(data: ProviderRunLogsParam): Promise<ProviderRunLogsRes>;
+
+  abstract getRuntimeBehavior(): ProviderRuntimeBehavior;
 }
 
 export abstract class IProviderRunConnection {
@@ -70,6 +77,10 @@ export abstract class IProviderRunConnection {
   abstract handleMcpResponseOrNotification(
     data: HandleMcpNotificationOrRequestParam
   ): Promise<HandleMcpNotificationOrRequestRes>;
+
+  abstract listConnectionTools(): Promise<ConnectionToolListRes>;
+
+  abstract getConnectionDiagnostics(): Promise<ConnectionDiagnostics>;
 
   abstract close(): Promise<void>;
 }

@@ -277,6 +277,12 @@ declare global {
       data?: any;
     };
 
+    type ProviderConnectionDiscoveryError = {
+      code: string;
+      message: string;
+      detail?: string;
+    } | null;
+
     type NetworkPolicyPortRange = {
       from: number;
       to: number;

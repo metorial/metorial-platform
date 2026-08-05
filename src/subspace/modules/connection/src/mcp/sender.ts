@@ -425,12 +425,6 @@ export class McpSender {
 
   private async handleToolListMessage(id: ID) {
     let allTools = await this.manager.listTools();
-    if (allTools.status == 'discovery_failed') {
-      return {
-        store: true,
-        mcp: { jsonrpc: '2.0', id, error: allTools.mcpError } satisfies JSONRPCErrorResponse
-      };
-    }
 
     let mcpTools = allTools.tools.filter(
       t =>
@@ -493,12 +487,6 @@ export class McpSender {
 
   private async handlePromptListMessage(id: ID) {
     let allTools = await this.manager.listToolsIncludingInternal();
-    if (allTools.status == 'discovery_failed') {
-      return {
-        store: true,
-        mcp: { jsonrpc: '2.0', id, error: allTools.mcpError } satisfies JSONRPCErrorResponse
-      };
-    }
 
     let mcpPrompts = allTools.tools.filter(t => t.value.mcpToolType.type === 'mcp.prompt');
 
@@ -527,12 +515,6 @@ export class McpSender {
 
   private async handleResourceTemplatesListMessage(id: ID) {
     let allTools = await this.manager.listToolsIncludingInternal();
-    if (allTools.status == 'discovery_failed') {
-      return {
-        store: true,
-        mcp: { jsonrpc: '2.0', id, error: allTools.mcpError } satisfies JSONRPCErrorResponse
-      };
-    }
 
     let mcpResourceTemplates = allTools.tools.filter(
       t => t.value.mcpToolType.type === 'mcp.resource_template'
@@ -593,16 +575,6 @@ export class McpSender {
     });
 
     let allTools = await this.manager.listToolsIncludingInternalAndNonAllowed();
-    if (allTools.status == 'discovery_failed') {
-      return {
-        store: true,
-        mcp: {
-          jsonrpc: '2.0',
-          id,
-          error: allTools.mcpError
-        } satisfies JSONRPCErrorResponse
-      };
-    }
 
     let resourceListTools = uniqBy(
       allTools.tools.filter(t => t.value.mcpToolType.type === 'mcp.resources_list'),

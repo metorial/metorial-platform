@@ -4,4 +4,5 @@ export * from './providerDeployment';
 export * from './providerDeploymentConfigPair';
 export * from './providerSpecification';
 export * from './providerVersion';
+export * from './providerVersionSpecificationMerge';
 export * from './publisher';

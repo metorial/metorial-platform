@@ -49,6 +49,10 @@ export let getConnectionBackendConnection = async (state: ConnectionState) => {
       return await conn.handleMcpResponseOrNotification(d);
     },
 
+    listConnectionTools: async () => await conn.listConnectionTools(),
+
+    getConnectionDiagnostics: async () => await conn.getConnectionDiagnostics(),
+
     onMcpNotificationOrRequest: (listener: (data: JSONRPCMessage) => Promise<void>) => {
       conn.onMcpNotificationOrRequest(listener);
     },

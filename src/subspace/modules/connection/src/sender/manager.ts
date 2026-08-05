@@ -11,7 +11,12 @@ import { createLock } from '@lowerdeck/lock';
 import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import { ConduitSendError } from '@metorial-subspace/conduit';
-import type { ConduitInput, ConduitResult } from '@metorial-subspace/connection-utils';
+import type {
+  ConduitDiagnosticsResult,
+  ConduitInput,
+  ConduitListToolsResult,
+  ConduitResult
+} from '@metorial-subspace/connection-utils';
 import {
   type AgentInstance,
   db,
@@ -28,6 +33,7 @@ import {
   type SessionMessage,
   type SessionParticipant,
   type SessionProvider,
+  type SessionProviderInstance,
   type Solution,
   type Tenant,
   withTransaction
@@ -68,8 +74,17 @@ import {
   CONNECTION_FAILED_TOOL_KEY,
   type ConnectionFailedProvider
 } from '../lib/connectionFailedTool';
+import {
+  buildConnectionStatusReport,
+  buildConnectionStatusTool,
+  CONNECTION_STATUS_TOOL_KEY
+} from '../lib/connectionStatusTool';
 import { broadcastNats } from '../lib/nats';
 import { isSyntheticTool } from '../lib/syntheticTool';
+import {
+  CONNECTION_DIAGNOSTICS_TIMEOUT_MS,
+  CONNECTION_TOOL_DISCOVERY_TIMEOUT_MS
+} from '../lib/timeouts';
 import { topics } from '../lib/topic';
 import { completeMessage } from '../shared/completeMessage';
 import { createError } from '../shared/createError';
@@ -77,6 +92,11 @@ import { createMessage, type CreateMessageProps } from '../shared/createMessage'
 import { createWarning } from '../shared/createWarning';
 import { extractToolCallOperation } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
+import {
+  type ConnectionScopedSpecification,
+  isConnectionScopedProviderVersion,
+  resolveConnectionScopedSpecification
+} from './connectionSpecification';
 import { resolveProviderToolListingSpecificationOid } from './toolSpecification';
 
 let Sentry = getSentry();
@@ -545,14 +565,19 @@ export class SenderManager {
         include: { pairVersion: true }
       });
       if (currentInstance) {
-        let ageInMinutes = Math.abs(differenceInMinutes(new Date(), currentInstance.createdAt));
+        let ageInMinutes = Math.abs(
+          differenceInMinutes(new Date(), currentInstance.createdAt)
+        );
         if (ageInMinutes <= SESSION_PROVIDER_INSTANCE_MAX_AGE_MINUTES) {
           return {
             status: 'ok' as const,
             instance: await db.sessionProviderInstance.update({
               where: { oid: currentInstance.oid },
               data: {
-                expiresAt: addMinutes(new Date(), SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT)
+                expiresAt: addMinutes(
+                  new Date(),
+                  SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT
+                )
               },
               include: { pairVersion: true }
             })
@@ -594,7 +619,32 @@ export class SenderManager {
         provider: fullProvider.provider
       });
       if (!version?.specificationOid) {
-        throw new ServiceError(badRequestError({ message: 'Provider has no usable version' }));
+        let discoveryError = {
+          type: 'connection_error' as const,
+          error: {
+            code: version ? 'specification_unavailable' : 'version_unavailable',
+            message: version
+              ? 'The provider version has no discovered specification yet'
+              : 'The provider has no usable version'
+          }
+        };
+
+        await createError({
+          session: this.session,
+          connection: this.connection,
+
+          type: 'provider_discovery_failed',
+          output: { type: 'error', data: discoveryError.error }
+        });
+
+        let detail = buildConnectionFailedDetail({ provider: fullProvider, discoveryError });
+
+        return {
+          status: 'discovery_failed' as const,
+          discoveryError,
+          detail,
+          mcpError: { code: -32603, message: detail.shortMessage }
+        };
       }
 
       let pair = await providerDeploymentConfigPairInternalService.useDeploymentConfigPair({
@@ -691,6 +741,64 @@ export class SenderManager {
     });
   }
 
+  #connectionSpecificationPromises = new Map<
+    string,
+    Promise<ConnectionScopedSpecification | null>
+  >();
+
+  private async resolveConnectionSpecification(d: {
+    provider: SessionProvider;
+    instance: SessionProviderInstance & { pairVersion: { versionOid: bigint } };
+  }) {
+    let connection = this.connection;
+    if (!connection) return null;
+
+    let cached = this.#connectionSpecificationPromises.get(d.provider.id);
+    if (cached) return await cached;
+
+    let promise = (async () => {
+      let providerVersion = await db.providerVersion.findFirst({
+        where: { oid: d.instance.pairVersion.versionOid }
+      });
+      if (!providerVersion) return null;
+      if (!(await isConnectionScopedProviderVersion(providerVersion))) return null;
+
+      return await resolveConnectionScopedSpecification({
+        connectionOid: connection.oid,
+        sessionProviderOid: d.provider.oid,
+        discover: async () => {
+          let res = await sender.send(
+            topics.instance.encode({ instance: d.instance, connection }),
+            {
+              type: 'provider.list_tools',
+              sessionInstanceId: d.instance.id
+            } satisfies ConduitInput,
+            CONNECTION_TOOL_DISCOVERY_TIMEOUT_MS
+          );
+
+          if (!res.success) {
+            return {
+              status: 'failure',
+              error: {
+                code: /timeout/i.test(String(res.error))
+                  ? 'provider_connect_timeout'
+                  : 'provider_unreachable',
+                message: 'The MCP server did not return its tools in time.'
+              }
+            };
+          }
+
+          return res.result as ConduitListToolsResult;
+        }
+      });
+    })();
+
+    promise.catch(() => {});
+    this.#connectionSpecificationPromises.set(d.provider.id, promise);
+
+    return await promise;
+  }
+
   private async listToolsForProvider(
     provider: SessionProvider & {
       provider: { name: string };
@@ -713,9 +821,40 @@ export class SenderManager {
 
     if (res.status === 'discovery_failed') return { ...res, provider };
 
-    let specificationOid = await resolveProviderToolListingSpecificationOid({
-      pairVersion: res.instance.pairVersion
+    let connectionSpecification = await this.resolveConnectionSpecification({
+      provider,
+      instance: res.instance
+    }).catch(error => {
+      Sentry.captureException(error);
+      console.error('Error resolving connection scoped specification:', error);
+      return null;
     });
+
+    let specificationOid =
+      connectionSpecification?.specificationOid ??
+      (await resolveProviderToolListingSpecificationOid({
+        pairVersion: res.instance.pairVersion
+      }));
+
+    let connectionError = connectionSpecification?.error ?? null;
+
+    // Without any specification the provider has nothing to serve, so the
+    // session gets the synthetic connection-failed tool instead.
+    if (!specificationOid && connectionError) {
+      let discoveryError = {
+        type: 'connection_error' as const,
+        error: connectionError
+      };
+      let detail = buildConnectionFailedDetail({ provider, discoveryError });
+
+      return {
+        status: 'discovery_failed' as const,
+        discoveryError,
+        detail,
+        mcpError: { code: -32603, message: detail.shortMessage },
+        provider
+      };
+    }
 
     let tools = specificationOid
       ? await db.providerTool.findMany({
@@ -781,17 +920,12 @@ export class SenderManager {
 
     let tools = discoveryRes.flatMap(r => (r.status == 'ok' ? r.tools : []));
 
-    if (failedRes.length > 0) {
-      // Only surface the hard discovery error when no provider could be
-      // discovered. Otherwise the session keeps working and we inject a
-      // synthetic `{provider}_connection_failed` tool per failed provider.
-      if (failedRes.length === discoveryRes.length) {
-        return {
-          status: 'discovery_failed' as const,
-          mcpError: failedRes[0]!.mcpError
-        };
-      }
+    tools.push(buildConnectionStatusTool(this.session) as unknown as (typeof tools)[number]);
 
+    if (failedRes.length > 0) {
+      // A failed provider never fails the whole listing: the session keeps
+      // working and each failed provider gets a synthetic
+      // `{provider}_connection_failed` tool that explains the failure.
       for (let failed of failedRes) {
         tools.push(
           buildConnectionFailedTool(
@@ -810,7 +944,6 @@ export class SenderManager {
 
   async listToolsIncludingInternal() {
     let allToolsRes = await this.listToolsIncludingInternalAndNonAllowed();
-    if (allToolsRes.status === 'discovery_failed') return allToolsRes;
 
     return {
       status: 'ok' as const,
@@ -823,7 +956,6 @@ export class SenderManager {
 
   async listTools() {
     let allTools = await this.listToolsIncludingInternal();
-    if (allTools.status === 'discovery_failed') return allTools;
 
     return {
       status: 'ok' as const,
@@ -903,24 +1035,37 @@ export class SenderManager {
       );
     }
 
-    let i = 0;
-    while (!instanceRes?.instance?.pairVersion.specificationOid) {
-      if (i++ >= 5) {
-        throw new ServiceError(
-          badRequestError({ message: 'Tool not callable (not discovered yet)' })
-        );
-      }
+    let instance = instanceRes.instance;
 
+    let connectionSpecification = await this.resolveConnectionSpecification({
+      provider: d.provider,
+      instance
+    }).catch(() => null);
+
+    let specificationOid =
+      connectionSpecification?.specificationOid ?? instance.pairVersion.specificationOid;
+
+    for (let attempt = 0; !specificationOid && attempt < 5; attempt++) {
       await delay(2000);
 
-      instanceRes = (await this.ensureProviderInstance(d.provider))! as any;
+      let retry = await this.ensureProviderInstance(d.provider);
+      if (!retry || retry.status !== 'ok') break;
+
+      instance = retry.instance;
+      specificationOid = instance.pairVersion.specificationOid;
+    }
+
+    if (!specificationOid) {
+      throw new ServiceError(
+        badRequestError({ message: 'Tool not callable (not discovered yet)' })
+      );
     }
 
     // Find the tool by key in the specification of the current instance
     let tool = await db.providerTool.findFirst({
       where: {
         key: d.originalToolName,
-        specificationOid: instanceRes.instance.pairVersion.specificationOid
+        specificationOid
       }
     });
     if (!tool) return null;
@@ -957,12 +1102,12 @@ export class SenderManager {
 
     return {
       provider: d.provider,
-      instance: instanceRes.instance,
+      instance,
       tool: {
         ...tool,
         key: d.finalToolName,
         sessionProvider: d.provider,
-        sessionProviderInstance: instanceRes.instance
+        sessionProviderInstance: instance
       }
     };
   }
@@ -980,6 +1125,15 @@ export class SenderManager {
   }
 
   async getToolById(d: { toolId: string }) {
+    if (d.toolId === CONNECTION_STATUS_TOOL_KEY) {
+      return {
+        provider: null,
+        instance: null,
+        connectionStatus: true as const,
+        tool: buildConnectionStatusTool(this.session)
+      };
+    }
+
     let providers = await this.listProviders();
 
     let templateMatch: {
@@ -1008,9 +1162,6 @@ export class SenderManager {
       throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
     }
 
-    // If the requested tool is the synthetic `{provider}_connection_failed`
-    // tool of a provider that failed discovery, resolve it without dispatching
-    // to a real provider instance.
     for (let match of matches) {
       if (match!.originalToolName === CONNECTION_FAILED_TOOL_KEY) {
         let synthetic = await this.resolveConnectionFailedTool(match!.provider);
@@ -1074,10 +1225,6 @@ export class SenderManager {
       from: { type: 'system' }
     });
 
-    // The connection-failed tool is synthetic and has no ProviderTool row, so
-    // we pass `methodOrToolKey` (not `tool`) to avoid creating a toolCall with
-    // an invalid foreign key. The message is completed immediately with a
-    // detailed, agent-targeted error explaining the failure.
     let message = await this.createMessage({
       status: 'failed',
       type: d.callProps.transport === 'mcp' ? 'mcp_message' : 'tool_call',
@@ -1112,6 +1259,86 @@ export class SenderManager {
     } satisfies ConduitResult;
   }
 
+  private async fetchProviderDiagnostics(provider: SessionProvider) {
+    let connection = this.connection;
+    if (!connection) return null;
+
+    let run = await db.providerRun.findFirst({
+      where: {
+        connectionOid: connection.oid,
+        sessionProviderOid: provider.oid,
+        status: 'running'
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { instance: true }
+    });
+    if (!run) return null;
+
+    let res = await sender.send(
+      topics.instance.encode({ instance: run.instance, connection }),
+      {
+        type: 'provider.diagnostics',
+        sessionInstanceId: run.instance.id
+      } satisfies ConduitInput,
+      CONNECTION_DIAGNOSTICS_TIMEOUT_MS
+    );
+    if (!res.success) return null;
+
+    let result = res.result as ConduitDiagnosticsResult;
+    return result.status === 'ok' ? result.diagnostics : null;
+  }
+
+  private async completeConnectionStatusCall(d: {
+    tool: { key: string };
+    participant: SessionParticipant;
+    callProps: CallToolProps;
+  }) {
+    let extractedToolCall = extractToolCallOperation({
+      input: d.callProps.input,
+      rationale: d.callProps.rationale,
+      operation: d.callProps.operation
+    });
+
+    let system = await upsertParticipant({
+      session: this.session,
+      from: { type: 'system' }
+    });
+
+    let report = await buildConnectionStatusReport({
+      session: this.session,
+      connection: this.connection,
+      providers: await this.listProviders(),
+      getDiagnostics: provider => this.fetchProviderDiagnostics(provider)
+    });
+
+    let message = await this.createMessage({
+      status: 'succeeded',
+      type: d.callProps.transport === 'mcp' ? 'mcp_message' : 'tool_call',
+      source: 'client',
+      input: extractedToolCall.input,
+      rationale: extractedToolCall.rationale,
+      operation: extractedToolCall.operation,
+      senderParticipant: d.participant,
+      responderParticipant: system,
+      clientMcpId: d.callProps.clientMcpId,
+      transport: d.callProps.transport,
+      methodOrToolKey: d.tool.key,
+      isProductive: true,
+      parentMessage: d.callProps.parentMessage,
+      output: {
+        type: 'tool.result',
+        data: { summary: report.summary, ...report.data }
+      }
+    });
+
+    return {
+      message,
+      output: message.output,
+      status: message.status,
+      completedAt: message.completedAt
+    } satisfies ConduitResult;
+  }
+
   async callTool(d: CallToolProps): Promise<CallToolResult> {
     let connection = this.connection;
     if (!connection) {
@@ -1128,6 +1355,16 @@ export class SenderManager {
     }
 
     let resolved = await this.getToolById({ toolId: d.toolId });
+
+    // The status tool is answered by Metorial itself so that it stays available
+    // even when every provider connection is broken.
+    if ('connectionStatus' in resolved) {
+      return await this.completeConnectionStatusCall({
+        tool: resolved.tool,
+        participant,
+        callProps: d
+      });
+    }
 
     // The synthetic connection-failed tool has no backing provider instance;
     // complete the call immediately with a detailed error for the agent.

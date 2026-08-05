@@ -9,6 +9,7 @@ import type {
   Tenant
 } from '@metorial-subspace/db';
 import { IProviderFunctionality } from '../providerFunctionality';
+import type { ConnectionSpecificationBehavior } from '../types/connection';
 import type {
   Specification,
   SpecificationAuthMethod,
@@ -22,6 +23,10 @@ export abstract class IProviderCapabilities extends IProviderFunctionality {
     data: ProviderSpecificationGetForProviderParam
   ): Promise<ProviderSpecificationGetRes | null>;
 
+  abstract getConnectionSpecificationBehavior(
+    data: ProviderConnectionSpecificationBehaviorParam
+  ): Promise<ConnectionSpecificationBehavior>;
+
   abstract getSpecificationForProviderPair(
     data: ProviderSpecificationGetForPairParam
   ): Promise<ProviderSpecificationGetRes>;
@@ -33,6 +38,10 @@ export abstract class IProviderCapabilities extends IProviderFunctionality {
   abstract shouldDiscoverSpecificationForProviderPair(
     data: ProviderSpecificationGetForPairParam
   ): Promise<{ shouldDiscover: boolean }>;
+}
+
+export interface ProviderConnectionSpecificationBehaviorParam {
+  providerVersion: ProviderVersion;
 }
 
 export interface ProviderSpecificationGetForProviderParam {

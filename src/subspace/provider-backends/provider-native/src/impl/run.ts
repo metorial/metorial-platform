@@ -3,12 +3,15 @@ import { db, messageInputToToolCall } from '@metorial-subspace/db';
 import {
   IProviderRun,
   IProviderRunConnection,
+  type ConnectionDiagnostics,
+  type ConnectionToolListRes,
   type HandleMcpNotificationOrRequestParam,
   type HandleMcpNotificationOrRequestRes,
   type ProviderRunCreateParam,
   type ProviderRunCreateRes,
   type ProviderRunLogsParam,
   type ProviderRunLogsRes,
+  type ProviderRuntimeBehavior,
   type ToolInvocationCreateParam,
   type ToolInvocationCreateRes
 } from '@metorial-subspace/provider-utils';
@@ -37,6 +40,14 @@ export class ProviderRun extends IProviderRun {
   override async getProviderRunLogs(_data: ProviderRunLogsParam): Promise<ProviderRunLogsRes> {
     return {
       logs: []
+    };
+  }
+
+  override getRuntimeBehavior(): ProviderRuntimeBehavior {
+    return {
+      connectTimeoutMs: 5_000,
+      requestTimeoutMs: 60_000,
+      messageTtlExtensionMs: 1000 * 60 * 2
     };
   }
 }
@@ -140,6 +151,20 @@ class ProviderRunConnection extends IProviderRunConnection {
           data: result as Record<string, any>
         }
       }
+    };
+  }
+
+  override async listConnectionTools(): Promise<ConnectionToolListRes> {
+    return { status: 'not_supported' };
+  }
+
+  override async getConnectionDiagnostics(): Promise<ConnectionDiagnostics> {
+    return {
+      state: 'connected',
+      transport: 'native',
+      protocolVersion: null,
+      serverInfo: { name: this.params.provider.identifier },
+      lastError: null
     };
   }
 

@@ -5,12 +5,15 @@ import {
   type SlateSession
 } from '@metorial-subspace/db';
 import type {
+  ConnectionDiagnostics,
+  ConnectionToolListRes,
   HandleMcpNotificationOrRequestParam,
   HandleMcpNotificationOrRequestRes,
   ProviderRunCreateParam,
   ProviderRunCreateRes,
   ProviderRunLogsParam,
   ProviderRunLogsRes,
+  ProviderRuntimeBehavior,
   ToolInvocationCreateParam,
   ToolInvocationCreateRes
 } from '@metorial-subspace/provider-utils';
@@ -106,6 +109,14 @@ export class ProviderRun extends IProviderRun {
       logs: sorted
     };
   }
+
+  override getRuntimeBehavior(): ProviderRuntimeBehavior {
+    return {
+      connectTimeoutMs: 30_000,
+      requestTimeoutMs: 120_000,
+      messageTtlExtensionMs: 1000 * 30
+    };
+  }
 }
 
 export class ProviderRunConnection extends IProviderRunConnection {
@@ -196,6 +207,20 @@ export class ProviderRunConnection extends IProviderRunConnection {
           data: output
         }
       }
+    };
+  }
+
+  override async listConnectionTools(): Promise<ConnectionToolListRes> {
+    return { status: 'not_supported' };
+  }
+
+  override async getConnectionDiagnostics(): Promise<ConnectionDiagnostics> {
+    return {
+      state: 'connected',
+      transport: 'slates',
+      protocolVersion: null,
+      serverInfo: { name: this.params.provider.identifier },
+      lastError: null
     };
   }
 

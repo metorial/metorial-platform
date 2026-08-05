@@ -92,6 +92,8 @@ model SessionConnection {
   protoGuardRuns   ProtoGuardRun[]
   protoGuardAlerts ProtoGuardAlert[]
 
+  providerSpecifications SessionConnectionProviderSpecification[]
+
   @@index([createdAt])
   @@index([lastActiveAt])
   @@index([state])

@@ -1,13 +1,16 @@
 import { db, getId, type ProviderRun } from '@metorial-subspace/db';
 import { isRecordDeleted } from '@metorial-subspace/list-utils';
+import { getBackend } from '@metorial-subspace/provider';
+import type {
+  ConnectionSpecificationBehavior,
+  ProviderRuntimeBehavior
+} from '@metorial-subspace/provider-utils';
 import { Store } from '@metorial-subspace/store';
 import { addMinutes } from 'date-fns';
 import { SESSION_PROVIDER_INSTANCE_EXPIRATION_INCREMENT } from '../../const';
+import { resolveConnectionTimeouts } from '../../lib/timeouts';
 import { type ConnectionBaseState, getConnectionBaseState } from './base';
 import { createProviderRun } from './providerRun';
-
-let DEFAULT_MESSAGE_PROCESSING_TIMEOUT_MS = 30_000;
-let MAX_MESSAGE_PROCESSING_TIMEOUT_MS = 10 * 60 * 1000;
 
 export class ConnectionState {
   #instanceExtensionIv: NodeJS.Timeout;
@@ -17,6 +20,8 @@ export class ConnectionState {
   private constructor(
     private baseState: ConnectionBaseState,
     public providerRun: ProviderRun,
+    public readonly runtimeBehavior: ProviderRuntimeBehavior,
+    public readonly connectionSpecificationBehavior: ConnectionSpecificationBehavior,
     onError: () => void
   ) {
     this.#instanceExtensionIv = setInterval(async () => {
@@ -61,28 +66,38 @@ export class ConnectionState {
     let baseState = await getConnectionBaseState(d);
     if (!baseState) return undefined;
 
+    let backend = await getBackend({ entity: baseState.version });
+    let runtimeBehavior = backend.providerRun.getRuntimeBehavior();
+    let connectionSpecificationBehavior =
+      await backend.capabilities.getConnectionSpecificationBehavior({
+        providerVersion: baseState.version
+      });
+
     let providerRun = await createProviderRun(baseState);
 
-    return new ConnectionState(baseState, providerRun, onError);
+    return new ConnectionState(
+      baseState,
+      providerRun,
+      runtimeBehavior,
+      connectionSpecificationBehavior,
+      onError
+    );
+  }
+
+  get timeouts() {
+    return resolveConnectionTimeouts({
+      runtimeBehavior: this.runtimeBehavior,
+      tenantMessageProcessingTimeoutMs: this.sessionProvider.tenant.messageProcessingTimeoutMs,
+      isEphemeral: this.session.isEphemeral || this.connection.isEphemeral
+    });
   }
 
   get messageTTLExtensionMs() {
-    if (this.session.isEphemeral || this.connection.isEphemeral) {
-      return 1000 * 15;
-    }
-
-    if (this.backend.type === 'slates') {
-      return 1000 * 30;
-    }
-
-    return 1000 * 60 * 2;
+    return this.timeouts.messageTtlExtensionMs;
   }
 
   get messageProcessingTimeoutMs() {
-    return Math.min(
-      MAX_MESSAGE_PROCESSING_TIMEOUT_MS,
-      this.sessionProvider.tenant.messageProcessingTimeoutMs ?? DEFAULT_MESSAGE_PROCESSING_TIMEOUT_MS
-    );
+    return this.timeouts.messageProcessingTimeoutMs;
   }
 
   get connection() {

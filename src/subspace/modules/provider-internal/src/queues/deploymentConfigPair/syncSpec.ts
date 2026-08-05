@@ -46,7 +46,11 @@ export let providerDeploymentConfigPairSyncSpecificationQueueProcessor =
 
     let version = await db.providerVersion.findFirstOrThrow({
       where: { id: data.versionId },
-      include: { specification: true, shuttleServer: true }
+      include: { specification: true }
+    });
+
+    let connectionBehavior = await backend.capabilities.getConnectionSpecificationBehavior({
+      providerVersion: version
     });
 
     let existingPairVersion = await db.providerDeploymentConfigPairProviderVersion.findUnique({
@@ -105,7 +109,7 @@ export let providerDeploymentConfigPairSyncSpecificationQueueProcessor =
       let warnings = [...(capabilities?.warnings ?? [])];
       let shouldPreserveExistingSpec =
         capabilities?.status === 'success' &&
-        version.shuttleServer?.type === 'remote' &&
+        connectionBehavior.preserveExistingSpecificationOnEmptyDiscovery &&
         existingPairVersion?.specificationOid &&
         capabilities.tools.length === 0 &&
         (await hasProviderTools(existingPairVersion.specificationOid));
@@ -114,7 +118,7 @@ export let providerDeploymentConfigPairSyncSpecificationQueueProcessor =
         warnings.push({
           code: 'empty_tools_discovery_result',
           message:
-            'Remote provider discovery returned no tools after a previous non-empty specification; keeping the existing specification.',
+            'Provider discovery returned no tools after a previous non-empty specification; keeping the existing specification.',
           data: {
             providerDeploymentConfigPairId: pair.id,
             providerVersionId: version.id,

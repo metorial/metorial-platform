@@ -1,5 +1,7 @@
 import {
   IProviderCapabilities,
+  type ConnectionSpecificationBehavior,
+  type ProviderConnectionSpecificationBehaviorParam,
   type ProviderSpecificationBehaviorParam,
   type ProviderSpecificationBehaviorRes,
   type ProviderSpecificationGetForPairParam,
@@ -84,6 +86,16 @@ export class ProviderCapabilities extends IProviderCapabilities {
     data: ProviderSpecificationGetForPairParam
   ): Promise<{ shouldDiscover: boolean }> {
     return { shouldDiscover: false };
+  }
+
+  override async getConnectionSpecificationBehavior(
+    _data: ProviderConnectionSpecificationBehaviorParam
+  ): Promise<ConnectionSpecificationBehavior> {
+    return {
+      discoverPerConnection: false,
+      mergeDiscoveredToolsIntoVersionSpecification: false,
+      preserveExistingSpecificationOnEmptyDiscovery: false
+    };
   }
 
   override async getSpecificationForProviderVersion(
