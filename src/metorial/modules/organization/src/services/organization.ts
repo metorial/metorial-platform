@@ -27,6 +27,7 @@ import { cleanupFileImage, resolveFileImage } from '../lib/fileImage';
 import { syncBrandOrganizationQueue } from '../queues/syncBrand';
 import { syncProfileQueue } from '../queues/syncProfile';
 import { authBootstrapService } from './authBootstrap';
+import { namespaceService } from './namespace';
 import { organizationActorService } from './organizationActor';
 import { organizationMemberService } from './organizationMember';
 import { projectService } from './project';
@@ -419,6 +420,9 @@ class OrganizationService {
     //   )
     // };
 
+    let namespacesByOrganizationOid =
+      await namespaceService.getNamespacePropertiesByOrganizationOid({ organizations: orgs });
+
     let orgsWithProjectAndInstances = await Promise.all(
       orgs.map(async org => {
         let projects = await projectService.getAllProjects({
@@ -430,6 +434,7 @@ class OrganizationService {
         return {
           ...org,
           member: org.members[0],
+          namespaces: namespacesByOrganizationOid.get(org.oid) ?? [],
           projects,
           instances: projects.flatMap(p => p.instances.map(i => ({ ...i, project: p })))
         };

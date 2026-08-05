@@ -23,6 +23,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
+import { namespaceService } from '@metorial/module-organization';
 import { searchConsumerIds } from '@metorial/module-search';
 import { consumerInviteUpdatedQueue } from '../../queues/lifecycle/consumerInvite';
 import {
@@ -1143,7 +1144,29 @@ class ConsumerProfileServiceImpl {
   }
 
   async getConsumersForUser(d: { user: User }) {
-    return await this.getConsumersForUserInternal(d);
+    let consumers = await this.getConsumersForUserInternal(d);
+
+    let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
+      portals: consumers.flatMap(consumer =>
+        consumer.profiles.flatMap(profile => profile.surface.portal ?? [])
+      )
+    });
+
+    return consumers.map(consumer => ({
+      ...consumer,
+      profiles: consumer.profiles.map(profile => ({
+        ...profile,
+        surface: {
+          ...profile.surface,
+          portal: profile.surface.portal
+            ? {
+                ...profile.surface.portal,
+                namespaces: namespacesByPortalOid.get(profile.surface.portal.oid) ?? []
+              }
+            : null
+        }
+      }))
+    }));
   }
 
   async getConsumerProfileForUserAndSurface(d: {

@@ -249,7 +249,6 @@ class ConsumerServiceImpl {
       });
 
       await syncConsumerProfileIdentity({
-        db,
         instanceOid: d.instance.oid,
         consumerOid: consumer.oid,
         name: d.input.name,
@@ -316,7 +315,6 @@ class ConsumerServiceImpl {
       });
 
       await syncConsumerProfileIdentity({
-        db,
         instanceOid: d.consumer.instanceOid,
         consumerOid: d.consumer.consumerOid,
         name,

@@ -19,7 +19,6 @@ export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.proces
     if (!instanceConsumer) throw new QueueRetryError();
 
     await syncConsumerProfileIdentity({
-      db,
       instanceOid: instanceConsumer.instanceOid,
       consumerOid: instanceConsumer.consumerOid,
       name: instanceConsumer.name,

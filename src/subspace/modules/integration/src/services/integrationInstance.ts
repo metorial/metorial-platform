@@ -13,7 +13,6 @@ import {
   type IntegrationInstanceStatus,
   type Solution,
   type Tenant,
-  type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -231,7 +230,6 @@ class integrationInstanceServiceImpl {
   }
 
   private async applyIdentityAndProviders(d: {
-    db: TransactionDB;
     tenant: Tenant;
     solution: Solution;
     environment: Environment;
@@ -240,46 +238,48 @@ class integrationInstanceServiceImpl {
     current?: Parameters<typeof mergeIntegrationIdentityInput>[0]['current'];
     isMagicMcpBacking?: boolean;
   }) {
-    let mergedIdentityInput = mergeIntegrationIdentityInput({
-      current: d.current,
-      input: {
-        identityActorId: d.input.identityActorId,
-        identityId: d.input.identityId
-      }
-    });
-    let { actor, identity } = await resolveIntegrationIdentity({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      integrationInstance: d.integrationInstance,
-      input: mergedIdentityInput
-    });
-
-    let integrationInstance = await d.db.integrationInstance.update({
-      where: { oid: d.integrationInstance.oid },
-      data: {
-        identityActorOid: actor?.oid ?? null,
-        identityOid: identity?.oid ?? null
-      },
-      include: integrationInstanceInclude
-    });
-
-    if (d.input.providers?.length) {
-      await integrationInstanceProviderService.setIntegrationInstanceProviders({
+    return withTransaction(async db => {
+      let mergedIdentityInput = mergeIntegrationIdentityInput({
+        current: d.current,
+        input: {
+          identityActorId: d.input.identityActorId,
+          identityId: d.input.identityId
+        }
+      });
+      let { actor, identity } = await resolveIntegrationIdentity({
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
-        integrationInstance,
-        input: d.input.providers
+        integrationInstance: d.integrationInstance,
+        input: mergedIdentityInput
       });
 
-      integrationInstance = await d.db.integrationInstance.findUniqueOrThrow({
-        where: { oid: integrationInstance.oid },
+      let integrationInstance = await db.integrationInstance.update({
+        where: { oid: d.integrationInstance.oid },
+        data: {
+          identityActorOid: actor?.oid ?? null,
+          identityOid: identity?.oid ?? null
+        },
         include: integrationInstanceInclude
       });
-    }
 
-    return integrationInstance;
+      if (d.input.providers?.length) {
+        await integrationInstanceProviderService.setIntegrationInstanceProviders({
+          tenant: d.tenant,
+          solution: d.solution,
+          environment: d.environment,
+          integrationInstance,
+          input: d.input.providers
+        });
+
+        integrationInstance = await db.integrationInstance.findUniqueOrThrow({
+          where: { oid: integrationInstance.oid },
+          include: integrationInstanceInclude
+        });
+      }
+
+      return integrationInstance;
+    }, { ifExists: true });
   }
 
   private async getAutomaticProviderInputs(d: {
@@ -612,7 +612,6 @@ class integrationInstanceServiceImpl {
       });
 
       integrationInstance = await this.applyIdentityAndProviders({
-        db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,
@@ -689,7 +688,6 @@ class integrationInstanceServiceImpl {
       let isNew = integrationInstance.id === newId.id;
 
       integrationInstance = await this.applyIdentityAndProviders({
-        db,
         tenant: d.tenant,
         solution: d.solution,
         environment: d.environment,

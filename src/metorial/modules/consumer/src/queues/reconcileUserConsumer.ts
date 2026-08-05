@@ -1,4 +1,4 @@
-import { db, TransactionDB, withTransaction } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { createQueue, QueueRetryError } from '@metorial/queue';
@@ -55,175 +55,184 @@ export let reconcileUserConsumersQueueProcessor = reconcileUserConsumersQueue.pr
 );
 
 let mergeInstanceConsumers = async (d: {
-  db: TransactionDB;
   canonicalConsumerOid: bigint;
   duplicateConsumerOid: bigint;
-}) => {
-  let duplicateInstanceConsumers = await d.db.instanceConsumer.findMany({
-    where: { consumerOid: d.duplicateConsumerOid }
-  });
-
-  for (let duplicate of duplicateInstanceConsumers) {
-    let canonical = await d.db.instanceConsumer.findUnique({
-      where: {
-        instanceOid_consumerOid: {
-          instanceOid: duplicate.instanceOid,
-          consumerOid: d.canonicalConsumerOid
-        }
-      }
-    });
-
-    if (!canonical) {
-      await d.db.instanceConsumer.update({
-        where: { oid: duplicate.oid },
-        data: { consumerOid: d.canonicalConsumerOid }
+}) =>
+  await withTransaction(
+    async db => {
+      let duplicateInstanceConsumers = await db.instanceConsumer.findMany({
+        where: { consumerOid: d.duplicateConsumerOid }
       });
-      continue;
-    }
 
-    await d.db.consumerActor.updateMany({
-      where: { instanceConsumerOid: duplicate.oid },
-      data: {
-        consumerOid: d.canonicalConsumerOid,
-        instanceConsumerOid: canonical.oid
+      for (let duplicate of duplicateInstanceConsumers) {
+        let canonical = await db.instanceConsumer.findUnique({
+          where: {
+            instanceOid_consumerOid: {
+              instanceOid: duplicate.instanceOid,
+              consumerOid: d.canonicalConsumerOid
+            }
+          }
+        });
+
+        if (!canonical) {
+          await db.instanceConsumer.update({
+            where: { oid: duplicate.oid },
+            data: { consumerOid: d.canonicalConsumerOid }
+          });
+          continue;
+        }
+
+        await db.consumerActor.updateMany({
+          where: { instanceConsumerOid: duplicate.oid },
+          data: {
+            consumerOid: d.canonicalConsumerOid,
+            instanceConsumerOid: canonical.oid
+          }
+        });
+        await db.workspaceProfile.updateMany({
+          where: { instanceConsumerOid: duplicate.oid },
+          data: {
+            consumerOid: d.canonicalConsumerOid,
+            instanceConsumerOid: canonical.oid
+          }
+        });
+        await db.instanceConsumer.delete({ where: { oid: duplicate.oid } });
       }
-    });
-    await d.db.workspaceProfile.updateMany({
-      where: { instanceConsumerOid: duplicate.oid },
-      data: {
-        consumerOid: d.canonicalConsumerOid,
-        instanceConsumerOid: canonical.oid
-      }
-    });
-    await d.db.instanceConsumer.delete({ where: { oid: duplicate.oid } });
-  }
-};
+    },
+    { ifExists: true }
+  );
 
 let mergeConsumerInvites = async (d: {
-  db: TransactionDB;
   canonicalConsumerOid: bigint;
   duplicateConsumerOid: bigint;
-}) => {
-  let consumerInviteIds = new Set<string>();
-  let duplicateInvites = await d.db.consumerInvite.findMany({
-    where: { consumerOid: d.duplicateConsumerOid },
-    include: { workspaceInvite: true },
-    orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
-  });
-
-  for (let duplicateInvite of duplicateInvites) {
-    let canonicalInvite = await d.db.consumerInvite.findFirst({
-      where: {
-        consumerOid: d.canonicalConsumerOid,
-        surfaceOid: duplicateInvite.surfaceOid
-      },
-      include: { workspaceInvite: true }
-    });
-
-    if (!canonicalInvite) {
-      await d.db.consumerInvite.update({
-        where: { oid: duplicateInvite.oid },
-        data: { consumerOid: d.canonicalConsumerOid }
+}) =>
+  await withTransaction(
+    async db => {
+      let consumerInviteIds = new Set<string>();
+      let duplicateInvites = await db.consumerInvite.findMany({
+        where: { consumerOid: d.duplicateConsumerOid },
+        include: { workspaceInvite: true },
+        orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
       });
-      consumerInviteIds.add(duplicateInvite.id);
-      continue;
-    }
 
-    consumerInviteIds.add(canonicalInvite.id);
+      for (let duplicateInvite of duplicateInvites) {
+        let canonicalInvite = await db.consumerInvite.findFirst({
+          where: {
+            consumerOid: d.canonicalConsumerOid,
+            surfaceOid: duplicateInvite.surfaceOid
+          },
+          include: { workspaceInvite: true }
+        });
 
-    await d.db.consumerInvite.update({
-      where: { oid: canonicalInvite.oid },
-      data: {
-        status:
-          canonicalInvite.status === 'accepted' || duplicateInvite.status === 'accepted'
-            ? 'accepted'
-            : 'pending',
-        acceptedAt: canonicalInvite.acceptedAt ?? duplicateInvite.acceptedAt,
-        message: canonicalInvite.message ?? duplicateInvite.message,
-        expiresAt:
-          canonicalInvite.expiresAt > duplicateInvite.expiresAt
-            ? canonicalInvite.expiresAt
-            : duplicateInvite.expiresAt
-      }
-    });
-
-    if (duplicateInvite.workspaceInvite) {
-      await d.db.workspaceInvite.update({
-        where: { oid: duplicateInvite.workspaceInvite.oid },
-        data: {
-          consumerInviteOid: canonicalInvite.workspaceInvite ? null : canonicalInvite.oid
+        if (!canonicalInvite) {
+          await db.consumerInvite.update({
+            where: { oid: duplicateInvite.oid },
+            data: { consumerOid: d.canonicalConsumerOid }
+          });
+          consumerInviteIds.add(duplicateInvite.id);
+          continue;
         }
-      });
-    }
 
-    await d.db.consumerInvite.delete({ where: { oid: duplicateInvite.oid } });
-  }
+        consumerInviteIds.add(canonicalInvite.id);
 
-  return consumerInviteIds;
-};
+        await db.consumerInvite.update({
+          where: { oid: canonicalInvite.oid },
+          data: {
+            status:
+              canonicalInvite.status === 'accepted' || duplicateInvite.status === 'accepted'
+                ? 'accepted'
+                : 'pending',
+            acceptedAt: canonicalInvite.acceptedAt ?? duplicateInvite.acceptedAt,
+            message: canonicalInvite.message ?? duplicateInvite.message,
+            expiresAt:
+              canonicalInvite.expiresAt > duplicateInvite.expiresAt
+                ? canonicalInvite.expiresAt
+                : duplicateInvite.expiresAt
+          }
+        });
+
+        if (duplicateInvite.workspaceInvite) {
+          await db.workspaceInvite.update({
+            where: { oid: duplicateInvite.workspaceInvite.oid },
+            data: {
+              consumerInviteOid: canonicalInvite.workspaceInvite ? null : canonicalInvite.oid
+            }
+          });
+        }
+
+        await db.consumerInvite.delete({ where: { oid: duplicateInvite.oid } });
+      }
+
+      return consumerInviteIds;
+    },
+    { ifExists: true }
+  );
 
 let mergeConsumer = async (d: {
-  db: TransactionDB;
   canonicalConsumerOid: bigint;
   duplicateConsumerOid: bigint;
-}) => {
-  await mergeInstanceConsumers(d);
-  let consumerInviteIds = await mergeConsumerInvites(d);
-  let consumerProfiles = await d.db.consumerProfile.findMany({
-    where: { consumerOid: d.duplicateConsumerOid },
-    select: { id: true }
-  });
+}) =>
+  await withTransaction(
+    async db => {
+      await mergeInstanceConsumers(d);
+      let consumerInviteIds = await mergeConsumerInvites(d);
+      let consumerProfiles = await db.consumerProfile.findMany({
+        where: { consumerOid: d.duplicateConsumerOid },
+        select: { id: true }
+      });
 
-  await Promise.all([
-    d.db.consumerProfile.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.consumerActor.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.consumerToken.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.consumerIntegration.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.consumerIntegrationEndpoint.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.consumerIntegrationSession.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.consumerSkill.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.workspaceProfile.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.resourceActor.updateMany({
-      where: { consumerOid: d.duplicateConsumerOid },
-      data: { consumerOid: d.canonicalConsumerOid }
-    }),
-    d.db.skill.updateMany({
-      where: { createdByConsumerOid: d.duplicateConsumerOid },
-      data: { createdByConsumerOid: d.canonicalConsumerOid }
-    })
-  ]);
+      await Promise.all([
+        db.consumerProfile.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.consumerActor.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.consumerToken.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.consumerIntegration.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.consumerIntegrationEndpoint.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.consumerIntegrationSession.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.consumerSkill.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.workspaceProfile.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.resourceActor.updateMany({
+          where: { consumerOid: d.duplicateConsumerOid },
+          data: { consumerOid: d.canonicalConsumerOid }
+        }),
+        db.skill.updateMany({
+          where: { createdByConsumerOid: d.duplicateConsumerOid },
+          data: { createdByConsumerOid: d.canonicalConsumerOid }
+        })
+      ]);
 
-  await d.db.consumer.delete({ where: { oid: d.duplicateConsumerOid } });
+      await db.consumer.delete({ where: { oid: d.duplicateConsumerOid } });
 
-  return {
-    consumerProfileIds: new Set(consumerProfiles.map(profile => profile.id)),
-    consumerInviteIds
-  };
-};
+      return {
+        consumerProfileIds: new Set(consumerProfiles.map(profile => profile.id)),
+        consumerInviteIds
+      };
+    },
+    { ifExists: true }
+  );
 
 export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.process(
   async data =>
@@ -256,7 +265,6 @@ export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.proc
 
         for (let duplicate of duplicates) {
           let merged = await mergeConsumer({
-            db,
             canonicalConsumerOid: canonical.oid,
             duplicateConsumerOid: duplicate.oid
           });

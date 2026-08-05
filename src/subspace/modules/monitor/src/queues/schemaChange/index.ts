@@ -10,8 +10,7 @@ import {
   type ProviderSpecificationChangeNotification,
   type ProviderSpecificationChangeNotificationTarget,
   type Solution,
-  type Tenant,
-  type TransactionDB
+  type Tenant
 } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { monitorInternalService } from '../../services/monitorInternal';
@@ -67,24 +66,27 @@ let notificationMatchesMonitor = (d: {
 };
 
 let updateMonitorAlertWindow = async (d: {
-  db: TransactionDB;
   monitor: Pick<Monitor, 'oid' | 'firstAlertAt' | 'lastAlertAt'>;
   timestamp: Date;
-}) => {
-  let firstAlertAt =
-    d.monitor.firstAlertAt && d.monitor.firstAlertAt < d.timestamp
-      ? d.monitor.firstAlertAt
-      : d.timestamp;
-  let lastAlertAt =
-    d.monitor.lastAlertAt && d.monitor.lastAlertAt > d.timestamp
-      ? d.monitor.lastAlertAt
-      : d.timestamp;
+}) =>
+  await withTransaction(
+    async db => {
+      let firstAlertAt =
+        d.monitor.firstAlertAt && d.monitor.firstAlertAt < d.timestamp
+          ? d.monitor.firstAlertAt
+          : d.timestamp;
+      let lastAlertAt =
+        d.monitor.lastAlertAt && d.monitor.lastAlertAt > d.timestamp
+          ? d.monitor.lastAlertAt
+          : d.timestamp;
 
-  await d.db.monitor.update({
-    where: { oid: d.monitor.oid },
-    data: { firstAlertAt, lastAlertAt }
-  });
-};
+      await db.monitor.update({
+        where: { oid: d.monitor.oid },
+        data: { firstAlertAt, lastAlertAt }
+      });
+    },
+    { ifExists: true }
+  );
 
 let createSchemaChangeAlert = async (d: {
   monitor: Pick<
@@ -136,7 +138,6 @@ let createSchemaChangeAlert = async (d: {
     }
 
     await updateMonitorAlertWindow({
-      db: tx,
       monitor: d.monitor,
       timestamp: d.notification.createdAt
     });

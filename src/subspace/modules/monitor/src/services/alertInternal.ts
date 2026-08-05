@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import { db, getId, withTransaction, type TransactionDB } from '@metorial-subspace/db';
+import { db, getId, withTransaction } from '@metorial-subspace/db';
 import { monitorInternalService } from './monitorInternal';
 
 let severityRank = {
@@ -10,26 +10,29 @@ let severityRank = {
 };
 
 let updateMonitorAlertWindow = async (d: {
-  db: TransactionDB;
   monitorOid: bigint;
   timestamp: Date;
-}) => {
-  await d.db.monitor.updateMany({
-    where: {
-      oid: d.monitorOid,
-      OR: [{ firstAlertAt: null }, { firstAlertAt: { gt: d.timestamp } }]
-    },
-    data: { firstAlertAt: d.timestamp }
-  });
+}) =>
+  await withTransaction(
+    async db => {
+      await db.monitor.updateMany({
+        where: {
+          oid: d.monitorOid,
+          OR: [{ firstAlertAt: null }, { firstAlertAt: { gt: d.timestamp } }]
+        },
+        data: { firstAlertAt: d.timestamp }
+      });
 
-  await d.db.monitor.updateMany({
-    where: {
-      oid: d.monitorOid,
-      OR: [{ lastAlertAt: null }, { lastAlertAt: { lt: d.timestamp } }]
+      await db.monitor.updateMany({
+        where: {
+          oid: d.monitorOid,
+          OR: [{ lastAlertAt: null }, { lastAlertAt: { lt: d.timestamp } }]
+        },
+        data: { lastAlertAt: d.timestamp }
+      });
     },
-    data: { lastAlertAt: d.timestamp }
-  });
-};
+    { ifExists: true }
+  );
 
 class alertInternalServiceImpl {
   async createFromProtoGuardAlert(d: { protoGuardAlertId: string }) {
@@ -80,7 +83,6 @@ class alertInternalServiceImpl {
         });
         if (existing) {
           await updateMonitorAlertWindow({
-            db,
             monitorOid: monitor.oid,
             timestamp: protoGuardAlert.createdAt
           });
@@ -110,7 +112,6 @@ class alertInternalServiceImpl {
         });
 
         await updateMonitorAlertWindow({
-          db,
           monitorOid: monitor.oid,
           timestamp: protoGuardAlert.createdAt
         });
