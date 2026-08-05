@@ -3,6 +3,10 @@ import { retryUntilTimeout } from '@metorial-subspace/retry-utils';
 import express from 'express';
 import type { Server } from 'http';
 import type { AddressInfo } from 'net';
+import {
+  createChangingToolsServer,
+  mountFailureModeRoutes
+} from '../../../../../test-servers/src/servers/failure-modes';
 import { createFullFeaturedServer } from '../../../../../test-servers/src/servers/full-featured';
 import { setupTransports } from '../../../../../test-servers/src/shared/transport';
 
@@ -51,7 +55,10 @@ export let startMcpTestServer = async (): Promise<McpTestServerHandle> => {
 
   let app = express();
 
+  mountFailureModeRoutes(app);
+
   await setupTransports(app, createFullFeaturedServer, '/full');
+  await setupTransports(app, createChangingToolsServer, '/changing');
 
   let preferredPort = Number(process.env.TEST_MCP_SERVER_PORT ?? 52198);
   let listener: Server;

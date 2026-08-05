@@ -20,6 +20,46 @@ export type ConduitInput =
       sessionMessageId: string;
       clientMcpId: string;
       mcpMessage: JSONRPCMessage;
+    }
+  | {
+      type: 'provider.list_tools';
+
+      sessionInstanceId: string;
+    }
+  | {
+      type: 'provider.diagnostics';
+
+      sessionInstanceId: string;
+    };
+
+export type ConduitListToolsResult =
+  | {
+      status: 'success';
+      specificationId: string;
+    }
+  | {
+      status: 'failure';
+      error: { code: string; message: string };
+    }
+  | {
+      status: 'not_supported';
+    };
+
+export type ConduitConnectionDiagnostics = {
+  state: 'connecting' | 'connected' | 'failed' | 'closed';
+  transport: string | null;
+  protocolVersion: string | null;
+  serverInfo: { name: string; version?: string; title?: string } | null;
+  lastError: { code: string; message: string; detail?: string } | null;
+};
+
+export type ConduitDiagnosticsResult =
+  | {
+      status: 'ok';
+      diagnostics: ConduitConnectionDiagnostics;
+    }
+  | {
+      status: 'not_connected';
     };
 
 export type ConduitHeartbeatPing = {

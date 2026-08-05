@@ -610,4 +610,178 @@ describe('mcp.e2e', () => {
       }
     }
   );
+
+  it(
+    'lists and answers the metorial_connection_status tool',
+    { timeout: 120_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase
+      });
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: defaultTransportCase.clientTransport,
+        fetch: localFetch
+      });
+
+      try {
+        await mcp.connect();
+
+        let tools = await mcp.client.listTools();
+        let statusTool = tools.tools.find(tool => tool.name === 'metorial_connection_status');
+        expect(statusTool).toBeTruthy();
+        expect(statusTool!.description).toMatch(/metorial/i);
+        expect(statusTool!.outputSchema?.type).toBe('object');
+
+        // The client validates structuredContent against the declared output
+        // schema, so this call fails if the report and the schema drift apart.
+        let result = await mcp.client.callTool({ name: 'metorial_connection_status' });
+        let text = (
+          result as { content?: Array<{ type?: string; text?: string }> }
+        ).content?.find(p => p.type === 'text')?.text;
+
+        expect(text).toBeTruthy();
+        expect(text).toContain(ctx.sessionId);
+
+        let report = (result as { structuredContent?: any }).structuredContent;
+        expect(report?.session?.id).toBe(ctx.sessionId);
+        expect(Array.isArray(report?.providers)).toBe(true);
+        expect(report.providers[0]?.health).toBe('ok');
+
+        let listedNames = new Set(tools.tools.map(tool => tool.name));
+        let reportedTools = report.providers[0].tools as Array<{
+          name: string;
+          availability: string;
+        }>;
+        let available = reportedTools.filter(tool => tool.availability === 'available');
+
+        expect(available.length).toBeGreaterThan(0);
+        expect(report.providers[0].tool_count).toBe(available.length);
+        for (let tool of available) expect(listedNames.has(tool.name)).toBe(true);
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
+
+  it(
+    'discovers tools per connection and merges newly seen tools into the version specification',
+    { timeout: 180_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: lifecycle.getRemoteServerBaseUrl(),
+        transportCase: defaultTransportCase,
+        upstreamPath: '/changing/mcp'
+      });
+
+      let listConnectionTools = async () => {
+        let mcp = createMcpTestClient({
+          baseUrl: ctx.proxyUrl,
+          transportType: defaultTransportCase.clientTransport,
+          fetch: localFetch
+        });
+
+        try {
+          await mcp.connect();
+          let tools = await mcp.client.listTools();
+          return tools.tools.map(tool => tool.name);
+        } finally {
+          await mcp.cleanup();
+        }
+      };
+
+      let connectionScopedTool = (names: string[]) =>
+        names.find(name => /connection_\d+_tool/.test(name));
+
+      let firstNames = await listConnectionTools();
+      let secondNames = await listConnectionTools();
+
+      expect(firstNames.some(name => /stable_tool/.test(name))).toBe(true);
+      expect(secondNames.some(name => /stable_tool/.test(name))).toBe(true);
+
+      let firstScoped = connectionScopedTool(firstNames);
+      let secondScoped = connectionScopedTool(secondNames);
+
+      expect(firstScoped).toBeTruthy();
+      expect(secondScoped).toBeTruthy();
+      expect(secondScoped).not.toBe(firstScoped);
+
+      let providerVersion = await testDb.providerVersion.findFirstOrThrow({
+        where: { oid: ctx.providerSetup.providerVersion.oid }
+      });
+      expect(providerVersion.specificationOid).toBeTruthy();
+
+      let versionToolKeys = (
+        await testDb.providerTool.findMany({
+          where: { specificationOid: providerVersion.specificationOid! },
+          select: { key: true }
+        })
+      ).map(tool => tool.key);
+
+      let connectionToolKeys = versionToolKeys.filter(key => /^connection_\d+_tool$/.test(key));
+      expect(connectionToolKeys.length).toBeGreaterThan(1);
+      expect(versionToolKeys).toContain('stable_tool');
+    }
+  );
+
+  it(
+    'keeps sessions usable and returns errors instead of timeouts for unreachable providers',
+    { timeout: 180_000 },
+    async () => {
+      let ctx = await createMcpE2eContext(testDb, {
+        remoteServerBaseUrl: 'http://host.docker.internal:1',
+        transportCase: defaultTransportCase,
+        upstreamPath: '/mcp',
+        requireAtLeastOneTool: false,
+        allowDiscoveryFailure: true
+      });
+
+      let mcp = createMcpTestClient({
+        baseUrl: ctx.proxyUrl,
+        transportType: defaultTransportCase.clientTransport,
+        fetch: localFetch
+      });
+
+      try {
+        await mcp.connect();
+
+        let tools = await mcp.client.listTools();
+        let toolNames = tools.tools.map(tool => tool.name);
+
+        expect(toolNames).toContain('metorial_connection_status');
+
+        let failedTool = tools.tools.find(tool => /connection_failed/.test(tool.name));
+        expect(
+          failedTool,
+          `Expected a connection_failed tool. Listed tools: ${toolNames.join(', ')}`
+        ).toBeTruthy();
+
+        let startedAt = Date.now();
+        let result = await mcp.client
+          .callTool({ name: failedTool!.name })
+          .catch(err => ({ isError: true, content: [{ type: 'text', text: String(err) }] }));
+
+        expect(Date.now() - startedAt).toBeLessThan(60_000);
+        expect((result as { isError?: boolean }).isError).toBe(true);
+
+        let status = await mcp.client.callTool({ name: 'metorial_connection_status' });
+        let statusText = (
+          status as { content?: Array<{ type?: string; text?: string }> }
+        ).content?.find(p => p.type === 'text')?.text;
+
+        expect(statusText).toBeTruthy();
+
+        let report = (status as { structuredContent?: any }).structuredContent;
+        let reported = report?.providers?.[0];
+
+        expect(reported?.health).not.toBe('ok');
+        expect(reported?.error?.code).toBeTruthy();
+        expect(reported?.error?.message).toBeTruthy();
+      } finally {
+        await mcp.cleanup();
+      }
+    }
+  );
 });

@@ -12,7 +12,6 @@ bun run --cwd ./src/forge/service db:generate
 bun run --cwd ./src/function-bay/service db:generate
 bun run --cwd ./src/signal/service db:generate
 bun run --cwd ./src/synthesis/service db:generate
-bun run --cwd ./src/cargo/service db:generate
 
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/origin-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-client

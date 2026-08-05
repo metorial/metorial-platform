@@ -1,4 +1,8 @@
 import express from 'express';
+import {
+  createChangingToolsServer,
+  mountFailureModeRoutes
+} from './src/servers/failure-modes.js';
 import { createFullFeaturedServer } from './src/servers/full-featured.js';
 import { createToolsOnlyServer } from './src/servers/tools-only.js';
 import { createResourcesOnlyServer } from './src/servers/resources-only.js';
@@ -17,8 +21,11 @@ async function main() {
     { name: 'tools-only', path: '/tools', factory: createToolsOnlyServer },
     { name: 'resources-only', path: '/resources', factory: createResourcesOnlyServer },
     { name: 'prompts-only', path: '/prompts', factory: createPromptsOnlyServer },
-    { name: 'resource-templates', path: '/templates', factory: createResourceTemplatesServer }
+    { name: 'resource-templates', path: '/templates', factory: createResourceTemplatesServer },
+    { name: 'changing-tools', path: '/changing', factory: createChangingToolsServer }
   ];
+
+  mountFailureModeRoutes(app);
 
   // Setup each server with its own path
   for (const { name, path, factory } of servers) {

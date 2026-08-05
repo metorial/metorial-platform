@@ -44,7 +44,7 @@ type RemoteMcpProviderResult = {
   shuttleServerVersion: ShuttleServerVersion;
   provider: Provider;
   providerVersion: ProviderVersion;
-  specification: ProviderSpecification;
+  specification: ProviderSpecification | null;
   providerDeployment: ProviderDeployment;
   providerConfig: ProviderConfig;
 };
@@ -56,6 +56,7 @@ type RemoteMcpProviderOptions = {
   tenant?: Tenant;
   environment?: Environment;
   requireAtLeastOneTool?: boolean;
+  allowDiscoveryFailure?: boolean;
 };
 
 const DISCOVERY_TIMEOUT_MS = 30000;
@@ -406,20 +407,25 @@ const discoverSpecification = async (d: {
   providerVariant: ProviderVariant;
   getCapabilities: (backend: Awaited<ReturnType<typeof getBackend>>) => Promise<any>;
   label: string;
-}): Promise<ProviderSpecification> => {
+  allowFailure?: boolean;
+}): Promise<ProviderSpecification | null> => {
   let backend = await getBackend({ entity: d.providerVariant });
 
   return retryUntilTimeout({
-    timeoutMs: DISCOVERY_TIMEOUT_MS,
+    timeoutMs: d.allowFailure ? DISCOVERY_CALL_TIMEOUT_MS : DISCOVERY_TIMEOUT_MS,
     intervalMs: 1000,
     label: d.label,
+    onTimeout: d.allowFailure ? () => null : undefined,
     fn: async () => {
       let capabilities = await withTimeout(
         d.getCapabilities(backend),
         DISCOVERY_CALL_TIMEOUT_MS,
         d.label
-      );
-      if (!capabilities) return null;
+      ).catch(err => {
+        if (!d.allowFailure) throw err;
+        return null;
+      });
+      if (!capabilities || capabilities.status !== 'success') return null;
       return providerSpecificationInternalService.ensureProviderSpecification({
         provider: d.provider,
         providerVersion: d.providerVersion,
@@ -533,6 +539,7 @@ export const RemoteMcpProviderFixtures = (db: PrismaClient) => {
       providerVersion,
       providerVariant: defaultVariant,
       label: 'Shuttle version specification discovery',
+      allowFailure: opts.allowDiscoveryFailure,
       getCapabilities: backend =>
         backend.capabilities.getSpecificationForProviderVersion({
           tenant,
@@ -542,13 +549,15 @@ export const RemoteMcpProviderFixtures = (db: PrismaClient) => {
         })
     });
 
-    providerVersion = await db.providerVersion.update({
-      where: { oid: providerVersion.oid },
-      data: {
-        specificationOid: preliminarySpecification.oid,
-        specificationDiscoveryStatus: 'discovered'
-      }
-    });
+    if (preliminarySpecification) {
+      providerVersion = await db.providerVersion.update({
+        where: { oid: providerVersion.oid },
+        data: {
+          specificationOid: preliminarySpecification.oid,
+          specificationDiscoveryStatus: 'discovered'
+        }
+      });
+    }
 
     let providerDeployment = await providerDeploymentService.createProviderDeployment({
       tenant,
@@ -606,7 +615,7 @@ export const RemoteMcpProviderFixtures = (db: PrismaClient) => {
           })
         : null;
 
-    let specification: ProviderSpecification;
+    let specification: ProviderSpecification | null;
     if (discoveredSpecification?.type === 'full') {
       specification = discoveredSpecification;
     } else {
@@ -620,6 +629,7 @@ export const RemoteMcpProviderFixtures = (db: PrismaClient) => {
           providerVersion,
           providerVariant: defaultVariant,
           label: 'Shuttle pair specification discovery',
+          allowFailure: opts.allowDiscoveryFailure,
           getCapabilities: backend =>
             backend.capabilities.getSpecificationForProviderPair({
               tenant,
@@ -671,7 +681,7 @@ export const RemoteMcpProviderFixtures = (db: PrismaClient) => {
       where: { oid: providerVersion.oid }
     });
 
-    if (opts.requireAtLeastOneTool) {
+    if (opts.requireAtLeastOneTool && specification) {
       await ensureSpecificationHasTools({
         db,
         specification,

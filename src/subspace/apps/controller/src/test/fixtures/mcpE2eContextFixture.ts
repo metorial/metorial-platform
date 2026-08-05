@@ -14,6 +14,9 @@ export type McpE2eContext = {
   tenantId: string;
   sessionId: string;
   proxyUrl: string;
+  providerSetup: Awaited<
+    ReturnType<ReturnType<typeof fixtures>['remoteMcpProvider']['complete']>
+  >;
 };
 
 export let createMcpE2eContext = async (
@@ -23,6 +26,9 @@ export let createMcpE2eContext = async (
     transportCase: TransportCase;
     providerDeploymentToolFilter?: PrismaJson.ToolFilter;
     sessionProviderToolFilter?: PrismaJson.ToolFilter;
+    upstreamPath?: string;
+    requireAtLeastOneTool?: boolean;
+    allowDiscoveryFailure?: boolean;
   }
 ): Promise<McpE2eContext> => {
   let f = fixtures(db);
@@ -46,12 +52,15 @@ export let createMcpE2eContext = async (
     }
   });
 
-  let upstreamUrl = `${opts.remoteServerBaseUrl}${opts.transportCase.upstreamPath}`;
+  let upstreamUrl = `${opts.remoteServerBaseUrl}${
+    opts.upstreamPath ?? opts.transportCase.upstreamPath
+  }`;
 
   let providerSetup = await f.remoteMcpProvider.complete({
     remoteUrl: upstreamUrl,
     protocol: opts.transportCase.providerProtocol,
-    requireAtLeastOneTool: true,
+    requireAtLeastOneTool: opts.requireAtLeastOneTool ?? true,
+    allowDiscoveryFailure: opts.allowDiscoveryFailure,
     tenant,
     solution,
     environment
@@ -87,6 +96,7 @@ export let createMcpE2eContext = async (
     solutionId: providerSetup.solution.id,
     tenantId: providerSetup.tenant.id,
     sessionId: session.id,
-    proxyUrl
+    proxyUrl,
+    providerSetup
   };
 };
