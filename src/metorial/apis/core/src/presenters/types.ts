@@ -57,6 +57,9 @@ import {
   MagicMcpServerAlias,
   MagicMcpSession,
   MagicMcpToken,
+  Namespace,
+  NamespaceCompartment,
+  NamespaceProperty,
   OAuthApplication,
   OAuthApplicationClientSecret,
   OAuthAuthorization,
@@ -237,6 +240,20 @@ type UserPresenterInput = {
   updatedAt: Date;
 };
 
+export type NamespaceWithCompartment = Namespace & { compartment: NamespaceCompartment };
+
+export type NamespacePropertyWithNamespace = NamespaceProperty & {
+  namespace: NamespaceWithCompartment;
+};
+
+export let namespaceType = PresentableType.create<{
+  namespace: NamespaceWithCompartment;
+}>()('namespace');
+
+export let namespacePropertyType = PresentableType.create<{
+  namespaceProperty: NamespacePropertyWithNamespace;
+}>()('namespace_property');
+
 export let bootType = PresentableType.create<{
   user: UserPresenterInput;
   organizations: (Organization & {
@@ -247,13 +264,14 @@ export let bootType = PresentableType.create<{
         })[];
       };
     };
+    namespaces: NamespacePropertyWithNamespace[];
   })[];
   projects: (Project & { organization: Organization })[];
   instances: (Instance & { project: Project; organization: Organization })[];
   consumers: (Consumer & {
     profiles: (ConsumerProfile & {
       surface: ConsumerSurface & {
-        portal: Portal | null;
+        portal: (Portal & { namespaces: NamespacePropertyWithNamespace[] }) | null;
       };
       instance: Instance & { project: Project };
     })[];

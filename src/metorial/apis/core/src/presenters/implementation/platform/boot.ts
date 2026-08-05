@@ -8,6 +8,7 @@ import { v1OrganizationPresenter } from '../organization/organization';
 import { v1OrganizationMemberPresenter } from '../organization/organizationMember';
 import { v1ProjectPresenter } from '../organization/project';
 import { v1UserPresenter } from '../organization/user';
+import { v1NamespacePropertyPresenter } from './namespaceProperty';
 
 export let v1BootPresenter = Presenter.create(bootType)
   .presenter(async ({ user, organizations, instances, projects, consumers }, opts) => ({
@@ -25,7 +26,12 @@ export let v1BootPresenter = Presenter.create(bootType)
                 opts
               )
               .run()
-          : null
+          : null,
+        namespaces: await Promise.all(
+          organization.namespaces.map(namespaceProperty =>
+            v1NamespacePropertyPresenter.present({ namespaceProperty }, opts).run()
+          )
+        )
       }))
     ),
 
@@ -148,6 +154,12 @@ export let v1BootPresenter = Presenter.create(bootType)
                     }
                   ],
 
+                  namespaces: await Promise.all(
+                    profile.surface.portal.namespaces.map(namespaceProperty =>
+                      v1NamespacePropertyPresenter.present({ namespaceProperty }, opts).run()
+                    )
+                  ),
+
                   created_at: profile.surface.portal.createdAt,
                   updated_at: profile.surface.portal.updatedAt
                 }
@@ -168,7 +180,11 @@ export let v1BootPresenter = Presenter.create(bootType)
         v.intersection([
           v1OrganizationPresenter.schema,
           v.object({
-            member: v1OrganizationMemberPresenter.schema
+            member: v1OrganizationMemberPresenter.schema,
+            namespaces: v.array(v1NamespacePropertyPresenter.schema, {
+              name: 'namespaces',
+              description: `The organization's namespace assignments, highest priority first`
+            })
           })
         ]),
         {
@@ -261,6 +277,10 @@ export let v1BootPresenter = Presenter.create(bootType)
                       url: v.string()
                     })
                   ),
+                  namespaces: v.array(v1NamespacePropertyPresenter.schema, {
+                    name: 'namespaces',
+                    description: `The portal's namespace assignments, highest priority first`
+                  }),
                   created_at: v.date(),
                   updated_at: v.date()
                 })

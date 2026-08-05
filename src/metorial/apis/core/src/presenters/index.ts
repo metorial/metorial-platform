@@ -103,6 +103,8 @@ import {
   v1MagicMcpTokenPresenter,
   v1MonitorAlertPresenter,
   v1MonitorPresenter,
+  v1NamespacePresenter,
+  v1NamespacePropertyPresenter,
   v1NetworkLogsPresenter,
   v1NetworkPolicyPresenter,
   v1NetworkPolicyRulePresenter,
@@ -316,6 +318,8 @@ import {
   magicMcpTokenType,
   monitorAlertType,
   monitorType,
+  namespacePropertyType,
+  namespaceType,
   networkLogsType,
   networkPolicyRuleType,
   networkPolicyType,
@@ -633,6 +637,16 @@ export let projectIntegrationNamingConfigurationPresenter = declarePresenter(
 export let userPresenter = declarePresenter(userType, {
   mt_2025_01_01_dashboard: v1UserPresenter,
   mt_2026_01_01_magnetar: v1UserPresenter
+});
+
+export let namespacePresenter = declarePresenter(namespaceType, {
+  mt_2025_01_01_dashboard: v1NamespacePresenter,
+  mt_2026_01_01_magnetar: v1NamespacePresenter
+});
+
+export let namespacePropertyPresenter = declarePresenter(namespacePropertyType, {
+  mt_2025_01_01_dashboard: v1NamespacePropertyPresenter,
+  mt_2026_01_01_magnetar: v1NamespacePropertyPresenter
 });
 
 export let bootPresenter = declarePresenter(bootType, {
