@@ -387,10 +387,11 @@ class ConsumerAuthServiceImpl {
     user: User;
     authSessionId: string;
   }) {
-    let profile = await consumerProfileService.getConsumerProfileForUserAndSurface({
-      user: d.user,
-      consumerSurface: d.consumerSurface
-    });
+    let profile: ConsumerProfile =
+      await consumerProfileService.getConsumerProfileForUserAndSurface({
+        user: d.user,
+        consumerSurface: d.consumerSurface
+      });
 
     if (profile.inviteStatus == 'invited') {
       profile = await consumerProfileService.activateConsumerProfile({

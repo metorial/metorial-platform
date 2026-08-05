@@ -18,8 +18,6 @@ import {
   RiKey2Line,
   RiListCheck2,
   RiPlugLine,
-  RiRfidLine,
-  RiSafeLine,
   RiServerLine,
   RiShieldKeyholeLine,
   RiSurveyLine,
@@ -319,31 +317,6 @@ export let ProjectPageLayout = () => {
               icon: <RiChatVoiceAiLine />,
               label: 'Custom Providers',
               to: Paths.instance.customProviders(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            }
-          ]
-        },
-
-        {
-          label: 'Developer',
-          collapsible: true,
-          items: [
-            {
-              icon: <RiShieldKeyholeLine />,
-              label: 'API Keys',
-              to: Paths.instance.developer(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            },
-            {
-              icon: <RiSafeLine />,
-              label: 'Sandboxes',
-              to: Paths.instance.developer(...params, 'environments'),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            },
-            {
-              icon: <RiRfidLine />,
-              label: 'API Access',
-              to: Paths.instance.developer(...params, 'api'),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]

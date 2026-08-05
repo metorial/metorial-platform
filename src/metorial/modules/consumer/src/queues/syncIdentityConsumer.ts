@@ -1,5 +1,6 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { syncConsumerProfileIdentity } from '../lib/syncConsumerProfileIdentity';
 import { consumerActorService } from '../services/consumerEntities/consumerActor';
 
 export let syncIdentityConsumerQueue = createQueue<{
@@ -17,15 +18,12 @@ export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.proces
     });
     if (!instanceConsumer) throw new QueueRetryError();
 
-    await db.consumerProfile.updateMany({
-      where: {
-        instanceOid: instanceConsumer.instanceOid,
-        consumerOid: instanceConsumer.consumerOid
-      },
-      data: {
-        name: instanceConsumer.name,
-        email: instanceConsumer.email
-      }
+    await syncConsumerProfileIdentity({
+      db,
+      instanceOid: instanceConsumer.instanceOid,
+      consumerOid: instanceConsumer.consumerOid,
+      name: instanceConsumer.name,
+      email: instanceConsumer.email
     });
 
     let profiles = await db.consumerProfile.findMany({
@@ -69,11 +67,10 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
     });
     if (!instanceConsumer) throw new QueueRetryError();
 
-    await db.consumerProfile.updateMany({
+    await db.consumerProfile.update({
       where: { oid: profile.oid },
       data: {
-        name: instanceConsumer.name,
-        email: instanceConsumer.email
+        name: instanceConsumer.name
       }
     });
 

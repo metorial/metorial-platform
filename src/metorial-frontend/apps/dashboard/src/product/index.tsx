@@ -708,15 +708,6 @@ let ProjectPageLayout = dynamicPage(() =>
 let DeployPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
-let ProjectDeveloperPage = dynamicPage(() =>
-  import('./pages/developer').then(c => c.ProjectDeveloperPage)
-);
-let ProjectDeveloperPageLayout = dynamicPage(() =>
-  import('./pages/developer/_layout').then(c => c.ProjectDeveloperPageLayout)
-);
-let ProjectDeveloperAPIPage = dynamicPage(() =>
-  import('./pages/developer/api').then(c => c.ProjectDeveloperAPIPage)
-);
 let ExplorerPage = dynamicPage(() => import('./pages/explorer').then(c => c.ExplorerPage));
 let AssistantPage = dynamicPage(() => import('./pages/assistant').then(c => c.AssistantPage));
 let AssistantPageLayout = dynamicPage(() =>
@@ -1917,21 +1908,6 @@ export let productHomeSlice = createSlice([
             ]
           },
 
-          {
-            path: 'developer',
-            element: <ProjectDeveloperPageLayout />,
-
-            children: [
-              {
-                path: '',
-                element: <ProjectDeveloperPage />
-              },
-              {
-                path: 'api',
-                element: <ProjectDeveloperAPIPage />
-              }
-            ]
-          },
           {
             path: 'assistant',
             element: (

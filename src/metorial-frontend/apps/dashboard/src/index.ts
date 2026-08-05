@@ -18,6 +18,7 @@ export {
 } from './product';
 
 export { ConsumersTable } from './product/scenes/consumer/table';
+export { ApiKeysScene } from './product/scenes/apiKeys';
 export { UsageScene } from './product/scenes/usage/usage';
 export { AgentsTable } from './product/scenes/identity/agentsTable';
 export {

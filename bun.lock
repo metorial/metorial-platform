@@ -4778,6 +4778,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "vitest": "^3.1.2",
       },
       "peerDependencies": {
         "typescript": "^5",
