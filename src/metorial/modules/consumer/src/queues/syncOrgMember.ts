@@ -2,6 +2,7 @@ import { db } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerService } from '../services';
+import { reconcileUserConsumersQueue } from './reconcileUserConsumer';
 
 export let syncOrgMemberQueue = createQueue<{
   memberId: string;
@@ -76,7 +77,7 @@ export let syncOrgMemberConsumerQueueProcessor = syncOrgMemberConsumerQueue.proc
       where: {
         id: data.memberId
       },
-      include: { organization: true, actor: true }
+      include: { organization: true, actor: true, user: true }
     });
     let consumer = await db.instanceConsumer.findUnique({
       where: {
@@ -85,13 +86,19 @@ export let syncOrgMemberConsumerQueueProcessor = syncOrgMemberConsumerQueue.proc
     });
     if (!member || !consumer) throw new QueueRetryError();
 
-    consumer = await consumerService.updateConsumer({
-      consumer,
-      input: {
-        name: member.actor.name,
-        email: member.actor.email ?? consumer.email
-      }
-    });
+    try {
+      consumer = await consumerService.updateConsumer({
+        consumer,
+        input: {
+          name: member.actor.name,
+          email: member.actor.email ?? consumer.email
+        }
+      });
+    } catch (error: any) {
+      if (error?.code !== 'P2002') throw error;
+
+      await reconcileUserConsumersQueue.add({ userId: member.user.id });
+    }
   }
 );
 

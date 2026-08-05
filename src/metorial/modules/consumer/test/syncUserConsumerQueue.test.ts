@@ -21,6 +21,10 @@ vi.mock('../src/services', () => ({
   consumerService: { updateConsumer: vi.fn() }
 }));
 
+vi.mock('../src/queues/reconcileUserConsumer', () => ({
+  reconcileUserConsumersQueue: { add: vi.fn() }
+}));
+
 describe('sync user consumer queues', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,15 +35,18 @@ describe('sync user consumer queues', () => {
     let { syncUserConsumerQueue, syncUserConsumersQueueProcessor } =
       await import('../src/queues/syncUserConsumer');
 
-    db.user.findUnique.mockResolvedValue({
+    (db.user.findUnique as any).mockResolvedValue({
       oid: 42n,
       name: 'Updated User',
       email: 'updated@example.com',
       type: 'user'
     });
-    db.instanceConsumer.findMany.mockResolvedValue([{ id: 'cns_1' }, { id: 'cns_2' }]);
+    (db.instanceConsumer.findMany as any).mockResolvedValue([
+      { id: 'cns_1' },
+      { id: 'cns_2' }
+    ]);
 
-    await syncUserConsumersQueueProcessor({ userId: 'user_123' });
+    await (syncUserConsumersQueueProcessor as any)({ userId: 'user_123' });
 
     expect(db.instanceConsumer.findMany).toHaveBeenCalledWith({
       where: {
@@ -62,18 +69,18 @@ describe('sync user consumer queues', () => {
     let { consumerService } = await import('../src/services');
     let { syncUserConsumerQueueProcessor } = await import('../src/queues/syncUserConsumer');
 
-    db.user.findUnique.mockResolvedValue({
+    (db.user.findUnique as any).mockResolvedValue({
       oid: 42n,
       name: 'Updated User',
       email: 'updated@example.com',
       type: 'user'
     });
-    db.instanceConsumer.findFirst.mockResolvedValue({
+    (db.instanceConsumer.findFirst as any).mockResolvedValue({
       id: 'cns_1',
       email: 'previous@example.com'
     });
 
-    await syncUserConsumerQueueProcessor({
+    await (syncUserConsumerQueueProcessor as any)({
       userId: 'user_123',
       instanceConsumerId: 'cns_1'
     });

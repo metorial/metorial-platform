@@ -5,6 +5,10 @@ import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/a
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
 import { materializeMagicMcpSessionOwnershipQueueProcessor } from './queues/materializeMagicMcpSessionOwnership';
 import { resourceAuthorizationMigrationQueueProcessor } from './queues/resourceAuthorizationMigration';
+import {
+  reconcileUserConsumerQueueProcessor,
+  reconcileUserConsumersQueueProcessor
+} from './queues/reconcileUserConsumer';
 import { consumerSearchQueueProcessor } from './queues/search';
 import {
   reconcileConsumerActorQueueProcessor,
@@ -31,6 +35,7 @@ export * from './lib/oauth';
 export * from './portalUrlTemplate';
 export * from './queues/lifecycle';
 export * from './queues/materializeMagicMcpSessionOwnership';
+export * from './queues/reconcileUserConsumer';
 export * from './queues/syncUserConsumer';
 export * from './services';
 
@@ -45,6 +50,8 @@ export let consumerQueueProcessor = combineQueueProcessors([
   syncUserConsumerQueueProcessor,
   materializeMagicMcpSessionOwnershipQueueProcessor,
   resourceAuthorizationMigrationQueueProcessor,
+  reconcileUserConsumersQueueProcessor,
+  reconcileUserConsumerQueueProcessor,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

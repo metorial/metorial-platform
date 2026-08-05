@@ -29,6 +29,7 @@ import {
   consumerProfileCreatedQueue,
   consumerProfileUpdatedQueue
 } from '../../queues/lifecycle/consumerProfile';
+import { reconcileUserConsumersQueue } from '../../queues/reconcileUserConsumer';
 import { consumerService } from './consumer';
 import type { EnrichedConsumerSurface } from './consumerSurface';
 import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
@@ -1103,7 +1104,24 @@ class ConsumerProfileServiceImpl {
     let consumerProfiles = await this.resolveConsumersForUserInternal(d);
 
     let consumersToPatch = consumerProfiles.filter(consumer => !consumer.userOid);
-    if (!consumersToPatch.length) return consumerProfiles;
+    let consumerCountByOrganizationOid = new Map<string, number>();
+    for (let consumer of consumerProfiles) {
+      let key = consumer.organizationOid.toString();
+      consumerCountByOrganizationOid.set(
+        key,
+        (consumerCountByOrganizationOid.get(key) ?? 0) + 1
+      );
+    }
+    let hasDuplicateConsumers = Array.from(consumerCountByOrganizationOid.values()).some(
+      count => count > 1
+    );
+
+    if (!consumersToPatch.length) {
+      if (hasDuplicateConsumers) {
+        await reconcileUserConsumersQueue.add({ userId: d.user.id });
+      }
+      return consumerProfiles;
+    }
 
     await db.consumer.updateMany({
       where: {
@@ -1114,6 +1132,8 @@ class ConsumerProfileServiceImpl {
         userOid: d.user.oid
       }
     });
+
+    await reconcileUserConsumersQueue.add({ userId: d.user.id });
 
     return await this.resolveConsumersForUserInternal({
       user: d.user,

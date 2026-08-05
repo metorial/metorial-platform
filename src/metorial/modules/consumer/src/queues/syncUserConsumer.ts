@@ -1,6 +1,7 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerService } from '../services';
+import { reconcileUserConsumersQueue } from './reconcileUserConsumer';
 
 export let syncUserConsumersQueue = createQueue<{ userId: string; cursor?: string }>({
   name: 'cons/syncUser/many'
@@ -61,13 +62,19 @@ export let syncUserConsumerQueueProcessor = syncUserConsumerQueue.process(async 
   });
   if (!instanceConsumer) return;
 
-  await consumerService.updateConsumer({
-    consumer: instanceConsumer,
-    input: {
-      name: user.name,
-      email: user.type === 'system' ? instanceConsumer.email : user.email
-    }
-  });
+  try {
+    await consumerService.updateConsumer({
+      consumer: instanceConsumer,
+      input: {
+        name: user.name,
+        email: user.type === 'system' ? instanceConsumer.email : user.email
+      }
+    });
+  } catch (error: any) {
+    if (error?.code !== 'P2002') throw error;
+
+    await reconcileUserConsumersQueue.add({ userId: user.id });
+  }
 });
 
 export let syncUserToConsumers = (d: { userId: string }) => syncUserConsumersQueue.add(d);

@@ -5,6 +5,7 @@ import {
   AccessRole,
   ApiKey,
   ConsumerAuthTenant,
+  Consumer,
   ConsumerGroup,
   ConsumerInvite,
   ConsumerProfile,
@@ -546,6 +547,9 @@ export interface FabricEvents {
   'consumer.profile.group.added:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
   'consumer.profile.group.removed:before': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
   'consumer.profile.group.removed:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
+
+  'consumer.updated:after': { consumer: Consumer };
+  'consumer.deleted:after': { consumerId: string };
 
   'consumer.group.created:before': { consumerSurface: ConsumerSurface, input: { name: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
   'consumer.group.created:after': { consumerSurface: ConsumerSurface, consumerGroup: ConsumerGroup, input: { name: string; description?: string; ssoGroupIds?: string[]; isDefault?: boolean } };
