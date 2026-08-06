@@ -70,6 +70,32 @@ export type DashboardBootOutput = {
         updatedAt: Date;
       };
     };
+    namespaces: {
+      object: 'namespace.property';
+      id: string;
+      type: 'organization' | 'portal';
+      namespace: {
+        object: 'namespace';
+        id: string;
+        value: string;
+        purposes: (
+          | 'metorial_platform'
+          | 'metorial_portal'
+          | 'metorial_portal_single'
+        )[];
+        compartment: {
+          object: 'namespace.compartment';
+          id: string;
+          type: 'managed';
+          priority: number;
+          value: string;
+        };
+        createdAt: Date;
+        updatedAt: Date;
+      };
+      createdAt: Date;
+      updatedAt: Date;
+    }[];
   })[];
   projects: ({
     object: 'organization.project';
@@ -220,7 +246,33 @@ export type DashboardBootOutput = {
         name: string;
         slug: string;
         description: string | null;
-        urls: { type: 'default'; url: string }[];
+        urls: { type: 'default' | 'namespace'; url: string }[];
+        namespaces: {
+          object: 'namespace.property';
+          id: string;
+          type: 'organization' | 'portal';
+          namespace: {
+            object: 'namespace';
+            id: string;
+            value: string;
+            purposes: (
+              | 'metorial_platform'
+              | 'metorial_portal'
+              | 'metorial_portal_single'
+            )[];
+            compartment: {
+              object: 'namespace.compartment';
+              id: string;
+              type: 'managed';
+              priority: number;
+              value: string;
+            };
+            createdAt: Date;
+            updatedAt: Date;
+          };
+          createdAt: Date;
+          updatedAt: Date;
+        }[];
         createdAt: Date;
         updatedAt: Date;
       } | null;
@@ -348,6 +400,48 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
                   })
                 )
               })
+            ),
+            namespaces: mtMap.objectField(
+              'namespaces',
+              mtMap.array(
+                mtMap.object({
+                  object: mtMap.objectField('object', mtMap.passthrough()),
+                  id: mtMap.objectField('id', mtMap.passthrough()),
+                  type: mtMap.objectField('type', mtMap.passthrough()),
+                  namespace: mtMap.objectField(
+                    'namespace',
+                    mtMap.object({
+                      object: mtMap.objectField('object', mtMap.passthrough()),
+                      id: mtMap.objectField('id', mtMap.passthrough()),
+                      value: mtMap.objectField('value', mtMap.passthrough()),
+                      purposes: mtMap.objectField(
+                        'purposes',
+                        mtMap.array(mtMap.passthrough())
+                      ),
+                      compartment: mtMap.objectField(
+                        'compartment',
+                        mtMap.object({
+                          object: mtMap.objectField(
+                            'object',
+                            mtMap.passthrough()
+                          ),
+                          id: mtMap.objectField('id', mtMap.passthrough()),
+                          type: mtMap.objectField('type', mtMap.passthrough()),
+                          priority: mtMap.objectField(
+                            'priority',
+                            mtMap.passthrough()
+                          ),
+                          value: mtMap.objectField('value', mtMap.passthrough())
+                        })
+                      ),
+                      createdAt: mtMap.objectField('created_at', mtMap.date()),
+                      updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                    })
+                  ),
+                  createdAt: mtMap.objectField('created_at', mtMap.date()),
+                  updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                })
+              )
             )
           })
         )
@@ -616,6 +710,75 @@ export let mapDashboardBootOutput = mtMap.object<DashboardBootOutput>({
                       mtMap.object({
                         type: mtMap.objectField('type', mtMap.passthrough()),
                         url: mtMap.objectField('url', mtMap.passthrough())
+                      })
+                    )
+                  ),
+                  namespaces: mtMap.objectField(
+                    'namespaces',
+                    mtMap.array(
+                      mtMap.object({
+                        object: mtMap.objectField(
+                          'object',
+                          mtMap.passthrough()
+                        ),
+                        id: mtMap.objectField('id', mtMap.passthrough()),
+                        type: mtMap.objectField('type', mtMap.passthrough()),
+                        namespace: mtMap.objectField(
+                          'namespace',
+                          mtMap.object({
+                            object: mtMap.objectField(
+                              'object',
+                              mtMap.passthrough()
+                            ),
+                            id: mtMap.objectField('id', mtMap.passthrough()),
+                            value: mtMap.objectField(
+                              'value',
+                              mtMap.passthrough()
+                            ),
+                            purposes: mtMap.objectField(
+                              'purposes',
+                              mtMap.array(mtMap.passthrough())
+                            ),
+                            compartment: mtMap.objectField(
+                              'compartment',
+                              mtMap.object({
+                                object: mtMap.objectField(
+                                  'object',
+                                  mtMap.passthrough()
+                                ),
+                                id: mtMap.objectField(
+                                  'id',
+                                  mtMap.passthrough()
+                                ),
+                                type: mtMap.objectField(
+                                  'type',
+                                  mtMap.passthrough()
+                                ),
+                                priority: mtMap.objectField(
+                                  'priority',
+                                  mtMap.passthrough()
+                                ),
+                                value: mtMap.objectField(
+                                  'value',
+                                  mtMap.passthrough()
+                                )
+                              })
+                            ),
+                            createdAt: mtMap.objectField(
+                              'created_at',
+                              mtMap.date()
+                            ),
+                            updatedAt: mtMap.objectField(
+                              'updated_at',
+                              mtMap.date()
+                            )
+                          })
+                        ),
+                        createdAt: mtMap.objectField(
+                          'created_at',
+                          mtMap.date()
+                        ),
+                        updatedAt: mtMap.objectField('updated_at', mtMap.date())
                       })
                     )
                   ),
