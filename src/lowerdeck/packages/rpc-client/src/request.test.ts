@@ -308,6 +308,33 @@ describe('request', () => {
     });
   });
 
+  test('distinguishes malformed RPC responses from connection failures', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response('not-json', {
+          status: 200,
+          headers: { 'content-type': 'text/plain' }
+        })
+    );
+
+    let request = await importRequest('single-route-malformed');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        context: {}
+      })
+    ).rejects.toMatchObject({
+      data: {
+        message: 'Invalid response from server http://localhost/rpc for health:check'
+      }
+    });
+  });
+
   test('batches browser requests and keeps the batch envelope for multi-call flushes', async () => {
     (globalThis as any).window = {};
 
@@ -723,9 +750,11 @@ describe('request', () => {
     });
 
     await expect(client.test.call({ value: 'default' })).resolves.toEqual({ timeoutMs: 1500 });
-    await expect(client.test.call({ value: 'override' }, { timeoutMs: 400 })).resolves.toEqual({
-      timeoutMs: 400
-    });
+    await expect(client.test.call({ value: 'override' }, { timeoutMs: 400 })).resolves.toEqual(
+      {
+        timeoutMs: 400
+      }
+    );
 
     let signal = new AbortController().signal;
     await client.test.call({ value: 'signal' }, { signal });

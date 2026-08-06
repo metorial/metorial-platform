@@ -48,6 +48,47 @@ let decodeResponseBody = (body: string) => {
   return serialize.decode(parsed);
 };
 
+class InvalidRpcResponseError extends Error {
+  constructor(cause: unknown) {
+    super('Invalid RPC response', { cause });
+    this.name = 'InvalidRpcResponseError';
+  }
+}
+
+let decodeRpcResponse = (body: string) => {
+  try {
+    return decodeResponseBody(body);
+  } catch (error) {
+    throw new InvalidRpcResponseError(error);
+  }
+};
+
+let toRequestError = (call: Call, error: unknown) => {
+  if (
+    (error instanceof Error && error.name === 'AbortError') ||
+    (call.signal && call.signal.aborted)
+  ) {
+    return new ServiceError(
+      timeoutError({ message: `Request timed out: ${call.name} on ${call.endpoint}` })
+    );
+  }
+
+  let message =
+    error instanceof InvalidRpcResponseError
+      ? `Invalid response from server ${call.endpoint} for ${call.name}`
+      : `Unable to reach server ${call.endpoint} for ${call.name}`;
+
+  return new ServiceError(
+    internalServerError({
+      message,
+      inner:
+        verbose && error instanceof Error
+          ? { name: error.name, message: error.message, stack: error.stack }
+          : undefined
+    })
+  );
+};
+
 let createBatchUrl = (call: Call) => {
   let url = new URL(call.endpoint);
   url.search = new URLSearchParams(call.query).toString();
@@ -117,7 +158,7 @@ let runCalls = async (
     keepalive: false
   })
     .then(async res => ({
-      res: decodeResponseBody(await res.text()),
+      res: decodeRpcResponse(await res.text()),
       headers: res.headers,
       status: res.status
     }))
@@ -168,24 +209,7 @@ let runCalls = async (
         console.error(e);
       }
 
-      c.forEach(x =>
-        x.reject(
-          new ServiceError(
-            internalServerError({
-              message:
-                typeof (globalThis as any).window != 'undefined'
-                  ? 'Unable to reach server'
-                  : `Unable to reach server ${call.endpoint}`,
-
-              inner: verbose
-                ? e instanceof Error
-                  ? { message: e.message, stack: e.stack }
-                  : { error: e }
-                : undefined
-            })
-          )
-        )
-      );
+      c.forEach(x => x.reject(toRequestError(x.call, e)));
     });
 };
 
