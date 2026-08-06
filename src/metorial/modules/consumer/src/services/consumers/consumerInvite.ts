@@ -12,6 +12,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { searchConsumerIds } from '@metorial/module-search';
 import { addDays } from 'date-fns';
+import { normalizeConsumerEmails } from '../../lib/consumerEmail';
 import {
   consumerInviteCreatedQueue,
   consumerInviteUpdatedQueue
@@ -27,16 +28,6 @@ let include = {
     }
   }
 } as const;
-
-let normalizeEmailFilter = (emails?: string[]) => {
-  let normalizedEmails = (emails ?? [])
-    .map(email => email.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (!normalizedEmails.length) return undefined;
-
-  return Array.from(new Set(normalizedEmails));
-};
 
 class ConsumerInviteServiceImpl {
   async inviteConsumer(d: {
@@ -189,7 +180,7 @@ class ConsumerInviteServiceImpl {
     statuses?: string[];
   }) {
     let search = d.search?.trim();
-    let emails = normalizeEmailFilter(d.emails);
+    let emails = normalizeConsumerEmails(d.emails);
     let statuses = d.statuses?.length
       ? Array.from(new Set(d.statuses)).filter(
           (status): status is 'pending' | 'accepted' =>

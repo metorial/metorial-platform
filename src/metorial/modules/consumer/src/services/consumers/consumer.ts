@@ -16,6 +16,11 @@ import {
 } from '@metorial/db';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
+import {
+  consumerEmailEquals,
+  normalizeConsumerEmail,
+  normalizeConsumerEmails
+} from '../../lib/consumerEmail';
 import { syncConsumerProfileIdentity } from '../../lib/syncConsumerProfileIdentity';
 import { consumerCreatedQueue, consumerUpdatedQueue } from '../../queues/lifecycle/consumer';
 
@@ -31,16 +36,6 @@ type ConsumerWithRelations = Consumer & {
 let upsertLock = createLock({
   name: 'cons/upsert'
 });
-
-let normalizeEmailFilter = (emails?: string[]) => {
-  let normalizedEmails = (emails ?? [])
-    .map(email => email.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (!normalizedEmails.length) return undefined;
-
-  return Array.from(new Set(normalizedEmails));
-};
 
 type InstanceConsumerWithRelations = InstanceConsumer & {
   consumer: ConsumerWithRelations;
@@ -102,7 +97,7 @@ class ConsumerServiceImpl {
     id?: string;
   }) {
     let search = d.search?.trim();
-    let emails = normalizeEmailFilter(d.emails);
+    let emails = normalizeConsumerEmails(d.emails);
     let id = d.id?.trim();
     let searchedConsumerIds = search
       ? await searchConsumerIds({
@@ -187,39 +182,57 @@ class ConsumerServiceImpl {
       email: string;
     };
   }) {
+    let email = normalizeConsumerEmail(d.input.email);
     let instanceConsumer = await withTransaction(async db => {
-      let consumer = await db.consumer.upsert({
+      let consumerUpdate = {
+        name: d.input.name,
+        email,
+
+        organizationMemberOid: d.member?.oid,
+        organizationActorOid: d.member?.actorOid,
+
+        isOrganizationMember: !!d.member || d.flags?.isOrganizationMember ? true : undefined,
+        isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined,
+        isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined
+      };
+      // The unique index is case-sensitive, so a consumer stored before emails were normalized
+      // has to be adopted by oid instead of upserted, which would insert a second root for it.
+      let legacyConsumer = await db.consumer.findFirst({
         where: {
-          email_organizationOid: {
-            email: d.input.email,
-            organizationOid: d.organization.oid
-          }
-        },
-        create: {
-          id: await ID.generateId('consumer'),
-          name: d.input.name,
-          email: d.input.email,
           organizationOid: d.organization.oid,
-
-          organizationMemberOid: d.member?.oid,
-          organizationActorOid: d.member?.actorOid,
-
-          isOrganizationMember: !!d.member || !!d.flags?.isOrganizationMember,
-          isPortalConsumer: !!d.flags?.isPortalConsumer,
-          isManuallyCreated: !!d.flags?.isManuallyCreated
+          email: consumerEmailEquals(email),
+          NOT: { email }
         },
-        update: {
-          name: d.input.name,
-          email: d.input.email,
-
-          organizationMemberOid: d.member?.oid,
-          organizationActorOid: d.member?.actorOid,
-
-          isOrganizationMember: !!d.member || d.flags?.isOrganizationMember ? true : undefined,
-          isPortalConsumer: d.flags?.isPortalConsumer ? true : undefined,
-          isManuallyCreated: d.flags?.isManuallyCreated ? true : undefined
-        }
+        select: { oid: true }
       });
+
+      let consumer = legacyConsumer
+        ? await db.consumer.update({
+            where: { oid: legacyConsumer.oid },
+            data: consumerUpdate
+          })
+        : await db.consumer.upsert({
+            where: {
+              email_organizationOid: {
+                email,
+                organizationOid: d.organization.oid
+              }
+            },
+            create: {
+              id: await ID.generateId('consumer'),
+              name: d.input.name,
+              email,
+              organizationOid: d.organization.oid,
+
+              organizationMemberOid: d.member?.oid,
+              organizationActorOid: d.member?.actorOid,
+
+              isOrganizationMember: !!d.member || !!d.flags?.isOrganizationMember,
+              isPortalConsumer: !!d.flags?.isPortalConsumer,
+              isManuallyCreated: !!d.flags?.isManuallyCreated
+            },
+            update: consumerUpdate
+          });
 
       let instanceConsumer = await db.instanceConsumer.upsert({
         where: {
@@ -231,7 +244,7 @@ class ConsumerServiceImpl {
         create: {
           id: await ID.generateId('instanceConsumer'),
           name: d.input.name,
-          email: d.input.email,
+          email,
           instanceOid: d.instance.oid,
           consumerOid: consumer.oid,
 
@@ -240,7 +253,7 @@ class ConsumerServiceImpl {
         },
         update: {
           name: d.input.name,
-          email: d.input.email,
+          email,
 
           organizationMemberOid: consumer.organizationMemberOid,
           organizationActorOid: consumer.organizationActorOid
@@ -252,7 +265,7 @@ class ConsumerServiceImpl {
         instanceOid: d.instance.oid,
         consumerOid: consumer.oid,
         name: d.input.name,
-        email: d.input.email
+        email
       });
 
       return instanceConsumer;
@@ -278,7 +291,7 @@ class ConsumerServiceImpl {
   }) {
     let consumer = await withTransaction(async db => {
       let name = d.input.name ?? d.consumer.name;
-      let email = d.input.email ?? d.consumer.email;
+      let email = normalizeConsumerEmail(d.input.email ?? d.consumer.email);
 
       await db.consumer.update({
         where: {
@@ -343,15 +356,19 @@ class ConsumerServiceImpl {
       email: string;
     };
   }) {
-    let existing = await db.instanceConsumer.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        email: d.input.email
-      },
-      include: getInclude({ instanceOid: d.instance.oid })
-    });
-    if (existing) {
+    let email = normalizeConsumerEmail(d.input.email);
+    let resolveExisting = async () => {
+      let existing = await db.instanceConsumer.findFirst({
+        where: {
+          instanceOid: d.instance.oid,
+          email: consumerEmailEquals(email)
+        },
+        include: getInclude({ instanceOid: d.instance.oid })
+      });
+      if (!existing) return null;
+
       if (
+        existing.email === email &&
         existing.name === d.input.name &&
         existing.organizationMemberOid == d.member?.oid &&
         this.hasRequiredFlags({
@@ -368,41 +385,17 @@ class ConsumerServiceImpl {
         flags: d.flags,
         input: {
           name: d.input.name,
-          email: d.input.email
+          email
         }
       });
-    }
+    };
 
-    return await upsertLock.usingLock(`${d.instance.oid}-${d.input.email}`, async () => {
-      let existing = await db.instanceConsumer.findFirst({
-        where: {
-          instanceOid: d.instance.oid,
-          email: d.input.email
-        },
-        include: getInclude({ instanceOid: d.instance.oid })
-      });
-      if (existing) {
-        if (
-          existing.name === d.input.name &&
-          existing.organizationMemberOid == d.member?.oid &&
-          this.hasRequiredFlags({
-            consumer: existing as InstanceConsumerWithRelations,
-            flags: d.flags
-          })
-        ) {
-          return existing;
-        }
+    let existing = await resolveExisting();
+    if (existing) return existing;
 
-        return await this.updateConsumer({
-          consumer: existing as InstanceConsumerWithRelations,
-          member: d.member,
-          flags: d.flags,
-          input: {
-            name: d.input.name,
-            email: d.input.email
-          }
-        });
-      }
+    return await upsertLock.usingLock(`${d.instance.oid}-${email}`, async () => {
+      let existing = await resolveExisting();
+      if (existing) return existing;
 
       return await this.createConsumer({
         organization: d.organization,
@@ -411,7 +404,7 @@ class ConsumerServiceImpl {
         flags: d.flags,
         input: {
           name: d.input.name,
-          email: d.input.email
+          email
         }
       });
     });

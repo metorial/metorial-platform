@@ -8,8 +8,8 @@ let mocks = vi.hoisted(() => ({
   reconcileActorAddMany: vi.fn()
 }));
 
-vi.mock('@metorial/db', () => ({
-  db: {
+vi.mock('@metorial/db', () => {
+  let db = {
     instanceConsumer: { findUnique: mocks.instanceConsumerFindUnique },
     consumerProfile: {
       findMany: mocks.consumerProfileFindMany,
@@ -17,8 +17,13 @@ vi.mock('@metorial/db', () => ({
       update: mocks.consumerProfileUpdate,
       updateMany: mocks.consumerProfileUpdateMany
     }
-  }
-}));
+  };
+
+  return {
+    db,
+    withTransaction: vi.fn(async callback => await callback(db))
+  };
+});
 
 vi.mock('@metorial/queue', () => ({
   createQueue: vi.fn(config => ({

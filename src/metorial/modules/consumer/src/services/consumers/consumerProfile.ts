@@ -25,6 +25,11 @@ import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { namespaceService } from '@metorial/module-organization';
 import { searchConsumerIds } from '@metorial/module-search';
+import {
+  consumerEmailEquals,
+  normalizeConsumerEmail,
+  normalizeConsumerEmails
+} from '../../lib/consumerEmail';
 import { consumerInviteUpdatedQueue } from '../../queues/lifecycle/consumerInvite';
 import {
   consumerProfileCreatedQueue,
@@ -67,16 +72,6 @@ type EnrichedConsumerProfile<T extends ConsumerProfileWithRelations> = T & {
 
 let getInstanceConsumerKey = (d: { instanceOid: bigint; consumerOid: bigint }) =>
   `${d.instanceOid.toString()}:${d.consumerOid.toString()}`;
-
-let normalizeEmailFilter = (emails?: string[]) => {
-  let normalizedEmails = (emails ?? [])
-    .map(email => email.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (!normalizedEmails.length) return undefined;
-
-  return Array.from(new Set(normalizedEmails));
-};
 
 export let ensureProfileLock = createLock({
   name: 'cons/ensureProfile'
@@ -277,7 +272,7 @@ class ConsumerProfileServiceImpl {
     visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     let search = d.search?.trim();
-    let emails = normalizeEmailFilter(d.emails);
+    let emails = normalizeConsumerEmails(d.emails);
     let consumerGroupId = d.consumerGroupId?.trim();
     let statuses = d.statuses?.length ? new Set(d.statuses) : null;
     let instance = search
@@ -702,8 +697,9 @@ class ConsumerProfileServiceImpl {
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
+    let email = normalizeConsumerEmail(d.email);
     let res = await ensureProfileLock.usingLock(
-      `${d.surface.instanceOid}-${d.email}`,
+      `${d.surface.instanceOid}-${email}`,
       async () => {
         let ssoGroupIds = normalizeStringList(d.ssoGroupIds);
         let ssoRoles = normalizeStringList(d.ssoRoles);
@@ -729,7 +725,7 @@ class ConsumerProfileServiceImpl {
           },
           input: {
             name: d.name,
-            email: d.email
+            email
           }
         });
 
@@ -753,7 +749,7 @@ class ConsumerProfileServiceImpl {
                     ]
                   : []),
                 {
-                  email: d.email,
+                  email: consumerEmailEquals(email),
                   surfaceOid: d.surface.oid
                 }
               ]
@@ -789,7 +785,7 @@ class ConsumerProfileServiceImpl {
               data: {
                 status: 'active',
                 aresUserId: d.aresUserId,
-                email: d.email,
+                email,
                 name: d.name,
                 inviteStatus: shouldActivate ? existingProfile.inviteStatus : nextInviteStatus,
                 consumerOid: instanceConsumer.consumerOid,
@@ -827,7 +823,7 @@ class ConsumerProfileServiceImpl {
               type: 'user_access',
               isDefault: false,
               ssoGroupIds: [],
-              name: `Personal Group for ${d.email}`,
+              name: `Personal Group for ${email}`,
               description: null,
               surfaceOid: d.surface.oid,
               accessTagOid: accessTag.oid
@@ -842,7 +838,7 @@ class ConsumerProfileServiceImpl {
                 id: await ID.generateId('consumerProfile'),
                 status: 'active',
                 aresUserId: d.aresUserId,
-                email: d.email,
+                email,
                 name: d.name,
                 inviteStatus: d.inviteStatus ?? 'unset',
                 ssoGroupIds,
@@ -1072,7 +1068,7 @@ class ConsumerProfileServiceImpl {
                 d.user.globalProfileOid
                   ? { globalProfileOid: d.user.globalProfileOid, userOid: null }
                   : undefined!,
-                { email: d.user.email, userOid: null },
+                { email: consumerEmailEquals(d.user.email), userOid: null },
                 { organizationMember: { userOid: d.user.oid } }
               ]
             : []

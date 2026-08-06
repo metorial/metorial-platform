@@ -1,4 +1,5 @@
 import { withTransaction } from '@metorial/db';
+import { consumerEmailEquals, normalizeConsumerEmail } from './consumerEmail';
 
 export let syncConsumerProfileIdentity = async (d: {
   instanceOid: bigint;
@@ -8,6 +9,7 @@ export let syncConsumerProfileIdentity = async (d: {
 }) =>
   await withTransaction(
     async db => {
+      let email = normalizeConsumerEmail(d.email);
       let profiles = await db.consumerProfile.findMany({
         where: {
           instanceOid: d.instanceOid,
@@ -29,11 +31,17 @@ export let syncConsumerProfileIdentity = async (d: {
       let existingEmailProfiles = await db.consumerProfile.findMany({
         where: {
           surfaceOid: { in: surfaceOids },
-          email: d.email
+          email: consumerEmailEquals(email)
         },
-        select: { surfaceOid: true }
+        select: { oid: true, surfaceOid: true }
       });
-      let surfacesWithEmail = new Set(existingEmailProfiles.map(profile => profile.surfaceOid));
+      // A case variant held by this consumer's own profile is what we are normalizing, so only
+      // a foreign profile holding the address blocks the rewrite.
+      let surfacesWithEmail = new Set(
+        existingEmailProfiles
+          .filter(profile => !profiles.some(({ oid }) => oid === profile.oid))
+          .map(profile => profile.surfaceOid)
+      );
 
       for (let surfaceOid of surfaceOids) {
         if (surfacesWithEmail.has(surfaceOid)) continue;
@@ -43,7 +51,7 @@ export let syncConsumerProfileIdentity = async (d: {
 
         await db.consumerProfile.update({
           where: { oid: profile.oid },
-          data: { email: d.email }
+          data: { email }
         });
       }
     },

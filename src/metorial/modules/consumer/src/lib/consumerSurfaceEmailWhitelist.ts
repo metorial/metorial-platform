@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { normalizeConsumerEmail } from './consumerEmail';
 
 let domainLabelPattern = '[a-z0-9](?:[a-z0-9-]*[a-z0-9])?';
 let domainPattern = new RegExp(`^${domainLabelPattern}(?:\\.${domainLabelPattern})*$`);
@@ -18,7 +19,7 @@ let getInvalidEmailWhitelistEntryError = (input: string) =>
     })
   );
 
-export let normalizeConsumerSurfaceEmail = (email: string) => email.trim().toLowerCase();
+export let normalizeConsumerSurfaceEmail = normalizeConsumerEmail;
 
 export let normalizeConsumerSurfaceEmailWhitelistEntry = (input: string) => {
   let value = input.trim().toLowerCase();
