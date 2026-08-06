@@ -36,6 +36,7 @@ import {
   consumerProfileUpdatedQueue
 } from '../../queues/lifecycle/consumerProfile';
 import { reconcileUserConsumersQueue } from '../../queues/reconcileUserConsumer';
+import { syncUserConsumersQueue } from '../../queues/syncUserConsumer';
 import { consumerService } from './consumer';
 import type { EnrichedConsumerSurface } from './consumerSurface';
 import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
@@ -1131,6 +1132,7 @@ class ConsumerProfileServiceImpl {
     });
 
     await reconcileUserConsumersQueue.add({ userId: d.user.id });
+    await syncUserConsumersQueue.add({ userId: d.user.id });
 
     return await this.resolveConsumersForUserInternal({
       user: d.user,

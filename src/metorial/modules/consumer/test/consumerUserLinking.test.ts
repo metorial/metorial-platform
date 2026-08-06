@@ -4,6 +4,7 @@ let mocks = vi.hoisted(() => ({
   consumerFindMany: vi.fn(),
   consumerUpdateMany: vi.fn(),
   reconcileAdd: vi.fn(),
+  syncUserConsumersAdd: vi.fn(),
   getNamespaceProperties: vi.fn()
 }));
 
@@ -66,6 +67,10 @@ vi.mock('../src/queues/lifecycle/consumerProfile', () => ({
 
 vi.mock('../src/queues/reconcileUserConsumer', () => ({
   reconcileUserConsumersQueue: { add: mocks.reconcileAdd }
+}));
+
+vi.mock('../src/queues/syncUserConsumer', () => ({
+  syncUserConsumersQueue: { add: mocks.syncUserConsumersAdd }
 }));
 
 vi.mock('../src/services/consumers/consumer', () => ({
@@ -135,6 +140,7 @@ describe('consumerProfileService.getConsumersForUser', () => {
       data: { userOid: user.oid }
     });
     expect(mocks.reconcileAdd).toHaveBeenCalledWith({ userId: user.id });
+    expect(mocks.syncUserConsumersAdd).toHaveBeenCalledWith({ userId: user.id });
     expect(consumers.map(consumer => consumer.id)).toEqual([invitedConsumer.id]);
   });
 });
