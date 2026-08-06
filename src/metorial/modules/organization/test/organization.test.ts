@@ -32,6 +32,9 @@ vi.mock('@metorial/db', () => ({
     },
     organizationMember: {
       update: vi.fn()
+    },
+    namespaceProperty: {
+      findMany: vi.fn().mockResolvedValue([])
     }
   },
   ID: {
