@@ -2,10 +2,14 @@ import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
+import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import { db, ID, Instance, Organization, Portal, Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import type { NamespacePropertyWithNamespace } from '@metorial/module-organization';
+import {
+  namespaceService,
+  type NamespacePropertyWithNamespace
+} from '@metorial/module-organization';
 import { env } from '../env';
 import {
   getPortalAllowedRedirectUrlFilters,
@@ -462,35 +466,68 @@ class PortalServiceImpl {
     };
   }
 
-  /**
-   * All URLs a portal can be reached under. When namespaces are attached, those are the only
-   * entries (ordered by compartment priority). Otherwise fall back to the configured host so
-   * callers still get a usable URL before namespaces exist. A namespace dedicated to this
-   * portal serves it at the root; shared namespaces need the slug to disambiguate.
-   */
   getPortalUrls(d: {
     portal: Pick<Portal, 'slug'>;
     namespaces: NamespacePropertyWithNamespace[];
   }) {
-    if (!d.namespaces.length) {
-      return [{ type: 'default' as const, url: this.getPortalHost({ portal: d.portal }).host }];
-    }
-
-    let urls: { type: 'namespace'; url: string }[] = [];
+    let urls: { type: 'default' | 'namespace'; url: string }[] = [];
     let seen = new Set<string>();
 
-    for (let { namespace } of d.namespaces) {
-      let origin = `https://${namespace.value}.${namespace.compartment.value}`;
-      let url = namespace.purposes.includes('metorial_portal_single')
-        ? origin
-        : `${origin}/p/${d.portal.slug}`;
-
-      if (seen.has(url)) continue;
+    let add = (type: 'default' | 'namespace', url: string) => {
+      if (seen.has(url)) return;
       seen.add(url);
-      urls.push({ type: 'namespace', url });
+      urls.push({ type, url });
+    };
+
+    if (getConfig().env == 'development') {
+      add('default', `${getConfig().urls.portalsUrl.replace(/\/+$/, '')}/p/${d.portal.slug}`);
     }
 
+    // Shared namespaces (cloud tenant, etc.) stay ahead of the dedicated portal hostname so the
+    // primary URL prefers the family hostname; compartment priority still applies within each group.
+    let namespaces = [...d.namespaces].sort((a, b) => {
+      let aSingle = a.namespace.purposes.includes('metorial_portal_single') ? 1 : 0;
+      let bSingle = b.namespace.purposes.includes('metorial_portal_single') ? 1 : 0;
+      return aSingle - bSingle;
+    });
+
+    for (let { namespace } of namespaces) {
+      let origin = `https://${namespace.value}.${namespace.compartment.value}`;
+
+      add(
+        'namespace',
+        namespace.purposes.includes('metorial_portal_single')
+          ? origin
+          : `${origin}/p/${d.portal.slug}`
+      );
+    }
+
+    if (!urls.length) add('default', this.getPortalHost({ portal: d.portal }).host);
+
     return urls;
+  }
+
+  async getPrimaryPortalUrls(d: { portals: Pick<Portal, 'oid' | 'slug'>[] }) {
+    let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
+      portals: d.portals
+    });
+
+    return new Map(
+      d.portals.map(portal => {
+        let [primary] = this.getPortalUrls({
+          portal,
+          namespaces: namespacesByPortalOid.get(portal.oid) ?? []
+        });
+
+        return [portal.oid, primary?.url ?? this.getPortalHost({ portal }).host] as const;
+      })
+    );
+  }
+
+  async getPrimaryPortalUrl(d: { portal: Pick<Portal, 'oid' | 'slug'> }) {
+    let urls = await this.getPrimaryPortalUrls({ portals: [d.portal] });
+
+    return urls.get(d.portal.oid) ?? this.getPortalHost({ portal: d.portal }).host;
   }
 
   parsePortalIdFromHost(d: { url: string }) {

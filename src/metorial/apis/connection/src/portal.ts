@@ -79,7 +79,7 @@ let buildPluginPortalSelectorUrl = (d: {
   pluginId: string;
   input: ReturnType<typeof getPluginOAuthInput>;
 }) => {
-  let url = new URL(getConfig().urls.portalsUrl);
+  let url = new URL(getConfig().urls.appUrl);
   let basePath = url.pathname.replace(/\/+$/, '');
   url.pathname = `${basePath}/select-portal`.replace(/\/{2,}/g, '/');
   url.search = '';
@@ -94,7 +94,9 @@ export let createPortalHandler = (d: {
   authenticate: Authenticator<AuthInfo>;
 }): {
   metadataServer: ReturnType<typeof createPortalOAuthServers>['metadataServer'];
-  protectedResourceServer: ReturnType<typeof createPortalOAuthServers>['protectedResourceServer'];
+  protectedResourceServer: ReturnType<
+    typeof createPortalOAuthServers
+  >['protectedResourceServer'];
   connectPortalServer: ReturnType<typeof createPortalOAuthServers>['connectPortalServer'];
 } => {
   return createPortalOAuthServers({
@@ -287,7 +289,9 @@ export let createPluginHandler = (d: {
   authenticate: Authenticator<AuthInfo>;
 }): {
   metadataServer: ReturnType<typeof createPluginOAuthServers>['metadataServer'];
-  protectedResourceServer: ReturnType<typeof createPluginOAuthServers>['protectedResourceServer'];
+  protectedResourceServer: ReturnType<
+    typeof createPluginOAuthServers
+  >['protectedResourceServer'];
   connectPluginServer: ReturnType<typeof createPluginOAuthServers>['connectPluginServer'];
 } => {
   return createPluginOAuthServers({

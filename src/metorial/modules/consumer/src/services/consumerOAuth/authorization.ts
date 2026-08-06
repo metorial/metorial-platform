@@ -6,7 +6,15 @@ import {
 } from '@lowerdeck/error';
 import { generateCustomId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
-import { db, ID, Organization, Project, SkillPlugin, type Instance } from '@metorial/db';
+import {
+  db,
+  ID,
+  Organization,
+  Portal,
+  Project,
+  SkillPlugin,
+  type Instance
+} from '@metorial/db';
 import { type MagicMcpResolvedTarget } from '@metorial/module-magic';
 import { addDays } from 'date-fns';
 import {
@@ -28,6 +36,22 @@ import {
   SkillPluginPortalAuthorizationInput
 } from './_types';
 import { consumerOAuthClientService } from './client';
+
+let buildPortalConsumerAuthUrl = async (d: {
+  portal: Pick<Portal, 'oid' | 'slug'>;
+  consumerAuthAttemptId: string;
+}) => {
+  let url = new URL(await portalService.getPrimaryPortalUrl({ portal: d.portal }));
+  let basePath = url.pathname.replace(/\/+$/, '');
+  url.pathname = `${basePath}/oauth/authorize/${d.consumerAuthAttemptId}`.replace(
+    /\/{2,}/g,
+    '/'
+  );
+  url.search = '';
+  url.hash = '';
+
+  return url.toString();
+};
 
 class ConsumerOAuthAuthorizationService {
   async createConsumerAuthAuthorization(d: {
@@ -87,15 +111,10 @@ class ConsumerOAuthAuthorizationService {
     });
 
     let redirectUrl = d.portal
-      ? (() => {
-          let url = new URL(portalService.getPortalHost({ portal: d.portal! }).host);
-          let basePath = url.pathname.replace(/\/+$/, '');
-          url.pathname = `${basePath}/oauth/authorize/${attempt.id}`.replace(/\/{2,}/g, '/');
-          url.search = '';
-          url.hash = '';
-
-          return url.toString();
-        })()
+      ? await buildPortalConsumerAuthUrl({
+          portal: d.portal,
+          consumerAuthAttemptId: attempt.id
+        })
       : buildDashboardConsumerAuthUrl({
           consumerSurface: d.consumerSurface!,
           consumerAuthAttemptId: attempt.id

@@ -125,7 +125,8 @@ vi.mock('../src/services/portal', () => ({
   portalService: {
     getPortalHost: vi.fn(() => ({
       host: 'https://portal.test'
-    }))
+    })),
+    getPrimaryPortalUrl: vi.fn(async () => 'https://portal.test')
   }
 }));
 
