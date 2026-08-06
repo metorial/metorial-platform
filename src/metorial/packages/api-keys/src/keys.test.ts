@@ -55,4 +55,18 @@ describe('UnifiedApiKey', () => {
     expect(UnifiedApiKey.from(accessKey.toString())?.type).toBe('oauth_access_token');
     expect(UnifiedApiKey.from(refreshKey.toString())?.type).toBe('oauth_refresh_token');
   });
+
+  it('creates and parses keys for the v2-dev instance', () => {
+    let key = UnifiedApiKey.create({
+      type: 'instance_access_token_secret',
+      config: {
+        url: 'https://api.example.com',
+        instance: 'v2-dev'
+      }
+    });
+
+    let parsed = UnifiedApiKey.from(key.toString());
+    expect(parsed).not.toBeNull();
+    expect(parsed?.config.instance).toBe('v2-dev');
+  });
 });
