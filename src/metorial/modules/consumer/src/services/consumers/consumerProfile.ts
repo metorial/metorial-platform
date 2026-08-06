@@ -10,6 +10,7 @@ import {
 import {
   ConsumerGroup,
   ConsumerProfile,
+  ConsumerProfileGroupAssignedVia,
   ConsumerProfileInviteStatus,
   ConsumerSurface,
   db,
@@ -893,7 +894,10 @@ class ConsumerProfileServiceImpl {
     consumerProfiles: Array<
       ConsumerProfileWithRelations & {
         personalConsumerGroup: ConsumerGroup;
-        groups: Array<{ group: ConsumerGroup }>;
+        groups: Array<{
+          group: ConsumerGroup;
+          assignedVia?: ConsumerProfileGroupAssignedVia;
+        }>;
       }
     >;
   }) {
@@ -918,7 +922,9 @@ class ConsumerProfileServiceImpl {
     let groupsByProfile: Record<string, EffectiveConsumerGroup[]> = {};
 
     for (let consumerProfile of d.consumerProfiles) {
-      let manualGroupIds = new Set(consumerProfile.groups.map(({ group }) => group.oid));
+      let membershipByGroupOid = new Map(
+        consumerProfile.groups.map(membership => [membership.group.oid, membership])
+      );
       let ssoGroupIds = new Set(consumerProfile.ssoGroupIds ?? []);
 
       groupsByProfile[consumerProfile.id] = activeGroups.flatMap(group => {
@@ -934,8 +940,9 @@ class ConsumerProfileServiceImpl {
           return [toAssignedGroup(group, 'sso')];
         }
 
-        if (manualGroupIds.has(group.oid)) {
-          return [toAssignedGroup(group, 'manual')];
+        let membership = membershipByGroupOid.get(group.oid);
+        if (membership) {
+          return [toAssignedGroup(group, membership.assignedVia ?? 'manual')];
         }
 
         return [];
@@ -948,8 +955,10 @@ class ConsumerProfileServiceImpl {
   async assignToGroups<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     groupIds: string[];
+    assignedVia?: ConsumerProfileGroupAssignedVia;
   }) {
     let groups = await this.getAssignableGroupsOrThrow(d);
+    let assignedVia = d.assignedVia ?? 'manual';
 
     if (groups.length) {
       await withTransaction(async db => {
@@ -961,12 +970,24 @@ class ConsumerProfileServiceImpl {
             }
           }
         });
-        let existingGroupOids = new Set(
-          existingMemberships.map(membership => membership.groupOid)
+        let existingByGroupOid = new Map(
+          existingMemberships.map(membership => [membership.groupOid, membership])
         );
-        let groupsToAdd = groups.filter(group => !existingGroupOids.has(group.oid));
 
-        for (let group of groupsToAdd) {
+        for (let group of groups) {
+          let existing = existingByGroupOid.get(group.oid);
+
+          if (existing) {
+            if (existing.assignedVia != assignedVia && assignedVia == 'sso') {
+              await db.consumerProfileGroup.update({
+                where: { oid: existing.oid },
+                data: { assignedVia }
+              });
+            }
+
+            continue;
+          }
+
           await Fabric.fire('consumer.profile.group.added:before', {
             consumerProfile: d.consumerProfile,
             consumerGroup: group
@@ -975,7 +996,8 @@ class ConsumerProfileServiceImpl {
           let consumerProfileGroup = await db.consumerProfileGroup.create({
             data: {
               profileOid: d.consumerProfile.oid,
-              groupOid: group.oid
+              groupOid: group.oid,
+              assignedVia
             }
           });
 
@@ -996,14 +1018,17 @@ class ConsumerProfileServiceImpl {
   async removeFromGroups<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     groupIds: string[];
+    assignedVia?: ConsumerProfileGroupAssignedVia;
   }) {
     let groups = await this.getAssignableGroupsOrThrow(d);
+    let assignedVia = d.assignedVia ?? 'manual';
 
     await withTransaction(async db => {
       let existingMemberships = await db.consumerProfileGroup.findMany({
         where: {
           profileOid: d.consumerProfile.oid,
-          groupOid: { in: groups.map(group => group.oid) }
+          groupOid: { in: groups.map(group => group.oid) },
+          assignedVia
         }
       });
       let existingMembershipByGroupOid = new Map(

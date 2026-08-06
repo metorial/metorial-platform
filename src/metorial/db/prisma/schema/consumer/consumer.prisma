@@ -194,6 +194,11 @@ model ConsumerInvite {
   @@unique([surfaceOid, consumerOid])
 }
 
+enum ConsumerProfileGroupAssignedVia {
+  manual
+  sso
+}
+
 model ConsumerProfileGroup {
   oid BigInt @id @default(autoincrement())
 
@@ -202,6 +207,8 @@ model ConsumerProfileGroup {
 
   groupOid BigInt
   group    ConsumerGroup @relation(fields: [groupOid], references: [oid], onDelete: Cascade)
+
+  assignedVia ConsumerProfileGroupAssignedVia @default(manual)
 
   createdAt DateTime @default(now())
 

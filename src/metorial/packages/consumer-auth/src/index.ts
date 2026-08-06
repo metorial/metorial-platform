@@ -183,10 +183,16 @@ export let getEffectiveConsumerGroups = async (d: {
             }
           : undefined!
       ].filter(Boolean)
+    },
+    include: {
+      profiles: {
+        where: { profileOid: d.consumerProfile.oid },
+        select: { assignedVia: true }
+      }
     }
   });
 
-  return groups.map(group => {
+  return groups.map(({ profiles, ...group }) => {
     if (group.oid == d.consumerProfile.personalConsumerGroupOid) {
       return {
         ...group,
@@ -210,7 +216,7 @@ export let getEffectiveConsumerGroups = async (d: {
 
     return {
       ...group,
-      assignedVia: 'manual' as const
+      assignedVia: profiles[0]?.assignedVia == 'sso' ? ('sso' as const) : ('manual' as const)
     };
   });
 };
