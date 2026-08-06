@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 
 export let env = createValidatedEnv({
   service: {
-    CARGO_REGION: v.optional(v.string()),
+    METORIAL_REGION: v.optional(v.string()),
     DOWNLOAD_PUBLIC_URL: v.optional(v.string()),
     SIGNED_DOWNLOAD_URL_TOKEN_SECRET: v.string(),
     API_URL: v.string(),

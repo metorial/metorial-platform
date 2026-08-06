@@ -18,7 +18,7 @@ let getExpirationDate = () => {
   return date;
 };
 
-let regionSuffix = `_${env.service.CARGO_REGION ?? 'ext'}`;
+let regionSuffix = `_${env.service.METORIAL_REGION ?? 'ext'}`;
 
 export let createSignedFileDownloadKey = async (file: Pick<File, 'id' | 'storeId'>) => {
   let token = await signedDownloadTokens.sign({

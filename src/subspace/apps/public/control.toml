@@ -31,7 +31,6 @@ REGISTRY_URL = "https://metorial-saas-dev2.registry.metorial-enterprise.com/meto
 SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
 SIGNAL_API_URL = "http://localhost:52050/metorial-signal"
-CARGO_API_URL = "http://localhost:52150/metorial-cargo"
 FUNCTION_BAY_API_URL = "http://localhost:52030/metorial-function-bay"
 
 [dev.db.main]

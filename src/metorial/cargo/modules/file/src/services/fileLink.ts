@@ -39,7 +39,7 @@ let include = {
 
 class FileLinkServiceImpl {
   private getGeneratedKey() {
-    return `${generatePlainId(30)}_${env.service.CARGO_REGION ?? 'ext'}`;
+    return `${generatePlainId(30)}_${env.service.METORIAL_REGION ?? 'ext'}`;
   }
 
   async createFileLink(

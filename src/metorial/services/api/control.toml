@@ -31,13 +31,11 @@ EMAIL_FROM_NAME = true
 CONSUMER_TOKEN_SECRET = "consumer-token-secret"
 CONSUMER_SESSION_SECRET = "consumer-token-secret"
 SIGNED_DOWNLOAD_URL_TOKEN_SECRET = "dev-cargo-download-token-secret"
-CARGO_REGION = "dev"
+METORIAL_REGION = "dev"
 DOWNLOAD_PUBLIC_URL = "http://{{HOSTNAME}}:4318"
 PORTAL_HOST_TEMPLATE = "http://{{HOSTNAME}}:4300/p/{portalId}"
 PORTAL_REDIRECT_DOMAINS = "{{HOSTNAME}}"
-CARGO_SYNC_CLAIM_METORIAL_OWNERSHIP = "false"
 REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
-CARGO_API_URL = "http://localhost:52150/metorial-cargo"
 SYNTHESIS_API_URL = "http://localhost:52160/metorial-synthesis"
 PROVIDER_OAUTH_TICKET_SECRET = "provider-oauth-ticket-secret"
 AUTH_TICKET_SECRET = "auth-ticket-secret"
@@ -82,11 +80,6 @@ env = "DATABASE_URL"
 name = "subspace"
 engine = "postgres"
 env = "SUBSPACE_DATABASE_URL"
-
-[dev.db.cargo]
-name = "cargo"
-engine = "postgres"
-env = "CARGO_DATABASE_URL"
 
 [dev.db.global]
 name = "metorial-oss-global"
