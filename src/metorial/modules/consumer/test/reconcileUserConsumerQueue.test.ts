@@ -143,6 +143,62 @@ describe('reconcile user consumer queue', () => {
     });
   });
 
+  it('treats a differently cased consumer email as the same identity', async () => {
+    let user = {
+      id: 'user_123',
+      oid: 42n,
+      type: 'user',
+      name: 'Testing Testing',
+      email: 'vgbmzap@herber.space',
+      globalProfileOid: null
+    };
+    let invited = {
+      id: 'consumer_invited',
+      oid: 1n,
+      userOid: null,
+      name: 'Test',
+      email: 'VgBmzap@herber.space',
+      globalProfileOid: null,
+      organizationMemberOid: null,
+      organizationActorOid: null,
+      organizationMember: null,
+      isOrganizationMember: false,
+      isPortalConsumer: true,
+      isManuallyCreated: false,
+      isPending: true,
+      createdAt: new Date('2026-08-06T06:46:11Z')
+    };
+
+    mocks.user.findUnique.mockResolvedValue(user);
+    mocks.consumer.findMany.mockResolvedValue([invited]);
+    mocks.consumerProfile.findMany.mockResolvedValue([]);
+    mocks.consumerInvite.findMany.mockResolvedValue([]);
+    mocks.consumer.update.mockResolvedValue(invited);
+
+    await (reconcileUserConsumerQueueProcessor as any)({
+      userId: user.id,
+      organizationId: 'organization_123'
+    });
+
+    expect(mocks.consumer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { email: { equals: user.email, mode: 'insensitive' }, userOid: null }
+          ])
+        })
+      })
+    );
+    expect(mocks.consumer.delete).not.toHaveBeenCalled();
+    expect(mocks.consumer.update).toHaveBeenCalledWith({
+      where: { oid: invited.oid },
+      data: expect.objectContaining({
+        userOid: user.oid,
+        email: user.email
+      })
+    });
+  });
+
   it('collapses same-surface invites before moving a duplicate consumer', async () => {
     let user = {
       id: 'user_123',

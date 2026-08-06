@@ -26,7 +26,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
-import { showCreateProviderConfigFlow } from './providerCreationFlows';
+import { showCreateProviderConfigFlow } from '../../../scenes/providerCreationFlows';
 
 type ProviderConfig = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
 
@@ -325,7 +325,7 @@ export let providerConfigsOverviewTable = new DashboardTable<
   ])
   .search('Search configs...')
   .link((row, props) =>
-    Paths.instance.providerConfig(
+    Paths.organization.instance.providerConfig(
       props.organization.data,
       props.project.data,
       props.instance.data,

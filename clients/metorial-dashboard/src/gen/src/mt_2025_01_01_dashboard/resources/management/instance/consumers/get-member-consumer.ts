@@ -6,6 +6,7 @@ export type ManagementInstanceConsumersGetMemberConsumerOutput = {
   name: string;
   email: string;
   imageUrl: string;
+  userId: string | null;
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -16,6 +17,7 @@ export type ManagementInstanceConsumersGetMemberConsumerOutput = {
     email: string;
     imageUrl: string;
     consumerId: string;
+    userId: string | null;
     status: 'active' | 'invited';
     createdAt: Date;
     updatedAt: Date;
@@ -49,6 +51,7 @@ export let mapManagementInstanceConsumersGetMemberConsumerOutput = mtMap.union([
       name: mtMap.objectField('name', mtMap.passthrough()),
       email: mtMap.objectField('email', mtMap.passthrough()),
       imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+      userId: mtMap.objectField('user_id', mtMap.passthrough()),
       createdAt: mtMap.objectField('created_at', mtMap.date()),
       updatedAt: mtMap.objectField('updated_at', mtMap.date()),
       profile: mtMap.objectField(
@@ -63,6 +66,7 @@ export let mapManagementInstanceConsumersGetMemberConsumerOutput = mtMap.union([
               email: mtMap.objectField('email', mtMap.passthrough()),
               imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
               consumerId: mtMap.objectField('consumer_id', mtMap.passthrough()),
+              userId: mtMap.objectField('user_id', mtMap.passthrough()),
               status: mtMap.objectField('status', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date()),

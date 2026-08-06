@@ -229,7 +229,7 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
   ])
   .search('Search monitors')
   .link((monitor, props) =>
-    Paths.instance.monitor(
+    Paths.organization.instance.monitor(
       props.instance.data?.organization,
       props.instance.data?.project,
       props.instance.data,

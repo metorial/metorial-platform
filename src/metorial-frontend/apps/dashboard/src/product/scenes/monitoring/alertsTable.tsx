@@ -400,7 +400,7 @@ let createAlertsTable = () =>
       }
     ])
     .link((alert, props) =>
-      Paths.instance.alert(
+      Paths.organization.instance.alert(
         props.instance.data?.organization,
         props.instance.data?.project,
         props.instance.data,

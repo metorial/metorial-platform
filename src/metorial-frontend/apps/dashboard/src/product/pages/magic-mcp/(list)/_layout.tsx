@@ -1,83 +1,30 @@
 import { InitialLoadBoundary, PaginationSearchParamsProvider } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject
-} from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation } from 'react-router-dom';
-import { createMagicMcpGroupModal } from '../../../scenes/magicMcp/groupsTable';
-import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
+import { useCurrentInstance } from '@metorial/state';
+import { Button } from '@metorial/ui';
+import { Outlet } from 'react-router-dom';
 import { showMagicMcpServerCreateFlow } from '../../../scenes/providerDeployments/magicMcpForm';
 
 export let MagicMcpListLayout = () => {
   let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-
-  let pathname = useLocation().pathname;
-  let tab = pathname.split('/').pop();
-
   return (
     <ContentLayout>
       <PageHeader
         title="Magic MCP"
         description="Deploy and configure MCP servers instantly. Connect them to Codex, Claude Cowork and more."
         actions={
-          {
-            servers: (
-              <Button
-                onClick={() =>
-                  instance.data &&
-                  showMagicMcpServerCreateFlow({
-                    instanceId: instance.data.id
-                  })
-                }
-                size="2"
-              >
-                Create Magic MCP Server
-              </Button>
-            ),
-            tokens: (
-              <Button size="2" onClick={() => createMagicMcpTokenModal()}>
-                Create Magic MCP Token
-              </Button>
-            ),
-            groups: (
-              <Button size="2" onClick={() => createMagicMcpGroupModal()}>
-                Create Magic MCP Group
-              </Button>
-            )
-          }[tab!]
+          <Button
+            onClick={() =>
+              instance.data &&
+              showMagicMcpServerCreateFlow({
+                instanceId: instance.data.id
+              })
+            }
+            size="2"
+          >
+            Create Magic MCP Server
+          </Button>
         }
-      />
-
-      <LinkTabs
-        current={pathname}
-        links={[
-          {
-            label: 'Servers',
-            to: Paths.instance.magicMcp.servers(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'Connections',
-            to: Paths.instance.magicMcp.connections(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
-            label: 'Groups',
-            to: Paths.instance.magicMcp.groups(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'Tokens',
-            to: Paths.instance.magicMcp.tokens(organization.data, project.data, instance.data)
-          }
-        ]}
       />
 
       <InitialLoadBoundary>

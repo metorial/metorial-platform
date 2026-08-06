@@ -7,148 +7,47 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
-import { type ReactNode } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { showProviderDeploymentFormModal } from '../../../scenes/providerDeployments/modal';
+import { Outlet, useLocation } from 'react-router-dom';
 import {
   showCreateProviderAuthConfigFlow,
-  showCreateProviderAuthCredentialsFlow,
-  showCreateProviderConfigFlow,
-  showCreateProviderConfigVaultFlow
-} from './providerCreationFlows';
+  showCreateProviderConfigFlow
+} from '../../../scenes/providerCreationFlows';
 
-type ProviderDeploymentsTabId =
-  | 'deployments'
-  | 'configs'
-  | 'config-vaults'
-  | 'auth-credentials'
-  | 'auth-configs';
+type ConfigurationsTabId = 'auth-configs' | 'configs';
 
-let providerConfigurationsTabOrder: Exclude<ProviderDeploymentsTabId, 'deployments'>[] = [
-  'auth-configs',
-  'configs',
-  'config-vaults'
-];
+let configurationsTabOrder: ConfigurationsTabId[] = ['auth-configs', 'configs'];
 
-let getActiveTab = (pathname: string): ProviderDeploymentsTabId => {
-  if (pathname.endsWith('/auth-configs')) return 'auth-configs';
-  if (pathname.endsWith('/config-vaults')) return 'config-vaults';
+let getActiveTab = (pathname: string): ConfigurationsTabId => {
   if (pathname.endsWith('/configs')) return 'configs';
-  return 'deployments';
+  return 'auth-configs';
 };
 
-let providerDeploymentsTabs: Record<
-  ProviderDeploymentsTabId,
+let configurationsTabs: Record<
+  ConfigurationsTabId,
   {
     label: string;
-    segment?: 'configs' | 'config-vaults' | 'auth-credentials' | 'auth-configs';
+    segment?: 'configs' | 'auth-configs';
     description: string;
-    renderAction: (d: {
-      instance: ReturnType<typeof useCurrentInstance>['data'];
-      organization: ReturnType<typeof useCurrentOrganization>['data'];
-      project: ReturnType<typeof useCurrentProject>['data'];
-      navigate: ReturnType<typeof useNavigate>;
-    }) => ReactNode;
+    actionLabel: string;
+    onAction: (instanceId: string) => void;
   }
 > = {
-  deployments: {
-    label: 'Deployments',
-    description: 'Manage your provider deployments, configs, and authentication.',
-    renderAction: ({ instance, organization, project, navigate }) => (
-      <Button
-        size="2"
-        onClick={() =>
-          showProviderDeploymentFormModal({
-            type: 'create',
-            instanceId: instance?.id,
-            onCreate: deployment => {
-              if (!instance) return;
-
-              navigate(
-                Paths.instance.providerDeployment(
-                  organization,
-                  project,
-                  instance,
-                  deployment.id
-                )
-              );
-            }
-          })
-        }
-      >
-        Create Deployment
-      </Button>
-    )
-  },
   configs: {
     label: 'Configs',
     segment: 'configs',
     description: 'Manage provider configuration profiles across your providers.',
-    renderAction: ({ instance }) => (
-      <Button
-        size="2"
-        onClick={() => {
-          if (instance?.id) {
-            showCreateProviderConfigFlow(instance.id);
-          }
-        }}
-      >
-        Create Config
-      </Button>
-    )
-  },
-  'config-vaults': {
-    label: 'Vaults',
-    segment: 'config-vaults',
-    description: 'Manage reusable configuration vaults across your providers.',
-    renderAction: ({ instance }) => (
-      <Button
-        size="2"
-        onClick={() => {
-          if (instance?.id) {
-            showCreateProviderConfigVaultFlow(instance.id);
-          }
-        }}
-      >
-        Create Config Vault
-      </Button>
-    )
-  },
-  'auth-credentials': {
-    label: 'Auth Credentials',
-    segment: 'auth-credentials',
-    description: 'Manage authentication credentials across your providers.',
-    renderAction: ({ instance }) => (
-      <Button
-        size="2"
-        onClick={() => {
-          if (instance?.id) {
-            showCreateProviderAuthCredentialsFlow(instance.id);
-          }
-        }}
-      >
-        Create Auth Credentials
-      </Button>
-    )
+    actionLabel: 'Create Config',
+    onAction: instanceId => showCreateProviderConfigFlow(instanceId)
   },
   'auth-configs': {
     label: 'Auth Configs',
     segment: 'auth-configs',
     description: 'Manage authenticated connections to your providers.',
-    renderAction: ({ instance }) => (
-      <Button
-        size="2"
-        onClick={() => {
-          if (instance?.id) {
-            showCreateProviderAuthConfigFlow(instance.id, {
-              scope: 'provider'
-            });
-          }
-        }}
-      >
-        Create Auth Config
-      </Button>
-    )
+    actionLabel: 'Create Auth Config',
+    onAction: instanceId =>
+      showCreateProviderAuthConfigFlow(instanceId, {
+        scope: 'provider'
+      })
   }
 };
 
@@ -159,62 +58,58 @@ export let ProviderDeploymentsListLayout = () => {
   let location = useLocation();
   let pathname = location.pathname;
   let search = location.search;
-  let navigate = useNavigate();
   let activeTab = getActiveTab(pathname);
-  let currentTab = providerDeploymentsTabs[activeTab];
+  let currentTab = configurationsTabs[activeTab];
   let pathParams = [organization.data, project.data, instance.data] as const;
-  let isDeploymentsPage = activeTab === 'deployments';
 
   return (
     <ContentLayout>
       <PageHeader
-        title={isDeploymentsPage ? 'Deployments' : 'Configurations'}
+        title="Configurations"
         description={currentTab.description}
-        actions={currentTab.renderAction({
-          instance: instance.data,
-          organization: organization.data,
-          project: project.data,
-          navigate
+        actions={
+          <Button
+            size="2"
+            onClick={() => {
+              if (instance.data?.id) currentTab.onAction(instance.data.id);
+            }}
+          >
+            {currentTab.actionLabel}
+          </Button>
+        }
+      />
+
+      <LinkTabs
+        current={pathname}
+        links={configurationsTabOrder.map(tabId => {
+          let tab = configurationsTabs[tabId];
+
+          return {
+            label: tab.label,
+            to: `${
+              tab.segment === 'configs'
+                ? Paths.instance.providerConfigs(...pathParams)
+                : Paths.instance.providerAuthConfigs(...pathParams)
+            }${search}`
+          };
         })}
       />
 
-      {!isDeploymentsPage && (
-        <LinkTabs
-          current={pathname}
-          links={providerConfigurationsTabOrder.map(tabId => {
-            let tab = providerDeploymentsTabs[tabId];
-
-            return {
-              label: tab.label,
-              to: `${Paths.instance.providerDeployments(...pathParams, tab.segment)}${search}`
-            };
-          })}
-        />
-      )}
-
-      <Outlet />
+      <PaginationSearchParamsProvider enabled={true}>
+        <Outlet />
+      </PaginationSearchParamsProvider>
     </ContentLayout>
   );
 };
 
 export let ProviderAuthCredentialsListLayout = () => {
   let instance = useCurrentInstance();
-  let project = useCurrentProject();
-  let organization = useCurrentOrganization();
-  let navigate = useNavigate();
-  let tab = providerDeploymentsTabs['auth-credentials'];
 
   return (
     <ContentLayout>
       <PageHeader
         title="Auth Credentials"
-        description={tab.description}
-        actions={tab.renderAction({
-          instance: instance.data,
-          organization: organization.data,
-          project: project.data,
-          navigate
-        })}
+        description="Manage authentication credentials across your providers."
       />
 
       <PaginationSearchParamsProvider enabled={true}>

@@ -20,7 +20,7 @@ export let SessionLogsListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Connection Logs"
-        description="Inspect sessions, provider runs, and errors captured during MCP traffic."
+        description="Inspect sessions, connections, tool calls, and errors captured during MCP traffic."
       />
 
       <LinkTabs
@@ -41,10 +41,6 @@ export let SessionLogsListLayout = () => {
           {
             label: 'Tool Calls',
             to: Paths.instance.toolCalls(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'Provider Runs',
-            to: Paths.instance.providerRuns(organization.data, project.data, instance.data)
           },
           {
             label: 'Errors',

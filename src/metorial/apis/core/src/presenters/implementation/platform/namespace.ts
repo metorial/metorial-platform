@@ -37,10 +37,13 @@ export let v1NamespacePresenter = Presenter.create(namespaceType)
         description: `The namespace's value within its compartment`,
         examples: ['acme-corp']
       }),
-      purposes: v.array(v.enumOf(['metorial_platform', 'metorial_portal']), {
-        name: 'purposes',
-        description: `The purposes the namespace can be used for`
-      }),
+      purposes: v.array(
+        v.enumOf(['metorial_platform', 'metorial_portal', 'metorial_portal_single']),
+        {
+          name: 'purposes',
+          description: `The purposes the namespace can be used for`
+        }
+      ),
 
       compartment: v.object({
         object: v.literal('namespace.compartment', {

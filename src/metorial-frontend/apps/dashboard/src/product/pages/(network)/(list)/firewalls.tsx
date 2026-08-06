@@ -23,9 +23,8 @@ import { useNetworkManagementAccess } from '../_gate';
 type Firewall = DashboardInstanceFirewallsListOutput['items'][number];
 
 type FirewallsTableProps = DashboardInstanceFirewallsListQuery & {
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
+  firewallPath: (firewallId: string) => string;
 };
 
 let firewallsTableState: TableStateProvider<
@@ -93,14 +92,7 @@ let firewallsTable = new DashboardTable<FirewallsTableProps, Firewall>('network-
       render: firewall => <RenderDate date={firewall.updatedAt} />
     }
   ])
-  .link((firewall, props) =>
-    Paths.instance.networkFirewall(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      firewall.id
-    )
-  )
+  .link((firewall, props) => props.firewallPath(firewall.id))
   .build();
 
 let FirewallsTable = () => {
@@ -110,11 +102,17 @@ let FirewallsTable = () => {
   let navigate = useNavigate();
   let networks = useNetworks(instance.data?.id, { limit: 1 });
   let { canWrite } = useNetworkManagementAccess();
+  let firewallPath = (firewallId: string) =>
+    Paths.organization.instance.networkFirewall(
+      organization.data,
+      project.data,
+      instance.data,
+      firewallId
+    );
 
   return firewallsTable({
-    organization,
-    project,
     instance,
+    firewallPath,
     emptyState: 'No firewalls configured.',
     headerActions: () =>
       canWrite ? (
@@ -128,15 +126,7 @@ let FirewallsTable = () => {
             showCreateFirewallModal({
               instanceId: instance.data.id,
               networkId: network.id,
-              onCreate: firewallId =>
-                navigate(
-                  Paths.instance.networkFirewall(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    firewallId
-                  )
-                )
+              onCreate: firewallId => navigate(firewallPath(firewallId))
             });
           }}
         >

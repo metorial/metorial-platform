@@ -1,12 +1,12 @@
 import { Button, Dialog, Panel, showModal, Spacer } from '@metorial/ui';
 import { type ReactNode } from 'react';
-import { showProviderAuthConfigMethodPickerModal } from '../../../scenes/providerAuthConfigs/modal';
-import { showProviderAuthConfigPanelFlow } from '../../../scenes/providerAuthConfigs/panelFlow';
-import { showProviderAuthCredentialsPanelFlow } from '../../../scenes/providerAuthCredentials/panelFlow';
-import { showProviderConfigVaultPanelFlow } from '../../../scenes/providerConfigVaults/panelFlow';
-import { showProviderConfigPanelFlow } from '../../../scenes/providerConfigs/panelFlow';
-import { ProviderDeploymentsList } from '../../../scenes/providerDeployments/list';
-import { ProvidersWithDeploymentsSearch } from '../../../scenes/providers/search';
+import { showProviderAuthConfigMethodPickerModal } from './providerAuthConfigs/modal';
+import { showProviderAuthConfigPanelFlow } from './providerAuthConfigs/panelFlow';
+import { showProviderAuthCredentialsPanelFlow } from './providerAuthCredentials/panelFlow';
+import { showProviderConfigVaultPanelFlow } from './providerConfigVaults/panelFlow';
+import { showProviderConfigPanelFlow } from './providerConfigs/panelFlow';
+import { ProviderDeploymentsList } from './providerDeployments/list';
+import { ProvidersWithDeploymentsSearch } from './providers/search';
 
 let DIALOG_EXIT_MS = 220;
 

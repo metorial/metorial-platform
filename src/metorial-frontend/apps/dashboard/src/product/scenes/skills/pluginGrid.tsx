@@ -34,12 +34,12 @@ let Description = styled.span`
 `;
 
 export let SkillPluginsGrid = (
-  p: { instanceId: string } & Omit<
+  p: { instanceId: string; getPluginPath?: (pluginId: string) => string } & Omit<
     DashboardInstanceSkillsPluginsListQuery,
     'after' | 'before' | 'cursor' | 'limit'
   >
 ) => {
-  let { instanceId, ...query } = p;
+  let { instanceId, getPluginPath, ...query } = p;
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
@@ -50,6 +50,17 @@ export let SkillPluginsGrid = (
     limit: 21,
     ...query
   });
+  let getDefaultPluginPath = (pluginId: string) =>
+    Paths.organization.settings(
+      organization.data,
+      'project',
+      project.data?.slug,
+      'instance',
+      instance.data?.slug,
+      'skills',
+      'plugins',
+      pluginId
+    );
   let hasActiveFilters = !!(
     query.search ||
     query.category ||
@@ -65,9 +76,7 @@ export let SkillPluginsGrid = (
     showSkillPluginFormModal({
       instanceId: instance.data.id,
       onCreate: plugin => {
-        navigate(
-          Paths.instance.skillPlugin(organization.data, project.data, instance.data, plugin.id)
-        );
+        navigate(getPluginPath?.(plugin.id) ?? getDefaultPluginPath(plugin.id));
       }
     });
   };
@@ -107,12 +116,7 @@ export let SkillPluginsGrid = (
           {plugins.data.items.map(plugin => (
             <ItemGrid.Item
               key={plugin.id}
-              href={Paths.instance.skillPlugin(
-                organization.data,
-                project.data,
-                instance.data,
-                plugin.id
-              )}
+              href={getPluginPath?.(plugin.id) ?? getDefaultPluginPath(plugin.id)}
               entity={{ id: plugin.id, hasUsage: true }}
               title={plugin.name}
               description={

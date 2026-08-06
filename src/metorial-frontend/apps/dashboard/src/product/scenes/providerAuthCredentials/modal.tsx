@@ -28,7 +28,7 @@ import {
   getAuthMethodOAuthScopesDoc,
   ProviderDocsLink
 } from '../../lib/providerDocs';
-import { ScopePickerField } from '../../pages/(deployments)/provider-auth-credential/components/scopePicker';
+import { ScopePickerField } from './scopePicker';
 import { ProviderContextCard } from '../providerContextCard';
 
 type AuthMethod = DashboardInstanceProvidersAuthMethodsListOutput['items'][number];

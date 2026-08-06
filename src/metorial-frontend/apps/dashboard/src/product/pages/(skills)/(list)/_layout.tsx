@@ -12,7 +12,6 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { showSkillGroupFormModal } from '../../../scenes/skills/groupModal';
 import { showSkillMarketplaceFormModal } from '../../../scenes/skills/marketplaceModal';
 import { showSkillFormModal } from '../../../scenes/skills/modal';
-import { showSkillPluginFormModal } from '../../../scenes/skills/pluginModal';
 import { showSkillTemplateFormModal } from '../../../scenes/skills/templateModal';
 
 export let SkillsListLayout = () => {
@@ -38,7 +37,7 @@ export let SkillsListLayout = () => {
           showSkillTemplateFormModal({
             instanceId: instance.data!.id,
             onCreate: skillTemplate => {
-              navigate(Paths.instance.skillTemplate(...listPathParams, skillTemplate.id));
+              navigate(Paths.organization.instance.skillTemplate(...listPathParams, skillTemplate.id));
             }
           })
       };
@@ -69,21 +68,6 @@ export let SkillsListLayout = () => {
           })
       };
     }
-
-    if (pathname.endsWith('/plugins')) {
-      return {
-        label: 'Create Plugin',
-        onClick: () =>
-          showSkillPluginFormModal({
-            instanceId: instance.data!.id,
-            onCreate: plugin => {
-              navigate(Paths.instance.skillPlugin(...listPathParams, plugin.id));
-            }
-          })
-      };
-    }
-
-    if (pathname.endsWith('/settings')) return null;
 
     return {
       label: 'Create Skill',
@@ -134,7 +118,7 @@ export let SkillsListLayout = () => {
             showSkillTemplateFormModal({
               instanceId: instance.data!.id,
               onCreate: skillTemplate => {
-                navigate(Paths.instance.skillTemplate(...listPathParams, skillTemplate.id));
+                navigate(Paths.organization.instance.skillTemplate(...listPathParams, skillTemplate.id));
               }
             })
         }
@@ -170,15 +154,11 @@ export let SkillsListLayout = () => {
           },
           {
             label: 'Templates',
-            to: Paths.instance.skillTemplates(...listPathParams)
+            to: Paths.organization.instance.skillTemplates(...listPathParams)
           },
           {
             label: 'Groups',
             to: Paths.instance.skillGroups(...listPathParams)
-          },
-          {
-            label: 'Settings',
-            to: Paths.instance.skillSettings(...listPathParams)
           }
         ]}
       />

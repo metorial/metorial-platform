@@ -9,6 +9,7 @@ export type NexusSlices =
   | 'oauth'
   | 'organization'
   | 'portal'
+  | 'portal-utility'
   | 'product'
   | 'support'
   | 'welcome';
@@ -59,6 +60,7 @@ export let getNexusUrl = (slice: NexusSlices, cb: () => string) => {
   if (sliceAccess.owner === 'self') return path;
 
   let url = new URL(`https://${sliceAccess.property.hostname}`);
+  if (sliceAccess.property.hostname.endsWith('localhost')) url.protocol = 'http:';
   url.pathname = path;
 
   return url.toString();

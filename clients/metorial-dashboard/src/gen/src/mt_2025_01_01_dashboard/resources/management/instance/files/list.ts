@@ -46,6 +46,7 @@ export type ManagementInstanceFilesListOutput = {
         name: string;
         email: string;
         imageUrl: string;
+        userId: string | null;
         createdAt: Date;
         updatedAt: Date;
       } | null;
@@ -57,6 +58,7 @@ export type ManagementInstanceFilesListOutput = {
             email: string;
             imageUrl: string;
             consumerId: string;
+            userId: string | null;
             status: 'active' | 'invited';
             createdAt: Date;
             updatedAt: Date;
@@ -185,6 +187,7 @@ export let mapManagementInstanceFilesListOutput =
                         'image_url',
                         mtMap.passthrough()
                       ),
+                      userId: mtMap.objectField('user_id', mtMap.passthrough()),
                       createdAt: mtMap.objectField('created_at', mtMap.date()),
                       updatedAt: mtMap.objectField('updated_at', mtMap.date())
                     })
@@ -211,6 +214,10 @@ export let mapManagementInstanceFilesListOutput =
                           ),
                           consumerId: mtMap.objectField(
                             'consumer_id',
+                            mtMap.passthrough()
+                          ),
+                          userId: mtMap.objectField(
+                            'user_id',
                             mtMap.passthrough()
                           ),
                           status: mtMap.objectField(

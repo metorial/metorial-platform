@@ -43,6 +43,7 @@ export type DashboardInstanceDocumentsParticipantsGetOutput = {
       name: string;
       email: string;
       imageUrl: string;
+      userId: string | null;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -54,6 +55,7 @@ export type DashboardInstanceDocumentsParticipantsGetOutput = {
           email: string;
           imageUrl: string;
           consumerId: string;
+          userId: string | null;
           status: 'active' | 'invited';
           createdAt: Date;
           updatedAt: Date;
@@ -146,6 +148,7 @@ export let mapDashboardInstanceDocumentsParticipantsGetOutput =
             name: mtMap.objectField('name', mtMap.passthrough()),
             email: mtMap.objectField('email', mtMap.passthrough()),
             imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+            userId: mtMap.objectField('user_id', mtMap.passthrough()),
             createdAt: mtMap.objectField('created_at', mtMap.date()),
             updatedAt: mtMap.objectField('updated_at', mtMap.date())
           })
@@ -165,6 +168,7 @@ export let mapDashboardInstanceDocumentsParticipantsGetOutput =
                   'consumer_id',
                   mtMap.passthrough()
                 ),
+                userId: mtMap.objectField('user_id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough()),
                 createdAt: mtMap.objectField('created_at', mtMap.date()),
                 updatedAt: mtMap.objectField('updated_at', mtMap.date()),

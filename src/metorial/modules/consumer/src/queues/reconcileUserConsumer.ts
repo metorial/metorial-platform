@@ -2,6 +2,7 @@ import { db, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { consumerEmailEquals, normalizeConsumerEmail } from '../lib/consumerEmail';
 import { consumerUpdatedQueue } from './lifecycle/consumer';
 
 export let reconcileUserConsumersQueue = createQueue<{ userId: string }>({
@@ -26,7 +27,7 @@ let getCandidateWhere = (user: {
 }) => ({
   OR: [
     { userOid: user.oid },
-    { email: user.email, userOid: null },
+    { email: consumerEmailEquals(user.email), userOid: null },
     { organizationMember: { userOid: user.oid } },
     ...(user.globalProfileOid
       ? [{ globalProfileOid: user.globalProfileOid, userOid: null }]
@@ -256,10 +257,11 @@ export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.proc
         });
         if (!consumers.length) return null;
 
+        let userEmail = normalizeConsumerEmail(user.email);
         let canonical =
           consumers.find(consumer => consumer.userOid === user.oid) ??
           consumers.find(consumer => consumer.organizationMember?.userOid === user.oid) ??
-          consumers.find(consumer => consumer.email === user.email) ??
+          consumers.find(consumer => normalizeConsumerEmail(consumer.email) === userEmail) ??
           consumers[0]!;
         let duplicates = consumers.filter(consumer => consumer.oid !== canonical.oid);
 
@@ -283,7 +285,9 @@ export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.proc
             userOid: user.oid,
             globalProfileOid: user.globalProfileOid ?? canonical.globalProfileOid,
             name: user.name,
-            email: user.type === 'system' ? canonical.email : user.email,
+            email: normalizeConsumerEmail(
+              user.type === 'system' ? canonical.email : user.email
+            ),
             organizationMemberOid:
               canonical.organizationMemberOid ??
               consumers.find(consumer => consumer.organizationMemberOid)

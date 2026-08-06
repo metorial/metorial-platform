@@ -11,7 +11,6 @@ import { Button, Error, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Upgrade } from '@metorial/empty-state';
 import { showIdentityActorFormModal } from '../../../scenes/identity/actorModal';
-import { showIdentityDelegationConfigFormModal } from '../../../scenes/identity/delegationConfigModal';
 
 export let isIdentityEnabled = (flags: Record<string, boolean> | undefined) =>
   !!flags?.['identity-management'];
@@ -40,13 +39,7 @@ export let IdentityListLayout = () => {
   let pathname = useLocation().pathname;
   let navigate = useNavigate();
 
-  let activeTab = pathname.endsWith('/delegation-configs')
-    ? 'delegation-configs'
-    : pathname.endsWith('/delegations')
-      ? 'delegations'
-      : pathname.endsWith('/actors')
-        ? 'actors'
-        : 'identities';
+  let activeTab = pathname.endsWith('/actors') ? 'actors' : 'identities';
 
   return renderWithLoader({ instance, organization, project, flags })(
     ({ instance, organization, project, flags }) => (
@@ -75,26 +68,6 @@ export let IdentityListLayout = () => {
               >
                 Create Actor
               </Button>
-            ) : activeTab === 'delegation-configs' ? (
-              <Button
-                size="2"
-                onClick={() =>
-                  showIdentityDelegationConfigFormModal({
-                    instanceId: instance.data.id,
-                    onCreate: config =>
-                      navigate(
-                        Paths.instance.identity.delegationConfig(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          config.id
-                        )
-                      )
-                  })
-                }
-              >
-                Create Config
-              </Button>
             ) : undefined
           }
         />
@@ -113,22 +86,6 @@ export let IdentityListLayout = () => {
             {
               label: 'Actors',
               to: Paths.instance.identity.actors(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
-              label: 'Delegations',
-              to: Paths.instance.identity.delegations(
-                organization.data,
-                project.data,
-                instance.data
-              )
-            },
-            {
-              label: 'Delegation Configs',
-              to: Paths.instance.identity.delegationConfigs(
                 organization.data,
                 project.data,
                 instance.data
@@ -157,24 +114,22 @@ export let AgentsListLayout = () => {
   let project = useCurrentProject();
   let flags = useDashboardFlags();
 
-  return renderWithLoader({ instance, organization, project, flags })(
-    ({ flags }) => (
-      <ContentLayout>
-        <PageHeader
-          title="Agents"
-          description="Inspect first-class agents, linked clients, and their activity across sessions."
-        />
+  return renderWithLoader({ instance, organization, project, flags })(({ flags }) => (
+    <ContentLayout>
+      <PageHeader
+        title="Agents"
+        description="Inspect first-class agents, linked clients, and their activity across sessions."
+      />
 
-        {!isIdentityEnabled(flags.data.flags) ? (
-          getIdentityUnavailableError()
-        ) : !isPaidIdentityEnabled(flags.data.flags) ? (
-          getIdentityUpgrade()
-        ) : (
-          <PaginationSearchParamsProvider enabled={true}>
-            <Outlet />
-          </PaginationSearchParamsProvider>
-        )}
-      </ContentLayout>
-    )
-  );
+      {!isIdentityEnabled(flags.data.flags) ? (
+        getIdentityUnavailableError()
+      ) : !isPaidIdentityEnabled(flags.data.flags) ? (
+        getIdentityUpgrade()
+      ) : (
+        <PaginationSearchParamsProvider enabled={true}>
+          <Outlet />
+        </PaginationSearchParamsProvider>
+      )}
+    </ContentLayout>
+  ));
 };

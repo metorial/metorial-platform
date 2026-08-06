@@ -26,6 +26,7 @@ import {
 } from './queues/syncOrgMember';
 
 export * from './env';
+export * from './lib/consumerEmail';
 export * from './lib/consumerProviderContext';
 export * from './lib/consumerSurfaceEmailWhitelist';
 export * from './lib/magicMcpEndpointAccess';

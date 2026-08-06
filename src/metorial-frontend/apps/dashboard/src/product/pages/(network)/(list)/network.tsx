@@ -140,7 +140,7 @@ export let NetworkOverviewPage = () => {
               <Table
                 headers={['Name', 'Status', 'Policies', 'Network', 'Updated']}
                 data={firewalls.data.items.map(firewall => ({
-                  href: Paths.instance.networkFirewall(
+                  href: Paths.organization.instance.networkFirewall(
                     organization.data,
                     project.data,
                     instance.data,

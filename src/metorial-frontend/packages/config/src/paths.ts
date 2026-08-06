@@ -1215,6 +1215,512 @@ let OrganizationPaths = Object.assign(
     project: (organization: EntityParam, project: EntityParam, ...subPages: SubPages) => {
       if (!project) return '#';
       return OrganizationPaths.settings(organization, 'project', project.slug, ...subPages);
+    },
+
+    instance: Object.assign(
+      (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => {
+        if (!organization || !project || !instance) return '#';
+        return OrganizationPaths(
+          organization,
+          'project',
+          project.slug,
+          'instance',
+          instance.slug,
+          ...subPages
+        );
+      },
+      {
+        compute: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(organization, project, instance, 'compute', ...subPages),
+
+        network: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(organization, project, instance, 'network', ...subPages),
+        networkFirewalls: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'network',
+            'firewalls',
+            ...subPages
+          ),
+        networkEnclaves: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'network',
+            'enclaves',
+            ...subPages
+          ),
+        networkFirewall: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'network',
+            'firewall',
+            id,
+            ...subPages
+          );
+        },
+        networkSettings: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'network',
+            'settings',
+            ...subPages
+          ),
+
+        providerDeployments: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'configurations',
+            ...subPages
+          ),
+        providerDeployment: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'configurations',
+            id,
+            ...subPages
+          );
+        },
+
+        providerConfigVaults: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'configurations',
+            'config-vaults',
+            ...subPages
+          ),
+        providerConfigVault: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'configurations',
+            'config-vault',
+            id,
+            ...subPages
+          );
+        },
+
+        // Auth configs + configs stay on the product (instance) surface.
+        providerConfigs: InstancePaths.providerConfigs,
+        providerConfig: InstancePaths.providerConfig,
+
+        providerAuthCredentials: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'configurations',
+            'auth-credentials',
+            ...subPages
+          ),
+        providerAuthCredential: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'configurations',
+            'auth-credential',
+            id,
+            ...subPages
+          );
+        },
+
+        // Auth configs stay on the product (instance) surface.
+        providerAuthConfigs: InstancePaths.providerAuthConfigs,
+        providerAuthConfig: InstancePaths.providerAuthConfig,
+
+        alerts: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(organization, project, instance, 'alerts', ...subPages),
+        alert: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'alert',
+            id,
+            ...subPages
+          );
+        },
+        monitors: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(organization, project, instance, 'monitors', ...subPages),
+        monitor: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'monitor',
+            id,
+            ...subPages
+          );
+        },
+        protoguard: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'protoguard',
+            ...subPages
+          ),
+        protoguardFilter: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'protoguard',
+            'filter',
+            id,
+            ...subPages
+          );
+        },
+
+        identity: {
+          delegations: (
+            organization: EntityParam,
+            project: EntityParam,
+            instance: EntityParam,
+            ...subPages: SubPages
+          ) =>
+            OrganizationPaths.instance(
+              organization,
+              project,
+              instance,
+              'identity',
+              'delegations',
+              ...subPages
+            ),
+          delegation: (
+            organization: EntityParam,
+            project: EntityParam,
+            instance: EntityParam,
+            id?: string,
+            ...subPages: SubPages
+          ) => {
+            if (!id) return '#';
+            return OrganizationPaths.instance(
+              organization,
+              project,
+              instance,
+              'identity',
+              'delegation',
+              id,
+              ...subPages
+            );
+          },
+          delegationConfigs: (
+            organization: EntityParam,
+            project: EntityParam,
+            instance: EntityParam,
+            ...subPages: SubPages
+          ) =>
+            OrganizationPaths.instance(
+              organization,
+              project,
+              instance,
+              'identity',
+              'delegation-configs',
+              ...subPages
+            ),
+          delegationConfig: (
+            organization: EntityParam,
+            project: EntityParam,
+            instance: EntityParam,
+            id?: string,
+            ...subPages: SubPages
+          ) => {
+            if (!id) return '#';
+            return OrganizationPaths.instance(
+              organization,
+              project,
+              instance,
+              'identity',
+              'delegation-config',
+              id,
+              ...subPages
+            );
+          }
+        },
+
+        skills: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(organization, project, instance, 'skills', ...subPages),
+        skillPlugins: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'skills',
+            'plugins',
+            ...subPages
+          ),
+        skillPlugin: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'skills',
+            'plugins',
+            id,
+            ...subPages
+          );
+        },
+        skillTemplates: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'skills',
+            'templates',
+            ...subPages
+          ),
+        skillTemplate: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          id?: string,
+          ...subPages: SubPages
+        ) => {
+          if (!id) return '#';
+          return OrganizationPaths.instance(
+            organization,
+            project,
+            instance,
+            'skills',
+            'templates',
+            id,
+            ...subPages
+          );
+        },
+
+        magicMcp: {
+          tokens: (
+            organization: EntityParam,
+            project: EntityParam,
+            instance: EntityParam,
+            ...subPages: SubPages
+          ) =>
+            OrganizationPaths.instance(
+              organization,
+              project,
+              instance,
+              'magic-mcp',
+              'tokens',
+              ...subPages
+            ),
+          groups: (
+            organization: EntityParam,
+            project: EntityParam,
+            instance: EntityParam,
+            ...subPages: SubPages
+          ) =>
+            OrganizationPaths.instance(
+              organization,
+              project,
+              instance,
+              'magic-mcp',
+              'groups',
+              ...subPages
+            ),
+          group: (
+            organization: EntityParam,
+            project: EntityParam,
+            instance: EntityParam,
+            id?: string,
+            ...subPages: SubPages
+          ) => {
+            if (!id) return '#';
+            return OrganizationPaths.instance(
+              organization,
+              project,
+              instance,
+              'magic-mcp',
+              'groups',
+              id,
+              ...subPages
+            );
+          }
+        },
+
+        developer: (
+          organization: EntityParam,
+          project: EntityParam,
+          instance: EntityParam,
+          ...subPages: SubPages
+        ) =>
+          OrganizationPaths.instance(organization, project, instance, 'developer', ...subPages)
+      }
+    )
+  }
+);
+
+export let WelcomePaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('welcome', () => joinPaths(...subPages)),
+  {
+    onboarding: (i: { organizationId: string }) => {
+      let inner = WelcomePaths('onboarding');
+      let search = new URLSearchParams({ organization_id: i.organizationId });
+      return `${inner}?${search.toString()}`;
+    },
+    project: (i: { organizationId: string }) => {
+      let inner = WelcomePaths('project');
+      let search = new URLSearchParams({ organization_id: i.organizationId });
+      return `${inner}?${search.toString()}`;
+    },
+    createProject: (i: { organizationId: string }, ...subPages: SubPages) => {
+      let inner = WelcomePaths('create-project');
+      let search = new URLSearchParams({ organization_id: i.organizationId });
+      return `${inner}?${search.toString()}`;
+    },
+    setupProvider: (i: { organizationId: string; projectId: string }) => {
+      let inner = WelcomePaths('setup-provider');
+      let search = new URLSearchParams({
+        organization_id: i.organizationId,
+        project_id: i.projectId
+      });
+      return `${inner}?${search.toString()}`;
     }
   }
 );
@@ -1261,34 +1767,14 @@ let dashboardInstanceRedirect = (
   return dashUrl.toString();
 };
 
-export let WelcomePaths = Object.assign(
-  (...subPages: SubPages) => joinPaths('welcome', ...subPages),
-  {
-    onboarding: (i: { organizationId: string }) => {
-      let inner = WelcomePaths('onboarding');
-      let search = new URLSearchParams({ organization_id: i.organizationId });
-      return `${inner}?${search.toString()}`;
-    },
-    project: (i: { organizationId: string }) => {
-      let inner = WelcomePaths('project');
-      let search = new URLSearchParams({ organization_id: i.organizationId });
-      return `${inner}?${search.toString()}`;
-    },
-    createProject: (i: { organizationId: string }, ...subPages: SubPages) => {
-      let inner = WelcomePaths('create-project');
-      let search = new URLSearchParams({ organization_id: i.organizationId });
-      return `${inner}?${search.toString()}`;
-    },
-    setupProvider: (i: { organizationId: string; projectId: string }) => {
-      let inner = WelcomePaths('setup-provider');
-      let search = new URLSearchParams({
-        organization_id: i.organizationId,
-        project_id: i.projectId
-      });
-      return `${inner}?${search.toString()}`;
-    }
-  }
-);
+// Deployments, vaults, and credentials live under org settings; keep
+// Paths.instance.* aliases so existing product links resolve correctly.
+InstancePaths.providerDeployments = OrganizationPaths.instance.providerDeployments;
+InstancePaths.providerDeployment = OrganizationPaths.instance.providerDeployment;
+InstancePaths.providerConfigVaults = OrganizationPaths.instance.providerConfigVaults;
+InstancePaths.providerConfigVault = OrganizationPaths.instance.providerConfigVault;
+InstancePaths.providerAuthCredentials = OrganizationPaths.instance.providerAuthCredentials;
+InstancePaths.providerAuthCredential = OrganizationPaths.instance.providerAuthCredential;
 
 export let Paths = {
   join: joinPaths,

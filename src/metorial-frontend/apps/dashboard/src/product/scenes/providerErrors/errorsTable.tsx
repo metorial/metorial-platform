@@ -1,6 +1,5 @@
 import { DashboardInstanceSessionsErrorsListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { useAllSessionErrors, useCurrentInstance } from '@metorial/state';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
@@ -21,15 +20,7 @@ export let ServerErrorsTable = (filter: DashboardInstanceSessionsErrorsListQuery
             </Text>,
             <Text>{error.providerRunId ?? <span style={{ opacity: 0.6 }}>N/A</span>}</Text>,
             <RenderDate date={error.createdAt} />
-          ],
-          href: error.providerRunId
-            ? Paths.instance.providerRun(
-                instance.data?.organization,
-                instance.data?.project,
-                instance.data,
-                error.providerRunId
-              )
-            : undefined
+          ]
         }))}
       />
 

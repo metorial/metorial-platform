@@ -245,7 +245,7 @@ let identityDelegationsTable = new DashboardTable<
     }
   ])
   .link(((delegation: IdentityDelegation, props: IdentityDelegationsTableProps) =>
-    Paths.instance.identity.delegation(
+    Paths.organization.instance.identity.delegation(
       props.organization.data,
       props.project.data,
       props.instance.data,

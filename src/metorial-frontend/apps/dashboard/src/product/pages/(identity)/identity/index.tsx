@@ -110,7 +110,7 @@ export let IdentityPage = () => {
               content: identity.data.delegationConfigId ? (
                 // <ID id={identity.data.delegationConfigId} />
                 <Link
-                  to={Paths.instance.identity.delegationConfig(
+                  to={Paths.organization.instance.identity.delegationConfig(
                     organization.data,
                     project.data,
                     instance.data,
@@ -210,7 +210,7 @@ export let IdentityPage = () => {
                     providerNameLookup[credential.providerId] ?? credential.providerId,
                     credential.deploymentId ? (
                       <Link
-                        to={Paths.instance.providerDeployment(
+                        to={Paths.organization.instance.providerDeployment(
                           organization.data,
                           project.data,
                           instance.data,
@@ -225,7 +225,7 @@ export let IdentityPage = () => {
                     ),
                     credential.configId ? (
                       <Link
-                        to={Paths.instance.providerConfig(
+                        to={Paths.organization.instance.providerConfig(
                           organization.data,
                           project.data,
                           instance.data,
@@ -239,7 +239,7 @@ export let IdentityPage = () => {
                     ),
                     credential.authConfigId ? (
                       <Link
-                        to={Paths.instance.providerAuthConfig(
+                        to={Paths.organization.instance.providerAuthConfig(
                           organization.data,
                           project.data,
                           instance.data,
@@ -254,7 +254,7 @@ export let IdentityPage = () => {
                     ),
                     credential.delegationConfigId ? (
                       <Link
-                        to={Paths.instance.identity.delegationConfig(
+                        to={Paths.organization.instance.identity.delegationConfig(
                           organization.data,
                           project.data,
                           instance.data,

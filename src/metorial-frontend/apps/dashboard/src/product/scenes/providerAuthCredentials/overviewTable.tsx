@@ -15,8 +15,7 @@ import {
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
-import { EmptyState } from '@metorial/empty-state';
+import { type ReactNode, useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
 import {
   FilterPayload,
@@ -26,7 +25,6 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
-import { showCreateProviderAuthCredentialsFlow } from './providerCreationFlows';
 
 type ProviderAuthCredential =
   DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
@@ -36,7 +34,7 @@ type ProviderAuthCredentialRow = ProviderAuthCredential & {
   origin: 'custom' | 'managed';
 };
 
-type ProviderAuthCredentialFilters = Omit<
+export type ProviderAuthCredentialFilters = Omit<
   DashboardInstanceProviderDeploymentsAuthCredentialsListQuery,
   'limit' | 'after' | 'before' | 'cursor'
 >;
@@ -152,7 +150,7 @@ let deleteProviderAuthCredentialsImmediately = async (
   }
 };
 
-export let providerAuthCredentialsTable = new DashboardTable<
+let providerAuthCredentialsTable = new DashboardTable<
   ProviderAuthCredentialsTableProps,
   ProviderAuthCredentialRow
 >('provider-auth-credentials-overview')
@@ -284,7 +282,7 @@ export let providerAuthCredentialsTable = new DashboardTable<
     }
   ])
   .link((row, props) =>
-    Paths.instance.providerAuthCredential(
+    Paths.organization.instance.providerAuthCredential(
       props.organization.data,
       props.project.data,
       props.instance.data,
@@ -337,31 +335,30 @@ export let providerAuthCredentialsTable = new DashboardTable<
   ])
   .build();
 
-export let ProviderAuthCredentialsOverviewPage = () => {
+export let ProviderAuthCredentialsOverviewTable = ({
+  instanceId,
+  filters,
+  emptyState,
+  headerActions
+}: {
+  instanceId: string;
+  filters?: ProviderAuthCredentialFilters;
+  emptyState?: (() => ReactNode) | string;
+  headerActions?: () => ReactNode;
+}) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
   return renderWithLoader({ organization, project, instance })(() =>
     providerAuthCredentialsTable({
-      instanceId: instance.data!.id,
+      instanceId,
       organization,
       project,
       instance,
-      emptyState: () => (
-        <EmptyState
-          title="Create your first auth credentials"
-          description="Auth credentials store the provider access details your instance can reuse."
-          action={{
-            label: 'Create Auth Credentials',
-            onClick: () => {
-              if (instance.data?.id) {
-                showCreateProviderAuthCredentialsFlow(instance.data.id);
-              }
-            }
-          }}
-        />
-      )
+      filters,
+      emptyState,
+      headerActions
     })
   );
 };

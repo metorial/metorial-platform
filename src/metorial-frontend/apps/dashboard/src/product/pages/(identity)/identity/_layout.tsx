@@ -53,7 +53,7 @@ export let IdentityLayout = () => {
                     identityName: _identity.data.name,
                     onCreate: delegation =>
                       navigate(
-                        Paths.instance.identity.delegation(
+                        Paths.organization.instance.identity.delegation(
                           organization.data,
                           project.data,
                           instance.data,
@@ -70,7 +70,7 @@ export let IdentityLayout = () => {
                   identityName: _identity.data.name,
                   onCreate: request =>
                     navigate(
-                      Paths.instance.identity.delegation(
+                      Paths.organization.instance.identity.delegation(
                         organization.data,
                         project.data,
                         instance.data,

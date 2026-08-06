@@ -15,8 +15,7 @@ import {
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
-import { EmptyState } from '@metorial/empty-state';
+import { type ReactNode, useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
 import {
   FilterPayload,
@@ -26,7 +25,6 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
-import { showCreateProviderConfigVaultFlow } from './providerCreationFlows';
 
 type ProviderConfigVault =
   DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number];
@@ -35,7 +33,7 @@ type ProviderConfigVaultRow = ProviderConfigVault & {
   providerName?: string | null;
 };
 
-type ProviderConfigVaultFilters = Omit<
+export type ProviderConfigVaultFilters = Omit<
   DashboardInstanceProviderDeploymentsConfigVaultsListQuery,
   'limit' | 'after' | 'before' | 'cursor'
 >;
@@ -148,7 +146,7 @@ let deleteProviderConfigVaultImmediately = async (
   }
 };
 
-export let providerConfigVaultsOverviewTable = new DashboardTable<
+let providerConfigVaultsOverviewTable = new DashboardTable<
   ProviderConfigVaultsOverviewTableProps,
   ProviderConfigVaultRow
 >('provider-config-vaults-overview')
@@ -294,7 +292,7 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
   ])
   .search('Search config vaults...')
   .link((row, props) =>
-    Paths.instance.providerConfigVault(
+    Paths.organization.instance.providerConfigVault(
       props.organization.data,
       props.project.data,
       props.instance.data,
@@ -346,31 +344,30 @@ export let providerConfigVaultsOverviewTable = new DashboardTable<
   ])
   .build();
 
-export let ProviderConfigVaultsOverviewPage = () => {
+export let ProviderConfigVaultsOverviewTable = ({
+  instanceId,
+  filters,
+  emptyState,
+  headerActions
+}: {
+  instanceId: string;
+  filters?: ProviderConfigVaultFilters;
+  emptyState?: (() => ReactNode) | string;
+  headerActions?: () => ReactNode;
+}) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
   return renderWithLoader({ organization, project, instance })(() =>
     providerConfigVaultsOverviewTable({
-      instanceId: instance.data!.id,
+      instanceId,
       organization,
       project,
       instance,
-      emptyState: () => (
-        <EmptyState
-          title="Create your first config vault"
-          description="Vaults store reusable secret or shared provider values for this instance."
-          action={{
-            label: 'Create Config Vault',
-            onClick: () => {
-              if (instance.data?.id) {
-                showCreateProviderConfigVaultFlow(instance.data.id);
-              }
-            }
-          }}
-        />
-      )
+      filters,
+      emptyState,
+      headerActions
     })
   );
 };

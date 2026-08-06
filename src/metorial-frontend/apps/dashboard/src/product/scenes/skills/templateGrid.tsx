@@ -78,12 +78,12 @@ export let SkillTemplateGridCard = (p: {
 );
 
 export let SkillTemplatesGrid = (
-  p: { instanceId: string } & Omit<
+  p: { instanceId: string; getTemplatePath?: (skillTemplateId: string) => string } & Omit<
     DashboardInstanceSkillsTemplatesListQuery,
     'after' | 'before' | 'cursor' | 'limit'
   >
 ) => {
-  let { instanceId, ...query } = p;
+  let { instanceId, getTemplatePath, ...query } = p;
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
@@ -104,6 +104,14 @@ export let SkillTemplatesGrid = (
     query.updatedAt ||
     (Array.isArray(query.status) ? query.status.length > 0 : query.status)
   );
+  let templatePath = (skillTemplateId: string) =>
+    getTemplatePath?.(skillTemplateId) ??
+    Paths.organization.instance.skillTemplate(
+      organization.data,
+      project.data,
+      instance.data,
+      skillTemplateId
+    );
 
   let showCreateModal = () => {
     if (!instance.data) return;
@@ -111,14 +119,7 @@ export let SkillTemplatesGrid = (
     showSkillTemplateFormModal({
       instanceId: instance.data.id,
       onCreate: skillTemplate => {
-        navigate(
-          Paths.instance.skillTemplate(
-            organization.data,
-            project.data,
-            instance.data,
-            skillTemplate.id
-          )
-        );
+        navigate(templatePath(skillTemplate.id));
       }
     });
   };
@@ -189,16 +190,7 @@ export let SkillTemplatesGrid = (
             <SkillTemplateGridCard
               key={skillTemplate.id}
               skillTemplate={skillTemplate}
-              onClick={() =>
-                navigate(
-                  Paths.instance.skillTemplate(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    skillTemplate.id
-                  )
-                )
-              }
+              onClick={() => navigate(templatePath(skillTemplate.id))}
               menu={[
                 {
                   label: 'Clone as Skill',

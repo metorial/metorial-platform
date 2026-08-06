@@ -6,14 +6,8 @@ import {
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Button, LinkTabs } from '@metorial/ui';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { showSessionTemplateFormModal } from '../../../scenes/sessionTemplates/modal';
-
-export {
-  ProviderAuthCredentialsListLayout,
-  ProviderDeploymentsListLayout
-} from './providerDeploymentsListLayout';
+import { LinkTabs } from '@metorial/ui';
+import { Outlet, useLocation } from 'react-router-dom';
 
 export let ProvidersListLayout = () => {
   return (
@@ -27,52 +21,6 @@ export let ProvidersListLayout = () => {
 };
 
 export let ProvidersHubLayout = ProvidersListLayout;
-
-export let SessionTemplatesListLayout = () => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let navigate = useNavigate();
-
-  return (
-    <ContentLayout>
-      <PageHeader
-        title="Session Templates"
-        description="Create reusable session configurations for quick deployment."
-        actions={
-          <Button
-            size="2"
-            onClick={() =>
-              instance.data &&
-              showSessionTemplateFormModal({
-                type: 'create',
-                instanceId: instance.data.id,
-                onCreate: template => {
-                  if (!instance.data) return;
-
-                  navigate(
-                    Paths.instance.sessionTemplate(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      template.id
-                    )
-                  );
-                }
-              })
-            }
-          >
-            Create Template
-          </Button>
-        }
-      />
-
-      <PaginationSearchParamsProvider enabled={true}>
-        <Outlet />
-      </PaginationSearchParamsProvider>
-    </ContentLayout>
-  );
-};
 
 export let ProviderSessionsListLayout = () => {
   let instance = useCurrentInstance();
@@ -105,10 +53,6 @@ export let ProviderSessionsListLayout = () => {
           {
             label: 'Tool Calls',
             to: Paths.instance.toolCalls(organization.data, project.data, instance.data)
-          },
-          {
-            label: 'Provider Runs',
-            to: Paths.instance.providerRuns(organization.data, project.data, instance.data)
           },
           {
             label: 'Errors',

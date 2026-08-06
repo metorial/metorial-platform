@@ -22,7 +22,7 @@ export type DashboardInstancePortalsUpdateOutput = {
     sessionExpiryTimeInSeconds: number;
     allowedRedirectUrlFilters: { url: string }[];
   };
-  urls: { type: 'default'; url: string }[];
+  urls: { type: 'default' | 'namespace'; url: string }[];
   createdAt: Date;
   updatedAt: Date;
 };
