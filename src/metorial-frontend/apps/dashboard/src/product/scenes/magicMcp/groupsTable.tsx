@@ -40,6 +40,7 @@ type MagicMcpGroupsTableProps = DashboardInstanceMagicMcpGroupsListQuery & {
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
+  getGroupPath?: (groupId: string) => string;
 };
 
 let getGroupStatusFilterValue = (
@@ -222,13 +223,15 @@ let magicGroupsTable = new DashboardTable<
     }
   ])
   .search('Search Magic MCP groups...')
-  .link((group, props) =>
-    Paths.instance.magicMcp.group(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      group.id
-    )
+  .link(
+    (group, props) =>
+      props.getGroupPath?.(group.id) ??
+      Paths.organization.instance.magicMcp.group(
+        props.organization.data,
+        props.project.data,
+        props.instance.data,
+        group.id
+      )
   )
   .actions({
     update: async (groups, state) => {
@@ -269,7 +272,11 @@ let magicGroupsTable = new DashboardTable<
   ])
   .build();
 
-export let MagicGroupsTable = (filter: DashboardInstanceMagicMcpGroupsListQuery = {}) => {
+export let MagicGroupsTable = (
+  filter: DashboardInstanceMagicMcpGroupsListQuery & {
+    getGroupPath?: (groupId: string) => string;
+  } = {}
+) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();

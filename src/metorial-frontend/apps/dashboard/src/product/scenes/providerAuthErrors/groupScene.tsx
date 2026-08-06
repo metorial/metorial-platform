@@ -406,7 +406,7 @@ let ErrorDetails = ({ error }: { error: AuthError }) => {
       label: 'Auth Config',
       value: (
         <DashedLink
-          to={Paths.instance.providerAuthConfig(
+          to={Paths.organization.instance.providerAuthConfig(
             organization.data,
             project.data,
             instance.data,
@@ -424,7 +424,7 @@ let ErrorDetails = ({ error }: { error: AuthError }) => {
       label: 'Auth Credentials',
       value: (
         <DashedLink
-          to={Paths.instance.providerAuthCredential(
+          to={Paths.organization.instance.providerAuthCredential(
             organization.data,
             project.data,
             instance.data,

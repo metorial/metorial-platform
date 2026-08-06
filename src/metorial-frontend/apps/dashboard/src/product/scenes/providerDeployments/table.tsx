@@ -323,7 +323,7 @@ let providerDeploymentsTable = new DashboardTable<
   ])
   .search('Search deployments...')
   .link((deployment, props) =>
-    Paths.instance.providerDeployment(
+    Paths.organization.instance.providerDeployment(
       props.organization.data,
       props.project.data,
       props.instance.data,

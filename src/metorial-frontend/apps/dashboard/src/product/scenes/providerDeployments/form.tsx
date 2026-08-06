@@ -68,7 +68,7 @@ export let ProviderDeploymentForm = (
       props.close?.();
       if (!instance.data) return;
 
-      let deploymentPath = Paths.instance.providerDeployment(
+      let deploymentPath = Paths.organization.instance.providerDeployment(
         instance.data.organization,
         instance.data.project,
         instance.data,

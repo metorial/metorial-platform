@@ -250,7 +250,7 @@ let identityDelegationConfigsTable = new DashboardTable<
     }
   ])
   .link(((config: IdentityDelegationConfig, props: IdentityDelegationConfigsTableProps) =>
-    Paths.instance.identity.delegationConfig(
+    Paths.organization.instance.identity.delegationConfig(
       props.organization.data,
       props.project.data,
       props.instance.data,
@@ -265,16 +265,16 @@ export let IdentityDelegationConfigsTable = ({
   instanceId: string;
   filters?: IdentityDelegationConfigFilters;
 }) => {
-  let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let instance = useCurrentInstance();
 
   return identityDelegationConfigsTable({
     instanceId,
     filters,
-    instance,
     organization,
     project,
+    instance,
     emptyState: 'No delegation configs found.'
   });
 };

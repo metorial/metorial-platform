@@ -175,14 +175,12 @@ let identityDelegationRequestsTable = new DashboardTable<
     }
   ])
   .link(((request: IdentityDelegationRequest, props: IdentityDelegationRequestsTableProps) =>
-    request.delegation?.id
-      ? Paths.instance.identity.delegation(
-          props.organization.data,
-          props.project.data,
-          props.instance.data,
-          request.delegation.id
-        )
-      : '') as any)
+    Paths.organization.instance.identity.delegation(
+      props.organization.data,
+      props.project.data,
+      props.instance.data,
+      request.delegation?.id
+    )) as any)
   .build();
 
 export let IdentityDelegationRequestsTable = ({
