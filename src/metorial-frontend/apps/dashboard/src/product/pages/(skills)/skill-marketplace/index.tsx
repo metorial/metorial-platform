@@ -28,10 +28,14 @@ export let SkillMarketplacePage = () => {
         instanceId={instance.data?.id}
         skillMarketplaceId={skillMarketplaceId}
         getSkillPluginPath={skillPluginId =>
-          Paths.instance.skillPlugin(
+          Paths.organization.settings(
             organization.data,
-            project.data,
-            instance.data,
+            'project',
+            project.data?.slug,
+            'instance',
+            instance.data?.slug,
+            'skills',
+            'plugins',
             skillPluginId
           )
         }

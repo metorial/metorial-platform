@@ -792,7 +792,7 @@ export let ExplorerPage = () => {
                                   key={provider.id}
                                   to={
                                     providerDeploymentId
-                                      ? Paths.instance.providerDeployment(
+                                      ? Paths.organization.instance.providerDeployment(
                                           instance.data?.organization,
                                           instance.data?.project,
                                           instance.data,

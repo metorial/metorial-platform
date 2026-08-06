@@ -107,7 +107,7 @@ export let EnclavesTable = (p: {
           let deployment = deploymentById.get(enclave.providerDeploymentId);
 
           return {
-            href: Paths.instance.providerDeployment(
+            href: Paths.organization.instance.providerDeployment(
               organization.data,
               project.data,
               instance.data,
@@ -172,7 +172,7 @@ export let FirewallLink = (p: { firewall: { id: string; name: string } }) => {
 
   return (
     <Link
-      to={Paths.instance.networkFirewall(
+      to={Paths.organization.instance.networkFirewall(
         organization.data,
         project.data,
         instance.data,

@@ -71,7 +71,13 @@ export let NetworkFirewallSettingsPage = () => {
             let [res] = await deleteFirewall.mutate({});
             if (!res) return;
 
-            navigate(Paths.instance.networkFirewalls(organization.data, project.data, instance.data));
+            navigate(
+              Paths.organization.instance.networkFirewalls(
+                organization.data,
+                project.data,
+                instance.data
+              )
+            );
           }}
         >
           Delete Firewall

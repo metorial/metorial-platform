@@ -26,7 +26,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
-import { showCreateProviderAuthConfigFlow } from './providerCreationFlows';
+import { showCreateProviderAuthConfigFlow } from '../../../scenes/providerCreationFlows';
 
 type AuthConfigItem =
   DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
@@ -320,7 +320,7 @@ export let providerAuthConfigsFilterTable = new DashboardTable<
   ])
   .search('Search auth configs...')
   .link((row, props) =>
-    Paths.instance.providerAuthConfig(
+    Paths.organization.instance.providerAuthConfig(
       props.organization.data,
       props.project.data,
       props.instance.data,

@@ -1,3 +1,4 @@
+import { UsageScene } from '@metorial/app-dashboard';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import type { ResourceCountResource } from '@metorial/state';
@@ -12,7 +13,6 @@ import { Badge, Button, RenderDate, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { UsageScene } from '../../scenes/usage/usage';
 
 let PageStack = styled.div`
   display: flex;
@@ -247,7 +247,6 @@ let infrastructureResourceCountResources = [
   'provider_config_vaults',
   'provider_auth_configs',
   'provider_auth_credentials',
-  'session_templates',
   'networks',
   'firewalls',
   'enclaves',
@@ -295,14 +294,14 @@ export let InfrastructureOverviewPage = () => {
             {
               label: 'Deployments',
               hint: 'Provider access',
-              to: Paths.instance.providerDeployments(...params),
+              to: Paths.organization.instance.providerDeployments(...params),
               countResources: ['provider_deployments'],
               tone: 'green'
             },
             {
               label: 'Configurations',
               hint: 'Auth and config',
-              to: Paths.instance.providerDeployments(...params, 'auth-configs'),
+              to: Paths.instance.providerAuthConfigs(...params),
               countResources: [
                 'provider_configs',
                 'provider_config_vaults',
@@ -314,7 +313,7 @@ export let InfrastructureOverviewPage = () => {
             {
               label: 'Enclaves',
               hint: 'Runtime isolation',
-              to: Paths.instance.networkEnclaves(...params),
+              to: Paths.organization.instance.networkEnclaves(...params),
               countResources: ['enclaves'],
               tone: 'orange'
             },
@@ -344,7 +343,7 @@ export let InfrastructureOverviewPage = () => {
 
           <RecentEnclavesBox
             enclaves={lastUsedEnclaves}
-            enclavePath={Paths.instance.networkEnclaves(...params)}
+            enclavePath={Paths.organization.instance.networkEnclaves(...params)}
           />
         </ActivityGrid>
 
@@ -356,7 +355,7 @@ export let InfrastructureOverviewPage = () => {
               {
                 label: 'Deployments',
                 description: 'Provider deployments available to apps and agents.',
-                to: Paths.instance.providerDeployments(...params),
+                to: Paths.organization.instance.providerDeployments(...params),
                 countResources: ['provider_deployments'],
                 action: 'View',
                 tone: 'green'
@@ -364,7 +363,7 @@ export let InfrastructureOverviewPage = () => {
               {
                 label: 'Configurations',
                 description: 'Auth configs, credentials, provider configs, and vaults.',
-                to: Paths.instance.providerDeployments(...params, 'auth-configs'),
+                to: Paths.instance.providerAuthConfigs(...params),
                 countResources: [
                   'provider_configs',
                   'provider_config_vaults',
@@ -373,13 +372,6 @@ export let InfrastructureOverviewPage = () => {
                 ],
                 action: 'Review',
                 tone: 'blue'
-              },
-              {
-                label: 'Templates',
-                description: 'Reusable session templates for provider access.',
-                to: Paths.instance.sessionTemplates(...params),
-                countResources: ['session_templates'],
-                action: 'Open'
               }
             ]}
             getResourceCount={getResourceCount}
@@ -392,7 +384,7 @@ export let InfrastructureOverviewPage = () => {
               {
                 label: 'Network',
                 description: 'Firewall policy, public IPs, and network settings.',
-                to: Paths.instance.network(...params),
+                to: Paths.organization.instance.network(...params),
                 countResources: ['networks', 'firewalls'],
                 action: 'Open',
                 tone: 'green'
@@ -400,17 +392,10 @@ export let InfrastructureOverviewPage = () => {
               {
                 label: 'Enclaves',
                 description: 'Runtime isolation for provider deployments.',
-                to: Paths.instance.networkEnclaves(...params),
+                to: Paths.organization.instance.networkEnclaves(...params),
                 countResources: ['enclaves'],
                 action: 'Inspect',
                 tone: 'orange'
-              },
-              {
-                label: 'Compute Overview',
-                description: 'Magic Network, firewall options, and recent activity.',
-                to: Paths.instance.security(...params),
-                countResources: ['networks', 'firewalls', 'enclaves'],
-                action: 'Open'
               }
             ]}
             getResourceCount={getResourceCount}

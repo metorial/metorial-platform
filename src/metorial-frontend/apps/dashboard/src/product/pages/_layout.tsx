@@ -10,16 +10,11 @@ import {
 import {
   RiBriefcase4Line,
   RiChatVoiceAiLine,
-  RiFileList3Line,
-  RiFlowChart,
   RiFolderSettingsLine,
   RiGroupLine,
   RiHome6Line,
-  RiKey2Line,
   RiListCheck2,
   RiPlugLine,
-  RiServerLine,
-  RiShieldKeyholeLine,
   RiSurveyLine,
   RiUploadCloud2Line,
   RiUser3Line,
@@ -42,23 +37,6 @@ export let ProjectPageLayout = () => {
   };
   let checkPathPrefixes = (pathname: string, prefixes: string[]) =>
     prefixes.some(prefix => pathname.includes(`/${prefix}`));
-  let checkProviderDeploymentDetailPath = (pathname: string) => {
-    let marker = '/configurations/';
-    let markerIndex = pathname.indexOf(marker);
-    if (markerIndex === -1) return false;
-
-    let relativePath = pathname.slice(markerIndex + 1);
-
-    return ![
-      'configurations/auth-credentials',
-      'configurations/auth-credential',
-      'configurations/auth-configs',
-      'configurations/auth-config',
-      'configurations/configs',
-      'configurations/config',
-      'configurations/config-vaults'
-    ].some(prefix => relativePath === prefix || relativePath.startsWith(`${prefix}/`));
-  };
 
   useEffect(() => {
     if (!instance.data) return;
@@ -77,7 +55,6 @@ export let ProjectPageLayout = () => {
   ];
   let dashboardFlags = useDashboardFlags();
   let assistantEnabled = !!dashboardFlags.data?.flags['assistant-enabled'];
-  let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
 
   return (
     <AppLayout
@@ -90,6 +67,12 @@ export let ProjectPageLayout = () => {
               icon: <RiHome6Line />,
               label: 'Home',
               to: Paths.instance(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+            {
+              icon: <RiHome6Line />,
+              label: 'Infra',
+              to: Paths.instance.infrastructure(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]
@@ -107,31 +90,9 @@ export let ProjectPageLayout = () => {
             },
 
             {
-              icon: <RiKey2Line />,
-              label: 'Auth Credentials',
-              to: Paths.instance.providerDeployments(...params, 'auth-credentials'),
-              getProps: i => ({
-                isActive:
-                  checkPath(i, { exact: true }) ||
-                  i.pathname.includes('/configurations/auth-credential/')
-              })
-            },
-
-            {
-              icon: <RiFlowChart />,
-              label: 'Deployments',
-              to: Paths.instance.providerDeployments(...params),
-              getProps: i => ({
-                isActive:
-                  checkPath(i, { exact: true }) ||
-                  checkProviderDeploymentDetailPath(i.pathname)
-              })
-            },
-
-            {
               icon: <RiFolderSettingsLine />,
               label: 'Configurations',
-              to: Paths.instance.providerDeployments(...params, 'auth-configs'),
+              to: Paths.instance.providerAuthConfigs(...params),
               getProps: i => ({
                 isActive:
                   checkPath(i) ||
@@ -139,15 +100,13 @@ export let ProjectPageLayout = () => {
                     'configurations/auth-configs',
                     'configurations/auth-config',
                     'configurations/configs',
-                    'configurations/config',
-                    'configurations/config-vaults',
-                    'provider-config-vault'
+                    'configurations/config/'
                   ])
               }),
               children: [
                 {
                   label: 'Auth Configs',
-                  to: Paths.instance.providerDeployments(...params, 'auth-configs'),
+                  to: Paths.instance.providerAuthConfigs(...params),
                   getProps: i => ({
                     isActive:
                       checkPath(i, { exact: true }) ||
@@ -156,32 +115,17 @@ export let ProjectPageLayout = () => {
                 },
                 {
                   label: 'Configs',
-                  to: Paths.instance.providerDeployments(...params, 'configs'),
+                  to: Paths.instance.providerConfigs(...params),
                   getProps: i => ({
                     isActive:
                       checkPath(i, { exact: true }) ||
-                      checkPathPrefixes(i.pathname, ['configurations/config'])
-                  })
-                },
-                {
-                  label: 'Vaults',
-                  to: Paths.instance.providerDeployments(...params, 'config-vaults'),
-                  getProps: i => ({
-                    isActive:
-                      checkPath(i, { exact: true }) ||
-                      checkPathPrefixes(i.pathname, ['provider-config-vault'])
+                      checkPathPrefixes(i.pathname, [
+                        'configurations/configs',
+                        'configurations/config/'
+                      ])
                   })
                 }
               ]
-            },
-
-            {
-              icon: <RiFileList3Line />,
-              label: 'Templates',
-              to: Paths.instance.sessionTemplates(...params),
-              getProps: i => ({
-                isActive: checkPath(i) || checkPathPrefixes(i.pathname, ['session-template'])
-              })
             },
 
             {
@@ -194,11 +138,6 @@ export let ProjectPageLayout = () => {
                 {
                   label: 'Sessions',
                   to: Paths.instance.providerSessions(...params),
-                  getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-                },
-                {
-                  label: 'Provider Runs',
-                  to: Paths.instance.providerRuns(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
@@ -247,61 +186,6 @@ export let ProjectPageLayout = () => {
             }
           ]
         },
-
-        ...(networkingEnabled
-          ? [
-              {
-                label: 'Compute',
-                collapsible: true,
-                items: [
-                  {
-                    icon: <RiShieldKeyholeLine />,
-                    label: 'Overview',
-                    to: Paths.instance.security(...params),
-                    getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
-                    })
-                  },
-                  {
-                    icon: <RiFlowChart />,
-                    label: 'Network',
-                    to: Paths.instance.network(...params),
-                    getProps: (i: { pathname: string; to: string }) => ({
-                      isActive:
-                        checkPath(i, { exact: true }) ||
-                        i.pathname.includes('/network/firewall/')
-                    }),
-                    children: [
-                      {
-                        label: 'Firewalls',
-                        to: Paths.instance.networkFirewalls(...params),
-                        getProps: (i: { pathname: string; to: string }) => ({
-                          isActive:
-                            checkPath(i, { exact: true }) ||
-                            i.pathname.includes('/network/firewall/')
-                        })
-                      },
-                      {
-                        label: 'Network Settings',
-                        to: Paths.instance.networkSettings(...params),
-                        getProps: (i: { pathname: string; to: string }) => ({
-                          isActive: checkPath(i, { exact: true })
-                        })
-                      }
-                    ]
-                  },
-                  {
-                    icon: <RiServerLine />,
-                    label: 'Enclaves',
-                    to: Paths.instance.networkEnclaves(...params),
-                    getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
-                    })
-                  }
-                ]
-              }
-            ]
-          : []),
 
         {
           label: 'Gateway',

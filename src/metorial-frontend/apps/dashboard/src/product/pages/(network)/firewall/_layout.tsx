@@ -28,7 +28,7 @@ export let NetworkFirewallPageLayout = () => {
             pagination={[
               {
                 label: 'Firewalls',
-                href: Paths.instance.networkFirewalls(
+                href: Paths.organization.instance.networkFirewalls(
                   organization.data,
                   project.data,
                   instance.data
@@ -36,7 +36,7 @@ export let NetworkFirewallPageLayout = () => {
               },
               {
                 label: firewall.data.name,
-                href: Paths.instance.networkFirewall(
+                href: Paths.organization.instance.networkFirewall(
                   organization.data,
                   project.data,
                   instance.data,
@@ -51,7 +51,7 @@ export let NetworkFirewallPageLayout = () => {
             links={[
               {
                 label: 'Overview',
-                to: Paths.instance.networkFirewall(
+                to: Paths.organization.instance.networkFirewall(
                   organization.data,
                   project.data,
                   instance.data,
@@ -60,7 +60,7 @@ export let NetworkFirewallPageLayout = () => {
               },
               {
                 label: 'Settings',
-                to: Paths.instance.networkFirewall(
+                to: Paths.organization.instance.networkFirewall(
                   organization.data,
                   project.data,
                   instance.data,
