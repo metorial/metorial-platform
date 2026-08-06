@@ -43,7 +43,13 @@ export let useCurrentOrganization = () => {
       ...bootRaw,
       data: {
         ...bootRaw.data,
-        organizations: [currentProfile.organization],
+        organizations: [
+          {
+            ...currentProfile.organization,
+            namespaces: currentProfile.portal?.namespaces ?? [],
+            member: undefined
+          }
+        ],
         instances: [currentProfile.instance],
         projects: [currentProfile.project]
       }
@@ -200,6 +206,7 @@ export let useCurrentOrganization = () => {
     ...org,
     data: {
       ...foundItem.organization,
+
       projects,
       instances,
 

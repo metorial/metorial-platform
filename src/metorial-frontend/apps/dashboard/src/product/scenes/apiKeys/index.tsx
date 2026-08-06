@@ -29,11 +29,11 @@ import {
   useCopy
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { useNow } from '@metorial/use-now';
 import { RiClipboardLine, RiMoreLine } from '@remixicon/react';
 import { subDays } from 'date-fns';
 import { useState } from 'react';
 import styled from 'styled-components';
-import { useNow } from '@metorial/use-now';
 import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
 
 type ApiKeyType = ApiKeysGetOutput['type'];
@@ -456,7 +456,7 @@ export let ApiKeysScene = ({
               title={header.title}
               description={header.description}
               actions={
-                org.data?.member.role == 'admin' && (
+                org.data?.member?.role == 'admin' && (
                   <Button size="2" onClick={() => createApiKeyModal()}>
                     Create {name}
                   </Button>
@@ -497,7 +497,7 @@ export let ApiKeysScene = ({
                   apiKey.expiresAt ? <RenderDate date={apiKey.expiresAt} /> : 'Never',
                   apiKey.lastUsedAt ? <RenderDate date={apiKey.lastUsedAt} /> : 'Never',
 
-                  org.data?.member.role == 'admin' ? (
+                  org.data?.member?.role == 'admin' ? (
                     <Menu
                       items={[
                         {
@@ -661,7 +661,7 @@ export let ApiKeySecret = ({ apiKey }: { apiKey: ApiKeysGetOutput }) => {
             variant="solid"
             loading={isRevealed && (reveal.isLoading || !!reveal.value)}
             size="1"
-            disabled={org.data?.member.role != 'admin'}
+            disabled={org.data?.member?.role != 'admin'}
           >
             Reveal Secret
           </Button>
