@@ -66,9 +66,11 @@ class slateTriggerWebhookRequestServiceImpl {
     jobId?: string;
   }) {
     let { delayMs, jobId, ...payload } = d;
-    let queueOptions =
-      delayMs !== undefined || jobId !== undefined ? { delay: delayMs, id: jobId } : undefined;
-    await slateTriggerWebhookQueue.add(payload, queueOptions);
+    if (delayMs !== undefined || jobId !== undefined) {
+      await slateTriggerWebhookQueue.add(payload, { delay: delayMs, id: jobId });
+    } else {
+      await slateTriggerWebhookQueue.add(payload);
+    }
   }
 
   async claimSyncOwnership(d: {

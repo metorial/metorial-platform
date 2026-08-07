@@ -889,7 +889,10 @@ describe('slate:trigger webhook E2E', () => {
       }
     );
     expect(queueMocks.webhookAdd.mock.calls[0]?.[1]?.delay).toBeGreaterThan(15 * 60 * 1_000);
-    expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
+    // The queued response settles before the background owner reaches the provider RPC.
+    await vi.waitFor(() =>
+      expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1)
+    );
   });
 
   it('lets a late synchronous invocation finish once and finalize without a queue race', async () => {
@@ -917,6 +920,10 @@ describe('slate:trigger webhook E2E', () => {
     expect(body.status).toBe('queued');
     expect(queueMocks.webhookAdd).toHaveBeenCalledTimes(1);
 
+    // Wait for the background owner to invoke the provider so resolveInvocation is assigned.
+    await vi.waitFor(() =>
+      expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1)
+    );
     resolveInvocation({
       status: 'success',
       invocation: { oid: webhookInvocation.oid },
