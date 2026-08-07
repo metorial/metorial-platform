@@ -16,7 +16,7 @@ import {
   getStorage
 } from '@metorial/cargo-module-file';
 import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, isUniqueConstraintError, withTransaction } from '@metorial/db';
 import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { storeItemInclude } from '../services/storeItem';
 import { storeItemMutationService } from '../services/storeItemMutation';
@@ -315,65 +315,106 @@ class InternalStoreTemplateSyncServiceImpl {
       storeTemplate: StoreTemplateSyncRecord;
     }
   ) {
-    return await withTransaction(async db => {
-      let existing = await db.storeTemplateBacking.findFirst({
-        where: {
-          storeTemplateOid: d.storeTemplate.oid,
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
-        },
-        include: {
-          store: true
-        }
-      });
+    try {
+      return await withTransaction(async db => {
+        let existing = await db.storeTemplateBacking.findFirst({
+          where: {
+            storeTemplateOid: d.storeTemplate.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid
+          },
+          include: {
+            store: true
+          }
+        });
 
-      if (existing) {
-        let store = existing.store;
-        if (
-          store.name !== d.storeTemplate.name ||
-          store.access !== 'public_read' ||
-          !store.isReadOnly ||
-          !store.isTemplateBacking ||
-          store.parentStoreTemplateOid !== d.storeTemplate.oid
-        ) {
-          store = await db.store.update({
+        if (existing) {
+          let store = existing.store;
+          if (
+            store.name !== d.storeTemplate.name ||
+            store.access !== 'public_read' ||
+            !store.isReadOnly ||
+            !store.isTemplateBacking ||
+            store.parentStoreTemplateOid !== d.storeTemplate.oid
+          ) {
+            store = await db.store.update({
+              where: {
+                id: store.id
+              },
+              data: {
+                name: d.storeTemplate.name,
+                access: 'public_read',
+                isReadOnly: true,
+                isTemplateBacking: true,
+                parentStoreTemplateOid: d.storeTemplate.oid
+              }
+            });
+          }
+
+          return {
+            backing: existing,
+            store
+          };
+        }
+
+        let storeIds = getId('store');
+        let backingIds = getId('storeTemplateBacking');
+        let store = await db.store.create({
+          data: {
+            oid: storeIds.oid,
+            id: storeIds.id,
+            name: d.storeTemplate.name,
+            access: 'public_read',
+            itemCount: 0,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
+            parentStoreTemplateOid: d.storeTemplate.oid,
+            isReadOnly: true,
+            isTemplateBacking: true
+          }
+        });
+
+        let backing = await db.storeTemplateBacking.upsert({
+          where: {
+            storeTemplateOid_resourceTenantOid_resourceGroupOid: {
+              storeTemplateOid: d.storeTemplate.oid,
+              resourceTenantOid: d.resourceTenant.oid,
+              resourceGroupOid: d.resourceGroup.oid
+            }
+          },
+          create: {
+            oid: backingIds.oid,
+            id: backingIds.id,
+            storeTemplateOid: d.storeTemplate.oid,
+            resourceTenantOid: d.resourceTenant.oid,
+            resourceGroupOid: d.resourceGroup.oid,
+            storeOid: store.oid
+          },
+          update: {},
+          include: {
+            store: true
+          }
+        });
+
+        if (backing.storeOid !== store.oid) {
+          await db.store.delete({
             where: {
               id: store.id
-            },
-            data: {
-              name: d.storeTemplate.name,
-              access: 'public_read',
-              isReadOnly: true,
-              isTemplateBacking: true,
-              parentStoreTemplateOid: d.storeTemplate.oid
             }
           });
+
+          store = backing.store;
         }
 
         return {
-          backing: existing,
+          backing,
           store
         };
-      }
-
-      let storeIds = getId('store');
-      let backingIds = getId('storeTemplateBacking');
-      let store = await db.store.create({
-        data: {
-          oid: storeIds.oid,
-          id: storeIds.id,
-          name: d.storeTemplate.name,
-          access: 'public_read',
-          itemCount: 0,
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
-          parentStoreTemplateOid: d.storeTemplate.oid,
-          isReadOnly: true,
-          isTemplateBacking: true
-        }
       });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
 
-      let backing = await db.storeTemplateBacking.upsert({
+      let backing = await db.storeTemplateBacking.findUnique({
         where: {
           storeTemplateOid_resourceTenantOid_resourceGroupOid: {
             storeTemplateOid: d.storeTemplate.oid,
@@ -381,35 +422,17 @@ class InternalStoreTemplateSyncServiceImpl {
             resourceGroupOid: d.resourceGroup.oid
           }
         },
-        create: {
-          oid: backingIds.oid,
-          id: backingIds.id,
-          storeTemplateOid: d.storeTemplate.oid,
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
-          storeOid: store.oid
-        },
-        update: {},
         include: {
           store: true
         }
       });
-
-      if (backing.storeOid !== store.oid) {
-        await db.store.delete({
-          where: {
-            id: store.id
-          }
-        });
-
-        store = backing.store;
-      }
+      if (!backing) throw error;
 
       return {
         backing,
-        store
+        store: backing.store
       };
-    });
+    }
   }
 
   private async removeItems(
