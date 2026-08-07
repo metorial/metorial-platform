@@ -27,7 +27,9 @@ import {
   getTriggerSpec,
   receiverInclude,
   receiverTriggerInclude,
-  type ReceiverTriggerWithRelations
+  webhookTriggerAllowsMethod,
+  type ReceiverTriggerWithRelations,
+  type WebhookHttpResponse
 } from './slateTriggerReceiverShared';
 
 let Sentry = getSentry();
@@ -44,6 +46,7 @@ let getWebhookInvocationPayloadBytes = (d: {
   actionId: string;
   request: TriggerWebhookRequestPayload;
   state: any;
+  registrationDetails: any;
 }) =>
   Buffer.byteLength(
     JSON.stringify({
@@ -52,7 +55,8 @@ let getWebhookInvocationPayloadBytes = (d: {
       method: d.request.method,
       headers: d.request.headers,
       body: d.request.body ?? null,
-      state: d.state
+      state: d.state,
+      registrationDetails: d.registrationDetails
     })
   );
 
@@ -734,17 +738,35 @@ export class SlateTriggerReceiverRuntime {
   private async handleWebhookForReceiverTrigger(d: {
     receiverTrigger: ReceiverTriggerWithRelations;
     request: TriggerWebhookRequestPayload;
-  }) {
+    invocationGuard?: () => Promise<boolean>;
+    enterCommit?: () => Promise<boolean>;
+  }): Promise<
+    | { status: 'ignored' }
+    | { status: 'abandoned' }
+    | { status: 'error' }
+    | { status: 'handled'; response?: WebhookHttpResponse }
+  > {
+    let canInvoke = async () => !d.invocationGuard || (await d.invocationGuard());
+    let enterCommit = async () => !d.enterCommit || (await d.enterCommit());
     let receiverTrigger = d.receiverTrigger;
-    if (receiverTrigger.source !== SlateTriggerReceiverTriggerSource.webhook) return;
-    if (receiverTrigger.receiver.status !== SlateTriggerReceiverStatus.active) return;
+    if (receiverTrigger.source !== SlateTriggerReceiverTriggerSource.webhook) {
+      return { status: 'ignored' };
+    }
+    if (receiverTrigger.receiver.status !== SlateTriggerReceiverStatus.active) {
+      return { status: 'ignored' };
+    }
+    if (!webhookTriggerAllowsMethod(receiverTrigger.action, d.request.method)) {
+      return { status: 'ignored' };
+    }
+    if (!(await canInvoke())) return { status: 'abandoned' };
 
     let context = await this.core.getInvocationContext({ receiverTrigger });
 
     let payloadBytes = getWebhookInvocationPayloadBytes({
       actionId: context.action.key,
       request: d.request,
-      state: receiverTrigger.state
+      state: receiverTrigger.state,
+      registrationDetails: receiverTrigger.registrationDetails
     });
     if (payloadBytes > MAX_WEBHOOK_INVOCATION_PAYLOAD_BYTES) {
       console.error('Webhook payload is too large to process.', {
@@ -753,6 +775,7 @@ export class SlateTriggerReceiverRuntime {
         payloadBytes,
         maxPayloadBytes: MAX_WEBHOOK_INVOCATION_PAYLOAD_BYTES
       });
+      if (!(await enterCommit())) return { status: 'abandoned' };
       await this.core.recordCallbackEventLifecycle({
         receiver: receiverTrigger.receiver,
         action: context.action,
@@ -765,9 +788,10 @@ export class SlateTriggerReceiverRuntime {
           errorMessage: 'Webhook payload is too large to process.'
         }
       });
-      return;
+      return { status: 'handled' };
     }
 
+    if (!(await canInvoke())) return { status: 'abandoned' };
     let stack = await this.core.createInvocationStack({
       receiver: receiverTrigger.receiver,
       receiverTrigger,
@@ -776,6 +800,7 @@ export class SlateTriggerReceiverRuntime {
       auth: context.auth
     });
 
+    if (!(await canInvoke())) return { status: 'abandoned' };
     let res = await slateInvocationService.handleWebhookRequest({
       stack,
       actionId: context.action.key,
@@ -783,16 +808,20 @@ export class SlateTriggerReceiverRuntime {
       method: d.request.method,
       headers: d.request.headers,
       body: d.request.body ?? null,
-      state: receiverTrigger.state
+      state: receiverTrigger.state,
+      registrationDetails: receiverTrigger.registrationDetails
     });
 
+    // This is the only RPC-to-commit transition. Synchronous callers atomically persist it
+    // before any trigger state, lifecycle, event, or invocation-link side effects are applied.
+    if (!(await enterCommit())) return { status: 'abandoned' };
     await this.core.recordTriggerInvocation({
       receiver: receiverTrigger.receiver,
       receiverTrigger,
       type: SlateTriggerInvocationType.webhook_handle,
-      invocation: res.invocation
+      invocation: res.invocation,
+      hasResponse: res.status === 'success' && Boolean(res.data.response)
     });
-
     if (res.status === 'error') {
       console.error('Failed to handle trigger webhook:', {
         receiverTriggerId: receiverTrigger.id,
@@ -819,7 +848,7 @@ export class SlateTriggerReceiverRuntime {
           providerInvocation: res.invocation
         }
       });
-      return;
+      return { status: 'error' };
     }
 
     await db.slateTriggerReceiverTrigger.update({
@@ -829,7 +858,6 @@ export class SlateTriggerReceiverRuntime {
           res.data.updatedState !== undefined ? res.data.updatedState : receiverTrigger.state
       }
     });
-
     if (res.data.inputs.length === 0) {
       let eventInput = await this.createTerminalWebhookEventInput({
         receiverTrigger,
@@ -848,18 +876,28 @@ export class SlateTriggerReceiverRuntime {
           providerInvocation: res.invocation
         }
       });
-      return;
+      return {
+        status: 'handled',
+        response: res.data.response ?? undefined
+      };
     }
 
     await this.core.enqueueTriggerEventInputs({
       receiverTrigger,
       inputs: res.data.inputs
     });
+
+    return {
+      status: 'handled',
+      response: res.data.response ?? undefined
+    };
   }
 
   async handleTriggerWebhook(d: {
     receiverTriggerId: string;
     request: TriggerWebhookRequestPayload;
+    invocationGuard?: () => Promise<boolean>;
+    enterCommit?: () => Promise<boolean>;
   }) {
     let receiverTrigger = await db.slateTriggerReceiverTrigger.findFirst({
       where: {
@@ -870,13 +908,20 @@ export class SlateTriggerReceiverRuntime {
     if (!receiverTrigger)
       throw new ServiceError(notFoundError('slate.trigger.receiver_trigger'));
 
-    await this.handleWebhookForReceiverTrigger({
+    return await this.handleWebhookForReceiverTrigger({
       receiverTrigger: receiverTrigger as ReceiverTriggerWithRelations,
-      request: d.request
+      request: d.request,
+      invocationGuard: d.invocationGuard,
+      enterCommit: d.enterCommit
     });
   }
 
-  async handleReceiverWebhook(d: { receiverId: string; request: TriggerWebhookRequestPayload }) {
+  async handleReceiverWebhook(d: {
+    receiverId: string;
+    request: TriggerWebhookRequestPayload;
+    excludeReceiverTriggerIds?: string[];
+    onReceiverTriggerCompleted?: (receiverTriggerId: string) => Promise<void>;
+  }) {
     let receiver = await db.slateTriggerReceiver.findFirst({
       where: {
         id: d.receiverId
@@ -887,33 +932,38 @@ export class SlateTriggerReceiverRuntime {
     if (receiver.status !== SlateTriggerReceiverStatus.active) return;
 
     let webhookTriggers = receiver.triggers.filter(
-      trigger => trigger.source === SlateTriggerReceiverTriggerSource.webhook
+      trigger =>
+        trigger.source === SlateTriggerReceiverTriggerSource.webhook &&
+        webhookTriggerAllowsMethod(trigger.action, d.request.method) &&
+        !d.excludeReceiverTriggerIds?.includes(trigger.id)
     );
 
-    await Promise.all(
-      webhookTriggers.map(async trigger => {
-        try {
-          await this.handleWebhookForReceiverTrigger({
-            receiverTrigger: {
-              ...trigger,
-              receiver
-            } as ReceiverTriggerWithRelations,
-            request: d.request
-          });
-        } catch (error) {
-          Sentry.captureException(error, {
-            extra: {
-              receiverId: receiver.id,
-              receiverTriggerId: trigger.id
-            }
-          });
-          console.error('Failed to fan out trigger webhook:', {
+    for (let trigger of webhookTriggers) {
+      try {
+        await this.handleWebhookForReceiverTrigger({
+          receiverTrigger: {
+            ...trigger,
+            receiver
+          } as ReceiverTriggerWithRelations,
+          request: d.request
+        });
+        await d.onReceiverTriggerCompleted?.(trigger.id);
+      } catch (error) {
+        Sentry.captureException(error, {
+          extra: {
             receiverId: receiver.id,
-            receiverTriggerId: trigger.id,
-            error
-          });
-        }
-      })
-    );
+            receiverTriggerId: trigger.id
+          }
+        });
+        console.error('Failed to fan out trigger webhook:', {
+          receiverId: receiver.id,
+          receiverTriggerId: trigger.id,
+          error
+        });
+        // Queue processing supplies a checkpoint callback and must retry the uncheckpointed
+        // remainder. Preserve the existing best-effort behavior for direct internal callers.
+        if (d.onReceiverTriggerCompleted) throw error;
+      }
+    }
   }
 }

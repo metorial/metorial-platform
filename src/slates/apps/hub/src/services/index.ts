@@ -24,6 +24,7 @@ export * from './slateTriggerEvent';
 export * from './slateTriggerEventInput';
 export * from './slateTriggerInvocation';
 export * from './slateTriggerWebhookRequest';
+export * from './slateTriggerWebhookSync';
 export * from './slateTriggerReceiver';
 export * from './slateVersion';
 export * from './slateVersionDiscovery';

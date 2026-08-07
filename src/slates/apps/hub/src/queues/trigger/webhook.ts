@@ -1,19 +1,20 @@
-import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
 import { db } from '../../db';
 import { env } from '../../env';
-import {
-  getTriggerWebhookRequestStorageKey,
-  type TriggerWebhookRequestPayload
-} from '../../lib/triggerWebhook';
+import type { TriggerWebhookRequestPayload } from '../../lib/triggerWebhook';
+import { processSlateTriggerWebhookQueueRequest } from '../../lib/triggerWebhookQueueProcessing';
 import { slateTriggerReceiverService } from '../../services/slateTriggerReceiver';
-import { invocationsBucketRecord, storage } from '../../storage';
+import {
+  finalizeWebhookRequest,
+  getSlateTriggerWebhookLock
+} from '../../services/slateTriggerWebhookProcessing';
 
 let Sentry = getSentry();
 
 export type TriggerWebhookQueuePayload = {
   webhookRequestId: string;
+  excludeReceiverTriggerIds?: string[];
 };
 
 export let slateTriggerWebhookQueue = createQueue<TriggerWebhookQueuePayload>({
@@ -28,174 +29,111 @@ export let slateTriggerWebhookQueue = createQueue<TriggerWebhookQueuePayload>({
   }
 });
 
-let webhookLock = createLock({
-  name: 'shub/trg/webhook/lock',
-  redisUrl: env.service.REDIS_URL
-});
-
 type TriggerWebhookBody = TriggerWebhookRequestPayload['body'];
 
-let finalizeWebhookRequest = async (d: {
-  request: {
-    id: string;
-    receiverTriggerId: string | null;
-    receiverId: string | null;
-    url: string;
-    method: string;
-    headers: Record<string, string>;
-    createdAt: Date;
-  };
-  body: TriggerWebhookBody;
-  bodyStorageKey: string | null;
-}) => {
-  if (d.body && d.bodyStorageKey) {
-    await storage.putObject(
-      invocationsBucketRecord.bucket,
-      d.bodyStorageKey,
-      JSON.stringify({
-        id: d.request.id,
-        receiverTriggerId: d.request.receiverTriggerId,
-        receiverId: d.request.receiverId,
-        url: d.request.url,
-        method: d.request.method,
-        headers: d.request.headers,
-        body: d.body,
-        createdAt: d.request.createdAt
-      })
-    );
-  }
-
-  await db.slateTriggerWebhookRequest.update({
-    where: { id: d.request.id },
-    data: {
-      processedAt: new Date(),
-      bodyStorageKey: d.bodyStorageKey,
-      body: null
-    }
+let loadPendingWebhookRequest = async (webhookRequestId: string) => {
+  let request = await db.slateTriggerWebhookRequest.findFirst({
+    where: { id: webhookRequestId }
   });
+  return request?.processedAt ? null : request;
 };
 
+let requestPayload = (
+  request: NonNullable<Awaited<ReturnType<typeof loadPendingWebhookRequest>>>
+) => ({
+  url: request.url,
+  method: request.method,
+  headers: request.headers as Record<string, string>,
+  body: request.body as TriggerWebhookBody
+});
+
+let finalize = (request: NonNullable<Awaited<ReturnType<typeof loadPendingWebhookRequest>>>) =>
+  finalizeWebhookRequest({
+    request: {
+      id: request.id,
+      receiverTriggerId: request.receiverTriggerId,
+      receiverId: request.receiverId,
+      url: request.url,
+      method: request.method,
+      headers: request.headers as Record<string, string>,
+      createdAt: request.createdAt
+    },
+    body: request.body as TriggerWebhookBody
+  });
+
 export let slateTriggerWebhookQueueProcessor = slateTriggerWebhookQueue.process(async data => {
+  let result: Awaited<ReturnType<typeof processSlateTriggerWebhookQueueRequest>>;
   try {
-    let request = await db.slateTriggerWebhookRequest.findFirst({
-      where: { id: data.webhookRequestId }
-    });
-    if (!request || request.processedAt) return;
-
-    let headers = request.headers as Record<string, string>;
-    let body = request.body as TriggerWebhookBody;
-    let bodyStorageKey = body ? getTriggerWebhookRequestStorageKey(request.id) : null;
-
-    if (request.receiverTriggerId) {
-      let receiverTrigger = await db.slateTriggerReceiverTrigger.findFirst({
-        where: { id: request.receiverTriggerId },
-        select: { id: true }
-      });
-      if (!receiverTrigger) {
-        await finalizeWebhookRequest({
-          request: {
+    result = await processSlateTriggerWebhookQueueRequest(data, {
+      loadPendingRequest: loadPendingWebhookRequest,
+      usingLock: (key, callback) => getSlateTriggerWebhookLock().usingLock(key, callback),
+      fenceExpiredOwner: async request => {
+        await db.slateTriggerWebhookRequest.updateMany({
+          where: {
             id: request.id,
-            receiverTriggerId: request.receiverTriggerId,
-            receiverId: request.receiverId,
-            url: request.url,
-            method: request.method,
-            headers,
-            createdAt: request.createdAt
+            processedAt: null,
+            syncOwnerToken: request.syncOwnerToken,
+            syncOwnerExpiresAt: { lte: new Date() }
           },
-          body,
-          bodyStorageKey
-        });
-        return;
-      }
-
-      return webhookLock.usingLock(receiverTrigger.id, async () => {
-        await slateTriggerReceiverService.handleTriggerWebhook({
-          receiverTriggerId: receiverTrigger.id,
-          request: {
-            url: request.url,
-            method: request.method,
-            headers,
-            body
+          data: {
+            syncOwnerToken: null,
+            syncOwnerExpiresAt: null,
+            syncOwnerCommitStartedAt: null
           }
         });
-
-        await finalizeWebhookRequest({
-          request: {
-            id: request.id,
-            receiverTriggerId: request.receiverTriggerId,
-            receiverId: request.receiverId,
-            url: request.url,
-            method: request.method,
-            headers,
-            createdAt: request.createdAt
-          },
-          body,
-          bodyStorageKey
-        });
-      });
-    }
-
-    if (request.receiverId) {
-      let receiver = await db.slateTriggerReceiver.findFirst({
-        where: { id: request.receiverId },
-        select: { id: true }
-      });
-      if (!receiver) {
-        await finalizeWebhookRequest({
-          request: {
-            id: request.id,
-            receiverTriggerId: request.receiverTriggerId,
-            receiverId: request.receiverId,
-            url: request.url,
-            method: request.method,
-            headers,
-            createdAt: request.createdAt
-          },
-          body,
-          bodyStorageKey
-        });
-        return;
-      }
-
-      return webhookLock.usingLock(`receiver:${receiver.id}`, async () => {
-        await slateTriggerReceiverService.handleReceiverWebhook({
-          receiverId: receiver.id,
-          request: {
-            url: request.url,
-            method: request.method,
-            headers,
-            body
-          }
-        });
-
-        await finalizeWebhookRequest({
-          request: {
-            id: request.id,
-            receiverTriggerId: request.receiverTriggerId,
-            receiverId: request.receiverId,
-            url: request.url,
-            method: request.method,
-            headers,
-            createdAt: request.createdAt
-          },
-          body,
-          bodyStorageKey
-        });
-      });
-    }
-
-    await finalizeWebhookRequest({
-      request: {
-        id: request.id,
-        receiverTriggerId: request.receiverTriggerId,
-        receiverId: request.receiverId,
-        url: request.url,
-        method: request.method,
-        headers,
-        createdAt: request.createdAt
       },
-      body,
-      bodyStorageKey
+      targetExists: async request => {
+        if (request.receiverTriggerId) {
+          return Boolean(
+            await db.slateTriggerReceiverTrigger.findFirst({
+              where: { id: request.receiverTriggerId },
+              select: { id: true }
+            })
+          );
+        }
+        if (request.receiverId) {
+          return Boolean(
+            await db.slateTriggerReceiver.findFirst({
+              where: { id: request.receiverId },
+              select: { id: true }
+            })
+          );
+        }
+        return false;
+      },
+      handleTarget: async (request, excludeReceiverTriggerIds, onReceiverTriggerCompleted) => {
+        if (request.receiverTriggerId) {
+          if (!excludeReceiverTriggerIds.includes(request.receiverTriggerId)) {
+            await slateTriggerReceiverService.handleTriggerWebhook({
+              receiverTriggerId: request.receiverTriggerId,
+              request: requestPayload(request)
+            });
+            await onReceiverTriggerCompleted(request.receiverTriggerId);
+          }
+          return;
+        }
+        if (request.receiverId) {
+          await slateTriggerReceiverService.handleReceiverWebhook({
+            receiverId: request.receiverId,
+            excludeReceiverTriggerIds,
+            request: requestPayload(request),
+            onReceiverTriggerCompleted
+          });
+        }
+      },
+      checkpointTriggerCompleted: async (request, receiverTriggerId) => {
+        await db.slateTriggerWebhookRequest.updateMany({
+          where: {
+            id: request.id,
+            processedAt: null,
+            NOT: { syncCompletedReceiverTriggerIds: { has: receiverTriggerId } }
+          },
+          data: {
+            syncCompletedReceiverTriggerIds: { push: receiverTriggerId }
+          }
+        });
+      },
+      finalize
     });
   } catch (error) {
     Sentry.captureException(error, {
@@ -207,4 +145,7 @@ export let slateTriggerWebhookQueueProcessor = slateTriggerWebhookQueue.process(
     });
     throw new QueueRetryError();
   }
+
+  // An unexpired inline owner is normal control flow, not a failure — retry without alerting.
+  if (result === 'ownerActive') throw new QueueRetryError();
 });

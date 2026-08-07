@@ -19,6 +19,7 @@ export let slateTriggerInvocationPresenter = async (
 
   id: invocation.id,
   type: invocation.type,
+  hasResponse: invocation.hasResponse,
 
   triggerReceiverId: invocation.receiver.id,
   triggerReceiverTriggerId: invocation.receiverTrigger?.id ?? null,

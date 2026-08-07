@@ -183,11 +183,13 @@ export class SlateTriggerReceiverCore {
     eventOid?: bigint;
     type: SlateTriggerInvocationType;
     invocation: { oid: bigint };
+    hasResponse?: boolean;
   }) {
     await db.slateTriggerInvocation.create({
       data: {
         ...getId('slateTriggerInvocation'),
         type: d.type,
+        hasResponse: d.hasResponse ?? false,
         receiverOid: d.receiver.oid,
         receiverTriggerOid: d.receiverTrigger?.oid,
         eventOid: d.eventOid,
@@ -217,7 +219,8 @@ export class SlateTriggerReceiverCore {
     });
 
     if (
-      d.receiverTrigger.receiver.deliveryMode === SlateTriggerReceiverDeliveryMode.callback_v2 &&
+      d.receiverTrigger.receiver.deliveryMode ===
+        SlateTriggerReceiverDeliveryMode.callback_v2 &&
       d.receiverTrigger.receiver.callbackId
     ) {
       await Promise.all(
