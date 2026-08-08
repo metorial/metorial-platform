@@ -31,7 +31,9 @@ let processInviteLifecycle = async (consumerInviteId: string) => {
   await sendConsumerInviteEmail.send({
     data: {
       portal: consumerInvite.surface.portal,
-      portalUrl: portalService.getPortalHost({ portal: consumerInvite.surface.portal }).host,
+      portalUrl: await portalService.getPrimaryPortalUrl({
+        portal: consumerInvite.surface.portal
+      }),
       invite: consumerInvite,
       consumerProfile: consumerInvite.consumerProfile,
       invitedBy: consumerInvite.invitedBy

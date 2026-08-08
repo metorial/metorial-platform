@@ -1407,6 +1407,7 @@ export let consumerInviteType = PresentableType.create<{
       portal: Portal | null;
     };
   };
+  portalUrl: string | null;
 }>()('consumer.invite');
 
 export let consumerType = PresentableType.create<{

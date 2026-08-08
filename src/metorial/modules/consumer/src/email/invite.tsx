@@ -2,6 +2,7 @@ import { ConsumerInvite, ConsumerProfile, OrganizationActor, Portal } from '@met
 import { Button, createEmail, createTemplate, Layout, Text } from '@metorial/module-email';
 import React from 'react';
 import { notificationClient } from './client';
+import { buildConsumerInviteUrl } from './inviteUrl';
 
 export let sendConsumerInviteEmail = notificationClient.createTemplate(
   createTemplate({
@@ -18,9 +19,12 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
       consumerProfile: ConsumerProfile;
       invitedBy: OrganizationActor;
     }) => {
-      let url = new URL(portalUrl);
-      url.searchParams.set('consumer_invite_id', invite.id);
-      url.searchParams.set('consumer_profile_id', consumerProfile.id);
+      let url = buildConsumerInviteUrl({
+        portalUrl,
+        inviteId: invite.id,
+        consumerProfileId: consumerProfile.id,
+        email: consumerProfile.email
+      });
 
       return createEmail({
         subject: `You're invited to ${portal.name}`,
@@ -36,7 +40,7 @@ export let sendConsumerInviteEmail = notificationClient.createTemplate(
               much more. Metorial is managed by your organization administrators.
             </Text>
 
-            <Button href={url.toString()}>Join {portal.name}</Button>
+            <Button href={url}>Join {portal.name}</Button>
 
             {!!invite.message?.trim().length && (
               <Text>

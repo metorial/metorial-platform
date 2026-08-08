@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerInviteService } from '@metorial/module-consumer';
+import { consumerInviteService, portalService } from '@metorial/module-consumer';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -74,8 +74,10 @@ export let portalConsumerInviteController = Controller.create(
         });
         let list = await paginator.run(ctx.query);
 
+        let portalUrl = await portalService.getPrimaryPortalUrl({ portal: ctx.portal });
+
         return Paginator.present(list, consumerInvite =>
-          consumerInvitePresenter.present({ consumerInvite })
+          consumerInvitePresenter.present({ consumerInvite, portalUrl })
         );
       }),
 
@@ -110,7 +112,8 @@ export let portalConsumerInviteController = Controller.create(
         });
 
         return consumerInvitePresenter.present({
-          consumerInvite
+          consumerInvite,
+          portalUrl: await portalService.getPrimaryPortalUrl({ portal: ctx.portal })
         });
       }),
 
@@ -130,7 +133,8 @@ export let portalConsumerInviteController = Controller.create(
       .output(consumerInvitePresenter)
       .do(async ctx => {
         return consumerInvitePresenter.present({
-          consumerInvite: ctx.consumerInvite
+          consumerInvite: ctx.consumerInvite,
+          portalUrl: await portalService.getPrimaryPortalUrl({ portal: ctx.portal })
         });
       })
   }

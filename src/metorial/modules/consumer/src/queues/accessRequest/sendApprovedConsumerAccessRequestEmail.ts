@@ -36,7 +36,7 @@ export let sendApprovedConsumerAccessRequestEmailQueueProcessor =
     if (!consumerAccessRequest.consumerProfile.email.trim()) return;
     if (!consumerAccessRequest.surface.portal) return;
 
-    let urlRes = portalService.getPortalHost({
+    let portalUrl = await portalService.getPrimaryPortalUrl({
       portal: consumerAccessRequest.surface.portal
     });
 
@@ -46,7 +46,7 @@ export let sendApprovedConsumerAccessRequestEmailQueueProcessor =
         organization: consumerAccessRequest.surface.organization,
         consumerSurface: consumerAccessRequest.surface,
         consumerAccessRequest,
-        url: urlRes.host
+        url: portalUrl
       }
     });
   });

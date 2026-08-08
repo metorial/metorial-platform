@@ -1,16 +1,13 @@
 import { v } from '@lowerdeck/validation';
-import { portalService } from '@metorial/module-consumer';
 import { Presenter } from '@metorial/presenter';
 import { consumerInviteType } from '../../types';
 
 export let v1ConsumerInvitePresenter = Presenter.create(consumerInviteType)
-  .presenter(async ({ consumerInvite }, opts) => ({
+  .presenter(async ({ consumerInvite, portalUrl }, opts) => ({
     object: 'consumer.invite' as const,
     id: consumerInvite.id,
     status: consumerInvite.status,
-    portal_url: consumerInvite.surface.portal
-      ? portalService.getPortalHost({ portal: consumerInvite.surface.portal }).host
-      : null,
+    portal_url: consumerInvite.surface.portal ? portalUrl : null,
     consumer_profile: {
       object: 'consumer.profile#preview' as const,
       id: consumerInvite.consumerProfile.id,
