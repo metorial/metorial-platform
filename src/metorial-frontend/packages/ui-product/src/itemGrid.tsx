@@ -212,8 +212,6 @@ let getActionProps = ({ href, onClick, disabled }: ItemGridActionProps) => {
   return {};
 };
 
-let NativeLink = styled.a``;
-
 let wrapAction = (
   children: React.ReactNode,
   href?: string,
@@ -222,18 +220,25 @@ let wrapAction = (
 ) => {
   if (!href || disabled) return children;
 
-  let Link = nativeLink ? NativeLink : getLink();
+  let style = {
+    color: 'inherit',
+    display: 'flex',
+    minWidth: 0,
+    textDecoration: 'none'
+  };
+
+  if (nativeLink) {
+    return (
+      <a href={href} style={style}>
+        {children}
+      </a>
+    );
+  }
+
+  let Link = getLink();
 
   return (
-    <Link
-      to={href}
-      style={{
-        color: 'inherit',
-        display: 'flex',
-        minWidth: 0,
-        textDecoration: 'none'
-      }}
-    >
+    <Link to={href} style={style}>
       {children}
     </Link>
   );
