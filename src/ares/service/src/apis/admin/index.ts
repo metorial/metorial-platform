@@ -16,6 +16,8 @@ let adminMux = rpcMux(
               'metorial.test',
               'metorial.com',
               'metorial.work',
+              'metorial.app',
+              'metorial.cloud',
               ...(process.env.CORS_DOMAINS?.split(',').map(d => d.trim()) ?? [])
             ]
           },

@@ -55,6 +55,7 @@ let metorialDomains = [
   '.metorial.dev',
   '.metorial.net',
   '.metorial.app',
+  '.metorial.cloud',
   '.metorial.io',
   '.metorial.ai',
   '.metorial-enterprise.com',
@@ -132,9 +133,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   let isMetorialRegistry = metorialDomains.some(domain => parsedUrl.hostname.endsWith(domain));
 
   let registryRecord: Awaited<ReturnType<typeof slates.slate.getRegistryRecord>>;
-  let registryVersionRecord: Awaited<
-    ReturnType<typeof slates.slateVersion.getRegistryRecord>
-  >;
+  let registryVersionRecord: Awaited<ReturnType<typeof slates.slateVersion.getRegistryRecord>>;
 
   try {
     registryRecord = await slates.slate.getRegistryRecord({
