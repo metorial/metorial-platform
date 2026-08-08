@@ -59,6 +59,38 @@ export let authenticationController = publicApp.controller({
       };
     }),
 
+  userSelect: deviceApp
+    .handler()
+    .input(
+      v.object({
+        clientId: v.string(),
+        email: v.string({ modifiers: [v.maxLength(320)] })
+      })
+    )
+    .do(async ({ input }) => {
+      let { app, account: clientAccount } = await resolveClient(input.clientId);
+      let { options, account } = await authService.getUserAuthOptions({
+        app,
+        account: clientAccount,
+        email: input.email
+      });
+
+      return {
+        email: input.email.trim().toLowerCase(),
+        options,
+        clientId: getAccountSsoClientId(input.clientId, account?.clientId),
+        account: account
+          ? {
+              id: account.id,
+              name: account.name,
+              identifier: account.identifier,
+              allowEmailLogin: account.allowEmailLogin,
+              allowSocialLogin: account.allowSocialLogin
+            }
+          : null
+      };
+    }),
+
   start: deviceApp
     .handler()
     .input(

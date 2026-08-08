@@ -1,19 +1,20 @@
-import { createLoader } from '@metorial-io/data-hooks';
+import { createLoader, useMutation } from '@metorial-io/data-hooks';
+import type { AuthClient } from '../../../../src/apis/auth/controllers';
 import { authIntentState } from './authIntent';
 import { authClient } from './client';
-import type { AuthClient } from '../../../../src/apis/auth/controllers';
 
 type PublicAuthStartInput = Parameters<AuthClient['authentication']['start']>[0];
 export type AuthStartInput = PublicAuthStartInput;
-export type AuthStartResponse = Awaited<
-  ReturnType<AuthClient['authentication']['start']>
->;
+export type AuthStartResponse = Awaited<ReturnType<AuthClient['authentication']['start']>>;
 export type AuthConnectionSelection = Extract<AuthStartResponse, { type: 'selection' }>;
 export type AuthConnectionOption = AuthConnectionSelection['options'][number];
 
 export type AuthStartOutcome =
   | AuthConnectionSelection
   | Extract<AuthStartResponse, { type: 'auth_intent' }>;
+export type AuthUserSelection = Awaited<
+  ReturnType<AuthClient['authentication']['userSelect']>
+>;
 
 let redirect = (url: string) => {
   window.location.replace(url);
@@ -81,3 +82,5 @@ export let authState = createLoader({
     }
   }
 });
+
+export let useUserSelect = () => useMutation(authClient.authentication.userSelect);

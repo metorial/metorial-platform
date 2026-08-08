@@ -89,8 +89,12 @@ export let fetchUserSpecial = () => {
   return redirectToAuthIfNotAuthenticated(async () => {
     await delay(1);
 
-    if ((window as any).enterpriseUserPromise) {
-      await (window as any).enterpriseUserPromise;
+    let enterpriseUserPromise = (window as any).enterpriseUserPromise;
+    if (enterpriseUserPromise) {
+      let user = (await enterpriseUserPromise) as MetorialUser;
+      if (!firstUserPromise.value) firstUserPromise.resolve(user);
+
+      return user;
     }
 
     return await withDashboardSDK(async sdk => {

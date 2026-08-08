@@ -14,6 +14,7 @@ import {
   Text,
   theme
 } from '@metorial-io/ui';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { styled } from 'styled-components';
@@ -23,7 +24,9 @@ import { AuthLayout } from '../components/layout';
 import {
   type AuthConnectionOption,
   type AuthConnectionSelection,
-  authState
+  type AuthUserSelection,
+  authState,
+  useUserSelect
 } from '../state/auth';
 
 let Notice = styled.div`
@@ -35,6 +38,23 @@ let Notice = styled.div`
   font-size: 13px;
   line-height: 1.5;
 `;
+
+let AnimatedMethod = styled(motion.div)`
+  width: 100%;
+`;
+
+let resemblesEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+
+let useDebouncedValue = <T,>(value: T, wait: number) => {
+  let [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    let timeout = window.setTimeout(() => setDebounced(value), wait);
+    return () => window.clearTimeout(timeout);
+  }, [value, wait]);
+
+  return debounced;
+};
 
 export let AuthHomeScene = ({
   clientId,
@@ -57,6 +77,7 @@ export let AuthHomeScene = ({
 }) => {
   let auth = authState.use({ clientId });
   let startAuthentication = useMutation(auth.mutators.start);
+  let selectUserAuthentication = useUserSelect();
 
   let [captchaToken, setCaptchaToken] = useState<string>();
   let captchaTokenRef = useRef<string | undefined>(undefined);
@@ -70,6 +91,7 @@ export let AuthHomeScene = ({
   let [connectionSelection, setConnectionSelection] = useState<AuthConnectionSelection | null>(
     null
   );
+  let [userSelection, setUserSelection] = useState<AuthUserSelection | null>(null);
   let selectionAuth = authState.use(
     connectionSelection ? { clientId: connectionSelection.clientId } : null
   );
@@ -121,23 +143,24 @@ export let AuthHomeScene = ({
     }
   });
 
-  let canAutoSubmit = form.values.email && email && !reason;
-  let autoSubmittedRef = useRef(false);
+  let debouncedEmail = useDebouncedValue(form.values.email.trim(), 300);
+  let userSelectionRequest = useRef(0);
 
   useEffect(() => {
-    if (
-      email &&
-      canAutoSubmit &&
-      !startAuthentication.isLoading &&
-      !startAuthentication.isSuccess
-    ) {
-      if (autoSubmittedRef.current) return;
-      autoSubmittedRef.current = true;
-
-      form.setFieldValue('email', email);
-      form.submitForm();
+    let request = ++userSelectionRequest.current;
+    if (!resemblesEmail(debouncedEmail)) {
+      setUserSelection(null);
+      return;
     }
-  }, [canAutoSubmit, email, startAuthentication.isLoading, startAuthentication.isSuccess]);
+
+    selectUserAuthentication
+      .mutate({ clientId, email: debouncedEmail })
+      .then(([selection]) => {
+        if (request === userSelectionRequest.current && selection) {
+          setUserSelection(selection);
+        }
+      });
+  }, [clientId, debouncedEmail]);
 
   let [sessionOrUserIdToLogInWith, setSessionOrUserIdToLogInWith] = useState<
     string | undefined
@@ -207,9 +230,7 @@ export let AuthHomeScene = ({
   }
 
   if (
-    ((canAutoSubmit || sessionOrUserId) &&
-      !connectionSelection &&
-      !startAuthentication.error) ||
+    (sessionOrUserId && !connectionSelection && !startAuthentication.error) ||
     auth.isLoading
   )
     return (
@@ -219,7 +240,16 @@ export let AuthHomeScene = ({
       </AuthLayout>
     );
 
-  let options = auth.data?.options ?? [];
+  let normalizedEmail = form.values.email.trim().toLowerCase();
+  let userSelectionMatchesEmail = userSelection?.email === normalizedEmail;
+  let userSelectionSupportsSso =
+    userSelection?.options.some(option => option.type === 'sso') ?? false;
+  let activeUserSelection =
+    userSelectionMatchesEmail ||
+    (resemblesEmail(normalizedEmail) && userSelectionSupportsSso)
+      ? userSelection
+      : null;
+  let options = activeUserSelection?.options ?? auth.data?.options ?? [];
   let hasEmailOption = options.some(o => o.type === 'email');
   let oauthOptions = options.filter(o => o.type === 'oauth');
   let ssoOptions = options.filter(o => o.type === 'sso');
@@ -230,98 +260,115 @@ export let AuthHomeScene = ({
   let bootClient = activeBoot?.client;
   let bootAccount = bootClient?.account;
   let selectionAccount = connectionSelection?.account;
-  let account = selectionAccount ?? bootAccount;
+  let account = selectionAccount ?? activeUserSelection?.account ?? bootAccount;
 
   let startSso = (option: AuthConnectionOption) => {
     setLoadingSource(`sso_${option.connectionId}`);
     startAuthentication.mutate({
       type: 'sso',
-      clientId: connectionSelection?.clientId ?? clientId,
+      clientId: connectionSelection?.clientId ?? activeUserSelection?.clientId ?? clientId,
       ssoTenantId: option.tenantId,
       ssoConnectionId: option.connectionId,
-      email: connectionSelection?.email ?? email,
+      email: connectionSelection?.email ?? form.values.email,
       redirectUrl: nextUrl
     });
   };
 
-  let lines: React.ReactNode[] = [];
+  let lines: { id: string; content: React.ReactNode }[] = [];
 
   if (connectionSelection) {
-    lines.push(
-      <>
-        {connectionSelection.options.map((option, i) => (
-          <Fragment key={option.connectionId}>
-            {i > 0 && <Spacer height={10} />}
-            <Button
-              onClick={() => startSso(option)}
-              size="2"
-              fullWidth
-              variant="outline"
-              loading={
-                startAuthentication.isLoading && loadingSource == `sso_${option.connectionId}`
-              }
-              disabled={startAuthentication.isLoading}
-            >
-              {option.tenantName} — {option.connectionName}
-            </Button>
-          </Fragment>
-        ))}
-      </>
-    );
+    lines.push({
+      id: 'connection-selection',
+      content: (
+        <>
+          {connectionSelection.options.map((option, i) => (
+            <Fragment key={option.connectionId}>
+              {i > 0 && <Spacer height={10} />}
+              <Button
+                onClick={() => startSso(option)}
+                size="2"
+                fullWidth
+                variant="outline"
+                loading={
+                  startAuthentication.isLoading &&
+                  loadingSource == `sso_${option.connectionId}`
+                }
+                disabled={startAuthentication.isLoading}
+              >
+                {option.tenantName} — {option.connectionName}
+              </Button>
+            </Fragment>
+          ))}
+        </>
+      )
+    });
   }
 
-  if (!connectionSelection && hasEmailOption) {
-    lines.push(
-      <form onSubmit={form.handleSubmit}>
-        <Input label="Email" {...form.getFieldProps('email')} />
-        <form.RenderError field="email" />
+  let keepsEmailInput = auth.data?.options.some(option => option.type === 'email');
+  if (!connectionSelection && keepsEmailInput) {
+    lines.push({
+      id: 'email',
+      content: (
+        <form id="auth-email-form" onSubmit={form.handleSubmit}>
+          <Input label="Email" {...form.getFieldProps('email')} />
+          <form.RenderError field="email" />
+          <selectUserAuthentication.RenderError />
 
-        <Spacer height={10} />
+          {hasEmailOption && ssoOptions.length === 0 && (
+            <>
+              <Spacer height={10} />
 
-        <Button
-          fullWidth
-          size="3"
-          type="submit"
-          loading={
-            (startAuthentication.isLoading || form.isSubmitting) && loadingSource == 'email'
-          }
-          disabled={startAuthentication.isLoading || form.isSubmitting}
-        >
-          {account && !account.allowEmailLogin && ssoOptions.length === 0
-            ? 'Log in as guest'
-            : 'Continue'}
-        </Button>
-        <startAuthentication.RenderError />
+              <Button
+                fullWidth
+                size="3"
+                type="submit"
+                variant={ssoOptions.length > 0 ? 'outline' : 'solid'}
+                loading={
+                  (startAuthentication.isLoading || form.isSubmitting) &&
+                  loadingSource == 'email'
+                }
+                disabled={startAuthentication.isLoading || form.isSubmitting}
+              >
+                {ssoOptions.length > 0
+                  ? 'Continue with email'
+                  : account && !account.allowEmailLogin
+                    ? 'Log in as guest'
+                    : 'Continue'}
+              </Button>
+            </>
+          )}
+          <startAuthentication.RenderError />
 
-        {type != 'switch' && (
-          <>
-            <Spacer height={10} />
+          {type != 'switch' && ssoOptions.length === 0 && (
+            <>
+              <Spacer height={10} />
 
-            <Text color="gray600" weight="medium" size="1">
-              {type == 'login' ? (
-                <Link
-                  to={`/signup?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
-                  style={{ color: 'inherit' }}
-                  aria-disabled={startAuthentication.isLoading || form.isSubmitting}
-                >
-                  Don't have an account?{' '}
-                  <span style={{ textDecoration: 'underline' }}>Create one</span>
-                </Link>
-              ) : (
-                <Link
-                  to={`/login?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
-                  style={{ color: 'inherit' }}
-                  aria-disabled={startAuthentication.isLoading || form.isSubmitting}
-                >
-                  Already have an account?{' '}
-                  <span style={{ textDecoration: 'underline' }}>Log in</span>.
-                </Link>
-              )}
-            </Text>
-          </>
-        )}
-      </form>
-    );
+              <Text color="gray600" weight="medium" size="1">
+                {type == 'login' ? (
+                  <Link
+                    to={`/signup?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
+                    style={{ color: 'inherit' }}
+                    aria-disabled={startAuthentication.isLoading || form.isSubmitting}
+                  >
+                    Don't have an account?{' '}
+                    <span style={{ textDecoration: 'underline' }}>Create one</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to={`/login?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
+                    style={{ color: 'inherit' }}
+                    aria-disabled={startAuthentication.isLoading || form.isSubmitting}
+                  >
+                    Already have an account?{' '}
+                    <span style={{ textDecoration: 'underline' }}>Log in</span>.
+                  </Link>
+                )}
+              </Text>
+            </>
+          )}
+        </form>
+      )
+    });
   }
 
   if (!connectionSelection && hasOAuthOptions) {
@@ -344,63 +391,94 @@ export let AuthHomeScene = ({
       });
     }
 
-    lines.push(
-      <>
-        {oauthProviders.map(({ icon, type: providerType }, i) => (
-          <Fragment key={providerType}>
-            {i > 0 && <Spacer height={10} />}
-
-            <Button
-              onClick={() => {
-                setLoadingSource(providerType);
-                startAuthentication.mutate({
-                  type: 'oauth',
-                  clientId,
-                  provider: providerType,
-                  redirectUrl: nextUrl
-                });
-              }}
-              size="2"
-              fullWidth
-              variant="outline"
-              iconLeft={icon}
-              loading={startAuthentication.isLoading && loadingSource == providerType}
-              disabled={startAuthentication.isLoading}
-            >
-              {providerType[0].toUpperCase() + providerType.slice(1)}
-            </Button>
-          </Fragment>
-        ))}
-      </>
-    );
-  }
-
-  if (!connectionSelection && ssoOptions.length > 0) {
-    lines.push(
-      <>
-        {ssoOptions.map((option, i) => {
-          return (
-            <Fragment key={option.connectionId}>
+    lines.push({
+      id: 'oauth',
+      content: (
+        <>
+          {oauthProviders.map(({ icon, type: providerType }, i) => (
+            <Fragment key={providerType}>
               {i > 0 && <Spacer height={10} />}
 
               <Button
-                onClick={() => startSso(option)}
+                onClick={() => {
+                  setLoadingSource(providerType);
+                  startAuthentication.mutate({
+                    type: 'oauth',
+                    clientId,
+                    provider: providerType,
+                    redirectUrl: nextUrl
+                  });
+                }}
                 size="2"
                 fullWidth
                 variant="outline"
-                loading={
-                  startAuthentication.isLoading &&
-                  loadingSource == `sso_${option.connectionId}`
-                }
+                iconLeft={icon}
+                loading={startAuthentication.isLoading && loadingSource == providerType}
                 disabled={startAuthentication.isLoading}
               >
-                {option.tenantName} — {option.connectionName}
+                {providerType[0].toUpperCase() + providerType.slice(1)}
               </Button>
             </Fragment>
-          );
-        })}
-      </>
-    );
+          ))}
+        </>
+      )
+    });
+  }
+
+  if (!connectionSelection && ssoOptions.length > 0) {
+    let emailLineIndex = lines.findIndex(line => line.id === 'email');
+    let ssoLine = {
+      id: 'sso',
+      content: (
+        <>
+          {ssoOptions.map((option, i) => {
+            return (
+              <Fragment key={option.connectionId}>
+                {i > 0 && <Spacer height={10} />}
+
+                <Button
+                  onClick={() => startSso(option)}
+                  size="3"
+                  fullWidth
+                  variant="solid"
+                  loading={
+                    startAuthentication.isLoading &&
+                    loadingSource == `sso_${option.connectionId}`
+                  }
+                  disabled={startAuthentication.isLoading}
+                >
+                  Continue with {option.tenantName}
+                  {ssoOptions.length > 1 ? ` — ${option.connectionName}` : ''}
+                </Button>
+              </Fragment>
+            );
+          })}
+        </>
+      )
+    };
+    lines.splice(emailLineIndex >= 0 ? emailLineIndex + 1 : 0, 0, ssoLine);
+  }
+
+  if (!connectionSelection && hasEmailOption && ssoOptions.length > 0) {
+    let ssoLineIndex = lines.findIndex(line => line.id === 'sso');
+    lines.splice(ssoLineIndex + 1, 0, {
+      id: 'email-action',
+      content: (
+        <Button
+          fullWidth
+          size="3"
+          type="submit"
+          form="auth-email-form"
+          variant="outline"
+          loading={
+            (startAuthentication.isLoading || form.isSubmitting) && loadingSource == 'email'
+          }
+          disabled={startAuthentication.isLoading || form.isSubmitting}
+        >
+          Continue with email
+        </Button>
+      )
+    });
   }
 
   return (
@@ -507,19 +585,33 @@ export let AuthHomeScene = ({
         </>
       )}
 
-      {lines.map((line, i) => (
-        <Fragment key={i}>
-          {i > 0 && (
-            <>
-              <Spacer height={20} />
-              <Or />
-              <Spacer height={20} />
-            </>
-          )}
+      <AnimatePresence initial={false} mode="popLayout">
+        {lines.map((line, i) => (
+          <AnimatedMethod
+            layout
+            key={line.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            {i > 0 &&
+              ((line.id === 'sso' && lines[i - 1]?.id === 'email') ||
+              (line.id === 'email' && lines[i - 1]?.id === 'sso') ||
+              (line.id === 'email-action' && lines[i - 1]?.id === 'sso') ? (
+                <Spacer height={10} />
+              ) : (
+                <>
+                  <Spacer height={20} />
+                  <Or />
+                  <Spacer height={20} />
+                </>
+              ))}
 
-          {line}
-        </Fragment>
-      ))}
+            {line.content}
+          </AnimatedMethod>
+        ))}
+      </AnimatePresence>
     </AuthLayout>
   );
 };

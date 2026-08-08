@@ -115,7 +115,12 @@ class AuthServiceImpl {
     return app;
   }
 
-  async resolveAccountForEmail(d: { app: App; account?: Account | null; email: string }) {
+  async resolveAccountForEmail(d: {
+    app: App;
+    account?: Account | null;
+    email: string;
+    resolveLinkedUser?: boolean;
+  }) {
     let { email, domain } = parseEmail(d.email);
     let accountDomain = await db.accountDomain.findUnique({
       where: { appOid_domain: { appOid: d.app.oid, domain } },
@@ -133,7 +138,7 @@ class AuthServiceImpl {
     }
 
     let linkedUser =
-      !d.account && !accountDomain
+      d.resolveLinkedUser !== false && !d.account && !accountDomain
         ? await db.user.findFirst({
             where: {
               appOid: d.app.oid,
@@ -166,12 +171,14 @@ class AuthServiceImpl {
     account?: Account | null;
     email?: string;
     includeHidden?: boolean;
+    resolveLinkedUser?: boolean;
   }) {
     let resolved = d.email
       ? await this.resolveAccountForEmail({
           app: d.app,
           account: d.account,
-          email: d.email
+          email: d.email,
+          resolveLinkedUser: d.resolveLinkedUser
         })
       : { account: d.account ?? null, accountDomain: null };
     let account = resolved.account;
@@ -214,7 +221,7 @@ class AuthServiceImpl {
       );
     }
 
-    return { account, connections };
+    return { account, accountDomain: resolved.accountDomain, connections };
   }
 
   async resolveSsoConnection(d: {
@@ -292,6 +299,65 @@ class AuthServiceImpl {
     return { options };
   }
 
+  async getUserAuthOptions(d: { app: App; account?: Account | null; email: string }) {
+    let fallback = async () => ({
+      ...(await this.getAuthOptions({ app: d.app, account: d.account })),
+      account: d.account ?? null
+    });
+
+    try {
+      parseEmail(d.email);
+    } catch {
+      return await fallback();
+    }
+
+    let resolved: Awaited<ReturnType<typeof this.getSsoConnections>>;
+    try {
+      resolved = await this.getSsoConnections({
+        app: d.app,
+        account: d.account,
+        email: d.email,
+        includeHidden: false,
+        resolveLinkedUser: false
+      });
+    } catch (error) {
+      if (error instanceof ServiceError) return await fallback();
+      throw error;
+    }
+
+    let { account, accountDomain, connections } = resolved;
+    if (!accountDomain || connections.length === 0) return await fallback();
+    let user = await userService.findByEmailSafe({ email: d.email, app: d.app });
+
+    let options: (
+      | { type: 'email' }
+      | {
+          type: 'sso';
+          tenantId: string;
+          tenantName: string;
+          connectionId: string;
+          connectionName: string;
+        }
+    )[] = connections.map(connection => ({
+      type: 'sso' as const,
+      tenantId: connection.tenant.id,
+      tenantName: connection.tenant.name,
+      connectionId: connection.id,
+      connectionName: connection.name
+    }));
+
+    if (
+      !d.app.disableEmailAuth &&
+      user?.status === 'active' &&
+      user.signupMethod === 'email' &&
+      account?.allowEmailLogin !== false
+    ) {
+      options.unshift({ type: 'email' });
+    }
+
+    return { options, account };
+  }
+
   async authWithEmail(d: {
     email: string;
     context: Context;
@@ -306,14 +372,20 @@ class AuthServiceImpl {
     }
 
     let { email } = parseEmail(d.email);
-    let { account, connections } = await this.getSsoConnections({
+    let { account, accountDomain, connections } = await this.getSsoConnections({
       app: d.app,
       account: d.account,
       email,
       includeHidden: true
     });
+    let user = await userService.findByEmailSafe({ email, app: d.app });
+    let canUseEmail =
+      !d.app.disableEmailAuth &&
+      user?.status === 'active' &&
+      user.signupMethod === 'email' &&
+      (!accountDomain || account?.allowEmailLogin !== false);
     let accountEmailAuthFlow = getAccountEmailAuthFlow(!!account, connections.length);
-    if (accountEmailAuthFlow == 'sso_redirect') {
+    if (!canUseEmail && accountEmailAuthFlow == 'sso_redirect') {
       return {
         type: 'hook' as const,
         authType: 'sso' as const,
@@ -324,7 +396,7 @@ class AuthServiceImpl {
       };
     }
 
-    if (accountEmailAuthFlow == 'sso_selection') {
+    if (!canUseEmail && accountEmailAuthFlow == 'sso_selection') {
       return {
         type: 'selection' as const,
         account,
@@ -352,8 +424,6 @@ class AuthServiceImpl {
     });
 
     return await withTransaction(async tdb => {
-      let user = await userService.findByEmailSafe({ email, app: d.app });
-
       if (user) {
         let isLoggedIn = await deviceService.checkIfUserIsLoggedIn({
           user,
@@ -484,12 +554,16 @@ class AuthServiceImpl {
       );
     }
 
-    let { account } = await this.resolveAccountForEmail({
+    let { account, accountDomain, connections } = await this.getSsoConnections({
       app: d.app,
       account: d.account,
-      email: socialRes.email
+      email: socialRes.email,
+      includeHidden: true
     });
-    if (account && !account.allowSocialLogin) {
+    if (
+      account &&
+      (!account.allowSocialLogin || (accountDomain != null && connections.length > 0))
+    ) {
       return {
         type: 'social_disabled' as const,
         account,
