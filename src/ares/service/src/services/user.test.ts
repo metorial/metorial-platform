@@ -52,6 +52,7 @@ let input = {
   lastName: 'Herber',
   acceptedTerms: true,
   type: 'standard_user' as const,
+  signupMethod: 'email' as const,
   context,
   app
 };
@@ -149,6 +150,28 @@ describe('userService.createUser', () => {
     db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
     db.userEmail.create.mockResolvedValue({ oid: 4n });
     db.userTermsAgreement.upsert.mockResolvedValue({ oid: 5n });
+  });
+
+  it('stores the signup method and creates an email identity for email signup', async () => {
+    db.user.create.mockResolvedValue({ ...existingUser, id: 'usr_new' });
+
+    await userService.createUser(input);
+
+    expect(db.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ signupMethod: 'email' })
+    });
+    expect(db.userEmail.create).toHaveBeenCalledOnce();
+  });
+
+  it('stores the signup method without creating an email identity for SSO signup', async () => {
+    db.user.create.mockResolvedValue({ ...existingUser, id: 'usr_new' });
+
+    await userService.createUser({ ...input, signupMethod: 'sso' });
+
+    expect(db.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ signupMethod: 'sso' })
+    });
+    expect(db.userEmail.create).not.toHaveBeenCalled();
   });
 
   it('reports a duplicate email as a 409', async () => {

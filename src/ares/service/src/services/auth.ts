@@ -716,6 +716,7 @@ class AuthServiceImpl {
         lastName: d.ssoUser.lastName,
         acceptedTerms: true,
         type: 'standard_user',
+        signupMethod: 'sso',
         context: d.context,
         app: d.app
       });
@@ -1021,6 +1022,7 @@ class AuthServiceImpl {
       lastName: d.input.lastName,
       acceptedTerms: d.input.acceptedTerms,
       type: 'standard_user',
+      signupMethod: d.authIntent.type == 'oauth' ? 'oauth' : 'email',
       context,
       app: d.app
     });

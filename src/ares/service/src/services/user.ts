@@ -324,6 +324,7 @@ class UserServiceImpl {
     context: Context;
     app: App;
     type: 'standard_user' | 'pre_created_user';
+    signupMethod: 'email' | 'oauth' | 'sso';
   }) {
     if (!d.acceptedTerms) {
       throw new ServiceError(
@@ -365,6 +366,7 @@ class UserServiceImpl {
             tenantOid: d.app.defaultTenantOid!,
 
             isFullyCreated: d.type === 'standard_user',
+            signupMethod: d.signupMethod,
 
             image: { type: 'default' }
           }
@@ -377,14 +379,16 @@ class UserServiceImpl {
           suppressSync: true
         });
 
-        await this.createEmail({
-          email: d.email,
-          user,
-          app: d.app,
-          context: d.context,
-          isForNewUser: true,
-          suppressSync: true
-        });
+        if (d.signupMethod !== 'sso') {
+          await this.createEmail({
+            email: d.email,
+            user,
+            app: d.app,
+            context: d.context,
+            isForNewUser: true,
+            suppressSync: true
+          });
+        }
 
         addAfterTransactionHook(() => userEvents.fire('create', user));
         await markAresUserChanged({ userId: user.id, db: tdb });
@@ -415,6 +419,7 @@ class UserServiceImpl {
     context: Context;
     app: App;
     type: 'standard_user' | 'pre_created_user';
+    signupMethod: 'email' | 'oauth' | 'sso';
   }): Promise<{ user: User; created: boolean }> {
     let existing = await this.findByEmailSafe({ email: d.email, app: d.app });
     if (existing) return { user: existing, created: false };

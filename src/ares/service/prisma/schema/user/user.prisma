@@ -13,6 +13,12 @@ enum UserStatus {
   deleted
 }
 
+enum UserSignupMethod {
+  email
+  oauth
+  sso
+}
+
 model User {
   oid BigInt @id
   id  String @unique
@@ -39,6 +45,7 @@ model User {
   image Json
 
   isFullyCreated Boolean @default(true)
+  signupMethod   UserSignupMethod @default(email)
 
   lastLoginAt  DateTime?
   lastActiveAt DateTime?
