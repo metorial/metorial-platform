@@ -3,6 +3,16 @@ import { awaitConfig } from '@metorial/frontend-config';
 
 let sdks = new Map<string, MetorialDashboardSDK>();
 
+let normalizeMetorialApiUrl = (value: string) => {
+  if (typeof window === 'undefined') return value;
+
+  let url = new URL(value);
+  if (url.hostname !== 'platform.metorial.com') return value;
+
+  url.host = window.location.host;
+  return url.toString();
+};
+
 export interface ConsumerSetup {
   apiKey: string;
   consumerToken: string;
@@ -45,6 +55,7 @@ export let setConsumerSetup = (setup: ConsumerSetup | null) => {
 export let ensureDashboardSDKForApi = async (
   apiUrl: string
 ): Promise<MetorialDashboardSDK> => {
+  apiUrl = normalizeMetorialApiUrl(apiUrl);
   let url = new URL(apiUrl);
 
   let consumer = await getConsumerSetup();
