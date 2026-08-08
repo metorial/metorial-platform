@@ -1160,14 +1160,23 @@ describe('OrganizationMemberService', () => {
       );
 
       // Simulate race condition: member doesn't exist initially, but does by the time we create
+      let concurrentlyCreatedMember = {
+        id: 'member-1',
+        status: 'active',
+        actor: mockActor
+      };
       let callCount = 0;
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           organizationMember: {
             findFirst: vi
               .fn()
-              .mockResolvedValue(callCount++ > 0 ? { status: 'active' } : null),
-            create: vi.fn().mockRejectedValue(new Error('Unique constraint violation'))
+              .mockResolvedValue(callCount++ > 0 ? concurrentlyCreatedMember : null),
+            create: vi
+              .fn()
+              .mockRejectedValue(
+                Object.assign(new Error('Unique constraint violation'), { code: 'P2002' })
+              )
           }
         };
         return callback(mockDb as any);
@@ -1181,7 +1190,8 @@ describe('OrganizationMemberService', () => {
           context: {} as any,
           performedBy: { type: 'user', user: mockUser as any }
         })
-      ).rejects.toThrow();
+      ).resolves.toBe(concurrentlyCreatedMember);
+      expect(withTransaction).toHaveBeenCalledTimes(2);
     });
   });
 

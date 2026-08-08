@@ -34,6 +34,12 @@ let include = {
   }
 };
 
+let isPrismaUniqueConstraintError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code: string }).code === 'P2002';
+
 class OrganizationMemberService {
   private async ensureOrganizationMemberActive(organizationMember: OrganizationMember) {
     if (organizationMember.status !== 'active') {
@@ -83,88 +89,94 @@ class OrganizationMemberService {
     context: Context;
     performedBy: { type: 'user'; user: User } | { type: 'actor'; actor: OrganizationActor };
   }) {
-    return withTransaction(async db => {
-      let existingMember = await db.organizationMember.findFirst({
-        where: {
-          organizationOid: d.organization.oid,
-          userOid: d.user.oid
-        },
-        include
-      });
-      if (existingMember && existingMember.status == 'active') {
-        // throw new ServiceError(
-        //   conflictError({
-        //     message: 'User is already a member of the organization'
-        //   })
-        // );
-
-        return existingMember;
-      }
-
-      let actor =
-        existingMember?.actor ??
-        (await organizationActorService.createOrganizationActor({
-          input: {
-            type: d.user.type === 'system' ? 'system' : 'member',
-            email: d.user.type === 'system' ? undefined : d.user.email,
-            name: d.user.name,
-            image: d.user.image
-          },
-          performedBy: { type: 'user', user: d.user },
-          organization: d.organization,
-          context: d.context
-        }));
-
-      await Fabric.fire('organization.member.created:before', {
-        actor,
-        user: d.user,
-        organization: d.organization,
-        performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
-      });
-
-      let member = existingMember
-        ? await db.organizationMember.update({
-            where: { oid: existingMember.oid },
-            data: {
-              status: 'active',
-              deletedAt: null,
-              isV2Member: d.organization.authVersion == 'v2',
-              role: d.input.role,
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await withTransaction(async db => {
+          let existingMember = await db.organizationMember.findFirst({
+            where: {
               organizationOid: d.organization.oid,
-              actorOid: actor.oid,
-              userOid: d.user.oid
-            },
-            include
-          })
-        : await db.organizationMember.create({
-            data: {
-              id: await ID.generateId('organizationMember'),
-              status: 'active',
-              isV2Member: d.organization.authVersion == 'v2',
-              role: d.input.role,
-              organizationOid: d.organization.oid,
-              actorOid: actor.oid,
               userOid: d.user.oid
             },
             include
           });
+          if (existingMember && existingMember.status == 'active') {
+            // throw new ServiceError(
+            //   conflictError({
+            //     message: 'User is already a member of the organization'
+            //   })
+            // );
 
-      await Fabric.fire('organization.member.created:after', {
-        ...d,
-        actor,
-        member,
-        performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
-      });
+            return existingMember;
+          }
 
-      await accessPolicyAssignmentService.syncMemberDefaultPolicies({
-        organization: d.organization,
-        member
-      });
+          let actor =
+            existingMember?.actor ??
+            (await organizationActorService.createOrganizationActor({
+              input: {
+                type: d.user.type === 'system' ? 'system' : 'member',
+                email: d.user.type === 'system' ? undefined : d.user.email,
+                name: d.user.name,
+                image: d.user.image
+              },
+              performedBy: { type: 'user', user: d.user },
+              organization: d.organization,
+              context: d.context
+            }));
 
-      await addAfterTransactionHook(() => syncOrgMemberToConsumer(member));
+          await Fabric.fire('organization.member.created:before', {
+            actor,
+            user: d.user,
+            organization: d.organization,
+            performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
+          });
 
-      return member;
-    });
+          let member = existingMember
+            ? await db.organizationMember.update({
+                where: { oid: existingMember.oid },
+                data: {
+                  status: 'active',
+                  deletedAt: null,
+                  isV2Member: d.organization.authVersion == 'v2',
+                  role: d.input.role,
+                  organizationOid: d.organization.oid,
+                  actorOid: actor.oid,
+                  userOid: d.user.oid
+                },
+                include
+              })
+            : await db.organizationMember.create({
+                data: {
+                  id: await ID.generateId('organizationMember'),
+                  status: 'active',
+                  isV2Member: d.organization.authVersion == 'v2',
+                  role: d.input.role,
+                  organizationOid: d.organization.oid,
+                  actorOid: actor.oid,
+                  userOid: d.user.oid
+                },
+                include
+              });
+
+          await Fabric.fire('organization.member.created:after', {
+            ...d,
+            actor,
+            member,
+            performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
+          });
+
+          await accessPolicyAssignmentService.syncMemberDefaultPolicies({
+            organization: d.organization,
+            member
+          });
+
+          await addAfterTransactionHook(() => syncOrgMemberToConsumer(member));
+
+          return member;
+        });
+      } catch (error) {
+        if (attempt > 0 || !isPrismaUniqueConstraintError(error)) throw error;
+      }
+    }
   }
 
   async updateOrganizationMember(d: {
