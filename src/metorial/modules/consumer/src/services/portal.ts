@@ -1,3 +1,4 @@
+import { delay } from '@lowerdeck/delay';
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -317,6 +318,13 @@ class PortalServiceImpl {
         });
 
         return portal;
+      });
+
+      await delay(2000);
+
+      portal = await db.portal.findUniqueOrThrow({
+        where: { oid: portal.oid },
+        include
       });
 
       return await this.enrichPortal({
