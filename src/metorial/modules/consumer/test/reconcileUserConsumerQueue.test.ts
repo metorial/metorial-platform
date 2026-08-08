@@ -143,6 +143,75 @@ describe('reconcile user consumer queue', () => {
     });
   });
 
+  it('merges the exact email holder before normalizing the canonical consumer', async () => {
+    let user = {
+      id: 'user_123',
+      oid: 42n,
+      type: 'user',
+      name: 'Current Name',
+      email: 'current@example.com',
+      globalProfileOid: null
+    };
+    let canonical = {
+      id: 'consumer_canonical',
+      oid: 1n,
+      userOid: user.oid,
+      name: 'Old Name',
+      email: 'old@example.com',
+      globalProfileOid: null,
+      organizationMemberOid: null,
+      organizationActorOid: null,
+      organizationMember: null,
+      isOrganizationMember: false,
+      isPortalConsumer: true,
+      isManuallyCreated: false,
+      isPending: false,
+      createdAt: new Date('2026-01-01T00:00:00Z')
+    };
+    let emailHolder = {
+      ...canonical,
+      id: 'consumer_email_holder',
+      oid: 2n,
+      userOid: 99n,
+      email: user.email,
+      createdAt: new Date('2026-02-01T00:00:00Z')
+    };
+
+    mocks.user.findUnique.mockResolvedValue(user);
+    mocks.consumer.findMany.mockResolvedValue([canonical, emailHolder]);
+    mocks.instanceConsumer.findMany.mockResolvedValue([]);
+    mocks.consumerProfile.findMany.mockResolvedValue([]);
+    mocks.consumerInvite.findMany.mockResolvedValue([]);
+    mocks.consumer.update.mockResolvedValue({
+      ...canonical,
+      name: user.name,
+      email: user.email
+    });
+
+    await (reconcileUserConsumerQueueProcessor as any)({
+      userId: user.id,
+      organizationId: 'organization_123'
+    });
+
+    expect(mocks.consumer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([{ email: user.email }])
+        })
+      })
+    );
+    expect(mocks.consumer.delete).toHaveBeenCalledWith({
+      where: { oid: emailHolder.oid }
+    });
+    expect(mocks.consumer.update).toHaveBeenCalledWith({
+      where: { oid: canonical.oid },
+      data: expect.objectContaining({
+        userOid: user.oid,
+        email: user.email
+      })
+    });
+  });
+
   it('treats a differently cased consumer email as the same identity', async () => {
     let user = {
       id: 'user_123',

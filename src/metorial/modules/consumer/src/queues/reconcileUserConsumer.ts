@@ -24,16 +24,24 @@ let getCandidateWhere = (user: {
   oid: bigint;
   email: string;
   globalProfileOid: bigint | null;
-}) => ({
-  OR: [
-    { userOid: user.oid },
-    { email: consumerEmailEquals(user.email), userOid: null },
-    { organizationMember: { userOid: user.oid } },
-    ...(user.globalProfileOid
-      ? [{ globalProfileOid: user.globalProfileOid, userOid: null }]
-      : [])
-  ]
-});
+}) => {
+  let normalizedEmail = normalizeConsumerEmail(user.email);
+
+  return {
+    OR: [
+      { userOid: user.oid },
+      // Include the exact unique-key holder even if it still points at a stale user. Otherwise
+      // updating the canonical row to the user's normalized email fails with P2002.
+      { email: normalizedEmail },
+      // Legacy mixed-case rows are safe to claim by email only while they remain unlinked.
+      { email: consumerEmailEquals(normalizedEmail), userOid: null },
+      { organizationMember: { userOid: user.oid } },
+      ...(user.globalProfileOid
+        ? [{ globalProfileOid: user.globalProfileOid, userOid: null }]
+        : [])
+    ]
+  };
+};
 
 export let reconcileUserConsumersQueueProcessor = reconcileUserConsumersQueue.process(
   async data => {
