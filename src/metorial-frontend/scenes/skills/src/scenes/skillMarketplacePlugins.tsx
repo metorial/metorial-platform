@@ -219,7 +219,7 @@ let DragHandle = styled.button`
 `;
 
 let EmptyState = styled.div`
-  padding: 10px 8px 12px 58px;
+  padding-top: 5px;
 `;
 
 let PickerStack = styled.div`
