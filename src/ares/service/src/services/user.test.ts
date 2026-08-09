@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db, auditLogService, markAresUserChanged, userEvents } = vi.hoisted(() => ({
   db: {
-    user: { findFirst: vi.fn(), create: vi.fn() },
+    user: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     userEmail: { findFirst: vi.fn(), create: vi.fn() },
     userTermsAgreement: { upsert: vi.fn() },
     accountDomain: { findUnique: vi.fn() },
@@ -138,6 +138,44 @@ describe('userService.resolveOrCreateUser', () => {
 
     await expect(userService.resolveOrCreateUser(input)).rejects.toThrow('connection reset');
     expect(db.user.findFirst).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('userService.claimSsoSignup', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    db.user.update.mockImplementation(async ({ data }: any) => ({ ...existingUser, ...data }));
+  });
+
+  it('claims a user another writer just created', async () => {
+    let user = { ...existingUser, signupMethod: 'email', createdAt: new Date() } as any;
+
+    await expect(userService.claimSsoSignup({ user })).resolves.toMatchObject({
+      signupMethod: 'sso'
+    });
+    expect(db.user.update).toHaveBeenCalledWith({
+      where: { oid: existingUser.oid },
+      data: { signupMethod: 'sso' }
+    });
+  });
+
+  it('leaves an established email signup alone', async () => {
+    let user = {
+      ...existingUser,
+      signupMethod: 'email',
+      createdAt: new Date(Date.now() - 6 * 60 * 1000)
+    } as any;
+
+    await expect(userService.claimSsoSignup({ user })).resolves.toBe(user);
+    expect(db.user.update).not.toHaveBeenCalled();
+  });
+
+  it('does not write when the user already signed up through SSO', async () => {
+    let user = { ...existingUser, signupMethod: 'sso', createdAt: new Date() } as any;
+
+    await expect(userService.claimSsoSignup({ user })).resolves.toBe(user);
+    expect(db.user.update).not.toHaveBeenCalled();
   });
 });
 

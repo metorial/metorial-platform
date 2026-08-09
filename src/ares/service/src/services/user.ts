@@ -24,6 +24,8 @@ export class EmailInUseError extends ServiceError<ReturnType<typeof conflictErro
 
 let isUniqueConstraintError = (e: any) => e?.code === 'P2002';
 
+let SSO_SIGNUP_CLAIM_WINDOW_MS = 3 * 60 * 1000;
+
 class UserServiceImpl {
   async getSyncSnapshot(d: { user: User }) {
     let user = await db.user.findUniqueOrThrow({
@@ -434,6 +436,16 @@ class UserServiceImpl {
 
       return { user: raced, created: false };
     }
+  }
+
+  async claimSsoSignup(d: { user: User }) {
+    if (d.user.signupMethod === 'sso') return d.user;
+    if (Date.now() - d.user.createdAt.getTime() > SSO_SIGNUP_CLAIM_WINDOW_MS) return d.user;
+
+    return await db.user.update({
+      where: { oid: d.user.oid },
+      data: { signupMethod: 'sso' }
+    });
   }
 
   async listUserProfile(d: { user: User }) {

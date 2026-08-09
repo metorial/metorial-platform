@@ -803,6 +803,7 @@ class AuthServiceImpl {
 
     let user = await db.user.findUnique({ where: { oid: userIdentity.userOid! } });
     if (!user) throw new Error('User not found after SSO identity linking');
+    user = await userService.claimSsoSignup({ user });
     user = await userService.linkToAccount({ user });
     await markAresUserChanged({ userId: user.id });
 
