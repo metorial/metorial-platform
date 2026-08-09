@@ -463,6 +463,7 @@ let mapVersion = (version: StateDocumentVersion): DocumentVersion => ({
   id: version.id,
   content: version.content,
   versionNumber: version.versionNumber,
+  createdAt: version.createdAt,
   previous_version_id: version.previousVersionId ?? undefined,
   editors: version.editors.map(mapVersionEditor)
 });

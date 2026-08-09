@@ -1,8 +1,8 @@
+import { Panel, RenderDate } from '@metorial/ui';
+import type { StructuredPatchHunk } from 'diff';
+import { structuredPatch } from 'diff';
 import { useMemo } from 'react';
 import styled from 'styled-components';
-import { Panel } from '@metorial/ui';
-import { structuredPatch } from 'diff';
-import type { StructuredPatchHunk } from 'diff';
 import { Avatar } from '../components/Avatar';
 
 export interface VersionEditor {
@@ -15,6 +15,7 @@ export interface DocumentVersion {
   id: string;
   content: string;
   versionNumber: number;
+  createdAt: string | Date;
   /** Snake-case to mirror the API contract documented by the consumer. */
   previous_version_id?: string;
   editors: VersionEditor[];
@@ -319,36 +320,45 @@ export function VersionHistoryPanel({
 }: VersionHistoryPanelProps) {
   let resolved = useMemo<ResolvedVersion[]>(() => {
     let byId = new Map(versions.map(v => [v.id, v]));
-    let sorted = [...versions].sort((a, b) => b.versionNumber - a.versionNumber);
-    return sorted.map(v => {
-      let prev = v.previous_version_id ? byId.get(v.previous_version_id) : undefined;
-      let prevContent = prev ? prev.content : '';
-      let isInitial = !prev;
-      let noChanges = !isInitial && prevContent === v.content;
-      let patch = structuredPatch(
-        'previous',
-        'current',
-        prevContent,
-        v.content,
-        undefined,
-        undefined,
-        { context: contextLines }
-      );
-      return {
-        version: v,
-        hunks: patch.hunks,
-        isInitial,
-        noChanges
-      };
+    let sorted = [...versions].sort((a, b) => {
+      let aTime = new Date(a.createdAt).getTime();
+      let bTime = new Date(b.createdAt).getTime();
+      if (bTime !== aTime) return bTime - aTime;
+      return b.versionNumber - a.versionNumber;
     });
+    return sorted
+      .map(v => {
+        let prev = v.previous_version_id ? byId.get(v.previous_version_id) : undefined;
+        let prevContent = prev ? prev.content : '';
+        let isInitial = !prev;
+        let noChanges = !isInitial && prevContent === v.content;
+        let patch = structuredPatch(
+          'previous',
+          'current',
+          prevContent,
+          v.content,
+          undefined,
+          undefined,
+          { context: contextLines }
+        );
+        return {
+          version: v,
+          hunks: patch.hunks,
+          isInitial,
+          noChanges
+        };
+      })
+      // Skill merge requests can create empty intermediate versions with no
+      // content diff — hide those so the history only shows real edits.
+      .filter(v => !v.noChanges);
   }, [versions, contextLines]);
 
   return (
     <Panel.Wrapper isOpen={open} onOpenChange={onOpenChange} width={640}>
       <Panel.Header>
         <HeaderTitle>
-          Version history
-          <HeaderCount>{versions.length}</HeaderCount>
+          Version History
+          <HeaderCount>{resolved.length}</HeaderCount>
         </HeaderTitle>
       </Panel.Header>
       <Panel.Content>
@@ -361,7 +371,7 @@ export function VersionHistoryPanel({
                 <VersionHeader>
                   <VersionTitleGroup>
                     <VersionLabel>
-                      Version {version.versionNumber}
+                      <RenderDate date={version.createdAt} />
                       {isInitial && <InitialBadge>Initial</InitialBadge>}
                     </VersionLabel>
                     <VersionSubtitle>{formatEditorList(version.editors)}</VersionSubtitle>
