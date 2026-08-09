@@ -7,5 +7,6 @@ export * from './itemGrid';
 export * from './searchFiltersToolbar';
 export * from './sideBox';
 export * from './table';
+export * from './tableBox';
 export * from './tableFilter';
 export * from './tableFilters';
