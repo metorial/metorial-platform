@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db, auditLogService, markAresUserChanged, userEvents } = vi.hoisted(() => ({
   db: {
-    user: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    user: { findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
     userEmail: { findFirst: vi.fn(), create: vi.fn() },
     userTermsAgreement: { upsert: vi.fn() },
     accountDomain: { findUnique: vi.fn() },
@@ -141,41 +141,43 @@ describe('userService.resolveOrCreateUser', () => {
   });
 });
 
-describe('userService.claimSsoSignup', () => {
+describe('userService.recordLogin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    db.user.update.mockImplementation(async ({ data }: any) => ({ ...existingUser, ...data }));
+    db.user.updateMany.mockResolvedValue({ count: 1 });
   });
 
-  it('claims a user another writer just created', async () => {
-    let user = { ...existingUser, signupMethod: 'email', createdAt: new Date() } as any;
+  let recordedData = () => db.user.updateMany.mock.calls[0]![0].data;
 
-    await expect(userService.claimSsoSignup({ user })).resolves.toMatchObject({
-      signupMethod: 'sso'
+  it('settles the signup method for a user that arrived without one', async () => {
+    let user = { ...existingUser, signupMethod: 'unknown', hasLoggedIn: false } as any;
+
+    await userService.recordLogin({ user, method: 'sso' });
+
+    expect(recordedData()).toMatchObject({
+      hasLoggedIn: true,
+      signupMethod: 'sso',
+      lastLoginAt: expect.any(Date)
     });
-    expect(db.user.update).toHaveBeenCalledWith({
-      where: { oid: existingUser.oid },
-      data: { signupMethod: 'sso' }
-    });
   });
 
-  it('leaves an established email signup alone', async () => {
-    let user = {
-      ...existingUser,
-      signupMethod: 'email',
-      createdAt: new Date(Date.now() - 6 * 60 * 1000)
-    } as any;
+  it('leaves a known signup method alone', async () => {
+    let user = { ...existingUser, signupMethod: 'email', hasLoggedIn: true } as any;
 
-    await expect(userService.claimSsoSignup({ user })).resolves.toBe(user);
-    expect(db.user.update).not.toHaveBeenCalled();
+    await userService.recordLogin({ user, method: 'sso' });
+
+    expect(recordedData()).toMatchObject({ hasLoggedIn: true });
+    expect(recordedData()).not.toHaveProperty('signupMethod');
   });
 
-  it('does not write when the user already signed up through SSO', async () => {
-    let user = { ...existingUser, signupMethod: 'sso', createdAt: new Date() } as any;
+  it('records the login of an attempt that predates the login method', async () => {
+    let user = { ...existingUser, signupMethod: 'unknown', hasLoggedIn: false } as any;
 
-    await expect(userService.claimSsoSignup({ user })).resolves.toBe(user);
-    expect(db.user.update).not.toHaveBeenCalled();
+    await userService.recordLogin({ user, method: null });
+
+    expect(recordedData()).toMatchObject({ hasLoggedIn: true });
+    expect(recordedData()).not.toHaveProperty('signupMethod');
   });
 });
 

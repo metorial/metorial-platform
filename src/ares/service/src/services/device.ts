@@ -14,6 +14,7 @@ import { getId, snowflake } from '../id';
 import type { Context } from '../lib/context';
 import { auditLogService } from './auditLog';
 import { markAresUserChanged } from '../queues/syncCallback';
+import { userService } from './user';
 
 class DeviceService {
   async getAllUsersForDevice(d: { device: AuthDevice }) {
@@ -152,11 +153,11 @@ class DeviceService {
       });
       if (existingSession) return existingSession;
 
-      await db.user.updateMany({
-        where: { oid: user.oid },
-        data: { lastLoginAt: new Date() }
+      await userService.recordLogin({
+        user,
+        method: d.authAttempt.loginMethod,
+        db
       });
-      await markAresUserChanged({ userId: user.id, db });
 
       auditLogService.log({
         appOid: user.appOid,

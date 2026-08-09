@@ -6,8 +6,14 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { App, User, UserEmail, UserTermsType } from '../../prisma/generated/client';
-import { addAfterTransactionHook, db, withTransaction } from '../db';
+import type {
+  App,
+  AuthLoginMethod,
+  User,
+  UserEmail,
+  UserTermsType
+} from '../../prisma/generated/client';
+import { addAfterTransactionHook, db, type TransactionDB, withTransaction } from '../db';
 import { terms } from '../definitions';
 import { userEvents } from '../events/user';
 import { getId } from '../id';
@@ -23,8 +29,6 @@ export class EmailInUseError extends ServiceError<ReturnType<typeof conflictErro
 }
 
 let isUniqueConstraintError = (e: any) => e?.code === 'P2002';
-
-let SSO_SIGNUP_CLAIM_WINDOW_MS = 3 * 60 * 1000;
 
 class UserServiceImpl {
   async getSyncSnapshot(d: { user: User }) {
@@ -201,6 +205,10 @@ class UserServiceImpl {
                 type: 'user',
                 owner: 'self',
                 status: d.input.status,
+                // The authority knows the user exists, not how they will get in. The
+                // first login on this instance is what settles the signup method.
+                signupMethod: 'unknown',
+                hasLoggedIn: false,
                 email: d.input.email,
                 name: d.input.name,
                 firstName: d.input.firstName,
@@ -438,14 +446,19 @@ class UserServiceImpl {
     }
   }
 
-  async claimSsoSignup(d: { user: User }) {
-    if (d.user.signupMethod === 'sso') return d.user;
-    if (Date.now() - d.user.createdAt.getTime() > SSO_SIGNUP_CLAIM_WINDOW_MS) return d.user;
+  async recordLogin(d: { user: User; method: AuthLoginMethod | null; db?: TransactionDB }) {
+    let tdb = d.db ?? db;
 
-    return await db.user.update({
+    await tdb.user.updateMany({
       where: { oid: d.user.oid },
-      data: { signupMethod: 'sso' }
+      data: {
+        lastLoginAt: new Date(),
+        hasLoggedIn: true,
+        ...(d.method && d.user.signupMethod === 'unknown' ? { signupMethod: d.method } : {})
+      }
     });
+
+    await markAresUserChanged({ userId: d.user.id, db: tdb });
   }
 
   async listUserProfile(d: { user: User }) {

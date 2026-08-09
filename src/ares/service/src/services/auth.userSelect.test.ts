@@ -159,6 +159,9 @@ describe('authService.getUserAuthOptions', () => {
 
   it.each([
     null,
+    // A user a projection or SCIM sync created, who has never logged in here, tells us
+    // nothing about how they should: the domain does.
+    { status: 'active', signupMethod: 'unknown' },
     { status: 'active', signupMethod: 'sso' },
     { status: 'active', signupMethod: 'oauth' },
     { status: 'deleted', signupMethod: 'email' }
@@ -265,26 +268,29 @@ describe('authService.authWithEmail on an SSO domain', () => {
     expect(createAuthAttempt).toHaveBeenCalledWith(expect.objectContaining({ user, account }));
   });
 
-  it('keeps routing unknown users through SSO', async () => {
-    userService.findByEmailSafe.mockResolvedValue(null);
+  it.each([null, { oid: 8n, status: 'active', signupMethod: 'unknown' }])(
+    'keeps routing users without a signup method through SSO',
+    async user => {
+      userService.findByEmailSafe.mockResolvedValue(user);
 
-    let result = await authService.authWithEmail({
-      app,
-      device: { oid: 9n } as any,
-      context: { ip: '1.2.3.4', ua: 'agent' },
-      email: 'unknown@acme.com',
-      redirectUrl: 'https://app.example.com/callback'
-    });
+      let result = await authService.authWithEmail({
+        app,
+        device: { oid: 9n } as any,
+        context: { ip: '1.2.3.4', ua: 'agent' },
+        email: 'unknown@acme.com',
+        redirectUrl: 'https://app.example.com/callback'
+      });
 
-    expect(result).toEqual(
-      expect.objectContaining({
-        type: 'hook',
-        authType: 'sso',
-        ssoConnection: localConnection
-      })
-    );
-    expect(authBlockService.registerBlock).not.toHaveBeenCalled();
-  });
+      expect(result).toEqual(
+        expect.objectContaining({
+          type: 'hook',
+          authType: 'sso',
+          ssoConnection: localConnection
+        })
+      );
+      expect(authBlockService.registerBlock).not.toHaveBeenCalled();
+    }
+  );
 
   it('keeps routing email-origin users through SSO when account email login is disabled', async () => {
     db.accountDomain.findUnique.mockResolvedValue({

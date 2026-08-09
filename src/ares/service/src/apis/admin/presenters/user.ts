@@ -22,6 +22,7 @@ export let adminUserPresenter = async (
   id: user.id,
 
   signupMethod: user.signupMethod,
+  hasLoggedIn: user.hasLoggedIn,
   email: user.deletedAt ? deletedEmail.restoreAnonymized(user.email) : user.email,
   name: user.name,
   firstName: user.firstName,

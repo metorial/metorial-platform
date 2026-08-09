@@ -116,12 +116,20 @@ enum AuthAttemptStatus {
   consumed
 }
 
+enum AuthLoginMethod {
+  email
+  oauth
+  sso
+}
+
 model AuthAttempt {
   oid          BigInt @id
   id           String @unique
   clientSecret String @unique
 
   status AuthAttemptStatus
+
+  loginMethod AuthLoginMethod?
 
   authorizationCode String? @unique
 

@@ -13,6 +13,7 @@ import type {
   AuthDevice,
   AuthIntent,
   AuthIntentStep,
+  AuthLoginMethod,
   SsoTenant,
   SsoUserProfile,
   User
@@ -346,6 +347,9 @@ class AuthServiceImpl {
       connectionName: connection.name
     }));
 
+    // A signup method of `unknown` belongs to a user an external writer created who has
+    // never logged in here, and it reads like no user at all: the domain decides, so the
+    // options stay limited to its SSO connections.
     if (
       !d.app.disableEmailAuth &&
       user?.status === 'active' &&
@@ -436,6 +440,7 @@ class AuthServiceImpl {
             authAttempt: await this.createAuthAttempt({
               user,
               device: d.device,
+              loginMethod: 'email',
               redirectUrl: d.redirectUrl,
               account
             })
@@ -667,6 +672,7 @@ class AuthServiceImpl {
         authAttempt: await this.createAuthAttempt({
           user,
           device: d.device,
+          loginMethod: 'oauth',
           redirectUrl: d.redirectUrl,
           account
         })
@@ -803,7 +809,6 @@ class AuthServiceImpl {
 
     let user = await db.user.findUnique({ where: { oid: userIdentity.userOid! } });
     if (!user) throw new Error('User not found after SSO identity linking');
-    user = await userService.claimSsoSignup({ user });
     user = await userService.linkToAccount({ user });
     await markAresUserChanged({ userId: user.id });
 
@@ -830,6 +835,7 @@ class AuthServiceImpl {
     return await this.createAuthAttempt({
       user,
       device: d.device,
+      loginMethod: 'sso',
       redirectUrl: d.redirectUrl,
       account: d.account
     });
@@ -1128,6 +1134,7 @@ class AuthServiceImpl {
     user: User;
     device: AuthDevice;
     authIntent?: AuthIntent;
+    loginMethod: AuthLoginMethod;
     redirectUrl: string;
     account?: Account | null;
   }) {
@@ -1149,6 +1156,7 @@ class AuthServiceImpl {
           clientSecret: generateCustomId('aat_sec_'),
 
           status: 'pending',
+          loginMethod: d.loginMethod,
 
           userOid: user.oid,
           deviceOid: d.device.oid,
@@ -1210,6 +1218,7 @@ class AuthServiceImpl {
 
       return await this.createAuthAttempt({
         authIntent: d.authIntent,
+        loginMethod: d.authIntent.type == 'oauth' ? 'oauth' : 'email',
         redirectUrl: d.authIntent.redirectUrl,
         user,
         device,
