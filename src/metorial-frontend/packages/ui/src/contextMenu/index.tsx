@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { keyframes, styled } from 'styled-components';
 import { theme } from '..';
 import { useDialogZIndex } from '../dialog/state';
+import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
 
 let fadeInBottom = keyframes`
   from { opacity: 0; transform: translateY(-10px) scale(0.99); }
@@ -140,6 +141,8 @@ export let ContextMenu = ({
 
   useEffect(() => setIsOpen?.(open), [open]);
 
+  useSuppressTooltipWhileOpen(open);
+
   useEffect(() => {
     if (!open) return;
 
@@ -174,7 +177,7 @@ export let ContextMenu = ({
         setOpen(true);
       }}
     >
-      {children}
+      <OverlayOpenProvider value={open}>{children}</OverlayOpenProvider>
       {open
         ? createPortal(
             <Content

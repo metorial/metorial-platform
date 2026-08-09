@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { theme } from '..';
 import { useDialogZIndex } from '../dialog/state';
+import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
 
 let fadeInBottom = keyframes`
   from { opacity: 0; transform: translateY(-10px) scale(0.99); }
@@ -191,66 +192,80 @@ export type MenuProps = {
   setIsOpen?: (isOpen: boolean) => void;
   matchTriggerWidth?: boolean;
   lightMode?: boolean;
-};
+} & Omit<React.ComponentPropsWithoutRef<'button'>, 'children' | 'title'>;
 
-export let Menu = ({
-  children,
-  label,
-  onItemClick,
-  items,
-  title,
-  setIsOpen,
-  matchTriggerWidth,
-  lightMode
-}: MenuProps) => {
-  let [open, setOpen] = useState(false);
-  let zIndex = useDialogZIndex(open);
+export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
+  (
+    {
+      children,
+      label,
+      onItemClick,
+      items,
+      title,
+      setIsOpen,
+      matchTriggerWidth,
+      lightMode,
+      ...triggerProps
+    },
+    ref
+  ) => {
+    let [open, setOpen] = useState(false);
+    let zIndex = useDialogZIndex(open);
 
-  useEffect(() => setIsOpen?.(open), [open]);
+    useEffect(() => setIsOpen?.(open), [open]);
 
-  return (
-    <RadixMenu.Root open={open} onOpenChange={setOpen}>
-      <RadixMenu.Trigger aria-label={label} asChild>
-        {children}
-      </RadixMenu.Trigger>
-      <RadixMenu.Portal>
-        <Content
-          $lightMode={lightMode}
-          $matchTriggerWidth={matchTriggerWidth}
-          sideOffset={5}
-          style={{ zIndex }}
-        >
-          {title && (
-            <>
-              <Title $lightMode={lightMode}>{title}</Title>
-              <Separator $lightMode={lightMode} />
-            </>
-          )}
+    useSuppressTooltipWhileOpen(open);
 
-          {items.map((item: any, i) =>
-            item.type === 'separator' ? (
-              <Separator key={i} $lightMode={lightMode} />
-            ) : (
-              <Item
-                key={i}
-                $lightMode={lightMode}
-                $matchTriggerWidth={matchTriggerWidth}
-                onClick={() => {
-                  item.onClick?.();
-                  if (item.id != null) onItemClick?.(item.id);
-                }}
-                disabled={item.disabled}
-                asChild
-              >
-                <button type="button" disabled={item.disabled}>
-                  <h1>{item.label}</h1>
-                  {item.description && <p>{item.description}</p>}
-                </button>
-              </Item>
-            )
-          )}
-        </Content>
-      </RadixMenu.Portal>
-    </RadixMenu.Root>
-  );
-};
+    return (
+      <RadixMenu.Root open={open} onOpenChange={setOpen}>
+        {/* Props and the ref are forwarded to the trigger so the menu can itself be the child
+            of a tooltip trigger, and the open state is published so a tooltip on the trigger
+            knows to hide. */}
+        <OverlayOpenProvider value={open}>
+          <RadixMenu.Trigger aria-label={label} {...triggerProps} asChild ref={ref}>
+            {children}
+          </RadixMenu.Trigger>
+        </OverlayOpenProvider>
+
+        <RadixMenu.Portal>
+          <Content
+            $lightMode={lightMode}
+            $matchTriggerWidth={matchTriggerWidth}
+            sideOffset={5}
+            style={{ zIndex }}
+          >
+            {title && (
+              <>
+                <Title $lightMode={lightMode}>{title}</Title>
+                <Separator $lightMode={lightMode} />
+              </>
+            )}
+
+            {items.map((item: any, i) =>
+              item.type === 'separator' ? (
+                <Separator key={i} $lightMode={lightMode} />
+              ) : (
+                <Item
+                  key={i}
+                  $lightMode={lightMode}
+                  $matchTriggerWidth={matchTriggerWidth}
+                  onClick={() => {
+                    item.onClick?.();
+                    if (item.id != null) onItemClick?.(item.id);
+                  }}
+                  disabled={item.disabled}
+                  asChild
+                >
+                  <button type="button" disabled={item.disabled}>
+                    <h1>{item.label}</h1>
+                    {item.description && <p>{item.description}</p>}
+                  </button>
+                </Item>
+              )
+            )}
+          </Content>
+        </RadixMenu.Portal>
+      </RadixMenu.Root>
+    );
+  }
+);

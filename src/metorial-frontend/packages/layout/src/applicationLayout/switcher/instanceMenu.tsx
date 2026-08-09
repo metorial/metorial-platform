@@ -4,8 +4,8 @@ import {
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { Button, Menu, Text, theme } from '@metorial/ui';
-import { RiArrowDownSLine } from '@remixicon/react';
+import { Button, Menu, Text, theme, Tooltip } from '@metorial/ui';
+import { RiArrowDownSLine, RiFlaskLine } from '@remixicon/react';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -265,9 +265,22 @@ export let SandboxButton = () => {
         }
       }}
     >
-      <Button size="2" color="gray400" shadow={false}>
-        {instance.data?.type === 'development' ? 'Exit Sandbox' : 'Sandboxes'}
-      </Button>
+      {instance.data?.type === 'development' ? (
+        <Button size="2" color="gray400" shadow={false}>
+          Exit Sandbox
+        </Button>
+      ) : (
+        <Tooltip content="Manage Sandboxes">
+          <Button
+            variant="ghost"
+            size="3"
+            iconLeft={
+              <RiFlaskLine style={{ height: 16, width: 16, color: theme.colors.gray800 }} />
+            }
+            title="Manage Sandboxes"
+          />
+        </Tooltip>
+      )}
     </Menu>
   );
 };

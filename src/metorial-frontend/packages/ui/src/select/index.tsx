@@ -8,6 +8,7 @@ import { markSelectPointerDismiss, useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { theme } from '../theme';
+import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
 
 let fadeIn = keyframes`
   from {
@@ -156,6 +157,8 @@ export let Select = ({
 
   let [isOpen, setIsOpen] = useState(false);
   let zIndex = useZindex(isOpen);
+
+  useSuppressTooltipWhileOpen(isOpen);
 
   let disabledItems = useMemo(
     () =>

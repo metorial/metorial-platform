@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
 import { useDialogContext, useZindex } from '../dialog/state';
 import { theme } from '../theme';
+import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
 
 let fadeInTop = keyframes`
   from {
@@ -155,19 +156,7 @@ let Arrow = styled(RadixPopover.Arrow)`
   fill: ${theme.colors.background};
 `;
 
-let Root = ({
-  trigger,
-  children,
-  arrow,
-  operationKey,
-  onOpenChange,
-  onOpenAutoFocus,
-  side,
-  align,
-  sideOffset,
-  alignOffset,
-  open: openProp
-}: {
+export type PopoverProps = {
   trigger: React.ReactNode;
   children: React.ReactNode;
   arrow?: boolean;
@@ -182,49 +171,75 @@ let Root = ({
 
   // The the operationKey changes, the popover will close
   operationKey?: string;
-}) => {
-  let [open, setOpen] = useState(false);
-  let dialog = useDialogContext();
+} & Omit<React.ComponentPropsWithoutRef<'button'>, 'children' | 'content'>;
 
-  useEffect(() => {
-    setOpen(false);
-  }, [operationKey]);
+let Root = React.forwardRef<HTMLButtonElement, PopoverProps>(
+  (
+    {
+      trigger,
+      children,
+      arrow,
+      operationKey,
+      onOpenChange,
+      onOpenAutoFocus,
+      side,
+      align,
+      sideOffset,
+      alignOffset,
+      open: openProp,
+      ...triggerProps
+    },
+    ref
+  ) => {
+    let [open, setOpen] = useState(false);
+    let dialog = useDialogContext();
 
-  useEffect(() => {
-    if (onOpenChange) onOpenChange(open);
-  }, [open]);
+    useEffect(() => {
+      setOpen(false);
+    }, [operationKey]);
 
-  useEffect(() => {
-    if (typeof openProp === 'boolean') setOpen(openProp);
-  }, [openProp]);
+    useEffect(() => {
+      if (onOpenChange) onOpenChange(open);
+    }, [open]);
 
-  let zIndex = useZindex(open);
+    useEffect(() => {
+      if (typeof openProp === 'boolean') setOpen(openProp);
+    }, [openProp]);
 
-  return (
-    <RadixPopover.Root open={open} onOpenChange={setOpen}>
-      <RadixPopover.Trigger asChild>{trigger}</RadixPopover.Trigger>
+    useSuppressTooltipWhileOpen(open);
 
-      <RadixPopover.Portal container={dialog?.contentRef?.current}>
-        <Wrapper
-          style={{ zIndex }}
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          alignOffset={alignOffset}
-          onOpenAutoFocus={onOpenAutoFocus}
-          onInteractOutside={event => {
-            let target = event.target as Element | null;
-            if (target?.closest('[data-metorial-select-content]')) event.preventDefault();
-          }}
-        >
-          {children}
+    let zIndex = useZindex(open);
 
-          {arrow && <Arrow />}
-        </Wrapper>
-      </RadixPopover.Portal>
-    </RadixPopover.Root>
-  );
-};
+    return (
+      <RadixPopover.Root open={open} onOpenChange={setOpen}>
+        <OverlayOpenProvider value={open}>
+          <RadixPopover.Trigger {...triggerProps} asChild ref={ref}>
+            {trigger}
+          </RadixPopover.Trigger>
+        </OverlayOpenProvider>
+
+        <RadixPopover.Portal container={dialog?.contentRef?.current}>
+          <Wrapper
+            style={{ zIndex }}
+            side={side}
+            align={align}
+            sideOffset={sideOffset}
+            alignOffset={alignOffset}
+            onOpenAutoFocus={onOpenAutoFocus}
+            onInteractOutside={event => {
+              let target = event.target as Element | null;
+              if (target?.closest('[data-metorial-select-content]')) event.preventDefault();
+            }}
+          >
+            {children}
+
+            {arrow && <Arrow />}
+          </Wrapper>
+        </RadixPopover.Portal>
+      </RadixPopover.Root>
+    );
+  }
+);
 
 let Content = ({
   children,
