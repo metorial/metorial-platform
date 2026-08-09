@@ -67,6 +67,8 @@ export let ProjectHomePage = () => {
 
   return (
     <ContentLayout>
+      <Spacer height={50} />
+
       {user.data && (
         <PageHeader
           title={`Welcome to Metorial, ${user.data?.name}!`}

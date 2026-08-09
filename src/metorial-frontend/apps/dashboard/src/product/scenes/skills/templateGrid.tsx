@@ -106,7 +106,7 @@ export let SkillTemplatesGrid = (
   );
   let templatePath = (skillTemplateId: string) =>
     getTemplatePath?.(skillTemplateId) ??
-    Paths.organization.instance.skillTemplate(
+    Paths.instance.skillTemplate(
       organization.data,
       project.data,
       instance.data,

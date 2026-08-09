@@ -1,5 +1,4 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
@@ -9,6 +8,7 @@ import {
 import { Attributes, RenderDate, Spacer } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 import { IdentitiesTable } from '../../../scenes/identity/identitiesTable';
 import { SessionConnectionsTable } from '../../../scenes/logsTable/sessionConnectionsTable';
 import { ToolCallsTable } from '../../../scenes/logsTable/toolCallsTable';
@@ -18,6 +18,7 @@ export let IdentityActorPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
   let { identityActorId } = useParams();
   let actor = useIdentityActor(instance.data?.id, identityActorId);
 
@@ -39,7 +40,7 @@ export let IdentityActorPage = () => {
               label: 'Agent ID',
               content: actor.data.agentId ? (
                 <Link
-                  to={Paths.instance.identity.agent(
+                  to={identityPaths.agent(
                     organization.data,
                     project.data,
                     instance.data,

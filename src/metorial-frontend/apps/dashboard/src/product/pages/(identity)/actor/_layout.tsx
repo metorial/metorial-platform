@@ -1,5 +1,4 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
@@ -9,12 +8,14 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 import { showIdentityFormModal } from '../../../scenes/identity/identityModal';
 
 export let IdentityActorLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
   let location = useLocation();
   let navigate = useNavigate();
   let { identityActorId } = useParams();
@@ -38,7 +39,7 @@ export let IdentityActorLayout = () => {
                   actorName: actor.data.name,
                   onCreate: identity =>
                     navigate(
-                      Paths.instance.identity.identity(
+                      identityPaths.identity(
                         organization.data,
                         project.data,
                         instance.data,
@@ -55,15 +56,11 @@ export let IdentityActorLayout = () => {
         pagination={[
           {
             label: 'Identity Actors',
-            href: Paths.instance.identity.actors(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            href: identityPaths.actors(organization.data, project.data, instance.data)
           },
           {
             label: actor.data?.name ?? identityActorId ?? '...',
-            href: Paths.instance.identity.actor(
+            href: identityPaths.actor(
               organization.data,
               project.data,
               instance.data,
@@ -82,7 +79,7 @@ export let IdentityActorLayout = () => {
                 links={[
                   {
                     label: 'Overview',
-                    to: Paths.instance.identity.actor(
+                    to: identityPaths.actor(
                       organization.data,
                       project.data,
                       instance.data,
@@ -91,7 +88,7 @@ export let IdentityActorLayout = () => {
                   },
                   {
                     label: 'Operations',
-                    to: Paths.instance.identity.actor(
+                    to: identityPaths.actor(
                       organization.data,
                       project.data,
                       instance.data,
@@ -101,7 +98,7 @@ export let IdentityActorLayout = () => {
                   },
                   {
                     label: 'Connections',
-                    to: Paths.instance.identity.actor(
+                    to: identityPaths.actor(
                       organization.data,
                       project.data,
                       instance.data,
@@ -111,7 +108,7 @@ export let IdentityActorLayout = () => {
                   },
                   {
                     label: 'Delegations',
-                    to: Paths.instance.identity.actor(
+                    to: identityPaths.actor(
                       organization.data,
                       project.data,
                       instance.data,
@@ -121,7 +118,7 @@ export let IdentityActorLayout = () => {
                   },
                   {
                     label: 'Settings',
-                    to: Paths.instance.identity.actor(
+                    to: identityPaths.actor(
                       organization.data,
                       project.data,
                       instance.data,

@@ -1,12 +1,13 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useIdentityActor } from '@metorial/state';
 import { Button, Input, Spacer, confirm } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 
 export let IdentityActorSettingsPage = () => {
   let instance = useCurrentInstance();
+  let identityPaths = useIdentityPaths();
   let navigate = useNavigate();
   let { identityActorId } = useParams();
   let actor = useIdentityActor(instance.data?.id, identityActorId);
@@ -80,7 +81,7 @@ export let IdentityActorSettingsPage = () => {
                 let [res] = await deleteMutator.mutate({});
                 if (res) {
                   navigate(
-                    Paths.instance.identity.actors(
+                    identityPaths.actors(
                       instance.data?.organization,
                       instance.data?.project,
                       instance.data

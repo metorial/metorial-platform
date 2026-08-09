@@ -20,7 +20,7 @@ export let cell = ensureGlobalDatabaseReady().then(async () => {
     update: { endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT }
   });
 
-  if (env.service.EXTERNAL_MULTI_REGION_ENDPOINT) {
+  if (env.service.EXTERNAL_MULTI_REGION_ENDPOINT && process.env.NODE_ENV === 'production') {
     await globalDB.cell.updateMany({
       where: {
         endpointUrl: env.service.EXTERNAL_MULTI_REGION_ENDPOINT,

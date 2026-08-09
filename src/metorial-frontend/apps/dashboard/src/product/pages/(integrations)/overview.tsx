@@ -1,4 +1,3 @@
-import { UsageScene } from '@metorial/app-dashboard';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import type { ResourceCountResource } from '@metorial/state';
@@ -9,10 +8,12 @@ import {
   useLastUsedEnclaves,
   useResourceCounts
 } from '@metorial/state';
-import { Badge, Button, RenderDate, Text, theme } from '@metorial/ui';
+import { Badge, Button, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { HomeProvidersTable } from '../../scenes/providers/homeTable';
+import { UsageScene } from '../../scenes/usage/usage';
 
 let PageStack = styled.div`
   display: flex;
@@ -56,10 +57,16 @@ let ActivityGrid = styled.div`
   }
 `;
 
+let ChartGrid = styled.div`
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+`;
+
 let ResourceGrid = styled.div`
   display: grid;
   gap: 20px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   @media (max-width: 1100px) {
     grid-template-columns: 1fr;
@@ -130,10 +137,8 @@ type Resource = {
 
 type Stat = {
   label: string;
-  hint: string;
   to: string;
   countResources: ResourceCountResource[];
-  tone?: 'green' | 'blue' | 'orange' | 'gray';
 };
 
 let ResourceBox = ({
@@ -241,7 +246,7 @@ let RecentEnclavesBox = ({
   </Box>
 );
 
-let infrastructureResourceCountResources = [
+let integrationsResourceCountResources = [
   'provider_deployments',
   'provider_configs',
   'provider_config_vaults',
@@ -249,23 +254,24 @@ let infrastructureResourceCountResources = [
   'provider_auth_credentials',
   'networks',
   'firewalls',
-  'enclaves',
-  'accounts',
-  'agents',
-  'identity_actors',
-  'identities',
-  'identity_delegations',
-  'identity_delegation_configs'
+  'enclaves'
 ] satisfies ResourceCountResource[];
 
-export let InfrastructureOverviewPage = () => {
+let configurationCountResources = [
+  'provider_configs',
+  'provider_config_vaults',
+  'provider_auth_configs',
+  'provider_auth_credentials'
+] satisfies ResourceCountResource[];
+
+export let IntegrationsOverviewPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let params = [organization.data, project.data, instance.data] as const;
   let resourceCounts = useResourceCounts(
     instance.data?.id,
-    infrastructureResourceCountResources
+    integrationsResourceCountResources
   );
   let lastUsedEnclaves = useLastUsedEnclaves(instance.data?.id, { limit: 3 });
   let countByResource = new Map(
@@ -284,45 +290,50 @@ export let InfrastructureOverviewPage = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Infra"
-        description="Review the connection, compute, and identity resources that power your Metorial instance."
+        title="Integrations"
+        description="Everything your apps and agents connect to, with the activity and configuration behind it."
       />
+
+      <PageHeader
+        title="Integration Providers"
+        description="Providers you have used recently or ones that are popular on Metorial."
+        size="5"
+        actions={
+          <Link to={Paths.instance.providers(...params)}>
+            <Button size="2" as="span" variant="outline">
+              View All Providers
+            </Button>
+          </Link>
+        }
+      />
+
+      <HomeProvidersTable limit={12} orderByUse="last_deployment_at" orderByRank />
+
+      {/*
+      <Spacer height={25} />
 
       <PageStack>
         <StatStrip
           stats={[
             {
               label: 'Deployments',
-              hint: 'Provider access',
               to: Paths.organization.instance.providerDeployments(...params),
-              countResources: ['provider_deployments'],
-              tone: 'green'
+              countResources: ['provider_deployments']
             },
             {
               label: 'Configurations',
-              hint: 'Auth and config',
               to: Paths.instance.providerAuthConfigs(...params),
-              countResources: [
-                'provider_configs',
-                'provider_config_vaults',
-                'provider_auth_configs',
-                'provider_auth_credentials'
-              ],
-              tone: 'blue'
+              countResources: configurationCountResources
             },
             {
               label: 'Enclaves',
-              hint: 'Runtime isolation',
               to: Paths.organization.instance.networkEnclaves(...params),
-              countResources: ['enclaves'],
-              tone: 'orange'
+              countResources: ['enclaves']
             },
             {
-              label: 'Agents',
-              hint: 'Identity clients',
-              to: Paths.instance.identity.agents(...params),
-              countResources: ['agents'],
-              tone: 'gray'
+              label: 'Networks',
+              to: Paths.organization.instance.network(...params),
+              countResources: ['networks', 'firewalls']
             }
           ]}
           getStatCount={getStatCount}
@@ -331,14 +342,12 @@ export let InfrastructureOverviewPage = () => {
         <ActivityGrid>
           <UsageScene
             title="Connection Activity"
-            description="Recent activity across deployments and tool calls."
-            entities={[{ type: 'provider_deployment' }, { type: 'tool_call' }]}
-            entityNames={{
-              provider_deployment: 'Sessions',
-              'type:provider_deployment': 'Sessions',
-              tool_call: 'Tool calls',
-              'type:tool_call': 'Tool calls'
-            }}
+            description="Sessions opened against your providers over time."
+            entities={[{ type: 'provider' }]}
+            entityNames={{ provider: 'Sessions' }}
+            from={7}
+            interval={{ unit: 'day', count: 1 }}
+            labelBy="owner"
           />
 
           <RecentEnclavesBox
@@ -346,6 +355,50 @@ export let InfrastructureOverviewPage = () => {
             enclavePath={Paths.organization.instance.networkEnclaves(...params)}
           />
         </ActivityGrid>
+
+        <ChartGrid>
+          <UsageScene
+            title="Provider Usage"
+            description="Requests handled by each provider in this instance."
+            entities={[{ type: 'provider' }]}
+            entityNames={{ provider: 'Providers' }}
+            from={7}
+            interval={{ unit: 'day', count: 1 }}
+            labelBy="owner"
+          />
+
+          <UsageScene
+            title="Tool Calls"
+            description="Tool calls made through your provider connections."
+            entities={[{ type: 'tool_call' }]}
+            entityNames={{ tool_call: 'Tool calls' }}
+            from={7}
+            interval={{ unit: 'day', count: 1 }}
+            labelBy="owner"
+          />
+        </ChartGrid>
+
+        <ChartGrid>
+          <UsageScene
+            title="Provider Configs"
+            description="Sessions that used a configured provider."
+            entities={[{ type: 'provider_config' }]}
+            entityNames={{ provider_config: 'Configs' }}
+            from={7}
+            interval={{ unit: 'day', count: 1 }}
+            labelBy="owner"
+          />
+
+          <UsageScene
+            title="Auth Configs"
+            description="Usage attributed to each auth configuration."
+            entities={[{ type: 'provider_auth_config' }]}
+            entityNames={{ provider_auth_config: 'Auth Configs' }}
+            from={7}
+            interval={{ unit: 'day', count: 1 }}
+            labelBy="owner"
+          />
+        </ChartGrid>
 
         <ResourceGrid>
           <ResourceBox
@@ -364,12 +417,7 @@ export let InfrastructureOverviewPage = () => {
                 label: 'Configurations',
                 description: 'Auth configs, credentials, provider configs, and vaults.',
                 to: Paths.instance.providerAuthConfigs(...params),
-                countResources: [
-                  'provider_configs',
-                  'provider_config_vaults',
-                  'provider_auth_configs',
-                  'provider_auth_credentials'
-                ],
+                countResources: configurationCountResources,
                 action: 'Review',
                 tone: 'blue'
               }
@@ -400,43 +448,9 @@ export let InfrastructureOverviewPage = () => {
             ]}
             getResourceCount={getResourceCount}
           />
-
-          <ResourceBox
-            title="Identity"
-            description="Who or what can access resources?"
-            resources={[
-              {
-                label: 'Accounts',
-                description: 'Workforce accounts and linked identity actors.',
-                to: Paths.instance.identity.consumers(...params),
-                countResources: ['accounts'],
-                action: 'Open'
-              },
-              {
-                label: 'Agents',
-                description: 'First-class agents and linked clients.',
-                to: Paths.instance.identity.agents(...params),
-                countResources: ['agents'],
-                action: 'Manage',
-                tone: 'blue'
-              },
-              {
-                label: 'Identities',
-                description: 'Identity records, actors, delegations, and configs.',
-                to: Paths.instance.identity.identities(...params),
-                countResources: [
-                  'identity_actors',
-                  'identities',
-                  'identity_delegations',
-                  'identity_delegation_configs'
-                ],
-                action: 'Open'
-              }
-            ]}
-            getResourceCount={getResourceCount}
-          />
         </ResourceGrid>
       </PageStack>
+      */}
     </ContentLayout>
   );
 };

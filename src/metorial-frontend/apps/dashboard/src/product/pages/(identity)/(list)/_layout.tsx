@@ -1,5 +1,4 @@
 import { PaginationSearchParamsProvider, renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
@@ -10,6 +9,7 @@ import {
 import { Button, Error, LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Upgrade } from '@metorial/empty-state';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 import { showIdentityActorFormModal } from '../../../scenes/identity/actorModal';
 
 export let isIdentityEnabled = (flags: Record<string, boolean> | undefined) =>
@@ -36,6 +36,7 @@ export let IdentityListLayout = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let flags = useDashboardFlags();
+  let identityPaths = useIdentityPaths();
   let pathname = useLocation().pathname;
   let navigate = useNavigate();
 
@@ -56,7 +57,7 @@ export let IdentityListLayout = () => {
                     instanceId: instance.data.id,
                     onCreate: actor =>
                       navigate(
-                        Paths.instance.identity.actor(
+                        identityPaths.actor(
                           organization.data,
                           project.data,
                           instance.data,
@@ -77,19 +78,11 @@ export let IdentityListLayout = () => {
           links={[
             {
               label: 'Identities',
-              to: Paths.instance.identity.identities(
-                organization.data,
-                project.data,
-                instance.data
-              )
+              to: identityPaths.identities(organization.data, project.data, instance.data)
             },
             {
               label: 'Actors',
-              to: Paths.instance.identity.actors(
-                organization.data,
-                project.data,
-                instance.data
-              )
+              to: identityPaths.actors(organization.data, project.data, instance.data)
             }
           ]}
         />

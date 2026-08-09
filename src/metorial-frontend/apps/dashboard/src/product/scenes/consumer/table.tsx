@@ -1,5 +1,4 @@
 import { DashboardInstanceConsumersListOutput } from '@metorial/dashboard-sdk';
-import { Paths } from '@metorial/frontend-config';
 import {
   useConsumers,
   useCurrentInstance,
@@ -10,6 +9,7 @@ import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '@metorial/table';
 import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
+import { useIdentityPaths } from '../../lib/identityPaths';
 
 type Consumer = DashboardInstanceConsumersListOutput['items'][number];
 type ConsumersTableProps = {
@@ -17,6 +17,7 @@ type ConsumersTableProps = {
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
+  identityPaths: ReturnType<typeof useIdentityPaths>;
 };
 
 let useConsumersTableState: TableStateProvider<
@@ -116,7 +117,7 @@ let consumersTable = new DashboardTable<ConsumersTableProps, Consumer>('consumer
     }
   ])
   .link((consumer, props) =>
-    Paths.instance.identity.consumer(
+    props.identityPaths.consumer(
       props.organization.data,
       props.project.data,
       props.instance.data,
@@ -129,12 +130,14 @@ export let ConsumersTable = ({ instanceId }: { instanceId: string }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
 
   return consumersTable({
     instanceId,
     instance,
     organization,
     project,
+    identityPaths,
     emptyState: 'No accounts found.'
   });
 };

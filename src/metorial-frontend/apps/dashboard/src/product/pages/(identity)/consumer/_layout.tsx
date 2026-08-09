@@ -1,5 +1,4 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useConsumer,
@@ -9,11 +8,13 @@ import {
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 
 export let ConsumerLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
   let { consumerId } = useParams();
   let consumer = useConsumer(instance.data?.id, consumerId);
   let pathname = useLocation().pathname;
@@ -26,15 +27,11 @@ export let ConsumerLayout = () => {
         pagination={[
           {
             label: 'Accounts',
-            href: Paths.instance.identity.consumers(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            href: identityPaths.consumers(organization.data, project.data, instance.data)
           },
           {
             label: consumer.data?.name ?? '...',
-            href: Paths.instance.identity.consumer(
+            href: identityPaths.consumer(
               organization.data,
               project.data,
               instance.data,
@@ -53,7 +50,7 @@ export let ConsumerLayout = () => {
                 links={[
                   {
                     label: 'Overview',
-                    to: Paths.instance.identity.consumer(
+                    to: identityPaths.consumer(
                       organization.data,
                       project.data,
                       instance.data,
@@ -62,7 +59,7 @@ export let ConsumerLayout = () => {
                   },
                   {
                     label: 'Operations',
-                    to: Paths.instance.identity.consumer(
+                    to: identityPaths.consumer(
                       organization.data,
                       project.data,
                       instance.data,
@@ -72,7 +69,7 @@ export let ConsumerLayout = () => {
                   },
                   {
                     label: 'Connections',
-                    to: Paths.instance.identity.consumer(
+                    to: identityPaths.consumer(
                       organization.data,
                       project.data,
                       instance.data,
@@ -82,7 +79,7 @@ export let ConsumerLayout = () => {
                   },
                   {
                     label: 'Delegations',
-                    to: Paths.instance.identity.consumer(
+                    to: identityPaths.consumer(
                       organization.data,
                       project.data,
                       instance.data,
@@ -92,7 +89,7 @@ export let ConsumerLayout = () => {
                   },
                   {
                     label: 'Magic MCP Servers',
-                    to: Paths.instance.identity.consumer(
+                    to: identityPaths.consumer(
                       organization.data,
                       project.data,
                       instance.data,
@@ -102,7 +99,7 @@ export let ConsumerLayout = () => {
                   },
                   {
                     label: 'Settings',
-                    to: Paths.instance.identity.consumer(
+                    to: identityPaths.consumer(
                       organization.data,
                       project.data,
                       instance.data,

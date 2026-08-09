@@ -1,5 +1,4 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useAgent,
   useCurrentInstance,
@@ -9,12 +8,14 @@ import {
 import { Attributes, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 import { AgentInstancesTable } from '../../../scenes/identity/agentInstancesTable';
 
 export let AgentPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
   let { agentId } = useParams();
   let agent = useAgent(instance.data?.id, agentId);
 
@@ -40,7 +41,7 @@ export let AgentPage = () => {
               label: 'Linked Actor',
               content: (
                 <Link
-                  to={Paths.instance.identity.actor(
+                  to={identityPaths.actor(
                     organization.data,
                     project.data,
                     instance.data,

@@ -9,6 +9,7 @@ import {
 } from '@metorial/state';
 import { Button, LinkTabs, Menu } from '@metorial/ui';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 import { showIdentityDelegationFormModal } from '../../../scenes/identity/delegationModal';
 import { showIdentityDelegationRequestFormModal } from '../../../scenes/identity/delegationRequestModal';
 
@@ -16,6 +17,7 @@ export let IdentityLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
   let { identityId } = useParams();
   let _identity = useIdentity(instance.data?.id, identityId);
   let pathname = useLocation().pathname;
@@ -87,15 +89,11 @@ export let IdentityLayout = () => {
         pagination={[
           {
             label: 'Identities',
-            href: Paths.instance.identity.identities(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            href: identityPaths.identities(organization.data, project.data, instance.data)
           },
           {
             label: _identity.data?.name ?? _identity.data?.id ?? identityId ?? '...',
-            href: Paths.instance.identity.identity(
+            href: identityPaths.identity(
               organization.data,
               project.data,
               instance.data,
@@ -114,7 +112,7 @@ export let IdentityLayout = () => {
                 links={[
                   {
                     label: 'Overview',
-                    to: Paths.instance.identity.identity(
+                    to: identityPaths.identity(
                       organization.data,
                       project.data,
                       instance.data,
@@ -123,7 +121,7 @@ export let IdentityLayout = () => {
                   },
                   {
                     label: 'Delegations',
-                    to: Paths.instance.identity.identity(
+                    to: identityPaths.identity(
                       organization.data,
                       project.data,
                       instance.data,
@@ -133,7 +131,7 @@ export let IdentityLayout = () => {
                   },
                   {
                     label: 'Delegation Requests',
-                    to: Paths.instance.identity.identity(
+                    to: identityPaths.identity(
                       organization.data,
                       project.data,
                       instance.data,
@@ -143,7 +141,7 @@ export let IdentityLayout = () => {
                   },
                   {
                     label: 'Settings',
-                    to: Paths.instance.identity.identity(
+                    to: identityPaths.identity(
                       organization.data,
                       project.data,
                       instance.data,

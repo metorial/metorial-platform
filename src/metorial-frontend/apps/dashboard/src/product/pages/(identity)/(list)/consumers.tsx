@@ -1,5 +1,4 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useCurrentInstance,
@@ -9,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 import { showConsumerFormModal } from '../../../scenes/consumer/modal';
 import { ConsumersTable } from '../../../scenes/consumer/table';
 import {
@@ -23,6 +23,7 @@ export let ConsumersPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let flags = useDashboardFlags();
+  let identityPaths = useIdentityPaths();
   let navigate = useNavigate();
 
   return (
@@ -40,7 +41,7 @@ export let ConsumersPage = () => {
                 instanceId: instance.data.id,
                 onCreate: consumer =>
                   navigate(
-                    Paths.instance.identity.consumer(
+                    identityPaths.consumer(
                       organization.data,
                       project.data,
                       instance.data,

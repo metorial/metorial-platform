@@ -10,12 +10,15 @@ import {
 import {
   RiBriefcase4Line,
   RiChatVoiceAiLine,
-  RiFolderSettingsLine,
+  RiFileCopyLine,
+  RiFolderLine,
   RiGroupLine,
   RiHome6Line,
   RiListCheck2,
   RiPlugLine,
-  RiSurveyLine,
+  RiSparkling2Line,
+  RiStore2Line,
+  RiCompassDiscoverLine,
   RiUploadCloud2Line,
   RiUser3Line,
   RiWebhookLine
@@ -35,9 +38,6 @@ export let ProjectPageLayout = () => {
 
     return i.pathname === i.to || (!opts?.exact && i.pathname.startsWith(`${i.to}/`));
   };
-  let checkPathPrefixes = (pathname: string, prefixes: string[]) =>
-    prefixes.some(prefix => pathname.includes(`/${prefix}`));
-
   useEffect(() => {
     if (!instance.data) return;
     document.title = `${instance.data.project.name} • Metorial Dashboard`;
@@ -55,6 +55,7 @@ export let ProjectPageLayout = () => {
   ];
   let dashboardFlags = useDashboardFlags();
   let assistantEnabled = !!dashboardFlags.data?.flags['assistant-enabled'];
+  let skillsEnabled = !!dashboardFlags.data?.flags['skills-enabled'];
 
   return (
     <AppLayout
@@ -70,9 +71,15 @@ export let ProjectPageLayout = () => {
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
             {
-              icon: <RiHome6Line />,
-              label: 'Infra',
-              to: Paths.instance.infrastructure(...params),
+              icon: <RiPlugLine />,
+              label: 'Integrations',
+              to: Paths.instance.integrationsOverview(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+            {
+              icon: <RiCompassDiscoverLine />,
+              label: 'Explorer',
+              to: Paths.instance.explorer(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             }
           ]
@@ -90,45 +97,6 @@ export let ProjectPageLayout = () => {
             },
 
             {
-              icon: <RiFolderSettingsLine />,
-              label: 'Configurations',
-              to: Paths.instance.providerAuthConfigs(...params),
-              getProps: i => ({
-                isActive:
-                  checkPath(i) ||
-                  checkPathPrefixes(i.pathname, [
-                    'configurations/auth-configs',
-                    'configurations/auth-config',
-                    'configurations/configs',
-                    'configurations/config/'
-                  ])
-              }),
-              children: [
-                {
-                  label: 'Auth Configs',
-                  to: Paths.instance.providerAuthConfigs(...params),
-                  getProps: i => ({
-                    isActive:
-                      checkPath(i, { exact: true }) ||
-                      checkPathPrefixes(i.pathname, ['configurations/auth-config'])
-                  })
-                },
-                {
-                  label: 'Configs',
-                  to: Paths.instance.providerConfigs(...params),
-                  getProps: i => ({
-                    isActive:
-                      checkPath(i, { exact: true }) ||
-                      checkPathPrefixes(i.pathname, [
-                        'configurations/configs',
-                        'configurations/config/'
-                      ])
-                  })
-                }
-              ]
-            },
-
-            {
               icon: <RiListCheck2 />,
               label: 'Monitoring',
               to: Paths.instance.providerSessions(...params),
@@ -141,19 +109,13 @@ export let ProjectPageLayout = () => {
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
-                  label: 'Errors',
+                  label: 'Tool Errors',
                   to: Paths.instance.providerErrors(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 }
               ]
             },
 
-            {
-              icon: <RiSurveyLine />,
-              label: 'Explorer',
-              to: Paths.instance.explorer(...params),
-              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            },
             ...(assistantEnabled
               ? [
                   {
@@ -186,6 +148,49 @@ export let ProjectPageLayout = () => {
             }
           ]
         },
+
+        ...(skillsEnabled
+          ? [
+              {
+                label: 'Magic Skills',
+                collapsible: true,
+                items: [
+                  {
+                    icon: <RiSparkling2Line />,
+                    label: 'Skills',
+                    to: Paths.instance.skills(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  },
+                  {
+                    icon: <RiStore2Line />,
+                    label: 'Marketplaces',
+                    to: Paths.instance.skillMarketplaces(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  },
+                  {
+                    icon: <RiFileCopyLine />,
+                    label: 'Templates',
+                    to: Paths.instance.skillTemplates(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  },
+                  {
+                    icon: <RiFolderLine />,
+                    label: 'Groups',
+                    to: Paths.instance.skillGroups(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive: checkPath(i, { exact: true })
+                    })
+                  }
+                ]
+              }
+            ]
+          : []),
 
         {
           label: 'Gateway',

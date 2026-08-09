@@ -37,7 +37,7 @@ export let SkillsListLayout = () => {
           showSkillTemplateFormModal({
             instanceId: instance.data!.id,
             onCreate: skillTemplate => {
-              navigate(Paths.organization.instance.skillTemplate(...listPathParams, skillTemplate.id));
+              navigate(Paths.instance.skillTemplate(...listPathParams, skillTemplate.id));
             }
           })
       };
@@ -118,7 +118,7 @@ export let SkillsListLayout = () => {
             showSkillTemplateFormModal({
               instanceId: instance.data!.id,
               onCreate: skillTemplate => {
-                navigate(Paths.organization.instance.skillTemplate(...listPathParams, skillTemplate.id));
+                navigate(Paths.instance.skillTemplate(...listPathParams, skillTemplate.id));
               }
             })
         }
@@ -154,7 +154,7 @@ export let SkillsListLayout = () => {
           },
           {
             label: 'Templates',
-            to: Paths.organization.instance.skillTemplates(...listPathParams)
+            to: Paths.instance.skillTemplates(...listPathParams)
           },
           {
             label: 'Groups',

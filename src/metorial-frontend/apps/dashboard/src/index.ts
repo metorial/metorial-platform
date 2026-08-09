@@ -8,13 +8,15 @@ export {
 
 export {
   deploySlice,
+  productAssistantSlice,
   productDocumentSlice,
   productExplorerSlice,
   productHomeSlice,
   productIdentitySlice,
-  productInfrastructureSlice,
-  productTraceDetailSlice,
-  productTraceSlice
+  productIntegrationsSlice,
+  productLogsSlice,
+  productSkillsSlice,
+  productTraceDetailSlice
 } from './product';
 
 export { ConsumersTable } from './product/scenes/consumer/table';
@@ -85,6 +87,15 @@ export {
   showMagicMcpServerFormModal
 } from './product/scenes/providerDeployments/modal';
 export { ProviderConfigsOverviewTable } from './product/scenes/providerConfigs/overviewTable';
+export { ProviderDeploymentsListLayout } from './product/pages/(deployments)/(list)/providerDeploymentsListLayout';
+export { ProviderConfigsOverviewPage } from './product/pages/(deployments)/(list)/provider-configs';
+export { ProviderAuthConfigsOverviewPage } from './product/pages/(deployments)/(list)/provider-auth-configs';
+export { ProviderConfigLayout } from './product/pages/(deployments)/provider-config/_layout';
+export { ProviderConfigOverviewPage } from './product/pages/(deployments)/provider-config';
+export { ProviderConfigSettingsPage } from './product/pages/(deployments)/provider-config/settings';
+export { ProviderAuthConfigLayout } from './product/pages/(deployments)/provider-auth-configs/_layout';
+export { ProviderAuthConfigOverviewPage } from './product/pages/(deployments)/provider-auth-configs';
+export { ProviderAuthConfigSettingsPage } from './product/pages/(deployments)/provider-auth-configs/settings';
 export { showProviderConfigFormModal } from './product/scenes/providerConfigs/modal';
 export { ProviderConfigVaultsOverviewTable } from './product/scenes/providerConfigVaults/overviewTable';
 export { ProviderAuthCredentialsOverviewTable } from './product/scenes/providerAuthCredentials/overviewTable';
@@ -125,7 +136,10 @@ export {
   getExplorerModeUrl,
   type OpenExplorerMode
 } from './product/components/openExplorer';
-export { NetworkManagedPage, useNetworkManagementAccess } from './product/pages/(network)/_gate';
+export {
+  NetworkManagedPage,
+  useNetworkManagementAccess
+} from './product/pages/(network)/_gate';
 export { EmptyText, Stack } from './product/pages/(network)/_common';
 export { showApplyFirewallPanel } from './product/pages/(network)/_applyFirewallPanel';
 

@@ -1,5 +1,4 @@
 import { InitialLoadBoundary, renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   useAgent,
@@ -9,11 +8,13 @@ import {
 } from '@metorial/state';
 import { LinkTabs } from '@metorial/ui';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 
 export let AgentLayout = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
   let location = useLocation();
   let { agentId } = useParams();
   let agent = useAgent(instance.data?.id, agentId);
@@ -26,15 +27,11 @@ export let AgentLayout = () => {
         pagination={[
           {
             label: 'Agents',
-            href: Paths.instance.identity.agents(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            href: identityPaths.agents(organization.data, project.data, instance.data)
           },
           {
             label: agent.data?.name ?? agentId ?? '...',
-            href: Paths.instance.identity.agent(
+            href: identityPaths.agent(
               organization.data,
               project.data,
               instance.data,
@@ -53,7 +50,7 @@ export let AgentLayout = () => {
                 links={[
                   {
                     label: 'Overview',
-                    to: Paths.instance.identity.agent(
+                    to: identityPaths.agent(
                       organization.data,
                       project.data,
                       instance.data,
@@ -62,7 +59,7 @@ export let AgentLayout = () => {
                   },
                   {
                     label: 'Operations',
-                    to: Paths.instance.identity.agent(
+                    to: identityPaths.agent(
                       organization.data,
                       project.data,
                       instance.data,
@@ -72,7 +69,7 @@ export let AgentLayout = () => {
                   },
                   {
                     label: 'Connections',
-                    to: Paths.instance.identity.agent(
+                    to: identityPaths.agent(
                       organization.data,
                       project.data,
                       instance.data,
@@ -82,7 +79,7 @@ export let AgentLayout = () => {
                   },
                   {
                     label: 'Delegations',
-                    to: Paths.instance.identity.agent(
+                    to: identityPaths.agent(
                       organization.data,
                       project.data,
                       instance.data,

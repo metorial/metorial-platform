@@ -5,13 +5,13 @@ import { NotFound } from '@metorial/pages';
 import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@metorial/state';
 import { Error } from '@metorial/ui';
 import { useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { Upgrade } from '@metorial/empty-state';
 import { ProjectHomePage } from './pages';
 import { InstanceLayout } from './pages/_instanceLayout';
 
-let InfrastructureOverviewPage = dynamicPage(() =>
-  import('./pages/(infrastructure)/overview').then(c => c.InfrastructureOverviewPage)
+let IntegrationsOverviewPage = dynamicPage(() =>
+  import('./pages/(integrations)/overview').then(c => c.IntegrationsOverviewPage)
 );
 
 // Provider API pages
@@ -20,21 +20,6 @@ let ProvidersHubLayout = dynamicPage(() =>
 );
 let ProvidersPage = dynamicPage(() =>
   import('./pages/(deployments)/(list)/providers').then(c => c.ProvidersPage)
-);
-let ProviderDeploymentsListLayout = dynamicPage(() =>
-  import('./pages/(deployments)/(list)/providerDeploymentsListLayout').then(
-    c => c.ProviderDeploymentsListLayout
-  )
-);
-let ProviderAuthConfigsOverviewPage = dynamicPage(() =>
-  import('./pages/(deployments)/(list)/provider-auth-configs').then(
-    c => c.ProviderAuthConfigsOverviewPage
-  )
-);
-let ProviderConfigsOverviewPage = dynamicPage(() =>
-  import('./pages/(deployments)/(list)/provider-configs').then(
-    c => c.ProviderConfigsOverviewPage
-  )
 );
 let ProviderSessionsListLayout = dynamicPage(() =>
   import('./pages/(deployments)/(list)/_layout').then(c => c.ProviderSessionsListLayout)
@@ -62,32 +47,6 @@ let ProviderTriggersPage = dynamicPage(() =>
 );
 let ProviderAuthMethodsPage = dynamicPage(() =>
   import('./pages/provider/(capapbilities)/auth-methods').then(c => c.ProviderAuthMethodsPage)
-);
-let ProviderConfigLayout = dynamicPage(() =>
-  import('./pages/(deployments)/provider-config/_layout').then(c => c.ProviderConfigLayout)
-);
-let ProviderConfigOverviewPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-config/index').then(c => c.ProviderConfigOverviewPage)
-);
-let ProviderConfigSettingsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-config/settings').then(
-    c => c.ProviderConfigSettingsPage
-  )
-);
-let ProviderAuthConfigLayout = dynamicPage(() =>
-  import('./pages/(deployments)/provider-auth-configs/_layout').then(
-    c => c.ProviderAuthConfigLayout
-  )
-);
-let ProviderAuthConfigOverviewPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-auth-configs/index').then(
-    c => c.ProviderAuthConfigOverviewPage
-  )
-);
-let ProviderAuthConfigSettingsPage = dynamicPage(() =>
-  import('./pages/(deployments)/provider-auth-configs/settings').then(
-    c => c.ProviderAuthConfigSettingsPage
-  )
 );
 let ProviderSessionLayout = dynamicPage(() =>
   import('./pages/(logs)/provider-session/_layout').then(c => c.ProviderSessionLayout)
@@ -404,7 +363,6 @@ let CallbackTriggersPage = dynamicPage(() =>
 let CallbackDestinationsPage = dynamicPage(() =>
   import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
 );
-let LogsHomePage = dynamicPage(() => import('./pages/(logs)/home').then(c => c.LogsHomePage));
 let SessionLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.SessionLogsListLayout)
 );
@@ -509,7 +467,7 @@ let ProductWrapper = () => {
   return <Outlet />;
 };
 
-export let productTraceSlice = createSlice([
+export let productLogsSlice = createSlice([
   {
     element: <ProductWrapper />,
 
@@ -518,11 +476,6 @@ export let productTraceSlice = createSlice([
         element: <InstanceLayout />,
 
         children: [
-          {
-            path: 'logs',
-            element: <LogsHomePage />
-          },
-
           {
             children: [
               {
@@ -709,6 +662,156 @@ export let productDocumentSlice = createSlice([
   }
 ]);
 
+let identityRoutes = [
+  {
+    path: 'agents',
+    element: <AgentsListLayout />,
+    children: [
+      {
+        path: '',
+        element: <AgentsPage />
+      }
+    ]
+  },
+  {
+    element: <IdentityListLayout />,
+    children: [
+      {
+        path: 'actors',
+        element: <IdentityActorsPage />
+      },
+      {
+        path: 'identities',
+        element: <IdentitiesPage />
+      }
+    ]
+  },
+  {
+    path: 'consumers',
+    element: <ConsumersPage />
+  },
+
+  {
+    path: 'agent/:agentId',
+    element: (
+      <IdentityManagedPage>
+        <AgentLayout />
+      </IdentityManagedPage>
+    ),
+    children: [
+      {
+        path: '',
+        element: <AgentPage />
+      },
+      {
+        path: 'operations',
+        element: <AgentOperationsPage />
+      },
+      {
+        path: 'connections',
+        element: <AgentConnectionsPage />
+      },
+      {
+        path: 'delegations',
+        element: <AgentDelegationsPage />
+      }
+    ]
+  },
+
+  {
+    path: 'consumer/:consumerId',
+    element: (
+      <IdentityManagedPage>
+        <ConsumerLayout />
+      </IdentityManagedPage>
+    ),
+    children: [
+      {
+        path: '',
+        element: <ConsumerPage />
+      },
+      {
+        path: 'operations',
+        element: <ConsumerOperationsPage />
+      },
+      {
+        path: 'connections',
+        element: <ConsumerConnectionsPage />
+      },
+      {
+        path: 'delegations',
+        element: <ConsumerDelegationsPage />
+      },
+      {
+        path: 'settings',
+        element: <ConsumerSettingsPage />
+      },
+      {
+        path: 'magic-mcp-servers',
+        element: <ConsumerMagicMcpServersPage />
+      }
+    ]
+  },
+
+  {
+    path: 'actor/:identityActorId',
+    element: (
+      <IdentityManagedPage>
+        <IdentityActorLayout />
+      </IdentityManagedPage>
+    ),
+    children: [
+      {
+        path: '',
+        element: <IdentityActorPage />
+      },
+      {
+        path: 'operations',
+        element: <IdentityActorOperationsPage />
+      },
+      {
+        path: 'connections',
+        element: <IdentityActorConnectionsPage />
+      },
+      {
+        path: 'delegations',
+        element: <IdentityActorDelegationsPage />
+      },
+      {
+        path: 'settings',
+        element: <IdentityActorSettingsPage />
+      }
+    ]
+  },
+
+  {
+    path: 'identity/:identityId',
+    element: (
+      <IdentityManagedPage>
+        <IdentityLayout />
+      </IdentityManagedPage>
+    ),
+    children: [
+      {
+        path: '',
+        element: <IdentityPage />
+      },
+      {
+        path: 'delegations',
+        element: <IdentityDetailsDelegationsPage />
+      },
+      {
+        path: 'delegation-requests',
+        element: <IdentityDelegationRequestsPage />
+      },
+      {
+        path: 'settings',
+        element: <IdentitySettingsPage />
+      }
+    ]
+  }
+];
+
 export let productIdentitySlice = createSlice([
   {
     element: <ProductWrapper />,
@@ -719,217 +822,11 @@ export let productIdentitySlice = createSlice([
 
         children: [
           {
-            path: 'agents',
-            element: <AgentsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <AgentsPage />
-              }
-            ]
-          },
-          {
-            element: <IdentityListLayout />,
-            children: [
-              {
-                path: 'actors',
-                element: <IdentityActorsPage />
-              },
-              {
-                path: 'identities',
-                element: <IdentitiesPage />
-              }
-            ]
-          },
-          {
-            path: 'consumers',
-            element: <ConsumersPage />
+            path: 'portal/:portalId',
+            children: identityRoutes
           },
 
-          {
-            path: 'agent/:agentId',
-            element: (
-              <IdentityManagedPage>
-                <AgentLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <AgentPage />
-              },
-              {
-                path: 'operations',
-                element: <AgentOperationsPage />
-              },
-              {
-                path: 'connections',
-                element: <AgentConnectionsPage />
-              },
-              {
-                path: 'delegations',
-                element: <AgentDelegationsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'consumer/:consumerId',
-            element: (
-              <IdentityManagedPage>
-                <ConsumerLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <ConsumerPage />
-              },
-              {
-                path: 'operations',
-                element: <ConsumerOperationsPage />
-              },
-              {
-                path: 'connections',
-                element: <ConsumerConnectionsPage />
-              },
-              {
-                path: 'delegations',
-                element: <ConsumerDelegationsPage />
-              },
-              {
-                path: 'settings',
-                element: <ConsumerSettingsPage />
-              },
-              {
-                path: 'magic-mcp-servers',
-                element: <ConsumerMagicMcpServersPage />
-              }
-            ]
-          },
-
-          {
-            path: 'actor/:identityActorId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityActorLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityActorPage />
-              },
-              {
-                path: 'operations',
-                element: <IdentityActorOperationsPage />
-              },
-              {
-                path: 'connections',
-                element: <IdentityActorConnectionsPage />
-              },
-              {
-                path: 'delegations',
-                element: <IdentityActorDelegationsPage />
-              },
-              {
-                path: 'settings',
-                element: <IdentityActorSettingsPage />
-              }
-            ]
-          },
-
-          {
-            path: 'identity/:identityId',
-            element: (
-              <IdentityManagedPage>
-                <IdentityLayout />
-              </IdentityManagedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <IdentityPage />
-              },
-              {
-                path: 'delegations',
-                element: <IdentityDetailsDelegationsPage />
-              },
-              {
-                path: 'delegation-requests',
-                element: <IdentityDelegationRequestsPage />
-              },
-              {
-                path: 'settings',
-                element: <IdentitySettingsPage />
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]);
-
-export let productInfrastructureSlice = createSlice([
-  {
-    element: <ProductWrapper />,
-
-    children: [
-      {
-        element: <InstanceLayout />,
-
-        children: [
-          {
-            path: 'infra',
-            element: <InfrastructureOverviewPage />
-          },
-          {
-            path: 'configurations',
-            element: <ProviderDeploymentsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <Navigate to="auth-configs" replace />
-              },
-              {
-                path: 'configs',
-                element: <ProviderConfigsOverviewPage />
-              },
-              {
-                path: 'auth-configs',
-                element: <ProviderAuthConfigsOverviewPage />
-              }
-            ]
-          },
-          {
-            path: 'configurations/config/:providerConfigId',
-            element: <ProviderConfigLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderConfigOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderConfigSettingsPage />
-              }
-            ]
-          },
-          {
-            path: 'configurations/auth-config/:providerAuthConfigId',
-            element: <ProviderAuthConfigLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProviderAuthConfigOverviewPage />
-              },
-              {
-                path: 'settings',
-                element: <ProviderAuthConfigSettingsPage />
-              }
-            ]
-          }
+          ...identityRoutes
         ]
       }
     ]
@@ -948,29 +845,22 @@ export let productHomeSlice = createSlice([
           {
             path: '',
             element: <ProjectHomePage />
-          },
+          }
+        ]
+      }
+    ]
+  }
+]);
 
-          {
-            path: 'providers',
-            element: <ProvidersHubLayout />,
-            children: [
-              {
-                path: '',
-                element: <ProvidersPage />
-              }
-            ]
-          },
+export let productSkillsSlice = createSlice([
+  {
+    element: <ProductWrapper />,
 
-          {
-            path: 'integrations',
-            element: <IntegrationsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <IntegrationsPage />
-              }
-            ]
-          },
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
           {
             path: 'skills',
             element: <SkillsListLayout />,
@@ -994,24 +884,6 @@ export let productHomeSlice = createSlice([
             ]
           },
 
-          {
-            path: 'integration/:integrationId',
-            element: <IntegrationLayout />,
-            children: [
-              {
-                path: '',
-                element: <IntegrationOverviewPage />
-              },
-              {
-                path: 'instances',
-                element: <IntegrationInstancesPage />
-              },
-              {
-                path: 'settings',
-                element: <IntegrationSettingsPage />
-              }
-            ]
-          },
           {
             path: 'skill/:skillId',
             element: <SkillLayout />,
@@ -1111,7 +983,68 @@ export let productHomeSlice = createSlice([
                 element: <SkillMarketplaceSettingsPage />
               }
             ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
+export let productIntegrationsSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'integrations/overview',
+            element: <IntegrationsOverviewPage />
           },
+
+          {
+            path: 'integrations',
+            element: <IntegrationsListLayout />,
+            children: [
+              {
+                path: '',
+                element: <IntegrationsPage />
+              }
+            ]
+          },
+
+          {
+            path: 'providers',
+            element: <ProvidersHubLayout />,
+            children: [
+              {
+                path: '',
+                element: <ProvidersPage />
+              }
+            ]
+          },
+
+          {
+            path: 'integration/:integrationId',
+            element: <IntegrationLayout />,
+            children: [
+              {
+                path: '',
+                element: <IntegrationOverviewPage />
+              },
+              {
+                path: 'instances',
+                element: <IntegrationInstancesPage />
+              },
+              {
+                path: 'settings',
+                element: <IntegrationSettingsPage />
+              }
+            ]
+          },
+
           {
             path: 'integration-instance/:integrationInstanceId',
             element: <IntegrationInstanceLayout />,
@@ -1248,38 +1181,6 @@ export let productHomeSlice = createSlice([
           },
 
           {
-            path: 'assistant',
-            element: (
-              <FlaggedPage flag="assistant-enabled">
-                <Outlet />
-              </FlaggedPage>
-            ),
-            children: [
-              {
-                path: '',
-                element: <AssistantPage />
-              },
-              {
-                path: 'conversation/:assistantConversationId',
-                element: <AssistantConversationPage />
-              },
-              {
-                element: <AssistantPageLayout />,
-                children: [
-                  {
-                    path: 'skills',
-                    element: <AssistantSkillsPage />
-                  },
-                  {
-                    path: 'context',
-                    element: <AssistantContextPage />
-                  }
-                ]
-              }
-            ]
-          },
-
-          {
             path: '',
             element: <CustomProvidersListLayout />,
 
@@ -1336,6 +1237,52 @@ export let productHomeSlice = createSlice([
   }
 ]);
 
+export let productAssistantSlice = createSlice([
+  {
+    element: <ProductWrapper />,
+
+    children: [
+      {
+        element: <InstanceLayout />,
+
+        children: [
+          {
+            path: 'assistant',
+            element: (
+              <FlaggedPage flag="assistant-enabled">
+                <Outlet />
+              </FlaggedPage>
+            ),
+            children: [
+              {
+                path: '',
+                element: <AssistantPage />
+              },
+              {
+                path: 'conversation/:assistantConversationId',
+                element: <AssistantConversationPage />
+              },
+              {
+                element: <AssistantPageLayout />,
+                children: [
+                  {
+                    path: 'skills',
+                    element: <AssistantSkillsPage />
+                  },
+                  {
+                    path: 'context',
+                    element: <AssistantContextPage />
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]);
+
 export let deploySlice = createSlice([
   {
     path: ':organizationId/:projectId/:instanceId/deploy',
@@ -1354,11 +1301,13 @@ export let productSlice = createSlice([
     element: <ProjectPageLayout />,
 
     children: [
-      ...productTraceSlice.routes,
+      ...productLogsSlice.routes,
       ...productTraceDetailSlice.routes,
       ...productExplorerSlice.routes,
       ...productDocumentSlice.routes,
-      ...productInfrastructureSlice.routes,
+      ...productIntegrationsSlice.routes,
+      ...productSkillsSlice.routes,
+      ...productAssistantSlice.routes,
       ...productIdentitySlice.routes,
       ...productHomeSlice.routes
     ]

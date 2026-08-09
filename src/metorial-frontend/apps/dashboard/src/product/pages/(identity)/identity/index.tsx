@@ -16,6 +16,7 @@ import { Attributes, Button, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 import { showAddIdentityCredentialModal } from '../../../scenes/identity/credentialModal';
 import { UsageScene } from '../../../scenes/usage/usage';
 
@@ -31,6 +32,7 @@ export let IdentityPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
   let { identityId } = useParams();
   let _identity = useIdentity(instance.data?.id, identityId);
   let credentials = _identity.data?.credentials ?? [];
@@ -94,7 +96,7 @@ export let IdentityPage = () => {
               label: 'Owner',
               content: (
                 <Link
-                  to={Paths.instance.identity.actor(
+                  to={identityPaths.actor(
                     organization.data,
                     project.data,
                     instance.data,

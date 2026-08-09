@@ -2,7 +2,6 @@ import {
   DashboardInstanceAgentsListOutput,
   DashboardInstanceAgentsListQuery
 } from '@metorial/dashboard-sdk';
-import { Paths } from '@metorial/frontend-config';
 import {
   useAgents,
   useCurrentInstance,
@@ -19,6 +18,7 @@ import {
   getEnumListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { useIdentityPaths } from '../../lib/identityPaths';
 
 type Agent = DashboardInstanceAgentsListOutput['items'][number];
 
@@ -33,6 +33,7 @@ type AgentsTableProps = {
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
+  identityPaths: ReturnType<typeof useIdentityPaths>;
 };
 
 let getAgentStatusColor = (status: Agent['status']) => {
@@ -180,7 +181,7 @@ let agentsTable = new DashboardTable<AgentsTableProps, Agent>('agents')
   ])
   .search('Search agents...')
   .link((agent, props) =>
-    Paths.instance.identity.agent(
+    props.identityPaths.agent(
       props.organization.data,
       props.project.data,
       props.instance.data,
@@ -199,6 +200,7 @@ export let AgentsTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
 
   return agentsTable({
     instanceId,
@@ -206,6 +208,7 @@ export let AgentsTable = ({
     instance,
     organization,
     project,
+    identityPaths,
     emptyState: 'No agents found.'
   });
 };

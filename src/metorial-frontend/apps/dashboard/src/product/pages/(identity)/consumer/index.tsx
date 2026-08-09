@@ -1,5 +1,4 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
 import {
   useConsumer,
   useConsumerProfiles,
@@ -11,6 +10,7 @@ import {
 import { Attributes, Avatar, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useParams } from 'react-router-dom';
+import { useIdentityPaths } from '../../../lib/identityPaths';
 
 let getConsumerType = (consumer: {
   isOrganizationMember: boolean;
@@ -25,6 +25,7 @@ export let ConsumerPage = () => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
+  let identityPaths = useIdentityPaths();
   let { consumerId } = useParams();
   let consumer = useConsumer(instance.data?.id, consumerId);
   let profiles = useConsumerProfiles(instance.data?.id, consumerId, { order: 'desc' });
@@ -127,7 +128,7 @@ export let ConsumerPage = () => {
                 <Table
                   headers={['Actor', 'Agent ID', 'Status', 'Created']}
                   data={agentActors.map(actor => ({
-                    href: Paths.instance.identity.actor(
+                    href: identityPaths.actor(
                       organization.data,
                       project.data,
                       instance.data,
@@ -172,7 +173,7 @@ export let ConsumerPage = () => {
               <Table
                 headers={['Name', 'Type', 'Status', 'Created']}
                 data={actors.data.items.map(actor => ({
-                  href: Paths.instance.identity.actor(
+                  href: identityPaths.actor(
                     organization.data,
                     project.data,
                     instance.data,

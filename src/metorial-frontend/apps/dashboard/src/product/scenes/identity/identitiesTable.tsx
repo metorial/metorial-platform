@@ -2,7 +2,6 @@ import {
   DashboardInstanceIdentitiesListOutput,
   DashboardInstanceIdentitiesListQuery
 } from '@metorial/dashboard-sdk';
-import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
@@ -16,6 +15,7 @@ import { RiDeleteBinLine } from '@remixicon/react';
 import { useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
 import { FilterPayload, getEnumListFilterValue, getStringFilterValue } from '@metorial/table';
+import { useIdentityPaths } from '../../lib/identityPaths';
 
 type Identity = DashboardInstanceIdentitiesListOutput['items'][number];
 
@@ -30,6 +30,7 @@ type IdentitiesTableProps = {
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
+  identityPaths: ReturnType<typeof useIdentityPaths>;
 };
 
 let getIdentityStatusColor = (status: Identity['status']) => {
@@ -282,7 +283,7 @@ let identitiesTable = new DashboardTable<IdentitiesTableProps, Identity>('identi
     }
   ])
   .link(((identity: Identity, props: IdentitiesTableProps) =>
-    Paths.instance.identity.identity(
+    props.identityPaths.identity(
       props.organization.data,
       props.project.data,
       props.instance.data,
@@ -300,6 +301,7 @@ export let IdentitiesTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let identityPaths = useIdentityPaths();
 
   return identitiesTable({
     instanceId,
@@ -307,6 +309,7 @@ export let IdentitiesTable = ({
     instance,
     organization,
     project,
+    identityPaths,
     emptyState: 'No identities found.'
   });
 };

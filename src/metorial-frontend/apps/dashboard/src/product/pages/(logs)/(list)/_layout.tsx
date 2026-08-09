@@ -31,19 +31,11 @@ export let SessionLogsListLayout = () => {
             to: Paths.instance.providerSessions(organization.data, project.data, instance.data)
           },
           {
-            label: 'Connections',
-            to: Paths.instance.sessionConnections(
-              organization.data,
-              project.data,
-              instance.data
-            )
-          },
-          {
             label: 'Tool Calls',
             to: Paths.instance.toolCalls(organization.data, project.data, instance.data)
           },
           {
-            label: 'Errors',
+            label: 'Tool Errors',
             to: Paths.instance.providerErrors(organization.data, project.data, instance.data)
           }
         ]}
@@ -74,7 +66,7 @@ export let AuthLogsListLayout = () => {
         current={pathname}
         links={[
           {
-            label: 'Auth Events',
+            label: 'Authentications',
             to: Paths.instance.providerAuthEvents(
               organization.data,
               project.data,
