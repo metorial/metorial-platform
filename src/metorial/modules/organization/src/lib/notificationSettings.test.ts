@@ -2,17 +2,21 @@ import { describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   settingUpsert: vi.fn(),
+  settingFindUnique: vi.fn(),
   digestSettingUpsert: vi.fn(),
+  digestSettingFindUnique: vi.fn(),
   generateId: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
   db: {
     organizationNotificationSetting: {
-      upsert: mocks.settingUpsert
+      upsert: mocks.settingUpsert,
+      findUnique: mocks.settingFindUnique
     },
     organizationNotificationDigestSetting: {
-      upsert: mocks.digestSettingUpsert
+      upsert: mocks.digestSettingUpsert,
+      findUnique: mocks.digestSettingFindUnique
     }
   },
   ID: { generateId: mocks.generateId }
@@ -78,6 +82,68 @@ describe('organization notification setting defaults', () => {
         update: {}
       })
     );
+  });
+
+  it('returns the existing setting after a concurrent unique conflict', async () => {
+    let setting = { id: 'ons_1', emailEnabled: true, type: { oid: 3n } };
+    mocks.generateId.mockResolvedValueOnce('ons_race');
+    mocks.settingUpsert.mockRejectedValueOnce({ code: 'P2002' });
+    mocks.settingFindUnique.mockResolvedValueOnce(setting);
+
+    await expect(
+      getOrCreateOrganizationNotificationSetting({
+        member: { userOid: 1n } as any,
+        organization: { oid: 2n } as any,
+        type: { oid: 3n, sendEmail: true } as any
+      })
+    ).resolves.toBe(setting);
+
+    expect(mocks.settingFindUnique).toHaveBeenCalledWith({
+      where: {
+        userOid_organizationOid_typeOid: {
+          userOid: 1n,
+          organizationOid: 2n,
+          typeOid: 3n
+        }
+      },
+      include: { type: true }
+    });
+  });
+
+  it('returns the existing digest setting after a concurrent unique conflict', async () => {
+    let setting = { id: 'onds_1', timeMinutes: 480 };
+    mocks.generateId.mockResolvedValueOnce('onds_race');
+    mocks.digestSettingUpsert.mockRejectedValueOnce({ code: 'P2002' });
+    mocks.digestSettingFindUnique.mockResolvedValueOnce(setting);
+
+    await expect(
+      getOrCreateOrganizationNotificationDigestSetting({
+        member: { userOid: 1n } as any,
+        organization: { oid: 2n } as any
+      })
+    ).resolves.toBe(setting);
+
+    expect(mocks.digestSettingFindUnique).toHaveBeenCalledWith({
+      where: {
+        userOid_organizationOid: {
+          userOid: 1n,
+          organizationOid: 2n
+        }
+      }
+    });
+  });
+
+  it('rethrows non-unique errors from setting upsert', async () => {
+    mocks.generateId.mockResolvedValueOnce('ons_err');
+    mocks.settingUpsert.mockRejectedValueOnce({ code: 'P2025' });
+
+    await expect(
+      getOrCreateOrganizationNotificationSetting({
+        member: { userOid: 1n } as any,
+        organization: { oid: 2n } as any,
+        type: { oid: 3n, sendEmail: true } as any
+      })
+    ).rejects.toEqual({ code: 'P2025' });
   });
 });
 

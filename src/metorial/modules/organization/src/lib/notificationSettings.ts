@@ -9,50 +9,83 @@ import {
 export let defaultNotificationDigestTimeMinutes = 8 * 60;
 export let defaultNotificationDigestTimezone = 'America/Los_Angeles';
 
+let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
+
 export let getOrCreateOrganizationNotificationSetting = async (i: {
   member: OrganizationMember;
   organization: Organization;
   type: OrganizationNotificationType;
-}) =>
-  db.organizationNotificationSetting.upsert({
-    where: {
-      userOid_organizationOid_typeOid: {
-        userOid: i.member.userOid,
-        organizationOid: i.organization.oid,
-        typeOid: i.type.oid
-      }
-    },
-    create: {
-      id: await ID.generateId('organizationNotificationSetting'),
+}) => {
+  let where = {
+    userOid_organizationOid_typeOid: {
       userOid: i.member.userOid,
       organizationOid: i.organization.oid,
-      typeOid: i.type.oid,
-      emailEnabled: i.type.sendEmail
-    },
-    update: {},
-    include: { type: true }
-  });
+      typeOid: i.type.oid
+    }
+  };
+
+  try {
+    return await db.organizationNotificationSetting.upsert({
+      where,
+      create: {
+        id: await ID.generateId('organizationNotificationSetting'),
+        userOid: i.member.userOid,
+        organizationOid: i.organization.oid,
+        typeOid: i.type.oid,
+        emailEnabled: i.type.sendEmail
+      },
+      update: {},
+      include: { type: true }
+    });
+  } catch (error) {
+    // Concurrent upserts can both attempt create and race on the unique key.
+    if (!isUniqueConstraintError(error)) throw error;
+
+    let setting = await db.organizationNotificationSetting.findUnique({
+      where,
+      include: { type: true }
+    });
+    if (!setting) throw error;
+
+    return setting;
+  }
+};
 
 export let getOrCreateOrganizationNotificationDigestSetting = async (i: {
   member: OrganizationMember;
   organization: Organization;
-}) =>
-  db.organizationNotificationDigestSetting.upsert({
-    where: {
-      userOid_organizationOid: {
-        userOid: i.member.userOid,
-        organizationOid: i.organization.oid
-      }
-    },
-    create: {
-      id: await ID.generateId('organizationNotificationDigestSetting'),
+}) => {
+  let where = {
+    userOid_organizationOid: {
       userOid: i.member.userOid,
-      organizationOid: i.organization.oid,
-      timeMinutes: defaultNotificationDigestTimeMinutes,
-      timezone: defaultNotificationDigestTimezone
-    },
-    update: {}
-  });
+      organizationOid: i.organization.oid
+    }
+  };
+
+  try {
+    return await db.organizationNotificationDigestSetting.upsert({
+      where,
+      create: {
+        id: await ID.generateId('organizationNotificationDigestSetting'),
+        userOid: i.member.userOid,
+        organizationOid: i.organization.oid,
+        timeMinutes: defaultNotificationDigestTimeMinutes,
+        timezone: defaultNotificationDigestTimezone
+      },
+      update: {}
+    });
+  } catch (error) {
+    // Concurrent upserts can both attempt create and race on the unique key.
+    if (!isUniqueConstraintError(error)) throw error;
+
+    let setting = await db.organizationNotificationDigestSetting.findUnique({
+      where
+    });
+    if (!setting) throw error;
+
+    return setting;
+  }
+};
 
 let getZonedDateParts = (date: Date, timezone: string) => {
   let parts = new Intl.DateTimeFormat('en-US', {
