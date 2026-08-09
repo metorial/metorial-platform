@@ -12,6 +12,7 @@ model CodeBucketPurpose {
 enum CodeBucketStatus {
   ready
   importing
+  failed
 }
 
 model CodeBucket {
@@ -21,7 +22,8 @@ model CodeBucket {
   purposeOid BigInt
   purpose    CodeBucketPurpose @relation(fields: [purposeOid], references: [oid])
 
-  status CodeBucketStatus @default(ready)
+  status       CodeBucketStatus @default(ready)
+  errorMessage String?
 
   isReadOnly Boolean @default(false)
 

@@ -8,6 +8,7 @@ export let codeBucketPresenter = (
 
   id: codeBucket.id,
   status: codeBucket.status,
+  errorMessage: codeBucket.errorMessage,
   isReadOnly: codeBucket.isReadOnly,
   path: codeBucket.path,
 
