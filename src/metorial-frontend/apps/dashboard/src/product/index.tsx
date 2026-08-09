@@ -9,6 +9,7 @@ import { Outlet } from 'react-router-dom';
 import { Upgrade } from '@metorial/empty-state';
 import { ProjectHomePage } from './pages';
 import { InstanceLayout } from './pages/_instanceLayout';
+import { InstanceRootRedirectPage } from './pages/rootRedirect';
 
 let IntegrationsOverviewPage = dynamicPage(() =>
   import('./pages/(integrations)/overview').then(c => c.IntegrationsOverviewPage)
@@ -844,6 +845,10 @@ export let productHomeSlice = createSlice([
         children: [
           {
             path: '',
+            element: <InstanceRootRedirectPage />
+          },
+          {
+            path: 'home',
             element: <ProjectHomePage />
           }
         ]

@@ -67,7 +67,7 @@ export let ProjectPageLayout = () => {
             {
               icon: <RiHome6Line />,
               label: 'Home',
-              to: Paths.instance(...params),
+              to: Paths.instance.home(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
             {
