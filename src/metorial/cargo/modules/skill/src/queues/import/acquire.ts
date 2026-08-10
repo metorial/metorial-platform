@@ -131,7 +131,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
     }
 
     if (skillImport.sourceType === 'origin_repository') {
-      let bucket = await getImportCodeBucket({
+      let bucket: any = await getImportCodeBucket({
         resourceTenant: skillImport.resourceTenant!,
         codeBucketId
       });

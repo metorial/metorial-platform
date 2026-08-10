@@ -1,26 +1,7 @@
-import { createIdGenerator, idType } from '@lowerdeck/id';
+import { createIdGenerator } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
-export let ID = createIdGenerator({
-  tenant: idType.sorted('syn_tn_'),
-  environment: idType.sorted('syn_env_'),
-  tenantActor: idType.sorted('syn_ta_'),
-
-  assistant: idType.sorted('ast_'),
-  assistantImplementation: idType.sorted('aim_'),
-  assistantInstance: idType.sorted('asi_'),
-  assistantConversation: idType.sorted('acon_'),
-  assistantConversationParticipant: idType.sorted('acp_'),
-  assistantConversationItem: idType.sorted('aci_'),
-  assistantMessage: idType.sorted('amsg_'),
-  model: idType.sorted('mod_'),
-  modelProvider: idType.sorted('mpr_'),
-  assistantRequest: idType.sorted('asq_'),
-  modelRun: idType.sorted('mrn_'),
-  assistantConfig: idType.sorted('acf_'),
-  subspaceMcpConnection: idType.sorted('smc_'),
-  subspaceMcpToolCache: idType.sorted('smtc_')
-});
+export let ID = createIdGenerator({});
 
 let workerIdBits = 12;
 let workerIdMask = (1 << workerIdBits) - 1;
