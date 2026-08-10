@@ -1,0 +1,43 @@
+{
+  "name": "@metorial-platform-systems/subspace-client",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "FSL 1.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hono": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
+    "@lowerdeck/rpc-server": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@lowerdeck/serialize": "workspace:2.0.0",
+    "@lowerdeck/slugify": "workspace:2.0.0",
+    "@lowerdeck/telemetry": "workspace:2.0.0",
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2",
+    "@types/minimatch": "^5"
+  }
+}

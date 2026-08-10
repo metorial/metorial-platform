@@ -8,7 +8,7 @@ model Account {
   id  String @unique
 
   clientId   String @unique
-  identifier String
+  identifier String @unique
   name       String
 
   status           AccountStatus @default(active)

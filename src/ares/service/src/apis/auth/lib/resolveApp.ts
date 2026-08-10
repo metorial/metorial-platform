@@ -2,8 +2,10 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { db } from '../../../db';
 
 export let resolveClient = async (clientId: string) => {
-  let account = await db.account.findUnique({
-    where: { clientId },
+  let account = await db.account.findFirst({
+    where: {
+      OR: [{ clientId }, { identifier: clientId }, { id: clientId }]
+    },
     include: { app: true }
   });
   if (account?.status == 'active') {
@@ -12,7 +14,7 @@ export let resolveClient = async (clientId: string) => {
 
   let app = await db.app.findFirst({
     where: {
-      OR: [{ clientId }, { slug: clientId }]
+      OR: [{ clientId }, { slug: clientId }, { id: clientId }]
     }
   });
   if (!app) throw new ServiceError(notFoundError('app'));

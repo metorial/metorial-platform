@@ -1,0 +1,695 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: subspace-postgres
+    restart: unless-stopped
+    ports:
+      - '55432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data3:/var/lib/postgresql/data
+      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: subspace-redis
+    restart: unless-stopped
+    ports:
+      - '56379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  nats-1:
+    image: nats
+    command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --http_port 8222 '
+    ports:
+      - '56222:4222'
+    networks:
+      - subspace-network
+  # nats-2:
+  #   image: nats
+  #   command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats-1:6222'
+  #   depends_on: ['nats-1']
+  #   networks:
+  #     - subspace-network
+
+  object-storage:
+    image: ghcr.io/metorial/object-storage:latest
+    ports:
+      - '55010:52010'
+    volumes:
+      - object-store-data:/app/data
+    environment:
+      RUST_LOG: info
+      AWS_ACCESS_KEY_ID: ${OBJECT_STORAGE_AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${OBJECT_STORAGE_AWS_SECRET_ACCESS_KEY:-test}
+      AWS_REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+      OBJECT_STORE__SERVER__HOST: 0.0.0.0
+      OBJECT_STORE__SERVER__PORT: 52010
+      OBJECT_STORE__BACKEND__TYPE: ${OBJECT_STORAGE_BACKEND_TYPE:-local}
+      OBJECT_STORE__BACKEND__ROOT_PATH: ${OBJECT_STORAGE_BACKEND_ROOT_PATH:-/app/data}
+      OBJECT_STORE__BACKEND__REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
+      OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: ${OBJECT_STORAGE_AWS_S3_BUCKET:-subspace-local}
+
+    container_name: subspace-object-storage
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:52010/health || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  forge:
+    image: ghcr.io/metorial/forge:latest
+    container_name: subspace-forge
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/forge
+      REDIS_URL: redis://redis:6379/0
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      DEFAULT_PROVIDER: aws.code-build
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      LOG_BUCKET_NAME: logs
+      ARTIFACT_BUCKET_NAME: artifacts
+      CODE_BUILD_AWS_REGION: ${CODE_BUILD_AWS_REGION:-us-east-1}
+      CODE_BUILD_AWS_ACCESS_KEY_ID: ${CODE_BUILD_AWS_ACCESS_KEY_ID:-test}
+      CODE_BUILD_AWS_SECRET_ACCESS_KEY: ${CODE_BUILD_AWS_SECRET_ACCESS_KEY:-test}
+      CODE_BUILD_PROJECT_NAME: ${CODE_BUILD_PROJECT_NAME:-}
+      CODE_BUILD_ROLE_ARN: ${CODE_BUILD_ROLE_ARN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:52020/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  function-bay:
+    image: ghcr.io/metorial/function-bay:latest
+    container_name: subspace-function-bay
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/function-bay
+      REDIS_URL: redis://redis:6379/0
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-aws.lambda}
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      BUNDLE_BUCKET_NAME: bundles
+      FORGE_API_URL: http://forge:52020/metorial-forge
+      LAMBDA_AWS_REGION: ${LAMBDA_AWS_REGION:-us-east-1}
+      LAMBDA_AWS_ACCESS_KEY_ID: ${LAMBDA_AWS_ACCESS_KEY_ID:-test}
+      LAMBDA_AWS_SECRET_ACCESS_KEY: ${LAMBDA_AWS_SECRET_ACCESS_KEY:-test}
+      LAMBDA_ROLE_ARN: ${LAMBDA_ROLE_ARN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:52030/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  signal:
+    image: ghcr.io/metorial/signal:latest
+    container_name: subspace-signal
+    restart: unless-stopped
+    ports:
+      - '52050:52050'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/signal
+      REDIS_URL: redis://redis:6379/0
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      LOGS_BUCKET_NAME: bundles
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:52050/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  voyager:
+    image: ghcr.io/metorial/voyager:latest
+    container_name: subspace-voyager
+    restart: unless-stopped
+    ports:
+      - '52060:52060'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/voyager
+      SEARCH_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/voyager-search
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:52060/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  slates-registry:
+    image: ghcr.io/metorial/slates-registry:latest
+    container_name: subspace-slates-registry
+    restart: unless-stopped
+    ports:
+      - '52040:52040'
+      - '52041:52041'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/slates-registry
+      REDIS_URL: redis://redis:6379/0
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
+      OTEL_DEBUG: ${OTEL_DEBUG:-false}
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      PACKAGE_BUCKET_NAME: subspace-packages
+      SERVICE_PUBLIC_URL: http://localhost:52040
+      PUBLIC_ACCESS_PERMITTED: 'true'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52040/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  slates-hub:
+    image: ghcr.io/metorial/slates-hub:latest
+    container_name: subspace-slates-hub
+    restart: unless-stopped
+    ports:
+      - '52045:52045'
+      - '52046:52046'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/slates-hub
+      REDIS_URL: redis://redis:6379/0
+      METORIAL_ENV: development
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
+      OTEL_DEBUG: ${OTEL_DEBUG:-false}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
+      FUNCTION_BAY_TENANT_IDENTIFIER: dev-tenant
+      FUNCTION_BAY_DEFAULT_MEMORY_MB: 512
+      FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: 15
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      INVOCATIONS_BUCKET_NAME: subspace-invocations
+      INITIAL_REGISTRIES: 'http://slates-registry:52040'
+      SIGNAL_API_URL: http://signal:52050/metorial-signal
+      SIGNAL_SENDER_IDENTIFIER: subspace-slates-hub
+      SLATES_HUB_INSTANCE_IDENTIFIER: dev-subspace
+      SERVICE_PUBLIC_URL: http://localhost:52045
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      slates-registry:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+      function-bay:
+        condition: service_healthy
+      signal:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52045/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  shuttle:
+    image: ghcr.io/metorial/shuttle:latest
+    container_name: subspace-shuttle
+    restart: unless-stopped
+    ports:
+      - "52080:52080"
+      - "52081:52081"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/shuttle
+      REDIS_URL: redis://redis:6379/0
+      ENCRYPTION_KEY: key
+      PROVIDER_OAUTH_TICKET_SECRET: dev-secret
+      PROVIDER_OAUTH_URL: http://localhost:52081
+      HOLOPOD_HTTP_ENDPOINT: http://100.70.207.65:3000
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      LOGS_BUCKET_NAME: shuttle-logs
+      FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
+      FUNCTION_BAY_TENANT_IDENTIFIER: dev-tenant
+      FUNCTION_BAY_DEFAULT_MEMORY_MB: 512
+      FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: 15
+      SHUTTLE_ALLOW_PRIVATE_URLS: "true"
+      SHUTTLE_UNSAFE_SSRF_BYPASS: "true"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+      function-bay:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52080/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  code-bucket:
+    image: ghcr.io/metorial/origin-code-bucket:latest
+    container_name: subspace-origin-code-bucket
+    restart: unless-stopped
+    ports:
+      - '52091:52091'  # HTTP API
+      - '52092:52092'  # VSCode Workspace
+    environment:
+      CODE_BUCKET_JWT_SECRET: dev-secret-change-in-production
+      CODE_BUCKET_OBJECT_STORAGE_BUCKET: code-bucket
+      CODE_BUCKET_OBJECT_STORAGE_ENDPOINT: http://object-storage:52010
+      CODE_BUCKET_REDIS_URL: redis://redis:6379
+      CODE_BUCKET_HTTP_ADDRESS: ':52091'
+      CODE_BUCKET_WORKSPACE_ADDRESS: ':52092'
+      CODE_BUCKET_RPC_ADDRESS: ':5050'
+    depends_on:
+      - postgres
+      - redis
+      - object-storage
+    networks:
+      - subspace-network
+
+  origin:  
+    image: ghcr.io/metorial/origin-service:latest
+    container_name: subspace-origin
+    restart: unless-stopped
+    ports:
+      - '52090:52090'
+      - '52093:52093'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/origin
+      REDIS_URL: redis://redis:6379/0
+      ORIGIN_SERVICE_PUBLIC_URL: http://localhost:52093
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      CODE_BUCKET_OBJECT_STORAGE_BUCKET: code-bucket
+      CODE_BUCKET_SERVICE_URL: code-bucket:5050
+      CODE_BUCKET_EDITOR_URL: ${CODE_BUCKET_EDITOR_URL:-http://localhost:52092}
+      CODE_BUCKET_EDITOR_API_URL: ${CODE_BUCKET_EDITOR_API_URL:-http://localhost:52091}
+      SCM_GITHUB_APP_ID: ${SCM_GITHUB_APP_ID}
+      SCM_GITHUB_APP_PRIVATE_KEY_BASE_64: ${SCM_GITHUB_APP_PRIVATE_KEY_BASE_64}
+      SCM_GITHUB_APP_CLIENT_ID: ${SCM_GITHUB_APP_CLIENT_ID}
+      SCM_GITHUB_APP_CLIENT_SECRET: ${SCM_GITHUB_APP_CLIENT_SECRET}
+      SCM_GITHUB_APP_WEBHOOK_SECRET: ${SCM_GITHUB_APP_WEBHOOK_SECRET}
+      SCM_GITHUB_APP_SLUG: ${SCM_GITHUB_APP_SLUG}
+    depends_on:
+      - postgres
+      - redis
+      - object-storage
+      - code-bucket
+    networks:
+      - subspace-network
+
+  subspace-controller:
+    profiles: ['app']
+    build:
+      context: ../../..
+      dockerfile: ./src/metorial/subspace/apps/controller/dev.Dockerfile
+    container_name: subspace-controller-service
+    restart: unless-stopped
+    ports:
+      - '52070:52070'
+      - '52072:52072'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/subspace
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats-1:4222
+      METORIAL_ENV: development
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
+      OTEL_DEBUG: ${OTEL_DEBUG:-false}
+      PUBLIC_SERVICE_URL: http://localhost:52071
+      SLATES_HUB_URL: http://slates-hub:52046/slates-hub
+      VOYAGER_URL: http://voyager:52060/metorial-voyager
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      MESSAGE_BUCKET_NAME: messages
+      SHUTTLE_URL: http://shuttle:52080/metorial-shuttle
+      SHUTTLE_LIVE_URL: http://shuttle:52080
+      SHUTTLE_PUBLIC_URL: http://localhost:52081
+      SLATES_HUB_PUBLIC_URL: http://localhost:52045
+      ORIGIN_URL: http://origin:52090/metorial-origin
+      REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
+      FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
+
+    volumes:
+      - ./apps/controller:/app/src/metorial/subspace/apps/controller:${SUBSPACE_SOURCE_MOUNT_MODE:-ro}
+      # Preserve container-installed workspace deps when source is bind-mounted (CI checkout has no node_modules).
+      - /app/node_modules
+      - ./modules:/app/src/metorial/subspace/modules:ro
+      - ./packages:/app/src/metorial/subspace/packages:ro
+      - ./provider-backends:/app/src/metorial/subspace/provider-backends:ro
+      - ./db:/app/src/metorial/subspace/db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      slates-registry:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+      function-bay:
+        condition: service_healthy
+      signal:
+        condition: service_healthy
+      voyager:
+        condition: service_healthy
+      slates-hub:
+        condition: service_healthy
+      shuttle:
+        condition: service_healthy
+      nats-1:
+        condition: service_started
+      origin:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52070/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  mcp-test-server:
+    profiles: ['infra']
+    build:
+      context: ../../..
+      dockerfile: ./src/metorial/subspace/apps/controller/dev.Dockerfile
+    container_name: subspace-mcp-test-server
+    command: ['sh', '-c', 'PORT=52198 bun ./src/metorial/subspace/test-servers/index.ts']
+    ports:
+      - '52198:52198'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "bun -e \"fetch('http://localhost:52198/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  subspace-controller-test:
+    profiles: ['infra']
+    build:
+      context: ../../..
+      dockerfile: ./src/metorial/subspace/apps/controller/dev.Dockerfile
+    container_name: subspace-controller-test-service
+    command: ['sh', '-c', 'sleep infinity']
+    environment:
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
+      OTEL_DEBUG: ${OTEL_DEBUG:-false}
+    volumes:
+      - ./apps/controller:/app/src/metorial/subspace/apps/controller:${SUBSPACE_SOURCE_MOUNT_MODE:-ro}
+      # Preserve container-installed workspace deps when source is bind-mounted (CI checkout has no node_modules).
+      - /app/node_modules
+      - ./modules:/app/src/metorial/subspace/modules:ro
+      - ./packages:/app/src/metorial/subspace/packages:ro
+      - ./provider-backends:/app/src/metorial/subspace/provider-backends:ro
+      - ./db:/app/src/metorial/subspace/db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      slates-registry:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+      function-bay:
+        condition: service_healthy
+      signal:
+        condition: service_healthy
+      voyager:
+        condition: service_healthy
+      slates-hub:
+        condition: service_healthy
+      shuttle:
+        condition: service_healthy
+      mcp-test-server:
+        condition: service_healthy
+      nats-1:
+        condition: service_started
+      origin:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'test -f /app/src/metorial/subspace/apps/controller/package.json']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - subspace-network
+
+  subspace-public:
+    profiles: ['app']
+    build:
+      context: ../../..
+      dockerfile: ./src/metorial/subspace/apps/public/dev.Dockerfile
+    container_name: subspace-public-service
+    restart: unless-stopped
+    ports:
+      - '52071:52071'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/subspace
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats-1:4222
+      METORIAL_ENV: development
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
+      OTEL_DEBUG: ${OTEL_DEBUG:-false}
+      PUBLIC_SERVICE_URL: http://localhost:52071
+      SLATES_HUB_URL: http://slates-hub:52046/slates-hub
+      VOYAGER_URL: http://voyager:52060/metorial-voyager
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      MESSAGE_BUCKET_NAME: messages
+      SHUTTLE_URL: http://shuttle:52080/metorial-shuttle
+      SHUTTLE_LIVE_URL: http://shuttle:52080
+      SHUTTLE_PUBLIC_URL: http://localhost:52081
+      SLATES_HUB_PUBLIC_URL: http://localhost:52045
+      ORIGIN_URL: http://origin:52090/metorial-origin
+      REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
+
+    volumes:
+      - ./apps/public/src:/app/src/metorial/subspace/apps/public/src:ro
+      - ./apps/public/frontend/src:/app/src/metorial/subspace/apps/public/frontend/src:ro
+      - ./apps/public/package.json:/app/src/metorial/subspace/apps/public/package.json:ro
+      - /app/node_modules
+      - ./modules:/app/src/metorial/subspace/modules:ro
+      - ./packages:/app/src/metorial/subspace/packages:ro
+      - ./provider-backends:/app/src/metorial/subspace/provider-backends:ro
+      - ./db:/app/src/metorial/subspace/db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      slates-registry:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+      function-bay:
+        condition: service_healthy
+      signal:
+        condition: service_healthy
+      voyager:
+        condition: service_healthy
+      slates-hub:
+        condition: service_healthy
+      shuttle:
+        condition: service_healthy
+      subspace-controller:
+        condition: service_healthy
+      nats-1:
+        condition: service_started
+      origin:
+        condition: service_healthy
+    networks:
+      - subspace-network
+
+  subspace-worker:
+    profiles: ['app']
+    build:
+      context: ../../..
+      dockerfile: ./src/metorial/subspace/apps/worker/dev.Dockerfile
+    container_name: subspace-worker-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/subspace
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats-1:4222
+      METORIAL_ENV: development
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
+      OTEL_DEBUG: ${OTEL_DEBUG:-false}
+      PUBLIC_SERVICE_URL: http://localhost:52071
+      SLATES_HUB_URL: http://slates-hub:52046/slates-hub
+      VOYAGER_URL: http://voyager:52060/metorial-voyager
+      OBJECT_STORAGE_URL: http://object-storage:52010
+      MESSAGE_BUCKET_NAME: messages
+      SHUTTLE_URL: http://shuttle:52080/metorial-shuttle
+      SHUTTLE_LIVE_URL: http://shuttle:52080
+      SHUTTLE_PUBLIC_URL: http://localhost:52081
+      SLATES_HUB_PUBLIC_URL: http://localhost:52045
+      ORIGIN_URL: http://origin:52090/metorial-origin
+      REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
+      FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
+      PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: provider-telemetry-error-groups
+
+    volumes:
+      - ./apps/worker:/app/src/metorial/subspace/apps/worker:ro
+      - /app/node_modules
+      - ./modules:/app/src/metorial/subspace/modules:ro
+      - ./packages:/app/src/metorial/subspace/packages:ro
+      - ./provider-backends:/app/src/metorial/subspace/provider-backends:ro
+      - ./db:/app/src/metorial/subspace/db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_healthy
+      slates-registry:
+        condition: service_healthy
+      forge:
+        condition: service_healthy
+      function-bay:
+        condition: service_healthy
+      signal:
+        condition: service_healthy
+      voyager:
+        condition: service_healthy
+      slates-hub:
+        condition: service_healthy
+      shuttle:
+        condition: service_healthy
+      subspace-controller:
+        condition: service_healthy
+      nats-1:
+        condition: service_started
+    networks:
+      - subspace-network
+
+volumes:
+  postgres_data3:
+    driver: local
+  object-store-data:
+    driver: local
+
+networks:
+  subspace-network:
+    driver: bridge
