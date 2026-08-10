@@ -217,13 +217,16 @@ class AccountServiceImpl {
                 );
               }
 
+              if (existing && existing.appOid !== d.app.oid) {
+                throw new ServiceError(
+                  conflictError({
+                    message: 'Account identifier is already in use by another app'
+                  })
+                );
+              }
+
               let account = await tdb.account.upsert({
-                where: {
-                  appOid_identifier: {
-                    appOid: d.app.oid,
-                    identifier
-                  }
-                },
+                where: { identifier },
                 create: {
                   ...getId('account'),
                   clientId: await ID.generateId('account_clientId'),
