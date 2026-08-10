@@ -2,7 +2,6 @@ import { delay } from '@lowerdeck/delay';
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { createRawNebulaClient } from '@metorial-platform-systems/nebula-client';
 import { createSubspaceControllerClient } from '@metorial-platform-systems/subspace-client';
-import { createSynthesisClient } from '@metorial-platform-systems/synthesis-client';
 import { env } from './env';
 
 export let nebula = createRawNebulaClient({
@@ -22,10 +21,6 @@ export let subspace: ReturnType<typeof createSubspaceControllerClient> =
     }),
     endpoint: env.subspace.SUBSPACE_URL
   });
-
-export let synthesis = createSynthesisClient({
-  endpoint: env.service.SYNTHESIS_API_URL
-});
 
 (async () => {
   let client = createSubspaceControllerClient({

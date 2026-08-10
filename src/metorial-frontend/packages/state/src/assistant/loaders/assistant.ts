@@ -1,7 +1,7 @@
 import type {
   State as AssistantRunState,
   StateItem as AssistantRunStateItem
-} from '@metorial-platform-systems/synthesis-client';
+} from '@metorial/product-assistant-client';
 import type {
   DashboardInstanceAssistantsGetOutput,
   DashboardInstanceAssistantsListQuery,

@@ -5,4 +5,3 @@ export * from './scope';
 export * from './shared';
 export * from './types';
 export * from './upsert';
-export * from './user';

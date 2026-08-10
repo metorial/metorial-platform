@@ -12,10 +12,12 @@ export let defaultInternalEnvironmentIdentifier = 'default';
 export let getProjectInternalTenantIdentifier = (project: Pick<Project, 'oid'>) =>
   `mte-pro-${project.oid}`;
 
-export let getOrganizationInternalTenantIdentifier = (organization: Pick<Organization, 'oid'>) =>
-  `mte-org-${organization.oid}`;
+export let getOrganizationInternalTenantIdentifier = (
+  organization: Pick<Organization, 'oid'>
+) => `mte-org-${organization.oid}`;
 
-export let getUserInternalTenantIdentifier = (user: Pick<User, 'oid'>) => `mte-usr-${user.oid}`;
+export let getUserInternalTenantIdentifier = (user: Pick<User, 'oid'>) =>
+  `mte-usr-${user.oid}`;
 
 export let getInstanceInternalEnvironmentIdentifier = (instance: Pick<Instance, 'oid'>) =>
   `mte-ins-${instance.oid}`;

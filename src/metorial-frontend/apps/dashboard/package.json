@@ -16,7 +16,7 @@
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/programmable-promise": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
-    "@metorial-platform-systems/synthesis-client": "1.0.0",
+    "@metorial/product-assistant-client": "1.0.0",
     "@metorial/chart": "^1.0.0",
     "@metorial/code-editor": "^1.0.0",
     "@metorial/dashboard-sdk": "1.0.0-internal",

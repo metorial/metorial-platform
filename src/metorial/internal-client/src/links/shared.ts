@@ -36,8 +36,6 @@ export let getProjectServiceTenantId = (
   project: InternalProject
 ) => {
   switch (service) {
-    case 'synthesis':
-      return project.synthesisTenantId;
     case 'subspace':
       return project.subspaceTenantId;
     case 'nebula':
@@ -45,55 +43,38 @@ export let getProjectServiceTenantId = (
   }
 };
 
-export let getInstanceServiceTenantId = (
-  service: InternalService,
-  instance: InternalInstance
-) => {
+export let getInstanceServiceTenantId = (service: 'subspace', instance: InternalInstance) => {
   switch (service) {
-    case 'synthesis':
-      return instance.synthesisTenantId;
     case 'subspace':
       return instance.subspaceTenantId;
   }
 };
 
 export let getInstanceServiceEnvironmentId = (
-  service: InternalService,
+  service: 'subspace',
   instance: InternalInstance
 ) => {
   switch (service) {
-    case 'synthesis':
-      return instance.synthesisEnvironmentId;
     case 'subspace':
       return instance.subspaceEnvironmentId;
   }
 };
 
-export let getUserServiceTenantId = (service: 'synthesis', user: User) =>
-  user.synthesisTenantId;
-
-export let getUserServiceEnvironmentId = (service: 'synthesis', user: User) =>
-  user.synthesisEnvironmentId;
-
 export let getOrganizationActorServiceId = (
-  service: InternalService,
+  service: 'subspace',
   organizationActor: Pick<OrganizationActor, 'id'> & Partial<OrganizationActor>
 ) => {
   switch (service) {
-    case 'synthesis':
-      return organizationActor.synthesisActorId;
     case 'subspace':
       return organizationActor.subspaceActorId;
   }
 };
 
 export let getConsumerServiceId = (
-  service: InternalService,
+  service: 'subspace',
   consumer: Pick<Consumer, 'id'> & Partial<Consumer>
 ) => {
   switch (service) {
-    case 'synthesis':
-      return consumer.synthesisActorId;
     case 'subspace':
       return consumer.subspaceActorId;
   }
@@ -211,9 +192,6 @@ export let persistProjectTenantLink = async (d: {
     ...(d.project.internalTenantIdentifier
       ? {}
       : { internalTenantIdentifier: d.tenantIdentifier }),
-    ...(d.service == 'synthesis' && !d.project.synthesisTenantId
-      ? { synthesisTenantId: d.tenantId }
-      : {}),
     ...(d.service == 'subspace' && !d.project.subspaceTenantId
       ? { subspaceTenantId: d.tenantId }
       : {}),
@@ -232,37 +210,8 @@ export let persistProjectTenantLink = async (d: {
   });
 };
 
-export let persistUserScope = async (d: {
-  service: 'synthesis';
-  user: User;
-  tenantId: string;
-  tenantIdentifier: string;
-  environmentId: string;
-}) => {
-  let update: Prisma.UserUpdateInput = {
-    ...(d.user.internalTenantIdentifier
-      ? {}
-      : { internalTenantIdentifier: d.tenantIdentifier }),
-    ...(d.service == 'synthesis' && !d.user.synthesisTenantId
-      ? { synthesisTenantId: d.tenantId }
-      : {}),
-    ...(d.service == 'synthesis' && !d.user.synthesisEnvironmentId
-      ? { synthesisEnvironmentId: d.environmentId }
-      : {})
-  };
-
-  if (!hasUpdates(update)) return;
-
-  await db.user.update({
-    where: {
-      id: d.user.id
-    },
-    data: update
-  });
-};
-
 export let persistInstanceScope = async (d: {
-  service: InternalService;
+  service: 'subspace';
   instance: Instance;
   tenantId: string;
   tenantIdentifier: string;
@@ -276,12 +225,6 @@ export let persistInstanceScope = async (d: {
     ...(d.instance.internalEnvironmentIdentifier
       ? {}
       : { internalEnvironmentIdentifier: d.environmentIdentifier }),
-    ...(d.service == 'synthesis' && !d.instance.synthesisTenantId
-      ? { synthesisTenantId: d.tenantId }
-      : {}),
-    ...(d.service == 'synthesis' && !d.instance.synthesisEnvironmentId
-      ? { synthesisEnvironmentId: d.environmentId }
-      : {}),
     ...(d.service == 'subspace' && !d.instance.subspaceTenantId
       ? { subspaceTenantId: d.tenantId }
       : {}),
@@ -304,7 +247,7 @@ export let persistInstanceScope = async (d: {
 };
 
 export let persistOrganizationActorLink = async (d: {
-  service: InternalService;
+  service: 'subspace';
   organizationActor: OrganizationActor;
   actorId: string;
   actorIdentifier: string;
@@ -313,9 +256,6 @@ export let persistOrganizationActorLink = async (d: {
     ...(d.organizationActor.internalActorIdentifier
       ? {}
       : { internalActorIdentifier: d.actorIdentifier }),
-    ...(d.service == 'synthesis' && !d.organizationActor.synthesisActorId
-      ? { synthesisActorId: d.actorId }
-      : {}),
     ...(d.service == 'subspace' && !d.organizationActor.subspaceActorId
       ? { subspaceActorId: d.actorId }
       : {})
@@ -332,7 +272,7 @@ export let persistOrganizationActorLink = async (d: {
 };
 
 export let persistConsumerLink = async (d: {
-  service: InternalService;
+  service: 'subspace';
   consumer: Consumer;
   actorId: string;
   actorIdentifier: string;
@@ -341,9 +281,6 @@ export let persistConsumerLink = async (d: {
     ...(d.consumer.internalActorIdentifier
       ? {}
       : { internalActorIdentifier: d.actorIdentifier }),
-    ...(d.service == 'synthesis' && !d.consumer.synthesisActorId
-      ? { synthesisActorId: d.actorId }
-      : {}),
     ...(d.service == 'subspace' && !d.consumer.subspaceActorId
       ? { subspaceActorId: d.actorId }
       : {})

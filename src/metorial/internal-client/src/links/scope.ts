@@ -1,17 +1,7 @@
-import {
-  ensureSubspaceConsumerActor,
-  ensureSubspaceOrganizationActor,
-  ensureSynthesisConsumerActor,
-  ensureSynthesisOrganizationActor
-} from './actor';
-import { ensureSubspaceInstanceScope, ensureSynthesisInstanceScope } from './instance';
-import {
-  ensureInternalProjectTenant,
-  ensureSubspaceProjectTenant,
-  ensureSynthesisProjectTenant
-} from './project';
+import { ensureSubspaceConsumerActor, ensureSubspaceOrganizationActor } from './actor';
+import { ensureSubspaceInstanceScope } from './instance';
+import { ensureInternalProjectTenant, ensureSubspaceProjectTenant } from './project';
 import type { InternalActorRef, InternalScopeOwner, InternalService } from './types';
-import { ensureSynthesisUserScope } from './user';
 
 let unsupportedInternalService = (service: never | string): never => {
   throw new Error(`unsupported internal service: ${service}`);
@@ -24,22 +14,16 @@ export let ensureInternalScope = async (d: {
   switch (d.owner.type) {
     case 'instance':
       switch (d.service) {
-        case 'synthesis':
-          return await ensureSynthesisInstanceScope(d.owner.instance);
         case 'subspace':
           return await ensureSubspaceInstanceScope(d.owner.instance);
+        case 'nebula':
+          return unsupportedInternalService(d.service);
       }
 
       return unsupportedInternalService(d.service);
 
     case 'user':
-      if (d.service == 'subspace') {
-        return unsupportedInternalService(d.service);
-      }
-
-      return d.service == 'synthesis'
-        ? await ensureSynthesisUserScope(d.owner.user)
-        : unsupportedInternalService(d.service);
+      return unsupportedInternalService(d.service);
   }
 };
 
@@ -51,28 +35,24 @@ export let ensureInternalActor = async (d: {
   switch (d.actor.type) {
     case 'organizationActor':
       switch (d.service) {
-        case 'synthesis':
-          return await ensureSynthesisOrganizationActor(d.tenantId, d.actor.organizationActor);
         case 'subspace':
           return await ensureSubspaceOrganizationActor(d.tenantId, d.actor.organizationActor);
+        case 'nebula':
+          return unsupportedInternalService(d.service);
       }
 
       return unsupportedInternalService(d.service);
 
     case 'consumer':
       switch (d.service) {
-        case 'synthesis':
-          return await ensureSynthesisConsumerActor(d.tenantId, d.actor.consumer);
         case 'subspace':
           return await ensureSubspaceConsumerActor(d.tenantId, d.actor.consumer);
+        case 'nebula':
+          return unsupportedInternalService(d.service);
       }
 
       return unsupportedInternalService(d.service);
   }
 };
 
-export {
-  ensureInternalProjectTenant,
-  ensureSubspaceProjectTenant,
-  ensureSynthesisProjectTenant
-};
+export { ensureInternalProjectTenant, ensureSubspaceProjectTenant };

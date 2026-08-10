@@ -7,7 +7,7 @@ import {
 } from '@metorial/internal-clients';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
 
-let internalTenantServices: InternalService[] = ['synthesis', 'subspace'];
+let internalTenantServices: InternalService[] = ['subspace'];
 
 export let SUBSPACE_TENANT_SYNC_BATCH_SIZE = 500;
 
