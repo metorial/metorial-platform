@@ -185,7 +185,7 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
   async getSetupInfo(input: KeyProviderSetupInfoInput) {
     let roleArn = input.roleArn ?? env.kms.KMS_EXTERNAL_KEY_ROLE_ARN ?? '<metorial-role-arn>';
     let policyStatement = {
-      Sid: 'AllowMetorialUseOfConsumerKey',
+      Sid: 'AllowMetorialAccess',
       Effect: 'Allow',
       Principal: {
         AWS: roleArn
