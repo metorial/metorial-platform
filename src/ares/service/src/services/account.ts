@@ -116,12 +116,7 @@ class AccountServiceImpl {
           async () =>
             await withTransaction(async tdb => {
               let existing = await tdb.account.findUnique({
-                where: {
-                  appOid_identifier: {
-                    appOid: d.app.oid,
-                    identifier
-                  }
-                }
+                where: { identifier }
               });
               if (existing?.status === 'deleting') {
                 throw new ServiceError(
