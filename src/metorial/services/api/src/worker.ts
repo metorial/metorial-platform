@@ -7,7 +7,7 @@ import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/cargo-m
 import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/cargo-module-skill';
 import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/cargo-module-store';
 import { accessQueueProcessor } from '@metorial/module-access';
-import { assistantQueueProcessor } from '@metorial/module-assistant';
+import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
 import { communityQueueProcessor } from '@metorial/module-community';
 import { consumerQueueProcessor } from '@metorial/module-consumer';
 import { emailQueueProcessor } from '@metorial/module-email';
@@ -22,7 +22,7 @@ import { userQueueProcessor } from '@metorial/module-user';
 import { multiRegionQueueProcessor } from '@metorial/multi-region';
 
 export let worker = runQueueProcessors([
-  assistantQueueProcessor,
+  productAssistantQueueProcessor,
   userQueueProcessor,
   machineAccessQueueProcessor,
   organizationQueueProcessor,

@@ -9,38 +9,32 @@ import { assistantModelSchema, presentAssistantModel } from './assistant';
 
 export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
   .presenter(async ({ assistantConversationItem }, opts) => {
-    if (!assistantConversationItem.request) {
-      throw new Error(
-        `Assistant message ${assistantConversationItem.id} is missing a request`
-      );
+    let message = assistantConversationItem.message;
+    if (!message.request) {
+      throw new Error(`Assistant message ${message.id} is missing a request`);
     }
 
     return {
       object: 'assistant.message' as const,
-      id: assistantConversationItem.id,
-      conversation_item_id: assistantConversationItem.conversationItemId,
-      type: assistantConversationItem.type,
-      status: assistantConversationItem.status,
-      assistant_id: assistantConversationItem.assistantId ?? null,
-      parent_message_id: assistantConversationItem.parentMessageId ?? null,
-      model: assistantConversationItem.model
-        ? presentAssistantModel(assistantConversationItem.model)
-        : null,
+      id: message.id,
+      conversation_item_id: assistantConversationItem.id,
+      type: message.type,
+      status: message.status,
+      assistant_id: message.assistant?.id ?? null,
+      parent_message_id: message.parentMessage?.id ?? null,
+      model: message.model ? presentAssistantModel(message.model) : null,
       request: {
         object: 'assistant.request' as const,
-        id: assistantConversationItem.request.id,
-        status: assistantConversationItem.request.status,
-        actor: assistantConversationItem.request.actor
-          ? await presentDocumentParticipantActor(
-              assistantConversationItem.request.actor,
-              opts
-            )
+        id: message.request.id,
+        status: message.request.status,
+        actor: message.request.resourceActor
+          ? await presentDocumentParticipantActor(message.request.resourceActor, opts)
           : null,
-        created_at: assistantConversationItem.request.createdAt,
-        updated_at: assistantConversationItem.request.updatedAt
+        created_at: message.request.createdAt,
+        updated_at: message.request.updatedAt
       },
-      items: assistantConversationItem.state.items,
-      created_at: assistantConversationItem.createdAt
+      items: message.state.items as Record<string, any>[],
+      created_at: message.createdAt
     };
   })
   .schema(

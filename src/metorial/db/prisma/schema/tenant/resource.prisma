@@ -1,13 +1,3 @@
-enum ResourceGroupType {
-  development
-  production
-}
-
-enum ResourceActorType {
-  external
-  system
-}
-
 model ResourceTenant {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -48,6 +38,18 @@ model ResourceTenant {
   skillImports          SkillImport[]
   skillMergeRequests    SkillMergeRequest[]
   skillForkSyncs        SkillForkSync[]
+
+  productAssistants                      ProductAssistant[]
+  productAssistantConfig                 ProductAssistantConfig?
+  productAssistantInstances              ProductAssistantInstance[]
+  productAssistantConversations          ProductAssistantConversation[]
+  productAssistantModelRuns              ProductAssistantModelRun[]
+  productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
+}
+
+enum ResourceGroupType {
+  development
+  production
 }
 
 model ResourceGroup {
@@ -90,8 +92,16 @@ model ResourceGroup {
   skillMergeRequests    SkillMergeRequest[]
   skillForkSyncs        SkillForkSync[]
 
+  productAssistantConversations          ProductAssistantConversation[]
+  productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
+
   @@unique([resourceTenantOid, identifier])
   @@index([resourceTenantOid])
+}
+
+enum ResourceActorType {
+  external
+  system
 }
 
 model ResourceActor {
@@ -139,6 +149,10 @@ model ResourceActor {
   skillMergeRequestComments SkillMergeRequestComment[]
   skillMergeRequestEvents   SkillMergeRequestEvent[]
   lastModifiedStoreItems    StoreItem[]
+
+  createdProductAssistantConversations     ProductAssistantConversation[]            @relation("ProductAssistantConversationCreator")
+  productAssistantRequests                 ProductAssistantRequest[]
+  productAssistantConversationParticipants ProductAssistantConversationParticipant[]
 
   @@unique([resourceTenantOid, identifier])
   @@unique([resourceTenantOid, consumerProfileOid])

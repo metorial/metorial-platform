@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import type { ProductAssistantModelWithProvider } from '@metorial/module-product-assistant';
 import { Presenter } from '@metorial/presenter';
 import { assistantType } from '../../types';
 
@@ -19,20 +20,7 @@ export let assistantModelSchema = v.object({
   provider: assistantModelProviderSchema
 });
 
-export let presentAssistantModel = (model: {
-  id: string;
-  slug: string;
-  name: string;
-  contextWindow: number;
-  inputCostPerMillionTokens: number;
-  outputCostPerMillionTokens: number;
-  provider: {
-    id: string;
-    slug: string;
-    name: string;
-    imageUrl: string;
-  };
-}) => ({
+export let presentAssistantModel = (model: ProductAssistantModelWithProvider) => ({
   object: 'assistant.model' as const,
   id: model.id,
   slug: model.slug,

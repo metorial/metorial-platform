@@ -1,12 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { assistantConversationService } from '@metorial/module-assistant';
+import { productAssistantConversationService } from '@metorial/module-product-assistant';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { assistantConversationPresenter } from '../../../presenters';
-import { assistantConversationGroup, requireAssistantActor } from './context';
+import { assistantConversationGroup, getAssistantScope } from './context';
 
 export let assistantConversationHandlers = {
   listConversations: instanceGroup
@@ -34,10 +34,8 @@ export let assistantConversationHandlers = {
     .outputList(assistantConversationPresenter)
     .do(async ctx => {
       let assistantIds = normalizeArrayParam(ctx.query.assistant_id);
-      let paginator = await assistantConversationService.list({
-        organization: ctx.organization,
-        instance: ctx.instance,
-        ...requireAssistantActor(ctx),
+      let paginator = await productAssistantConversationService.listAssistantConversations({
+        ...getAssistantScope(ctx),
         assistantIds
       });
       let list = await paginator.run(ctx.query);
@@ -75,14 +73,15 @@ export let assistantConversationHandlers = {
     )
     .output(assistantConversationPresenter)
     .do(async ctx => {
-      let assistantConversation = await assistantConversationService.create({
-        organization: ctx.organization,
-        instance: ctx.instance,
-        ...requireAssistantActor(ctx),
-        assistantId: ctx.body.assistant_id,
-        title: ctx.body.title,
-        input: ctx.body.input
-      });
+      let assistantConversation =
+        await productAssistantConversationService.createAssistantConversation({
+          ...getAssistantScope(ctx),
+          input: {
+            assistantId: ctx.body.assistant_id,
+            title: ctx.body.title,
+            input: ctx.body.input
+          }
+        });
 
       return assistantConversationPresenter.present({
         assistantConversation,
@@ -136,13 +135,14 @@ export let assistantConversationHandlers = {
     )
     .output(assistantConversationPresenter)
     .do(async ctx => {
-      let assistantConversation = await assistantConversationService.update({
-        organization: ctx.organization,
-        instance: ctx.instance,
-        ...requireAssistantActor(ctx),
-        conversationId: ctx.assistantConversation.id,
-        title: ctx.body.title
-      });
+      let assistantConversation =
+        await productAssistantConversationService.updateAssistantConversation({
+          ...getAssistantScope(ctx),
+          conversation: ctx.assistantConversation,
+          input: {
+            title: ctx.body.title
+          }
+        });
 
       return assistantConversationPresenter.present({
         assistantConversation,

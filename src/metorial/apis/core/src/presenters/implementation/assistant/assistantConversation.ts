@@ -12,16 +12,16 @@ export let v1AssistantConversationPresenter = Presenter.create(assistantConversa
     object: 'assistant.conversation' as const,
     id: assistantConversation.id,
     title: assistantConversation.title,
-    assistant_id: assistantConversation.assistantId,
+    assistant_id: assistantConversation.assistant.id,
     instance_id: instance.id,
     organization_id: organization.id,
     created_by_actor: await presentDocumentParticipantActor(
-      assistantConversation.createdByActor,
+      assistantConversation.createdByResourceActor,
       opts
     ),
-    root_message_id: assistantConversation.rootMessageId,
+    root_message_id: assistantConversation.rootMessage.id,
     assistant: await v1AssistantPresenter
-      .present({ assistant: assistantConversation.assistant, organization }, opts)
+      .present({ assistant: assistantConversation.availableAssistant, organization }, opts)
       .run(),
     created_at: assistantConversation.createdAt,
     updated_at: assistantConversation.updatedAt

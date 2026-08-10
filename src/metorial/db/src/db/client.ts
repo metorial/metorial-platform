@@ -10,6 +10,7 @@ import type {
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
+import type * as ProductAssistant from '../types/product-assistant.js';
 import { PrismaClient } from '../../prisma/generated/client.js';
 export * from '../../prisma/generated/client.js';
 
@@ -349,5 +350,12 @@ declare global {
     type PortalAllowedRedirectUrlFilters = {
       url: string;
     }[];
+
+    type ProductAssistantConversationInput = unknown;
+    type ProductAssistantMessageStateContent = ProductAssistant.State;
+    type ProductAssistantMessageSerializedContent = ProductAssistant.MessageSerializedContent;
+    type ProductAssistantRunCost = ProductAssistant.RunCost;
+    type ProductAssistantRunMetadata = ProductAssistant.RunMetadata;
+    type ProductAssistantSubspaceMcpToolList = ProductAssistant.SubspaceMcpToolList;
   }
 }

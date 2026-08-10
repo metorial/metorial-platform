@@ -257,14 +257,18 @@ export let ID = createIdGenerator({
   consumerAuthClientId: idType.unsorted('coaci'),
   consumerAuthClientSecret: idType.unsorted('coacs', 32),
 
-  assistant: idType.sorted('ast'),
-  assistantImplementation: idType.sorted('aim'),
-  assistantInstance: idType.sorted('asi'),
-  assistantConversation: idType.sorted('asc'),
-  assistantConversationItem: idType.sorted('aci'),
-  assistantMessage: idType.sorted('asm'),
-  assistantModel: idType.sorted('asmd'),
-  assistantModelProvider: idType.sorted('asmp'),
-  assistantRequest: idType.sorted('asq'),
-  assistantRun: idType.sorted('asr')
+  productAssistant: idType.sorted('past_'),
+  productAssistantImplementation: idType.sorted('paim_'),
+  productAssistantInstance: idType.sorted('pasi_'),
+  productAssistantConfig: idType.sorted('pacf_'),
+  productAssistantConversation: idType.sorted('pacon_'),
+  productAssistantConversationParticipant: idType.sorted('pacp_'),
+  productAssistantConversationItem: idType.sorted('paci_'),
+  productAssistantMessage: idType.sorted('pamsg_'),
+  productAssistantModel: idType.sorted('pamod_'),
+  productAssistantModelProvider: idType.sorted('pampr_'),
+  productAssistantRequest: idType.sorted('pasq_'),
+  productAssistantModelRun: idType.sorted('pamrn_'),
+  productAssistantSubspaceMcpConnection: idType.sorted('pasmc_'),
+  productAssistantSubspaceMcpToolCache: idType.sorted('pastc_')
 });

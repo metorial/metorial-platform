@@ -109,10 +109,10 @@ import {
   UserType
 } from '@metorial/db';
 import type {
-  AssistantConversationItemWithMessage,
-  AssistantConversationWithAssistant,
-  AvailableAssistant
-} from '@metorial/module-assistant';
+  AvailableProductAssistant,
+  ProductAssistantConversationItemWithMessage,
+  ProductAssistantConversationWithAssistant
+} from '@metorial/module-product-assistant';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
@@ -408,18 +408,18 @@ export let organizationActorType = PresentableType.create<{
 }>()('organization_actor');
 
 export let assistantType = PresentableType.create<{
-  assistant: AvailableAssistant;
+  assistant: AvailableProductAssistant;
   organization: Organization;
 }>()('assistant');
 
 export let assistantConversationType = PresentableType.create<{
-  assistantConversation: AssistantConversationWithAssistant;
+  assistantConversation: ProductAssistantConversationWithAssistant;
   organization: Organization;
   instance: Instance;
 }>()('assistant_conversation');
 
 export let assistantMessageType = PresentableType.create<{
-  assistantConversationItem: AssistantConversationItemWithMessage;
+  assistantConversationItem: ProductAssistantConversationItemWithMessage;
 }>()('assistant_message');
 
 export let machineAccessType = PresentableType.create<{
