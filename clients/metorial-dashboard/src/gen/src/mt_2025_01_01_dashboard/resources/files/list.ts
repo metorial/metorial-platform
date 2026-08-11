@@ -73,7 +73,6 @@ export type FilesListOutput = {
                     name: string;
                     description: string | null;
                     isDefault: boolean;
-                    ssoGroupIds: string[];
                     createdAt: Date;
                     updatedAt: Date;
                   };
@@ -256,10 +255,6 @@ export let mapFilesListOutput = mtMap.object<FilesListOutput>({
                                   isDefault: mtMap.objectField(
                                     'is_default',
                                     mtMap.passthrough()
-                                  ),
-                                  ssoGroupIds: mtMap.objectField(
-                                    'sso_group_ids',
-                                    mtMap.array(mtMap.passthrough())
                                   ),
                                   createdAt: mtMap.objectField(
                                     'created_at',

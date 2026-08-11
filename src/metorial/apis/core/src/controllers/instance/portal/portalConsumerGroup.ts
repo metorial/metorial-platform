@@ -104,7 +104,6 @@ export let portalConsumerGroupController = Controller.create(
         v.object({
           name: v.string(),
           description: v.optional(v.string()),
-          sso_group_ids: v.optional(v.array(v.string())),
           is_default: v.optional(v.boolean())
         })
       )
@@ -115,7 +114,6 @@ export let portalConsumerGroupController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            ssoGroupIds: ctx.body.sso_group_ids,
             isDefault: ctx.body.is_default
           }
         });
@@ -141,7 +139,6 @@ export let portalConsumerGroupController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          sso_group_ids: v.optional(v.array(v.string())),
           is_default: v.optional(v.boolean())
         })
       )
@@ -152,7 +149,6 @@ export let portalConsumerGroupController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            ssoGroupIds: ctx.body.sso_group_ids,
             isDefault: ctx.body.is_default
           }
         });

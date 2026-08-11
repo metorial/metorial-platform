@@ -10,7 +10,6 @@ export let v1ConsumerGroupPresenter = Presenter.create(consumerGroupType)
     name: consumerGroup.name,
     description: consumerGroup.description,
     is_default: consumerGroup.isDefault,
-    sso_group_ids: consumerGroup.ssoGroupIds,
     created_at: consumerGroup.createdAt,
     updated_at: consumerGroup.updatedAt
   }))
@@ -22,7 +21,6 @@ export let v1ConsumerGroupPresenter = Presenter.create(consumerGroupType)
       name: v.string(),
       description: v.nullable(v.string()),
       is_default: v.boolean(),
-      sso_group_ids: v.array(v.string()),
       created_at: v.date(),
       updated_at: v.date()
     })

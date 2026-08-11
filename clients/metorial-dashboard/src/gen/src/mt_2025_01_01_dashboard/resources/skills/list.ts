@@ -83,7 +83,6 @@ export type SkillsListOutput = {
                       name: string;
                       description: string | null;
                       isDefault: boolean;
-                      ssoGroupIds: string[];
                       createdAt: Date;
                       updatedAt: Date;
                     };
@@ -159,7 +158,6 @@ export type SkillsListOutput = {
                         name: string;
                         description: string | null;
                         isDefault: boolean;
-                        ssoGroupIds: string[];
                         createdAt: Date;
                         updatedAt: Date;
                       };
@@ -232,7 +230,6 @@ export type SkillsListOutput = {
                         name: string;
                         description: string | null;
                         isDefault: boolean;
-                        ssoGroupIds: string[];
                         createdAt: Date;
                         updatedAt: Date;
                       };
@@ -473,10 +470,6 @@ export let mapSkillsListOutput = mtMap.object<SkillsListOutput>({
                                     'is_default',
                                     mtMap.passthrough()
                                   ),
-                                  ssoGroupIds: mtMap.objectField(
-                                    'sso_group_ids',
-                                    mtMap.array(mtMap.passthrough())
-                                  ),
                                   createdAt: mtMap.objectField(
                                     'created_at',
                                     mtMap.date()
@@ -690,10 +683,6 @@ export let mapSkillsListOutput = mtMap.object<SkillsListOutput>({
                                         'is_default',
                                         mtMap.passthrough()
                                       ),
-                                      ssoGroupIds: mtMap.objectField(
-                                        'sso_group_ids',
-                                        mtMap.array(mtMap.passthrough())
-                                      ),
                                       createdAt: mtMap.objectField(
                                         'created_at',
                                         mtMap.date()
@@ -898,10 +887,6 @@ export let mapSkillsListOutput = mtMap.object<SkillsListOutput>({
                                       isDefault: mtMap.objectField(
                                         'is_default',
                                         mtMap.passthrough()
-                                      ),
-                                      ssoGroupIds: mtMap.objectField(
-                                        'sso_group_ids',
-                                        mtMap.array(mtMap.passthrough())
                                       ),
                                       createdAt: mtMap.objectField(
                                         'created_at',
