@@ -1,4 +1,7 @@
-import type { DashboardInstanceCallbacksInstancesListOutput } from '@metorial/dashboard-sdk';
+import type {
+  DashboardInstanceCallbacksInstancesListOutput,
+  DashboardInstanceProvidersTriggersListOutput
+} from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
   useCallback,
@@ -29,9 +32,11 @@ import {
   showModal,
   toast
 } from '@metorial/ui';
+import { Paths } from '@metorial/frontend-config';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { DeleteResourceDangerZone } from '../deleteResourceDangerZone';
 import { showProviderCreationPanel } from '../providerCreationPanel';
 import { RouterPanel } from '../routerPanel';
 import {
@@ -51,6 +56,32 @@ let getCallbackType = (
   if (triggers.some(trigger => trigger.webhookUrl)) return 'Webhook';
   if (triggers.some(trigger => trigger.pollIntervalSeconds != null)) return 'Polling';
   return 'Managed';
+};
+
+let formatPollInterval = (seconds: number) =>
+  seconds >= 60 && seconds % 60 === 0 ? `every ${seconds / 60} min` : `every ${seconds}s`;
+
+let getTriggerInvocationHint = (
+  invocation: DashboardInstanceProvidersTriggersListOutput['items'][number]['invocation']
+) => {
+  if (invocation.type === 'polling') {
+    return `Polling · ${formatPollInterval(invocation.intervalSeconds)}`;
+  }
+
+  return invocation.autoRegistration.status === 'supported'
+    ? 'Webhook · registers automatically'
+    : 'Webhook · manual setup';
+};
+
+type ReceiverUrlState = 'inactive' | 'autoRegistered' | 'manual';
+
+let getReceiverUrlState = (
+  triggers: CallbackInstanceListItem['triggers']
+): ReceiverUrlState => {
+  let webhookTriggers = triggers.filter(trigger => trigger.source === 'webhook');
+  if (webhookTriggers.length === 0) return 'inactive';
+  if (webhookTriggers.every(trigger => trigger.isWebhookRegistered)) return 'autoRegistered';
+  return 'manual';
 };
 
 export let CallbackOverview = (p: { callbackId: string | undefined }) => {
@@ -75,6 +106,8 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
     providerVersionId ? { providerVersionId, limit: 100 } : null
   );
   let deleteCallbackInstance = instancesLoader.useDeleteMutator();
+  let deleteCallback = callbackLoader.useDeleteMutator();
+  let navigate = useNavigate();
   let [_, setSearchParams] = useSearchParams();
   let [selectedTriggerKeys, setSelectedTriggerKeys] = useState<string[]>([]);
   let shouldPollOverview =
@@ -109,7 +142,8 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
     () =>
       (availableTriggers.data?.items ?? []).map(trigger => ({
         id: trigger.key,
-        label: `${trigger.name} (${trigger.key})`
+        label: `${trigger.name} (${trigger.key})`,
+        hint: getTriggerInvocationHint(trigger.invocation)
       })),
     [availableTriggers.data?.items]
   );
@@ -136,7 +170,8 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
         .map(instance => ({
           id: instance.id,
           label: instance.config.name || instance.config.id,
-          webhookUrl: instance.webhookUrl
+          webhookUrl: instance.webhookUrl,
+          urlState: getReceiverUrlState(instance.triggers)
         }));
       let nextPollAt = triggerInstances
         .map(trigger => trigger.nextPollAt)
@@ -170,7 +205,7 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
             <>
               <Box
                 title="Receiver URLs"
-                description={`${provider.data.name} requires manual configuration. Register the following receiver URLs with the provider to start receiving events.`}
+                description="Each callback instance has a receiver URL that accepts webhook events from the provider. URLs are only active while a webhook trigger is attached; triggers that support automatic registration are wired up for you."
               >
                 <Table
                   headers={['Receiver', 'Receiver URL', '']}
@@ -194,23 +229,38 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
                           {item.id}
                         </Text>
                       </Flex>,
-                      <div style={{ width: '100%', minWidth: 0 }}>
-                        <Text
-                          size="2"
-                          style={{
-                            display: 'block',
-                            width: '100%',
-                            minWidth: 0,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            fontFamily: 'monospace'
-                          }}
-                        >
-                          {item.webhookUrl}
+                      item.urlState === 'inactive' ? (
+                        <Text size="2" color="gray600">
+                          Inactive — attach a webhook trigger in Manage Triggers to activate
+                          this URL.
                         </Text>
-                      </div>,
-                      <InlineCopy value={item.webhookUrl} />
+                      ) : (
+                        <div style={{ width: '100%', minWidth: 0 }}>
+                          <Text
+                            size="2"
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              minWidth: 0,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            {item.webhookUrl}
+                          </Text>
+                        </div>
+                      ),
+                      item.urlState === 'inactive' ? (
+                        ''
+                      ) : item.urlState === 'autoRegistered' ? (
+                        <Badge color="green" size="1">
+                          Registered automatically
+                        </Badge>
+                      ) : (
+                        <InlineCopy value={item.webhookUrl} />
+                      )
                     ]
                   }))}
                 />
@@ -337,6 +387,30 @@ export let CallbackOverview = (p: { callbackId: string | undefined }) => {
               </Callout>
             )}
           </Box>
+
+          <Spacer height={15} />
+
+          <DeleteResourceDangerZone
+            description="Delete this callback. Event delivery for all attached instances stops immediately."
+            buttonLabel="Delete Callback"
+            confirmTitle="Delete callback"
+            confirmDescription="Are you sure you want to delete this callback? Attached instances will stop receiving events."
+            loading={deleteCallback.isLoading}
+            success={deleteCallback.isSuccess}
+            onDelete={async () => {
+              let [res] = await deleteCallback.mutate({});
+              if (!res) return;
+
+              toast.success('Callback deleted');
+              navigate(
+                Paths.instance.callbacks(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data
+                )
+              );
+            }}
+          />
 
           <RouterPanel param="callback_instance_id" width={1000}>
             {callbackInstanceId => {
@@ -483,9 +557,7 @@ let CallbackInstanceDetails = (p: {
   >;
 }) => {
   let webhookUrl = p.callbackInstance.webhookUrl;
-  let needsManualWebhookSetup = p.callbackInstance.triggers.some(
-    trigger => trigger.webhookUrl && !trigger.isWebhookRegistered
-  );
+  let needsManualWebhookSetup = getReceiverUrlState(p.callbackInstance.triggers) === 'manual';
 
   return (
     <>

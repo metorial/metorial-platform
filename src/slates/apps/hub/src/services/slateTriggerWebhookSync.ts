@@ -166,6 +166,11 @@ class slateTriggerWebhookSyncServiceImpl {
     request: TriggerWebhookRequestPayload;
   }): Promise<
     | { type: 'methodNotAllowed'; allowedMethods: WebhookHttpMethod[] }
+    | {
+        type: 'ignored';
+        webhookRequestId: string;
+        reason: 'no_webhook_triggers_attached' | 'no_webhook_triggers_for_method';
+      }
     | { type: 'queued'; webhookRequestId: string }
     | { type: 'response'; webhookRequestId: string; response: WebhookHttpResponse }
   > {
@@ -201,6 +206,22 @@ class slateTriggerWebhookSyncServiceImpl {
     let applicableTriggers = target.triggers.filter(trigger =>
       webhookTriggerAllowsMethod(trigger.action, method)
     );
+
+    // Queue processing would fan out to nothing; tell the caller (visible in provider
+    // dashboards like Slack's URL verification panel) instead of pretending to queue.
+    if (applicableTriggers.length === 0) {
+      await finalize();
+      let hasWebhookTriggers = target.triggers.some(
+        trigger => trigger.source === SlateTriggerReceiverTriggerSource.webhook
+      );
+      return {
+        type: 'ignored',
+        webhookRequestId: requestRecord.id,
+        reason: hasWebhookTriggers
+          ? 'no_webhook_triggers_for_method'
+          : 'no_webhook_triggers_attached'
+      };
+    }
 
     let candidates = target.active
       ? getSyncCandidates(applicableTriggers, method).filter(candidate => {

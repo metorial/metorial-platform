@@ -1495,6 +1495,35 @@ describe('slate:trigger webhook E2E', () => {
     expect(eventInput).toBeNull();
   });
 
+  it('reports ignored webhook requests when only polling triggers are attached', async () => {
+    const { receiver } = await setupWebhookScenario({
+      triggerInvocation: SlateTriggerReceiverTriggerSource.polling
+    });
+
+    const response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'url_verification', challenge: 'challenge-value' })
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; webhookRequestId: string };
+    expect(body).toMatchObject({
+      status: 'ignored',
+      reason: 'no_webhook_triggers_attached',
+      webhookRequestId: expect.any(String)
+    });
+    expect(queueMocks.webhookAdd).not.toHaveBeenCalled();
+    expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
+
+    const requestRecord = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+      where: { id: body.webhookRequestId }
+    });
+    expect(requestRecord.processedAt).not.toBeNull();
+  });
+
   it('does not enqueue inputs when webhook handler returns an error', async () => {
     const { tenant, receiverTrigger, deployment, bucket } = await setupWebhookScenario();
 

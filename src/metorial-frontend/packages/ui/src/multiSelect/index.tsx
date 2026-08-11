@@ -68,7 +68,20 @@ let Content = styled(RadixPopover.Content)`
   }
 `;
 
-let Item = styled('div')``;
+let Item = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+`;
+
+let ItemHint = styled('span')`
+  font-size: 12px;
+  font-weight: 400;
+  color: ${theme.colors.gray700};
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
 
 let Value = styled('div')`
   font-size: 12px;
@@ -109,6 +122,7 @@ export let MultiSelect = ({
   items: {
     id: string;
     label: string;
+    hint?: string;
     disabled?: boolean;
   }[];
 }) => {
@@ -164,6 +178,8 @@ export let MultiSelect = ({
                   label={item.label}
                   disabled={item.disabled || disabled}
                 />
+
+                {item.hint && <ItemHint>{item.hint}</ItemHint>}
               </Item>
             ))}
           </Content>

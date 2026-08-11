@@ -58,6 +58,14 @@ let handleTriggerWebhookRequest =
       });
     }
 
+    if (result.type === 'ignored') {
+      return c.json({
+        status: 'ignored',
+        reason: result.reason,
+        webhookRequestId: result.webhookRequestId
+      });
+    }
+
     if (result.type === 'response') {
       return createSanitizedWebhookResponse(result.response);
     }
