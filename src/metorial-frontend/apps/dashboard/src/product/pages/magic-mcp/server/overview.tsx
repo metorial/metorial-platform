@@ -10,14 +10,12 @@ import { Attributes, Flex, RenderDate, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useIdentityPaths } from '../../../lib/identityPaths';
 import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
 
 export let MagicMcpServerOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let identityPaths = useIdentityPaths();
   let { magicMcpServerId } = useParams();
 
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
@@ -140,12 +138,6 @@ export let MagicMcpServerOverviewPage = () => {
               <Table
                 headers={['Name', 'Email', 'Consumer ID']}
                 data={consumerOwners.map(consumerOwner => ({
-                  href: identityPaths.consumer(
-                    organization.data,
-                    project.data,
-                    instance.data,
-                    consumerOwner.consumerId
-                  ),
                   data: [
                     consumerOwner.consumerProfileName || consumerOwner.consumerName,
                     consumerOwner.consumerProfileEmail || consumerOwner.consumerEmail,

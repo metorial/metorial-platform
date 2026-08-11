@@ -20,7 +20,6 @@ import {
   RiStore2Line,
   RiCompassDiscoverLine,
   RiUploadCloud2Line,
-  RiUser3Line,
   RiWebhookLine
 } from '@remixicon/react';
 import { useEffect } from 'react';
@@ -207,21 +206,6 @@ export let ProjectPageLayout = () => {
               label: 'Custom Providers',
               to: Paths.instance.customProviders(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
-            }
-          ]
-        },
-
-        {
-          label: 'Identity',
-          collapsible: true,
-          items: [
-            {
-              icon: <RiUser3Line />,
-              label: 'Accounts',
-              to: Paths.instance.identity.consumers(...params),
-              getProps: i => ({
-                isActive: checkPath(i) || i.pathname.includes('/identity/consumer/')
-              })
             }
           ]
         },

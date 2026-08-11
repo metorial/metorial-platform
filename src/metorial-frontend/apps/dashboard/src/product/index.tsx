@@ -3,10 +3,8 @@ import { dynamicPage } from '@metorial/dynamic-component';
 import { createSlice } from '@metorial/microfrontend';
 import { NotFound } from '@metorial/pages';
 import { lastInstanceIdStore, useCurrentInstance, useDashboardFlags } from '@metorial/state';
-import { Error } from '@metorial/ui';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Upgrade } from '@metorial/empty-state';
 import { ProjectHomePage } from './pages';
 import { InstanceLayout } from './pages/_instanceLayout';
 import { InstanceRootRedirectPage } from './pages/rootRedirect';
@@ -173,95 +171,6 @@ let IntegrationInstanceSettingsPage = dynamicPage(() =>
   )
 );
 
-let IdentityListLayout = dynamicPage(() =>
-  import('./pages/(identity)/(list)/_layout').then(c => c.IdentityListLayout)
-);
-let AgentsListLayout = dynamicPage(() =>
-  import('./pages/(identity)/(list)/_layout').then(c => c.AgentsListLayout)
-);
-let ConsumersPage = dynamicPage(() =>
-  import('./pages/(identity)/(list)/consumers').then(c => c.ConsumersPage)
-);
-let AgentsPage = dynamicPage(() =>
-  import('./pages/(identity)/(list)/agents').then(c => c.AgentsPage)
-);
-let IdentityActorsPage = dynamicPage(() =>
-  import('./pages/(identity)/(list)/actors').then(c => c.IdentityActorsPage)
-);
-let IdentitiesPage = dynamicPage(() =>
-  import('./pages/(identity)/(list)/identities').then(c => c.IdentitiesPage)
-);
-let IdentityActorLayout = dynamicPage(() =>
-  import('./pages/(identity)/actor/_layout').then(c => c.IdentityActorLayout)
-);
-let AgentLayout = dynamicPage(() =>
-  import('./pages/(identity)/agent/_layout').then(c => c.AgentLayout)
-);
-let ConsumerLayout = dynamicPage(() =>
-  import('./pages/(identity)/consumer/_layout').then(c => c.ConsumerLayout)
-);
-let ConsumerPage = dynamicPage(() =>
-  import('./pages/(identity)/consumer').then(c => c.ConsumerPage)
-);
-let ConsumerOperationsPage = dynamicPage(() =>
-  import('./pages/(identity)/consumer/operations').then(c => c.ConsumerOperationsPage)
-);
-let ConsumerConnectionsPage = dynamicPage(() =>
-  import('./pages/(identity)/consumer/connections').then(c => c.ConsumerConnectionsPage)
-);
-let ConsumerDelegationsPage = dynamicPage(() =>
-  import('./pages/(identity)/consumer/delegations').then(c => c.ConsumerDelegationsPage)
-);
-let ConsumerSettingsPage = dynamicPage(() =>
-  import('./pages/(identity)/consumer/settings').then(c => c.ConsumerSettingsPage)
-);
-let ConsumerMagicMcpServersPage = dynamicPage(() =>
-  import('./pages/(identity)/consumer/magic-mcp-servers').then(
-    c => c.ConsumerMagicMcpServersPage
-  )
-);
-let IdentityActorPage = dynamicPage(() =>
-  import('./pages/(identity)/actor').then(c => c.IdentityActorPage)
-);
-let IdentityActorOperationsPage = dynamicPage(() =>
-  import('./pages/(identity)/actor/operations').then(c => c.IdentityActorOperationsPage)
-);
-let IdentityActorConnectionsPage = dynamicPage(() =>
-  import('./pages/(identity)/actor/connections').then(c => c.IdentityActorConnectionsPage)
-);
-let IdentityActorDelegationsPage = dynamicPage(() =>
-  import('./pages/(identity)/actor/delegations').then(c => c.IdentityActorDelegationsPage)
-);
-let AgentPage = dynamicPage(() => import('./pages/(identity)/agent').then(c => c.AgentPage));
-let AgentOperationsPage = dynamicPage(() =>
-  import('./pages/(identity)/agent/operations').then(c => c.AgentOperationsPage)
-);
-let AgentConnectionsPage = dynamicPage(() =>
-  import('./pages/(identity)/agent/connections').then(c => c.AgentConnectionsPage)
-);
-let AgentDelegationsPage = dynamicPage(() =>
-  import('./pages/(identity)/agent/delegations').then(c => c.AgentDelegationsPage)
-);
-let IdentityActorSettingsPage = dynamicPage(() =>
-  import('./pages/(identity)/actor/settings').then(c => c.IdentityActorSettingsPage)
-);
-let IdentityLayout = dynamicPage(() =>
-  import('./pages/(identity)/identity/_layout').then(c => c.IdentityLayout)
-);
-let IdentityPage = dynamicPage(() =>
-  import('./pages/(identity)/identity').then(c => c.IdentityPage)
-);
-let IdentityDetailsDelegationsPage = dynamicPage(() =>
-  import('./pages/(identity)/identity/delegations').then(c => c.IdentityDelegationsPage)
-);
-let IdentityDelegationRequestsPage = dynamicPage(() =>
-  import('./pages/(identity)/identity/delegationRequests').then(
-    c => c.IdentityDelegationRequestsPage
-  )
-);
-let IdentitySettingsPage = dynamicPage(() =>
-  import('./pages/(identity)/identity/settings').then(c => c.IdentitySettingsPage)
-);
 let SetupProviderPage = dynamicPage(() =>
   import('./pages/setup-provider').then(c => c.SetupProviderPage)
 );
@@ -436,26 +345,6 @@ let FlaggedPage = ({ children, flag }: { children: React.ReactNode; flag: string
   return renderWithLoader({ flags })(({ flags }) =>
     (flags.data.flags as any)[flag] ? children : <NotFound />
   );
-};
-let IdentityManagedPage = ({ children }: { children: React.ReactNode }) => {
-  let flags = useDashboardFlags();
-
-  return renderWithLoader({ flags })(({ flags }) => {
-    if (!flags.data.flags['identity-management']) {
-      return <Error>Identity management is not enabled for this instance.</Error>;
-    }
-
-    if (!flags.data.flags['paid-identity']) {
-      return (
-        <Upgrade
-          title="Identity Management"
-          description="Manage identity actors, identities, delegations, and delegation policies once this instance is upgraded."
-        />
-      );
-    }
-
-    return children;
-  });
 };
 let ProductWrapper = () => {
   let instance = useCurrentInstance();
@@ -658,177 +547,6 @@ export let productDocumentSlice = createSlice([
       {
         path: 'doc/:id',
         element: <DocumentPage />
-      }
-    ]
-  }
-]);
-
-let identityRoutes = [
-  {
-    path: 'agents',
-    element: <AgentsListLayout />,
-    children: [
-      {
-        path: '',
-        element: <AgentsPage />
-      }
-    ]
-  },
-  {
-    element: <IdentityListLayout />,
-    children: [
-      {
-        path: 'actors',
-        element: <IdentityActorsPage />
-      },
-      {
-        path: 'identities',
-        element: <IdentitiesPage />
-      }
-    ]
-  },
-  {
-    path: 'consumers',
-    element: <ConsumersPage />
-  },
-
-  {
-    path: 'agent/:agentId',
-    element: (
-      <IdentityManagedPage>
-        <AgentLayout />
-      </IdentityManagedPage>
-    ),
-    children: [
-      {
-        path: '',
-        element: <AgentPage />
-      },
-      {
-        path: 'operations',
-        element: <AgentOperationsPage />
-      },
-      {
-        path: 'connections',
-        element: <AgentConnectionsPage />
-      },
-      {
-        path: 'delegations',
-        element: <AgentDelegationsPage />
-      }
-    ]
-  },
-
-  {
-    path: 'consumer/:consumerId',
-    element: (
-      <IdentityManagedPage>
-        <ConsumerLayout />
-      </IdentityManagedPage>
-    ),
-    children: [
-      {
-        path: '',
-        element: <ConsumerPage />
-      },
-      {
-        path: 'operations',
-        element: <ConsumerOperationsPage />
-      },
-      {
-        path: 'connections',
-        element: <ConsumerConnectionsPage />
-      },
-      {
-        path: 'delegations',
-        element: <ConsumerDelegationsPage />
-      },
-      {
-        path: 'settings',
-        element: <ConsumerSettingsPage />
-      },
-      {
-        path: 'magic-mcp-servers',
-        element: <ConsumerMagicMcpServersPage />
-      }
-    ]
-  },
-
-  {
-    path: 'actor/:identityActorId',
-    element: (
-      <IdentityManagedPage>
-        <IdentityActorLayout />
-      </IdentityManagedPage>
-    ),
-    children: [
-      {
-        path: '',
-        element: <IdentityActorPage />
-      },
-      {
-        path: 'operations',
-        element: <IdentityActorOperationsPage />
-      },
-      {
-        path: 'connections',
-        element: <IdentityActorConnectionsPage />
-      },
-      {
-        path: 'delegations',
-        element: <IdentityActorDelegationsPage />
-      },
-      {
-        path: 'settings',
-        element: <IdentityActorSettingsPage />
-      }
-    ]
-  },
-
-  {
-    path: 'identity/:identityId',
-    element: (
-      <IdentityManagedPage>
-        <IdentityLayout />
-      </IdentityManagedPage>
-    ),
-    children: [
-      {
-        path: '',
-        element: <IdentityPage />
-      },
-      {
-        path: 'delegations',
-        element: <IdentityDetailsDelegationsPage />
-      },
-      {
-        path: 'delegation-requests',
-        element: <IdentityDelegationRequestsPage />
-      },
-      {
-        path: 'settings',
-        element: <IdentitySettingsPage />
-      }
-    ]
-  }
-];
-
-export let productIdentitySlice = createSlice([
-  {
-    element: <ProductWrapper />,
-
-    children: [
-      {
-        element: <InstanceLayout />,
-
-        children: [
-          {
-            path: 'portal/:portalId',
-            children: identityRoutes
-          },
-
-          ...identityRoutes
-        ]
       }
     ]
   }
@@ -1313,7 +1031,6 @@ export let productSlice = createSlice([
       ...productIntegrationsSlice.routes,
       ...productSkillsSlice.routes,
       ...productAssistantSlice.routes,
-      ...productIdentitySlice.routes,
       ...productHomeSlice.routes
     ]
   },
