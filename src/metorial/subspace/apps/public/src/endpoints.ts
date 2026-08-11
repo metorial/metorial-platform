@@ -29,7 +29,10 @@ let adminServer = Bun.serve({
 console.log(`Service running on http://localhost:${server.port}`);
 console.log(`Admin service running on http://localhost:${adminServer.port}`);
 
-if (process.env.NODE_ENV === 'production') {
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.SUBSPACE_MANAGED_HEALTH_CHECKS !== 'true'
+) {
   // let startTime = Date.now();
   // let hour = 60 * 60 * 1000;
   // let maxUptime = hour * 4 + Math.random() * hour * 2;

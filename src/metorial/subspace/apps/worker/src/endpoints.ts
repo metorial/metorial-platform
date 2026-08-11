@@ -8,7 +8,10 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
   tls: process.env.REDIS_URL?.startsWith('rediss://')
 });
 
-if (process.env.NODE_ENV === 'production') {
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.SUBSPACE_MANAGED_HEALTH_CHECKS !== 'true'
+) {
   let startTime = Date.now();
   let hour = 60 * 60 * 1000;
   let maxUptime = hour * 10 + Math.random() * hour * 10; // 10-16 hours

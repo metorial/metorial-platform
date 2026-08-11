@@ -23,7 +23,10 @@ let server = Bun.serve({
 
 console.log(`Service running on http://localhost:${server.port}`);
 
-if (process.env.NODE_ENV === 'production') {
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.SUBSPACE_MANAGED_HEALTH_CHECKS !== 'true'
+) {
   Bun.serve({
     fetch: async _ =>
       await withTracingSuppressed(async () => {
