@@ -100,15 +100,18 @@ let getProjectResourceTenantOidForSubspaceTenant = async (tenantId: string) => {
       subspaceTenantId: tenantId
     },
     select: {
+      id: true,
       resourceTenantOid: true
     }
   });
 
-  if (!project?.resourceTenantOid) {
+  if (!project) {
     throw new Error(`No Metorial project is linked to subspace tenant ${tenantId}`);
   }
 
-  return project.resourceTenantOid;
+  if (project.resourceTenantOid) return project.resourceTenantOid;
+
+  return (await resolveProjectResourceTenant(project)).oid;
 };
 
 export let resolveOrganizationActorResourceActor = async (d: {

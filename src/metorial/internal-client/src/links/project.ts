@@ -16,7 +16,7 @@ let ensureProjectTenant = async (d: {
   let tenantId = getProjectServiceTenantId(d.service, d.project);
   let tenantIdentifier = d.project.internalTenantIdentifier;
 
-  if (tenantId && tenantIdentifier) {
+  if (d.service == 'nebula' && tenantId && tenantIdentifier) {
     return {
       project: d.project,
       tenantId,
@@ -26,7 +26,6 @@ let ensureProjectTenant = async (d: {
 
   let project = await loadProjectWithInstances(d.project);
   tenantIdentifier = getProjectTenantIdentifier(project);
-  let resourceTenant = await resolveProjectResourceTenant(project);
 
   if (d.service == 'nebula') {
     let tenant = await upsertNebulaTenant({
@@ -46,6 +45,7 @@ let ensureProjectTenant = async (d: {
     };
   }
 
+  let resourceTenant = await resolveProjectResourceTenant(project);
   let tenant = await upsertSubspaceTenant({
     identifier: tenantIdentifier,
     name: project.name,

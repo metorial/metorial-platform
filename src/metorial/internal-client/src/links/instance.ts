@@ -2,8 +2,6 @@ import { db } from '@metorial/db';
 import { ensureSubspaceProjectTenant } from './project';
 import {
   getInstanceEnvironmentIdentifier,
-  getInstanceServiceEnvironmentId,
-  getInstanceServiceTenantId,
   getInstanceTenantIdentifier,
   loadInstanceWithSubspaceContext,
   persistInstanceScope,
@@ -16,29 +14,7 @@ import { upsertSubspaceEnvironment } from './upsert';
 export let ensureSubspaceInstanceScope = async (
   instance: InternalInstance
 ): Promise<InternalScope> => {
-  let tenantId = getInstanceServiceTenantId('subspace', instance);
-  let environmentId = getInstanceServiceEnvironmentId('subspace', instance);
   let tenantIdentifier = getInstanceTenantIdentifier(instance);
-
-  if (
-    tenantId &&
-    environmentId &&
-    tenantIdentifier &&
-    instance.internalEnvironmentIdentifier &&
-    instance.project?.name &&
-    instance.name &&
-    instance.type
-  ) {
-    return toScope({
-      tenantId,
-      environmentId,
-      tenantIdentifier,
-      environmentIdentifier: instance.internalEnvironmentIdentifier,
-      tenantName: instance.project.name,
-      environmentName: instance.name,
-      environmentType: instance.type
-    });
-  }
 
   let loadedInstance = await loadInstanceWithSubspaceContext(instance);
   let environmentIdentifier = getInstanceEnvironmentIdentifier(loadedInstance);
@@ -46,20 +22,16 @@ export let ensureSubspaceInstanceScope = async (
   let tenant = await ensureSubspaceProjectTenant(loadedInstance.project!);
 
   tenantIdentifier = tenant.tenantIdentifier;
-  environmentId = getInstanceServiceEnvironmentId('subspace', loadedInstance);
-
-  if (!environmentId) {
-    environmentId = (
-      await upsertSubspaceEnvironment({
-        tenantId: tenant.tenantId,
-        identifier: environmentIdentifier,
-        name: loadedInstance.name,
-        type: loadedInstance.type,
-        resourceGroupId: resourceGroup.id,
-        resourceGroupIdentifier: resourceGroup.identifier
-      })
-    ).id;
-  }
+  let environmentId = (
+    await upsertSubspaceEnvironment({
+      tenantId: tenant.tenantId,
+      identifier: environmentIdentifier,
+      name: loadedInstance.name,
+      type: loadedInstance.type,
+      resourceGroupId: resourceGroup.id,
+      resourceGroupIdentifier: resourceGroup.identifier
+    })
+  ).id;
 
   await persistInstanceScope({
     service: 'subspace',

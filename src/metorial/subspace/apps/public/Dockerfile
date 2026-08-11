@@ -11,7 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN sh ./src/metorial/subspace/scripts/prepare-docker-build.sh
 RUN bun run --cwd ./src/metorial-frontend/packages/ui build
 
-# Generate Prisma client
+# Generate both Prisma clients used by the merged service graph
+WORKDIR /app/src/metorial/db
+RUN bun run prisma:generate
+
 WORKDIR /app/src/metorial/subspace/db
 RUN bun run prisma:generate
 
