@@ -28,6 +28,7 @@ import {
 import {
   checkTenant,
   getMetorialSolution,
+  metorialDb,
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -1073,6 +1074,85 @@ class skillServiceImpl {
     checkDeletedRelation(skill);
 
     return skill;
+  }
+
+  async hydrateResources(d: MetorialFacing<{ skillIds: string[] }>) {
+    let { instance, organizationActor, skillIds } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    let skills = await this.getManySkillsInternal({
+      tenant,
+      environment,
+      skillIds,
+      allowDeleted: true
+    });
+
+    let items = await db.skillItem.findMany({
+      where: {
+        status: 'active',
+        skill: { id: { in: skills.map(skill => skill.id) } }
+      },
+      include: {
+        skill: true,
+        integration: {
+          include: {
+            integration: true
+          }
+        },
+        provider: {
+          include: {
+            provider: {
+              include: { listing: true }
+            }
+          }
+        }
+      }
+    });
+
+    return skills.map(skill => ({
+      skillId: skill.id,
+      items: items.filter(item => item.skill.id === skill.id),
+      integrations: skill.skillIntegrations.map(item => item.integration),
+      providers: skill.skillProviderLinks.map(link => link.provider)
+    }));
+  }
+
+  async syncResourceTarget(d: MetorialFacing<{ skillId: string }>) {
+    let { instance, organizationActor, skillId } = d;
+
+    let skill = await metorialDb.skill.findFirstOrThrow({
+      where: {
+        id: skillId,
+        instanceOid: instance.oid
+      },
+      include: {
+        parentSkill: { select: { id: true } },
+        parentSkillTemplate: { select: { id: true } }
+      }
+    });
+
+    await this.upsertMetorialSkill({
+      instance,
+      organizationActor,
+      input: {
+        id: skill.id,
+        status: skill.status,
+        slug: skill.slug,
+        name: skill.name,
+        description: skill.description,
+        metadata: skill.metadata as any,
+        image: skill.image as any,
+        clientName: skill.clientName,
+        clientDescription: skill.clientDescription,
+        clientMetadata: skill.clientMetadata as any,
+        license: skill.license,
+        compatibility: skill.compatibility,
+        storeId: skill.storeId,
+        parentSkillId: skill.parentSkill?.id,
+        parentType: skill.parentSkill ? 'duplicate' : undefined,
+        parentTemplateId: skill.parentSkillTemplate?.id
+      }
+    });
   }
 }
 

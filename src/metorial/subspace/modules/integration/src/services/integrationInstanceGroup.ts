@@ -31,7 +31,7 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { identityActorService, identityService } from '@metorial-subspace/module-identity';
-import { sessionService, sessionTemplateService } from '@metorial-subspace/module-session';
+import { finalizeSessionCreate, sessionService, sessionTemplateService } from '@metorial-subspace/module-session';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import {
@@ -825,6 +825,24 @@ class integrationInstanceGroupServiceImpl {
     }
 
     throw new ServiceError(defaultSessionTemplateTimeoutError());
+  }
+
+  async createSessionForIntegrationInstanceGroup(
+    d: MetorialFacing<CreateSessionForIntegrationInstanceGroupParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let session = await this.createSessionForIntegrationInstanceGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    return await finalizeSessionCreate({
+      instance,
+      session
+    });
   }
 
   async createSessionForIntegrationInstanceGroupInternal(

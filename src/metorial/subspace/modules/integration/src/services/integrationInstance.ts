@@ -39,7 +39,7 @@ import {
   identityInternalService
 } from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { sessionService, sessionTemplateService } from '@metorial-subspace/module-session';
+import { sessionService, sessionTemplateService, finalizeSessionCreate } from '@metorial-subspace/module-session';
 import { enqueueSyncIntegrationInstanceSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import {
@@ -989,6 +989,24 @@ class integrationInstanceServiceImpl {
     }
 
     throw new ServiceError(defaultSessionTemplateTimeoutError());
+  }
+
+  async createSessionForIntegrationInstance(
+    d: MetorialFacing<CreateSessionForIntegrationInstanceParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let session = await this.createSessionForIntegrationInstanceInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    return await finalizeSessionCreate({
+      instance,
+      session
+    });
   }
 
   async createSessionForIntegrationInstanceInternal(

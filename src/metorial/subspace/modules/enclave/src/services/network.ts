@@ -8,7 +8,7 @@ import {
   resolveEnclaves,
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import { getMetorialSolution, type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
 import { networkInternalService } from './networkInternal';
 
 let include = {
@@ -39,8 +39,31 @@ let include = {
   }
 };
 
+export type ListNetworksParams = {
+  ids?: string[];
+  firewallIds?: string[];
+  enclaveIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetNetworkByIdParams = {
+  networkId: string;
+};
+
 class networkServiceImpl {
-  async listNetworks(d: {
+  async listNetworks(d: MetorialFacing<ListNetworksParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listNetworksInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listNetworksInternal(d: {
     tenant: Tenant;
     environment: Environment;
     ids?: string[];
@@ -80,6 +103,17 @@ class networkServiceImpl {
         })
       )
     );
+  }
+
+  async getNetwork(d: MetorialFacing<GetNetworkByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkById({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
   }
 
   async getNetworkForEnvironment(d: { tenant: Tenant; environment: Environment }) {

@@ -608,6 +608,73 @@ class skillTemplateServiceImpl {
 
     return enrichedSkillTemplate ?? skillTemplate;
   }
+
+  async hydrateResources(d: MetorialFacing<{ skillTemplateIds: string[] }>) {
+    let { instance, organizationActor, skillTemplateIds } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    let templates = await this.getManySkillTemplatesInternal({
+      tenant,
+      environment,
+      skillTemplateIds,
+      allowDeleted: true
+    });
+
+    return templates.map(template => ({
+      skillTemplateId: template.id,
+      items: template.skillTemplateItems
+    }));
+  }
+
+  async syncResourceTarget(
+    d: MetorialFacing<{
+      id: string;
+      status: SkillTemplateStatus;
+      owner: SkillTemplateOwner;
+      slug: string;
+      name: string;
+      description?: string | null;
+      metadata?: Record<string, any> | null;
+      storeId?: string | null;
+      storeTemplateId: string;
+      systemIdentifier?: string | null;
+      sourceSkillId?: string | null;
+    }>
+  ) {
+    let {
+      instance,
+      organizationActor,
+      id,
+      status,
+      owner,
+      slug,
+      name,
+      description,
+      metadata,
+      storeId,
+      storeTemplateId,
+      systemIdentifier,
+      sourceSkillId
+    } = d;
+
+    await this.upsertMetorialSkillTemplate({
+      instance,
+      organizationActor,
+      input: {
+        id,
+        status,
+        owner,
+        slug,
+        name,
+        description,
+        metadata,
+        storeId,
+        storeTemplateId,
+        systemIdentifier,
+        sourceSkillId
+      }
+    });
+  }
 }
 
 export let skillTemplateService = Service.create(

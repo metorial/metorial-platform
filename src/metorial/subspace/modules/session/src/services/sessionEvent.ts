@@ -26,6 +26,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import { providerRunInclude } from './providerRun';
 import { sessionConnectionInclude } from './sessionConnection';
 import { sessionErrorInclude } from './sessionError';
@@ -46,6 +47,7 @@ export type ListSessionEventsParams = {
 
   ids?: string[];
   sessionIds?: string[];
+  accessTagSessionIds?: string[];
   sessionProviderIds?: string[];
   sessionConnectionIds?: string[];
   providerRunIds?: string[];
@@ -112,18 +114,27 @@ class sessionEventServiceImpl {
   }
 
   async listSessionEvents(d: MetorialFacing<ListSessionEventsParams>) {
-    let { instance, organizationActor, ...rest } = d;
+    let { instance, organizationActor, accessTagSessionIds, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
+
+    let sessionIds = narrowSessionIdFilter({
+      allowedSessionIds: accessTagSessionIds,
+      requestedSessionIds: rest.sessionIds
+    });
 
     return this.listSessionEventsInternal({
       ...rest,
+      sessionIds,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
   async listSessionEventsInternal(
-    d: { tenant: Tenant; environment: Environment } & ListSessionEventsParams
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ListSessionEventsParams,
+      'accessTagSessionIds'
+    >
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };

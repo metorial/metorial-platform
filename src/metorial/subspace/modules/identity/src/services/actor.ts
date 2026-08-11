@@ -28,9 +28,18 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import {
   checkTenant,
   getMetorialSolution,
+  metorialDb,
   type MetorialFacing,
+  resolveConsumerActorIds,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import type {
+  Consumer,
+  ConsumerProfile,
+  ConsumerSurface,
+  InstanceConsumer,
+  OrganizationMember
+} from '@metorial/db';
 import {
   identityActorCreatedQueue,
   identityActorDeletedQueue,
@@ -58,6 +67,53 @@ let getAgentSlug = createSlugGenerator(
     }))
 );
 
+export type IdentityActorConsumer = InstanceConsumer & {
+  consumer: Consumer & {
+    organizationMember: OrganizationMember | null;
+    profiles: (ConsumerProfile & {
+      surface: ConsumerSurface;
+    })[];
+  };
+};
+
+let enrichIdentityActors = async <T extends { id: string }>(actors: T[]) => {
+  if (!actors.length) return actors as Array<T & { consumer?: IdentityActorConsumer }>;
+
+  let consumerActors = await metorialDb.consumerActor.findMany({
+    where: {
+      id: { in: actors.map(a => a.id) }
+    },
+    include: {
+      instanceConsumer: {
+        include: {
+          consumer: {
+            include: {
+              organizationMember: true,
+              profiles: {
+                include: {
+                  surface: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  let consumerActorMap = new Map(consumerActors.map(a => [a.id, a]));
+
+  return actors.map(a => {
+    let consumerActor = consumerActorMap.get(a.id);
+    if (!consumerActor) return a as T & { consumer?: IdentityActorConsumer };
+
+    return {
+      ...a,
+      consumer: consumerActor.instanceConsumer
+    };
+  });
+};
+
 export type ListIdentityActorsParams = {
   tenant: Tenant;
   environment: Environment;
@@ -68,6 +124,7 @@ export type ListIdentityActorsParams = {
   allowDeleted?: boolean;
 
   ids?: string[];
+  consumerIds?: string[];
   agentIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -116,12 +173,30 @@ export type ArchiveIdentityActorParams = {
 
 class identityActorServiceImpl {
   async listIdentityActors(d: MetorialFacing<ListIdentityActorsParams>) {
-    let { instance, organizationActor, ...rest } = d;
+    let { instance, organizationActor, consumerIds, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.listIdentityActorsInternal({ ...rest, tenant, environment });
+
+    let ids = rest.ids;
+    if (consumerIds) {
+      let consumerActorIds = await resolveConsumerActorIds(consumerIds);
+      ids = [...(ids ?? []), ...consumerActorIds];
+      if (!ids.length) {
+        return Paginator.create(({ prisma }) => prisma(async () => []));
+      }
+    }
+
+    let paginator = this.listIdentityActorsInternal({ ...rest, ids, tenant, environment });
+
+    return {
+      run: async (query: Parameters<typeof paginator.run>[0]) => {
+        let list = await paginator.run(query);
+        let items = await enrichIdentityActors(list.items);
+        return { ...list, items };
+      }
+    };
   }
 
-  async listIdentityActorsInternal(d: ListIdentityActorsParams) {
+  async listIdentityActorsInternal(d: Omit<ListIdentityActorsParams, 'consumerIds'>) {
     let solution = await getMetorialSolution();
     let agents = await resolveProviders({ ...d, solution }, d.agentIds);
 
@@ -165,7 +240,13 @@ class identityActorServiceImpl {
   async getIdentityActorById(d: MetorialFacing<GetIdentityActorByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.getIdentityActorByIdInternal({ ...rest, tenant, environment });
+    let identityActor = await this.getIdentityActorByIdInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+    let [enriched] = await enrichIdentityActors([identityActor]);
+    return enriched!;
   }
 
   async getIdentityActorByIdInternal(d: GetIdentityActorByIdParams) {
@@ -259,9 +340,28 @@ class identityActorServiceImpl {
     });
   }
 
-  async updateIdentityActor(d: MetorialFacing<UpdateIdentityActorParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async updateIdentityActor(
+    d: MetorialFacing<UpdateIdentityActorParams> & { canEditConsumerActor?: boolean }
+  ) {
+    let { instance, organizationActor, canEditConsumerActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    if (!canEditConsumerActor) {
+      let consumerActor = await metorialDb.consumerActor.findFirst({
+        where: {
+          id: rest.identityActor.id,
+          instanceOid: instance.oid
+        }
+      });
+      if (consumerActor) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot update identity actor linked to consumer'
+          })
+        );
+      }
+    }
+
     return this.updateIdentityActorInternal({ ...rest, tenant, environment });
   }
 
@@ -321,9 +421,28 @@ class identityActorServiceImpl {
     });
   }
 
-  async archiveIdentityActor(d: MetorialFacing<ArchiveIdentityActorParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async archiveIdentityActor(
+    d: MetorialFacing<ArchiveIdentityActorParams> & { canEditConsumerActor?: boolean }
+  ) {
+    let { instance, organizationActor, canEditConsumerActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    if (!canEditConsumerActor) {
+      let consumerActor = await metorialDb.consumerActor.findFirst({
+        where: {
+          id: rest.identityActor.id,
+          instanceOid: instance.oid
+        }
+      });
+      if (consumerActor) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot delete identity actor linked to consumer'
+          })
+        );
+      }
+    }
+
     return this.archiveIdentityActorInternal({ ...rest, tenant, environment });
   }
 

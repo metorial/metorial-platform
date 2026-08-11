@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -36,6 +36,7 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import {
   checkTenant,
   getMetorialSolution,
+  metorialDb,
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -359,9 +360,28 @@ class identityServiceImpl {
     });
   }
 
-  async archiveIdentity(d: MetorialFacing<ArchiveIdentityParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async archiveIdentity(
+    d: MetorialFacing<ArchiveIdentityParams> & { canEditConsumerActor?: boolean }
+  ) {
+    let { instance, organizationActor, canEditConsumerActor, ...rest } = d;
     let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    if (!canEditConsumerActor) {
+      let consumerActor = await metorialDb.consumerActor.findFirst({
+        where: {
+          defaultIdentityId: rest.identity.id,
+          instanceOid: instance.oid
+        }
+      });
+      if (consumerActor) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot delete identity linked to consumer'
+          })
+        );
+      }
+    }
+
     return this.archiveIdentityInternal({ ...rest, tenant, environment });
   }
 

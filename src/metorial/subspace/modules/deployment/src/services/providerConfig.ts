@@ -51,6 +51,7 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacingWithOptionalConsumerActor,
+  resolveConsumerActorIds,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -150,12 +151,19 @@ class providerConfigServiceImpl {
     availableForProviderDeploymentId?: string;
     providerConfigVaultIds?: string[];
     actorIds?: string[];
+    consumerIds?: string[];
     identityIds?: string[];
     identityCredentialIds?: string[];
 
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
+    let actorIds = d.actorIds;
+    if (d.consumerIds) {
+      let consumerActorIds = await resolveConsumerActorIds(d.consumerIds);
+      actorIds = [...new Set([...(actorIds ?? []), ...consumerActorIds])];
+    }
+
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providers = await resolveProviders(ts, d.providerIds);
@@ -173,7 +181,7 @@ class providerConfigServiceImpl {
         })
       : null;
     let vaults = await resolveProviderConfigs(ts, d.providerConfigVaultIds);
-    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let actors = await resolveIdentityActors(ts, actorIds);
     let identities = await resolveIdentities(ts, d.identityIds);
     let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
 

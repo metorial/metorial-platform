@@ -38,6 +38,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
 import { env } from '../env';
+import { enrichSessionParticipantsWithConsumer } from '../lib/enrichSessionParticipants';
 import { sessionMessageInclude, sessionMessageService } from './sessionMessage';
 
 let include = {
@@ -116,11 +117,42 @@ class toolCallServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.listToolCallsInternal({
+    let paginator = await this.listToolCallsInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    return {
+      run: async (query: Parameters<typeof paginator.run>[0]) => {
+        let list = await paginator.run(query);
+        let participants = await enrichSessionParticipantsWithConsumer({
+          instanceOid: instance.oid,
+          participants: list.items.flatMap(item =>
+            [item.message.senderParticipant, item.message.responderParticipant].filter(
+              (participant): participant is NonNullable<typeof participant> => !!participant
+            )
+          )
+        });
+        let participantMap = new Map(
+          participants.map(participant => [participant.id, participant])
+        );
+
+        return {
+          ...list,
+          items: list.items.map(item => ({
+            ...item,
+            senderParticipant:
+              participantMap.get(item.message.senderParticipant.id) ??
+              item.message.senderParticipant,
+            responderParticipant: item.message.responderParticipant
+              ? (participantMap.get(item.message.responderParticipant.id) ??
+                item.message.responderParticipant)
+              : null
+          }))
+        };
+      }
+    };
   }
 
   async listToolCallsInternal(d: { tenant: Tenant; environment: Environment } & ListToolCallsParams) {
@@ -269,11 +301,31 @@ class toolCallServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getToolCallByIdInternal({
+    let toolCall = await this.getToolCallByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    let participants = await enrichSessionParticipantsWithConsumer({
+      instanceOid: instance.oid,
+      participants: [
+        toolCall.message.senderParticipant,
+        toolCall.message.responderParticipant
+      ].filter((participant): participant is NonNullable<typeof participant> => !!participant)
+    });
+    let participantMap = new Map(participants.map(participant => [participant.id, participant]));
+
+    return {
+      ...toolCall,
+      senderParticipant:
+        participantMap.get(toolCall.message.senderParticipant.id) ??
+        toolCall.message.senderParticipant,
+      responderParticipant: toolCall.message.responderParticipant
+        ? (participantMap.get(toolCall.message.responderParticipant.id) ??
+          toolCall.message.responderParticipant)
+        : null
+    };
   }
 
   async getToolCallByIdInternal(

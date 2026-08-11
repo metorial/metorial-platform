@@ -42,6 +42,7 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
+import { metorialDb } from '@metorial-subspace/module-tenant';
 import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
 import { queueJobId, withSessionTemplateSyncLock } from '../lib/sessionTemplateSync';
 import {
@@ -49,6 +50,34 @@ import {
   sessionProviderInputService
 } from './sessionProviderInput';
 import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
+
+let assertMagicMcpSessionTemplateMutable = async (d: {
+  sessionTemplateId: string;
+  allow?: boolean;
+  action: 'updated' | 'deleted';
+}) => {
+  if (d.allow) return;
+
+  let [magicMcpLink1, magicMcpLink2, magicMcpLink3] = await Promise.all([
+    metorialDb.magicMcpSession.findFirst({
+      where: { subspaceSessionTemplateId: d.sessionTemplateId }
+    }),
+    metorialDb.magicMcpServer.findFirst({
+      where: { legacySubspaceSessionTemplateId: d.sessionTemplateId }
+    }),
+    metorialDb.magicMcpEndpoint.findFirst({
+      where: { legacySubspaceSessionTemplateId: d.sessionTemplateId }
+    })
+  ]);
+
+  if (!magicMcpLink1 && !magicMcpLink2 && !magicMcpLink3) return;
+
+  throw new ServiceError(
+    badRequestError({
+      message: `This session template cannot be ${d.action}.`
+    })
+  );
+};
 
 let include = {
   identityActor: true,
@@ -155,11 +184,13 @@ export type UpdateSessionTemplateParams = {
     privateMetadata?: Record<string, any>;
   };
   _allowLinked?: boolean;
+  _allowMagicMcpUpdate?: boolean;
 };
 
 export type ArchiveSessionTemplateParams = {
   sessionTemplate: SessionTemplate;
   _allowLinked?: boolean;
+  _allowMagicMcpDelete?: boolean;
 };
 
 export type ListSessionTemplateToolsParams = {
@@ -468,7 +499,14 @@ class sessionTemplateServiceImpl {
   }
 
   async updateSessionTemplate(d: MetorialFacing<UpdateSessionTemplateParams>) {
-    let { instance, organizationActor, ...rest } = d;
+    let { instance, organizationActor, _allowMagicMcpUpdate, ...rest } = d;
+
+    await assertMagicMcpSessionTemplateMutable({
+      sessionTemplateId: d.template.id,
+      allow: _allowMagicMcpUpdate,
+      action: 'updated'
+    });
+
     let scope = await resolveMetorialFacing(d);
 
     let eventBase = toProviderEventBase(d);
@@ -489,7 +527,10 @@ class sessionTemplateServiceImpl {
   }
 
   async updateSessionTemplateInternal(
-    d: { tenant: Tenant; environment: Environment } & UpdateSessionTemplateParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & Omit<UpdateSessionTemplateParams, '_allowMagicMcpUpdate'>
   ) {
     let solution = await getMetorialSolution();
 
@@ -518,7 +559,14 @@ class sessionTemplateServiceImpl {
   }
 
   async archiveSessionTemplate(d: MetorialFacing<ArchiveSessionTemplateParams>) {
-    let { instance, organizationActor, ...rest } = d;
+    let { instance, organizationActor, _allowMagicMcpDelete, ...rest } = d;
+
+    await assertMagicMcpSessionTemplateMutable({
+      sessionTemplateId: d.sessionTemplate.id,
+      allow: _allowMagicMcpDelete,
+      action: 'deleted'
+    });
+
     let scope = await resolveMetorialFacing(d);
 
     let eventBase = toProviderEventBase(d);
@@ -539,7 +587,10 @@ class sessionTemplateServiceImpl {
   }
 
   async archiveSessionTemplateInternal(
-    d: { tenant: Tenant; environment: Environment } & ArchiveSessionTemplateParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & Omit<ArchiveSessionTemplateParams, '_allowMagicMcpDelete'>
   ) {
     checkTenant(d, d.sessionTemplate);
     checkDeletedEdit(d.sessionTemplate, 'archive');
@@ -588,7 +639,10 @@ class sessionTemplateServiceImpl {
   }
 
   async deleteSessionTemplateInternal(
-    d: { tenant: Tenant; environment: Environment } & ArchiveSessionTemplateParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & Omit<ArchiveSessionTemplateParams, '_allowMagicMcpDelete'>
   ) {
     return this.archiveSessionTemplateInternal(d);
   }

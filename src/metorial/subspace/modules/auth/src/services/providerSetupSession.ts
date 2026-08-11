@@ -42,6 +42,7 @@ import { checkProviderMatch } from '@metorial-subspace/module-provider-internal'
 import {
   getMetorialSolution,
   checkTenant,
+  metorialDb,
   type MetorialFacingWithOptionalConsumerActor,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
@@ -232,16 +233,68 @@ class providerSetupSessionServiceImpl {
   }
 
   async createProviderSetupSession(
-    d: MetorialFacingWithOptionalConsumerActor<CreateProviderSetupSessionParams>
+    d: MetorialFacingWithOptionalConsumerActor<CreateProviderSetupSessionParams> & {
+      consumerId?: string;
+    }
   ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+    let { instance, organizationActor, consumer, consumerId, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let identity = rest.identity;
+    let privateMetadata = rest.input.privateMetadata;
+
+    if (consumerId) {
+      let instanceConsumer = await metorialDb.instanceConsumer.findFirst({
+        where: {
+          id: consumerId,
+          instanceOid: instance.oid
+        }
+      });
+      if (!instanceConsumer) throw new ServiceError(notFoundError('consumer'));
+
+      let actor = await metorialDb.consumerActor.findFirst({
+        where: {
+          instanceOid: instance.oid,
+          instanceConsumerOid: instanceConsumer.oid,
+          isDefault: true
+        }
+      });
+      if (!actor || !actor.defaultIdentityId) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Consumer cannot be used for provider setup session.'
+          })
+        );
+      }
+
+      identity = await db.identity.findFirst({
+        where: {
+          id: actor.defaultIdentityId,
+          tenantOid: scope.tenant.oid,
+          environmentOid: scope.environment.oid
+        }
+      });
+      if (!identity) {
+        throw new ServiceError(notFoundError('identity', actor.defaultIdentityId));
+      }
+
+      privateMetadata = {
+        $owner: 'consumer',
+        ...privateMetadata,
+        consumerId
+      };
+    }
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.setup_session.created:before', eventBase);
 
     let setupSession = await this.createProviderSetupSessionInternal({
       ...rest,
+      identity,
+      input: {
+        ...rest.input,
+        privateMetadata
+      },
       tenant: scope.tenant,
       environment: scope.environment
     });

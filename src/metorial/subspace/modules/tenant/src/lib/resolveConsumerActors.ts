@@ -1,9 +1,9 @@
-import { db } from '@metorial/db';
+import { metorialDb } from './metorialDb';
 
 export let resolveConsumerActorIds = async (consumerIds?: string[]) => {
   if (!consumerIds) return [];
 
-  return await db.consumerActor
+  return await metorialDb.consumerActor
     .findMany({
       where: {
         instanceConsumer: { id: { in: consumerIds } }
