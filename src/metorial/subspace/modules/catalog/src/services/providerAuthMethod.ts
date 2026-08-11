@@ -6,20 +6,21 @@ import {
   type Environment,
   type ProviderSpecification,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
 class providerAuthMethodServiceImpl {
   async listProviderAuthMethods(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     providerVersion: ProviderVersion;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let versionOid = d.providerVersion?.oid;
 
     let version = versionOid
@@ -42,6 +43,7 @@ class providerAuthMethodServiceImpl {
               {
                 provider: getProviderTenantFilter({
                   ...d,
+                  solution,
                   includeDeprecated: true
                 })
               }
@@ -90,19 +92,21 @@ class providerAuthMethodServiceImpl {
     );
   }
 
-  async getProviderAuthMethodById(d: {
+  async getProviderAuthMethodByIdInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerAuthMethodId: string;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerAuthMethod = await withTransaction(
       async db =>
         await db.providerAuthMethod.findFirst({
           where: {
             provider: getProviderTenantFilter({
               ...d,
+              solution,
               includeDeprecated: true
             }),
             id: d.providerAuthMethodId

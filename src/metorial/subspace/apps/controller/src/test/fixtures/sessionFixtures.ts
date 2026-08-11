@@ -15,9 +15,8 @@ export const SessionFixtures = () => {
     deployment: ProviderDeployment;
     name?: string;
   }): Promise<Session> => {
-    return await sessionService.createSession({
+    return await sessionService.createSessionInternal({
       tenant: opts.tenant,
-      solution: opts.solution,
       environment: opts.environment,
       input: {
         name: opts.name ?? 'Test Session',

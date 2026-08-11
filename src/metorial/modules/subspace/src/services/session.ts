@@ -1,11 +1,9 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
 import { db, Instance, MagicMcpServer, Prisma } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
 import { sessionClientSecretReferenceService } from '@metorial/module-access';
-import { usageService } from '@metorial/module-usage';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
-import { createSubspaceService, toEventBase } from '../lib/subspaceService';
+import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 let Sentry = getSentry();
@@ -90,97 +88,10 @@ export let finalizeSubspaceSessionCreate = async (d: {
   instance: Instance;
   session: RawSubspaceSession;
 }) => {
-  let eventBase = toEventBase({ instance: d.instance });
-  await Fabric.fire('provider.session.created:before', eventBase);
-
   await sessionClientSecretReferenceService.createForSession({
     instance: d.instance,
     sessionId: d.session.id
   });
-
-  await Fabric.fire('provider.session.created:after', { ...eventBase, session: d.session });
-
-  for (let provider of d.session.providers) {
-    if (provider.fromTemplateId) {
-      usageService
-        .ingestUsageRecord({
-          owner: {
-            id: eventBase.instance.id,
-            type: 'instance'
-          },
-          entity: {
-            id: provider.fromTemplateId,
-            type: 'provider_template'
-          },
-          type: 'provider_template.used'
-        })
-        .catch(e => Sentry.captureException(e));
-    }
-
-    if (provider.authConfig) {
-      usageService
-        .ingestUsageRecord({
-          owner: {
-            id: eventBase.instance.id,
-            type: 'instance'
-          },
-          entity: {
-            id: provider.authConfig.id,
-            type: 'provider_auth_config'
-          },
-          type: 'provider_auth_config.used'
-        })
-        .catch(e => Sentry.captureException(e));
-    }
-
-    if (provider.config) {
-      usageService
-        .ingestUsageRecord({
-          owner: {
-            id: eventBase.instance.id,
-            type: 'instance'
-          },
-          entity: {
-            id: provider.config.id,
-            type: 'provider_config'
-          },
-          type: 'provider_config.used'
-        })
-        .catch(e => Sentry.captureException(e));
-    }
-
-    if (provider.deployment) {
-      usageService
-        .ingestUsageRecord({
-          owner: {
-            id: eventBase.instance.id,
-            type: 'instance'
-          },
-          entity: {
-            id: provider.deployment.id,
-            type: 'provider_deployment'
-          },
-          type: 'provider_deployment.used'
-        })
-        .catch(e => Sentry.captureException(e));
-    }
-
-    if (provider.providerId) {
-      usageService
-        .ingestUsageRecord({
-          owner: {
-            id: eventBase.instance.id,
-            type: 'instance'
-          },
-          entity: {
-            id: provider.providerId,
-            type: 'provider'
-          },
-          type: 'provider.used'
-        })
-        .catch(e => Sentry.captureException(e));
-    }
-  }
 
   return await enrichSession({
     instance: d.instance,
@@ -239,8 +150,6 @@ export let subspaceSessionService = createSubspaceService(
     update: async (
       arg0: Parameters<typeof inner.update>[0] & { _allowMagicMcpUpdate?: boolean }
     ) => {
-      let eventBase = toEventBase(arg0);
-
       let magicMcpLink = await db.magicMcpSession.findFirst({
         where: { subspaceSessionId: arg0.sessionId }
       });
@@ -252,11 +161,7 @@ export let subspaceSessionService = createSubspaceService(
         );
       }
 
-      await Fabric.fire('provider.session.updated:before', eventBase);
-
       let session = await inner.update(arg0);
-
-      await Fabric.fire('provider.session.updated:after', { ...eventBase, session });
 
       return await enrichSessionEnsuringClientSecret({
         instance: arg0.instance,
@@ -266,8 +171,6 @@ export let subspaceSessionService = createSubspaceService(
     delete: async (
       arg0: Parameters<typeof inner.delete>[0] & { _allowMagicMcpDelete?: boolean }
     ) => {
-      let eventBase = toEventBase(arg0);
-
       let magicMcpLink = await db.magicMcpSession.findFirst({
         where: { subspaceSessionId: arg0.sessionId }
       });
@@ -279,11 +182,7 @@ export let subspaceSessionService = createSubspaceService(
         );
       }
 
-      await Fabric.fire('provider.session.deleted:before', eventBase);
-
       let session = await inner.delete(arg0);
-
-      await Fabric.fire('provider.session.deleted:after', { ...eventBase, session });
 
       return await enrichSession({
         instance: arg0.instance,

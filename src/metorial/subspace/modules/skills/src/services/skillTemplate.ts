@@ -23,7 +23,12 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import {
   skillTemplateArchivedQueue,
   skillTemplateCreatedQueue,
@@ -103,6 +108,77 @@ export let getAccessibleScope = (d: {
   return scope;
 };
 
+export type GetManySkillTemplatesParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillTemplateIds: string[];
+  allowDeleted?: boolean;
+};
+
+export type UpsertMetorialSkillTemplateParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: {
+    id: string;
+    status: SkillTemplateStatus;
+    owner: SkillTemplateOwner;
+    slug: string;
+    name: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    storeId?: string | null;
+    storeTemplateId: string;
+    systemIdentifier?: string | null;
+    sourceSkillId?: string | null;
+  };
+};
+
+export type ListSkillTemplatesParams = {
+  tenant: Tenant;
+  environment: Environment;
+  search?: string;
+  status?: SkillTemplateStatus[];
+  allowDeleted?: boolean;
+  owner?: SkillTemplateOwner[];
+  ids?: string[];
+  providerIds?: string[];
+  integrationIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSkillTemplateByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillTemplateId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateSkillTemplateParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: {
+    name: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    skillId?: string;
+  };
+};
+
+export type UpdateSkillTemplateParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillTemplate: SkillTemplate;
+  input: SkillTemplateWriteInput;
+};
+
+export type ArchiveSkillTemplateParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillTemplate: SkillTemplate;
+};
+
 class skillTemplateServiceImpl {
   private getTemplateUpdateData(d: {
     current: SkillTemplate;
@@ -144,47 +220,38 @@ class skillTemplateServiceImpl {
     return d.skillTemplates;
   }
 
-  async getManySkillTemplates(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateIds: string[];
-    allowDeleted?: boolean;
-  }) {
+  async getManySkillTemplates(d: MetorialFacing<GetManySkillTemplatesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getManySkillTemplatesInternal({ ...rest, tenant, environment });
+  }
+
+  async getManySkillTemplatesInternal(d: GetManySkillTemplatesParams) {
     if (!d.skillTemplateIds.length) return [];
+    let solution = await getMetorialSolution();
     return await db.skillTemplate.findMany({
       where: {
         id: { in: d.skillTemplateIds },
         ...normalizeStatusForGet(d).noParent,
-        OR: getAccessibleScope(d)
+        OR: getAccessibleScope({ ...d, solution })
       },
       include: skillTemplateInclude
     });
   }
 
-  async upsertMetorialSkillTemplate(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: {
-      id: string;
-      status: SkillTemplateStatus;
-      owner: SkillTemplateOwner;
-      slug: string;
-      name: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      storeId?: string | null;
-      storeTemplateId: string;
-      systemIdentifier?: string | null;
-      sourceSkillId?: string | null;
-    };
-  }) {
+  async upsertMetorialSkillTemplate(d: MetorialFacing<UpsertMetorialSkillTemplateParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.upsertMetorialSkillTemplateInternal({ ...rest, tenant, environment });
+  }
+
+  async upsertMetorialSkillTemplateInternal(d: UpsertMetorialSkillTemplateParams) {
+    let solution = await getMetorialSolution();
+
     let existing = await db.skillTemplate.findUnique({ where: { id: d.input.id } });
     let sourceSkill = d.input.sourceSkillId
-      ? await skillService.getActiveSkillById({
+      ? await skillService.getActiveSkillByIdInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           skillId: d.input.sourceSkillId
         })
@@ -206,7 +273,7 @@ class skillTemplateServiceImpl {
           storeTemplateId: d.input.storeTemplateId,
           systemIdentifier: d.input.systemIdentifier,
           tenantOid: d.input.owner === 'tenant' ? d.tenant.oid : null,
-          solutionOid: d.input.owner === 'tenant' ? d.solution.oid : null,
+          solutionOid: d.input.owner === 'tenant' ? solution.oid : null,
           environmentOid: d.input.owner === 'tenant' ? d.environment.oid : null
         },
         update: {
@@ -243,24 +310,19 @@ class skillTemplateServiceImpl {
     return template;
   }
 
-  async listSkillTemplates(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    search?: string;
-    status?: SkillTemplateStatus[];
-    allowDeleted?: boolean;
-    owner?: SkillTemplateOwner[];
-    ids?: string[];
-    providerIds?: string[];
-    integrationIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listSkillTemplates(d: MetorialFacing<ListSkillTemplatesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listSkillTemplatesInternal({ ...rest, tenant, environment });
+  }
+
+  async listSkillTemplatesInternal(d: ListSkillTemplatesParams) {
+    let solution = await getMetorialSolution();
+
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let accessibleScope = getAccessibleScope(d);
+    let accessibleScope = getAccessibleScope({ ...d, solution });
     let search = null;
 
     return Paginator.create(({ prisma }) =>
@@ -314,18 +376,20 @@ class skillTemplateServiceImpl {
     );
   }
 
-  async getSkillTemplateById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplateId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSkillTemplateById(d: MetorialFacing<GetSkillTemplateByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getSkillTemplateByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getSkillTemplateByIdInternal(d: GetSkillTemplateByIdParams) {
+    let solution = await getMetorialSolution();
+
     let skillTemplate = await db.skillTemplate.findFirst({
       where: {
         id: d.skillTemplateId,
         ...normalizeStatusForGet(d).noParent,
-        OR: getAccessibleScope(d)
+        OR: getAccessibleScope({ ...d, solution })
       },
       include: skillTemplateInclude
     });
@@ -342,22 +406,16 @@ class skillTemplateServiceImpl {
     return enrichedSkillTemplate ?? skillTemplate;
   }
 
-  async createSkillTemplate(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: {
-      name: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      skillId?: string;
-    };
-  }) {
+  async createSkillTemplate(d: MetorialFacing<CreateSkillTemplateParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createSkillTemplateInternal({ ...rest, tenant, environment });
+  }
+
+  async createSkillTemplateInternal(d: CreateSkillTemplateParams) {
     let id = getId('skillTemplate').id;
-    return await this.upsertMetorialSkillTemplate({
+    return await this.upsertMetorialSkillTemplateInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       input: {
         id,
@@ -476,13 +534,13 @@ class skillTemplateServiceImpl {
     */
   }
 
-  async updateSkillTemplate(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplate: SkillTemplate;
-    input: SkillTemplateWriteInput;
-  }) {
+  async updateSkillTemplate(d: MetorialFacing<UpdateSkillTemplateParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.updateSkillTemplateInternal({ ...rest, tenant, environment });
+  }
+
+  async updateSkillTemplateInternal(d: UpdateSkillTemplateParams) {
     checkTenant(d, d.skillTemplate);
     this.assertTenantOwnedTemplate(d.skillTemplate);
     checkDeletedEdit(d.skillTemplate, 'update');
@@ -519,12 +577,13 @@ class skillTemplateServiceImpl {
     return enrichedTemplate ?? template;
   }
 
-  async archiveSkillTemplate(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillTemplate: SkillTemplate;
-  }) {
+  async archiveSkillTemplate(d: MetorialFacing<ArchiveSkillTemplateParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.archiveSkillTemplateInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveSkillTemplateInternal(d: ArchiveSkillTemplateParams) {
     checkTenant(d, d.skillTemplate);
     this.assertTenantOwnedTemplate(d.skillTemplate);
     checkDeletedEdit(d.skillTemplate, 'archive');

@@ -367,9 +367,8 @@ let resolveIntegrationProviderMaterialInput = async (d: {
     return {};
   }
 
-  let [combination] = await providerCombinationService.getCombinations({
+  let [combination] = await providerCombinationService.getCombinationsInternal({
     tenant: d.tenant,
-    solution: d.solution,
     environment: d.environment,
     providers: [
       {
@@ -584,10 +583,9 @@ class magicMcpServerProviderServiceImpl {
             input: d.input
           });
 
-          let integrationProvider = await integrationProviderService.createIntegrationProvider(
-            {
+          let integrationProvider =
+            await integrationProviderService.createIntegrationProviderInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integration: ownerIntegration,
               input: {
@@ -598,12 +596,10 @@ class magicMcpServerProviderServiceImpl {
                 providerConfigId: d.input.providerConfigId ?? undefined,
                 toolFilters: d.input.toolFilters
               }
-            }
-          );
+            });
 
-          await integrationInstanceProviderService.setIntegrationInstanceProvider({
+          await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
@@ -693,9 +689,8 @@ class magicMcpServerProviderServiceImpl {
           }
 
           if (policy.canMutateIntegrationProviders) {
-            await integrationProviderService.updateIntegrationProvider({
+            await integrationProviderService.updateIntegrationProviderInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integrationProvider: row.integrationProvider,
               input: {
@@ -720,9 +715,8 @@ class magicMcpServerProviderServiceImpl {
 
           assertCanMutateIntegrationInstanceProvider(policy);
 
-          await integrationInstanceProviderService.setIntegrationInstanceProvider({
+          await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
@@ -780,9 +774,8 @@ class magicMcpServerProviderServiceImpl {
     assertCanArchiveMagicMcpServerProvider({ row, policy });
 
     if (row.integrationInstanceProvider) {
-      await integrationInstanceProviderService.archiveIntegrationInstanceProvider({
+      await integrationInstanceProviderService.archiveIntegrationInstanceProviderInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstanceProvider: row.integrationInstanceProvider
       });
@@ -799,9 +792,8 @@ class magicMcpServerProviderServiceImpl {
       }
     });
     if (!remainingActive) {
-      await integrationProviderService.archiveIntegrationProvider({
+      await integrationProviderService.archiveIntegrationProviderInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationProvider: row.integrationProvider
       });

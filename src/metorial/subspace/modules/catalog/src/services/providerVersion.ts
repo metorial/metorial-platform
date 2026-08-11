@@ -1,8 +1,9 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter, resolveProviders } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 import { providerVariantInclude } from './providerVariant';
 
@@ -16,7 +17,6 @@ let include = {
 
 class providerVersionServiceImpl {
   async listProviderVersions(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
 
@@ -27,8 +27,10 @@ class providerVersionServiceImpl {
     updatedAt?: DateFilter;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length || !!d.providerIds?.length;
-    let providers = await resolveProviders(d, d.providerIds);
+    let providers = await resolveProviders({ ...d, solution }, d.providerIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -38,6 +40,7 @@ class providerVersionServiceImpl {
             where: {
               provider: getProviderTenantFilter({
                 ...d,
+                solution,
                 includeDeprecated
               }),
 
@@ -67,15 +70,17 @@ class providerVersionServiceImpl {
 
   async getProviderVersionById(d: {
     providerVersionId: string;
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerVersion = await db.providerVersion.findFirst({
       where: {
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

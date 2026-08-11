@@ -2,18 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import {
-  db,
-  type Environment,
-  getId,
-  type Solution,
-  type Tenant
-} from '@metorial-subspace/db';
+import { db, type Environment, getId, type Tenant } from '@metorial-subspace/db';
 import { resolveProviderListings, resolveProviders } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 
 class providerListingCollectionServiceImpl {
   async listProviderListingCollections(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
 
@@ -21,8 +15,10 @@ class providerListingCollectionServiceImpl {
     providerIds?: string[];
     providerListingIds?: string[];
   }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let providerListings = await resolveProviderListings(d, d.providerListingIds);
+    let solution = await getMetorialSolution();
+
+    let providers = await resolveProviders({ ...d, solution }, d.providerIds);
+    let providerListings = await resolveProviderListings({ ...d, solution }, d.providerListingIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -45,7 +41,6 @@ class providerListingCollectionServiceImpl {
   }
 
   async getProviderListingCollectionById(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     providerListingCollectionId: string;

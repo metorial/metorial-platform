@@ -7,7 +7,6 @@ import {
   type SessionMessage,
   type SessionMessageSource,
   type SessionMessageType,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -24,6 +23,11 @@ import {
   resolveSessionProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { sessionErrorInclude } from './sessionError';
 import { sessionParticipantInclude } from './sessionParticipant';
 
@@ -34,6 +38,30 @@ let include = {
   providerRun: true
 };
 export let sessionMessageInclude = include;
+
+export type ListSessionMessagesParams = {
+  types?: SessionMessageType[];
+  source?: SessionMessageSource[];
+  hierarchy?: ('parent' | 'child')[];
+
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  sessionIds?: string[];
+  sessionProviderIds?: string[];
+  sessionConnectionIds?: string[];
+  providerRunIds?: string[];
+  errorIds?: string[];
+  participantIds?: string[];
+  parentMessageIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSessionMessageByIdParams = {
+  sessionMessageId: string;
+  allowDeleted?: boolean;
+};
 
 class sessionMessageServiceImpl {
   async enrichMessages<T extends SessionMessage>(messages: T[]) {
@@ -108,35 +136,30 @@ class sessionMessageServiceImpl {
     }));
   }
 
-  async listSessionMessages(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listSessionMessages(d: MetorialFacing<ListSessionMessagesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    types?: SessionMessageType[];
-    source?: SessionMessageSource[];
-    hierarchy?: ('parent' | 'child')[];
+    return this.listSessionMessagesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    allowDeleted?: boolean;
+  async listSessionMessagesInternal(
+    d: { tenant: Tenant; environment: Environment } & ListSessionMessagesParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
-    ids?: string[];
-    sessionIds?: string[];
-    sessionProviderIds?: string[];
-    sessionConnectionIds?: string[];
-    providerRunIds?: string[];
-    errorIds?: string[];
-    participantIds?: string[];
-    parentMessageIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let sessions = await resolveSessions(d, d.sessionIds);
-    let sessionProviders = await resolveSessionProviders(d, d.sessionProviderIds);
-    let connections = await resolveSessionConnections(d, d.sessionConnectionIds);
-    let providerRuns = await resolveProviderRuns(d, d.providerRunIds);
-    let errors = await resolveSessionErrors(d, d.errorIds);
-    let participants = await resolveSessionParticipants(d, d.participantIds);
-    let parentMessages = await resolveSessionMessages(d, d.parentMessageIds);
+    let sessions = await resolveSessions(ts, d.sessionIds);
+    let sessionProviders = await resolveSessionProviders(ts, d.sessionProviderIds);
+    let connections = await resolveSessionConnections(ts, d.sessionConnectionIds);
+    let providerRuns = await resolveProviderRuns(ts, d.providerRunIds);
+    let errors = await resolveSessionErrors(ts, d.errorIds);
+    let participants = await resolveSessionParticipants(ts, d.participantIds);
+    let parentMessages = await resolveSessionMessages(ts, d.parentMessageIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -144,7 +167,7 @@ class sessionMessageServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
 
             AND: [
@@ -200,18 +223,27 @@ class sessionMessageServiceImpl {
     );
   }
 
-  async getSessionMessageById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionMessageId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSessionMessageById(d: MetorialFacing<GetSessionMessageByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getSessionMessageByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getSessionMessageByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionMessageByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let sessionMessage = await db.sessionMessage.findFirst({
       where: {
         id: d.sessionMessageId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
 
         AND: [

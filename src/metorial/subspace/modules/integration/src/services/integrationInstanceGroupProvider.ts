@@ -10,7 +10,6 @@ import {
   type IntegrationInstanceGroupProvider,
   type IntegrationInstanceGroupProviderStatus,
   Prisma,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -32,7 +31,7 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { normalizeToolFilters } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import { checkTenant, getMetorialSolution } from '@metorial-subspace/module-tenant';
 import {
   enqueueIntegrationInstanceGroupProviderSet,
   enqueueIntegrationInstanceGroupProvidersSet
@@ -83,9 +82,8 @@ export let resolveIntegrationInstanceGroupProviderToolFilterInput = (d: {
 };
 
 class integrationInstanceGroupProviderServiceImpl {
-  async listIntegrationInstanceGroupProviders(d: {
+  async listIntegrationInstanceGroupProvidersInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     includeMagicMcpBackings?: boolean;
 
@@ -107,6 +105,8 @@ class integrationInstanceGroupProviderServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
+    let solution = await getMetorialSolution();
+
     let integrations = await resolveIntegrations(d, d.integrationIds);
     let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
     let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
@@ -127,7 +127,7 @@ class integrationInstanceGroupProviderServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               integrationInstanceGroup: d.includeMagicMcpBackings
                 ? undefined
@@ -197,18 +197,19 @@ class integrationInstanceGroupProviderServiceImpl {
     );
   }
 
-  async getIntegrationInstanceGroupProviderById(d: {
+  async getIntegrationInstanceGroupProviderByIdInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstanceGroupProviderId: string;
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let provider = await db.integrationInstanceGroupProvider.findFirst({
       where: {
         id: d.integrationInstanceGroupProviderId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
@@ -226,15 +227,16 @@ class integrationInstanceGroupProviderServiceImpl {
     return provider;
   }
 
-  async setIntegrationInstanceGroupProviders(d: {
+  async setIntegrationInstanceGroupProvidersInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup;
     input: SetIntegrationInstanceGroupProviderInput[];
     _allowMagicMcpBacking?: boolean;
     _skipLifecycleSync?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedRelation(d.integrationInstanceGroup);
     if (d.integrationInstanceGroup.isMagicMcpBacking && !d._allowMagicMcpBacking) {
@@ -253,7 +255,7 @@ class integrationInstanceGroupProviderServiceImpl {
       where: {
         id: { in: d.input.map(input => input.integrationInstanceProviderId) },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active',
         isParentDeleted: false
@@ -367,7 +369,7 @@ class integrationInstanceGroupProviderServiceImpl {
             integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
             integrationInstanceOid: sourceProvider.integrationInstanceOid,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid
           },
           update: {
@@ -413,7 +415,7 @@ class integrationInstanceGroupProviderServiceImpl {
             toolFilter: toolFilter ?? Prisma.JsonNull,
             isOverrideToolFilter,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid
           },
           update: {
@@ -463,14 +465,13 @@ class integrationInstanceGroupProviderServiceImpl {
     });
   }
 
-  async setIntegrationInstanceGroupProvider(d: {
+  async setIntegrationInstanceGroupProviderInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup;
     input: SetIntegrationInstanceGroupProviderInput;
   }) {
-    let [provider] = await this.setIntegrationInstanceGroupProviders({
+    let [provider] = await this.setIntegrationInstanceGroupProvidersInternal({
       ...d,
       input: [d.input]
     });
@@ -487,15 +488,14 @@ class integrationInstanceGroupProviderServiceImpl {
     return provider;
   }
 
-  async syncMagicMcpIntegrationInstanceGroupProviders(d: {
+  async syncMagicMcpIntegrationInstanceGroupProvidersInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup;
     isReconciliation?: boolean;
     input: SetIntegrationInstanceGroupProviderInput[];
   }) {
-    let providers = await this.setIntegrationInstanceGroupProviders({
+    let providers = await this.setIntegrationInstanceGroupProvidersInternal({
       ...d,
       _allowMagicMcpBacking: true,
       _skipLifecycleSync: true
@@ -525,12 +525,13 @@ class integrationInstanceGroupProviderServiceImpl {
     return providers;
   }
 
-  async archiveIntegrationInstanceGroupProvider(d: {
+  async archiveIntegrationInstanceGroupProviderInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstanceGroupProvider: IntegrationInstanceGroupProvider;
   }) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integrationInstanceGroupProvider);
     checkDeletedEdit(d.integrationInstanceGroupProvider, 'archive');
     let integrationInstanceGroup = await db.integrationInstanceGroup.findUnique({
@@ -552,7 +553,7 @@ class integrationInstanceGroupProviderServiceImpl {
         where: {
           oid: d.integrationInstanceGroupProvider.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {

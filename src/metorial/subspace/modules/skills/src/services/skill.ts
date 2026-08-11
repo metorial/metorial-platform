@@ -13,7 +13,6 @@ import {
   type Skill,
   type SkillStatus,
   type SkillTemplate,
-  type Solution,
   type Tenant,
   type TenantActor,
   withTransaction
@@ -26,7 +25,12 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { inferClientName, normalizeSkillClientFields } from '../lib/clientMetadata';
 import {
   skillArchivedQueue,
@@ -83,18 +87,173 @@ type SkillWriteInput = {
   privateMetadata?: Record<string, any> | null;
 };
 
+export type ListSkillsParams = {
+  tenant: Tenant;
+  environment: Environment;
+  search?: string;
+  status?: SkillStatus[];
+  allowDeleted?: boolean;
+  ids?: string[];
+  skillGroupIds?: string[];
+  parentSkillIds?: string[];
+  integrationIds?: string[];
+  providerIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSkillByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillId: string;
+  allowDeleted?: boolean;
+};
+
+export type GetManySkillsParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillIds: string[];
+  allowDeleted?: boolean;
+};
+
+export type UpsertMetorialSkillParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: {
+    id: string;
+    status: SkillStatus;
+    slug?: string | null;
+    name: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    image?: EntityImage | null;
+    clientName?: string | null;
+    clientDescription?: string | null;
+    clientMetadata?: Record<string, any> | null;
+    license?: string | null;
+    compatibility?: string | null;
+    storeId: string;
+    parentSkillId?: string | null;
+    parentType?: 'fork' | 'duplicate' | null;
+    parentTemplateId?: string | null;
+  };
+  tenantActor?: TenantActor;
+};
+
+export type CreateSkillParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: {
+    name: string;
+    description?: string | null;
+    clientName?: string;
+    clientDescription?: string;
+    license?: string | null;
+    compatibility?: string | null;
+    clientMetadata?: Record<string, any> | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    templateId?: string | null;
+    image?: EntityImage | null;
+    imageFileId?: string | null;
+  };
+  _operation:
+    | {
+        type: 'fork';
+        parentSkillId: string;
+        tenantActor: TenantActor;
+      }
+    | {
+        type: 'duplicate';
+        tenantActor?: TenantActor;
+        parentSkillId: string;
+      }
+    | {
+        type: 'create';
+        tenantActor?: TenantActor;
+        parentSkillId?: never;
+      };
+};
+
+export type ForkSkillParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skill: Skill;
+  tenantActor: TenantActor;
+  input: {
+    name: string;
+    description?: string | null;
+    clientName?: string;
+    clientDescription?: string;
+    license?: string | null;
+    compatibility?: string | null;
+    clientMetadata?: Record<string, any> | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    imageFileId?: string | null;
+  };
+};
+
+export type DuplicateSkillParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skill: Skill;
+  actor?: TenantActor;
+  input: {
+    name: string;
+    description?: string | null;
+    clientName?: string;
+    clientDescription?: string;
+    license?: string | null;
+    compatibility?: string | null;
+    clientMetadata?: Record<string, any> | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    imageFileId?: string | null;
+  };
+};
+
+export type UpdateSkillParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skill: Skill;
+  input: SkillWriteInput;
+};
+
+export type ArchiveSkillParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skill: Skill;
+};
+
+export type UpsertSkillActorParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skill: Skill;
+  tenantActor: TenantActor;
+  permissions: Array<'content_read' | 'content_write'>;
+  overridePermissions?: boolean;
+};
+
+export type GetActiveSkillByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillId: string;
+};
+
 class skillServiceImpl {
   private async resolveParentSkill(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     parentSkillId: string;
   }) {
+    let solution = await getMetorialSolution();
+
     let parentSkill = await db.skill.findFirst({
       where: {
         id: d.parentSkillId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet({ allowDeleted: false }).noParent
       },
@@ -107,9 +266,8 @@ class skillServiceImpl {
     return parentSkill;
   }
 
-  private skillCreateData(d: {
+  private async skillCreateData(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     parentSkill: {
       type: 'fork' | 'duplicate';
@@ -119,6 +277,7 @@ class skillServiceImpl {
     input: Required<Pick<SkillWriteInput, 'name'>> &
       Omit<SkillWriteInput, 'name' | 'skillEntityId' | 'parentSkillId'>;
   }) {
+    let solution = await getMetorialSolution();
     let inferredClientName = inferClientName(d.input.name);
 
     let clientFields = normalizeSkillClientFields({
@@ -154,7 +313,7 @@ class skillServiceImpl {
       metadata: d.input.metadata === undefined ? d.template?.metadata : d.input.metadata,
       privateMetadata: d.input.privateMetadata,
       tenantOid: d.tenant.oid,
-      solutionOid: d.solution.oid,
+      solutionOid: solution.oid,
       environmentOid: d.environment.oid,
       forkedFromSkillOid: null as bigint | null,
       duplicatedFromSkillOid: null as bigint | null
@@ -215,21 +374,15 @@ class skillServiceImpl {
     };
   }
 
-  async listSkills(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    search?: string;
-    status?: SkillStatus[];
-    allowDeleted?: boolean;
-    ids?: string[];
-    skillGroupIds?: string[];
-    parentSkillIds?: string[];
-    integrationIds?: string[];
-    providerIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listSkills(d: MetorialFacing<ListSkillsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listSkillsInternal({ ...rest, tenant, environment });
+  }
+
+  async listSkillsInternal(d: ListSkillsParams) {
+    let solution = await getMetorialSolution();
+
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
@@ -242,7 +395,7 @@ class skillServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               ...normalizeStatusForList(d).noParent,
               AND: [
@@ -290,18 +443,20 @@ class skillServiceImpl {
     );
   }
 
-  async getSkillById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSkillById(d: MetorialFacing<GetSkillByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getSkillByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getSkillByIdInternal(d: GetSkillByIdParams) {
+    let solution = await getMetorialSolution();
+
     let skill = await db.skill.findFirst({
       where: {
         id: d.skillId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -312,16 +467,18 @@ class skillServiceImpl {
     return skill;
   }
 
-  async getManySkills(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillIds: string[];
-    allowDeleted?: boolean;
-  }) {
+  async getManySkills(d: MetorialFacing<GetManySkillsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getManySkillsInternal({ ...rest, tenant, environment });
+  }
+
+  async getManySkillsInternal(d: GetManySkillsParams) {
     if (!d.skillIds.length) {
       return [];
     }
+
+    let solution = await getMetorialSolution();
 
     let skills = await db.skill.findMany({
       where: {
@@ -329,7 +486,7 @@ class skillServiceImpl {
           in: d.skillIds
         },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -342,36 +499,21 @@ class skillServiceImpl {
       .filter((skill): skill is NonNullable<typeof skill> => !!skill);
   }
 
-  async upsertMetorialSkill(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: {
-      id: string;
-      status: SkillStatus;
-      slug?: string | null;
-      name: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      image?: EntityImage | null;
-      clientName?: string | null;
-      clientDescription?: string | null;
-      clientMetadata?: Record<string, any> | null;
-      license?: string | null;
-      compatibility?: string | null;
-      storeId: string;
-      parentSkillId?: string | null;
-      parentType?: 'fork' | 'duplicate' | null;
-      parentTemplateId?: string | null;
-    };
-    tenantActor?: TenantActor;
-  }) {
+  async upsertMetorialSkill(d: MetorialFacing<UpsertMetorialSkillParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.upsertMetorialSkillInternal({ ...rest, tenant, environment });
+  }
+
+  async upsertMetorialSkillInternal(d: UpsertMetorialSkillParams) {
+    let solution = await getMetorialSolution();
+
     let parentSkill = d.input.parentSkillId
       ? await db.skill.findFirst({
           where: {
             id: d.input.parentSkillId,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid
           }
         })
@@ -398,7 +540,7 @@ class skillServiceImpl {
             description: d.input.description,
             image: (d.input.image ?? undefined) as any,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid
           }
         }));
@@ -422,7 +564,7 @@ class skillServiceImpl {
           storeId: d.input.storeId,
           skillEntityOid: skillEntity.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           ownerTenantActorOid: d.tenantActor?.oid,
           forkedFromSkillOid:
@@ -463,45 +605,16 @@ class skillServiceImpl {
     });
   }
 
-  async createSkill(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: {
-      name: string;
-      description?: string | null;
-      clientName?: string;
-      clientDescription?: string;
-      license?: string | null;
-      compatibility?: string | null;
-      clientMetadata?: Record<string, any> | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      templateId?: string | null;
-      image?: EntityImage | null;
-      imageFileId?: string | null;
-    };
-    _operation:
-      | {
-          type: 'fork';
-          parentSkillId: string;
-          tenantActor: TenantActor;
-        }
-      | {
-          type: 'duplicate';
-          tenantActor?: TenantActor;
-          parentSkillId: string;
-        }
-      | {
-          type: 'create';
-          tenantActor?: TenantActor;
-          parentSkillId?: never;
-        };
-  }) {
+  async createSkill(d: MetorialFacing<CreateSkillParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createSkillInternal({ ...rest, tenant, environment });
+  }
+
+  async createSkillInternal(d: CreateSkillParams) {
     let id = getId('skill').id;
-    return await this.upsertMetorialSkill({
+    return await this.upsertMetorialSkillInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       tenantActor: d._operation.tenantActor,
       input: {
@@ -758,31 +871,18 @@ class skillServiceImpl {
     */
   }
 
-  async forkSkill(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skill: Skill;
-    tenantActor: TenantActor;
-    input: {
-      name: string;
-      description?: string | null;
-      clientName?: string;
-      clientDescription?: string;
-      license?: string | null;
-      compatibility?: string | null;
-      clientMetadata?: Record<string, any> | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      imageFileId?: string | null;
-    };
-  }) {
+  async forkSkill(d: MetorialFacing<ForkSkillParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.forkSkillInternal({ ...rest, tenant, environment });
+  }
+
+  async forkSkillInternal(d: ForkSkillParams) {
     checkTenant(d, d.skill);
     checkDeletedRelation(d.skill);
 
-    return await this.createSkill({
+    return await this.createSkillInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       input: {
         name: d.input.name,
@@ -804,31 +904,18 @@ class skillServiceImpl {
     });
   }
 
-  async duplicateSkill(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skill: Skill;
-    actor?: TenantActor;
-    input: {
-      name: string;
-      description?: string | null;
-      clientName?: string;
-      clientDescription?: string;
-      license?: string | null;
-      compatibility?: string | null;
-      clientMetadata?: Record<string, any> | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      imageFileId?: string | null;
-    };
-  }) {
+  async duplicateSkill(d: MetorialFacing<DuplicateSkillParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.duplicateSkillInternal({ ...rest, tenant, environment });
+  }
+
+  async duplicateSkillInternal(d: DuplicateSkillParams) {
     checkTenant(d, d.skill);
     checkDeletedRelation(d.skill);
 
-    return await this.createSkill({
+    return await this.createSkillInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       input: {
         name: d.input.name,
@@ -850,15 +937,17 @@ class skillServiceImpl {
     });
   }
 
-  async updateSkill(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skill: Skill;
-    input: SkillWriteInput;
-  }) {
+  async updateSkill(d: MetorialFacing<UpdateSkillParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.updateSkillInternal({ ...rest, tenant, environment });
+  }
+
+  async updateSkillInternal(d: UpdateSkillParams) {
     checkTenant(d, d.skill);
     checkDeletedEdit(d.skill, 'update');
+
+    let solution = await getMetorialSolution();
 
     let current = await db.skill.findUniqueOrThrow({
       where: { oid: d.skill.oid }
@@ -879,7 +968,7 @@ class skillServiceImpl {
         where: {
           oid: d.skill.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: this.skillUpdateData({
@@ -907,21 +996,24 @@ class skillServiceImpl {
     });
   }
 
-  async archiveSkill(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skill: Skill;
-  }) {
+  async archiveSkill(d: MetorialFacing<ArchiveSkillParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.archiveSkillInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveSkillInternal(d: ArchiveSkillParams) {
     checkTenant(d, d.skill);
     checkDeletedEdit(d.skill, 'archive');
+
+    let solution = await getMetorialSolution();
 
     return await withTransaction(async db => {
       let skill = await db.skill.update({
         where: {
           oid: d.skill.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: { status: 'archived' },
@@ -952,15 +1044,13 @@ class skillServiceImpl {
     });
   }
 
-  async upsertSkillActor(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skill: Skill;
-    tenantActor: TenantActor;
-    permissions: Array<'content_read' | 'content_write'>;
-    overridePermissions?: boolean;
-  }) {
+  async upsertSkillActor(d: MetorialFacing<UpsertSkillActorParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.upsertSkillActorInternal({ ...rest, tenant, environment });
+  }
+
+  async upsertSkillActorInternal(d: UpsertSkillActorParams) {
     checkTenant(d, d.skill);
     checkDeletedRelation(d.skill);
 
@@ -972,13 +1062,14 @@ class skillServiceImpl {
     };
   }
 
-  async getActiveSkillById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillId: string;
-  }) {
-    let skill = await this.getSkillById({ ...d, allowDeleted: false });
+  async getActiveSkillById(d: MetorialFacing<GetActiveSkillByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getActiveSkillByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getActiveSkillByIdInternal(d: GetActiveSkillByIdParams) {
+    let skill = await this.getSkillByIdInternal({ ...d, allowDeleted: false });
     checkDeletedRelation(skill);
 
     return skill;

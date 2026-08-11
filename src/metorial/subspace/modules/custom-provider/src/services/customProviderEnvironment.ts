@@ -5,7 +5,6 @@ import {
   db,
   type CustomProviderStatus,
   type Environment,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -14,6 +13,7 @@ import {
   resolveCustomProviders,
   resolveCustomProviderVersions
 } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 
 let include = {
   customProvider: {
@@ -69,7 +69,6 @@ let customProviderEnvironmentScopeFilter = (d: {
 class customProviderEnvironmentServiceImpl {
   async listCustomProviderEnvironments(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     createdAt?: DateFilter;
@@ -79,6 +78,7 @@ class customProviderEnvironmentServiceImpl {
     customProviderIds?: string[];
     customProviderVersionIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
     let customProviderVersions = await resolveCustomProviderVersions(
       d,
@@ -92,7 +92,7 @@ class customProviderEnvironmentServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 customProviderEnvironmentScopeFilter(d),
@@ -126,17 +126,17 @@ class customProviderEnvironmentServiceImpl {
 
   async getCustomProviderEnvironmentById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     customProviderEnvironmentId: string;
     includeUnpublished?: boolean;
     includeOtherEnvironments?: boolean;
   }) {
+    let solution = await getMetorialSolution();
     let customProviderEnvironment = await db.customProviderEnvironment.findFirst({
       where: {
         id: d.customProviderEnvironmentId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         AND: [customProviderEnvironmentScopeFilter(d)]
       },
       include

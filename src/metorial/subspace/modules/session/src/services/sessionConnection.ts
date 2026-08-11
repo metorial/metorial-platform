@@ -6,7 +6,6 @@ import {
   type Environment,
   type SessionConnectionState,
   type SessionConnectionStatus,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -21,6 +20,11 @@ import {
   resolveSessionProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { sessionParticipantInclude } from './sessionParticipant';
 
 let include = {
@@ -29,31 +33,50 @@ let include = {
 };
 export let sessionConnectionInclude = include;
 
+export type ListSessionConnectionsParams = {
+  status?: SessionConnectionStatus[];
+  connectionState?: SessionConnectionState[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  agentIds?: string[];
+  actorIds?: string[];
+  agentInstanceIds?: string[];
+  sessionIds?: string[];
+  sessionProviderIds?: string[];
+  participantIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSessionConnectionByIdParams = {
+  sessionConnectionId: string;
+  allowDeleted?: boolean;
+};
+
 class sessionConnectionServiceImpl {
-  async listSessionConnections(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listSessionConnections(d: MetorialFacing<ListSessionConnectionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: SessionConnectionStatus[];
-    connectionState?: SessionConnectionState[];
-    allowDeleted?: boolean;
+    return this.listSessionConnectionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    agentIds?: string[];
-    actorIds?: string[];
-    agentInstanceIds?: string[];
-    sessionIds?: string[];
-    sessionProviderIds?: string[];
-    participantIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let agents = await resolveAgents(d, d.agentIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let sessions = await resolveSessions(d, d.sessionIds);
-    let sessionProviders = await resolveSessionProviders(d, d.sessionProviderIds);
-    let participants = await resolveSessionParticipants(d, d.participantIds);
+  async listSessionConnectionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListSessionConnectionsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let agents = await resolveAgents(ts, d.agentIds);
+    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let sessions = await resolveSessions(ts, d.sessionIds);
+    let sessionProviders = await resolveSessionProviders(ts, d.sessionProviderIds);
+    let participants = await resolveSessionParticipants(ts, d.participantIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -62,7 +85,7 @@ class sessionConnectionServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               // isEphemeral: false,
@@ -98,18 +121,27 @@ class sessionConnectionServiceImpl {
     );
   }
 
-  async getSessionConnectionById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionConnectionId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSessionConnectionById(d: MetorialFacing<GetSessionConnectionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getSessionConnectionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getSessionConnectionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionConnectionByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let sessionConnection = await db.sessionConnection.findFirst({
       where: {
         id: d.sessionConnectionId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent,
         ...getConnectionRetentionFilter(d.tenant)

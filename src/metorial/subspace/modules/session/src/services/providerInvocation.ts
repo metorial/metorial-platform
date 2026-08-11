@@ -1,5 +1,10 @@
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import {
   parseProviderInvocationId,
@@ -30,18 +35,36 @@ let mergeInvocation = (
   );
 };
 
+export type ListProviderInvocationsParams = {
+  inputs: {
+    providerRunIds?: string[];
+    sessionMessageIds?: string[];
+    callbackEventSourceIds?: string[];
+    authConfigEventIds?: string[];
+  };
+};
+
+export type GetProviderInvocationParams = {
+  providerInvocationId: string;
+};
+
 class providerInvocationServiceImpl {
-  async listProviderInvocations(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    inputs: {
-      providerRunIds?: string[];
-      sessionMessageIds?: string[];
-      callbackEventSourceIds?: string[];
-      authConfigEventIds?: string[];
-    };
-  }) {
+  async listProviderInvocations(d: MetorialFacing<ListProviderInvocationsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listProviderInvocationsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderInvocationsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderInvocationsParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let buckets = new Map<
       bigint,
       {
@@ -72,7 +95,7 @@ class providerInvocationServiceImpl {
         where: {
           id: { in: d.inputs.providerRunIds },
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         include: {
@@ -92,7 +115,7 @@ class providerInvocationServiceImpl {
         where: {
           id: { in: d.inputs.sessionMessageIds },
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           providerRunOid: { not: null }
         },
@@ -133,7 +156,7 @@ class providerInvocationServiceImpl {
         where: {
           id: { in: d.inputs.authConfigEventIds },
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         include: {
@@ -176,12 +199,22 @@ class providerInvocationServiceImpl {
     );
   }
 
-  async getProviderInvocation(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerInvocationId: string;
-  }) {
+  async getProviderInvocation(d: MetorialFacing<GetProviderInvocationParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderInvocationInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderInvocationInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderInvocationParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let parsedId = parseProviderInvocationId(d.providerInvocationId);
     if (!parsedId) {
       throw new Error('Invalid provider invocation ID');
@@ -196,7 +229,7 @@ class providerInvocationServiceImpl {
     let backend = await getBackend({ entity: { backendOid: backendRecord.oid } });
     let invocation = await backend.providerInvocation.getProviderInvocation({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       input: {
         providerInvocationId: d.providerInvocationId,

@@ -2,15 +2,31 @@ import type {
   Callback,
   CallbackInstance,
   CallbackReceiverRegistration,
+  Provider,
+  ProviderSpecification,
+  ProviderTrigger,
   Tenant
 } from '@metorial-subspace/db';
 import { db } from '@metorial-subspace/db';
-import type {
-  CallbackInstanceReceiver,
-  CallbackInstanceReceiverTrigger,
-  EnrichedCallbackInstanceTrigger
-} from '@metorial-subspace/presenters';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+
+export type CallbackInstanceReceiverTrigger = Awaited<
+  ReturnType<typeof slates.slateTriggerReceiver.get>
+>['triggers'][number];
+
+export type EnrichedCallbackInstanceTrigger = CallbackInstanceReceiverTrigger & {
+  providerTrigger:
+    | (ProviderTrigger & {
+        provider: Provider;
+        specification: Omit<ProviderSpecification, 'value'>;
+      })
+    | null;
+};
+
+export type CallbackInstanceReceiver = {
+  receiverWebhookUrl: string | null;
+  triggers: EnrichedCallbackInstanceTrigger[];
+};
 
 type CallbackInstanceWithRegistration = CallbackInstance & {
   activeRegistration?: CallbackReceiverRegistration | null;

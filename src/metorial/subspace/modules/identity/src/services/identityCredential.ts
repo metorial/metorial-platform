@@ -10,7 +10,6 @@ import {
   type IdentityCredential,
   type IdentityCredentialStatus,
   type IdentityDelegationConfig,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -33,7 +32,12 @@ import {
   type ProviderCombinationInput,
   providerCombinationService
 } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import {
   identityCredentialCreatedQueue,
   identityCredentialDeletedQueue,
@@ -56,33 +60,83 @@ let include = {
   integrationInstanceProvider: true
 } as const;
 
+export type ListIdentityCredentialsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  status?: IdentityCredentialStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  agentIds?: string[];
+  actorIds?: string[];
+  identityIds?: string[];
+  providerIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIdentityCredentialByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityCredentialId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIdentityCredentialParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  identity: Identity;
+
+  input: IdentityCredentialInput;
+};
+
+export type UpdateIdentityCredentialParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityCredential: IdentityCredential & { identity: Identity };
+
+  input: {
+    delegationConfig: IdentityDelegationConfig;
+  };
+};
+
+export type ArchiveIdentityCredentialParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityCredential: IdentityCredential & { identity: Identity };
+};
+
+export type InternalCreateIdentityCredentialsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  identity: Identity;
+  inputs: IdentityCredentialInput[];
+};
+
 class identityCredentialServiceImpl {
-  async listIdentityCredentials(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIdentityCredentials(d: MetorialFacing<ListIdentityCredentialsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listIdentityCredentialsInternal({ ...rest, tenant, environment });
+  }
 
-    status?: IdentityCredentialStatus[];
-    allowDeleted?: boolean;
+  async listIdentityCredentialsInternal(d: ListIdentityCredentialsParams) {
+    let solution = await getMetorialSolution();
+    let scope = { ...d, solution };
 
-    ids?: string[];
-    agentIds?: string[];
-    actorIds?: string[];
-    identityIds?: string[];
-    providerIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let agents = await resolveAgents(d, d.agentIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    let agents = await resolveAgents(scope, d.agentIds);
+    let actors = await resolveIdentityActors(scope, d.actorIds);
+    let identities = await resolveIdentities(scope, d.identityIds);
+    let providers = await resolveProviders(scope, d.providerIds);
+    let deployments = await resolveProviderDeployments(scope, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(scope, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(scope, d.providerAuthConfigIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -92,7 +146,7 @@ class identityCredentialServiceImpl {
             where: {
               identity: {
                 tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
+                solutionOid: solution.oid,
                 environmentOid: d.environment.oid,
 
                 ...normalizeStatusForList(d).hasParent
@@ -123,13 +177,14 @@ class identityCredentialServiceImpl {
     );
   }
 
-  async getIdentityCredentialById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityCredentialId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIdentityCredentialById(d: MetorialFacing<GetIdentityCredentialByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getIdentityCredentialByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getIdentityCredentialByIdInternal(d: GetIdentityCredentialByIdParams) {
+    let solution = await getMetorialSolution();
     let identityCredential = await db.identityCredential.findFirst({
       where: {
         id: d.identityCredentialId,
@@ -138,7 +193,7 @@ class identityCredentialServiceImpl {
 
         identity: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           ...normalizeStatusForGet(d).hasParent
         }
@@ -151,15 +206,13 @@ class identityCredentialServiceImpl {
     return identityCredential;
   }
 
-  async createIdentityCredential(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createIdentityCredential(d: MetorialFacing<CreateIdentityCredentialParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createIdentityCredentialInternal({ ...rest, tenant, environment });
+  }
 
-    identity: Identity;
-
-    input: IdentityCredentialInput;
-  }) {
+  async createIdentityCredentialInternal(d: CreateIdentityCredentialParams) {
     checkTenant(d, d.identity);
     checkDeletedRelation(d.identity);
 
@@ -180,7 +233,6 @@ class identityCredentialServiceImpl {
 
       let [identityCredential] = await this.internalCreateIdentityCredentials({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         identity: d.identity,
         inputs: [d.input]
@@ -199,16 +251,13 @@ class identityCredentialServiceImpl {
     });
   }
 
-  async updateIdentityCredential(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityCredential: IdentityCredential & { identity: Identity };
+  async updateIdentityCredential(d: MetorialFacing<UpdateIdentityCredentialParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.updateIdentityCredentialInternal({ ...rest, tenant, environment });
+  }
 
-    input: {
-      delegationConfig: IdentityDelegationConfig;
-    };
-  }) {
+  async updateIdentityCredentialInternal(d: UpdateIdentityCredentialParams) {
     checkTenant(d, d.identityCredential.identity);
     checkDeletedEdit(d.identityCredential, 'update');
     checkDeletedEdit(d.identityCredential.identity, 'update');
@@ -237,12 +286,13 @@ class identityCredentialServiceImpl {
     });
   }
 
-  async archiveIdentityCredential(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityCredential: IdentityCredential & { identity: Identity };
-  }) {
+  async archiveIdentityCredential(d: MetorialFacing<ArchiveIdentityCredentialParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.archiveIdentityCredentialInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveIdentityCredentialInternal(d: ArchiveIdentityCredentialParams) {
     checkTenant(d, d.identityCredential.identity);
     checkDeletedEdit(d.identityCredential, 'archive');
     checkDeletedEdit(d.identityCredential.identity, 'archive');
@@ -299,14 +349,9 @@ class identityCredentialServiceImpl {
     });
   }
 
-  async internalCreateIdentityCredentials(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async internalCreateIdentityCredentials(d: InternalCreateIdentityCredentialsParams) {
+    let solution = await getMetorialSolution();
 
-    identity: Identity;
-    inputs: IdentityCredentialInput[];
-  }) {
     return withTransaction(async db => {
       let delegationConfigIds = d.inputs.map(i => i.delegationConfigId!).filter(Boolean);
 
@@ -314,7 +359,7 @@ class identityCredentialServiceImpl {
         ? await db.identityDelegationConfig.findMany({
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               id: { in: delegationConfigIds }
             }
@@ -328,9 +373,8 @@ class identityCredentialServiceImpl {
 
       let delegationConfigMap = new Map(delegationConfigs.map(c => [c.id, c]));
 
-      let combination = await providerCombinationService.getCombinations({
+      let combination = await providerCombinationService.getCombinationsInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         providers: d.inputs
       });

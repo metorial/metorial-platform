@@ -9,7 +9,6 @@ import {
   type SkillItem,
   type SkillItemStatus,
   type SkillItemType,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -23,6 +22,11 @@ import {
 } from '@metorial-subspace/list-utils';
 import { providerService } from '@metorial-subspace/module-catalog';
 import { integrationService } from '@metorial-subspace/module-integration';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { skillItemArchivedQueue, skillItemCreatedQueue } from '../queues/lifecycle/skillItem';
 import { skillService } from './skill';
 
@@ -45,20 +49,58 @@ export let skillItemInclude = {
 let getParentSkillStatusFilter = (allowDeleted?: boolean) =>
   allowDeleted ? undefined : { notIn: ['deleted' as const, 'archived' as const] };
 
+export type ListSkillItemsParams = {
+  tenant: Tenant;
+  environment: Environment;
+  status?: SkillItemStatus[];
+  allowDeleted?: boolean;
+  ids?: string[];
+  skillIds?: string[];
+  type?: SkillItemType[];
+  integrationIds?: string[];
+  providerIds?: string[];
+  createdAt?: DateFilter;
+};
+
+export type GetSkillItemByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillItemId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateSkillItemParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input:
+    | {
+        skillId: string;
+        type: 'integration';
+        integrationId: string;
+      }
+    | {
+        skillId: string;
+        type: 'provider';
+        providerId: string;
+      };
+};
+
+export type ArchiveSkillItemParams = {
+  tenant: Tenant;
+  environment: Environment;
+  skillItem: SkillItem;
+};
+
 class skillItemServiceImpl {
-  async listSkillItems(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    status?: SkillItemStatus[];
-    allowDeleted?: boolean;
-    ids?: string[];
-    skillIds?: string[];
-    type?: SkillItemType[];
-    integrationIds?: string[];
-    providerIds?: string[];
-    createdAt?: DateFilter;
-  }) {
+  async listSkillItems(d: MetorialFacing<ListSkillItemsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listSkillItemsInternal({ ...rest, tenant, environment });
+  }
+
+  async listSkillItemsInternal(d: ListSkillItemsParams) {
+    let solution = await getMetorialSolution();
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -68,7 +110,7 @@ class skillItemServiceImpl {
               ...normalizeStatusForList(d).noParent,
               skill: {
                 tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
+                solutionOid: solution.oid,
                 environmentOid: d.environment.oid,
                 status: getParentSkillStatusFilter(d.allowDeleted)
               },
@@ -103,20 +145,22 @@ class skillItemServiceImpl {
     );
   }
 
-  async getSkillItemById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillItemId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSkillItemById(d: MetorialFacing<GetSkillItemByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getSkillItemByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getSkillItemByIdInternal(d: GetSkillItemByIdParams) {
+    let solution = await getMetorialSolution();
+
     let skillItem = await db.skillItem.findFirst({
       where: {
         id: d.skillItemId,
         ...normalizeStatusForGet(d).noParent,
         skill: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           status: getParentSkillStatusFilter(d.allowDeleted)
         }
@@ -128,33 +172,22 @@ class skillItemServiceImpl {
     return skillItem;
   }
 
-  async createSkillItem(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input:
-      | {
-          skillId: string;
-          type: 'integration';
-          integrationId: string;
-        }
-      | {
-          skillId: string;
-          type: 'provider';
-          providerId: string;
-        };
-  }) {
-    let skill = await skillService.getActiveSkillById({
+  async createSkillItem(d: MetorialFacing<CreateSkillItemParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createSkillItemInternal({ ...rest, tenant, environment });
+  }
+
+  async createSkillItemInternal(d: CreateSkillItemParams) {
+    let skill = await skillService.getActiveSkillByIdInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       skillId: d.input.skillId
     });
 
     if (d.input.type === 'integration') {
-      let integration = await integrationService.getIntegrationById({
+      let integration = await integrationService.getIntegrationByIdInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationId: d.input.integrationId,
         allowDeleted: false
@@ -233,7 +266,6 @@ class skillItemServiceImpl {
     }
 
     let provider = await providerService.getProviderById({
-      solution: d.solution,
       tenant: d.tenant,
       environment: d.environment,
       providerId: d.input.providerId,
@@ -312,20 +344,23 @@ class skillItemServiceImpl {
     });
   }
 
-  async archiveSkillItem(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    skillItem: SkillItem;
-  }) {
+  async archiveSkillItem(d: MetorialFacing<ArchiveSkillItemParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.archiveSkillItemInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveSkillItemInternal(d: ArchiveSkillItemParams) {
     checkDeletedEdit(d.skillItem, 'archive');
+
+    let solution = await getMetorialSolution();
 
     let current = await db.skillItem.findFirst({
       where: {
         oid: d.skillItem.oid,
         skill: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },

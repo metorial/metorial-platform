@@ -97,9 +97,8 @@ export let integrationInstanceProviderSetQueueProcessor =
           if (seen.has(current.config.oid.toString())) continue;
           seen.add(current.config.oid.toString());
 
-          await providerConfigService.archiveProviderConfig({
+          await providerConfigService.archiveProviderConfigInternal({
             tenant: integrationInstanceProvider.tenant,
-            solution: integrationInstanceProvider.solution,
             environment: integrationInstanceProvider.environment,
             providerConfig: current.config,
             _canArchiveOwned: true
@@ -113,9 +112,8 @@ export let integrationInstanceProviderSetQueueProcessor =
           if (seen.has(current.authConfig.oid.toString())) continue;
           seen.add(current.authConfig.oid.toString());
 
-          await providerAuthConfigService.archiveProviderAuthConfig({
+          await providerAuthConfigService.archiveProviderAuthConfigInternal({
             tenant: integrationInstanceProvider.tenant,
-            solution: integrationInstanceProvider.solution,
             environment: integrationInstanceProvider.environment,
             providerAuthConfig: current.authConfig,
             _canArchiveOwned: true

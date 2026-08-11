@@ -120,7 +120,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.createFirewall({
+    await firewallService.createFirewallInternal({
       tenant,
       environment,
       input: {
@@ -149,7 +149,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.updateFirewall({
+    await firewallService.updateFirewallInternal({
       tenant,
       environment,
       firewall: {
@@ -182,7 +182,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.updateFirewall({
+    await firewallService.updateFirewallInternal({
       tenant,
       environment,
       firewall: {
@@ -217,7 +217,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.addFirewallNetworkPolicy({
+    await firewallService.addFirewallNetworkPolicyInternal({
       tenant,
       environment,
       firewall: {
@@ -253,7 +253,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.removeFirewallNetworkPolicy({
+    await firewallService.removeFirewallNetworkPolicyInternal({
       tenant,
       environment,
       firewall: {
@@ -283,7 +283,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.archiveFirewall({
+    await firewallService.archiveFirewallInternal({
       tenant,
       environment,
       firewall: {

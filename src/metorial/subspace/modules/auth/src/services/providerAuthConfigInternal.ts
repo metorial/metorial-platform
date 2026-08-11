@@ -20,7 +20,6 @@ import {
   type ProviderDeploymentVersion,
   type ProviderVariant,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -28,7 +27,8 @@ import {
   checkProviderMatch,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import { getMetorialSolution,
+  checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import type { ProviderAuthConfigCreateRes } from '@metorial-subspace/provider-utils';
 import { providerAuthConfigCreatedQueue } from '../queues/lifecycle/providerAuthConfig';
@@ -43,7 +43,6 @@ type ProviderAuthMethodWithSpecification = Prisma.ProviderAuthMethodGetPayload<{
 class providerAuthConfigInternalServiceImpl {
   async getVersionAndAuthMethod(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
     providerDeployment?: ProviderDeployment & {
@@ -74,7 +73,6 @@ class providerAuthConfigInternalServiceImpl {
     let managedCredentials = d.credentials
       ? await this.getManagedProviderAuthCredentialsContext({
           tenant: d.tenant,
-          solution: d.solution,
           providerAuthCredentials: d.credentials
         })
       : null;
@@ -314,9 +312,9 @@ class providerAuthConfigInternalServiceImpl {
 
   private async getManagedProviderAuthCredentialsContext(d: {
     tenant: Tenant;
-    solution: Solution;
     providerAuthCredentials: ProviderAuthCredentials;
   }) {
+    let solution = await getMetorialSolution();
     if (
       d.providerAuthCredentials.origin === 'managed_public' &&
       d.providerAuthCredentials.managedCredentialsOid
@@ -324,7 +322,7 @@ class providerAuthConfigInternalServiceImpl {
       return await db.managedProviderAuthCredentials.findFirst({
         where: {
           oid: d.providerAuthCredentials.managedCredentialsOid,
-          solutionOid: d.solution.oid
+          solutionOid: solution.oid
         },
         select: {
           initialProviderAuthMethodOid: true,
@@ -341,7 +339,7 @@ class providerAuthConfigInternalServiceImpl {
       where: {
         providerAuthCredentialsOid: d.providerAuthCredentials.oid,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       select: {
         managedCredentials: {
@@ -358,7 +356,6 @@ class providerAuthConfigInternalServiceImpl {
 
   async createProviderAuthConfigInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider;
     providerDeployment?: ProviderDeployment;
@@ -384,6 +381,7 @@ class providerAuthConfigInternalServiceImpl {
     authMethod: ProviderAuthMethod;
     backendProviderAuthConfig: ProviderAuthConfigCreateRes;
   }) {
+    let solution = await getMetorialSolution();
     checkTenant(d, d.providerDeployment);
     checkTenant(d, d.backendProviderAuthConfig.slateAuthConfig);
     checkTenant(d, d.backendProviderAuthConfig.shuttleAuthConfig);
@@ -430,7 +428,7 @@ class providerAuthConfigInternalServiceImpl {
           isDefault: !!d.input.isDefault,
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           providerOid: d.provider.oid,
           authMethodOid: d.authMethod.oid,
@@ -474,7 +472,7 @@ class providerAuthConfigInternalServiceImpl {
             ...getId('providerAuthImport'),
 
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             authConfigOid: providerAuthConfig.oid,
             authConfigUpdateOid: update.oid,
@@ -572,7 +570,6 @@ class providerAuthConfigInternalServiceImpl {
 
   async createBackendProviderAuthConfig(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
     providerVersion: ProviderVersion;

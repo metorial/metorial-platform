@@ -1,19 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { mockDb, mockEnclaveService, mockRecordIngressNetworkLog } = vi.hoisted(() => ({
-  mockDb: {
-    session: {
-      findMany: vi.fn()
+let { mockDb, mockEnclaveService, mockRecordIngressNetworkLog, mockGetMetorialSolution } =
+  vi.hoisted(() => ({
+    mockDb: {
+      session: {
+        findMany: vi.fn()
+      },
+      ephemeralManagedSession: {
+        findMany: vi.fn()
+      }
     },
-    ephemeralManagedSession: {
-      findMany: vi.fn()
-    }
-  },
-  mockEnclaveService: {
-    getCompiledNetworkRules: vi.fn()
-  },
-  mockRecordIngressNetworkLog: vi.fn()
-}));
+    mockEnclaveService: {
+      getCompiledNetworkRules: vi.fn()
+    },
+    mockRecordIngressNetworkLog: vi.fn(),
+    mockGetMetorialSolution: vi.fn()
+  }));
 
 vi.mock('@metorial-subspace/db', async () => ({
   db: mockDb
@@ -25,6 +27,10 @@ vi.mock('./enclave', () => ({
 
 vi.mock('../lib/ingressNetworkLogBuffer', () => ({
   recordIngressNetworkLog: mockRecordIngressNetworkLog
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  getMetorialSolution: mockGetMetorialSolution
 }));
 
 import { enclaveIngressPolicyService } from './ingressPolicy';
@@ -42,6 +48,7 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDb.ephemeralManagedSession.findMany.mockResolvedValue([]);
+    mockGetMetorialSolution.mockResolvedValue(solution);
   });
 
   it('allows sessions when all linked enclave ingress policies allow the source IP', async () => {
@@ -59,7 +66,6 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
     let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
       tenant,
       environment,
-      solution,
       sessionIds: ['ses_test'],
       sourceIp: '203.0.113.10'
     });
@@ -90,7 +96,6 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
     let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
       tenant,
       environment,
-      solution,
       sessionIds: ['ses_test'],
       sourceIp: '203.0.113.10',
       hostname: 'mcp.example.com',
@@ -128,7 +133,6 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
     let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
       tenant,
       environment,
-      solution,
       sessionIds: ['ses_plain'],
       sourceIp: '203.0.113.10',
       recordLog: true

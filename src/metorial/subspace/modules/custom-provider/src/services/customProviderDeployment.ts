@@ -8,7 +8,6 @@ import {
   type CustomProviderStatus,
   db,
   type Environment,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -20,6 +19,7 @@ import {
   resolveProviders,
   resolveProviderVersions
 } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
 
 type ShuttleDeploymentStep = Awaited<
@@ -43,7 +43,6 @@ let include = {
 class customProviderDeploymentServiceImpl {
   async listCustomProviderDeployments(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     status?: CustomProviderDeploymentStatus[];
@@ -58,6 +57,7 @@ class customProviderDeploymentServiceImpl {
     customProviderVersionIds?: string[];
     customProviderEnvironmentIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
     let providers = await resolveProviders(d, d.providerIds);
     let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
@@ -77,7 +77,7 @@ class customProviderDeploymentServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 {
@@ -130,15 +130,15 @@ class customProviderDeploymentServiceImpl {
 
   async getCustomProviderDeploymentById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     customProviderDeploymentId: string;
   }) {
+    let solution = await getMetorialSolution();
     let customProviderDeployment = await db.customProviderDeployment.findFirst({
       where: {
         id: d.customProviderDeploymentId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       include
     });
@@ -152,7 +152,6 @@ class customProviderDeploymentServiceImpl {
 
   async getLogs(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     customProviderDeployment: CustomProviderDeployment;
   }) {

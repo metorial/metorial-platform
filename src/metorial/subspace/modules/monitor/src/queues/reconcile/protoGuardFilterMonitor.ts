@@ -10,12 +10,9 @@ export let reconcileProtoGuardFilterMonitorsForTenant = async (tenantId: string)
   });
   if (!tenant) return;
 
-  let [environments, solutions, filters] = await Promise.all([
+  let [environments, filters] = await Promise.all([
     db.environment.findMany({
       where: { tenantOid: tenant.oid },
-      orderBy: { id: 'asc' }
-    }),
-    db.solution.findMany({
       orderBy: { id: 'asc' }
     }),
     db.protoGuardFilter.findMany({
@@ -25,18 +22,15 @@ export let reconcileProtoGuardFilterMonitorsForTenant = async (tenantId: string)
 
   try {
     for (let environment of environments) {
-      for (let solution of solutions) {
-        await Promise.all(
-          filters.map(filter =>
-            monitorInternalService.upsertProtoGuardFilterMonitor({
-              tenant,
-              environment,
-              solution,
-              filter
-            })
-          )
-        );
-      }
+      await Promise.all(
+        filters.map(filter =>
+          monitorInternalService.upsertProtoGuardFilterMonitor({
+            tenant,
+            environment,
+            filter
+          })
+        )
+      );
     }
   } catch {
     throw new QueueRetryError();

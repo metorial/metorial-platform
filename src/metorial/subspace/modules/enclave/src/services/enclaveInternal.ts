@@ -9,7 +9,6 @@ import {
   Prisma,
   type Provider,
   type ProviderDeployment,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -48,7 +47,6 @@ class enclaveInternalServiceImpl {
 
   async ensureEnclaveForProviderDeployment(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider;
     providerDeployment: ProviderDeployment;

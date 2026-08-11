@@ -16,7 +16,6 @@ import {
   type ProviderType,
   type ProviderVariant,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -26,7 +25,8 @@ import {
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import { getMetorialSolution,
+  checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import { addMinutes } from 'date-fns';
 import { env } from '../env';
@@ -50,10 +50,11 @@ export let providerOAuthSetupInclude = include;
 class providerOAuthSetupServiceImpl {
   async listProviderOAuthSetups(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -61,7 +62,7 @@ class providerOAuthSetupServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               isEphemeral: false,
               ...normalizeStatusForList(d).onlyParent
@@ -74,16 +75,17 @@ class providerOAuthSetupServiceImpl {
 
   async getProviderOAuthSetupById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerOAuthSetupId: string;
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerOAuthSetup = await db.providerOAuthSetup.findFirst({
       where: {
         id: d.providerOAuthSetupId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).onlyParent
       },
@@ -97,7 +99,6 @@ class providerOAuthSetupServiceImpl {
 
   async createProviderOAuthSetup(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
     providerDeployment?: ProviderDeployment & {
@@ -121,6 +122,8 @@ class providerOAuthSetupServiceImpl {
       expiresAt?: Date;
     };
   }) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.providerDeployment);
     checkTenant(d, d.credentials);
 
@@ -146,7 +149,6 @@ class providerOAuthSetupServiceImpl {
     if (!credentials) {
       credentials = await providerAuthCredentialsService.ensureDefaultProviderAuthCredentials({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         provider: d.provider
       });
@@ -160,7 +162,6 @@ class providerOAuthSetupServiceImpl {
       let { version, authMethod } =
         await providerAuthConfigInternalService.getVersionAndAuthMethod({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           provider: d.provider,
           providerDeployment: d.providerDeployment,
@@ -190,7 +191,6 @@ class providerOAuthSetupServiceImpl {
       credentials =
         await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse({
           tenant: d.tenant,
-          solution: d.solution,
           provider: d.provider,
           providerAuthCredentials: credentials,
           providerAuthMethod: authMethod
@@ -236,7 +236,7 @@ class providerOAuthSetupServiceImpl {
           backendUrl: backendProviderOAuthSetup.url,
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           providerOid: d.provider.oid,
           deploymentOid: d.providerDeployment?.oid,
@@ -261,7 +261,6 @@ class providerOAuthSetupServiceImpl {
 
   async updateProviderOAuthSetup(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerOAuthSetup: ProviderOAuthSetup;
     input: {
@@ -270,6 +269,8 @@ class providerOAuthSetupServiceImpl {
       metadata?: Record<string, any>;
     };
   }) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.providerOAuthSetup);
 
     return withTransaction(async db => {
@@ -277,7 +278,7 @@ class providerOAuthSetupServiceImpl {
         where: {
           oid: d.providerOAuthSetup.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid
+          solutionOid: solution.oid
         },
         data: {
           name: d.input.name ?? d.providerOAuthSetup.name,

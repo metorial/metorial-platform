@@ -11,7 +11,6 @@ import {
   type ProviderDeployment,
   type ProviderType,
   snowflake,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -22,11 +21,18 @@ import {
   normalizeStatusForList,
   resolveProviderDeployments
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
 import { providerDeploymentInternalService } from '@metorial-subspace/module-provider-internal';
+import { Fabric } from '@metorial/fabric';
 import { callbackRegistrationService } from './callbackRegistration';
 
-const MAX_DESTINATIONS_PER_CALLBACK = 100;
-const MAX_TRIGGERS_PER_CALLBACK = 100;
+let MAX_DESTINATIONS_PER_CALLBACK = 100;
+let MAX_TRIGGERS_PER_CALLBACK = 100;
 
 let callbackInclude = {
   providerDeployment: {
@@ -51,6 +57,57 @@ let callbackInclude = {
   }
 };
 
+export type ListCallbacksParams = {
+  status?: ('active' | 'archived' | 'deleted')[];
+  allowDeleted?: boolean;
+  ids?: string[];
+  providerDeploymentIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetCallbackByIdParams = {
+  callbackId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateCallbackParams = {
+  providerDeployment: {
+    id: string;
+  };
+  input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    pollIntervalSecondsOverride?: number | null;
+    triggers: { triggerId: string; eventTypes?: string[] }[];
+    destinationIds: string[];
+  };
+};
+
+export type UpdateCallbackParams = {
+  callback: Callback & {
+    providerDeployment: ProviderDeployment & {
+      provider: Provider & {
+        type: ProviderType;
+      };
+      currentVersion: unknown;
+    };
+  };
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    pollIntervalSecondsOverride?: number | null;
+    triggers?: { triggerId: string; eventTypes?: string[] }[];
+    destinationIds?: string[];
+  };
+};
+
+export type ArchiveCallbackParams = {
+  callback: Callback;
+};
+
 class callbackServiceImpl {
   private normalizePollInterval(value?: number | null) {
     if (value === undefined || value === null) return value;
@@ -66,18 +123,21 @@ class callbackServiceImpl {
     return value;
   }
 
-  async listCallbacks(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    status?: ('active' | 'archived' | 'deleted')[];
-    allowDeleted?: boolean;
-    ids?: string[];
-    providerDeploymentIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+  async listCallbacks(d: MetorialFacing<ListCallbacksParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listCallbacksInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listCallbacksInternal(d: { tenant: Tenant; environment: Environment } & ListCallbacksParams) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -85,7 +145,7 @@ class callbackServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             ...normalizeStatusForList(d).noParent,
             AND: [
@@ -101,18 +161,27 @@ class callbackServiceImpl {
     );
   }
 
-  async getCallbackById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getCallbackById(d: MetorialFacing<GetCallbackByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCallbackByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCallbackByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCallbackByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let callback = await db.callback.findFirst({
       where: {
         id: d.callbackId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -127,17 +196,18 @@ class callbackServiceImpl {
 
   private async getDeploymentAndValidate(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerDeployment: {
       id: string;
     };
   }) {
+    let solution = await getMetorialSolution();
+
     let providerDeployment = await db.providerDeployment.findFirst({
       where: {
         id: d.providerDeployment.id,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       },
       include: {
@@ -244,25 +314,31 @@ class callbackServiceImpl {
     });
   }
 
-  async createCallback(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerDeployment: {
-      id: string;
-    };
-    input: {
-      name: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      pollIntervalSecondsOverride?: number | null;
-      triggers: { triggerId: string; eventTypes?: string[] }[];
-      destinationIds: string[];
-    };
-  }) {
+  async createCallback(d: MetorialFacing<CreateCallbackParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.callback.created:before', eventBase);
+
+    let callback = await this.createCallbackInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.callback.created:after', { ...eventBase, callback });
+
+    return callback;
+  }
+
+  async createCallbackInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateCallbackParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let providerDeployment = await this.getDeploymentAndValidate({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       providerDeployment: d.providerDeployment
     });
@@ -297,7 +373,7 @@ class callbackServiceImpl {
     let destinations = await db.callbackDestination.findMany({
       where: {
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         id: { in: destinationIds },
         status: CallbackDestinationStatus.active
       }
@@ -312,7 +388,7 @@ class callbackServiceImpl {
       data: {
         ...getId('callback'),
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         providerDeploymentOid: providerDeployment.oid,
         status: 'active',
@@ -339,35 +415,29 @@ class callbackServiceImpl {
 
     await callbackRegistrationService.syncCallback({ callbackId: callback.id });
 
-    return await this.getCallbackById({
+    return await this.getCallbackByIdInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       callbackId: callback.id
     });
   }
 
-  async updateCallback(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callback: Callback & {
-      providerDeployment: ProviderDeployment & {
-        provider: Provider & {
-          type: ProviderType;
-        };
-        currentVersion: unknown;
-      };
-    };
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      pollIntervalSecondsOverride?: number | null;
-      triggers?: { triggerId: string; eventTypes?: string[] }[];
-      destinationIds?: string[];
-    };
-  }) {
+  async updateCallback(d: MetorialFacing<UpdateCallbackParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateCallbackInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateCallbackInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateCallbackParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let pollIntervalSecondsOverride =
       d.input.pollIntervalSecondsOverride !== undefined
         ? this.normalizePollInterval(d.input.pollIntervalSecondsOverride)
@@ -387,7 +457,7 @@ class callbackServiceImpl {
       let destinations = await db.callbackDestination.findMany({
         where: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           id: { in: destinationIds },
           status: CallbackDestinationStatus.active
         }
@@ -465,20 +535,34 @@ class callbackServiceImpl {
 
     await callbackRegistrationService.syncCallback({ callbackId: d.callback.id });
 
-    return await this.getCallbackById({
+    return await this.getCallbackByIdInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       callbackId: d.callback.id
     });
   }
 
-  async archiveCallback(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callback: Callback;
-  }) {
+  async archiveCallback(d: MetorialFacing<ArchiveCallbackParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.callback.archived:before', eventBase);
+
+    let callback = await this.archiveCallbackInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.callback.archived:after', { ...eventBase, callback });
+
+    return callback;
+  }
+
+  async archiveCallbackInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveCallbackParams
+  ) {
     let archivedAt = new Date();
 
     let archived = await withTransaction(async db => {

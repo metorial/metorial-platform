@@ -1,15 +1,15 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter, resolveScmRepos } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 
 let include = { repo: true };
 
 class scmPushServiceImpl {
   async listScmPushes(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     createdAt?: DateFilter;
@@ -18,6 +18,7 @@ class scmPushServiceImpl {
     ids?: string[];
     scmRepoIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
     let repos = await resolveScmRepos(d, d.scmRepoIds);
 
     return Paginator.create(({ prisma }) =>
@@ -27,7 +28,7 @@ class scmPushServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -42,17 +43,13 @@ class scmPushServiceImpl {
     );
   }
 
-  async getScmPushById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    scmPushId: string;
-  }) {
+  async getScmPushById(d: { tenant: Tenant; environment: Environment; scmPushId: string }) {
+    let solution = await getMetorialSolution();
     let scmRepoPush = await db.scmRepoPush.findFirst({
       where: {
         id: d.scmPushId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       include
     });

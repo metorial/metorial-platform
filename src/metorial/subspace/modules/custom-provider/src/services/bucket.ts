@@ -1,13 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  type CodeBucket,
-  db,
-  type Environment,
-  type Solution,
-  type Tenant
-} from '@metorial-subspace/db';
+import { type CodeBucket, db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -15,6 +9,7 @@ import {
   resolveCustomProviders,
   resolveCustomProviderVersions
 } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getTenantForOrigin, origin } from '../origin';
 
 let include = { scmRepo: true };
@@ -22,7 +17,6 @@ let include = { scmRepo: true };
 class bucketServiceImpl {
   async listBuckets(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     createdAt?: DateFilter;
@@ -33,6 +27,7 @@ class bucketServiceImpl {
     customProviderVersionIds?: string[];
     customProviderDeploymentIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
     let customProviderVersions = await resolveCustomProviderVersions(
       d,
@@ -50,7 +45,7 @@ class bucketServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -81,17 +76,13 @@ class bucketServiceImpl {
     );
   }
 
-  async getBucketById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    bucketId: string;
-  }) {
+  async getBucketById(d: { tenant: Tenant; environment: Environment; bucketId: string }) {
+    let solution = await getMetorialSolution();
     let codeBucket = await db.codeBucket.findFirst({
       where: {
         id: d.bucketId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       include
     });

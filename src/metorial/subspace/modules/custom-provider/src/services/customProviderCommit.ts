@@ -11,7 +11,6 @@ import {
   type Environment,
   getId,
   type ScmRepoPush,
-  type Solution,
   type Tenant,
   type TenantActor,
   withTransaction
@@ -24,7 +23,14 @@ import {
   resolveCustomProviderVersions,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacingWithActor,
+  resolveMetorialFacingWithActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { commitApplyQueue } from '../queues/commit/apply';
 
 let envInclude = {
@@ -81,34 +87,61 @@ let include = {
   scmRepoPush: { include: { repo: true } }
 };
 
+export type CreateCustomProviderCommitParams = {
+  actor: TenantActor;
+  tenant: Tenant;
+  environment: Environment;
+
+  _internal?: {
+    trigger?: CustomProviderCommitTrigger;
+    scmPush?: ScmRepoPush;
+  };
+
+  input: {
+    message: string;
+
+    action:
+      | {
+          type: 'merge_version_into_environment';
+          fromEnvironment: CustomProviderEnvironment;
+          toEnvironment: CustomProviderEnvironment;
+        }
+      | {
+          type: 'rollback_to_version';
+          environment: CustomProviderEnvironment;
+          version: CustomProviderVersion;
+        };
+  };
+};
+
 class customProviderCommitServiceImpl {
-  async createCustomProviderCommit(d: {
-    actor: TenantActor;
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createCustomProviderCommit(
+    d: MetorialFacingWithActor<CreateCustomProviderCommitParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithActor(d);
 
-    _internal?: {
-      trigger?: CustomProviderCommitTrigger;
-      scmPush?: ScmRepoPush;
-    };
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.custom_provider.commit.created:before', eventBase);
 
-    input: {
-      message: string;
+    let customProviderCommit = await this.createCustomProviderCommitInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment,
+      actor: scope.actor
+    });
 
-      action:
-        | {
-            type: 'merge_version_into_environment';
-            fromEnvironment: CustomProviderEnvironment;
-            toEnvironment: CustomProviderEnvironment;
-          }
-        | {
-            type: 'rollback_to_version';
-            environment: CustomProviderEnvironment;
-            version: CustomProviderVersion;
-          };
-    };
-  }) {
+    await Fabric.fire('provider.custom_provider.commit.created:after', {
+      ...eventBase,
+      customProviderCommit
+    });
+
+    return customProviderCommit;
+  }
+
+  async createCustomProviderCommitInternal(d: CreateCustomProviderCommitParams) {
+    let solution = await getMetorialSolution();
+
     return await withTransaction(async db => {
       let dataBase = {
         ...getId('customProviderCommit'),
@@ -122,7 +155,7 @@ class customProviderCommitServiceImpl {
         scmRepoPushOid: d._internal?.scmPush?.oid,
 
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         creatorActorOid: d.actor.oid
       };
 
@@ -260,7 +293,6 @@ class customProviderCommitServiceImpl {
 
   async listCustomProviderCommits(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     createdAt?: DateFilter;
@@ -272,6 +304,7 @@ class customProviderCommitServiceImpl {
     customProviderVersionIds?: string[];
     customProviderEnvironmentIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
     let providers = await resolveProviders(d, d.providerIds);
     let customProviders = await resolveCustomProviders(d, d.customProviderIds);
 
@@ -291,7 +324,7 @@ class customProviderCommitServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -321,15 +354,15 @@ class customProviderCommitServiceImpl {
 
   async getCustomProviderCommitById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     customProviderCommitId: string;
   }) {
+    let solution = await getMetorialSolution();
     let customProviderCommit = await db.customProviderCommit.findFirst({
       where: {
         id: d.customProviderCommitId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       include
     });

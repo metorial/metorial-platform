@@ -1,9 +1,8 @@
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 
 export type Scope = {
   tenant: Tenant;
   environment: Environment;
-  solution: Solution;
 };
 
 export type DateFilter = {

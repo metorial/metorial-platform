@@ -5,9 +5,9 @@ import {
   type Environment,
   db,
   type Session,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { isIpAllowedByIngressAllowList } from '../lib/ingressAllowList';
 import { recordIngressNetworkLog } from '../lib/ingressNetworkLogBuffer';
 import { enclaveService } from './enclave';
@@ -58,15 +58,16 @@ let sessionInclude = {
 class enclaveIngressPolicyServiceImpl {
   private async resolveSessions(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     sessionIds: string[];
   }) {
+    let solution = await getMetorialSolution();
+
     let sessions = await db.session.findMany({
       where: {
         id: { in: d.sessionIds },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active'
       },
@@ -85,7 +86,7 @@ class enclaveIngressPolicyServiceImpl {
       where: {
         id: { in: missingSessionIds },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active'
       },
@@ -109,7 +110,6 @@ class enclaveIngressPolicyServiceImpl {
 
   async checkSessionIngressAccess(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     sessionIds: string[];
     sourceIp: string;
@@ -120,6 +120,7 @@ class enclaveIngressPolicyServiceImpl {
     object: 'enclave.ingress_check';
     results: EnclaveIngressCheckResult[];
   }> {
+    let solution = await getMetorialSolution();
     let sessionIds = Array.from(new Set(d.sessionIds));
     let sessionsByRequestedId = await this.resolveSessions({ ...d, sessionIds });
 
@@ -185,7 +186,7 @@ class enclaveIngressPolicyServiceImpl {
         recordIngressNetworkLog({
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           enclaveOid: record.enclave.oid,
           sessionId: record.sessionId,
           sourceIp: d.sourceIp,
@@ -204,7 +205,6 @@ class enclaveIngressPolicyServiceImpl {
 
   async assertSessionIngressAccess(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     sessionId: string;
     sourceIp: string;

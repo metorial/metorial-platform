@@ -85,7 +85,7 @@ describe('firewallBindingService', () => {
     mockDb.firewallBinding.findFirst.mockResolvedValueOnce(null);
     mockDb.firewallBinding.create.mockResolvedValueOnce(bindingIncludeResult);
 
-    let binding = await firewallBindingService.createFirewallBinding({
+    let binding = await firewallBindingService.createFirewallBindingInternal({
       tenant,
       environment,
       firewallId: 'fwl_test',
@@ -111,7 +111,7 @@ describe('firewallBindingService', () => {
     });
     mockDb.firewallBinding.findFirst.mockResolvedValueOnce(bindingIncludeResult);
 
-    let binding = await firewallBindingService.createFirewallBinding({
+    let binding = await firewallBindingService.createFirewallBindingInternal({
       tenant,
       environment,
       firewallId: 'fwl_test',
@@ -138,7 +138,7 @@ describe('firewallBindingService', () => {
     });
     mockDb.firewallBinding.delete.mockResolvedValueOnce({ id: 'fwb_test' });
 
-    await firewallBindingService.deleteFirewallBinding({
+    await firewallBindingService.deleteFirewallBindingInternal({
       tenant,
       environment,
       firewallBinding: {

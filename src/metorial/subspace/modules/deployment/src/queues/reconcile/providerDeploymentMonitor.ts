@@ -27,7 +27,6 @@ export let reconcileProviderDeploymentMonitor = async (providerDeploymentId: str
 
   let monitor = await monitorInternalService.upsertProviderSpecChangeMonitor({
     tenant: providerDeployment.tenant,
-    solution: providerDeployment.solution,
     environment: providerDeployment.environment,
     provider: providerDeployment.provider
   });

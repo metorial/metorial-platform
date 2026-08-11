@@ -7,7 +7,6 @@ import {
   type Environment,
   type Session,
   type SessionMessageStatus,
-  type Solution,
   type Tenant,
   type ToolCall,
   type ToolCallAttachment
@@ -31,6 +30,13 @@ import {
 } from '@metorial-subspace/list-utils';
 import { agentInstanceService, agentService } from '@metorial-subspace/module-agent';
 import { SenderManager } from '@metorial-subspace/module-connection';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { env } from '../env';
 import { sessionMessageInclude, sessionMessageService } from './sessionMessage';
 
@@ -48,6 +54,44 @@ let connectionInitLock = createLock({
   name: 'sub/ses/toc/init/lock',
   redisUrl: env.service.REDIS_URL
 });
+
+export type ListToolCallsParams = {
+  status?: SessionMessageStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  agentIds?: string[];
+  actorIds?: string[];
+  identityIds?: string[];
+  agentInstanceIds?: string[];
+  sessionTemplateIds?: string[];
+  sessionProviderIds?: string[];
+  providerIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  toolIds?: string[];
+  connectionIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetToolCallByIdParams = {
+  toolCallId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateToolCallParams = {
+  session: Session;
+  input: {
+    metadata?: Record<string, any>;
+    toolId: string;
+    input: Record<string, any>;
+    agentId?: string;
+    rationale?: string;
+    operation?: string;
+  };
+};
 
 class toolCallServiceImpl {
   async enrichToolCalls<T extends ToolCall & { attachments?: ToolCallAttachment[] }>(
@@ -68,39 +112,30 @@ class toolCallServiceImpl {
     }));
   }
 
-  async listToolCalls(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listToolCalls(d: MetorialFacing<ListToolCallsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: SessionMessageStatus[];
-    allowDeleted?: boolean;
+    return this.listToolCallsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    agentIds?: string[];
-    actorIds?: string[];
-    identityIds?: string[];
-    agentInstanceIds?: string[];
-    sessionTemplateIds?: string[];
-    sessionProviderIds?: string[];
-    providerIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    toolIds?: string[];
-    connectionIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let agents = await resolveAgents(d, d.agentIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
-    let sessionProviders = await resolveProviders(d, d.sessionProviderIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+  async listToolCallsInternal(d: { tenant: Tenant; environment: Environment } & ListToolCallsParams) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let agents = await resolveAgents(ts, d.agentIds);
+    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let identities = await resolveIdentities(ts, d.identityIds);
+    let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
+    let sessionProviders = await resolveProviders(ts, d.sessionProviderIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
     let tools = await resolveProviderTools(d.toolIds);
 
     return Paginator.create(({ prisma }) =>
@@ -109,7 +144,7 @@ class toolCallServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
 
             message: normalizeStatusForList(d).onlyParent,
@@ -230,18 +265,27 @@ class toolCallServiceImpl {
     );
   }
 
-  async getToolCallById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    toolCallId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getToolCallById(d: MetorialFacing<GetToolCallByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getToolCallByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getToolCallByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetToolCallByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let toolCall = await db.toolCall.findFirst({
       where: {
         id: d.toolCallId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
 
         message: normalizeStatusForGet(d).onlyParent,
@@ -255,32 +299,39 @@ class toolCallServiceImpl {
     return enriched!;
   }
 
-  async createToolCall(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    session: Session;
-    input: {
-      metadata?: Record<string, any>;
-      toolId: string;
-      input: Record<string, any>;
-      agentId?: string;
-      rationale?: string;
-      operation?: string;
-    };
-  }) {
+  async createToolCall(d: MetorialFacing<CreateToolCallParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.tool_call.created:before', eventBase);
+
+    let toolCall = await this.createToolCallInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.tool_call.created:after', { ...eventBase, toolCall });
+
+    return toolCall;
+  }
+
+  async createToolCallInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateToolCallParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkDeletedRelation(d.session);
 
     let agent = d.input.agentId
-      ? await agentService.getAgentById({
+      ? await agentService.getAgentByIdInternal({
           agentId: d.input.agentId,
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment
         })
-      : await agentService.upsertAgent({
+      : await agentService.upsertAgentInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           input: {
             name: 'Manual Tool Calls',
@@ -288,9 +339,8 @@ class toolCallServiceImpl {
           }
         });
 
-    let agentInstance = await agentInstanceService.upsertAgentInstance({
+    let agentInstance = await agentInstanceService.upsertAgentInstanceInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       agent,
       input: {
@@ -303,7 +353,7 @@ class toolCallServiceImpl {
 
     let manager = await SenderManager.create({
       sessionId: d.session.id,
-      solutionId: d.solution.id,
+      solutionId: solution.id,
       tenantId: d.tenant.id,
       transport: 'tool_call'
     });

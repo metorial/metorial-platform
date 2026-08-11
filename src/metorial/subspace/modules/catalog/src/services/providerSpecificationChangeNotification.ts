@@ -16,6 +16,11 @@ import {
   resolveProviderSpecifications,
   resolveProviderVersions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 export let providerSpecificationChangeNotificationInclude = {
   version: { include: { provider: true } },
@@ -59,30 +64,53 @@ let visibilityFilter = (d: { tenant: Tenant; environment: Environment; solution:
     ]
   }) satisfies Prisma.ProviderSpecificationChangeNotificationWhereInput;
 
-class providerSpecificationChangeNotificationServiceImpl {
-  async listProviderSpecificationChangeNotifications(d: {
-    tenant: Tenant;
-    environment: Environment;
-    solution: Solution;
+type ListProviderSpecificationChangeNotificationsParams = {
+  ids?: string[];
+  targets?: ProviderSpecificationChangeNotificationTarget[];
+  providerIds?: string[];
+  providerVersionIds?: string[];
+  providerSpecificationIds?: string[];
+  createdAt?: DateFilter;
+};
 
-    ids?: string[];
-    targets?: ProviderSpecificationChangeNotificationTarget[];
-    providerIds?: string[];
-    providerVersionIds?: string[];
-    providerSpecificationIds?: string[];
-    createdAt?: DateFilter;
-  }) {
+type GetProviderSpecificationChangeNotificationByIdParams = {
+  notificationId: string;
+};
+
+class providerSpecificationChangeNotificationServiceImpl {
+  async listProviderSpecificationChangeNotifications(
+    d: MetorialFacing<ListProviderSpecificationChangeNotificationsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listProviderSpecificationChangeNotificationsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderSpecificationChangeNotificationsInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & ListProviderSpecificationChangeNotificationsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
     let [providers, providerVersions, providerSpecifications] = await Promise.all([
-      resolveProviders(d, d.providerIds),
-      resolveProviderVersions(d, d.providerVersionIds),
-      resolveProviderSpecifications(d, d.providerSpecificationIds)
+      resolveProviders(ts, d.providerIds),
+      resolveProviderVersions(ts, d.providerVersionIds),
+      resolveProviderSpecifications(ts, d.providerSpecificationIds)
     ]);
 
     return Paginator.create<ProviderSpecificationChangeNotificationWithRelations>(
       ({ prisma }) =>
         prisma(async opts => {
           let and: Prisma.ProviderSpecificationChangeNotificationWhereInput[] = [
-            visibilityFilter(d),
+            visibilityFilter(ts),
             d.ids ? { id: { in: d.ids } } : undefined!,
             d.targets ? { target: { in: d.targets } } : undefined!,
             providers ? { version: { providerOid: providers.in } } : undefined!,
@@ -121,16 +149,31 @@ class providerSpecificationChangeNotificationServiceImpl {
     );
   }
 
-  async getProviderSpecificationChangeNotificationById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    solution: Solution;
-    notificationId: string;
-  }) {
+  async getProviderSpecificationChangeNotificationById(
+    d: MetorialFacing<GetProviderSpecificationChangeNotificationByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderSpecificationChangeNotificationByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderSpecificationChangeNotificationByIdInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & GetProviderSpecificationChangeNotificationByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let notification = await db.providerSpecificationChangeNotification.findFirst({
       where: {
         id: d.notificationId,
-        AND: [visibilityFilter(d)]
+        AND: [visibilityFilter({ tenant: d.tenant, environment: d.environment, solution })]
       },
       include: providerSpecificationChangeNotificationInclude
     });

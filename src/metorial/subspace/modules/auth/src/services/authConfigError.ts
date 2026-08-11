@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -9,6 +9,7 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { buildStoredProviderInvocationIdFilter } from '@metorial-subspace/provider-utils';
 
 let include = {
@@ -24,7 +25,6 @@ export let authConfigErrorInclude = include;
 class authConfigErrorServiceImpl {
   async listAuthConfigErrors(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     ids?: string[];
     authConfigEventIds?: string[];
@@ -37,14 +37,17 @@ class authConfigErrorServiceImpl {
     types?: string[];
     createdAt?: DateFilter;
   }) {
-    let authConfigs = await resolveProviderAuthConfigs(d, d.authConfigIds);
-    let authCredentials = await resolveProviderAuthCredentials(d, d.authCredentialsIds);
-    let providers = await resolveProviders(d, d.providerIds);
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.authConfigIds);
+    let authCredentials = await resolveProviderAuthCredentials(ts, d.authCredentialsIds);
+    let providers = await resolveProviders(ts, d.providerIds);
     let authConfigEvents = d.authConfigEventIds?.length
       ? await db.providerAuthConfigEvent.findMany({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             id: { in: d.authConfigEventIds }
           },
@@ -55,7 +58,7 @@ class authConfigErrorServiceImpl {
       ? await db.providerOAuthSetup.findMany({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             id: { in: d.providerOAuthSetupIds }
           },
@@ -79,7 +82,7 @@ class authConfigErrorServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -108,15 +111,16 @@ class authConfigErrorServiceImpl {
 
   async getAuthConfigErrorById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     authConfigErrorId: string;
   }) {
+    let solution = await getMetorialSolution();
+
     let authConfigError = await db.providerAuthConfigError.findFirst({
       where: {
         id: d.authConfigErrorId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       },
       include

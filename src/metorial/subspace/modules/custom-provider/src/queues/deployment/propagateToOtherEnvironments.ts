@@ -23,8 +23,7 @@ export let customDeploymentPropagateToOtherEnvironmentsQueueProcessor =
             toEnvironment: true
           }
         },
-        tenant: true,
-        solution: true
+        tenant: true
       }
     });
     if (!deployment) throw new QueueRetryError();
@@ -54,10 +53,9 @@ export let customDeploymentPropagateToOtherEnvironmentsQueueProcessor =
 
     await withTransaction(async db => {
       for (let env of envs) {
-        await customProviderCommitService.createCustomProviderCommit({
+        await customProviderCommitService.createCustomProviderCommitInternal({
           actor,
           tenant: deployment.tenant,
-          solution: deployment.solution,
           environment: env.environment,
           input: {
             message: `Propagate Git deployment (sha: ${deployment.scmRepoPush!.sha})`,

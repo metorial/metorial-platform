@@ -85,7 +85,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.createNetworkPolicy({
+    let result = await networkPolicyService.createNetworkPolicyInternal({
       tenant,
       environment,
       input: {
@@ -139,7 +139,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.addNetworkPolicyRule({
+    let result = await networkPolicyService.addNetworkPolicyRuleInternal({
       tenant,
       environment,
       networkPolicy: {
@@ -193,7 +193,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.removeNetworkPolicyRule({
+    let result = await networkPolicyService.removeNetworkPolicyRuleInternal({
       tenant,
       environment,
       networkPolicy: {
@@ -255,7 +255,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.updateNetworkPolicy({
+    let result = await networkPolicyService.updateNetworkPolicyInternal({
       tenant,
       environment,
       networkPolicy: {
@@ -299,7 +299,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    await networkPolicyService.archiveNetworkPolicy({
+    await networkPolicyService.archiveNetworkPolicyInternal({
       tenant,
       environment,
       networkPolicy: {

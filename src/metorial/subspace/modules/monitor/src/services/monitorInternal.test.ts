@@ -19,6 +19,10 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  getMetorialSolution: async () => ({ oid: BigInt(3), id: 'solution_1' })
+}));
+
 describe('monitorInternalService', () => {
   beforeEach(() => {
     vi.resetModules();

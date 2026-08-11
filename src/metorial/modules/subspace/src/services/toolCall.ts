@@ -1,6 +1,5 @@
-import { Fabric } from '@metorial/fabric';
 import { enrichSessionParticipantsWithConsumer } from '../lib/enrichSessionParticipants';
-import { createSubspaceService, toEventBase } from '../lib/subspaceService';
+import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceToolCallService = createSubspaceService(
@@ -48,16 +47,6 @@ export let subspaceToolCallService = createSubspaceService(
             : null
         }));
       });
-    },
-    create: async (...params: Parameters<typeof inner.create>) => {
-      let eventBase = toEventBase(params[0]);
-      await Fabric.fire('provider.tool_call.created:before', eventBase);
-
-      let toolCall = await inner.create(...params);
-
-      await Fabric.fire('provider.tool_call.created:after', { ...eventBase, toolCall });
-
-      return toolCall;
     }
   })
 );

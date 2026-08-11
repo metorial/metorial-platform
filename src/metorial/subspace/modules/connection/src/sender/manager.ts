@@ -388,7 +388,6 @@ export class SenderManager {
 
       await enclaveIngressPolicyService.assertSessionIngressAccess({
         tenant: session.tenant,
-        solution: session.solution,
         environment,
         sessionId: session.id,
         sourceIp: d.ingressPolicyCheck.sourceIp,
@@ -485,9 +484,8 @@ export class SenderManager {
       where: { oid: this.session.environmentOid }
     });
 
-    return await agentClientService.upsertAgentClient({
+    return await agentClientService.upsertAgentClientInternal({
       tenant: this.tenant,
-      solution: this.solution,
       environment,
       input: this.agentClient
     });
@@ -508,9 +506,8 @@ export class SenderManager {
       where: { oid: this.session.environmentOid }
     });
 
-    let agent = await agentService.upsertAgent({
+    let agent = await agentService.upsertAgentInternal({
       tenant: this.tenant,
-      solution: this.solution,
       environment,
       input: {
         name: d.name,
@@ -518,9 +515,8 @@ export class SenderManager {
       }
     });
 
-    let agentInstance = await agentInstanceService.upsertAgentInstance({
+    let agentInstance = await agentInstanceService.upsertAgentInstanceInternal({
       tenant: this.tenant,
-      solution: this.solution,
       environment,
       agent,
       agentClient: agentClientContext?.agentClient,

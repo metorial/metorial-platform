@@ -11,7 +11,6 @@ import {
   type SessionTemplate,
   type SessionTemplateProvider,
   type SessionTemplateProviderStatus,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -35,7 +34,14 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import {
   enqueueSessionTemplateProvidersCreated,
   enqueueSessionTemplateSyncHash
@@ -90,48 +96,92 @@ let assertCanWriteSessionTemplateProvider = (
   );
 };
 
+export type ListSessionTemplateProvidersParams = {
+  status?: SessionTemplateProviderStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  sessionTemplateIds?: string[];
+  providerIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  integrationIds?: string[];
+  integrationInstanceIds?: string[];
+  integrationInstanceGroupIds?: string[];
+  integrationProviderIds?: string[];
+  integrationInstanceProviderIds?: string[];
+  integrationInstanceGroupProviderIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSessionTemplateProviderByIdParams = {
+  sessionTemplateProviderId: string;
+  allowDeleted?: boolean;
+};
+
+export type GetManySessionTemplateProvidersBySessionTemplateIdsParams = {
+  sessionTemplateIds: string[];
+  status?: SessionTemplateProviderStatus[];
+  allowDeleted?: boolean;
+};
+
+export type CreateSessionTemplateProviderParams = {
+  template: SessionTemplate;
+  input: SessionProviderInput;
+  _allowLinked?: boolean;
+};
+
+export type UpdateSessionTemplateProviderParams = {
+  sessionTemplateProvider: SessionTemplateProvider;
+  input: {
+    toolFilters?: SessionProviderInputToolFilters;
+  };
+  _allowLinked?: boolean;
+};
+
+export type ArchiveSessionTemplateProviderParams = {
+  sessionTemplateProvider: SessionTemplateProvider;
+  _allowLinked?: boolean;
+};
+
 class sessionTemplateProviderServiceImpl {
-  async listSessionTemplateProviders(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listSessionTemplateProviders(d: MetorialFacing<ListSessionTemplateProvidersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: SessionTemplateProviderStatus[];
-    allowDeleted?: boolean;
+    return this.listSessionTemplateProvidersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    sessionTemplateIds?: string[];
-    providerIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    integrationIds?: string[];
-    integrationInstanceIds?: string[];
-    integrationInstanceGroupIds?: string[];
-    integrationProviderIds?: string[];
-    integrationInstanceProviderIds?: string[];
-    integrationInstanceGroupProviderIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
+  async listSessionTemplateProvidersInternal(
+    d: { tenant: Tenant; environment: Environment } & ListSessionTemplateProvidersParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(ts, d.integrationInstanceIds);
     let integrationInstanceGroups = await resolveIntegrationInstanceGroups(
-      d,
+      ts,
       d.integrationInstanceGroupIds
     );
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
     let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
-      d,
+      ts,
       d.integrationInstanceProviderIds
     );
     let integrationInstanceGroupProviders = await resolveIntegrationInstanceGroupProviders(
-      d,
+      ts,
       d.integrationInstanceGroupProviderIds
     );
 
@@ -142,7 +192,7 @@ class sessionTemplateProviderServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               sessionTemplate: sessionTemplates?.oids.length
@@ -236,18 +286,27 @@ class sessionTemplateProviderServiceImpl {
     );
   }
 
-  async getSessionTemplateProviderById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionTemplateProviderId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSessionTemplateProviderById(d: MetorialFacing<GetSessionTemplateProviderByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getSessionTemplateProviderByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getSessionTemplateProviderByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionTemplateProviderByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let sessionProvider = await db.sessionTemplateProvider.findFirst({
       where: {
         id: d.sessionTemplateProviderId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -261,20 +320,36 @@ class sessionTemplateProviderServiceImpl {
     return sessionProvider;
   }
 
-  async getManySessionTemplateProvidersBySessionTemplateIds(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionTemplateIds: string[];
-    status?: SessionTemplateProviderStatus[];
-    allowDeleted?: boolean;
-  }) {
-    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
+  async getManySessionTemplateProvidersBySessionTemplateIds(
+    d: MetorialFacing<GetManySessionTemplateProvidersBySessionTemplateIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManySessionTemplateProvidersBySessionTemplateIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManySessionTemplateProvidersBySessionTemplateIdsInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & GetManySessionTemplateProvidersBySessionTemplateIdsParams
+  ) {
+    let solution = await getMetorialSolution();
+
+    let sessionTemplates = await resolveSessionTemplates(
+      { tenant: d.tenant, environment: d.environment, solution },
+      d.sessionTemplateIds
+    );
 
     return await db.sessionTemplateProvider.findMany({
       where: {
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent,
         AND: [
@@ -594,15 +669,30 @@ class sessionTemplateProviderServiceImpl {
     });
   }
 
-  async createSessionTemplateProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createSessionTemplateProvider(d: MetorialFacing<CreateSessionTemplateProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    template: SessionTemplate;
-    input: SessionProviderInput;
-    _allowLinked?: boolean;
-  }) {
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.session_template.provider.created:before', eventBase);
+
+    let sessionTemplateProvider = await this.createSessionTemplateProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.session_template.provider.created:after', {
+      ...eventBase,
+      sessionTemplateProvider
+    });
+
+    return sessionTemplateProvider;
+  }
+
+  async createSessionTemplateProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateSessionTemplateProviderParams
+  ) {
     checkDeletedRelation(d.template);
     if (!d._allowLinked) {
       assertCanWriteSessionTemplateProvider(
@@ -616,7 +706,6 @@ class sessionTemplateProviderServiceImpl {
 
     let [res] = await sessionProviderInputService.createSessionTemplateProvidersForInput({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
 
       template: d.template,
@@ -626,16 +715,32 @@ class sessionTemplateProviderServiceImpl {
     return res!;
   }
 
-  async updateSessionTemplateProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionTemplateProvider: SessionTemplateProvider;
-    input: {
-      toolFilters?: SessionProviderInputToolFilters;
-    };
-    _allowLinked?: boolean;
-  }) {
+  async updateSessionTemplateProvider(d: MetorialFacing<UpdateSessionTemplateProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.session_template.provider.updated:before', eventBase);
+
+    let sessionTemplateProvider = await this.updateSessionTemplateProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.session_template.provider.updated:after', {
+      ...eventBase,
+      sessionTemplateProvider
+    });
+
+    return sessionTemplateProvider;
+  }
+
+  async updateSessionTemplateProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateSessionTemplateProviderParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.sessionTemplateProvider);
     checkDeletedEdit(d.sessionTemplateProvider, 'update');
     if (!d._allowLinked) {
@@ -646,7 +751,7 @@ class sessionTemplateProviderServiceImpl {
       where: {
         oid: d.sessionTemplateProvider.oid,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       },
       data: {
@@ -660,13 +765,32 @@ class sessionTemplateProviderServiceImpl {
     return sessionTemplateProvider;
   }
 
-  async archiveSessionTemplateProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionTemplateProvider: SessionTemplateProvider;
-    _allowLinked?: boolean;
-  }) {
+  async archiveSessionTemplateProvider(d: MetorialFacing<ArchiveSessionTemplateProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.session_template.provider.deleted:before', eventBase);
+
+    let sessionTemplateProvider = await this.archiveSessionTemplateProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.session_template.provider.deleted:after', {
+      ...eventBase,
+      sessionTemplateProvider
+    });
+
+    return sessionTemplateProvider;
+  }
+
+  async archiveSessionTemplateProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveSessionTemplateProviderParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.sessionTemplateProvider);
     checkDeletedEdit(d.sessionTemplateProvider, 'archive');
     if (!d._allowLinked) {
@@ -677,7 +801,7 @@ class sessionTemplateProviderServiceImpl {
       where: {
         oid: d.sessionTemplateProvider.oid,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       },
       data: {

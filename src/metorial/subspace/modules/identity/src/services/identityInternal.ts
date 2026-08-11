@@ -9,12 +9,11 @@ import {
   type Identity,
   type IdentityActor,
   type IntegrationInstance,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { checkDeletedRelation } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import { checkTenant, getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { env } from '../env';
 import { identityCreatedQueue } from '../queues/lifecycle/identity';
 import { integrationInstanceProviderCredentialSyncQueue } from '../queues/lifecycle/integrationInstanceProviderCredential';
@@ -44,12 +43,13 @@ let ownedIdentityActorMismatchError = () =>
 class identityInternalServiceImpl {
   async ensureIntegrationIdentity(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstance: IntegrationInstance;
     actor?: IdentityActor | null;
     identityId?: string | null;
   }) {
+    let solution = await getMetorialSolution();
+
     if (d.actor) {
       checkTenant(d, d.actor);
       checkDeletedRelation(d.actor);
@@ -60,7 +60,7 @@ class identityInternalServiceImpl {
         where: {
           id: d.identityId,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         include: {
@@ -181,7 +181,7 @@ class identityInternalServiceImpl {
               description: d.actor!.description,
               metadata: d.actor!.metadata,
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid
             }
           });

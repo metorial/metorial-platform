@@ -11,6 +11,7 @@ import {
 } from '@metorial-subspace/db';
 import type { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { providerVariantInclude } from './providerVariant';
 
 let include = {
@@ -111,16 +112,18 @@ export let getProviderCapabilityFilter = (d: ProviderCapabilityFilter) => {
 class providerServiceImpl {
   async getProviderById(d: {
     providerId: string;
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let provider = await db.provider.findFirst({
       where: {
         AND: [
           getProviderTenantFilter({
             ...d,
+            solution,
             includeDeprecated: true
           }),
 
@@ -147,7 +150,6 @@ class providerServiceImpl {
   }
 
   async listProviders(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     search?: string;
@@ -156,6 +158,8 @@ class providerServiceImpl {
     capabilities?: ProviderCapabilityFilter;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
@@ -169,6 +173,7 @@ class providerServiceImpl {
                 { status: 'active' },
                 getProviderTenantFilter({
                   ...d,
+                  solution,
                   includeDeprecated
                 }),
                 {

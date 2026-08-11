@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { functionBay, getTenantForFunctionBay } from '../functionBay';
 
 export type EnclaveNetworkLogDirection = 'ingress' | 'egress';
@@ -59,7 +60,6 @@ let getBucketStart = (date: Date, intervalMinutes: number) => {
 class enclaveNetworkLogServiceImpl {
   async listNetworkLogs(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     direction: EnclaveNetworkLogDirection;
     enclaveIds?: string[];
@@ -80,7 +80,6 @@ class enclaveNetworkLogServiceImpl {
 
   private async listEgressNetworkLogs(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     enclaveIds?: string[];
     filters: {
@@ -137,7 +136,6 @@ class enclaveNetworkLogServiceImpl {
 
   private async listIngressNetworkLogs(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     enclaveIds?: string[];
     filters: {
@@ -158,6 +156,7 @@ class enclaveNetworkLogServiceImpl {
       };
     }
 
+    let solution = await getMetorialSolution();
     let enclaveIdsByOid = new Map(enclaves.map(e => [e.oid, e.id]));
     let from = d.filters.from ? new Date(d.filters.from) : undefined;
     let to = d.filters.to ? new Date(d.filters.to) : undefined;
@@ -166,7 +165,7 @@ class enclaveNetworkLogServiceImpl {
       where: {
         tenantOid: d.tenant.oid,
         environmentOid: d.environment.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         enclaveOid: { in: enclaves.map(e => e.oid) },
         hostname: d.filters.hostnames?.length ? { in: d.filters.hostnames } : undefined,
         sourceIp: d.filters.ips?.length ? { in: d.filters.ips } : undefined,

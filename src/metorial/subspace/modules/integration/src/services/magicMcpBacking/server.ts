@@ -12,7 +12,7 @@ import {
   ephemeralManagedSessionService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import { checkTenant, getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { integrationService } from '../integration';
 import { integrationInstanceService } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
@@ -33,7 +33,6 @@ import {
 
 type UpsertMagicMcpServerBackingInput = {
   tenant: Tenant;
-  solution: Solution;
   environment: Environment;
   input: MagicMcpBackingInputBase & {
     providerTemplateBackingId?: string | null;
@@ -49,11 +48,12 @@ type UpsertMagicMcpServerBackingInput = {
 class magicMcpServerBackingServiceImpl {
   private async getLegacyProvidersFromSessionTemplate(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     sessionTemplateId?: string | null;
   }): Promise<BackingProviderInput[]> {
     if (!d.sessionTemplateId) return [];
+
+    let solution = await getMetorialSolution();
 
     let providers = await db.sessionTemplateProvider.findMany({
       where: {
@@ -61,7 +61,7 @@ class magicMcpServerBackingServiceImpl {
         sessionTemplate: {
           id: d.sessionTemplateId,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -81,6 +81,8 @@ class magicMcpServerBackingServiceImpl {
   }
 
   async upsertMagicMcpServerBacking(d: UpsertMagicMcpServerBackingInput) {
+    let solution = await getMetorialSolution();
+
     let actorOid = await resolveActorOid({
       ...d,
       identityActorId: d.input.identityActorId,
@@ -106,9 +108,8 @@ class magicMcpServerBackingServiceImpl {
       );
     }
     let ownerIntegration = d.input.ownerIntegrationId
-      ? await integrationService.getIntegrationById({
+      ? await integrationService.getIntegrationByIdInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           integrationId: d.input.ownerIntegrationId
         })
@@ -181,7 +182,6 @@ class magicMcpServerBackingServiceImpl {
       (d.input.isReconciliation
         ? await this.getLegacyProvidersFromSessionTemplate({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             sessionTemplateId: d.input.legacySessionTemplateId
           })
@@ -211,9 +211,8 @@ class magicMcpServerBackingServiceImpl {
             ownerIntegrationInstance?.integration ??
             existing?.integration;
           if (ownerType === 'server_owned') {
-            integration = await integrationService.upsertMagicMcpIntegration({
+            integration = await integrationService.upsertMagicMcpIntegrationInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integration,
               input: {
@@ -234,9 +233,8 @@ class magicMcpServerBackingServiceImpl {
 
           let integrationInstance =
             ownerIntegrationInstance ??
-            (await integrationInstanceService.upsertMagicMcpIntegrationInstance({
+            (await integrationInstanceService.upsertMagicMcpIntegrationInstanceInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integration,
               integrationInstance: existing?.integrationInstance,
@@ -251,9 +249,8 @@ class magicMcpServerBackingServiceImpl {
             }));
 
           let sessionTemplate =
-            await sessionTemplateService.upsertInternalLinkedSessionTemplate({
+            await sessionTemplateService.upsertInternalLinkedSessionTemplateInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               sessionTemplate: existing?.sessionTemplate,
               linkAsDefault: false,
@@ -267,9 +264,8 @@ class magicMcpServerBackingServiceImpl {
             });
 
           let ephemeralManagedSession =
-            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSession({
+            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               ephemeralManagedSession: existing?.ephemeralManagedSession,
               sessionTemplate,
@@ -317,9 +313,8 @@ class magicMcpServerBackingServiceImpl {
     );
 
     if (providers.length) {
-      await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProviders({
+      await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProvidersInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integration: syncTarget.integration,
         integrationInstance: syncTarget.integrationInstance,
@@ -331,14 +326,14 @@ class magicMcpServerBackingServiceImpl {
     if (shouldDeferReconcile) {
       await enqueueMagicMcpServerBackingReconcile({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpServerBackingId: d.input.id
       });
     } else if (shouldRunReconcile) {
       await reconcileMagicMcpServerBacking({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpServerBackingId: d.input.id
       });
@@ -409,9 +404,8 @@ class magicMcpServerBackingServiceImpl {
       policy.archivesIntegrationInstance &&
       !['archived', 'deleted'].includes(backing.integrationInstance.status)
     ) {
-      await integrationInstanceService.archiveIntegrationInstance({
+      await integrationInstanceService.archiveIntegrationInstanceInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstance: backing.integrationInstance,
         _canModifyMagicMcpBacking: true
@@ -422,18 +416,16 @@ class magicMcpServerBackingServiceImpl {
       backing.integration &&
       !['archived', 'deleted'].includes(backing.integration.status)
     ) {
-      await integrationService.archiveIntegration({
+      await integrationService.archiveIntegrationInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integration: backing.integration,
         _canModifyMagicMcpBacking: true
       });
     }
     if (!['archived', 'deleted'].includes(backing.sessionTemplate.status)) {
-      await sessionTemplateService.archiveSessionTemplate({
+      await sessionTemplateService.archiveSessionTemplateInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         sessionTemplate: backing.sessionTemplate,
         _allowLinked: true
@@ -441,14 +433,12 @@ class magicMcpServerBackingServiceImpl {
     }
 
     if (!['archived', 'deleted'].includes(backing.ephemeralManagedSession.status)) {
-      await ephemeralManagedSessionService.archiveEphemeralManagedSession({
+      await ephemeralManagedSessionService.archiveEphemeralManagedSessionInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         ephemeralManagedSession:
-          await ephemeralManagedSessionService.getEphemeralManagedSessionById({
+          await ephemeralManagedSessionService.getEphemeralManagedSessionByIdInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             ephemeralManagedSessionId: backing.ephemeralManagedSession.id
           })

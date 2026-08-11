@@ -46,10 +46,10 @@ COPY --from=builder /app/node_modules /app/node_modules
 ENV NODE_ENV=production
 
 # Expose the port the app runs on
-EXPOSE 52070
+EXPOSE 52072
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD curl -f http://localhost:52070/ping && curl -f http://localhost:12121/ || exit 1
+  CMD curl -f http://localhost:52072/ping && curl -f http://localhost:12121/ || exit 1
 
 # Start command: push schema and start service
 CMD ["sh", "-c", "cd db && bun prisma db push --accept-data-loss && cd /app && bun dist/index.js"]

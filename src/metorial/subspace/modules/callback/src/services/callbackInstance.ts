@@ -12,7 +12,6 @@ import {
   type ProviderConfig,
   type ProviderDeployment,
   type ProviderDeploymentVersion,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -27,6 +26,13 @@ import {
   providerCombinationService,
   providerDeploymentConfigPairInternalService
 } from '@metorial-subspace/module-provider-internal';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
 import { callbackService } from './callback';
 import { callbackRegistrationService } from './callbackRegistration';
@@ -58,17 +64,52 @@ let callbackInstanceInclude = {
   activeRegistration: true
 };
 
+export type GetCallbackInstanceParams = {
+  callbackId: string;
+  callbackInstanceId: string;
+};
+
+export type ListCallbackInstancesParams = {
+  callbackIds?: string[];
+  ids?: string[];
+  status?: ('attached' | 'detached')[];
+  allowDeleted?: boolean;
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type AttachCallbackInstanceParams = {
+  callback: Callback & {
+    providerDeployment: ProviderDeployment & {
+      id: string;
+      currentVersion: ProviderDeploymentVersion | null;
+    };
+  };
+  config: ProviderConfig;
+  authConfig?: ProviderAuthConfig;
+};
+
+export type DetachCallbackInstanceParams = {
+  callbackInstance: CallbackInstance;
+};
+
 class callbackInstanceServiceImpl {
-  async get(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    callbackInstanceId: string;
-  }) {
-    let callback = await callbackService.getCallbackById({
+  async get(d: MetorialFacing<GetCallbackInstanceParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getInternal(d: { tenant: Tenant; environment: Environment } & GetCallbackInstanceParams) {
+    let callback = await callbackService.getCallbackByIdInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       callbackId: d.callbackId
     });
@@ -94,23 +135,26 @@ class callbackInstanceServiceImpl {
     return callbackInstance;
   }
 
-  async list(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async list(d: MetorialFacing<ListCallbackInstancesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    callbackIds?: string[];
-    ids?: string[];
-    status?: ('attached' | 'detached')[];
-    allowDeleted?: boolean;
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let callbacks = await resolveCallbacks(d, d.callbackIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    return this.listInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCallbackInstancesParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let callbacks = await resolveCallbacks(ts, d.callbackIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -151,30 +195,39 @@ class callbackInstanceServiceImpl {
     );
   }
 
-  async attach(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callback: Callback & {
-      providerDeployment: ProviderDeployment & {
-        id: string;
-        currentVersion: ProviderDeploymentVersion | null;
-      };
-    };
-    config: ProviderConfig;
-    authConfig?: ProviderAuthConfig;
-  }) {
+  async attach(d: MetorialFacing<AttachCallbackInstanceParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.callback_instance.attached:before', eventBase);
+
+    let callbackInstance = await this.attachInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.callback_instance.attached:after', {
+      ...eventBase,
+      callbackInstance
+    });
+
+    return callbackInstance;
+  }
+
+  async attachInternal(
+    d: { tenant: Tenant; environment: Environment } & AttachCallbackInstanceParams
+  ) {
     if (d.callback.providerDeployment.status !== 'active') {
       throw new ServiceError(
         notFoundError('provider.deployment', d.callback.providerDeployment.id)
       );
     }
 
-    let [combination] = await providerCombinationService.getCombinations({
+    let [combination] = await providerCombinationService.getCombinationsInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
-
       providers: [
         {
           deploymentId: d.callback.providerDeployment.id,
@@ -184,13 +237,11 @@ class callbackInstanceServiceImpl {
       ]
     });
 
-    let pairRes = await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair(
-      {
-        deployment: d.callback.providerDeployment,
-        config: combination.config,
-        authConfig: combination.authConfig
-      }
-    );
+    let pairRes = await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair({
+      deployment: d.callback.providerDeployment,
+      config: combination.config,
+      authConfig: combination.authConfig
+    });
 
     let callbackInstance = await db.callbackInstance.findFirst({
       where: {
@@ -236,7 +287,30 @@ class callbackInstanceServiceImpl {
     });
   }
 
-  async detach(d: { tenant: Tenant; callbackInstance: CallbackInstance }) {
+  async detach(d: MetorialFacing<DetachCallbackInstanceParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.callback_instance.detached:before', eventBase);
+
+    let callbackInstance = await this.detachInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.callback_instance.detached:after', {
+      ...eventBase,
+      callbackInstance
+    });
+
+    return callbackInstance;
+  }
+
+  async detachInternal(
+    d: { tenant: Tenant; environment: Environment } & DetachCallbackInstanceParams
+  ) {
     if (d.callbackInstance.slateTriggerReceiverId) {
       let slatesTenant = await getTenantForSlates(d.tenant);
       try {

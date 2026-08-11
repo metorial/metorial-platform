@@ -11,6 +11,7 @@ import {
   resolvePublishers
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import type { ProviderCapabilityFilter } from './provider';
 import {
   getProviderCapabilityFilter,
@@ -58,11 +59,12 @@ let getInclude = (tenant: Tenant | undefined, solution: Solution) => ({
 class ProviderListingService {
   async getProviderListingById(d: {
     providerListingId: string;
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerListing = await db.providerListing.findFirst({
       where: {
         AND: [
@@ -83,7 +85,7 @@ class ProviderListingService {
               d.tenant && d.environment
                 ? {
                     ownerTenantOid: d.tenant.oid,
-                    OR: [{ ownerSolutionOid: d.solution.oid }, { ownerSolutionOid: null }]
+                    OR: [{ ownerSolutionOid: solution.oid }, { ownerSolutionOid: null }]
                   }
                 : undefined!
             ].filter(Boolean)
@@ -96,7 +98,7 @@ class ProviderListingService {
             : undefined!
         ].filter(Boolean)
       },
-      include: getInclude(d.tenant, d.solution)
+      include: getInclude(d.tenant, solution)
     });
     if (!providerListing) {
       throw new ServiceError(notFoundError('provider.listing', d.providerListingId));
@@ -124,7 +126,6 @@ class ProviderListingService {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
 
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
 
@@ -134,6 +135,8 @@ class ProviderListingService {
     capabilities?: ProviderCapabilityFilter;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let collections = await resolveProviderCollections(d.providerCollectionIds);
     let categories = await resolveProviderCategories(d.providerCategoryIds);
     let publishers = await resolvePublishers(d.publisherIds);
@@ -143,7 +146,10 @@ class ProviderListingService {
 
     let groups =
       d.environment && d.tenant
-        ? await resolveProviderGroups(d as any, d.providerGroupIds)
+        ? await resolveProviderGroups(
+            { tenant: d.tenant, environment: d.environment, solution },
+            d.providerGroupIds
+          )
         : undefined;
 
     d.search = d.search?.trim();
@@ -156,7 +162,7 @@ class ProviderListingService {
       let providerUses = await db.providerUse.findMany({
         where: {
           tenantOid: d.tenant!.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment!.oid
         },
         orderBy: { [orderByUse]: 'desc' },
@@ -197,7 +203,7 @@ class ProviderListingService {
                   d.tenant && d.environment
                     ? {
                         ownerTenantOid: d.tenant.oid,
-                        OR: [{ ownerSolutionOid: d.solution.oid }, { ownerSolutionOid: null }]
+                        OR: [{ ownerSolutionOid: solution.oid }, { ownerSolutionOid: null }]
                       }
                     : undefined!
                 ].filter(Boolean)
@@ -241,10 +247,10 @@ class ProviderListingService {
 
               capFilters ? { type: capFilters } : undefined!,
 
-              d.onlyFromTenant && d.tenant && d.solution
+              d.onlyFromTenant && d.tenant
                 ? {
                     ownerTenantOid: d.tenant.oid,
-                    ownerSolutionOid: d.solution.oid
+                    ownerSolutionOid: solution.oid
                   }
                 : undefined!,
 
@@ -257,7 +263,7 @@ class ProviderListingService {
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
           },
-          include: getInclude(d.tenant, d.solution),
+          include: getInclude(d.tenant, solution),
           omit: {
             readme: true
           }

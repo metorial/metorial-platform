@@ -3,6 +3,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db } from '@metorial-subspace/db';
 import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
+import {
   normalizeDateFilter,
   resolveProtoGuardFilterOids,
   resolveProtoGuardRunOids,
@@ -26,12 +31,14 @@ export let protoGuardAlertInclude = {
 } as const;
 
 let getProtoGuardAlertById = async (d: Scope & { alertId: string }) => {
+  let solution = await getMetorialSolution();
+
   let alert = await db.protoGuardAlert.findFirst({
     where: {
       id: d.alertId,
       tenantOid: d.tenant.oid,
       environmentOid: d.environment.oid,
-      solutionOid: d.solution.oid
+      solutionOid: solution.oid
     },
     include: protoGuardAlertInclude
   });
@@ -40,19 +47,29 @@ let getProtoGuardAlertById = async (d: Scope & { alertId: string }) => {
   return alert;
 };
 
+export type ListProtoGuardAlertsParams = Scope & {
+  ids?: string[];
+  runIds?: string[];
+  filterIds?: string[];
+  sessionIds?: string[];
+  sessionMessageIds?: string[];
+  sessionConnectionIds?: string[];
+  providerRunIds?: string[];
+  createdAt?: DateFilter;
+};
+
+export type GetProtoGuardAlertByIdParams = Scope & { alertId: string };
+
 class protoGuardAlertServiceImpl {
-  async listAlerts(
-    d: Scope & {
-      ids?: string[];
-      runIds?: string[];
-      filterIds?: string[];
-      sessionIds?: string[];
-      sessionMessageIds?: string[];
-      sessionConnectionIds?: string[];
-      providerRunIds?: string[];
-      createdAt?: DateFilter;
-    }
-  ) {
+  async listAlerts(d: MetorialFacing<ListProtoGuardAlertsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listAlertsInternal({ ...rest, tenant, environment });
+  }
+
+  async listAlertsInternal(d: ListProtoGuardAlertsParams) {
+    let solution = await getMetorialSolution();
+
     let [
       runOids,
       filterOids,
@@ -76,7 +93,7 @@ class protoGuardAlertServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               runOids ? { runOid: { in: runOids } } : undefined!,
@@ -98,7 +115,13 @@ class protoGuardAlertServiceImpl {
     );
   }
 
-  async getAlertById(d: Scope & { alertId: string }) {
+  async getAlertById(d: MetorialFacing<GetProtoGuardAlertByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getAlertByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getAlertByIdInternal(d: GetProtoGuardAlertByIdParams) {
     return await getProtoGuardAlertById(d);
   }
 }

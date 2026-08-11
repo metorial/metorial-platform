@@ -11,6 +11,7 @@
   "dependencies": {
     "@metorial/context": "^1.0.0",
     "@metorial/db": "^1.0.0",
+    "@metorial-subspace/db": "^1.0.0",
     "@lowerdeck/emitter": "workspace:2.0.0"
   },
   "devDependencies": {

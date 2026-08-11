@@ -1,13 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter, resolveProviders } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
 class providerSpecificationServiceImpl {
   async listProviderSpecifications(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
 
@@ -21,6 +21,8 @@ class providerSpecificationServiceImpl {
     updatedAt?: DateFilter;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let includeDeprecated =
       d.includeDeprecated ||
       !!d.ids?.length ||
@@ -28,7 +30,7 @@ class providerSpecificationServiceImpl {
       !!d.providerVersionIds?.length ||
       !!d.providerDeploymentIds?.length ||
       !!d.providerConfigIds?.length;
-    let providers = await resolveProviders(d, d.providerIds);
+    let providers = await resolveProviders({ ...d, solution }, d.providerIds);
 
     let versions = d.providerVersionIds
       ? await db.providerVersion.findMany({
@@ -66,6 +68,7 @@ class providerSpecificationServiceImpl {
                 {
                   provider: getProviderTenantFilter({
                     ...d,
+                    solution,
                     includeDeprecated
                   })
                 },
@@ -90,16 +93,18 @@ class providerSpecificationServiceImpl {
   }
 
   async getProviderSpecificationById(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     providerSpecificationId: string;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerSpecification = await db.providerSpecification.findFirst({
       where: {
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

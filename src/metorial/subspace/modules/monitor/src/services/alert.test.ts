@@ -28,6 +28,14 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  getMetorialSolution: async () => ({ oid: 3 }),
+  resolveMetorialFacing: async () => ({
+    tenant: { oid: BigInt(1) },
+    environment: { oid: BigInt(2) }
+  })
+}));
+
 vi.mock('./_shared', () => ({
   normalizeDateFilter: (filter: unknown) => filter,
   resolveMonitorOids: vi.fn(async () => undefined),
@@ -52,10 +60,9 @@ describe('alertService', () => {
   it('scopes list queries by tenant, environment, and solution', async () => {
     let { alertService } = await import('./alert');
 
-    let paginator = await alertService.listAlerts({
+    let paginator = await alertService.listAlertsInternal({
       tenant: { oid: BigInt(1) },
-      environment: { oid: BigInt(2) },
-      solution: { oid: 3 }
+      environment: { oid: BigInt(2) }
     } as any);
 
     await paginator.run({});

@@ -13,6 +13,7 @@ import type {
   ProviderSetupSession,
   ProviderSpecification
 } from '@metorial-subspace/db';
+import { env } from '../../../env';
 import { getImageUrl } from './utils';
 
 type SetupSessionAuthMethod = ProviderAuthMethod & {
@@ -34,6 +35,11 @@ type SetupSessionConfig = ProviderConfig & {
     | null;
   specification: Omit<ProviderSpecification, 'value'>;
 };
+
+export let providerSetupSessionUrl = (
+  providerSetupSession: Pick<ProviderSetupSession, 'id' | 'clientSecret'>
+) =>
+  `${env.service.PUBLIC_SERVICE_URL}/setup-session/${providerSetupSession.id}?client_secret=${providerSetupSession.clientSecret}`;
 
 export let setupSessionSchemaPresenter = (
   object: 'provider.setup_session.auth_config_schema' | 'provider.setup_session.config_schema',

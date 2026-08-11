@@ -1,28 +1,26 @@
 import type {
-  Brand,
   Integration,
   IntegrationInstance,
   IntegrationInstanceProvider,
   IntegrationProvider,
   IntegrationSetupSession,
-  IntegrationSetupSessionEvent,
   IntegrationSetupSessionProvider,
   IntegrationSetupSessionStep,
   Provider,
-  ProviderSetupSession,
-  ProviderSetupSessionEvent
+  ProviderListing,
+  ProviderSetupSession
 } from '@metorial-subspace/db';
-import { env } from './env';
-import { integrationInstancePresenter } from './integrationInstance';
-import { providerPreviewPresenter } from './provider';
-import { providerSetupSessionEventPresenter } from './setupSession';
+import { env } from '../../../env';
+import { getImageUrl } from './utils';
 
-export let integrationSetupSessionUrl = (integrationSetupSession: IntegrationSetupSession) =>
+export let integrationSetupSessionUrl = (
+  integrationSetupSession: Pick<IntegrationSetupSession, 'id' | 'clientSecret'>
+) =>
   `${env.service.PUBLIC_SERVICE_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`;
 
 let integrationSetupSessionStepUrl = (d: {
-  integrationSetupSession: IntegrationSetupSession;
-  step: IntegrationSetupSessionStep;
+  integrationSetupSession: Pick<IntegrationSetupSession, 'id' | 'clientSecret'>;
+  step: Pick<IntegrationSetupSessionStep, 'id'>;
 }) =>
   `${env.service.PUBLIC_SERVICE_URL}/integration-setup-session/${d.integrationSetupSession.id}/${d.step.id}?client_secret=${d.integrationSetupSession.clientSecret}`;
 
@@ -36,87 +34,68 @@ let setupStatus = (providerSetupSession: ProviderSetupSession | null) => {
   return providerSetupSession.status;
 };
 
-export let integrationSetupSessionEventPresenter = (event: IntegrationSetupSessionEvent) => ({
-  object: 'integration.setup_session.event',
-  id: event.id,
-  type: event.type,
-  ip: event.ip,
-  ua: event.ua,
-  createdAt: event.createdAt
-});
+type IntegrationSetupSessionStepProvider = IntegrationSetupSessionProvider & {
+  integrationProvider: IntegrationProvider & {
+    provider: Provider & { listing?: Pick<ProviderListing, 'id' | 'image'> | null };
+  };
+  providerSetupSession: ProviderSetupSession | null;
+  integrationInstanceProvider: IntegrationInstanceProvider | null;
+};
 
-export let integrationSetupSessionProviderSetupSessionEventPresenter = (
-  event: ProviderSetupSessionEvent & {
-    session: {
-      id: string;
-      integrationSetupSessionProvider: {
-        id: string;
-        integrationProvider: { id: string };
-        step: { id: string; index: number } | null;
-      } | null;
-    };
-  }
+let integrationSetupSessionStepProviderPresenter = (
+  provider: Provider & { listing?: Pick<ProviderListing, 'id' | 'image'> | null }
 ) => ({
-  ...providerSetupSessionEventPresenter(event),
-  providerSetupSessionId: event.session.id,
-  integrationSetupSessionProviderId: event.session.integrationSetupSessionProvider?.id ?? null,
-  integrationProviderId:
-    event.session.integrationSetupSessionProvider?.integrationProvider.id ?? null,
-  integrationSetupSessionStepId:
-    event.session.integrationSetupSessionProvider?.step?.id ?? null,
-  integrationSetupSessionStepIndex:
-    event.session.integrationSetupSessionProvider?.step?.index ?? null
+  object: 'provider',
+
+  id: provider.id,
+  name: provider.name,
+  description: provider.description,
+  slug: provider.prettySlug ?? provider.slug,
+  imageUrl: provider.listing
+    ? getImageUrl({ id: provider.listing.id, image: provider.listing.image })
+    : null
 });
 
-export let integrationSetupSessionStepPresenter = (d: {
-  integrationSetupSession: IntegrationSetupSession;
+let integrationSetupSessionStepPresenter = (d: {
+  integrationSetupSession: Pick<IntegrationSetupSession, 'id' | 'clientSecret'>;
   step: IntegrationSetupSessionStep & {
-    integrationSetupSessionProvider: IntegrationSetupSessionProvider & {
-      integrationProvider: IntegrationProvider & {
-        provider: Provider;
-      };
-      providerSetupSession: ProviderSetupSession | null;
-      integrationInstanceProvider: IntegrationInstanceProvider | null;
-    };
+    integrationSetupSessionProvider: IntegrationSetupSessionStepProvider;
   };
 }) => {
   let provider = d.step.integrationSetupSessionProvider;
 
   return {
     object: 'integration.setup_session.step',
+
     id: d.step.id,
     index: d.step.index,
     status: provider.integrationInstanceProvider
       ? ('configured' as const)
       : setupStatus(provider.providerSetupSession),
+
     url: integrationSetupSessionStepUrl({
       integrationSetupSession: d.integrationSetupSession,
       step: d.step
     }),
+
     integrationProviderId: provider.integrationProvider.id,
-    provider: providerPreviewPresenter(provider.integrationProvider.provider),
+    provider: integrationSetupSessionStepProviderPresenter(
+      provider.integrationProvider.provider
+    ),
     providerSetupSessionId: provider.providerSetupSession?.id ?? null,
     integrationInstanceProviderId: provider.integrationInstanceProvider?.id ?? null,
+
     createdAt: d.step.createdAt,
     updatedAt: d.step.updatedAt
   };
 };
 
-type IntegrationSetupSessionProviderForStep = IntegrationSetupSessionProvider & {
-  integrationProvider: IntegrationProvider & {
-    provider: Provider;
-  };
-  providerSetupSession: ProviderSetupSession | null;
-  integrationInstanceProvider: IntegrationInstanceProvider | null;
-};
-
 export let integrationSetupSessionPresenter = (
   integrationSetupSession: IntegrationSetupSession & {
     integration: Integration;
-    integrationInstance: Parameters<typeof integrationInstancePresenter>[0];
-    brand: Brand | null;
+    integrationInstance: IntegrationInstance;
     steps: (IntegrationSetupSessionStep & {
-      integrationSetupSessionProvider: IntegrationSetupSessionProviderForStep;
+      integrationSetupSessionProvider: IntegrationSetupSessionStepProvider;
     })[];
   }
 ) => {
@@ -128,26 +107,25 @@ export let integrationSetupSessionPresenter = (
 
   return {
     object: 'integration.setup_session',
+
     id: integrationSetupSession.id,
     status,
+
     url: integrationSetupSessionUrl(integrationSetupSession),
+
     name: integrationSetupSession.name,
     description: integrationSetupSession.description,
     metadata: integrationSetupSession.metadata,
-    privateMetadata: integrationSetupSession.privateMetadata,
     configuration: integrationSetupSession.configuration,
     redirectUrl: integrationSetupSession.redirectUrl,
+
     integrationId: integrationSetupSession.integration.id,
     integrationInstanceId: integrationSetupSession.integrationInstance.id,
-    integrationInstance: integrationInstancePresenter(
-      integrationSetupSession.integrationInstance
-    ),
+
     steps: integrationSetupSession.steps.map(step =>
-      integrationSetupSessionStepPresenter({
-        integrationSetupSession,
-        step
-      })
+      integrationSetupSessionStepPresenter({ integrationSetupSession, step })
     ),
+
     createdAt: integrationSetupSession.createdAt,
     updatedAt: integrationSetupSession.updatedAt,
     expiresAt: integrationSetupSession.expiresAt

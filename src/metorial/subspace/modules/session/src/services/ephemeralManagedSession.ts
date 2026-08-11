@@ -14,6 +14,11 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { checkDeletedEdit } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { env } from '../env';
 import { sessionArchivedQueue } from '../queues/lifecycle/session';
 import { createSessionRecord } from './_shared/createSession';
@@ -127,19 +132,54 @@ let getWillRotateAt = (d: { session: Session; maxSessionDurationInMinutes: numbe
   return new Date(d.session.createdAt.getTime() + d.maxSessionDurationInMinutes * 60 * 1000);
 };
 
+export type GetEphemeralManagedSessionByIdParams = {
+  ephemeralManagedSessionId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateEphemeralManagedSessionParams = {
+  sessionTemplate: SessionProviderTemplateInput;
+  input: {
+    maxSessionDurationInMinutes: number;
+  };
+};
+
+export type UpsertPlaceholderEphemeralManagedSessionParams = {
+  ephemeralManagedSession?: EphemeralManagedSession | null;
+  sessionTemplate: SessionTemplate;
+  input: {
+    maxSessionDurationInMinutes: number;
+    actorOid?: bigint | null;
+    isReconciling?: boolean;
+  };
+};
+
+export type ArchiveEphemeralManagedSessionParams = {
+  ephemeralManagedSession: EphemeralManagedSessionRecord;
+};
+
 class ephemeralManagedSessionServiceImpl {
-  async getEphemeralManagedSessionById(d: {
-    ephemeralManagedSessionId: string;
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    allowDeleted?: boolean;
-  }) {
+  async getEphemeralManagedSessionById(d: MetorialFacing<GetEphemeralManagedSessionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getEphemeralManagedSessionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getEphemeralManagedSessionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetEphemeralManagedSessionByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let ephemeralManagedSession = await db.ephemeralManagedSession.findFirst({
       where: {
         id: d.ephemeralManagedSessionId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       },
       include
@@ -153,22 +193,29 @@ class ephemeralManagedSessionServiceImpl {
     return ephemeralManagedSession;
   }
 
-  async createEphemeralManagedSession(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionTemplate: SessionProviderTemplateInput;
-    input: {
-      maxSessionDurationInMinutes: number;
-    };
-  }) {
+  async createEphemeralManagedSession(d: MetorialFacing<CreateEphemeralManagedSessionParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.createEphemeralManagedSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async createEphemeralManagedSessionInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateEphemeralManagedSessionParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return withTransaction(async db => {
       let ephemeralManagedSession = await db.ephemeralManagedSession.create({
         data: {
           ...getId('ephemeralManagedSession'),
           status: 'active',
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           sessionTemplateOid: d.sessionTemplate.oid,
           actorOid: d.sessionTemplate.identityActorOid ?? null,
@@ -181,7 +228,6 @@ class ephemeralManagedSessionServiceImpl {
 
       let session = await createSessionRecord({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         isEphemeral: true,
         ephemeralManagedSessionOid: ephemeralManagedSession.oid,
@@ -217,18 +263,27 @@ class ephemeralManagedSessionServiceImpl {
     });
   }
 
-  async upsertPlaceholderEphemeralManagedSession(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    ephemeralManagedSession?: EphemeralManagedSession | null;
-    sessionTemplate: SessionTemplate;
-    input: {
-      maxSessionDurationInMinutes: number;
-      actorOid?: bigint | null;
-      isReconciling?: boolean;
-    };
-  }) {
+  async upsertPlaceholderEphemeralManagedSession(
+    d: MetorialFacing<UpsertPlaceholderEphemeralManagedSessionParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.upsertPlaceholderEphemeralManagedSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async upsertPlaceholderEphemeralManagedSessionInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & UpsertPlaceholderEphemeralManagedSessionParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return withTransaction(async db => {
       let data = {
         status: 'active' as const,
@@ -245,7 +300,7 @@ class ephemeralManagedSessionServiceImpl {
           where: {
             oid: d.ephemeralManagedSession.oid,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid
           },
           data,
@@ -258,7 +313,7 @@ class ephemeralManagedSessionServiceImpl {
           ...getId('ephemeralManagedSession'),
           ...data,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         include
@@ -266,21 +321,28 @@ class ephemeralManagedSessionServiceImpl {
     });
   }
 
-  async archiveEphemeralManagedSession(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    ephemeralManagedSession: EphemeralManagedSessionRecord;
-  }) {
+  async archiveEphemeralManagedSession(d: MetorialFacing<ArchiveEphemeralManagedSessionParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveEphemeralManagedSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveEphemeralManagedSessionInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveEphemeralManagedSessionParams
+  ) {
     checkDeletedEdit(d.ephemeralManagedSession, 'archive');
 
     return await ephemeralManagedSessionResolveLock.usingLock(
       d.ephemeralManagedSession.id,
       async () => {
-        let ephemeralManagedSession = await this.getEphemeralManagedSessionById({
+        let ephemeralManagedSession = await this.getEphemeralManagedSessionByIdInternal({
           ephemeralManagedSessionId: d.ephemeralManagedSession.id,
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment
         });
 
@@ -389,7 +451,6 @@ class ephemeralManagedSessionServiceImpl {
       return await withTransaction(async db => {
         let session = await createSessionRecord({
           tenant: ephemeralManagedSession.tenant,
-          solution: ephemeralManagedSession.solution,
           environment: ephemeralManagedSession.environment,
           isEphemeral: true,
           ephemeralManagedSessionOid: ephemeralManagedSession.oid,

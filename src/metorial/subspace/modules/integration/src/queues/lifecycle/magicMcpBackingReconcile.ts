@@ -174,10 +174,9 @@ export let reconcileMagicMcpEndpointBacking = async (d: {
         }));
     });
 
-    await integrationInstanceGroupProviderService.syncMagicMcpIntegrationInstanceGroupProviders(
+    await integrationInstanceGroupProviderService.syncMagicMcpIntegrationInstanceGroupProvidersInternal(
       {
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstanceGroup: backing.integrationGroup,
         input

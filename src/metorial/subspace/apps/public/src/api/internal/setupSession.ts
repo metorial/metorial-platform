@@ -3,9 +3,9 @@ import type { ProviderSetupSession } from '@metorial-subspace/db';
 import { providerSetupSessionUiService } from '@metorial-subspace/module-auth';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { brandService } from '@metorial-subspace/module-tenant';
-import { integrationSetupSessionPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
 import {
+  integrationSetupSessionUrl,
   setupSessionBrandPresenter,
   setupSessionOAuthSetupPresenter,
   setupSessionPresenter,
@@ -74,7 +74,7 @@ export let getFullSession = async (
     completionRedirect: integrationSetupSession
       ? {
           type: 'integration_setup_session' as const,
-          url: integrationSetupSessionPresenter(integrationSetupSession).url
+          url: integrationSetupSessionUrl(integrationSetupSession)
         }
       : null,
     isWhitelabel: session.tenant.isWhitelabel

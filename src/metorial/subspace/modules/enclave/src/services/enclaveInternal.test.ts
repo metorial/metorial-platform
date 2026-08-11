@@ -83,10 +83,6 @@ let tenant = {
   id: 'ktn_test_tenant'
 } as any;
 
-let solution = {
-  oid: 1
-} as any;
-
 let environment = {
   oid: BigInt(20)
 } as any;
@@ -111,7 +107,6 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
   it('returns null for ephemeral deployments without creating rows', async () => {
     let result = await enclaveInternalService.ensureEnclaveForProviderDeployment({
       tenant,
-      solution,
       environment,
       provider,
       providerDeployment: { ...providerDeployment, isEphemeral: true }
@@ -128,7 +123,6 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
 
     let result = await enclaveInternalService.ensureEnclaveForProviderDeployment({
       tenant,
-      solution,
       environment,
       provider,
       providerDeployment
@@ -161,7 +155,6 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
 
     let result = await enclaveInternalService.ensureEnclaveForProviderDeployment({
       tenant,
-      solution,
       environment,
       provider,
       providerDeployment
@@ -220,7 +213,6 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
 
     await enclaveInternalService.ensureEnclaveForProviderDeployment({
       tenant,
-      solution,
       environment,
       provider,
       providerDeployment

@@ -10,7 +10,6 @@ import {
   AgentType,
   db,
   type Environment,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -24,31 +23,93 @@ import {
 } from '@metorial-subspace/list-utils';
 import { identityActorService } from '@metorial-subspace/module-identity';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 let include = { actor: true };
 let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
 let getAgentUpsertSlug = (name: string) =>
   `${slugify(name)}-${generatePlainId(7).toLowerCase()}`;
 
+export type ListAgentsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  search?: string;
+
+  status?: AgentStatus[];
+  allowDeleted?: boolean;
+
+  types?: AgentType[];
+  ids?: string[];
+  actorIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetAgentByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  agentId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateAgentParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  input: {
+    name: string;
+    slug?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+  };
+};
+
+export type UpdateAgentParams = {
+  tenant: Tenant;
+  environment: Environment;
+  agent: Agent;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+  };
+};
+
+export type UpsertAgentParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: {
+    name: string;
+    slug?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    type?: AgentType;
+  };
+};
+
+export type ArchiveAgentParams = {
+  tenant: Tenant;
+  environment: Environment;
+  agent: Agent;
+};
+
 class agentServiceImpl {
-  async listAgents(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listAgents(d: MetorialFacing<ListAgentsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listAgentsInternal({ ...rest, tenant, environment });
+  }
 
-    search?: string;
-
-    status?: AgentStatus[];
-    allowDeleted?: boolean;
-
-    types?: AgentType[];
-    ids?: string[];
-    actorIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let actors = await resolveIdentityActors(d, d.actorIds);
+  async listAgentsInternal(d: ListAgentsParams) {
+    let solution = await getMetorialSolution();
+    let actors = await resolveIdentityActors({ ...d, solution }, d.actorIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -66,7 +127,7 @@ class agentServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               ...normalizeStatusForList(d).noParent,
@@ -110,18 +171,19 @@ class agentServiceImpl {
     );
   }
 
-  async getAgentById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    agentId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getAgentById(d: MetorialFacing<GetAgentByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getAgentByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getAgentByIdInternal(d: GetAgentByIdParams) {
+    let solution = await getMetorialSolution();
     let agent = await db.agent.findFirst({
       where: {
         id: d.agentId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
@@ -132,22 +194,16 @@ class agentServiceImpl {
     return agent;
   }
 
-  async createAgent(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createAgent(d: MetorialFacing<CreateAgentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createAgentInternal({ ...rest, tenant, environment });
+  }
 
-    input: {
-      name: string;
-      slug?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-    };
-  }) {
+  async createAgentInternal(d: CreateAgentParams) {
     return withTransaction(async db => {
-      let agentActor = await identityActorService.createIdentityActor({
+      let agentActor = await identityActorService.createIdentityActorInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
 
         input: {
@@ -167,20 +223,16 @@ class agentServiceImpl {
     });
   }
 
-  async updateAgent(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    agent: Agent;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-    };
-  }) {
+  async updateAgent(d: MetorialFacing<UpdateAgentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.updateAgentInternal({ ...rest, tenant, environment });
+  }
+
+  async updateAgentInternal(d: UpdateAgentParams) {
     checkTenant(d, d.agent);
 
-    let actor = await identityActorService.getIdentityActorById({
+    let actor = await identityActorService.getIdentityActorByIdInternal({
       identityActorId: (
         await db.identityActor.findFirstOrThrow({
           where: { oid: d.agent.actorOid },
@@ -188,14 +240,12 @@ class agentServiceImpl {
         })
       ).id,
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       allowDeleted: true
     });
 
-    let agentActor = await identityActorService.updateIdentityActor({
+    let agentActor = await identityActorService.updateIdentityActorInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       identityActor: actor,
       input: {
@@ -211,19 +261,13 @@ class agentServiceImpl {
     });
   }
 
-  async upsertAgent(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: {
-      name: string;
-      slug?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      type?: AgentType;
-    };
-  }) {
+  async upsertAgent(d: MetorialFacing<UpsertAgentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.upsertAgentInternal({ ...rest, tenant, environment });
+  }
+
+  async upsertAgentInternal(d: UpsertAgentParams) {
     let name = d.input.name.trim();
     let type = d.input.type ?? 'custom';
     let hash = await Hash.sha256(JSON.stringify([name, type]));
@@ -244,9 +288,8 @@ class agentServiceImpl {
 
     try {
       return await withTransaction(async db => {
-        let agentActor = await identityActorService.createIdentityActor({
+        let agentActor = await identityActorService.createIdentityActorInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
 
           input: {
@@ -276,15 +319,16 @@ class agentServiceImpl {
     }
   }
 
-  async archiveAgent(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    agent: Agent;
-  }) {
+  async archiveAgent(d: MetorialFacing<ArchiveAgentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.archiveAgentInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveAgentInternal(d: ArchiveAgentParams) {
     checkTenant(d, d.agent);
 
-    let actor = await identityActorService.getIdentityActorById({
+    let actor = await identityActorService.getIdentityActorByIdInternal({
       identityActorId: (
         await db.identityActor.findFirstOrThrow({
           where: { oid: d.agent.actorOid },
@@ -292,14 +336,12 @@ class agentServiceImpl {
         })
       ).id,
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       allowDeleted: true
     });
 
-    let archivedActor = await identityActorService.archiveIdentityActor({
+    let archivedActor = await identityActorService.archiveIdentityActorInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       identityActor: actor
     });

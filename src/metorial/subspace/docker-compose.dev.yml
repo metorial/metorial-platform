@@ -393,7 +393,6 @@ services:
     container_name: subspace-controller-service
     restart: unless-stopped
     ports:
-      - '52070:52070'
       - '52072:52072'
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/subspace
@@ -457,7 +456,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52070/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+          "bun -e \"fetch('http://localhost:52072/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
         ]
       interval: 5s
       timeout: 5s

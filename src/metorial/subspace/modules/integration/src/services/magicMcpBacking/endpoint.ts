@@ -98,9 +98,8 @@ class magicMcpEndpointBackingServiceImpl {
           });
 
           let group =
-            await integrationInstanceGroupService.upsertMagicMcpIntegrationInstanceGroup({
+            await integrationInstanceGroupService.upsertMagicMcpIntegrationInstanceGroupInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integrationInstanceGroup: existing?.integrationGroup,
               input: {
@@ -117,9 +116,8 @@ class magicMcpEndpointBackingServiceImpl {
             });
 
           let sessionTemplate =
-            await sessionTemplateService.upsertInternalLinkedSessionTemplate({
+            await sessionTemplateService.upsertInternalLinkedSessionTemplateInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               sessionTemplate: existing?.sessionTemplate,
               input: {
@@ -132,9 +130,8 @@ class magicMcpEndpointBackingServiceImpl {
             });
 
           let ephemeralManagedSession =
-            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSession({
+            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               ephemeralManagedSession: existing?.ephemeralManagedSession,
               sessionTemplate,
@@ -263,28 +260,24 @@ class magicMcpEndpointBackingServiceImpl {
     let backing = await this.getMagicMcpEndpointBackingById(d);
     checkTenant(d, backing.integrationGroup);
 
-    await integrationInstanceGroupService.archiveIntegrationInstanceGroup({
+    await integrationInstanceGroupService.archiveIntegrationInstanceGroupInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       integrationInstanceGroup: backing.integrationGroup,
       _canModifyMagicMcpBacking: true
     });
-    await sessionTemplateService.archiveSessionTemplate({
+    await sessionTemplateService.archiveSessionTemplateInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       sessionTemplate: backing.sessionTemplate,
       _allowLinked: true
     });
-    await ephemeralManagedSessionService.archiveEphemeralManagedSession({
+    await ephemeralManagedSessionService.archiveEphemeralManagedSessionInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       ephemeralManagedSession:
-        await ephemeralManagedSessionService.getEphemeralManagedSessionById({
+        await ephemeralManagedSessionService.getEphemeralManagedSessionByIdInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           ephemeralManagedSessionId: backing.ephemeralManagedSession.id
         })

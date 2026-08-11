@@ -16,7 +16,6 @@ import {
   type Environment,
   getId,
   snowflake,
-  type Solution,
   type Tenant,
   type TenantActor,
   withTransaction
@@ -32,7 +31,14 @@ import {
 } from '@metorial-subspace/list-utils';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacingWithActor,
+  resolveMetorialFacingWithActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import type { ProviderVariantEnrichment } from '@metorial-subspace/provider-utils';
 import { prepareVersion } from '../internal/createVersion';
 import { linkRepo } from '../internal/linkRepo';
@@ -91,6 +97,54 @@ let customProviderEnvironmentVisibilityFilter = (environment: Environment) => ({
   }
 });
 
+export type CreateCustomProviderParams = {
+  actor: TenantActor;
+  tenant: Tenant;
+  environment: Environment;
+
+  input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, any>;
+
+    from: CustomProviderFrom;
+    config?: CustomProviderConfig;
+  };
+};
+
+export type UpdateCustomProviderParams = {
+  tenant: Tenant;
+  environment: Environment;
+  actor: TenantActor;
+  customProvider: CustomProvider;
+  input: {
+    name?: string;
+    readme?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    access?: 'public' | 'tenant';
+
+    repository?:
+      | {
+          repositoryId: string;
+          branch: string;
+        }
+      | {
+          type: 'git';
+          repositoryUrl: string;
+          branch: string;
+        }
+      | null;
+  };
+};
+
+export type ArchiveCustomProviderParams = {
+  tenant: Tenant;
+  environment: Environment;
+  actor: TenantActor;
+  customProvider: CustomProvider;
+};
+
 class customProviderServiceImpl {
   async enrichCustomProviders<
     T extends CustomProvider & {
@@ -123,7 +177,6 @@ class customProviderServiceImpl {
 
   async listCustomProviders(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     search?: string;
@@ -139,6 +192,7 @@ class customProviderServiceImpl {
     providerIds?: string[];
     scmRepositoryIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
     let providers = await resolveProviders(d, d.providerIds);
     let scmRepos = await resolveScmRepos(d, d.scmRepositoryIds);
 
@@ -157,7 +211,7 @@ class customProviderServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
 
             ...normalizeStatusForList(d).noParent,
 
@@ -182,11 +236,11 @@ class customProviderServiceImpl {
 
   async getCustomProviderById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     customProviderId: string;
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
     let customProvider = await db.customProvider.findFirst({
       where: {
         OR: [
@@ -195,7 +249,7 @@ class customProviderServiceImpl {
           { provider: { slug: d.customProviderId } }
         ],
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         ...normalizeStatusForGet(d).noParent,
         AND: [customProviderEnvironmentVisibilityFilter(d.environment)]
       },
@@ -208,21 +262,73 @@ class customProviderServiceImpl {
     return enriched!;
   }
 
-  async createCustomProvider(d: {
-    actor: TenantActor;
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createCustomProvider(d: MetorialFacingWithActor<CreateCustomProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithActor(d);
 
-    input: {
-      name: string;
-      description?: string;
-      metadata?: Record<string, any>;
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.custom_provider.created:before', eventBase);
 
-      from: CustomProviderFrom;
-      config?: CustomProviderConfig;
-    };
-  }) {
+    let customProvider = await this.createCustomProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment,
+      actor: scope.actor
+    });
+
+    await Fabric.fire('provider.custom_provider.created:after', {
+      ...eventBase,
+      customProvider
+    });
+
+    return customProvider;
+  }
+
+  async updateCustomProvider(d: MetorialFacingWithActor<UpdateCustomProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.custom_provider.updated:before', eventBase);
+
+    let customProvider = await this.updateCustomProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment,
+      actor: scope.actor
+    });
+
+    await Fabric.fire('provider.custom_provider.updated:after', {
+      ...eventBase,
+      customProvider
+    });
+
+    return customProvider;
+  }
+
+  async archiveCustomProvider(d: MetorialFacingWithActor<ArchiveCustomProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.custom_provider.archived:before', eventBase);
+
+    let customProvider = await this.archiveCustomProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment,
+      actor: scope.actor
+    });
+
+    await Fabric.fire('provider.custom_provider.archived:after', {
+      ...eventBase,
+      customProvider
+    });
+
+    return customProvider;
+  }
+
+  async createCustomProviderInternal(d: CreateCustomProviderParams) {
     if (
       d.input.from.type === 'function' &&
       !d.input.from.repository &&
@@ -236,12 +342,14 @@ class customProviderServiceImpl {
       );
     }
 
+    let solution = await getMetorialSolution();
+
     let customProvider = await withTransaction(async db => {
       let repo =
         d.input.from.type === 'function' && d.input.from.repository
           ? await linkRepo({
               tenant: d.tenant,
-              solution: d.solution,
+              solution,
               actor: d.actor,
               repo: d.input.from.repository
             })
@@ -272,7 +380,7 @@ class customProviderServiceImpl {
           },
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid
+          solutionOid: solution.oid
         },
         include
       });
@@ -280,7 +388,7 @@ class customProviderServiceImpl {
       let versionPrep = await prepareVersion({
         actor: d.actor,
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         customProvider,
         trigger: 'manual',
@@ -291,7 +399,7 @@ class customProviderServiceImpl {
         data: {
           ...getId('upcomingCustomProvider'),
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           actorOid: d.actor.oid,
 
@@ -321,32 +429,7 @@ class customProviderServiceImpl {
     return enriched!;
   }
 
-  async updateCustomProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    actor: TenantActor;
-    customProvider: CustomProvider;
-    input: {
-      name?: string;
-      readme?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      access?: 'public' | 'tenant';
-
-      repository?:
-        | {
-            repositoryId: string;
-            branch: string;
-          }
-        | {
-            type: 'git';
-            repositoryUrl: string;
-            branch: string;
-          }
-        | null;
-    };
-  }) {
+  async updateCustomProviderInternal(d: UpdateCustomProviderParams) {
     checkTenant(d, d.customProvider);
     checkDeletedEdit(d.customProvider, 'update');
 
@@ -358,11 +441,13 @@ class customProviderServiceImpl {
       );
     }
 
+    let solution = await getMetorialSolution();
+
     let customProvider = await withTransaction(async db => {
       let repo = d.input.repository
         ? await linkRepo({
             tenant: d.tenant,
-            solution: d.solution,
+            solution,
             actor: d.actor,
             repo: d.input.repository
           })
@@ -390,7 +475,7 @@ class customProviderServiceImpl {
             id: originClone.id,
 
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
 
             isReadOnly: false,
             isImmutable: false,
@@ -403,7 +488,7 @@ class customProviderServiceImpl {
         where: {
           oid: d.customProvider.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid
+          solutionOid: solution.oid
         },
         data: {
           name: d.input.name,
@@ -442,22 +527,18 @@ class customProviderServiceImpl {
     return enriched!;
   }
 
-  async archiveCustomProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    actor: TenantActor;
-    customProvider: CustomProvider;
-  }) {
+  async archiveCustomProviderInternal(d: ArchiveCustomProviderParams) {
     checkTenant(d, d.customProvider);
     checkDeletedEdit(d.customProvider, 'archive');
+
+    let solution = await getMetorialSolution();
 
     let customProvider = await withTransaction(async db => {
       let customProvider = await db.customProvider.update({
         where: {
           oid: d.customProvider.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid
+          solutionOid: solution.oid
         },
         data: { status: 'archived' },
         include

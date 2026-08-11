@@ -13,12 +13,11 @@ import {
   IdentityDelegationPartyRole,
   IdentityDelegationPermissions,
   type IdentityDelegationRequest,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { checkDeletedRelation } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import { checkTenant, getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { DelegationChecker } from '../lib/delegationChecker';
 import { FoldedMap } from '../lib/foldedMap';
 import { isInPastOptional } from '../lib/isInPast';
@@ -52,7 +51,6 @@ export interface CreateDelegationInput {
 class identityDelegationInternalServiceImpl {
   async createDelegation(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     _internal:
@@ -61,6 +59,8 @@ class identityDelegationInternalServiceImpl {
 
     input: CreateDelegationInput;
   }) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.input.identity);
     checkTenant(d, d.input.delegator);
     checkTenant(d, d.input.delegatee);
@@ -181,7 +181,7 @@ class identityDelegationInternalServiceImpl {
           wasCoveredByPreviousDelegationAndAutoApproved: false,
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
 
           permissions: d.input.permissions,
@@ -270,7 +270,7 @@ class identityDelegationInternalServiceImpl {
             ...getId('identityDelegationRequest'),
 
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
 
             delegationOid: delegation.oid,
@@ -319,7 +319,6 @@ class identityDelegationInternalServiceImpl {
 
   async revokeIdentityDelegation(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     delegation: IdentityDelegation;
   }) {
@@ -368,7 +367,6 @@ class identityDelegationInternalServiceImpl {
 
   async alterIdentityDelegationRequest(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     delegationRequest: IdentityDelegationRequest & { delegation: IdentityDelegation };
     desiredStatus: 'approved' | 'denied';
@@ -453,17 +451,18 @@ class identityDelegationInternalServiceImpl {
 
   private async resolveActualDelegationConfig(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     identity: Identity & { delegationConfigOid?: bigint | null };
     delegationConfigId?: string;
   }) {
+    let solution = await getMetorialSolution();
+
     if (d.delegationConfigId) {
       let overriddenDelegationConfig = await db.identityDelegationConfig.findFirst({
         where: {
           id: d.delegationConfigId,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         include: { currentVersion: true }
@@ -500,7 +499,6 @@ class identityDelegationInternalServiceImpl {
 
   private async resolveDelegationLevel(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     identity: Identity;
     subDelegator?: IdentityActor;
@@ -509,7 +507,6 @@ class identityDelegationInternalServiceImpl {
 
     let checker = await DelegationChecker.create({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       identity: d.identity,
       actor: d.subDelegator
@@ -538,7 +535,6 @@ class identityDelegationInternalServiceImpl {
 
   private async resolveCredentials(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     identity: Identity;
     credentialIds: string[];

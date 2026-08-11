@@ -1,21 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { mockDb, mockFunctionBay, mockGetTenantForFunctionBay } = vi.hoisted(() => ({
-  mockDb: {
-    enclave: {
-      findMany: vi.fn()
+let { mockDb, mockFunctionBay, mockGetTenantForFunctionBay, mockGetMetorialSolution } =
+  vi.hoisted(() => ({
+    mockDb: {
+      enclave: {
+        findMany: vi.fn()
+      },
+      enclaveIngressNetworkLog: {
+        findMany: vi.fn()
+      }
     },
-    enclaveIngressNetworkLog: {
-      findMany: vi.fn()
-    }
-  },
-  mockFunctionBay: {
-    networkLog: {
-      list: vi.fn()
-    }
-  },
-  mockGetTenantForFunctionBay: vi.fn()
-}));
+    mockFunctionBay: {
+      networkLog: {
+        list: vi.fn()
+      }
+    },
+    mockGetTenantForFunctionBay: vi.fn(),
+    mockGetMetorialSolution: vi.fn()
+  }));
 
 vi.mock('@metorial-subspace/db', () => ({
   db: mockDb
@@ -24,6 +26,10 @@ vi.mock('@metorial-subspace/db', () => ({
 vi.mock('../functionBay', () => ({
   functionBay: mockFunctionBay,
   getTenantForFunctionBay: mockGetTenantForFunctionBay
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  getMetorialSolution: mockGetMetorialSolution
 }));
 
 import { enclaveNetworkLogService } from './enclaveNetworkLog';
@@ -55,6 +61,7 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetTenantForFunctionBay.mockResolvedValue({ id: 'fb_tenant_1', identifier: 'tenant-a' });
+    mockGetMetorialSolution.mockResolvedValue(solution);
   });
 
   it('returns empty records when no enclaves have Function Bay backing', async () => {
@@ -66,7 +73,6 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     let result = await enclaveNetworkLogService.listNetworkLogs({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       filters: {}
     });
@@ -90,7 +96,6 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     let result = await enclaveNetworkLogService.listNetworkLogs({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       enclaveIds: ['enc_backed', 'enc_unbacked'],
       filters: { hostnames: ['example.com'] }
@@ -119,7 +124,6 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     await enclaveNetworkLogService.listNetworkLogs({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       filters: {}
     });
@@ -148,7 +152,6 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
       enclaveNetworkLogService.listNetworkLogs({
         tenant,
         environment,
-        solution,
         direction: 'egress',
         enclaveIds: ['enc_backed', 'enc_missing'],
         filters: {}
@@ -165,7 +168,6 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     let result = await enclaveNetworkLogService.listNetworkLogs({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       enclaveIds: ['enc_backed'],
       filters: {}
@@ -220,7 +222,6 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     let result = await enclaveNetworkLogService.listNetworkLogs({
       tenant,
       environment,
-      solution,
       direction: 'ingress',
       enclaveIds: ['enc_backed'],
       filters: { intervalMinutes: 60 }

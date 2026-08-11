@@ -70,7 +70,8 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
-  checkTenant: vi.fn()
+  checkTenant: vi.fn(),
+  getMetorialSolution: vi.fn(async () => ({ oid: 2 }))
 }));
 
 vi.mock('../lib/versions', () => ({
@@ -136,7 +137,6 @@ let existingProvider = {
 
 let input = {
   tenant: { oid: 1n },
-  solution: { oid: 2 },
   environment: { oid: 3n },
   integration: {
     oid: 10n,
@@ -161,7 +161,7 @@ describe('integrationProviderService.ensureIntegrationProviderForDeployment', ()
   });
 
   it('preserves an existing provider tool filter when input omits toolFilters', async () => {
-    await integrationProviderService.ensureIntegrationProviderForDeployment(input);
+    await integrationProviderService.ensureIntegrationProviderForDeploymentInternal(input);
 
     expect(tx.integrationProvider.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -174,7 +174,7 @@ describe('integrationProviderService.ensureIntegrationProviderForDeployment', ()
   });
 
   it('treats explicit null toolFilters as an allow-all reset', async () => {
-    await integrationProviderService.ensureIntegrationProviderForDeployment({
+    await integrationProviderService.ensureIntegrationProviderForDeploymentInternal({
       ...input,
       input: {
         ...input.input,
@@ -221,7 +221,7 @@ describe('integrationProviderService.createIntegrationProvider', () => {
       status: 'active'
     });
 
-    await integrationProviderService.createIntegrationProvider({
+    await integrationProviderService.createIntegrationProviderInternal({
       ...input,
       input: {
         providerId: deployment.provider.id,

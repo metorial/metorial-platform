@@ -10,7 +10,6 @@ import {
   type FirewallStatus,
   getId,
   type Network,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -24,7 +23,13 @@ import {
   resolveNetworks,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import {
   type FirewallBindingInput,
   validateFirewallBindingInput,
@@ -69,10 +74,64 @@ export let bindingInclude = {
   }
 };
 
+export type CreateFirewallBindingParams = {
+  tenant: Tenant;
+  environment: Environment;
+  firewallId: string;
+  input: FirewallBindingInput;
+};
+
+export type DeleteFirewallBindingParams = {
+  tenant: Tenant;
+  environment: Environment;
+  firewallBinding: FirewallBinding;
+};
+
 class firewallBindingServiceImpl {
+  async createFirewallBinding(d: MetorialFacing<CreateFirewallBindingParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.firewall_binding.created:before', eventBase);
+
+    let firewallBinding = await this.createFirewallBindingInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.firewall_binding.created:after', {
+      ...eventBase,
+      firewallBinding
+    });
+
+    return firewallBinding;
+  }
+
+  async deleteFirewallBinding(d: MetorialFacing<DeleteFirewallBindingParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.firewall_binding.deleted:before', eventBase);
+
+    let firewallBinding = await this.deleteFirewallBindingInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.firewall_binding.deleted:after', {
+      ...eventBase,
+      firewallBinding
+    });
+
+    return firewallBinding;
+  }
+
   async listFirewallBindings(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     status?: FirewallStatus[];
     allowDeleted?: boolean;
@@ -141,12 +200,7 @@ class firewallBindingServiceImpl {
     return binding;
   }
 
-  async createFirewallBinding(d: {
-    tenant: Tenant;
-    environment: Environment;
-    firewallId: string;
-    input: FirewallBindingInput;
-  }) {
+  async createFirewallBindingInternal(d: CreateFirewallBindingParams) {
     validateFirewallBindingInput(d.input);
 
     return withTransaction(async db => {
@@ -201,11 +255,7 @@ class firewallBindingServiceImpl {
     );
   }
 
-  async deleteFirewallBinding(d: {
-    tenant: Tenant;
-    environment: Environment;
-    firewallBinding: FirewallBinding;
-  }) {
+  async deleteFirewallBindingInternal(d: DeleteFirewallBindingParams) {
     checkTenant(d, d.firewallBinding);
 
     return withTransaction(async db => {

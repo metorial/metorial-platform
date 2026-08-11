@@ -34,8 +34,7 @@ export let reconcileTenantManagedBackingsQueueProcessor =
     );
 
     await reconcileTenantManagedProviderAuthCredentialsBackings({
-      tenant,
-      solution
+      tenant
     });
   });
 

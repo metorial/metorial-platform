@@ -6,7 +6,6 @@ import {
 } from '@metorial-subspace/module-connection/src/health';
 import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
 import { RedisClient } from 'bun';
-import { subspaceControllerApi } from './controllers';
 
 setTimeout(async () => {
   await syncProtoGuardFilters();
@@ -15,13 +14,6 @@ setTimeout(async () => {
 let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {
   tls: process.env.REDIS_URL?.startsWith('rediss://')
 });
-
-let server = Bun.serve({
-  fetch: subspaceControllerApi,
-  port: 52070
-});
-
-console.log(`Service running on http://localhost:${server.port}`);
 
 if (
   process.env.NODE_ENV === 'production' &&

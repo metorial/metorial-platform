@@ -1,13 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  db,
-  type Environment,
-  type SessionErrorType,
-  type Solution,
-  type Tenant
-} from '@metorial-subspace/db';
+import { db, type Environment, type SessionErrorType, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   mergeRetentionWithDateFilter,
@@ -15,28 +9,52 @@ import {
   resolveProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 let include = {
   provider: true,
   firstOccurrence: true
 };
 
+export type ListSessionErrorGroupsParams = {
+  types?: SessionErrorType[];
+
+  ids?: string[];
+  sessionIds?: string[];
+  providerIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSessionErrorGroupByIdParams = {
+  sessionErrorGroupId: string;
+  allowDeleted?: boolean;
+};
+
 class sessionErrorGroupServiceImpl {
-  async listSessionErrorGroups(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listSessionErrorGroups(d: MetorialFacing<ListSessionErrorGroupsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    types?: SessionErrorType[];
+    return this.listSessionErrorGroupsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    sessionIds?: string[];
-    providerIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let sessions = await resolveSessions(d, d.sessionIds);
-    let providers = await resolveProviders(d, d.providerIds);
+  async listSessionErrorGroupsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListSessionErrorGroupsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let sessions = await resolveSessions(ts, d.sessionIds);
+    let providers = await resolveProviders(ts, d.providerIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -64,13 +82,20 @@ class sessionErrorGroupServiceImpl {
     );
   }
 
-  async getSessionErrorGroupById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionErrorGroupId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSessionErrorGroupById(d: MetorialFacing<GetSessionErrorGroupByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getSessionErrorGroupByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getSessionErrorGroupByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionErrorGroupByIdParams
+  ) {
     let sessionErrorGroup = await db.sessionErrorGroup.findFirst({
       where: {
         id: d.sessionErrorGroupId,

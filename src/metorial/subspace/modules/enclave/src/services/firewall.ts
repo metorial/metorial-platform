@@ -10,7 +10,6 @@ import {
   type Firewall,
   type FirewallStatus,
   getId,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -26,7 +25,13 @@ import {
   resolveNetworks,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import {
   type FirewallBindingInput,
   validateFirewallBindingInputs
@@ -58,10 +63,55 @@ let include = {
   }
 };
 
+export type CreateFirewallParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: {
+    name: string;
+    description?: string;
+    slug?: string;
+    networkId: string;
+    bindings?: FirewallBindingInput[];
+    networkPolicyIds?: string[];
+  };
+};
+
+export type UpdateFirewallParams = {
+  tenant: Tenant;
+  environment: Environment;
+  firewall: Firewall;
+  input: {
+    name?: string;
+    description?: string;
+    slug?: string;
+    networkPolicyIds?: string[];
+  };
+};
+
+export type AddFirewallNetworkPolicyParams = {
+  tenant: Tenant;
+  environment: Environment;
+  firewall: Firewall;
+  networkPolicyId: string;
+  position?: number;
+};
+
+export type RemoveFirewallNetworkPolicyParams = {
+  tenant: Tenant;
+  environment: Environment;
+  firewall: Firewall;
+  networkPolicyId: string;
+};
+
+export type ArchiveFirewallParams = {
+  tenant: Tenant;
+  environment: Environment;
+  firewall: Firewall;
+};
+
 class firewallServiceImpl {
   async listFirewalls(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     status?: FirewallStatus[];
     allowDeleted?: boolean;
@@ -132,18 +182,91 @@ class firewallServiceImpl {
     return firewall;
   }
 
-  async createFirewall(d: {
-    tenant: Tenant;
-    environment: Environment;
-    input: {
-      name: string;
-      description?: string;
-      slug?: string;
-      networkId: string;
-      bindings?: FirewallBindingInput[];
-      networkPolicyIds?: string[];
-    };
-  }) {
+  async createFirewall(d: MetorialFacing<CreateFirewallParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.firewall.created:before', eventBase);
+
+    let firewall = await this.createFirewallInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('instance.network.firewall.created:after', { ...eventBase, firewall });
+
+    return firewall;
+  }
+
+  async updateFirewall(d: MetorialFacing<UpdateFirewallParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.firewall.updated:before', eventBase);
+
+    let firewall = await this.updateFirewallInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('instance.network.firewall.updated:after', { ...eventBase, firewall });
+
+    return firewall;
+  }
+
+  async archiveFirewall(d: MetorialFacing<ArchiveFirewallParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.firewall.deleted:before', eventBase);
+
+    let firewall = await this.archiveFirewallInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('instance.network.firewall.deleted:after', { ...eventBase, firewall });
+
+    return firewall;
+  }
+
+  async addFirewallNetworkPolicy(d: MetorialFacing<AddFirewallNetworkPolicyParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.firewall.network_policy.attached:before', eventBase);
+
+    let firewall = await this.addFirewallNetworkPolicyInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.firewall.network_policy.attached:after', {
+      ...eventBase,
+      firewall
+    });
+
+    return firewall;
+  }
+
+  async removeFirewallNetworkPolicy(d: MetorialFacing<RemoveFirewallNetworkPolicyParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.firewall.network_policy.detached:before', eventBase);
+
+    let firewall = await this.removeFirewallNetworkPolicyInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.firewall.network_policy.detached:after', {
+      ...eventBase,
+      firewall
+    });
+
+    return firewall;
+  }
+
+  async createFirewallInternal(d: CreateFirewallParams) {
     validateFirewallBindingInputs(d.input.bindings ?? []);
 
     return withTransaction(async db => {
@@ -207,17 +330,7 @@ class firewallServiceImpl {
     });
   }
 
-  async updateFirewall(d: {
-    tenant: Tenant;
-    environment: Environment;
-    firewall: Firewall;
-    input: {
-      name?: string;
-      description?: string;
-      slug?: string;
-      networkPolicyIds?: string[];
-    };
-  }) {
+  async updateFirewallInternal(d: UpdateFirewallParams) {
     checkTenant(d, d.firewall);
     checkDeletedEdit(d.firewall, 'update');
 
@@ -258,13 +371,7 @@ class firewallServiceImpl {
     });
   }
 
-  async addFirewallNetworkPolicy(d: {
-    tenant: Tenant;
-    environment: Environment;
-    firewall: Firewall;
-    networkPolicyId: string;
-    position?: number;
-  }) {
+  async addFirewallNetworkPolicyInternal(d: AddFirewallNetworkPolicyParams) {
     checkTenant(d, d.firewall);
     checkDeletedEdit(d.firewall, 'update');
 
@@ -329,12 +436,7 @@ class firewallServiceImpl {
     });
   }
 
-  async removeFirewallNetworkPolicy(d: {
-    tenant: Tenant;
-    environment: Environment;
-    firewall: Firewall;
-    networkPolicyId: string;
-  }) {
+  async removeFirewallNetworkPolicyInternal(d: RemoveFirewallNetworkPolicyParams) {
     checkTenant(d, d.firewall);
     checkDeletedEdit(d.firewall, 'update');
 
@@ -370,7 +472,7 @@ class firewallServiceImpl {
     });
   }
 
-  async archiveFirewall(d: { tenant: Tenant; environment: Environment; firewall: Firewall }) {
+  async archiveFirewallInternal(d: ArchiveFirewallParams) {
     checkTenant(d, d.firewall);
     checkDeletedEdit(d.firewall, 'archive');
 

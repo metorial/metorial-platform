@@ -199,9 +199,8 @@ export let integrationInstanceCreatedQueueProcessor = integrationInstanceCreated
       return;
     }
 
-    await integrationInstanceService.createSessionTemplateForIntegrationInstance({
+    await integrationInstanceService.createSessionTemplateForIntegrationInstanceInternal({
       tenant: integrationInstance.tenant,
-      solution: integrationInstance.solution,
       environment: integrationInstance.environment,
       integrationInstance,
       input: {}

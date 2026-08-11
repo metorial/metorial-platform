@@ -6,9 +6,6 @@ mode = "oss"
 run = ["bun --watch ./src/server.ts"]
 
 [[dev.expose]]
-port = 52070
-
-[[dev.expose]]
 port = 52072
 
 [dev.env]

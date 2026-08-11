@@ -6,7 +6,6 @@ import {
   type Environment,
   type SessionEvent,
   type SessionEventType,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -22,6 +21,11 @@ import {
   resolveSessionProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { providerRunInclude } from './providerRun';
 import { sessionConnectionInclude } from './sessionConnection';
 import { sessionErrorInclude } from './sessionError';
@@ -34,6 +38,26 @@ let include = {
   // connection: { include: sessionConnectionInclude },
   // error: { include: sessionErrorInclude },
   // warning: { include: { session: true } }
+};
+
+export type ListSessionEventsParams = {
+  types?: SessionEventType[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  sessionIds?: string[];
+  sessionProviderIds?: string[];
+  sessionConnectionIds?: string[];
+  providerRunIds?: string[];
+  sessionMessageIds?: string[];
+  sessionErrorIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSessionEventByIdParams = {
+  sessionEventId: string;
+  allowDeleted?: boolean;
 };
 
 class sessionEventServiceImpl {
@@ -87,30 +111,29 @@ class sessionEventServiceImpl {
     }));
   }
 
-  async listSessionEvents(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listSessionEvents(d: MetorialFacing<ListSessionEventsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    types?: SessionEventType[];
-    allowDeleted?: boolean;
+    return this.listSessionEventsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    sessionIds?: string[];
-    sessionProviderIds?: string[];
-    sessionConnectionIds?: string[];
-    providerRunIds?: string[];
-    sessionMessageIds?: string[];
-    sessionErrorIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let sessions = await resolveSessions(d, d.sessionIds);
-    let sessionProviders = await resolveSessionProviders(d, d.sessionProviderIds);
-    let connections = await resolveSessionConnections(d, d.sessionConnectionIds);
-    let providerRuns = await resolveProviderRuns(d, d.providerRunIds);
-    let messages = await resolveSessionMessages(d, d.sessionMessageIds);
-    let errors = await resolveSessionErrors(d, d.sessionErrorIds);
+  async listSessionEventsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListSessionEventsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let sessions = await resolveSessions(ts, d.sessionIds);
+    let sessionProviders = await resolveSessionProviders(ts, d.sessionProviderIds);
+    let connections = await resolveSessionConnections(ts, d.sessionConnectionIds);
+    let providerRuns = await resolveProviderRuns(ts, d.providerRunIds);
+    let messages = await resolveSessionMessages(ts, d.sessionMessageIds);
+    let errors = await resolveSessionErrors(ts, d.sessionErrorIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -118,7 +141,7 @@ class sessionEventServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
 
             ...normalizeStatusForList(d).onlyParent,
@@ -148,18 +171,27 @@ class sessionEventServiceImpl {
     );
   }
 
-  async getSessionEventById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionEventId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getSessionEventById(d: MetorialFacing<GetSessionEventByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getSessionEventByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getSessionEventByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionEventByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let sessionEvent = await db.sessionEvent.findFirst({
       where: {
         id: d.sessionEventId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).onlyParent,
         ...mergeRetentionWithDateFilter(d.tenant)

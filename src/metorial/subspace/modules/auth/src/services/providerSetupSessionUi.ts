@@ -11,7 +11,6 @@ import {
   type ProviderDeploymentVersion,
   type ProviderSetupSession,
   type ProviderVariant,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -131,7 +130,6 @@ class providerSetupSessionUiServiceImpl {
 
     let schema = await providerConfigService.getProviderConfigSchema({
       tenant: fullSession.tenant,
-      solution: fullSession.solution,
       environment: fullSession.environment,
       provider: fullSession.provider,
       providerDeployment: fullSession.deployment ?? undefined
@@ -158,7 +156,6 @@ class providerSetupSessionUiServiceImpl {
 
   async getConfigSchemaWithoutSession(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
     deployment?: ProviderDeployment & {
@@ -169,7 +166,6 @@ class providerSetupSessionUiServiceImpl {
 
     let schema = await providerConfigService.getProviderConfigSchema({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
 
       provider: d.provider,
@@ -209,7 +205,6 @@ class providerSetupSessionUiServiceImpl {
 
     let schema = await providerAuthConfigService.getProviderAuthConfigSchema({
       tenant: fullSession.tenant,
-      solution: fullSession.solution,
       environment: fullSession.environment,
 
       provider: fullSession.provider,
@@ -301,9 +296,8 @@ class providerSetupSessionUiServiceImpl {
         }
 
         let setAuthConfigInner =
-          await providerSetupSessionInternalService.createProviderAuthConfig({
+          await providerSetupSessionInternalService.createProviderAuthConfigInternal({
             tenant: currentSession.tenant,
-            solution: currentSession.solution,
             provider: currentSession.provider,
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
@@ -438,9 +432,8 @@ class providerSetupSessionUiServiceImpl {
 
         if (allowToolFilterConfirmation && currentSession.config) {
           let nextConfig = currentSession.config.isEphemeral
-            ? await providerConfigService.updateProviderConfig({
+            ? await providerConfigService.updateProviderConfigInternal({
                 tenant: currentSession.tenant,
-                solution: currentSession.solution,
                 environment: currentSession.environment,
                 providerConfig: currentSession.config,
                 input: {
@@ -459,7 +452,6 @@ class providerSetupSessionUiServiceImpl {
         } else {
           let setConfigInner = await providerSetupSessionInternalService.createProviderConfig({
             tenant: currentSession.tenant,
-            solution: currentSession.solution,
             provider: currentSession.provider,
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
@@ -523,7 +515,6 @@ class providerSetupSessionUiServiceImpl {
 
     let paginator = await providerListingService.listProviderListings({
       tenant: session.tenant,
-      solution: session.solution,
       environment: session.environment,
       search: d.search,
       providerGroupIds: undefinedIfEmpty(
@@ -605,14 +596,12 @@ class providerSetupSessionUiServiceImpl {
         let provider = await providerService.getProviderById({
           providerId: d.providerId,
           tenant: session.tenant,
-          environment: session.environment,
-          solution: session.solution
+          environment: session.environment
         });
 
         let initialized =
           await providerSetupSessionInternalService.initializeProviderSetupSessionProvider({
             tenant: session.tenant,
-            solution: session.solution,
             environment: session.environment,
             provider,
             expiresAt: session.expiresAt,

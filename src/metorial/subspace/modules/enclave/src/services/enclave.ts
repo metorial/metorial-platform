@@ -7,7 +7,6 @@ import {
   type Enclave,
   type Environment,
   type ProviderDeploymentStatus,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -71,7 +70,6 @@ let include = {
 class enclaveServiceImpl {
   async listEnclaves(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     ids?: string[];
     slugs?: string[];
@@ -126,7 +124,6 @@ class enclaveServiceImpl {
 
   async getEnclaveById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     enclaveId: string;
   }) {
@@ -272,7 +269,6 @@ class enclaveServiceImpl {
 
   async updateEnclave(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     enclave: Enclave;
     input: {

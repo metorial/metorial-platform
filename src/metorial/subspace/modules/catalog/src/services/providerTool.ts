@@ -18,6 +18,7 @@ import {
   checkToolScopesSatisfiedByAuthMethods,
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
 type ListToolsContext = {
@@ -260,7 +261,6 @@ let resolveProviderAuthMethodsForToolFilter = async (
 
 class providerToolServiceImpl {
   async listProviderTools(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
 
@@ -270,6 +270,8 @@ class providerToolServiceImpl {
     providerAuthCredentials?: ProviderAuthCredentials | null;
     providerAuthMethodIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
+
     let version = d.providerVersion?.oid
       ? await db.providerVersion.findFirstOrThrow({
           where: { oid: d.providerVersion.oid }
@@ -277,7 +279,7 @@ class providerToolServiceImpl {
       : null;
 
     let ctx: ListToolsContext = {
-      solution: d.solution,
+      solution,
       tenant: d.tenant,
       environment: d.environment,
       providerVersion: d.providerVersion,
@@ -345,15 +347,17 @@ class providerToolServiceImpl {
   }
 
   async getProviderToolById(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     providerToolId: string;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerTool = await db.providerTool.findFirst({
       where: {
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

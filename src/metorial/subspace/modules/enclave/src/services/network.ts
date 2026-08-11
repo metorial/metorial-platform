@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -41,7 +41,6 @@ let include = {
 class networkServiceImpl {
   async listNetworks(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     ids?: string[];
     firewallIds?: string[];

@@ -1,9 +1,8 @@
 import { v } from '@lowerdeck/validation';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { brandService } from '@metorial-subspace/module-tenant';
-import { integrationSetupSessionPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
-import { setupSessionBrandPresenter } from './presenters';
+import { integrationSetupSessionPresenter, setupSessionBrandPresenter } from './presenters';
 
 let integrationSetupSessionApp = app.use(async ctx => {
   let sessionId = ctx.body.sessionId;

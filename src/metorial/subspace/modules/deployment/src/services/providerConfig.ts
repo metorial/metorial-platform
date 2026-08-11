@@ -20,7 +20,6 @@ import {
   type ProviderDeploymentVersion,
   type ProviderVariant,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -48,8 +47,15 @@ import {
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacingWithOptionalConsumerActor,
+  resolveMetorialFacingWithOptionalActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
+import { Fabric } from '@metorial/fabric';
 import { env } from '../env';
 import {
   providerConfigArchivedQueue,
@@ -73,10 +79,62 @@ let defaultLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+export type CreateProviderConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  provider: Provider & { defaultVariant: ProviderVariant | null };
+  providerDeployment?: ProviderDeployment & {
+    provider: Provider;
+    providerVariant: ProviderVariant;
+    currentVersion:
+      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
+      | null;
+  };
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    isEphemeral?: boolean;
+    isDefault?: boolean;
+    isForVault?: boolean;
+    toolFilters?: PrismaJson.ToolFilter | null;
+
+    config:
+      | {
+          type: 'vault';
+          vault: ProviderConfigVault;
+        }
+      | {
+          type: 'inline';
+          data: Record<string, any>;
+        };
+  };
+};
+
+export type UpdateProviderConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  providerConfig: ProviderConfig;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    toolFilters?: PrismaJson.ToolFilter | null;
+  };
+};
+
+export type ArchiveProviderConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  providerConfig: ProviderConfig;
+  _canArchiveOwned?: boolean;
+};
+
 class providerConfigServiceImpl {
   async listProviderConfigs(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     search?: string;
@@ -98,6 +156,7 @@ class providerConfigServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
+    let solution = await getMetorialSolution();
     let providers = await resolveProviders(d, d.providerIds);
     let specifications = await resolveProviderSpecifications(d, d.providerSpecificationIds);
     let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
@@ -105,7 +164,7 @@ class providerConfigServiceImpl {
       ? await db.providerDeployment.findFirst({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             id: d.availableForProviderDeploymentId
           },
@@ -133,7 +192,7 @@ class providerConfigServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               isForVault: false,
               isEphemeral: false,
@@ -184,18 +243,18 @@ class providerConfigServiceImpl {
 
   async getProviderConfigById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerConfigId: string;
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
     let providerConfig = await withTransaction(
       async db =>
         await db.providerConfig.findFirst({
           where: {
             id: d.providerConfigId,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             isForVault: false,
             ...normalizeStatusForGet(d).noParent
@@ -212,16 +271,16 @@ class providerConfigServiceImpl {
 
   async getManyProviderConfigsByIds(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     ids: string[];
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
     return await db.providerConfig.findMany({
       where: {
         id: { in: d.ids },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         isForVault: false,
         ...normalizeStatusForGet(d).noParent
@@ -232,7 +291,6 @@ class providerConfigServiceImpl {
 
   async getProviderConfigSchema(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     provider?: Provider & { defaultVariant: ProviderVariant | null };
@@ -294,39 +352,67 @@ class providerConfigServiceImpl {
     return version.specification;
   }
 
-  async createProviderConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-    providerDeployment?: ProviderDeployment & {
-      provider: Provider;
-      providerVariant: ProviderVariant;
-      currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
-    };
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      isEphemeral?: boolean;
-      isDefault?: boolean;
-      isForVault?: boolean;
-      toolFilters?: PrismaJson.ToolFilter | null;
+  async createProviderConfig(
+    d: MetorialFacingWithOptionalConsumerActor<CreateProviderConfigParams>
+  ) {
+    let { instance, organizationActor, consumer, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
 
-      config:
-        | {
-            type: 'vault';
-            vault: ProviderConfigVault;
-          }
-        | {
-            type: 'inline';
-            data: Record<string, any>;
-          };
-    };
-  }) {
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.config.created:before', eventBase);
+
+    let config = await this.createProviderConfigInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.config.created:after', { ...eventBase, config });
+
+    return config;
+  }
+
+  async updateProviderConfig(
+    d: MetorialFacingWithOptionalConsumerActor<UpdateProviderConfigParams>
+  ) {
+    let { instance, organizationActor, consumer, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.config.updated:before', eventBase);
+
+    let config = await this.updateProviderConfigInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.config.updated:after', { ...eventBase, config });
+
+    return config;
+  }
+
+  async archiveProviderConfig(
+    d: MetorialFacingWithOptionalConsumerActor<ArchiveProviderConfigParams>
+  ) {
+    let { instance, organizationActor, consumer, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.config.deleted:before', eventBase);
+
+    let config = await this.archiveProviderConfigInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.config.deleted:after', { ...eventBase, config });
+
+    return config;
+  }
+
+  async createProviderConfigInternal(d: CreateProviderConfigParams) {
     checkTenant(d, d.providerDeployment);
     checkDeletedRelation(d.provider, { allowEphemeral: d.input.isEphemeral });
     checkDeletedRelation(d.providerDeployment, { allowEphemeral: d.input.isEphemeral });
@@ -345,6 +431,8 @@ class providerConfigServiceImpl {
         })
       );
     }
+
+    let solution = await getMetorialSolution();
 
     return withTransaction(async db => {
       if (!d.provider.defaultVariant) {
@@ -370,7 +458,7 @@ class providerConfigServiceImpl {
 
         tenantOid: d.tenant.oid,
         providerOid: d.provider.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
 
         deploymentOid: d.providerDeployment?.oid
@@ -526,11 +614,12 @@ class providerConfigServiceImpl {
 
   async ensureDefaultEmptyProviderConfig(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
     providerDeployment: ProviderDeployment;
   }) {
+    let solution = await getMetorialSolution();
+
     return withTransaction(
       async db => {
         let currentDefault = await this.getDefaultProviderConfig(d);
@@ -544,7 +633,7 @@ class providerConfigServiceImpl {
             where: {
               oid: d.providerDeployment.oid,
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid
             },
             include: {
@@ -559,9 +648,8 @@ class providerConfigServiceImpl {
           let innerName = deployment.name ?? d.provider.name;
           if (innerName.includes('Default ')) innerName = d.provider.name;
 
-          return await this.createProviderConfig({
+          return await this.createProviderConfigInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             provider: d.provider,
             providerDeployment: deployment,
@@ -578,29 +666,19 @@ class providerConfigServiceImpl {
     );
   }
 
-  async updateProviderConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerConfig: ProviderConfig;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      toolFilters?: PrismaJson.ToolFilter | null;
-    };
-  }) {
+  async updateProviderConfigInternal(d: UpdateProviderConfigParams) {
     await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'update');
+
+    let solution = await getMetorialSolution();
 
     return withTransaction(async db => {
       let config = await db.providerConfig.update({
         where: {
           oid: d.providerConfig.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -624,28 +702,25 @@ class providerConfigServiceImpl {
     });
   }
 
-  async archiveProviderConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerConfig: ProviderConfig;
-    _canArchiveOwned?: boolean;
-  }) {
+  async archiveProviderConfigInternal(d: ArchiveProviderConfigParams) {
     await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'archive');
     await this.assertNoActiveIntegrationProviderLink(d);
     this.assertCanArchiveOwned(d);
+
+    let solution = await getMetorialSolution();
+
     await assertNoActiveIntegrationInstanceProviderConfigLink({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       configOid: d.providerConfig.oid,
       resourceId: d.providerConfig.id
     });
     await assertNoActiveIdentityCredentialConfigLink({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       configOid: d.providerConfig.oid,
       resourceId: d.providerConfig.id
@@ -657,7 +732,7 @@ class providerConfigServiceImpl {
         where: {
           oid: d.providerConfig.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -678,15 +753,15 @@ class providerConfigServiceImpl {
 
   private async getDefaultProviderConfig(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerDeployment: ProviderDeployment;
   }) {
+    let solution = await getMetorialSolution();
     return withTransaction(db =>
       db.providerConfig.findFirst({
         where: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           deploymentOid: d.providerDeployment.oid,
           isDefault: true
@@ -709,14 +784,14 @@ class providerConfigServiceImpl {
 
   private async assertNoActiveIntegrationProviderLink(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerConfig: ProviderConfig;
   }) {
+    let solution = await getMetorialSolution();
     let integrationProvider = await db.integrationProvider.findFirst({
       where: {
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active',
         integration: {

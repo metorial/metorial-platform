@@ -1,8 +1,8 @@
 import { badRequestError, internalServerError, isServiceError } from '@lowerdeck/error';
 import { createHono, useRequestContext } from '@lowerdeck/hono';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
-import { providerSetupSessionPresenter } from '@metorial-subspace/presenters';
 import { getFullIntegrationSetupSession } from '../internal/integrationSetupSession';
+import { providerSetupSessionUrl } from '../internal/presenters';
 import { renderIndexHtml } from './setupSession';
 
 export let integrationSetupSessionApp = createHono()
@@ -57,7 +57,7 @@ export let integrationSetupSessionApp = createHono()
       );
     }
 
-    return c.redirect(providerSetupSessionPresenter(providerSetupSession).url);
+    return c.redirect(providerSetupSessionUrl(providerSetupSession));
   })
   .get('/:sessionId/:key*?', async c => {
     let sessionId = c.req.param('sessionId');

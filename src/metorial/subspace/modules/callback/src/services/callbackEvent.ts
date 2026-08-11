@@ -4,9 +4,13 @@ import {
   CallbackStatus,
   db,
   type Environment,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getTenantForSignal, signal } from '../signal';
 
 let emptyList = {
@@ -37,18 +41,36 @@ let toCallbackEvent = (event: Awaited<ReturnType<typeof signal.callback.getEvent
   };
 };
 
+export type ListCallbackEventsParams = {
+  callbackId: string;
+  input: {
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+    eventTypes?: string[];
+  };
+};
+
+export type GetCallbackEventParams = {
+  callbackId: string;
+  slateTriggerEventId: string;
+};
+
 class callbackEventServiceImpl {
   private async resolveContext(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     callbackId: string;
   }) {
+    let solution = await getMetorialSolution();
+
     let callback = await db.callback.findFirst({
       where: {
         id: d.callbackId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: { notIn: [CallbackStatus.deleted] }
       }
@@ -60,20 +82,20 @@ class callbackEventServiceImpl {
     return { callback };
   }
 
-  async listCallbackEvents(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    input: {
-      limit?: number;
-      after?: string;
-      before?: string;
-      cursor?: string;
-      order?: 'asc' | 'desc';
-      eventTypes?: string[];
-    };
-  }) {
+  async listCallbackEvents(d: MetorialFacing<ListCallbackEventsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listCallbackEventsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listCallbackEventsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCallbackEventsParams
+  ) {
     let context = await this.resolveContext(d);
 
     if (!context.callback.isCallbacksV2) return emptyList;
@@ -97,13 +119,20 @@ class callbackEventServiceImpl {
     };
   }
 
-  async getCallbackEvent(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    slateTriggerEventId: string;
-  }) {
+  async getCallbackEvent(d: MetorialFacing<GetCallbackEventParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCallbackEventInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCallbackEventInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCallbackEventParams
+  ) {
     let context = await this.resolveContext(d);
     if (!context.callback.isCallbacksV2) {
       throw new ServiceError(notFoundError('callback.event', d.slateTriggerEventId));

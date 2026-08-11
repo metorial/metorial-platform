@@ -16,7 +16,6 @@ import {
   type ProviderDeploymentVersion,
   type ProviderVariant,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -42,7 +41,14 @@ import {
   normalizeToolFilters
 } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  checkTenant,
+  type MetorialFacingWithOptionalConsumerActor,
+  resolveMetorialFacingWithOptionalActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import {
   providerAuthConfigArchivedQueue,
   providerAuthConfigUpdatedQueue
@@ -59,10 +65,130 @@ let include = {
 
 export let providerAuthConfigInclude = include;
 
+export type CreateProviderAuthConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  provider: Provider & { defaultVariant: ProviderVariant | null };
+  providerDeployment?: ProviderDeployment & {
+    provider: Provider;
+    providerVariant: ProviderVariant;
+    currentVersion:
+      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
+      | null;
+  };
+  source: ProviderAuthConfigSource;
+  credentials?: ProviderAuthCredentials;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    isEphemeral?: boolean;
+    isDefault?: boolean;
+    authMethodId?: string;
+    toolFilters?: PrismaJson.ToolFilter | null;
+    config: Record<string, any>;
+  };
+  import: {
+    ip: string | undefined;
+    ua: string | undefined;
+    note?: string | undefined;
+  };
+};
+
+export type UpdateProviderAuthConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  providerAuthConfig: ProviderAuthConfig & { authMethod: { id: string } };
+
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    config?: Record<string, any>;
+
+    authMethodId?: string;
+    toolFilters?: PrismaJson.ToolFilter | null;
+  };
+
+  import: {
+    ip: string | undefined;
+    ua: string | undefined;
+    note?: string | undefined;
+  };
+};
+
+export type ArchiveProviderAuthConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  providerAuthConfig: ProviderAuthConfig;
+  _canArchiveOwned?: boolean;
+};
+
 class providerAuthConfigServiceImpl {
+  async createProviderAuthConfig(
+    d: MetorialFacingWithOptionalConsumerActor<CreateProviderAuthConfigParams>
+  ) {
+    let { instance, organizationActor, consumer, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.auth_config.created:before', eventBase);
+
+    let authConfig = await this.createProviderAuthConfigInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.auth_config.created:after', { ...eventBase, authConfig });
+
+    return authConfig;
+  }
+
+  async updateProviderAuthConfig(
+    d: MetorialFacingWithOptionalConsumerActor<UpdateProviderAuthConfigParams>
+  ) {
+    let { instance, organizationActor, consumer, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.auth_config.updated:before', eventBase);
+
+    let authConfig = await this.updateProviderAuthConfigInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.auth_config.updated:after', { ...eventBase, authConfig });
+
+    return authConfig;
+  }
+
+  async archiveProviderAuthConfig(
+    d: MetorialFacingWithOptionalConsumerActor<ArchiveProviderAuthConfigParams>
+  ) {
+    let { instance, organizationActor, consumer, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.auth_config.deleted:before', eventBase);
+
+    let authConfig = await this.archiveProviderAuthConfigInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.auth_config.deleted:after', { ...eventBase, authConfig });
+
+    return authConfig;
+  }
+
   async listProviderAuthConfigs(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     status?: ProviderAuthConfigStatus[];
@@ -84,24 +210,26 @@ class providerAuthConfigServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
     let availableForDeployment = d.availableForProviderDeploymentId
       ? await db.providerDeployment.findFirst({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             id: d.availableForProviderDeploymentId
           },
           select: { oid: true }
         })
       : null;
-    let credentials = await resolveProviderAuthCredentials(d, d.providerAuthCredentialsIds);
-    let authMethods = await resolveProviderAuthMethods(d, d.providerAuthMethodIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let identityCredentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
+    let credentials = await resolveProviderAuthCredentials(ts, d.providerAuthCredentialsIds);
+    let authMethods = await resolveProviderAuthMethods(ts, d.providerAuthMethodIds);
+    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let identities = await resolveIdentities(ts, d.identityIds);
+    let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -119,7 +247,7 @@ class providerAuthConfigServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               isEphemeral: false,
 
@@ -169,17 +297,17 @@ class providerAuthConfigServiceImpl {
 
   async getProviderAuthConfigById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerAuthConfigId: string;
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
     let providerAuthConfig = await withTransaction(
       async db =>
         await db.providerAuthConfig.findFirst({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
 
             OR: [
@@ -201,16 +329,16 @@ class providerAuthConfigServiceImpl {
 
   async getManyProviderAuthConfigsByIds(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     ids: string[];
     allowDeleted?: boolean;
   }) {
+    let solution = await getMetorialSolution();
     return await db.providerAuthConfig.findMany({
       where: {
         id: { in: d.ids },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
@@ -220,7 +348,6 @@ class providerAuthConfigServiceImpl {
 
   async getProviderAuthConfigSchema(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     provider?: Provider & { defaultVariant: ProviderVariant | null };
@@ -276,7 +403,6 @@ class providerAuthConfigServiceImpl {
 
     let { authMethod } = await providerAuthConfigInternalService.getVersionAndAuthMethod({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
 
       provider,
@@ -291,37 +417,7 @@ class providerAuthConfigServiceImpl {
     };
   }
 
-  async createProviderAuthConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-    providerDeployment?: ProviderDeployment & {
-      provider: Provider;
-      providerVariant: ProviderVariant;
-      currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
-    };
-    source: ProviderAuthConfigSource;
-    credentials?: ProviderAuthCredentials;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      isEphemeral?: boolean;
-      isDefault?: boolean;
-      authMethodId?: string;
-      toolFilters?: PrismaJson.ToolFilter | null;
-      config: Record<string, any>;
-    };
-    import: {
-      ip: string | undefined;
-      ua: string | undefined;
-      note?: string | undefined;
-    };
-  }) {
+  async createProviderAuthConfigInternal(d: CreateProviderAuthConfigParams) {
     checkTenant(d, d.providerDeployment);
     checkDeletedRelation(d.providerDeployment, { allowEphemeral: d.input.isEphemeral });
     checkProviderMatch(d.provider, d.providerDeployment);
@@ -344,7 +440,6 @@ class providerAuthConfigServiceImpl {
       let { version, authMethod } =
         await providerAuthConfigInternalService.getVersionAndAuthMethod({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           provider: d.provider,
           providerDeployment: d.providerDeployment,
@@ -358,7 +453,6 @@ class providerAuthConfigServiceImpl {
         credentials =
           await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUse({
             tenant: d.tenant,
-            solution: d.solution,
             provider: d.provider,
             providerAuthCredentials: credentials,
             providerAuthMethod: authMethod
@@ -368,7 +462,6 @@ class providerAuthConfigServiceImpl {
       let backendRes = await providerAuthConfigInternalService.createBackendProviderAuthConfig(
         {
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
 
           provider: d.provider,
@@ -382,7 +475,6 @@ class providerAuthConfigServiceImpl {
       let providerAuthConfig =
         await providerAuthConfigInternalService.createProviderAuthConfigInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           provider: d.provider,
           providerDeployment: d.providerDeployment,
@@ -412,29 +504,9 @@ class providerAuthConfigServiceImpl {
     });
   }
 
-  async updateProviderAuthConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerAuthConfig: ProviderAuthConfig & { authMethod: { id: string } };
+  async updateProviderAuthConfigInternal(d: UpdateProviderAuthConfigParams) {
+    let solution = await getMetorialSolution();
 
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      config?: Record<string, any>;
-
-      authMethodId?: string;
-      toolFilters?: PrismaJson.ToolFilter | null;
-    };
-
-    import: {
-      ip: string | undefined;
-      ua: string | undefined;
-      note?: string | undefined;
-    };
-  }) {
     checkTenant(d, d.providerAuthConfig);
     checkDeletedEdit(d.providerAuthConfig, 'update');
 
@@ -462,7 +534,6 @@ class providerAuthConfigServiceImpl {
       let { version, authMethod } =
         await providerAuthConfigInternalService.getVersionAndAuthMethod({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           provider: provider,
           providerDeployment,
@@ -481,7 +552,6 @@ class providerAuthConfigServiceImpl {
       let backendRes = d.input.config
         ? await providerAuthConfigInternalService.createBackendProviderAuthConfig({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
 
             provider,
@@ -540,7 +610,7 @@ class providerAuthConfigServiceImpl {
             ...getId('providerAuthImport'),
 
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
 
             authConfigOid: config.oid,
@@ -574,26 +644,20 @@ class providerAuthConfigServiceImpl {
     });
   }
 
-  async archiveProviderAuthConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerAuthConfig: ProviderAuthConfig;
-    _canArchiveOwned?: boolean;
-  }) {
+  async archiveProviderAuthConfigInternal(d: ArchiveProviderAuthConfigParams) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.providerAuthConfig);
     checkDeletedEdit(d.providerAuthConfig, 'archive');
     this.assertCanArchiveOwned(d);
     await assertNoActiveIntegrationInstanceProviderAuthConfigLink({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       authConfigOid: d.providerAuthConfig.oid,
       resourceId: d.providerAuthConfig.id
     });
     await assertNoActiveIdentityCredentialAuthConfigLink({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       authConfigOid: d.providerAuthConfig.oid,
       resourceId: d.providerAuthConfig.id
@@ -605,7 +669,7 @@ class providerAuthConfigServiceImpl {
         where: {
           oid: d.providerAuthConfig.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {

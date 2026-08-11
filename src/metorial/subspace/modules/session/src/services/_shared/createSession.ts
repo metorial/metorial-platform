@@ -2,10 +2,10 @@ import {
   addAfterTransactionHook,
   type Environment,
   getId,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { sessionCreatedQueue } from '../../queues/lifecycle/session';
 import { sessionProviderInclude } from '../sessionProvider';
 import {
@@ -24,7 +24,6 @@ export let sessionInclude = {
 
 export let createSessionRecord = async (d: {
   tenant: Tenant;
-  solution: Solution;
   environment: Environment;
   identityActorOid?: bigint | null;
   identityOid?: bigint | null;
@@ -38,6 +37,8 @@ export let createSessionRecord = async (d: {
   isEphemeral: boolean;
   ephemeralManagedSessionOid?: bigint | null;
 }) => {
+  let solution = await getMetorialSolution();
+
   return withTransaction(async db => {
     let templateId = d.input.providers.find(
       provider => provider.sessionTemplateId
@@ -48,7 +49,7 @@ export let createSessionRecord = async (d: {
             where: {
               id: templateId,
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               status: 'active'
             },
@@ -72,7 +73,7 @@ export let createSessionRecord = async (d: {
         privateMetadata: d.input.privateMetadata,
 
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         identityActorOid: d.identityActorOid ?? templateIdentity?.identityActorOid ?? null,
         identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
@@ -83,7 +84,7 @@ export let createSessionRecord = async (d: {
             ...getId('sessionEvent'),
             type: 'session_created',
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid
           }
         }
@@ -93,7 +94,6 @@ export let createSessionRecord = async (d: {
 
     session.providers = await sessionProviderInputService.createSessionProvidersForInput({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       session,
       providers: d.input.providers

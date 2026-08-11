@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -9,6 +9,7 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 
 let include = {
   provider: true,
@@ -18,7 +19,6 @@ let include = {
 class authConfigErrorGlobalServiceImpl {
   async listAuthConfigErrorGlobals(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     ids?: string[];
     providerIds?: string[];
@@ -27,9 +27,11 @@ class authConfigErrorGlobalServiceImpl {
     types?: string[];
     createdAt?: DateFilter;
   }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.authConfigIds);
-    let authCredentials = await resolveProviderAuthCredentials(d, d.authCredentialsIds);
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.authConfigIds);
+    let authCredentials = await resolveProviderAuthCredentials(ts, d.authCredentialsIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -60,7 +62,6 @@ class authConfigErrorGlobalServiceImpl {
 
   async getAuthConfigErrorGlobalById(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     authConfigErrorGlobalId: string;
   }) {

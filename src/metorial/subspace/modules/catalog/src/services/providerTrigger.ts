@@ -6,19 +6,20 @@ import {
   type Environment,
   type ProviderSpecification,
   type ProviderVersion,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
 class providerTriggerServiceImpl {
   async listProviderTriggers(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
 
     providerVersion: ProviderVersion;
   }) {
+    let solution = await getMetorialSolution();
+
     let versionOid = d.providerVersion?.oid;
 
     let version = versionOid
@@ -40,6 +41,7 @@ class providerTriggerServiceImpl {
             where: {
               provider: getProviderTenantFilter({
                 ...d,
+                solution,
                 includeDeprecated: true
               }),
               OR: [{ id: opts.cursor.id }, { global: { id: opts.cursor.id } }]
@@ -62,6 +64,7 @@ class providerTriggerServiceImpl {
               {
                 provider: getProviderTenantFilter({
                   ...d,
+                  solution,
                   includeDeprecated: true
                 })
               }
@@ -110,15 +113,17 @@ class providerTriggerServiceImpl {
   }
 
   async getProviderTriggerById(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     providerTriggerId: string;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerTrigger = await db.providerTrigger.findFirst({
       where: {
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

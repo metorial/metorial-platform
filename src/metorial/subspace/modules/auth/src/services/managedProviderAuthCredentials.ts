@@ -7,9 +7,9 @@ import {
   getId,
   type ManagedProviderAuthCredentialsStatus,
   type Prisma,
-  type Solution,
   withTransaction
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { providerService } from '@metorial-subspace/module-catalog';
 import { getManagedOAuthScopeIds, type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
 import { reconcileAllTenantsManagedBackingsQueue } from '../queues/reconcile';
@@ -69,18 +69,19 @@ let getProviderAuthMethodForProvider = async (d: {
 
 class managedProviderAuthCredentialsServiceImpl {
   async listManagedProviderAuthCredentials(d: {
-    solution: Solution;
     status?: ManagedProviderAuthCredentialsStatus[];
     ids?: string[];
     providerIds?: string[];
   }) {
+    let solution = await getMetorialSolution();
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.managedProviderAuthCredentials.findMany({
             ...opts,
             where: {
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               AND: [
                 d.status?.length ? { status: { in: d.status } } : undefined!,
                 d.ids?.length ? { id: { in: d.ids } } : undefined!,
@@ -96,13 +97,14 @@ class managedProviderAuthCredentialsServiceImpl {
   }
 
   async getManagedProviderAuthCredentialsById(d: {
-    solution: Solution;
     managedProviderAuthCredentialsId: string;
   }) {
+    let solution = await getMetorialSolution();
+
     let managedProviderAuthCredentials = await db.managedProviderAuthCredentials.findFirst({
       where: {
         id: d.managedProviderAuthCredentialsId,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       include
     });
@@ -117,7 +119,6 @@ class managedProviderAuthCredentialsServiceImpl {
   }
 
   async createManagedProviderAuthCredentials(d: {
-    solution: Solution;
     input: {
       providerId: string;
       providerAuthMethodId: string;
@@ -128,9 +129,10 @@ class managedProviderAuthCredentialsServiceImpl {
       clientSecret: string;
     };
   }) {
+    let solution = await getMetorialSolution();
+
     let provider = await providerService.getProviderById({
-      providerId: d.input.providerId,
-      solution: d.solution
+      providerId: d.input.providerId
     });
 
     let providerAuthMethod = await getProviderAuthMethodForProvider({
@@ -146,7 +148,7 @@ class managedProviderAuthCredentialsServiceImpl {
           name: d.input.name,
           description: d.input.description || undefined,
           metadata: d.input.metadata,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           initialProviderAuthMethodOid: providerAuthMethod.oid,
           providerOid: providerAuthMethod.providerOid,
           providerAuthMethodGlobalOid: providerAuthMethod.globalOid,
@@ -172,7 +174,6 @@ class managedProviderAuthCredentialsServiceImpl {
   }
 
   async updateManagedProviderAuthCredentials(d: {
-    solution: Solution;
     managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord;
     input: {
       name?: string;
@@ -183,6 +184,7 @@ class managedProviderAuthCredentialsServiceImpl {
       clientSecret?: string;
     };
   }) {
+    let solution = await getMetorialSolution();
     let managedProviderAuthCredentialsData: Prisma.ManagedProviderAuthCredentialsUncheckedUpdateInput =
       {};
 
@@ -190,8 +192,7 @@ class managedProviderAuthCredentialsServiceImpl {
       let provider = await providerService.getProviderById({
         providerId:
           d.managedProviderAuthCredentials.provider?.id ??
-          d.managedProviderAuthCredentials.initialProviderAuthMethod.provider.id,
-        solution: d.solution
+          d.managedProviderAuthCredentials.initialProviderAuthMethod.provider.id
       });
 
       let providerAuthMethod = await getProviderAuthMethodForProvider({
@@ -247,7 +248,7 @@ class managedProviderAuthCredentialsServiceImpl {
 
         await addAfterTransactionHook(async () =>
           reconcileAllTenantsManagedBackingsQueue.add(
-            { solutionId: d.solution.id },
+            { solutionId: solution.id },
             { id: `all-tenants-${managedProviderAuthCredentials.id}` }
           )
         );
@@ -260,9 +261,10 @@ class managedProviderAuthCredentialsServiceImpl {
   }
 
   async archiveManagedProviderAuthCredentials(d: {
-    solution: Solution;
     managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord;
   }) {
+    let solution = await getMetorialSolution();
+
     return withTransaction(async db => {
       let managedProviderAuthCredentials = await db.managedProviderAuthCredentials.update({
         where: { oid: d.managedProviderAuthCredentials.oid },
@@ -291,7 +293,7 @@ class managedProviderAuthCredentialsServiceImpl {
 
       await addAfterTransactionHook(async () =>
         reconcileAllTenantsManagedBackingsQueue.add(
-          { solutionId: d.solution.id },
+          { solutionId: solution.id },
           { id: `all-tenants-${managedProviderAuthCredentials.id}` }
         )
       );

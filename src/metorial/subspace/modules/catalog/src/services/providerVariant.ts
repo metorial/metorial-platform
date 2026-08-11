@@ -1,13 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  db,
-  type Environment,
-  type Provider,
-  type Solution,
-  type Tenant
-} from '@metorial-subspace/db';
+import { db, type Environment, type Provider, type Tenant } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
 let include = {
@@ -22,11 +17,12 @@ export let providerVariantInclude = include;
 
 class providerVariantServiceImpl {
   async listProviderVariants(d: {
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -35,6 +31,7 @@ class providerVariantServiceImpl {
             where: {
               provider: getProviderTenantFilter({
                 ...d,
+                solution,
                 includeDeprecated: d.includeDeprecated
               })
             },
@@ -46,17 +43,19 @@ class providerVariantServiceImpl {
 
   async getProviderVariantById(d: {
     providerVariantId: string;
-    solution: Solution;
     tenant?: Tenant;
     environment?: Environment;
     provider?: Provider;
     includeDeprecated?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerVariant = await db.providerVariant.findFirst({
       where: {
         providerOid: d.provider ? d.provider.oid : undefined,
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

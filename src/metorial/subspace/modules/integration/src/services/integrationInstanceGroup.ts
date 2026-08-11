@@ -34,7 +34,12 @@ import { identityActorService, identityService } from '@metorial-subspace/module
 import { sessionService, sessionTemplateService } from '@metorial-subspace/module-session';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import {
   integrationInstanceGroupArchivedQueue,
   integrationInstanceGroupCreatedQueue,
@@ -122,10 +127,105 @@ let defaultSessionTemplateTimeoutError = () =>
     code: 'default_session_template_timeout'
   });
 
+export type ListIntegrationInstanceGroupsParams = {
+  includeMagicMcpBackings?: boolean;
+
+  status?: IntegrationInstanceGroupStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  integrationIds?: string[];
+  integrationInstanceIds?: string[];
+  integrationInstanceProviderIds?: string[];
+  providerIds?: string[];
+  integrationProviderIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  sessionTemplateIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIntegrationInstanceGroupByIdParams = {
+  integrationInstanceGroupId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIntegrationInstanceGroupParams = {
+  input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    identityActorId?: string | null;
+    identityId?: string | null;
+    providers?: SetIntegrationInstanceGroupProviderInput[];
+  };
+};
+
+export type UpsertMagicMcpIntegrationInstanceGroupParams = {
+  integrationInstanceGroup?: IntegrationInstanceGroup | null;
+  input: {
+    name: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    identityActorId?: string | null;
+    identityId?: string | null;
+    identitySourceIntegrationInstances?: Pick<
+      IntegrationInstance,
+      'identityActorOid' | 'identityOid'
+    >[];
+  };
+};
+
+export type UpdateIntegrationInstanceGroupParams = {
+  integrationInstanceGroup: IntegrationInstanceGroup;
+  input: {
+    name?: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    identityActorId?: string | null;
+    identityId?: string | null;
+    providers?: SetIntegrationInstanceGroupProviderInput[];
+  };
+};
+
+export type CreateSessionTemplateForIntegrationInstanceGroupParams = {
+  integrationInstanceGroup: IntegrationInstanceGroup;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+  };
+};
+
+export type WaitForDefaultSessionTemplateForIntegrationInstanceGroupParams = {
+  integrationInstanceGroup: IntegrationInstanceGroup;
+};
+
+export type CreateSessionForIntegrationInstanceGroupParams = {
+  integrationInstanceGroup: IntegrationInstanceGroup;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+  };
+};
+
+export type ArchiveIntegrationInstanceGroupParams = {
+  integrationInstanceGroup: IntegrationInstanceGroup;
+  _canModifyMagicMcpBacking?: boolean;
+};
+
 class integrationInstanceGroupServiceImpl {
   private async resolveIdentitySnapshot(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     current?: Pick<IntegrationInstanceGroup, 'identityActorOid' | 'identityOid'> | null;
     input: Pick<
@@ -135,18 +235,16 @@ class integrationInstanceGroupServiceImpl {
   }) {
     if (d.input.identityActorId !== undefined || d.input.identityId !== undefined) {
       let identity = d.input.identityId
-        ? await identityService.getIdentityById({
+        ? await identityService.getIdentityByIdInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             identityId: d.input.identityId
           })
         : null;
 
       let actor = d.input.identityActorId
-        ? await identityActorService.getIdentityActorById({
+        ? await identityActorService.getIdentityActorByIdInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             identityActorId: d.input.identityActorId
           })
@@ -180,7 +278,6 @@ class integrationInstanceGroupServiceImpl {
       integrationInstanceGroup: typeof db.integrationInstanceGroup;
     };
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstanceGroup: IntegrationInstanceGroup & {
       sources?: { integrationInstance: IntegrationInstance }[];
@@ -189,7 +286,6 @@ class integrationInstanceGroupServiceImpl {
   }) {
     let identity = await this.resolveIdentitySnapshot({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       current: d.integrationInstanceGroup,
       input: {
@@ -245,29 +341,22 @@ class integrationInstanceGroupServiceImpl {
     };
   }
 
-  async listIntegrationInstanceGroups(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    includeMagicMcpBackings?: boolean;
+  async listIntegrationInstanceGroups(d: MetorialFacing<ListIntegrationInstanceGroupsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: IntegrationInstanceGroupStatus[];
-    allowDeleted?: boolean;
+    return this.listIntegrationInstanceGroupsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    integrationIds?: string[];
-    integrationInstanceIds?: string[];
-    integrationInstanceProviderIds?: string[];
-    providerIds?: string[];
-    integrationProviderIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    sessionTemplateIds?: string[];
+  async listIntegrationInstanceGroupsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListIntegrationInstanceGroupsParams
+  ) {
+    let solution = await getMetorialSolution();
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
     let integrations = await resolveIntegrations(d, d.integrationIds);
     let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
     let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
@@ -288,7 +377,7 @@ class integrationInstanceGroupServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solution,
               environmentOid: d.environment.oid,
               isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
 
@@ -371,18 +460,27 @@ class integrationInstanceGroupServiceImpl {
     );
   }
 
-  async getIntegrationInstanceGroupById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroupId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIntegrationInstanceGroupById(d: MetorialFacing<GetIntegrationInstanceGroupByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getIntegrationInstanceGroupByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getIntegrationInstanceGroupByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetIntegrationInstanceGroupByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let integrationInstanceGroup = await db.integrationInstanceGroup.findFirst({
       where: {
         id: d.integrationInstanceGroupId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solution,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -397,26 +495,28 @@ class integrationInstanceGroupServiceImpl {
     return integrationInstanceGroup;
   }
 
-  async createIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: {
-      name: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      identityActorId?: string | null;
-      identityId?: string | null;
-      providers?: SetIntegrationInstanceGroupProviderInput[];
-    };
-  }) {
+  async createIntegrationInstanceGroup(d: MetorialFacing<CreateIntegrationInstanceGroupParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.createIntegrationInstanceGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async createIntegrationInstanceGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateIntegrationInstanceGroupParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return await withTransaction(async db => {
       let newId = getId('integrationInstanceGroup');
       let integrationInstanceGroup = await db.integrationInstanceGroup.create({
         data: this.integrationInstanceGroupCreateData({
           tenant: d.tenant,
-          solution: d.solution,
+          solution,
           environment: d.environment,
           id: newId,
           input: d.input
@@ -425,13 +525,14 @@ class integrationInstanceGroupServiceImpl {
       });
 
       if (d.input.providers?.length) {
-        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProviders({
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment,
-          integrationInstanceGroup,
-          input: d.input.providers
-        });
+        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvidersInternal(
+          {
+            tenant: d.tenant,
+            environment: d.environment,
+            integrationInstanceGroup,
+            input: d.input.providers
+          }
+        );
 
         integrationInstanceGroup = await db.integrationInstanceGroup.findUniqueOrThrow({
           where: { oid: integrationInstanceGroup.oid },
@@ -442,7 +543,6 @@ class integrationInstanceGroupServiceImpl {
       integrationInstanceGroup = await this.applyIdentity({
         db,
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstanceGroup,
         input: d.input
@@ -458,24 +558,11 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async upsertMagicMcpIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroup?: IntegrationInstanceGroup | null;
-    input: {
-      name: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      identityActorId?: string | null;
-      identityId?: string | null;
-      identitySourceIntegrationInstances?: Pick<
-        IntegrationInstance,
-        'identityActorOid' | 'identityOid'
-      >[];
-    };
-  }) {
+  async upsertMagicMcpIntegrationInstanceGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & UpsertMagicMcpIntegrationInstanceGroupParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return await withTransaction(async db => {
       if (d.integrationInstanceGroup) {
         checkTenant(d, d.integrationInstanceGroup);
@@ -484,7 +571,7 @@ class integrationInstanceGroupServiceImpl {
           where: {
             oid: d.integrationInstanceGroup.oid,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solution,
             environmentOid: d.environment.oid
           },
           data: this.integrationInstanceGroupUpdateData({
@@ -497,7 +584,6 @@ class integrationInstanceGroupServiceImpl {
         integrationInstanceGroup = await this.applyIdentity({
           db,
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           integrationInstanceGroup,
           input: d.input
@@ -516,7 +602,7 @@ class integrationInstanceGroupServiceImpl {
       let integrationInstanceGroup = await db.integrationInstanceGroup.create({
         data: this.integrationInstanceGroupCreateData({
           tenant: d.tenant,
-          solution: d.solution,
+          solution,
           environment: d.environment,
           id: newId,
           input: d.input,
@@ -528,7 +614,6 @@ class integrationInstanceGroupServiceImpl {
       integrationInstanceGroup = await this.applyIdentity({
         db,
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstanceGroup,
         input: d.input
@@ -544,21 +629,22 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async updateIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroup: IntegrationInstanceGroup;
-    input: {
-      name?: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      identityActorId?: string | null;
-      identityId?: string | null;
-      providers?: SetIntegrationInstanceGroupProviderInput[];
-    };
-  }) {
+  async updateIntegrationInstanceGroup(d: MetorialFacing<UpdateIntegrationInstanceGroupParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateIntegrationInstanceGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateIntegrationInstanceGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateIntegrationInstanceGroupParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedEdit(d.integrationInstanceGroup, 'update');
     if (d.integrationInstanceGroup.isMagicMcpBacking) {
@@ -575,7 +661,7 @@ class integrationInstanceGroupServiceImpl {
         where: {
           oid: d.integrationInstanceGroup.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solution,
           environmentOid: d.environment.oid
         },
         data: {
@@ -597,13 +683,14 @@ class integrationInstanceGroupServiceImpl {
       });
 
       if (d.input.providers?.length) {
-        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProviders({
-          tenant: d.tenant,
-          solution: d.solution,
-          environment: d.environment,
-          integrationInstanceGroup,
-          input: d.input.providers
-        });
+        await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvidersInternal(
+          {
+            tenant: d.tenant,
+            environment: d.environment,
+            integrationInstanceGroup,
+            input: d.input.providers
+          }
+        );
 
         integrationInstanceGroup = await db.integrationInstanceGroup.findUniqueOrThrow({
           where: { oid: integrationInstanceGroup.oid },
@@ -614,7 +701,6 @@ class integrationInstanceGroupServiceImpl {
       integrationInstanceGroup = await this.applyIdentity({
         db,
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstanceGroup,
         input: {
@@ -640,18 +726,12 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async createSessionTemplateForIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroup: IntegrationInstanceGroup;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-    };
-  }) {
+  async createSessionTemplateForIntegrationInstanceGroupInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & CreateSessionTemplateForIntegrationInstanceGroupParams
+  ) {
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedRelation(d.integrationInstanceGroup);
 
@@ -662,19 +742,19 @@ class integrationInstanceGroupServiceImpl {
           include: integrationInstanceGroupInclude
         });
 
-      let sessionTemplate = await sessionTemplateService.upsertInternalLinkedSessionTemplate({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
-        sessionTemplate: currentIntegrationInstanceGroup.defaultSessionTemplate,
-        input: {
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata,
-          integrationInstanceGroup: currentIntegrationInstanceGroup
-        }
-      });
+      let sessionTemplate =
+        await sessionTemplateService.upsertInternalLinkedSessionTemplateInternal({
+          tenant: d.tenant,
+          environment: d.environment,
+          sessionTemplate: currentIntegrationInstanceGroup.defaultSessionTemplate,
+          input: {
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata,
+            privateMetadata: d.input.privateMetadata,
+            integrationInstanceGroup: currentIntegrationInstanceGroup
+          }
+        });
 
       await addAfterTransactionHook(async () =>
         enqueueSyncIntegrationInstanceGroupSessionTemplate(sessionTemplate.id)
@@ -684,12 +764,14 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async waitForDefaultSessionTemplateForIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroup: IntegrationInstanceGroup;
-  }) {
+  async waitForDefaultSessionTemplateForIntegrationInstanceGroupInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & WaitForDefaultSessionTemplateForIntegrationInstanceGroupParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedRelation(d.integrationInstanceGroup);
 
@@ -698,7 +780,7 @@ class integrationInstanceGroupServiceImpl {
         where: {
           oid: d.integrationInstanceGroup.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solution,
           environmentOid: d.environment.oid,
           status: { notIn: ['archived', 'deleted'] }
         },
@@ -744,31 +826,20 @@ class integrationInstanceGroupServiceImpl {
     throw new ServiceError(defaultSessionTemplateTimeoutError());
   }
 
-  async createSessionForIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroup: IntegrationInstanceGroup;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-    };
-  }) {
+  async createSessionForIntegrationInstanceGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateSessionForIntegrationInstanceGroupParams
+  ) {
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedRelation(d.integrationInstanceGroup);
 
-    let template = await this.waitForDefaultSessionTemplateForIntegrationInstanceGroup({
+    let template = await this.waitForDefaultSessionTemplateForIntegrationInstanceGroupInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       integrationInstanceGroup: d.integrationInstanceGroup
     });
 
-    return await sessionService.createSession({
+    return await sessionService.createSessionInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       input: {
         ...d.input,
@@ -782,13 +853,22 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async archiveIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroup: IntegrationInstanceGroup;
-    _canModifyMagicMcpBacking?: boolean;
-  }) {
+  async archiveIntegrationInstanceGroup(d: MetorialFacing<ArchiveIntegrationInstanceGroupParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveIntegrationInstanceGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveIntegrationInstanceGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveIntegrationInstanceGroupParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integrationInstanceGroup);
     checkDeletedEdit(d.integrationInstanceGroup, 'archive');
     if (d.integrationInstanceGroup.isMagicMcpBacking && !d._canModifyMagicMcpBacking) {
@@ -805,7 +885,7 @@ class integrationInstanceGroupServiceImpl {
         where: {
           oid: d.integrationInstanceGroup.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solution,
           environmentOid: d.environment.oid
         },
         data: {
@@ -825,13 +905,14 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
-  async deleteIntegrationInstanceGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceGroup: IntegrationInstanceGroup;
-  }) {
+  async deleteIntegrationInstanceGroup(d: MetorialFacing<ArchiveIntegrationInstanceGroupParams>) {
     return await this.archiveIntegrationInstanceGroup(d);
+  }
+
+  async deleteIntegrationInstanceGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveIntegrationInstanceGroupParams
+  ) {
+    return await this.archiveIntegrationInstanceGroupInternal(d);
   }
 }
 
