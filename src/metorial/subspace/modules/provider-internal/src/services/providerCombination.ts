@@ -13,7 +13,7 @@ import {
   providerConfigService,
   providerDeploymentService
 } from '@metorial-subspace/module-deployment';
-import { providerDeploymentInternalService } from '@metorial-subspace/module-provider-internal';
+import { providerDeploymentInternalService } from './providerDeployment';
 import {
   getMetorialSolution,
   type MetorialFacing,

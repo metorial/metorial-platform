@@ -28,13 +28,14 @@ class bucketServiceImpl {
     customProviderDeploymentIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
     let customProviderVersions = await resolveCustomProviderVersions(
-      d,
+      ts,
       d.customProviderVersionIds
     );
     let customProviderDeployments = await resolveCustomProviderDeployments(
-      d,
+      ts,
       d.customProviderDeploymentIds
     );
 
@@ -78,6 +79,7 @@ class bucketServiceImpl {
 
   async getBucketById(d: { tenant: Tenant; environment: Environment; bucketId: string }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let codeBucket = await db.codeBucket.findFirst({
       where: {
         id: d.bucketId,

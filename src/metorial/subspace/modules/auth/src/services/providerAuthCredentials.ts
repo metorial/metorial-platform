@@ -390,7 +390,7 @@ class providerAuthCredentialsServiceImpl {
           where: {
             id: d.providerAuthCredentialsId,
             ...normalizeStatusForGet(d).noParent,
-            OR: [getTenantOwnedWhere({ ...d, solution }), getManagedBackingWhere({ tenant: d.tenant, solution: d.solution })]
+            OR: [getTenantOwnedWhere({ ...d, solution }), getManagedBackingWhere({ tenant: d.tenant, solution })]
           },
           include
         }),
@@ -419,7 +419,7 @@ class providerAuthCredentialsServiceImpl {
       where: {
         id: { in: d.ids },
         ...normalizeStatusForGet(d).noParent,
-        OR: [getTenantOwnedWhere({ ...d, solution }), getManagedBackingWhere({ tenant: d.tenant, solution: d.solution })]
+        OR: [getTenantOwnedWhere({ ...d, solution }), getManagedBackingWhere({ tenant: d.tenant, solution })]
       },
       include
     });
@@ -482,7 +482,7 @@ class providerAuthCredentialsServiceImpl {
         where: {
           oid: d.providerAuthCredentials.oid,
           tenantOid: d.tenant.oid,
-          solution
+          solutionOid: solution.oid
         },
         data: {
           name: d.input.name ?? d.providerAuthCredentials.name,
@@ -555,6 +555,7 @@ class providerAuthCredentialsServiceImpl {
     await assertNoActiveIntegrationInstanceProviderAuthCredentialsLink({
       tenant: d.tenant,
       environment: d.environment,
+      solution,
       authCredentialsOid: d.providerAuthCredentials.oid,
       resourceId: d.providerAuthCredentials.id
     });
@@ -564,7 +565,7 @@ class providerAuthCredentialsServiceImpl {
         where: {
           oid: d.providerAuthCredentials.oid,
           tenantOid: d.tenant.oid,
-          solution,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -696,7 +697,7 @@ class providerAuthCredentialsServiceImpl {
           isDefault: !!d.isDefault,
 
           tenantOid: d.tenant.oid,
-          solution,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           providerOid: d.provider.oid
         },
@@ -742,7 +743,7 @@ class providerAuthCredentialsServiceImpl {
       return await db.managedProviderAuthCredentials.findFirstOrThrow({
         where: {
           oid: d.providerAuthCredentials.managedCredentialsOid,
-          solution
+          solutionOid: solution.oid
         },
         include: managedCredentialsInclude
       });
@@ -755,7 +756,7 @@ class providerAuthCredentialsServiceImpl {
     let managedBacking = await db.managedProviderAuthCredentialsBacking.findFirstOrThrow({
       where: {
         tenantOid: d.tenant.oid,
-        solution,
+        solutionOid: solution.oid,
         providerAuthCredentialsOid: d.providerAuthCredentials.oid
       },
       include: {
@@ -777,7 +778,7 @@ class providerAuthCredentialsServiceImpl {
     let integrationProvider = await db.integrationProvider.findFirst({
       where: {
         tenantOid: d.tenant.oid,
-        solution,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active',
         integration: {

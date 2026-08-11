@@ -181,6 +181,7 @@ class customProviderVersionServiceImpl {
     }
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     let customProvider = await withTransaction(async db => {
       let updatedProvider = await db.customProvider.update({
@@ -260,15 +261,16 @@ class customProviderVersionServiceImpl {
     customProviderEnvironmentIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let providers = await resolveProviders(d, d.providerIds);
-    let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let providerVersions = await resolveProviderVersions(ts, d.providerVersionIds);
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
     let customProviderDeployments = await resolveCustomProviderDeployments(
-      d,
+      ts,
       d.customProviderDeploymentIds
     );
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
-      d,
+      ts,
       d.customProviderEnvironmentIds
     );
 
@@ -317,6 +319,7 @@ class customProviderVersionServiceImpl {
     customProviderVersionId: string;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProviderVersion = await db.customProviderVersion.findFirst({
       where: {
         id: d.customProviderVersionId,

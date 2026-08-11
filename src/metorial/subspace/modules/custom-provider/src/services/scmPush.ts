@@ -19,7 +19,8 @@ class scmPushServiceImpl {
     scmRepoIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let repos = await resolveScmRepos(d, d.scmRepoIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let repos = await resolveScmRepos(ts, d.scmRepoIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -45,6 +46,7 @@ class scmPushServiceImpl {
 
   async getScmPushById(d: { tenant: Tenant; environment: Environment; scmPushId: string }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let scmRepoPush = await db.scmRepoPush.findFirst({
       where: {
         id: d.scmPushId,

@@ -157,9 +157,10 @@ class providerConfigServiceImpl {
     updatedAt?: DateFilter;
   }) {
     let solution = await getMetorialSolution();
-    let providers = await resolveProviders(d, d.providerIds);
-    let specifications = await resolveProviderSpecifications(d, d.providerSpecificationIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let specifications = await resolveProviderSpecifications(ts, d.providerSpecificationIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
     let availableForDeployment = d.availableForProviderDeploymentId
       ? await db.providerDeployment.findFirst({
           where: {
@@ -171,10 +172,10 @@ class providerConfigServiceImpl {
           select: { oid: true }
         })
       : null;
-    let vaults = await resolveProviderConfigs(d, d.providerConfigVaultIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let identityCredentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
+    let vaults = await resolveProviderConfigs(ts, d.providerConfigVaultIds);
+    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let identities = await resolveIdentities(ts, d.identityIds);
+    let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -248,6 +249,7 @@ class providerConfigServiceImpl {
     allowDeleted?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providerConfig = await withTransaction(
       async db =>
         await db.providerConfig.findFirst({
@@ -276,6 +278,7 @@ class providerConfigServiceImpl {
     allowDeleted?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await db.providerConfig.findMany({
       where: {
         id: { in: d.ids },
@@ -433,6 +436,7 @@ class providerConfigServiceImpl {
     }
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       if (!d.provider.defaultVariant) {
@@ -619,6 +623,7 @@ class providerConfigServiceImpl {
     providerDeployment: ProviderDeployment;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(
       async db => {
@@ -672,6 +677,7 @@ class providerConfigServiceImpl {
     checkDeletedEdit(d.providerConfig, 'update');
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       let config = await db.providerConfig.update({
@@ -710,6 +716,7 @@ class providerConfigServiceImpl {
     this.assertCanArchiveOwned(d);
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     await assertNoActiveIntegrationInstanceProviderConfigLink({
       tenant: d.tenant,
@@ -757,6 +764,7 @@ class providerConfigServiceImpl {
     providerDeployment: ProviderDeployment;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     return withTransaction(db =>
       db.providerConfig.findFirst({
         where: {
@@ -788,6 +796,7 @@ class providerConfigServiceImpl {
     providerConfig: ProviderConfig;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let integrationProvider = await db.integrationProvider.findFirst({
       where: {
         tenantOid: d.tenant.oid,

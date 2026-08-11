@@ -58,15 +58,16 @@ class customProviderDeploymentServiceImpl {
     customProviderEnvironmentIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let providers = await resolveProviders(d, d.providerIds);
-    let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let providerVersions = await resolveProviderVersions(ts, d.providerVersionIds);
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
     let customProviderVersions = await resolveCustomProviderVersions(
-      d,
+      ts,
       d.customProviderVersionIds
     );
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
-      d,
+      ts,
       d.customProviderEnvironmentIds
     );
 
@@ -134,6 +135,7 @@ class customProviderDeploymentServiceImpl {
     customProviderDeploymentId: string;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProviderDeployment = await db.customProviderDeployment.findFirst({
       where: {
         id: d.customProviderDeploymentId,

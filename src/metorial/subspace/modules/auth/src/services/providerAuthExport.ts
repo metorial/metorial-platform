@@ -134,15 +134,18 @@ class providerAuthExportServiceImpl {
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.auth_export.created:before', eventBase);
 
-    let authExport = await this.createProviderAuthExportInternal({
+    let result = await this.createProviderAuthExportInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
 
-    await Fabric.fire('provider.auth_export.created:after', { ...eventBase, authExport });
+    await Fabric.fire('provider.auth_export.created:after', {
+      ...eventBase,
+      authExport: result.authExport
+    });
 
-    return authExport;
+    return result;
   }
 
   async createProviderAuthExportInternal(d: CreateProviderAuthExportParams) {

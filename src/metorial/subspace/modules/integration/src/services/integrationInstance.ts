@@ -500,20 +500,21 @@ class integrationInstanceServiceImpl {
     d: { tenant: Tenant; environment: Environment } & ListIntegrationInstancesParams
   ) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let credentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
-    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
+    let identities = await resolveIdentities(ts, d.identityIds);
+    let credentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
+    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
+    let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,

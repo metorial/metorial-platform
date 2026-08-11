@@ -102,7 +102,7 @@ describe('completeMessage', () => {
       {
         status: 'failed',
         failureReason: 'timeout',
-        responderParticipant: { oid: 99n },
+        responderParticipant: { oid: 99n } as any,
         completedAt: new Date(),
         output: {
           type: 'error',
@@ -172,9 +172,9 @@ describe('completeMessage', () => {
       {
         status: 'failed',
         failureReason: 'timeout',
-        responderParticipant: { oid: 99n },
+        responderParticipant: { oid: 99n } as any,
         completedAt: new Date(),
-        providerRun: { oid: 31n },
+        providerRun: { oid: 31n } as any,
         output: {
           type: 'error',
           data: { code: 'timeout', message: 'The conduit request timed out before the provider responded.' }
@@ -264,7 +264,7 @@ describe('completeMessage', () => {
       {
         status: 'failed',
         failureReason: 'timeout',
-        responderParticipant: { oid: 99n },
+        responderParticipant: { oid: 99n } as any,
         completedAt: new Date(),
         output: {
           type: 'error',

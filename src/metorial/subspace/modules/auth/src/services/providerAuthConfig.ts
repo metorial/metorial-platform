@@ -653,12 +653,14 @@ class providerAuthConfigServiceImpl {
     await assertNoActiveIntegrationInstanceProviderAuthConfigLink({
       tenant: d.tenant,
       environment: d.environment,
+      solution,
       authConfigOid: d.providerAuthConfig.oid,
       resourceId: d.providerAuthConfig.id
     });
     await assertNoActiveIdentityCredentialAuthConfigLink({
       tenant: d.tenant,
       environment: d.environment,
+      solution,
       authConfigOid: d.providerAuthConfig.oid,
       resourceId: d.providerAuthConfig.id
     });

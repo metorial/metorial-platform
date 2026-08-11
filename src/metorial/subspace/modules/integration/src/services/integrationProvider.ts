@@ -323,16 +323,17 @@ class integrationProviderServiceImpl {
     updatedAt?: DateFilter;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let authMethods = await resolveProviderAuthMethods(d, d.providerAuthMethodIds);
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let authMethods = await resolveProviderAuthMethods(ts, d.providerAuthMethodIds);
     let authCredentials = await resolveProviderAuthCredentials(
-      d,
+      ts,
       d.providerAuthCredentialsIds
     );
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
 
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;

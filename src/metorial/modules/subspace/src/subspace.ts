@@ -1,34 +1,18 @@
-import {
-  ensureInternalActor,
-  ensureInternalProjectTenant,
-  ensureInternalScope,
-  getSubspaceSolution,
-  subspace as internalSubspace
-} from '@metorial/internal-clients';
 import { db, type Instance, type OrganizationActor, type Project } from '@metorial/db';
+import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
 
-export let subspace: typeof internalSubspace = internalSubspace;
-export let getSolution = () => getSubspaceSolution();
+export let getSolution = () => subspaceScopeService.getSolution();
 
 export let getTenantForSubspace = async (instance: Instance) => {
-  let [solution, scope] = await Promise.all([
-    getSubspaceSolution(),
-    ensureInternalScope({
-      service: 'subspace',
-      owner: {
-        type: 'instance',
-        instance
-      }
-    })
-  ]);
+  let scope = await subspaceScopeService.ensureForInstance(instance);
 
   return {
     tenant: {
-      id: scope.tenantId,
+      id: scope.tenant.id,
       identifier: scope.tenantIdentifier
     },
-    solution,
-    environmentId: scope.environmentId,
+    solution: scope.solution,
+    environmentId: scope.environment.id,
     environmentIdentifier: scope.environmentIdentifier
   };
 };
@@ -36,15 +20,14 @@ export let getTenantForSubspace = async (instance: Instance) => {
 export let getActorForSubspace = async (
   tenant: { id: string; identifier: string },
   organizationActor: Pick<OrganizationActor, 'id'>
-) =>
-  await ensureInternalActor({
-    service: 'subspace',
-    tenantId: tenant.id,
-    actor: {
-      type: 'organizationActor',
-      organizationActor
-    }
+) => {
+  let tenantEntity = await tenantService.getTenantById({ id: tenant.id });
+
+  return await subspaceScopeService.ensureForOrganizationActor({
+    tenant: tenantEntity,
+    organizationActor
   });
+};
 
 export let syncSubspaceTenantForProject = async (
   project: Project,
@@ -71,10 +54,7 @@ export let syncSubspaceTenantForProject = async (
     });
   }
 
-  let { tenantId, tenantIdentifier } = await ensureInternalProjectTenant({
-    service: 'subspace',
-    project
-  });
+  let { tenant, tenantIdentifier } = await subspaceScopeService.ensureForProject(project);
   let instances = await db.instance.findMany({
     where: {
       projectOid: project.oid
@@ -85,15 +65,7 @@ export let syncSubspaceTenantForProject = async (
   });
 
   let syncInstances = Promise.all(
-    instances.map(instance =>
-      ensureInternalScope({
-        service: 'subspace',
-        owner: {
-          type: 'instance',
-          instance
-        }
-      })
-    )
+    instances.map(instance => subspaceScopeService.ensureForInstance(instance))
   );
 
   if (opts?.await) {
@@ -105,7 +77,21 @@ export let syncSubspaceTenantForProject = async (
   }
 
   return {
-    id: tenantId,
+    id: tenant.id,
     identifier: tenantIdentifier
   };
 };
+
+// Legacy RPC client export — domain RPC controllers are removed. Wrappers that still
+// import this will fail at runtime until callers cut over to @metorial-subspace/module-*.
+export let subspace = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      if (prop === 'then') return undefined;
+      throw new Error(
+        `Subspace RPC client method "${String(prop)}" is no longer available. Call @metorial-subspace/module-* services directly.`
+      );
+    }
+  }
+) as any;

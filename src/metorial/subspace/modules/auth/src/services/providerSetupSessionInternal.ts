@@ -22,6 +22,7 @@ import {
 import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityCredentialService } from '@metorial-subspace/module-identity';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';

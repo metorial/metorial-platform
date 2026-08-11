@@ -141,6 +141,7 @@ class customProviderCommitServiceImpl {
 
   async createCustomProviderCommitInternal(d: CreateCustomProviderCommitParams) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return await withTransaction(async db => {
       let dataBase = {
@@ -305,15 +306,16 @@ class customProviderCommitServiceImpl {
     customProviderEnvironmentIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let providers = await resolveProviders(d, d.providerIds);
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
 
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
-      d,
+      ts,
       d.customProviderEnvironmentIds
     );
     let customProviderVersions = await resolveCustomProviderVersions(
-      d,
+      ts,
       d.customProviderVersionIds
     );
 
@@ -358,6 +360,7 @@ class customProviderCommitServiceImpl {
     customProviderCommitId: string;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProviderCommit = await db.customProviderCommit.findFirst({
       where: {
         id: d.customProviderCommitId,

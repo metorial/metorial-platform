@@ -193,8 +193,9 @@ class customProviderServiceImpl {
     scmRepositoryIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let providers = await resolveProviders(d, d.providerIds);
-    let scmRepos = await resolveScmRepos(d, d.scmRepositoryIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let scmRepos = await resolveScmRepos(ts, d.scmRepositoryIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -241,6 +242,7 @@ class customProviderServiceImpl {
     allowDeleted?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProvider = await db.customProvider.findFirst({
       where: {
         OR: [
@@ -343,6 +345,7 @@ class customProviderServiceImpl {
     }
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     let customProvider = await withTransaction(async db => {
       let repo =
@@ -442,6 +445,7 @@ class customProviderServiceImpl {
     }
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     let customProvider = await withTransaction(async db => {
       let repo = d.input.repository
@@ -532,6 +536,7 @@ class customProviderServiceImpl {
     checkDeletedEdit(d.customProvider, 'archive');
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     let customProvider = await withTransaction(async db => {
       let customProvider = await db.customProvider.update({

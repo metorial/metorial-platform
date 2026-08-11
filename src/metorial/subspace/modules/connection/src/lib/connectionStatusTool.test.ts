@@ -15,7 +15,7 @@ let report: { summary: string } & Report['data'] = {
     transport: 'mcp',
     mcp_transport: 'streamable_http',
     mcp_protocol_version: '2025-03-26',
-    state: 'active',
+    state: 'connected',
     created_at: new Date(),
     last_active_at: new Date()
   },
@@ -46,11 +46,11 @@ let report: { summary: string } & Report['data'] = {
       },
       auth: {
         configured: true,
-        auth_method: { key: 'oauth', type: 'oauth2', name: 'OAuth' },
+        auth_method: { key: 'oauth', type: 'oauth', name: 'OAuth' },
         auth_config: {
           id: 'pauc_1',
           name: 'Default',
-          type: 'oauth',
+          type: 'oauth_manual',
           status: 'active',
           granted_scopes: []
         },

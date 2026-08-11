@@ -65,6 +65,7 @@ class providerTemplateBackingServiceImpl {
 
     return await this.getProviderTemplateBackingById({
       tenant: d.tenant,
+      solution: d.solution,
       environment: d.environment,
       providerTemplateBackingId: d.input.providerTemplateId
     });

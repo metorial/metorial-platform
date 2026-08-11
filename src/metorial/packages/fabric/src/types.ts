@@ -62,7 +62,6 @@ import type {
   IntegrationInstance as SubspaceIntegrationInstance,
   IntegrationSetupSession as SubspaceIntegrationSetupSession,
   NetworkPolicy as SubspaceNetworkPolicy,
-  NetworkPolicyRule as SubspaceNetworkPolicyRule,
   ProviderAuthConfig as SubspaceProviderAuthConfig,
   ProviderAuthCredentials as SubspaceProviderAuthCredentials,
   ProviderAuthExport as SubspaceProviderAuthExport,
@@ -70,7 +69,7 @@ import type {
   ProviderConfig as SubspaceProviderConfig,
   ProviderConfigVault as SubspaceProviderConfigVault,
   ProviderDeployment as SubspaceProviderDeployment,
-  ProviderGroup as SubspaceProviderListingGroup,
+  ProviderListingGroup as SubspaceProviderListingGroup,
   ProviderSetupSession as SubspaceProviderSetupSession,
   Session as SubspaceSession,
   SessionProvider as SubspaceSessionProvider,
@@ -762,9 +761,9 @@ export interface FabricEvents {
   'instance.network.network_policy.deleted:before': ProviderEventBase;
   'instance.network.network_policy.deleted:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
   'instance.network.network_policy.rule.created:before': ProviderEventBase;
-  'instance.network.network_policy.rule.created:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: SubspaceNetworkPolicyRule };
+  'instance.network.network_policy.rule.created:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: PrismaJson.NetworkPolicyRule };
   'instance.network.network_policy.rule.updated:before': ProviderEventBase;
-  'instance.network.network_policy.rule.updated:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: SubspaceNetworkPolicyRule };
+  'instance.network.network_policy.rule.updated:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy; rule: PrismaJson.NetworkPolicyRule };
   'instance.network.network_policy.rule.deleted:before': ProviderEventBase;
   'instance.network.network_policy.rule.deleted:after': ProviderEventBase & { networkPolicy: SubspaceNetworkPolicy };
 }

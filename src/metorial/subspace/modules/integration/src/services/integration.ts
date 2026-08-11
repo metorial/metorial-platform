@@ -225,12 +225,13 @@ class integrationServiceImpl {
     d: { tenant: Tenant; environment: Environment } & ListIntegrationsParams
   ) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let providers = await resolveProviders(d, d.providerIds);
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,

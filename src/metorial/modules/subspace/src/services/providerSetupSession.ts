@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { db } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
-import { createSubspaceService, toEventBase } from '../lib/subspaceService';
+import { createSubspaceService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceProviderSetupSessionService = createSubspaceService(
@@ -45,30 +44,7 @@ export let subspaceProviderSetupSessionService = createSubspaceService(
         };
       }
 
-      let eventBase = toEventBase(arg0);
-      await Fabric.fire('provider.setup_session.created:before', eventBase);
-
-      let setupSession = await inner.create(arg0);
-
-      await Fabric.fire('provider.setup_session.created:after', {
-        ...eventBase,
-        setupSession
-      });
-
-      return setupSession;
-    },
-    update: async (...args: Parameters<typeof inner.update>) => {
-      let eventBase = toEventBase(args[0]);
-      await Fabric.fire('provider.setup_session.updated:before', eventBase);
-
-      let setupSession = await inner.update(...args);
-
-      await Fabric.fire('provider.setup_session.updated:after', {
-        ...eventBase,
-        setupSession
-      });
-
-      return setupSession;
+      return await inner.create(arg0);
     }
   })
 );

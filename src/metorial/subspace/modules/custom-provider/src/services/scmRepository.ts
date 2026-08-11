@@ -26,7 +26,8 @@ class scmRepositoryServiceImpl {
     customProviderIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -58,6 +59,7 @@ class scmRepositoryServiceImpl {
     scmRepositoryId: string;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let scmRepo = await db.scmRepo.findFirst({
       where: {
         id: d.scmRepositoryId,
@@ -83,6 +85,7 @@ class scmRepositoryServiceImpl {
     };
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let tenant = await getTenantForOrigin(d.tenant);
     let originRes = await origin.scmRepository.create({
       tenantId: tenant.id,
@@ -110,6 +113,7 @@ class scmRepositoryServiceImpl {
     };
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let tenant = await getTenantForOrigin(d.tenant);
     let originRes = await origin.scmRepository.link({
       tenantId: tenant.id,

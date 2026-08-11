@@ -19,7 +19,7 @@ import {
   resolveProviderDeployments,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import { checkTenant, getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
 import {
   type CompiledNetworkAllowList,
@@ -80,11 +80,13 @@ class enclaveServiceImpl {
     firewallIds?: string[];
     createdAt?: DateFilter;
   }) {
-    let networks = await resolveNetworks(d, d.networkIds);
-    let enclaveEnvironments = await resolveEnclaveEnvironments(d, d.enclaveEnvironmentIds);
-    let providerDeployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let firewalls = await resolveFirewalls(d, d.firewallIds);
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let networks = await resolveNetworks(ts, d.networkIds);
+    let enclaveEnvironments = await resolveEnclaveEnvironments(ts, d.enclaveEnvironmentIds);
+    let providerDeployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let firewalls = await resolveFirewalls(ts, d.firewallIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>

@@ -27,6 +27,7 @@ import {
 } from '@metorial-subspace/list-utils';
 import {
   checkTenant,
+  getMetorialSolution,
   type MetorialFacing,
   resolveMetorialFacing,
   toProviderEventBase
@@ -124,10 +125,12 @@ class firewallServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
-    let networks = await resolveNetworks(d, d.networkIds);
-    let enclaves = await resolveEnclaves(d, d.enclaveIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let networkPolicies = await resolveNetworkPolicies(d, d.networkPolicyIds);
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let networks = await resolveNetworks(ts, d.networkIds);
+    let enclaves = await resolveEnclaves(ts, d.enclaveIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let networkPolicies = await resolveNetworkPolicies(ts, d.networkPolicyIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>

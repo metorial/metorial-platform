@@ -8,6 +8,7 @@ import {
   resolveEnclaves,
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { networkInternalService } from './networkInternal';
 
 let include = {
@@ -48,8 +49,10 @@ class networkServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
-    let firewalls = await resolveFirewalls(d, d.firewallIds);
-    let enclaves = await resolveEnclaves(d, d.enclaveIds);
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let firewalls = await resolveFirewalls(ts, d.firewallIds);
+    let enclaves = await resolveEnclaves(ts, d.enclaveIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>

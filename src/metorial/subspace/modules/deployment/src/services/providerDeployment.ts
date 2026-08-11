@@ -219,11 +219,12 @@ class providerDeploymentServiceImpl {
     updatedAt?: DateFilter;
   }) {
     let solution = await getMetorialSolution();
-    let providers = await resolveProviders(d, d.providerIds);
-    let versions = await resolveProviderVersions(d, d.providerVersionIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let identityCredentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let versions = await resolveProviderVersions(ts, d.providerVersionIds);
+    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let identities = await resolveIdentities(ts, d.identityIds);
+    let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
@@ -281,6 +282,7 @@ class providerDeploymentServiceImpl {
     allowDeleted?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providerDeployment = await withTransaction(
       async db =>
         await db.providerDeployment.findFirst({
@@ -309,6 +311,7 @@ class providerDeploymentServiceImpl {
     allowDeleted?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await db.providerDeployment.findMany({
       where: {
         id: { in: d.ids },
@@ -337,6 +340,7 @@ class providerDeploymentServiceImpl {
     }
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       if (!d.provider.defaultVariant) {
@@ -529,6 +533,7 @@ class providerDeploymentServiceImpl {
     checkDeletedEdit(d.providerDeployment, 'update');
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       let currentVersionOid = d.providerDeployment.currentVersionOid;
@@ -585,6 +590,7 @@ class providerDeploymentServiceImpl {
     checkDeletedEdit(d.providerDeployment, 'archive');
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     await this.assertNoActiveIntegrationProviderLink(d);
     await assertNoActiveIntegrationInstanceProviderDeploymentLink({
@@ -637,6 +643,7 @@ class providerDeploymentServiceImpl {
     provider: Provider;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await withTransaction(
       db =>
         db.providerDeployment.findFirst({
@@ -659,6 +666,7 @@ class providerDeploymentServiceImpl {
     providerDeployment: ProviderDeployment;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let integrationProvider = await db.integrationProvider.findFirst({
       where: {
         tenantOid: d.tenant.oid,

@@ -79,9 +79,10 @@ class customProviderEnvironmentServiceImpl {
     customProviderVersionIds?: string[];
   }) {
     let solution = await getMetorialSolution();
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
     let customProviderVersions = await resolveCustomProviderVersions(
-      d,
+      ts,
       d.customProviderVersionIds
     );
 
@@ -132,6 +133,7 @@ class customProviderEnvironmentServiceImpl {
     includeOtherEnvironments?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProviderEnvironment = await db.customProviderEnvironment.findFirst({
       where: {
         id: d.customProviderEnvironmentId,

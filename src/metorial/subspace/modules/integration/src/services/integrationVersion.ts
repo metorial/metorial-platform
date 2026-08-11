@@ -67,12 +67,13 @@ class integrationVersionServiceImpl {
     d: { tenant: Tenant; environment: Environment } & ListIntegrationVersionsParams
   ) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
-    let providers = await resolveProviders(d, d.providerIds);
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
+    let providers = await resolveProviders(ts, d.providerIds);
     let integrationProviderVersions = await resolveIntegrationProviderVersions(
-      d,
+      ts,
       d.integrationProviderVersionIds
     );
 

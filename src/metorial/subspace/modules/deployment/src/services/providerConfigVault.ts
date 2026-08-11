@@ -162,9 +162,10 @@ class providerConfigVaultServiceImpl {
     updatedAt?: DateFilter;
   }) {
     let solution = await getMetorialSolution();
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -210,6 +211,7 @@ class providerConfigVaultServiceImpl {
     allowDeleted?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providerConfigVault = await db.providerConfigVault.findFirst({
       where: {
         id: d.providerConfigVaultId,
@@ -233,6 +235,7 @@ class providerConfigVaultServiceImpl {
     allowDeleted?: boolean;
   }) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await db.providerConfigVault.findMany({
       where: {
         id: { in: d.ids },
@@ -252,6 +255,7 @@ class providerConfigVaultServiceImpl {
     checkDeletedRelation(d.providerDeployment);
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return await withTransaction(async db => {
       let config = await providerConfigService.createProviderConfigInternal({
@@ -299,6 +303,7 @@ class providerConfigVaultServiceImpl {
     checkDeletedEdit(d.providerConfigVault, 'update');
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       let vault = await db.providerConfigVault.update({
@@ -330,6 +335,7 @@ class providerConfigVaultServiceImpl {
     checkDeletedEdit(d.providerConfigVault, 'archive');
 
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       let archivedAt = new Date();

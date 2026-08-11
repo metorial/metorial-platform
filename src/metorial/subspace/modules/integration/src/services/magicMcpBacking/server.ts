@@ -84,7 +84,9 @@ class magicMcpServerBackingServiceImpl {
     let solution = await getMetorialSolution();
 
     let actorOid = await resolveActorOid({
-      ...d,
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
       identityActorId: d.input.identityActorId,
       identityId: d.input.identityId
     });
@@ -119,7 +121,7 @@ class magicMcpServerBackingServiceImpl {
           where: {
             id: d.input.ownerIntegrationInstanceId,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             status: { notIn: ['deleted', 'archived'] }
           },

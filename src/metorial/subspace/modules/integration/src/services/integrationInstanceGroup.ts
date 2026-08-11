@@ -356,19 +356,20 @@ class integrationInstanceGroupServiceImpl {
     d: { tenant: Tenant; environment: Environment } & ListIntegrationInstanceGroupsParams
   ) {
     let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(ts, d.integrationInstanceIds);
     let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
-      d,
+      ts,
       d.integrationInstanceProviderIds
     );
-    let providers = await resolveProviders(d, d.providerIds);
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
-    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
+    let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -377,7 +378,7 @@ class integrationInstanceGroupServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solution,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
 
