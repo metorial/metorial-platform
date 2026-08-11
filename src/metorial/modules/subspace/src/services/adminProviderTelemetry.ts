@@ -2,7 +2,7 @@ import { createSubspacePublicService } from '../lib/subspaceService';
 import { subspace } from '../subspace';
 
 export let subspaceAdminProviderTelemetryService = createSubspacePublicService(
-  subspace.adminProviderTelemetry as any,
+  subspace.adminProviderTelemetry,
   [
     'listProviders',
     'getProvider',
@@ -24,7 +24,7 @@ export let subspaceAdminProviderTelemetryService = createSubspacePublicService(
     'compareVersions'
   ],
   () => ({})
-) as any;
+);
 
 export type SubspaceAdminProviderTelemetryProvider = Awaited<
   ReturnType<typeof subspace.adminProviderTelemetry.getProvider>

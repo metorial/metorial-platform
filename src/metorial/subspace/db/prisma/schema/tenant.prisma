@@ -19,6 +19,9 @@ model Tenant {
   functionBayTenantId         String?
   functionBayTenantIdentifier String?
 
+  resourceTenantId         String?
+  resourceTenantIdentifier String?
+
   onlyAllowTrustedProviders Boolean @default(false)
   isWhitelabel              Boolean @default(false)
 
@@ -146,6 +149,9 @@ model Environment {
   identifier String @unique
   name       String
 
+  resourceGroupId         String?
+  resourceGroupIdentifier String?
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
@@ -236,6 +242,9 @@ model TenantActor {
   name                String
   organizationActorId String?
   consumerId          String?
+
+  resourceActorId         String?
+  resourceActorIdentifier String?
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

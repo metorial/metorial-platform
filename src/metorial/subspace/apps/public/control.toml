@@ -15,6 +15,43 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
+EMAIL_SES_ACCESS_KEY_ID = true
+EMAIL_SES_SECRET_ACCESS_KEY = true
+EMAIL_SES_REGION = true
+EMAIL_FROM = "dev@metorial.com"
+EMAIL_FROM_NAME = "Metorial DEV"
+SIGNED_DOWNLOAD_URL_TOKEN_SECRET = "dev-cargo-download-token-secret"
+METORIAL_REGION = "dev"
+DOWNLOAD_PUBLIC_URL = "http://{{HOSTNAME}}:4318"
+PORTAL_HOST_TEMPLATE = "http://{{HOSTNAME}}:4300/p/{portalId}"
+PORTAL_REDIRECT_DOMAINS = "{{HOSTNAME}}"
+SYNTHESIS_API_URL = "http://localhost:52160/metorial-synthesis"
+PROVIDER_OAUTH_TICKET_SECRET = "provider-oauth-ticket-secret"
+FILES_BUCKET_NAME = "mte-files"
+USAGE_MONGO_URI = "mongodb://mongo:mongo@localhost:{{CONTROL_PORT_MONGO}}/?authSource=admin"
+API_URL = "http://localhost:4310"
+FILES_URL = "http://localhost:4318"
+APP_URL = "http://localhost:4300"
+DASHBOARD_FRONTEND_HOST = "http://localhost:4300"
+PORTALS_URL = "http://localhost:4300"
+PORTAL_API_PORT = "4315"
+AWS_ACCESS_KEY_ID = true
+AWS_SECRET_ACCESS_KEY = true
+AWS_REGION = true
+AWS_ACCOUNT_ID = true
+ARES_INTERNAL_URL = "http://localhost:52123/metorial-ares-internal/api"
+ARES_AUTH_URL = "http://localhost:52120"
+RELAY_URL = "http://services:52110/metorial-relay"
+EMAIL_NAME = "Metorial DEV"
+EMAIL_ADDRESS = "dev@metorial.com"
+SUBSPACE_SOLUTION = "metorial-dev"
+SUBSPACE_URL = "http://localhost:52070/subspace-controller"
+SUBSPACE_CONNECTION_URL = "http://localhost:52072"
+CODE_BUCKET_SERVICE_URL = "localhost:5050"
+NEBULA_API_URL = "http://localhost:52170/metorial-nebula"
+AI_GATEWAY_API_KEY = true
+EXTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
+INTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 REDIS_URL = "redis://localhost:{{CONTROL_PORT_REDIS}}/0"
 NATS_URL = "nats://localhost:34222"
 PUBLIC_SERVICE_URL = "http://{{HOSTNAME}}:52071"
@@ -31,10 +68,39 @@ ORIGIN_URL = "http://localhost:52090/metorial-origin"
 REGISTRY_URL = "https://metorial-saas-dev2.registry.metorial-enterprise.com/metorial-registry-root"
 SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
+AUTH_TICKET_SECRET = "auth-ticket-secret"
+ENCRYPTION_SECRET = "encryption-secret"
+CONSUMER_TOKEN_SECRET = "consumer-token-secret"
+CONSUMER_SESSION_SECRET = "consumer-token-secret"
 SIGNAL_API_URL = "http://localhost:52050/metorial-signal"
 FUNCTION_BAY_API_URL = "http://localhost:52030/metorial-function-bay"
 
-[dev.db.main]
+[dev.db.subspace]
 name = "subspace"
 engine = "postgres"
+env = "SUBSPACE_DATABASE_URL"
+
+[dev.db.main]
+name = "metorial-enterprise"
+engine = "postgres"
 env = "DATABASE_URL"
+
+[dev.db.federation]
+name = "metorial-enterprise-federation"
+engine = "postgres"
+env = "FEDERATION_CORE_DATABASE_URL"
+
+[dev.db.payment]
+name = "metorial-enterprise-payment"
+engine = "postgres"
+env = "PAYMENT_DATABASE_URL"
+
+[dev.db.global]
+name = "metorial-enterprise-global"
+engine = "postgres"
+env = "GLOBAL_DATABASE_URL"
+
+[dev.db.usage]
+name = "metorial-usage"
+engine = "mongodb"
+env = "USAGE_MONGO_URL"

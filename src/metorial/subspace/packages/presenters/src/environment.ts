@@ -6,6 +6,8 @@ export let environmentPresenter = (environment: Environment) => ({
   id: environment.id,
   identifier: environment.identifier,
   name: environment.name,
+  resourceGroupId: environment.resourceGroupId,
+  resourceGroupIdentifier: environment.resourceGroupIdentifier,
 
   createdAt: environment.createdAt
 });

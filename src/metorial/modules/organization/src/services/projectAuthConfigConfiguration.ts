@@ -81,6 +81,8 @@ class ProjectAuthConfigConfigurationService {
     let updatedTenant = await subspaceTenantService.upsert({
       name: tenant.name,
       identifier: tenant.identifier,
+      resourceTenantId: tenant.resourceTenantId!,
+      resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
       environments: [],
       allowAuthConfigExport: d.input.allowAuthConfigExport ?? tenant.allowAuthConfigExport,
       allowAuthConfigImport: d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport

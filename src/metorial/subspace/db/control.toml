@@ -9,7 +9,17 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 PUBLIC_SERVICE_URL = "http://{{HOSTNAME}}:52071"
 
-[dev.db.main]
+[dev.db.subspace]
 name = "subspace"
 engine = "postgres"
+env = "SUBSPACE_DATABASE_URL"
+
+[dev.db.main]
+name = "metorial-enterprise"
+engine = "postgres"
 env = "DATABASE_URL"
+
+[dev.db.federation]
+name = "metorial-enterprise-federation"
+engine = "postgres"
+env = "FEDERATION_CORE_DATABASE_URL"

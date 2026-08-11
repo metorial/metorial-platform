@@ -14,6 +14,8 @@ class tenantServiceImpl {
     input: {
       name: string;
       identifier: string;
+      resourceTenantId: string;
+      resourceTenantIdentifier: string;
       onlyAllowTrustedProviders?: boolean;
       isWhitelabel?: boolean;
       logRetentionInDays?: number;
@@ -27,6 +29,8 @@ class tenantServiceImpl {
         name: string;
         identifier: string;
         type: EnvironmentType;
+        resourceGroupId: string;
+        resourceGroupIdentifier: string;
       }[];
     };
   }) {
@@ -43,6 +47,8 @@ class tenantServiceImpl {
         where: { identifier: d.input.identifier },
         update: {
           name: d.input.name,
+          resourceTenantId: d.input.resourceTenantId,
+          resourceTenantIdentifier: d.input.resourceTenantIdentifier,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays,
@@ -59,6 +65,8 @@ class tenantServiceImpl {
           ...getId('tenant'),
           name: d.input.name,
           identifier: d.input.identifier,
+          resourceTenantId: d.input.resourceTenantId,
+          resourceTenantIdentifier: d.input.resourceTenantIdentifier,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           isWhitelabel: d.input.isWhitelabel,
           logRetentionInDays: d.input.logRetentionInDays ?? 30,
@@ -106,9 +114,25 @@ class tenantServiceImpl {
           tenantOid: tenant.oid,
           name: env.name,
           identifier: env.identifier,
-          type: env.type
+          type: env.type,
+          resourceGroupId: env.resourceGroupId,
+          resourceGroupIdentifier: env.resourceGroupIdentifier
         }))
       });
+
+      for (let environment of d.input.environments) {
+        await db.environment.updateMany({
+          where: {
+            tenantOid: tenant.oid,
+            identifier: environment.identifier
+          },
+          data: {
+            name: environment.name,
+            resourceGroupId: environment.resourceGroupId,
+            resourceGroupIdentifier: environment.resourceGroupIdentifier
+          }
+        });
+      }
 
       let environments = await db.environment.findMany({
         where: { tenantOid: tenant.oid }

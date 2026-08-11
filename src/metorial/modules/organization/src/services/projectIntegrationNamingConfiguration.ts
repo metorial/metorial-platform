@@ -74,6 +74,8 @@ class ProjectIntegrationNamingConfigurationService {
     let updatedTenant = await subspaceTenantService.upsert({
       name: tenant.name,
       identifier: tenant.identifier,
+      resourceTenantId: tenant.resourceTenantId!,
+      resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
       environments: [],
       onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
       isWhitelabel: tenant.isWhitelabel,

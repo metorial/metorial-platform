@@ -10,6 +10,7 @@ import {
   toScope
 } from './shared';
 import type { InternalInstance, InternalScope } from './types';
+import { resolveInstanceResourceGroup } from './resourceLink';
 import { upsertSubspaceEnvironment } from './upsert';
 
 export let ensureSubspaceInstanceScope = async (
@@ -41,6 +42,7 @@ export let ensureSubspaceInstanceScope = async (
 
   let loadedInstance = await loadInstanceWithSubspaceContext(instance);
   let environmentIdentifier = getInstanceEnvironmentIdentifier(loadedInstance);
+  let resourceGroup = await resolveInstanceResourceGroup(loadedInstance);
   let tenant = await ensureSubspaceProjectTenant(loadedInstance.project!);
 
   tenantIdentifier = tenant.tenantIdentifier;
@@ -52,7 +54,9 @@ export let ensureSubspaceInstanceScope = async (
         tenantId: tenant.tenantId,
         identifier: environmentIdentifier,
         name: loadedInstance.name,
-        type: loadedInstance.type
+        type: loadedInstance.type,
+        resourceGroupId: resourceGroup.id,
+        resourceGroupIdentifier: resourceGroup.identifier
       })
     ).id;
   }

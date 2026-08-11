@@ -60,6 +60,8 @@ export let tenantController = app.controller({
       v.object({
         name: v.string(),
         identifier: v.string(),
+        resourceTenantId: v.string(),
+        resourceTenantIdentifier: v.string(),
         onlyAllowTrustedProviders: v.optional(v.boolean()),
         isWhitelabel: v.optional(v.boolean()),
         logRetentionInDays: v.optional(v.number()),
@@ -73,7 +75,9 @@ export let tenantController = app.controller({
           v.object({
             name: v.string(),
             identifier: v.string(),
-            type: v.enumOf(['development', 'production'])
+            type: v.enumOf(['development', 'production']),
+            resourceGroupId: v.string(),
+            resourceGroupIdentifier: v.string()
           })
         )
       })
@@ -109,6 +113,8 @@ export let tenantController = app.controller({
         input: {
           name: ctx.input.name,
           identifier: ctx.input.identifier,
+          resourceTenantId: ctx.input.resourceTenantId,
+          resourceTenantIdentifier: ctx.input.resourceTenantIdentifier,
           environments: ctx.input.environments as any,
           onlyAllowTrustedProviders: ctx.input.onlyAllowTrustedProviders,
           isWhitelabel: ctx.input.isWhitelabel,

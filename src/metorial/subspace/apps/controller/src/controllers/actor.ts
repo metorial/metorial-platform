@@ -26,6 +26,8 @@ export let actorController = tenantWithoutEnvironmentApp.controller({
         identifier: v.string(),
         organizationActorId: v.optional(v.string()),
         consumerId: v.optional(v.string()),
+        resourceActorId: v.optional(v.string()),
+        resourceActorIdentifier: v.optional(v.string()),
         type: v.enumOf(['external'])
       })
     )
@@ -38,7 +40,9 @@ export let actorController = tenantWithoutEnvironmentApp.controller({
           identifier: ctx.input.identifier,
           type: ctx.input.type,
           organizationActorId: ctx.input.organizationActorId,
-          consumerId: ctx.input.consumerId
+          consumerId: ctx.input.consumerId,
+          resourceActorId: ctx.input.resourceActorId,
+          resourceActorIdentifier: ctx.input.resourceActorIdentifier
         }
       });
       return actorPresenter(actor);

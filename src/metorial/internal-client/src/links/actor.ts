@@ -10,6 +10,10 @@ import {
   persistOrganizationActorLink
 } from './shared';
 import type { InternalActorLink } from './types';
+import {
+  resolveConsumerResourceActor,
+  resolveOrganizationActorResourceActor
+} from './resourceLink';
 import { upsertSubspaceActor } from './upsert';
 
 export let ensureSubspaceOrganizationActor = async (
@@ -21,11 +25,17 @@ export let ensureSubspaceOrganizationActor = async (
 
   let loadedOrganizationActor = await loadOrganizationActor(organizationActor);
   let actorIdentifier = getOrganizationActorIdentifier(loadedOrganizationActor);
+  let resourceActor = await resolveOrganizationActorResourceActor({
+    tenantId,
+    organizationActor: loadedOrganizationActor
+  });
   let actor = await upsertSubspaceActor({
     tenantId,
     identifier: actorIdentifier,
     name: loadedOrganizationActor.name,
-    organizationActorId: loadedOrganizationActor.id
+    organizationActorId: loadedOrganizationActor.id,
+    resourceActorId: resourceActor.id,
+    resourceActorIdentifier: resourceActor.identifier
   });
 
   await persistOrganizationActorLink({
@@ -47,11 +57,17 @@ export let ensureSubspaceConsumerActor = async (
 
   let loadedConsumer = await loadConsumer(consumer);
   let actorIdentifier = getConsumerActorIdentifier(loadedConsumer);
+  let resourceActor = await resolveConsumerResourceActor({
+    tenantId,
+    consumer: loadedConsumer
+  });
   let actor = await upsertSubspaceActor({
     tenantId,
     identifier: actorIdentifier,
     name: loadedConsumer.name,
-    consumerId: loadedConsumer.id
+    consumerId: loadedConsumer.id,
+    resourceActorId: resourceActor.id,
+    resourceActorIdentifier: resourceActor.identifier
   });
 
   await persistConsumerLink({

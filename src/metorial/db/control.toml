@@ -59,3 +59,8 @@ INTERNAL_MULTI_REGION_ENDPOINT = "http://localhost:4323"
 name = "metorial-enterprise"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[dev.db.subspace]
+name = "subspace"
+engine = "postgres"
+env = "SUBSPACE_DATABASE_URL"

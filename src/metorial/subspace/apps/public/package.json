@@ -27,6 +27,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.957.0",
     "@aws-sdk/client-iam": "^3.957.0",
+    "@metorial/service-init": "^1.0.0",
     "@aws-sdk/client-lambda": "^3.958.0",
     "@hono/zod-validator": "^0.7.6",
     "@hookform/resolvers": "^5.2.2",

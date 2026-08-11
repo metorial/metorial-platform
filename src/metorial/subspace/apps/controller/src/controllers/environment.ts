@@ -23,7 +23,9 @@ export let environmentController = tenantWithoutEnvironmentApp.controller({
         tenantId: v.string(),
         name: v.string(),
         identifier: v.string(),
-        type: v.enumOf(['development', 'production'])
+        type: v.enumOf(['development', 'production']),
+        resourceGroupId: v.string(),
+        resourceGroupIdentifier: v.string()
       })
     )
     .do(async ctx => {
@@ -32,7 +34,9 @@ export let environmentController = tenantWithoutEnvironmentApp.controller({
         input: {
           name: ctx.input.name,
           identifier: ctx.input.identifier,
-          type: ctx.input.type
+          type: ctx.input.type,
+          resourceGroupId: ctx.input.resourceGroupId,
+          resourceGroupIdentifier: ctx.input.resourceGroupIdentifier
         }
       });
       return environmentPresenter(environment);

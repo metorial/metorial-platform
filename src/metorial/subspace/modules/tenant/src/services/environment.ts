@@ -12,6 +12,8 @@ class environmentServiceImpl {
       name: string;
       identifier: string;
       type: EnvironmentType;
+      resourceGroupId: string;
+      resourceGroupIdentifier: string;
     };
   }) {
     try {
@@ -22,12 +24,18 @@ class environmentServiceImpl {
 
       let environment = await db.environment.upsert({
         where: { identifier: d.input.identifier },
-        update: { name: d.input.name },
+        update: {
+          name: d.input.name,
+          resourceGroupId: d.input.resourceGroupId,
+          resourceGroupIdentifier: d.input.resourceGroupIdentifier
+        },
         create: {
           ...getId('environment'),
           name: d.input.name,
           identifier: d.input.identifier,
           type: d.input.type,
+          resourceGroupId: d.input.resourceGroupId,
+          resourceGroupIdentifier: d.input.resourceGroupIdentifier,
           tenantOid: d.tenant.oid
         },
         include

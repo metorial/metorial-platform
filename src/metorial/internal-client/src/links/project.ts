@@ -6,6 +6,7 @@ import {
   persistProjectTenantLink
 } from './shared';
 import type { InternalProject, InternalService } from './types';
+import { resolveInstanceResourceGroup, resolveProjectResourceTenant } from './resourceLink';
 import { upsertNebulaTenant, upsertSubspaceTenant } from './upsert';
 
 let ensureProjectTenant = async (d: {
@@ -25,6 +26,7 @@ let ensureProjectTenant = async (d: {
 
   let project = await loadProjectWithInstances(d.project);
   tenantIdentifier = getProjectTenantIdentifier(project);
+  let resourceTenant = await resolveProjectResourceTenant(project);
 
   if (d.service == 'nebula') {
     let tenant = await upsertNebulaTenant({
@@ -48,11 +50,21 @@ let ensureProjectTenant = async (d: {
     identifier: tenantIdentifier,
     name: project.name,
     onlyAllowTrustedProviders: project.onlyAllowTrustedProviders,
-    environments: (project.instances ?? []).map(instance => ({
-      identifier: getInstanceEnvironmentIdentifier(instance),
-      name: instance.name,
-      type: instance.type
-    }))
+    resourceTenantId: resourceTenant.id,
+    resourceTenantIdentifier: resourceTenant.identifier,
+    environments: await Promise.all(
+      (project.instances ?? []).map(async instance => {
+        let resourceGroup = await resolveInstanceResourceGroup(instance);
+
+        return {
+          identifier: getInstanceEnvironmentIdentifier(instance),
+          name: instance.name,
+          type: instance.type,
+          resourceGroupId: resourceGroup.id,
+          resourceGroupIdentifier: resourceGroup.identifier
+        };
+      })
+    )
   });
 
   return {

@@ -14,6 +14,8 @@ class actorServiceImpl {
       type: TenantActorType;
       organizationActorId?: string;
       consumerId?: string;
+      resourceActorId?: string;
+      resourceActorIdentifier?: string;
     };
   }) {
     return await db.tenantActor.upsert({
@@ -32,7 +34,9 @@ class actorServiceImpl {
         identifier: d.input.identifier,
         type: d.input.type,
         organizationActorId: d.input.organizationActorId,
-        consumerId: d.input.consumerId
+        consumerId: d.input.consumerId,
+        resourceActorId: d.input.resourceActorId,
+        resourceActorIdentifier: d.input.resourceActorIdentifier
       },
       create: {
         ...getId('tenantActor'),
@@ -41,7 +45,9 @@ class actorServiceImpl {
         type: d.input.type,
         tenantOid: d.tenant.oid,
         organizationActorId: d.input.organizationActorId,
-        consumerId: d.input.consumerId
+        consumerId: d.input.consumerId,
+        resourceActorId: d.input.resourceActorId,
+        resourceActorIdentifier: d.input.resourceActorIdentifier
       },
       include
     });

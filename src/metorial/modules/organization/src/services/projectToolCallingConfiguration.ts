@@ -73,6 +73,8 @@ class ProjectToolCallingConfigurationService {
     let updatedTenant = await subspaceTenantService.upsert({
       name: tenant.name,
       identifier: tenant.identifier,
+      resourceTenantId: tenant.resourceTenantId!,
+      resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
       environments: [],
       collectOperationDescriptionForToolCalls:
         d.input.collectOperationDescriptionForToolCalls ??
