@@ -2,10 +2,9 @@ import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck
 import { Service } from '@lowerdeck/service';
 import { db, type ConsumerProfile, type ConsumerSurface, type Instance } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
-import { skillPluginService } from '@metorial/cargo-module-skill';
+import { skillPluginService, skillResourceService } from '@metorial/cargo-module-skill';
 import { magicMcpEndpointService } from '@metorial/module-magic';
 import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
-import { subspaceSkillService } from '@metorial/module-subspace';
 import { addMinutes } from 'date-fns';
 import { consumerIntegrationService } from '../consumerEntities/consumerIntegration';
 import {
@@ -241,7 +240,7 @@ class ConsumerOAuthDashboardService {
       ...scope,
       skillPluginId: d.skillPlugin.id
     });
-    let resources = await subspaceSkillService.hydrateResources({
+    let resources = await skillResourceService.hydrateDelegatedSkillResources({
       instance: owner.instance,
       skillIds: skillPlugin.skillPluginSkills
         .filter(skill => skill.status === 'active')

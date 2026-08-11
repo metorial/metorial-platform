@@ -1,8 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillResourceService } from '@metorial/cargo-module-skill';
-import { subspaceSkillTemplateItemService } from '@metorial/module-subspace';
+import { skillTemplateItemService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
@@ -21,7 +20,7 @@ export let skillTemplateItemGroup = skillTemplateGroup.use(async ctx => {
     );
   }
 
-  let skillTemplateItem = await subspaceSkillTemplateItemService.get({
+  let skillTemplateItem = await skillTemplateItemService.getSkillTemplateItem({
     instance: ctx.instance,
     skillTemplateId: ctx.skillTemplate.id,
     skillTemplateItemId: ctx.params.skillTemplateItemId
@@ -67,7 +66,7 @@ export let skillTemplateItemController = Controller.create(
       .outputList(skillTemplateItemPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        let paginator = await subspaceSkillTemplateItemService.list({
+        let paginator = await skillTemplateItemService.listSkillTemplateItems({
           instance: ctx.instance,
           skillTemplateId: ctx.skillTemplate.id
         });
@@ -123,22 +122,25 @@ export let skillTemplateItemController = Controller.create(
       .body('default', createSkillTemplateItemValidator)
       .output(skillTemplateItemPresenter)
       .do(async ctx => {
-        await skillResourceService.ensureDelegatedSkillTemplate(ctx.skillTemplate);
         let skillTemplateItem =
           ctx.body.type === 'integration'
-            ? await subspaceSkillTemplateItemService.create({
+            ? await skillTemplateItemService.createSkillTemplateItem({
                 instance: ctx.instance,
                 skillTemplateId: ctx.skillTemplate.id,
-                type: 'integration',
-                // @ts-ignore validation narrows the matching union branch
-                integrationId: ctx.body.integration_id
+                input: {
+                  type: 'integration',
+                  // @ts-ignore validation narrows the matching union branch
+                  integrationId: ctx.body.integration_id
+                }
               })
-            : await subspaceSkillTemplateItemService.create({
+            : await skillTemplateItemService.createSkillTemplateItem({
                 instance: ctx.instance,
                 skillTemplateId: ctx.skillTemplate.id,
-                type: 'provider',
-                // @ts-ignore validation narrows the matching union branch
-                providerId: ctx.body.provider_id
+                input: {
+                  type: 'provider',
+                  // @ts-ignore validation narrows the matching union branch
+                  providerId: ctx.body.provider_id
+                }
               });
 
         return skillTemplateItemPresenter.present({ skillTemplateItem });
@@ -162,7 +164,7 @@ export let skillTemplateItemController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.skill:write'] }))
       .output(skillTemplateItemPresenter)
       .do(async ctx => {
-        let skillTemplateItem = await subspaceSkillTemplateItemService.delete({
+        let skillTemplateItem = await skillTemplateItemService.deleteSkillTemplateItem({
           instance: ctx.instance,
           skillTemplateId: ctx.skillTemplate.id,
           skillTemplateItemId: ctx.skillTemplateItem.id

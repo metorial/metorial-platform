@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { SubspaceIntegrationPreview } from '@metorial/module-subspace';
+import type { SubspaceIntegrationPreview } from '@metorial/cargo-module-skill';
 import { Presenter } from '@metorial/presenter';
 import { integrationType } from '../../../types';
 import {
@@ -82,21 +82,23 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
   .build();
 
 export let v1IntegrationPreviewPresenter = Object.assign(
-  (integration: Pick<
-    SubspaceIntegrationPreview,
-    | 'id'
-    | 'slug'
-    | 'name'
-    | 'description'
-    | 'metadata'
-    | 'canAttachCustomToolFilters'
-    | 'canAttachCustomProviderConfig'
-    | 'canOverrideToolFilters'
-    | 'useIntegrationNameForSessionProviderNameTemplatesOverride'
-    | 'createdAt'
-    | 'updatedAt'
-    | 'archivedAt'
-  >) => ({
+  (
+    integration: Pick<
+      SubspaceIntegrationPreview,
+      | 'id'
+      | 'slug'
+      | 'name'
+      | 'description'
+      | 'metadata'
+      | 'canAttachCustomToolFilters'
+      | 'canAttachCustomProviderConfig'
+      | 'canOverrideToolFilters'
+      | 'useIntegrationNameForSessionProviderNameTemplatesOverride'
+      | 'createdAt'
+      | 'updatedAt'
+      | 'archivedAt'
+    >
+  ) => ({
     object: 'integration#preview' as const,
     id: integration.id,
     slug: integration.slug,

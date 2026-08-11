@@ -17,7 +17,6 @@ import {
   type AnyAccessTagSelector,
   consumerSkillReadRoles
 } from '@metorial/module-access';
-import { subspaceSkillTemplateService } from '@metorial/module-subspace';
 import type {
   RequiredStoreTemplateScope,
   StoreTemplateCreateInput,
@@ -28,6 +27,7 @@ import { storeService, storeTemplateService } from '@metorial/cargo-module-store
 import type { Prisma } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle/skillTemplate';
+import { skillResourceService } from './resource';
 import { skillService } from './skill';
 
 let skillTemplateSummaryInclude = {
@@ -502,11 +502,11 @@ class SkillTemplateServiceImpl {
       });
       if (instance) {
         let hydrated: Awaited<
-          ReturnType<typeof subspaceSkillTemplateService.hydrateResources>
+          ReturnType<typeof skillResourceService.hydrateDelegatedSkillTemplateResources>
         > = [];
         for (let offset = 0; offset < candidates.length; offset += 100) {
           hydrated.push(
-            ...(await subspaceSkillTemplateService.hydrateResources({
+            ...(await skillResourceService.hydrateDelegatedSkillTemplateResources({
               instance,
               skillTemplateIds: candidates
                 .slice(offset, offset + 100)

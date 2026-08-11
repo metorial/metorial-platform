@@ -102,12 +102,9 @@ vi.mock('@metorial/module-resource-tenant', () => ({
 vi.mock('@metorial/cargo-module-skill', () => ({
   skillPluginService: {
     getSkillPluginById: vi.fn()
-  }
-}));
-
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceSkillService: {
-    getMany: vi.fn()
+  },
+  skillResourceService: {
+    hydrateDelegatedSkillResources: vi.fn()
   }
 }));
 

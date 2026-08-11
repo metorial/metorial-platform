@@ -5,17 +5,55 @@ import {
   type ResourceActorPresentationRecord
 } from '@metorial/module-resource-tenant';
 import {
-  subspaceSkillService,
-  subspaceSkillItemService,
-  subspaceSkillTemplateItemService,
-  subspaceSkillTemplateService,
-  type SubspaceIntegrationPreview,
-  type SubspaceProviderPreview,
-  type SubspaceSkillItem,
-  type SubspaceSkillTemplateItem
-} from '@metorial/module-subspace';
+  db as subspaceDb,
+  getId as getSubspaceId,
+  type Prisma as SubspacePrisma,
+  withTransaction as withSubspaceTransaction
+} from '@metorial-subspace/db';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
+import { reconcileSkillProviderLinksQueue } from '../queues/reconcileSkillProviderLinks';
 import type { SkillGroupRecord } from './skillGroup';
 import type { SkillGroupItemRecord } from './skillGroupItem';
+
+let subspaceSkillItemInclude = {
+  skill: true,
+  integration: {
+    include: {
+      integration: true
+    }
+  },
+  provider: {
+    include: {
+      provider: {
+        include: { listing: true }
+      }
+    }
+  }
+} satisfies SubspacePrisma.SkillItemInclude;
+
+let subspaceSkillTemplateItemInclude = {
+  integration: true,
+  provider: {
+    include: {
+      listing: true
+    }
+  }
+} satisfies SubspacePrisma.SkillTemplateItemInclude;
+
+type SubspaceSkillItemRecord = SubspacePrisma.SkillItemGetPayload<{
+  include: typeof subspaceSkillItemInclude;
+}>;
+
+type SubspaceSkillTemplateItemRecord = SubspacePrisma.SkillTemplateItemGetPayload<{
+  include: typeof subspaceSkillTemplateItemInclude;
+}>;
+
+export type SubspaceIntegrationPreview = NonNullable<
+  SubspaceSkillItemRecord['integration']
+>['integration'];
+export type SubspaceProviderPreview = NonNullable<
+  SubspaceSkillItemRecord['provider']
+>['provider'];
 
 let skillResourceInclude = {
   store: true,
@@ -77,8 +115,38 @@ export type SkillResource = SkillResourceBase & {
   providers: SubspaceProviderPreview[];
 };
 
-export type SkillItemResource = SubspaceSkillItem;
-export type SkillTemplateItemResource = SubspaceSkillTemplateItem;
+export type SkillItemResource = Omit<
+  SubspaceSkillItemRecord,
+  'skill' | 'integration' | 'provider'
+> & {
+  skillId: string;
+  integration: SubspaceIntegrationPreview | null;
+  provider: SubspaceProviderPreview | null;
+};
+export type SkillTemplateItemResource = Omit<
+  SubspaceSkillTemplateItemRecord,
+  'integration' | 'provider'
+> & {
+  type: 'integration' | 'provider';
+  integration: SubspaceIntegrationPreview | null;
+  provider: SubspaceProviderPreview | null;
+};
+
+export let presentSkillItemResource = (item: SubspaceSkillItemRecord): SkillItemResource => ({
+  ...item,
+  skillId: item.skill.id,
+  integration: item.integration?.integration ?? null,
+  provider: item.provider?.provider ?? null
+});
+
+export let presentSkillTemplateItemResource = (
+  item: SubspaceSkillTemplateItemRecord
+): SkillTemplateItemResource => ({
+  ...item,
+  type: item.integration ? 'integration' : 'provider',
+  integration: item.integration,
+  provider: item.provider
+});
 
 export type SkillGroupResource = Omit<SkillGroupRecord, 'items'> & {
   localSkillGroup: Omit<SkillGroupRecord, 'items'>;
@@ -115,13 +183,99 @@ class SkillResourceServiceImpl {
   async ensureDelegatedSkill(skill: { id: string }) {
     let record = await db.skill.findUnique({
       where: { id: skill.id },
-      include: { instance: true }
+      include: {
+        instance: true,
+        parentSkill: { select: { id: true } },
+        parentSkillTemplate: { select: { id: true } }
+      }
     });
     if (!record?.instance) return;
-    await subspaceSkillService.syncResourceTarget({
-      instance: record.instance,
-      skillId: record.id
+
+    let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
+      record.instance
+    );
+    let existing = await subspaceDb.skill.findUnique({
+      where: { id: record.id },
+      include: { skillEntity: true }
     });
+    let [parentSkill, parentTemplate] = await Promise.all([
+      record.parentSkill
+        ? subspaceDb.skill.findUnique({ where: { id: record.parentSkill.id } })
+        : null,
+      record.parentSkillTemplate
+        ? subspaceDb.skillTemplate.findUnique({
+            where: { id: record.parentSkillTemplate.id }
+          })
+        : null
+    ]);
+
+    await withSubspaceTransaction(async subspaceDb => {
+      let skillEntity =
+        existing?.skillEntity ??
+        (await subspaceDb.skillEntity.create({
+          data: {
+            ...getSubspaceId('skillEntity'),
+            slug: record.slug ?? record.id,
+            name: record.name,
+            description: record.description,
+            image: (record.image ?? undefined) as any,
+            tenantOid: tenant.oid,
+            solutionOid: solution.oid,
+            environmentOid: environment.oid
+          }
+        }));
+
+      let projected = await subspaceDb.skill.upsert({
+        where: { id: record.id },
+        create: {
+          ...getSubspaceId('skill'),
+          id: record.id,
+          status: record.status,
+          slug: record.slug ?? record.id,
+          name: record.name,
+          description: record.description,
+          metadata: record.metadata as any,
+          image: (record.image ?? undefined) as any,
+          clientName: record.clientName?.trim() || record.name,
+          clientDescription: record.clientDescription,
+          clientMetadata: record.clientMetadata as any,
+          license: record.license,
+          compatibility: record.compatibility,
+          storeId: record.storeId,
+          skillEntityOid: skillEntity.oid,
+          tenantOid: tenant.oid,
+          solutionOid: solution.oid,
+          environmentOid: environment.oid,
+          duplicatedFromSkillOid: parentSkill?.oid,
+          parentTemplateOid: parentTemplate?.oid
+        },
+        update: {
+          status: record.status,
+          slug: record.slug ?? existing?.slug ?? record.id,
+          name: record.name,
+          description: record.description,
+          metadata: record.metadata as any,
+          image: (record.image ?? undefined) as any,
+          clientName: record.clientName?.trim() || record.name,
+          clientDescription: record.clientDescription,
+          clientMetadata: record.clientMetadata as any,
+          license: record.license,
+          compatibility: record.compatibility,
+          storeId: record.storeId,
+          duplicatedFromSkillOid: parentSkill?.oid,
+          parentTemplateOid: parentTemplate?.oid
+        }
+      });
+
+      if (!skillEntity.ownerSkillOid) {
+        await subspaceDb.skillEntity.update({
+          where: { oid: skillEntity.oid },
+          data: { ownerSkillOid: projected.oid }
+        });
+      }
+    });
+
+    await reconcileSkillProviderLinksQueue.add({ skillId: record.id });
   }
 
   async ensureDelegatedSkillTemplate(template: { id: string }) {
@@ -130,18 +284,134 @@ class SkillResourceServiceImpl {
       include: { instance: true, storeTemplate: true }
     });
     if (!record?.instance) return;
-    await subspaceSkillTemplateService.syncResourceTarget({
-      instance: record.instance,
-      id: record.id,
-      status: record.status,
-      owner: record.owner,
-      slug: record.slug,
-      name: record.name,
-      description: record.description,
-      metadata: record.metadata as any,
-      storeId: undefined,
-      storeTemplateId: record.storeTemplateId,
-      systemIdentifier: record.systemIdentifier
+
+    let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
+      record.instance
+    );
+    await subspaceDb.skillTemplate.upsert({
+      where: { id: record.id },
+      create: {
+        ...getSubspaceId('skillTemplate'),
+        id: record.id,
+        status: record.status,
+        owner: record.owner,
+        slug: record.slug,
+        name: record.name,
+        description: record.description,
+        metadata: record.metadata as any,
+        storeId: null,
+        storeTemplateId: record.storeTemplateId,
+        systemIdentifier: record.systemIdentifier,
+        tenantOid: record.owner === 'tenant' ? tenant.oid : null,
+        solutionOid: record.owner === 'tenant' ? solution.oid : null,
+        environmentOid: record.owner === 'tenant' ? environment.oid : null
+      },
+      update: {
+        status: record.status,
+        owner: record.owner,
+        slug: record.slug,
+        name: record.name,
+        description: record.description,
+        metadata: record.metadata as any,
+        storeTemplateId: record.storeTemplateId,
+        systemIdentifier: record.systemIdentifier
+      }
+    });
+  }
+
+  async hydrateDelegatedSkillResources(d: {
+    instance: Prisma.InstanceGetPayload<{}>;
+    skillIds: string[];
+  }) {
+    if (!d.skillIds.length) return [];
+    let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
+      d.instance
+    );
+    let skills = await subspaceDb.skill.findMany({
+      where: {
+        id: { in: d.skillIds },
+        tenantOid: tenant.oid,
+        solutionOid: solution.oid,
+        environmentOid: environment.oid
+      },
+      include: {
+        skillIntegrations: {
+          where: { status: 'active' },
+          include: { integration: true }
+        },
+        skillProviderLinks: {
+          include: {
+            provider: {
+              include: { listing: true }
+            }
+          }
+        },
+        skillItems: {
+          where: { status: 'active' },
+          include: subspaceSkillItemInclude
+        }
+      }
+    });
+    let byId = new Map(skills.map(skill => [skill.id, skill]));
+
+    return d.skillIds.flatMap(skillId => {
+      let skill = byId.get(skillId);
+      if (!skill) return [];
+      return [
+        {
+          skillId: skill.id,
+          items: skill.skillItems.map(presentSkillItemResource),
+          integrations: skill.skillIntegrations.map(item => item.integration),
+          providers: skill.skillProviderLinks.map(link => link.provider)
+        }
+      ];
+    });
+  }
+
+  async hydrateDelegatedSkillTemplateResources(d: {
+    instance: Prisma.InstanceGetPayload<{}>;
+    skillTemplateIds: string[];
+  }) {
+    if (!d.skillTemplateIds.length) return [];
+    let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
+      d.instance
+    );
+    let templates = await subspaceDb.skillTemplate.findMany({
+      where: {
+        id: { in: d.skillTemplateIds },
+        OR: [
+          {
+            owner: 'tenant',
+            tenantOid: tenant.oid,
+            solutionOid: solution.oid,
+            environmentOid: environment.oid
+          },
+          {
+            owner: 'system',
+            tenantOid: null,
+            environmentOid: null,
+            OR: [{ solutionOid: solution.oid }, { solutionOid: null }]
+          }
+        ]
+      },
+      include: {
+        skillTemplateItems: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          include: subspaceSkillTemplateItemInclude
+        }
+      }
+    });
+    let byId = new Map(templates.map(template => [template.id, template]));
+
+    return d.skillTemplateIds.flatMap(skillTemplateId => {
+      let template = byId.get(skillTemplateId);
+      if (!template) return [];
+      return [
+        {
+          skillTemplateId: template.id,
+          items: template.skillTemplateItems.map(presentSkillTemplateItemResource)
+        }
+      ];
     });
   }
 
@@ -158,27 +428,32 @@ class SkillResourceServiceImpl {
       include: { instance: true }
     });
     if (!skill?.instance) return;
-    let [resources] = await subspaceSkillService.hydrateResources({
+    let [resources] = await this.hydrateDelegatedSkillResources({
       instance: skill.instance,
       skillIds: [skill.id]
     });
     if (!resources) return;
+    let targetTemplate = await subspaceDb.skillTemplate.findUniqueOrThrow({
+      where: { id: d.skillTemplate.id }
+    });
 
     for (let integration of resources.integrations) {
-      await subspaceSkillTemplateItemService.create({
-        instance: skill.instance,
-        skillTemplateId: d.skillTemplate.id,
-        type: 'integration',
-        integrationId: integration.id
-      } as any);
+      await subspaceDb.skillTemplateItem.create({
+        data: {
+          ...getSubspaceId('skillTemplateItem'),
+          skillTemplateOid: targetTemplate.oid,
+          integrationOid: integration.oid
+        }
+      });
     }
     for (let provider of resources.providers) {
-      await subspaceSkillTemplateItemService.create({
-        instance: skill.instance,
-        skillTemplateId: d.skillTemplate.id,
-        type: 'provider',
-        providerId: provider.id
-      } as any);
+      await subspaceDb.skillTemplateItem.create({
+        data: {
+          ...getSubspaceId('skillTemplateItem'),
+          skillTemplateOid: targetTemplate.oid,
+          providerOid: provider.oid
+        }
+      });
     }
   }
 
@@ -195,29 +470,59 @@ class SkillResourceServiceImpl {
       include: { instance: true }
     });
     if (!target?.instance) return;
-    let [resources] = await subspaceSkillService.hydrateResources({
+    let [resources] = await this.hydrateDelegatedSkillResources({
       instance: target.instance,
       skillIds: [d.sourceSkill.id]
     });
     if (!resources) return;
+    let targetSkill = await subspaceDb.skill.findUniqueOrThrow({
+      where: { id: target.id }
+    });
 
     for (let item of resources.items) {
       if (item.integration) {
-        await subspaceSkillItemService.create({
-          instance: target.instance,
-          skillId: target.id,
-          type: 'integration',
-          integrationId: item.integration.id
-        } as any);
+        await withSubspaceTransaction(async subspaceDb => {
+          let targetItem = await subspaceDb.skillItem.create({
+            data: {
+              ...getSubspaceId('skillItem'),
+              status: 'active',
+              type: 'integration',
+              skillOid: targetSkill.oid
+            }
+          });
+          await subspaceDb.skillIntegration.create({
+            data: {
+              ...getSubspaceId('skillIntegration'),
+              status: 'active',
+              skillOid: targetSkill.oid,
+              integrationOid: item.integration!.oid,
+              itemOid: targetItem.oid
+            }
+          });
+        });
       } else if (item.provider) {
-        await subspaceSkillItemService.create({
-          instance: target.instance,
-          skillId: target.id,
-          type: 'provider',
-          providerId: item.provider.id
-        } as any);
+        await withSubspaceTransaction(async subspaceDb => {
+          let targetItem = await subspaceDb.skillItem.create({
+            data: {
+              ...getSubspaceId('skillItem'),
+              status: 'active',
+              type: 'provider',
+              skillOid: targetSkill.oid
+            }
+          });
+          await subspaceDb.skillProvider.create({
+            data: {
+              ...getSubspaceId('skillProvider'),
+              status: 'active',
+              skillOid: targetSkill.oid,
+              providerOid: item.provider!.oid,
+              itemOid: targetItem.oid
+            }
+          });
+        });
       }
     }
+    await reconcileSkillProviderLinksQueue.add({ skillId: target.id });
   }
 
   async copyDelegatedTemplateResourcesToSkill(d: {
@@ -233,29 +538,59 @@ class SkillResourceServiceImpl {
       include: { instance: true }
     });
     if (!skill?.instance) return;
-    let [resources] = await subspaceSkillTemplateService.hydrateResources({
+    let [resources] = await this.hydrateDelegatedSkillTemplateResources({
       instance: skill.instance,
       skillTemplateIds: [d.skillTemplate.id]
     });
     if (!resources) return;
+    let targetSkill = await subspaceDb.skill.findUniqueOrThrow({
+      where: { id: skill.id }
+    });
 
     for (let item of resources.items) {
       if (item.integration) {
-        await subspaceSkillItemService.create({
-          instance: skill.instance,
-          skillId: skill.id,
-          type: 'integration',
-          integrationId: item.integration.id
-        } as any);
+        await withSubspaceTransaction(async subspaceDb => {
+          let targetItem = await subspaceDb.skillItem.create({
+            data: {
+              ...getSubspaceId('skillItem'),
+              status: 'active',
+              type: 'integration',
+              skillOid: targetSkill.oid
+            }
+          });
+          await subspaceDb.skillIntegration.create({
+            data: {
+              ...getSubspaceId('skillIntegration'),
+              status: 'active',
+              skillOid: targetSkill.oid,
+              integrationOid: item.integration!.oid,
+              itemOid: targetItem.oid
+            }
+          });
+        });
       } else if (item.provider) {
-        await subspaceSkillItemService.create({
-          instance: skill.instance,
-          skillId: skill.id,
-          type: 'provider',
-          providerId: item.provider.id
-        } as any);
+        await withSubspaceTransaction(async subspaceDb => {
+          let targetItem = await subspaceDb.skillItem.create({
+            data: {
+              ...getSubspaceId('skillItem'),
+              status: 'active',
+              type: 'provider',
+              skillOid: targetSkill.oid
+            }
+          });
+          await subspaceDb.skillProvider.create({
+            data: {
+              ...getSubspaceId('skillProvider'),
+              status: 'active',
+              skillOid: targetSkill.oid,
+              providerOid: item.provider!.oid,
+              itemOid: targetItem.oid
+            }
+          });
+        });
       }
     }
+    await reconcileSkillProviderLinksQueue.add({ skillId: skill.id });
   }
 
   async hydrateSkills(skills: Array<{ id: string }>): Promise<SkillResource[]> {
@@ -292,7 +627,7 @@ class SkillResourceServiceImpl {
     for (let skill of ordered) {
       if (!skill.instance || hydrationBySkillId.has(skill.id)) continue;
       let instanceSkills = ordered.filter(item => item.instance?.id === skill.instance!.id);
-      let hydrated = await subspaceSkillService.hydrateResources({
+      let hydrated = await this.hydrateDelegatedSkillResources({
         instance: skill.instance,
         skillIds: instanceSkills.map(item => item.id)
       });
@@ -411,7 +746,7 @@ class SkillResourceServiceImpl {
       ordered.map(async ({ input, template }) => {
         let items: SkillTemplateItemResource[] = [];
         if (template.instance) {
-          let [hydrated] = await subspaceSkillTemplateService.hydrateResources({
+          let [hydrated] = await this.hydrateDelegatedSkillTemplateResources({
             instance: template.instance,
             skillTemplateIds: [template.id]
           });

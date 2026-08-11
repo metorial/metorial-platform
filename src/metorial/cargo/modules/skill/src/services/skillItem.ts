@@ -4,12 +4,11 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
-  type Environment,
   getId,
+  type Prisma,
   type SkillItem,
   type SkillItemStatus,
   type SkillItemType,
-  type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -20,15 +19,12 @@ import {
   normalizeStatusForGet,
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
-import { providerService } from '@metorial-subspace/module-catalog';
-import { integrationService } from '@metorial-subspace/module-integration';
-import {
-  getMetorialSolution,
-  type MetorialFacing,
-  resolveMetorialFacing
-} from '@metorial-subspace/module-tenant';
-import { skillItemArchivedQueue, skillItemCreatedQueue } from '../queues/lifecycle/skillItem';
-import { skillService } from './skill';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
+import { reconcileSkillProviderLinksQueue } from '../queues/reconcileSkillProviderLinks';
+import { skillResourceService } from './resource';
+
+type InstanceScopeInput = Parameters<typeof subspaceScopeService.ensureForInstance>[0];
+type SubspaceScope = Awaited<ReturnType<typeof subspaceScopeService.ensureForInstance>>;
 
 export let skillItemInclude = {
   skill: true,
@@ -44,14 +40,37 @@ export let skillItemInclude = {
       }
     }
   }
+} satisfies Prisma.SkillItemInclude;
+
+type SkillItemRecord = Prisma.SkillItemGetPayload<{
+  include: typeof skillItemInclude;
+}>;
+
+export type CargoSkillItemRecord = Omit<
+  SkillItemRecord,
+  'skill' | 'integration' | 'provider'
+> & {
+  skillId: string;
+  integration: NonNullable<SkillItemRecord['integration']>['integration'] | null;
+  provider: NonNullable<SkillItemRecord['provider']>['provider'] | null;
+};
+
+let presentSkillItem = (record: SkillItemRecord): CargoSkillItemRecord => {
+  let { skill, integration, provider, ...item } = record;
+
+  return {
+    ...item,
+    skillId: skill.id,
+    integration: integration?.integration ?? null,
+    provider: provider?.provider ?? null
+  };
 };
 
 let getParentSkillStatusFilter = (allowDeleted?: boolean) =>
   allowDeleted ? undefined : { notIn: ['deleted' as const, 'archived' as const] };
 
 export type ListSkillItemsParams = {
-  tenant: Tenant;
-  environment: Environment;
+  instance: InstanceScopeInput;
   status?: SkillItemStatus[];
   allowDeleted?: boolean;
   ids?: string[];
@@ -63,15 +82,13 @@ export type ListSkillItemsParams = {
 };
 
 export type GetSkillItemByIdParams = {
-  tenant: Tenant;
-  environment: Environment;
+  instance: InstanceScopeInput;
   skillItemId: string;
   allowDeleted?: boolean;
 };
 
 export type CreateSkillItemParams = {
-  tenant: Tenant;
-  environment: Environment;
+  instance: InstanceScopeInput;
   input:
     | {
         skillId: string;
@@ -86,32 +103,125 @@ export type CreateSkillItemParams = {
 };
 
 export type ArchiveSkillItemParams = {
-  tenant: Tenant;
-  environment: Environment;
-  skillItem: SkillItem;
+  instance: InstanceScopeInput;
+  skillItem: Pick<SkillItem, 'oid' | 'id' | 'status' | 'createdAt'>;
 };
 
-class skillItemServiceImpl {
-  async listSkillItems(d: MetorialFacing<ListSkillItemsParams>) {
-    let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.listSkillItemsInternal({ ...rest, tenant, environment });
+class SkillItemServiceImpl {
+  private async resolveScope(instance: InstanceScopeInput) {
+    return await subspaceScopeService.ensureForInstance(instance);
   }
 
-  async listSkillItemsInternal(d: ListSkillItemsParams) {
-    let solution = await getMetorialSolution();
+  private async getActiveSkill(d: { scope: SubspaceScope; skillId: string }) {
+    let skill = await db.skill.findFirst({
+      where: {
+        id: d.skillId,
+        tenantOid: d.scope.tenant.oid,
+        solutionOid: d.scope.solution.oid,
+        environmentOid: d.scope.environment.oid,
+        status: 'active'
+      }
+    });
+    if (!skill) throw new ServiceError(notFoundError('skill', d.skillId));
+
+    checkDeletedRelation(skill);
+    return skill;
+  }
+
+  private async getIntegration(d: { scope: SubspaceScope; integrationId: string }) {
+    let integration = await db.integration.findFirst({
+      where: {
+        id: d.integrationId,
+        tenantOid: d.scope.tenant.oid,
+        solutionOid: d.scope.solution.oid,
+        environmentOid: d.scope.environment.oid,
+        status: 'active'
+      }
+    });
+    if (!integration) {
+      throw new ServiceError(notFoundError('integration', d.integrationId));
+    }
+
+    checkDeletedRelation(integration);
+    return integration;
+  }
+
+  private async getProvider(d: { scope: SubspaceScope; providerId: string }) {
+    let provider = await db.provider.findFirst({
+      where: {
+        AND: [
+          {
+            OR: [
+              { hasEnvironments: false },
+              {
+                providerEnvironments: {
+                  some: {
+                    environmentOid: d.scope.environment.oid,
+                    currentVersionOid: { not: null }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            OR: [
+              { access: 'public' },
+              {
+                access: 'tenant',
+                ownerTenantOid: d.scope.tenant.oid,
+                OR: [{ ownerSolutionOid: d.scope.solution.oid }, { ownerSolutionOid: null }]
+              }
+            ]
+          },
+          d.scope.tenant.onlyAllowTrustedProviders
+            ? {
+                OR: [
+                  { access: 'tenant' },
+                  { listing: { isVerified: true } },
+                  { listing: { isOfficial: true } },
+                  { listing: { isMetorial: true } }
+                ]
+              }
+            : {},
+          {
+            OR: [
+              { id: d.providerId },
+              { slug: d.providerId },
+              { globalIdentifier: d.providerId },
+              { listing: { id: d.providerId } },
+              { listing: { slug: d.providerId } },
+              { listing: { prettySlug: d.providerId } },
+              { listing: { aliases: { has: d.providerId } } }
+            ]
+          }
+        ]
+      }
+    });
+    if (!provider) throw new ServiceError(notFoundError('provider', d.providerId));
+
+    checkDeletedRelation(provider);
+    return provider;
+  }
+
+  async listSkillItems(d: ListSkillItemsParams) {
+    await Promise.all(
+      (d.skillIds ?? []).map(skillId =>
+        skillResourceService.ensureDelegatedSkill({ id: skillId })
+      )
+    );
+    let scope = await this.resolveScope(d.instance);
 
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
+      prisma(async opts =>
+        (
           await db.skillItem.findMany({
             ...opts,
             where: {
               ...normalizeStatusForList(d).noParent,
               skill: {
-                tenantOid: d.tenant.oid,
-                solutionOid: solution.oid,
-                environmentOid: d.environment.oid,
+                tenantOid: scope.tenant.oid,
+                solutionOid: scope.solution.oid,
+                environmentOid: scope.environment.oid,
                 status: getParentSkillStatusFilter(d.allowDeleted)
               },
               AND: [
@@ -141,27 +251,21 @@ class skillItemServiceImpl {
             },
             include: skillItemInclude
           })
+        ).map(presentSkillItem)
       )
     );
   }
 
-  async getSkillItemById(d: MetorialFacing<GetSkillItemByIdParams>) {
-    let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.getSkillItemByIdInternal({ ...rest, tenant, environment });
-  }
-
-  async getSkillItemByIdInternal(d: GetSkillItemByIdParams) {
-    let solution = await getMetorialSolution();
-
+  async getSkillItemById(d: GetSkillItemByIdParams) {
+    let scope = await this.resolveScope(d.instance);
     let skillItem = await db.skillItem.findFirst({
       where: {
         id: d.skillItemId,
         ...normalizeStatusForGet(d).noParent,
         skill: {
-          tenantOid: d.tenant.oid,
-          solutionOid: solution.oid,
-          environmentOid: d.environment.oid,
+          tenantOid: scope.tenant.oid,
+          solutionOid: scope.solution.oid,
+          environmentOid: scope.environment.oid,
           status: getParentSkillStatusFilter(d.allowDeleted)
         }
       },
@@ -169,32 +273,22 @@ class skillItemServiceImpl {
     });
     if (!skillItem) throw new ServiceError(notFoundError('skillItem', d.skillItemId));
 
-    return skillItem;
+    return presentSkillItem(skillItem);
   }
 
-  async createSkillItem(d: MetorialFacing<CreateSkillItemParams>) {
-    let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.createSkillItemInternal({ ...rest, tenant, environment });
-  }
-
-  async createSkillItemInternal(d: CreateSkillItemParams) {
-    let skill = await skillService.getActiveSkillByIdInternal({
-      tenant: d.tenant,
-      environment: d.environment,
+  async createSkillItem(d: CreateSkillItemParams) {
+    await skillResourceService.ensureDelegatedSkill({ id: d.input.skillId });
+    let scope = await this.resolveScope(d.instance);
+    let skill = await this.getActiveSkill({
+      scope,
       skillId: d.input.skillId
     });
 
     if (d.input.type === 'integration') {
-      let integration = await integrationService.getIntegrationByIdInternal({
-        tenant: d.tenant,
-        environment: d.environment,
-        integrationId: d.input.integrationId,
-        allowDeleted: false
+      let integration = await this.getIntegration({
+        scope,
+        integrationId: d.input.integrationId
       });
-
-      checkDeletedRelation(integration);
-
       let existing = await db.skillIntegration.findFirst({
         where: {
           skillOid: skill.oid,
@@ -224,7 +318,6 @@ class skillItemServiceImpl {
             where: { oid: existing.itemOid },
             data: { status: 'active' }
           });
-
           await db.skillIntegration.update({
             where: { oid: existing.oid },
             data: { status: 'active' }
@@ -238,9 +331,7 @@ class skillItemServiceImpl {
               skillOid: skill.oid
             }
           });
-
           itemId = item.id;
-
           await db.skillIntegration.create({
             data: {
               ...getId('skillIntegration'),
@@ -256,24 +347,18 @@ class skillItemServiceImpl {
           where: { id: itemId! },
           include: skillItemInclude
         });
+        await addAfterTransactionHook(async () => {
+          await reconcileSkillProviderLinksQueue.add({ skillId: skill.id });
+        });
 
-        await addAfterTransactionHook(async () =>
-          skillItemCreatedQueue.add({ skillItemId: skillItem.id })
-        );
-
-        return skillItem;
+        return presentSkillItem(skillItem);
       });
     }
 
-    let provider = await providerService.getProviderById({
-      tenant: d.tenant,
-      environment: d.environment,
-      providerId: d.input.providerId,
-      includeDeprecated: true
+    let provider = await this.getProvider({
+      scope,
+      providerId: d.input.providerId
     });
-
-    checkDeletedRelation(provider);
-
     let existing = await db.skillProvider.findFirst({
       where: {
         skillOid: skill.oid,
@@ -303,7 +388,6 @@ class skillItemServiceImpl {
           where: { oid: existing.itemOid },
           data: { status: 'active' }
         });
-
         await db.skillProvider.update({
           where: { oid: existing.oid },
           data: { status: 'active' }
@@ -317,9 +401,7 @@ class skillItemServiceImpl {
             skillOid: skill.oid
           }
         });
-
         itemId = item.id;
-
         await db.skillProvider.create({
           data: {
             ...getId('skillProvider'),
@@ -335,33 +417,24 @@ class skillItemServiceImpl {
         where: { id: itemId! },
         include: skillItemInclude
       });
+      await addAfterTransactionHook(async () => {
+        await reconcileSkillProviderLinksQueue.add({ skillId: skill.id });
+      });
 
-      await addAfterTransactionHook(async () =>
-        skillItemCreatedQueue.add({ skillItemId: skillItem.id })
-      );
-
-      return skillItem;
+      return presentSkillItem(skillItem);
     });
   }
 
-  async archiveSkillItem(d: MetorialFacing<ArchiveSkillItemParams>) {
-    let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.archiveSkillItemInternal({ ...rest, tenant, environment });
-  }
-
-  async archiveSkillItemInternal(d: ArchiveSkillItemParams) {
+  async archiveSkillItem(d: ArchiveSkillItemParams) {
     checkDeletedEdit(d.skillItem, 'archive');
-
-    let solution = await getMetorialSolution();
-
+    let scope = await this.resolveScope(d.instance);
     let current = await db.skillItem.findFirst({
       where: {
         oid: d.skillItem.oid,
         skill: {
-          tenantOid: d.tenant.oid,
-          solutionOid: solution.oid,
-          environmentOid: d.environment.oid
+          tenantOid: scope.tenant.oid,
+          solutionOid: scope.solution.oid,
+          environmentOid: scope.environment.oid
         }
       },
       include: skillItemInclude
@@ -381,24 +454,22 @@ class skillItemServiceImpl {
           data: { status: 'archived' }
         });
       }
-
       if (current.provider) {
         await db.skillProvider.update({
           where: { oid: current.provider.oid },
           data: { status: 'archived' }
         });
       }
+      await addAfterTransactionHook(async () => {
+        await reconcileSkillProviderLinksQueue.add({ skillId: current.skill.id });
+      });
 
-      await addAfterTransactionHook(async () =>
-        skillItemArchivedQueue.add({ skillItemId: skillItem.id })
-      );
-
-      return skillItem;
+      return presentSkillItem(skillItem);
     });
   }
 }
 
 export let skillItemService = Service.create(
-  'skillItemService',
-  () => new skillItemServiceImpl()
+  'cargoSkillItemService',
+  () => new SkillItemServiceImpl()
 ).build();

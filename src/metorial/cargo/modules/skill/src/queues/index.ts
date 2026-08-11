@@ -21,6 +21,11 @@ import {
   skillMergeRequestPerformQueueProcessor,
   skillMergeRequestRecoveryCron
 } from './mergeRequest';
+import {
+  reconcileSkillProviderLinksForIntegrationProviderQueueProcessor,
+  reconcileSkillProviderLinksForProviderQueueProcessor,
+  reconcileSkillProviderLinksQueueProcessor
+} from './reconcileSkillProviderLinks';
 import { searchQueues } from './search';
 import { skillDestinationSyncCleanupCron } from './sync/cleanup';
 import { syncCollectQueueProcessor } from './sync/collect';
@@ -68,7 +73,10 @@ export let skillQueueProcessor = combineQueueProcessors([
   skillImportDiscoverQueueProcessor,
   skillImportItemQueueProcessor,
   skillImportFinishQueueProcessor,
-  skillImportRecoveryCron
+  skillImportRecoveryCron,
+  reconcileSkillProviderLinksQueueProcessor,
+  reconcileSkillProviderLinksForIntegrationProviderQueueProcessor,
+  reconcileSkillProviderLinksForProviderQueueProcessor
 ]);
 
 export * from './export';
@@ -76,4 +84,5 @@ export * from './forkSync';
 export * from './import/acquire';
 export * from './lifecycle';
 export * from './mergeRequest';
+export * from './reconcileSkillProviderLinks';
 export * from './search';

@@ -16,7 +16,6 @@ import { monitorQueueProcessor } from '@metorial-subspace/module-monitor/src/que
 import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
 import { providerInternalQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
 import { sessionQueueProcessor } from '@metorial-subspace/module-session/src/queues';
-import { skillsQueueProcessor } from '@metorial-subspace/module-skills/src/queues';
 import { tenantQueueProcessors } from '@metorial-subspace/module-tenant/src/queues';
 import { nativeProviderQueues } from '@metorial-subspace/provider-native';
 import { shuttleProviderQueues } from '@metorial-subspace/provider-shuttle';
@@ -43,7 +42,6 @@ runQueueProcessors([
   identityQueueProcessor,
   integrationQueueProcessor,
   monitorQueueProcessor,
-  skillsQueueProcessor,
   agentQueueProcessor
 ]);
 

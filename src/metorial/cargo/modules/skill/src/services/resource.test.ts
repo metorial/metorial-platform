@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  findManySkillTemplates: vi.fn(),
-  hydrateSkillTemplateResources: vi.fn()
+  findManySkillTemplates: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -13,12 +12,19 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceSkillService: {},
-  subspaceSkillItemService: {},
-  subspaceSkillTemplateItemService: {},
-  subspaceSkillTemplateService: {
-    hydrateResources: mocks.hydrateSkillTemplateResources
+vi.mock('@metorial-subspace/db', () => ({
+  db: {},
+  getId: vi.fn(),
+  withTransaction: vi.fn()
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  subspaceScopeService: {}
+}));
+
+vi.mock('../queues/reconcileSkillProviderLinks', () => ({
+  reconcileSkillProviderLinksQueue: {
+    add: vi.fn()
   }
 }));
 

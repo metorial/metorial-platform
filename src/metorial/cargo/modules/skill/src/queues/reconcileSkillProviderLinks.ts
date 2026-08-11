@@ -1,10 +1,10 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { getConfig } from '@metorial/config';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
-import { env } from '../../env';
 
 export let reconcileSkillProviderLinksQueue = createQueue<{ skillId: string }>({
   name: 'sub/sk/lc/reconcileSkillProviderLinks',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 
 export let reconcileSkillProviderLinks = async (d: { skillId: string }) => {
@@ -68,7 +68,6 @@ export let reconcileSkillProviderLinks = async (d: { skillId: string }) => {
       });
     }
   });
-
 };
 
 export let reconcileSkillProviderLinksQueueProcessor =
@@ -80,7 +79,7 @@ export let reconcileSkillProviderLinksForIntegrationProviderQueue = createQueue<
   integrationProviderId: string;
 }>({
   name: 'sub/sk/lc/reconcileSkillProviderLinksForIntegrationProvider',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 
 export let reconcileSkillProviderLinksForIntegrationProviderQueueProcessor =
@@ -113,7 +112,7 @@ export let reconcileSkillProviderLinksForProviderQueue = createQueue<{
   providerId: string;
 }>({
   name: 'sub/sk/lc/reconcileSkillProviderLinksForProvider',
-  redisUrl: env.service.REDIS_URL
+  redisUrl: getConfig().redisUrl
 });
 
 export let reconcileSkillProviderLinksForProviderQueueProcessor =
