@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 52071 --host",
     "enterprise:dev": "vite --port 52071 --host",
-    "check-types": "NODE_OPTIONS=--max-old-space-size=12288 tsc --noEmit -p tsconfig.app.json && NODE_OPTIONS=--max-old-space-size=12288 tsc --noEmit -p tsconfig.node.json"
+    "check-types": "NODE_OPTIONS=--max-old-space-size=12288 tsc --noEmit -p tsconfig.app.json && NODE_OPTIONS=--max-old-space-size=12288 tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -32,6 +33,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "5.8.2",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vitest": "^4.1.10"
   }
 }

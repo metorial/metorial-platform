@@ -5,8 +5,8 @@ import {
   type Brand,
   db,
   type Environment,
+  generateRegionalClientSecret,
   getId,
-  ID,
   type Integration,
   type IntegrationSetupSession,
   type IntegrationSetupSessionStatus,
@@ -25,7 +25,12 @@ import {
   providerSetupSessionInclude,
   providerSetupSessionService
 } from '@metorial-subspace/module-auth';
-import { checkTenant, getMetorialSolution, type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { addMinutes } from 'date-fns';
 import { normalizeIntegrationProviderToolFilter } from '../lib/versions';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
@@ -215,7 +220,9 @@ class integrationSetupSessionServiceImpl {
     );
   }
 
-  async getIntegrationSetupSessionById(d: MetorialFacing<GetIntegrationSetupSessionByIdParams>) {
+  async getIntegrationSetupSessionById(
+    d: MetorialFacing<GetIntegrationSetupSessionByIdParams>
+  ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
@@ -399,26 +406,29 @@ class integrationSetupSessionServiceImpl {
       );
     }
 
-    let integrationInstance = await integrationInstanceService.createIntegrationInstanceInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      integration,
-      isHiddenDraft: true,
-      input: {
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata,
-        privateMetadata: d.input.privateMetadata,
-        identityActorId: d.input.identityActorId,
-        identityId: d.input.identityId
-      }
-    });
+    let integrationInstance =
+      await integrationInstanceService.createIntegrationInstanceInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        integration,
+        isHiddenDraft: true,
+        input: {
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
+          identityActorId: d.input.identityActorId,
+          identityId: d.input.identityId
+        }
+      });
 
     let setupSession = await db.integrationSetupSession.create({
       data: {
         ...getId('integrationSetupSession'),
         status: 'pending',
-        clientSecret: await ID.generateId('integrationSetupSession_clientSecret'),
+        clientSecret: await generateRegionalClientSecret(
+          'integrationSetupSession_clientSecret'
+        ),
         name: d.input.name?.trim() || undefined,
         description: d.input.description?.trim() || undefined,
         metadata: d.input.metadata,

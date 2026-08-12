@@ -1,18 +1,20 @@
-import type { client } from '../../state/client';
+import type { IntegrationsRpcClient } from '../../state/client';
 
-type SetupSessionResponse = NonNullable<Awaited<ReturnType<typeof client.setupSession.get>>>;
+type SetupSessionResponse = NonNullable<
+  Awaited<ReturnType<IntegrationsRpcClient['setupSession']['get']>>
+>;
 
 export type Session = SetupSessionResponse['session'];
 export type Provider = SetupSessionResponse['provider'];
 export type Brand = SetupSessionResponse['brand'];
 export type OAuthSetup = NonNullable<
-  Awaited<ReturnType<typeof client.setupSession.getOauthSetup>>
+  Awaited<ReturnType<IntegrationsRpcClient['setupSession']['getOauthSetup']>>
 >;
 export type ProviderSearchItem = Awaited<
-  ReturnType<typeof client.setupSession.listProviders>
+  ReturnType<IntegrationsRpcClient['setupSession']['listProviders']>
 >['items'][number];
 export type ToolListItem = Awaited<
-  ReturnType<typeof client.setupSession.listTools>
+  ReturnType<IntegrationsRpcClient['setupSession']['listTools']>
 >['items'][number];
 
 export type Step =

@@ -190,6 +190,29 @@ export let ID = createIdGenerator({
   skillProviderLink: idType.sorted('skpl')
 });
 
+export type RegionalClientSecretType =
+  | 'providerSetupSession_clientSecret'
+  | 'integrationSetupSession_clientSecret';
+
+export let appendRegionToClientSecret = (clientSecret: string, region: string) => {
+  if (!/^[a-z0-9-]+$/.test(region)) {
+    throw new Error(`Invalid METORIAL_REGION: ${region}`);
+  }
+
+  return `${clientSecret}_${region}`;
+};
+
+export let generateRegionalClientSecret = async (type: RegionalClientSecretType) => {
+  let region =
+    process.env.METORIAL_REGION ??
+    (process.env.NODE_ENV === 'production' || process.env.METORIAL_ENV === 'production'
+      ? undefined
+      : 'dev');
+  if (!region) throw new Error('METORIAL_REGION is required to generate client secrets');
+
+  return appendRegionToClientSecret(await ID.generateId(type), region);
+};
+
 let workerIdBits = 12;
 let workerIdMask = (1 << workerIdBits) - 1;
 let sequenceBits = 9;

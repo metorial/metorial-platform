@@ -1,11 +1,11 @@
 import { createLoader } from '@metorial/data-hooks';
 import { useEffect, useRef, useState } from 'react';
-import { client } from './client';
+import { getIntegrationsClient } from './client';
 
 export let setupSessionState = createLoader({
   name: 'setupSession',
   fetch: (d: { sessionId: string; clientSecret: string }) =>
-    client.setupSession.get({
+    getIntegrationsClient(d.clientSecret).setupSession.get({
       sessionId: d.sessionId,
       clientSecret: d.clientSecret
     }),
@@ -15,7 +15,7 @@ export let setupSessionState = createLoader({
 export let authConfigSchemaState = createLoader({
   name: 'authConfigSchema',
   fetch: (d: { sessionId: string; clientSecret: string }) =>
-    client.setupSession.getAuthConfigSchema({
+    getIntegrationsClient(d.clientSecret).setupSession.getAuthConfigSchema({
       sessionId: d.sessionId,
       clientSecret: d.clientSecret
     }),
@@ -25,7 +25,7 @@ export let authConfigSchemaState = createLoader({
 export let configSchemaState = createLoader({
   name: 'configSchema',
   fetch: (d: { sessionId: string; clientSecret: string }) =>
-    client.setupSession.getConfigSchema({
+    getIntegrationsClient(d.clientSecret).setupSession.getConfigSchema({
       sessionId: d.sessionId,
       clientSecret: d.clientSecret
     }),
@@ -42,7 +42,7 @@ export let providerSearchState = createLoader({
     after?: string;
     before?: string;
   }) =>
-    client.setupSession.listProviders({
+    getIntegrationsClient(d.clientSecret).setupSession.listProviders({
       sessionId: d.sessionId,
       clientSecret: d.clientSecret,
       search: d.search,
@@ -56,7 +56,7 @@ export let providerSearchState = createLoader({
 export let integrationSetupSessionState = createLoader({
   name: 'integrationSetupSession',
   fetch: (d: { sessionId: string; clientSecret: string }) =>
-    client.integrationSetupSession.get({
+    getIntegrationsClient(d.clientSecret).integrationSetupSession.get({
       sessionId: d.sessionId,
       clientSecret: d.clientSecret
     }),
@@ -65,7 +65,7 @@ export let integrationSetupSessionState = createLoader({
       i: { stepId: string },
       d: { input: { sessionId: string; clientSecret: string } }
     ) =>
-      client.integrationSetupSession.startStep({
+      getIntegrationsClient(d.input.clientSecret).integrationSetupSession.startStep({
         sessionId: d.input.sessionId,
         clientSecret: d.input.clientSecret,
         stepId: i.stepId

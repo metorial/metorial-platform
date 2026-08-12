@@ -6,8 +6,8 @@ import {
   type Brand,
   db,
   type Environment,
+  generateRegionalClientSecret,
   getId,
-  ID,
   type Identity,
   type Provider,
   type ProviderAuthCredentials,
@@ -436,7 +436,9 @@ class providerSetupSessionServiceImpl {
           ...getId('providerSetupSession'),
           ...inner,
 
-          clientSecret: await ID.generateId('providerSetupSession_clientSecret'),
+          clientSecret: await generateRegionalClientSecret(
+            'providerSetupSession_clientSecret'
+          ),
 
           typeSelected: d.input.type,
           typeConcrete: concreteType,

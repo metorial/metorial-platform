@@ -2,7 +2,7 @@ import { renderWithLoader, renderWithPagination, useMutation } from '@metorial/d
 import { Button, CenteredSpinner, Error, Flex, Input, Text } from '@metorial/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JsonSchema } from '../../lib/jsonSchema';
-import { client } from '../../state/client';
+import { getIntegrationsClient } from '../../state/client';
 import {
   authConfigSchemaState,
   configSchemaState,
@@ -126,6 +126,7 @@ export let SetupSessionFlow = ({
   let [hasSeenConfigFields, setHasSeenConfigFields] = useState(false);
   let oauthInitiated = useRef(false);
   let includesProviderStep = useRef(!session.providerId).current;
+  let client = useMemo(() => getIntegrationsClient(clientSecret), [clientSecret]);
 
   let resolvedSessionType = flowSession.typeConcrete ?? flowSession.type;
   let needsProviderSelection = !flowSession.providerId;
@@ -201,7 +202,7 @@ export let SetupSessionFlow = ({
     return () => {
       ignore = true;
     };
-  }, [clientSecret, flowSession.id, needsProviderSelection, toolFiltersEnabled]);
+  }, [client, clientSecret, flowSession.id, needsProviderSelection, toolFiltersEnabled]);
 
   useEffect(() => {
     if (toolFilterMode !== 'select') {
@@ -366,6 +367,7 @@ export let SetupSessionFlow = ({
   }, [
     authConfigSchema,
     authSchemaLoader.data,
+    client,
     clientSecret,
     flowSession.id,
     isOAuth,
