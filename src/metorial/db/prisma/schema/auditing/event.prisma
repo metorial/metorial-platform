@@ -8,11 +8,6 @@ model Event {
   ua String?
   ip String?
 
-  /// [AuditEventPayload]
-  payload Json
-  /// [AuditEventPayload]
-  previousAttributes Json?
-
   resourceTenantOid BigInt
   resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 

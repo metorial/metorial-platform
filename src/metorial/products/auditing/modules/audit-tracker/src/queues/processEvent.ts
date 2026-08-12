@@ -2,6 +2,7 @@ import { ingestAuditEvent } from '@metorial/audit-models';
 import { createCron } from '@metorial/cron';
 import { createQueue } from '@metorial/queue';
 import { ingestAuditEventToPostgres } from '../lib/ingestPostgres';
+import { presentStashedAuditEvent } from '../lib/present';
 import {
   acknowledgeClaimedAuditEvent,
   claimAuditEvents,
@@ -65,7 +66,8 @@ export let collectAuditEventsCron = createCron(
 );
 
 export let processAuditEventQueueProcessor = processAuditEventQueue.process(async data => {
-  await ingestAuditEvent(data.event);
+  let presentedEvent = await presentStashedAuditEvent(data.event);
+  await ingestAuditEvent(presentedEvent);
   await ingestAuditEventToPostgres(data.event);
   await acknowledgeClaimedAuditEvent(data.encodedEvent);
 });

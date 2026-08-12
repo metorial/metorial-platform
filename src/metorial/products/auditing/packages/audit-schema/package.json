@@ -15,10 +15,14 @@
     "lint": "prettier src/**/*.ts --check",
     "typecheck": "tsc --noEmit"
   },
-  "devDependencies": {
-    "@metorial/tsconfig": "^1.0.0",
+  "dependencies": {
     "@lowerdeck/validation": "workspace:*",
     "@metorial/db": "^1.0.0",
+    "@metorial/presenter": "^1.0.0",
+    "@metorial/presenters": "^1.0.0"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
     "typescript": "^5.8.3",
     "vitest": "^3.1.2"
   }

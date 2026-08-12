@@ -5,6 +5,7 @@ export type {
   ResourceActions,
   ResourceDefinition,
   ResourcePayload,
+  ResourcePresenter,
   ResourceSet,
   ResourceSetItemActionNames,
   ResourceSetItemPayload,

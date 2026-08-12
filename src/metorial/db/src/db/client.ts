@@ -357,7 +357,5 @@ declare global {
     type ProductAssistantRunCost = ProductAssistant.RunCost;
     type ProductAssistantRunMetadata = ProductAssistant.RunMetadata;
     type ProductAssistantSubspaceMcpToolList = ProductAssistant.SubspaceMcpToolList;
-
-    type AuditEventPayload = unknown;
   }
 }

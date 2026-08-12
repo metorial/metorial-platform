@@ -1,17 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { withTransaction, generateId, JsonNull } = vi.hoisted(() => ({
+let { withTransaction, generateId } = vi.hoisted(() => ({
   withTransaction: vi.fn(),
-  generateId: vi.fn(),
-  JsonNull: Symbol('JsonNull')
+  generateId: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
   ID: {
     generateId
-  },
-  Prisma: {
-    JsonNull
   },
   withTransaction
 }));
@@ -70,8 +66,6 @@ describe('ingestAuditEventToPostgres', () => {
         action: 'create',
         ip: '127.0.0.1',
         ua: 'test',
-        payload: { oid: '4', name: 'Acme' },
-        previousAttributes: { name: 'Old' },
         resourceTenantOid: 1n,
         resourceGroupOid: 2n,
         resourceActorOid: 3n,
@@ -83,8 +77,6 @@ describe('ingestAuditEventToPostgres', () => {
             action: 'create',
             ip: '127.0.0.1',
             ua: 'test',
-            payload: { oid: '4', name: 'Acme' },
-            previousAttributes: { name: 'Old' },
             resourceTenantOid: 1n,
             resourceGroupOid: 2n,
             resourceActorOid: 3n,
