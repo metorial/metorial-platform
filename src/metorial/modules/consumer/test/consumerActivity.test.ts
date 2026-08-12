@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => ({
   listConnections: vi.fn(),
   listAgents: vi.fn(),
   getAgent: vi.fn(),
+  listIdentityCredentials: vi.fn(),
   listToolCalls: vi.fn(),
   getEndpoint: vi.fn()
 }));
@@ -32,19 +33,25 @@ vi.mock('@metorial/module-magic', () => ({
   }
 }));
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceAgentService: {
-    list: mocks.listAgents,
-    get: mocks.getAgent
+vi.mock('@metorial-subspace/module-agent', () => ({
+  agentService: {
+    listAgents: mocks.listAgents,
+    getAgentById: mocks.getAgent
+  }
+}));
+
+vi.mock('@metorial-subspace/module-identity', () => ({
+  identityCredentialService: {
+    listIdentityCredentials: mocks.listIdentityCredentials
+  }
+}));
+
+vi.mock('@metorial-subspace/module-session', () => ({
+  sessionConnectionService: {
+    listSessionConnections: mocks.listConnections
   },
-  subspaceIdentityCredentialService: {
-    list: vi.fn()
-  },
-  subspaceSessionConnectionService: {
-    list: mocks.listConnections
-  },
-  subspaceToolCallService: {
-    list: mocks.listToolCalls
+  toolCallService: {
+    listToolCalls: mocks.listToolCalls
   }
 }));
 
@@ -80,8 +87,8 @@ let scope = {
 
 let connection = (id: string, sessionId: string, agentId = 'agent_1') => ({
   id,
-  sessionId,
-  participant: { agentId }
+  session: { id: sessionId },
+  participant: { agentInstance: { agent: { id: agentId } } }
 });
 
 let paginator = (items: any[]) => ({

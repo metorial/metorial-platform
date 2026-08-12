@@ -11,7 +11,7 @@ import {
   type ProjectBrand,
   withTransaction
 } from '@metorial/db';
-import { getTenantForSubspace, subspaceBrandService } from '@metorial/module-subspace';
+import { brandService, subspaceScopeService } from '@metorial-subspace/module-tenant';
 import { cleanupFileImage, resolveFileImage } from '../lib/fileImage';
 import { syncBrandQueue } from '../queues/syncBrand';
 
@@ -188,15 +188,16 @@ class ProjectBrandService {
     });
     if (!instance) return;
 
-    let { tenant } = await getTenantForSubspace(instance);
+    let { tenant } = await subspaceScopeService.ensureForInstance(instance);
 
-    let brand = await subspaceBrandService.upsert({
-      instance,
-      name: d.brand.name,
-      image: d.brand.image,
-      for: {
-        type: 'tenant',
-        tenantId: tenant.id
+    let brand = await brandService.upsertBrand({
+      input: {
+        name: d.brand.name,
+        image: d.brand.image,
+        for: {
+          type: 'tenant',
+          tenant
+        }
       }
     });
 

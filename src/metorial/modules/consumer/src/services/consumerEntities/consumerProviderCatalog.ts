@@ -18,12 +18,12 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchMagicMcpServerIds, searchProviderTemplateIds } from '@metorial/module-search';
+import { providerService } from '@metorial-subspace/module-catalog';
 import {
-  subspaceMagicMcpBackingService,
-  subspaceProviderConfigService,
-  subspaceProviderDeploymentService,
-  subspaceProviderService
-} from '@metorial/module-subspace';
+  providerConfigService,
+  providerDeploymentService
+} from '@metorial-subspace/module-deployment';
+import { providerTemplateBackingService } from '@metorial-subspace/module-integration';
 import {
   getProviderVersionIdForAuthMethods,
   listProviderAuthMethods,
@@ -32,6 +32,18 @@ import {
   type ConsumerProviderConfigSchema,
   type ConsumerProviderDeployment
 } from '../../lib/consumerProviderContext';
+
+let requireProviderCurrentVersion = <T extends { id: string; currentVersion: object | null }>(
+  provider: T
+): NonNullable<T['currentVersion']> => {
+  if (!provider.currentVersion) {
+    throw new Error(
+      `Integration provider "${provider.id}" has no current version for its provider template.`
+    );
+  }
+
+  return provider.currentVersion;
+};
 
 export type ConsumerProviderAvailability = 'available_now' | 'request_access';
 
@@ -688,17 +700,19 @@ class ConsumerProviderCatalogServiceImpl {
       providerTemplates
     });
 
-    let backings = await subspaceMagicMcpBackingService.getManyProviderTemplates({
+    let backings = await providerTemplateBackingService.getManyProviderTemplateBackingsByIds({
       instance: d.instance,
       providerTemplateBackingIds: providerTemplates.map(
         providerTemplate => providerTemplate.id
       )
     });
     let backingMap = new Map(backings.map(backing => [backing.id, backing]));
-    let primaryProviderEntries: [string, (typeof backings)[number]['providers'][number]][] =
-      [];
+    let primaryProviderEntries: [
+      string,
+      (typeof backings)[number]['integration']['providers'][number]
+    ][] = [];
     for (let backing of backings) {
-      let provider = backing.providers[0];
+      let provider = backing.integration.providers[0];
       if (provider) {
         primaryProviderEntries.push([backing.id, provider]);
       }
@@ -708,7 +722,7 @@ class ConsumerProviderCatalogServiceImpl {
     let deploymentIds = Array.from(
       new Set(
         Array.from(primaryProviderByTemplateId.values()).map(provider => {
-          return provider.deployment.id;
+          return requireProviderCurrentVersion(provider).deployment.id;
         })
       )
     );
@@ -716,7 +730,7 @@ class ConsumerProviderCatalogServiceImpl {
       deploymentIds.map(async providerDeploymentId => {
         return [
           providerDeploymentId,
-          await subspaceProviderDeploymentService.get({
+          await providerDeploymentService.getProviderDeploymentById({
             instance: d.instance,
             providerDeploymentId
           })
@@ -726,13 +740,13 @@ class ConsumerProviderCatalogServiceImpl {
     let deploymentMap = new Map(deployments);
 
     let providerIds = Array.from(
-      new Set(deployments.map(([, deployment]) => deployment.providerId))
+      new Set(deployments.map(([, deployment]) => deployment.provider.id))
     );
     let providers = await Promise.all(
       providerIds.map(async providerId => {
         return [
           providerId,
-          await subspaceProviderService.get({
+          await providerService.getProviderById({
             instance: d.instance,
             providerId
           })
@@ -775,20 +789,21 @@ class ConsumerProviderCatalogServiceImpl {
           if (!primaryProvider) {
             throw new ServiceError(notFoundError('provider.template'));
           }
-          let providerDeploymentId = primaryProvider.deployment.id;
+          let providerDeploymentId =
+            requireProviderCurrentVersion(primaryProvider).deployment.id;
           let deployment = deploymentMap.get(providerDeploymentId);
           if (!deployment) {
             throw new ServiceError(notFoundError('provider.deployment'));
           }
-          let provider = providerMap.get(deployment.providerId);
+          let provider = providerMap.get(deployment.provider.id);
           if (!provider) {
             throw new ServiceError(notFoundError('provider'));
           }
 
           let [configSchema, authMethods] = await Promise.all([
-            subspaceProviderConfigService.getConfigSchema({
+            providerConfigService.getProviderConfigSchema({
               instance: d.instance,
-              providerDeploymentId
+              providerDeployment: deployment
             }),
             listProviderAuthMethods({
               instance: d.instance,
@@ -819,12 +834,14 @@ class ConsumerProviderCatalogServiceImpl {
         throw new ServiceError(notFoundError('provider'));
       }
 
-      let deployment = deploymentMap.get(primaryProvider.deployment.id);
+      let deployment = deploymentMap.get(
+        requireProviderCurrentVersion(primaryProvider).deployment.id
+      );
       if (!deployment) {
         throw new ServiceError(notFoundError('provider.deployment'));
       }
 
-      let provider = providerMap.get(deployment.providerId);
+      let provider = providerMap.get(deployment.provider.id);
       if (!provider) {
         throw new ServiceError(notFoundError('provider'));
       }

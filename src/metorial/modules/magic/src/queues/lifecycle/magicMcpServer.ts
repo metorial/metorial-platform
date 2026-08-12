@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
 import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import { magicMcpServerBackingService } from '@metorial-subspace/module-integration';
 import { createQueue } from '@metorial/queue';
 import {
   type ConsumerOwner,
@@ -45,7 +45,7 @@ type MagicMcpServerLifecycleQueueInput = {
     providerDeploymentId: string;
     providerConfigId?: string | null;
     providerAuthConfigId?: string | null;
-    toolFilters?: any;
+    toolFilters?: PrismaJson.ToolFilter | null;
   }[];
   owner?: ConsumerOwner;
   isReconciliation?: boolean;
@@ -121,7 +121,7 @@ export let magicMcpServerDeletedQueueProcessor = magicMcpServerDeletedQueue.proc
     });
 
     if (magicMcpServer.hasSubspaceBacking) {
-      await subspaceMagicMcpBackingService.archiveServer({
+      await magicMcpServerBackingService.archiveMagicMcpServerBacking({
         instance: magicMcpServer.instance,
         magicMcpServerBackingId: magicMcpServer.id
       });

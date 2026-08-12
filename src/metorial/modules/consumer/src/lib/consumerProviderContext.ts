@@ -2,30 +2,48 @@ import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { type Instance, type ProviderTemplate } from '@metorial/db';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { providerTemplateService } from '@metorial/module-magic';
+import { providerTemplateBackingService } from '@metorial-subspace/module-integration';
+import { type Prisma as SubspacePrisma } from '@metorial-subspace/db';
 import {
-  subspaceMagicMcpBackingService,
-  subspaceProviderAuthMethodService,
-  subspaceProviderConfigService,
-  subspaceProviderDeploymentService,
-  subspaceProviderService
-} from '@metorial/module-subspace';
+  providerAuthMethodService,
+  providerService,
+  providerVersionService
+} from '@metorial-subspace/module-catalog';
+import {
+  providerConfigService,
+  providerDeploymentService
+} from '@metorial-subspace/module-deployment';
 
-export type ConsumerProviderDeployment = Awaited<
-  ReturnType<typeof subspaceProviderDeploymentService.get>
->;
+export type ConsumerProviderDeployment = SubspacePrisma.ProviderDeploymentGetPayload<{
+  include: {
+    provider: true;
+    defaultConfig: true;
+    providerVariant: true;
+    enclave: { select: { id: true } };
+    currentVersion: {
+      include: {
+        lockedVersion: {
+          include: { specification: true };
+        };
+      };
+    };
+  };
+}>;
 
 export type ConsumerProviderTemplateBacking = Awaited<
-  ReturnType<typeof subspaceMagicMcpBackingService.getProviderTemplate>
+  ReturnType<typeof providerTemplateBackingService.getProviderTemplateBackingById>
 >;
 
-export type ConsumerProvider = Awaited<ReturnType<typeof subspaceProviderService.get>>;
+export type ConsumerProvider = Awaited<ReturnType<typeof providerService.getProviderById>>;
 
-export type ConsumerProviderConfigSchema = Awaited<
-  ReturnType<typeof subspaceProviderConfigService.getConfigSchema>
->;
+export type ConsumerProviderConfigSchema = SubspacePrisma.ProviderSpecificationGetPayload<{
+  include: { provider: true };
+}>;
 
 export type ConsumerProviderAuthMethodList = Awaited<
-  ReturnType<Awaited<ReturnType<typeof subspaceProviderAuthMethodService.list>>['run']>
+  ReturnType<
+    Awaited<ReturnType<typeof providerAuthMethodService.listProviderAuthMethods>>['run']
+  >
 >['items'];
 
 export type ConsumerProviderTemplateContext = {
@@ -36,12 +54,24 @@ export type ConsumerProviderTemplateContext = {
   configSchema: ConsumerProviderConfigSchema | null;
 };
 
+let requireProviderCurrentVersion = <T extends { id: string; currentVersion: object | null }>(
+  provider: T
+): NonNullable<T['currentVersion']> => {
+  if (!provider.currentVersion) {
+    throw new Error(
+      `Integration provider "${provider.id}" has no current version for its provider template.`
+    );
+  }
+
+  return provider.currentVersion;
+};
+
 let getProviderVersionIdForAuthMethods = (d: {
   deployment: ConsumerProviderDeployment;
   provider: ConsumerProvider;
 }) => {
-  if (d.deployment.lockedVersion?.id) {
-    return d.deployment.lockedVersion.id;
+  if (d.deployment.currentVersion?.lockedVersion?.id) {
+    return d.deployment.currentVersion.lockedVersion.id;
   }
 
   return d.provider.defaultVariant?.currentVersion?.id ?? null;
@@ -57,11 +87,11 @@ let loadBaseTemplateContext = async (d: {
     providerTemplateId: d.providerTemplateId,
     accessTags: d.accessTags
   });
-  let backing = await subspaceMagicMcpBackingService.getProviderTemplate({
+  let backing = await providerTemplateBackingService.getProviderTemplateBackingById({
     instance: d.instance,
     providerTemplateBackingId: providerTemplate.id
   });
-  let primaryProvider = backing.providers[0];
+  let primaryProvider = backing.integration.providers[0];
 
   if (!primaryProvider) {
     throw new ServiceError(
@@ -71,13 +101,13 @@ let loadBaseTemplateContext = async (d: {
     );
   }
 
-  let deployment = await subspaceProviderDeploymentService.get({
+  let deployment = await providerDeploymentService.getProviderDeploymentById({
     instance: d.instance,
-    providerDeploymentId: primaryProvider.deployment.id
+    providerDeploymentId: requireProviderCurrentVersion(primaryProvider).deployment.id
   });
-  let provider = await subspaceProviderService.get({
+  let provider = await providerService.getProviderById({
     instance: d.instance,
-    providerId: deployment.providerId
+    providerId: deployment.provider.id
   });
 
   return {
@@ -124,9 +154,9 @@ export let loadTemplateContextForDeployment = async (d: {
       instance: d.instance,
       providerVersionId
     }),
-    subspaceProviderConfigService.getConfigSchema({
+    providerConfigService.getProviderConfigSchema({
       instance: d.instance,
-      providerDeploymentId: context.deployment.id
+      providerDeployment: context.deployment
     })
   ]);
 
@@ -145,9 +175,13 @@ export let listProviderAuthMethods = async (d: {
     return [];
   }
 
-  let paginator = await subspaceProviderAuthMethodService.list({
+  let providerVersion = await providerVersionService.getProviderVersionById({
     instance: d.instance,
     providerVersionId: d.providerVersionId
+  });
+  let paginator = await providerAuthMethodService.listProviderAuthMethods({
+    instance: d.instance,
+    providerVersion
   });
   let list = await paginator.run({
     limit: 100

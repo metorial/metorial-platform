@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   usingLock: vi.fn(async (_key: string, fn: () => Promise<unknown>) => await fn()),
   captureException: vi.fn(),
+  getIdentityActor: vi.fn(),
   createIdentityActor: vi.fn(),
   updateIdentityActor: vi.fn(),
   deleteIdentityActor: vi.fn(),
+  getIdentity: vi.fn(),
   createIdentity: vi.fn(),
   deleteIdentity: vi.fn(),
   consumerActor: {
@@ -62,15 +64,17 @@ vi.mock('@metorial/db', () => ({
   )
 }));
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceIdentityActorService: {
-    create: mocks.createIdentityActor,
-    update: mocks.updateIdentityActor,
-    delete: mocks.deleteIdentityActor
+vi.mock('@metorial-subspace/module-identity', () => ({
+  identityActorService: {
+    getIdentityActorById: mocks.getIdentityActor,
+    createIdentityActor: mocks.createIdentityActor,
+    updateIdentityActor: mocks.updateIdentityActor,
+    archiveIdentityActor: mocks.deleteIdentityActor
   },
-  subspaceIdentityService: {
-    create: mocks.createIdentity,
-    delete: mocks.deleteIdentity
+  identityService: {
+    getIdentityById: mocks.getIdentity,
+    createIdentity: mocks.createIdentity,
+    archiveIdentity: mocks.deleteIdentity
   }
 }));
 
@@ -111,7 +115,11 @@ describe('consumerActorService', () => {
     mocks.consumerProfile.findFirst.mockResolvedValue(profile);
     mocks.instanceConsumer.findUnique.mockResolvedValue(instanceConsumer);
     mocks.consumerActor.updateMany.mockResolvedValue({ count: 0 });
+    mocks.getIdentityActor.mockImplementation(async ({ identityActorId }) => ({
+      id: identityActorId
+    }));
     mocks.createIdentityActor.mockResolvedValue({ id: 'act_new' });
+    mocks.getIdentity.mockImplementation(async ({ identityId }) => ({ id: identityId }));
     mocks.createIdentity.mockResolvedValue({ id: 'idt_new' });
     mocks.consumerActor.create.mockImplementation(async ({ data }) => ({
       oid: 70n,
@@ -145,10 +153,16 @@ describe('consumerActorService', () => {
 
     expect(mocks.usingLock).toHaveBeenCalledWith('20', expect.any(Function));
     expect(mocks.createIdentityActor).toHaveBeenCalledWith(
-      expect.objectContaining({ instance, name: 'New Consumer', type: 'person' })
+      expect.objectContaining({
+        instance,
+        input: expect.objectContaining({ name: 'New Consumer', type: 'person' })
+      })
     );
     expect(mocks.createIdentity).toHaveBeenCalledWith(
-      expect.objectContaining({ identityActorId: 'act_new', inputs: [] })
+      expect.objectContaining({
+        actor: expect.objectContaining({ id: 'act_new' }),
+        input: expect.objectContaining({ inputs: [] })
+      })
     );
     expect(mocks.consumerActor.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -211,7 +225,7 @@ describe('consumerActorService', () => {
       data: { isDefault: false }
     });
     expect(mocks.createIdentity).toHaveBeenCalledWith(
-      expect.objectContaining({ identityActorId: 'act_1' })
+      expect.objectContaining({ actor: expect.objectContaining({ id: 'act_1' }) })
     );
     expect(result.defaultIdentityId).toBe('idt_new');
   });
@@ -225,10 +239,16 @@ describe('consumerActorService', () => {
     ).resolves.toBe(actor);
 
     expect(mocks.deleteIdentity).toHaveBeenCalledWith(
-      expect.objectContaining({ identityId: 'idt_new', canEditConsumerActor: true })
+      expect.objectContaining({
+        identity: expect.objectContaining({ id: 'idt_new' }),
+        canEditConsumerActor: true
+      })
     );
     expect(mocks.deleteIdentityActor).toHaveBeenCalledWith(
-      expect.objectContaining({ identityActorId: 'act_new', canEditConsumerActor: true })
+      expect.objectContaining({
+        identityActor: expect.objectContaining({ id: 'act_new' }),
+        canEditConsumerActor: true
+      })
     );
   });
 

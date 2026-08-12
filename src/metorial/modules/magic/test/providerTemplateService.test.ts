@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
   db,
-  subspaceMagicMcpBackingServiceMock,
+  providerTemplateBackingServiceMock,
   providerTemplateArchivedQueueAddMock,
   providerTemplateCreatedQueueAddMock,
   providerTemplateUpdatedQueueAddMock,
@@ -18,10 +18,10 @@ let {
 
   return {
     db,
-    subspaceMagicMcpBackingServiceMock: {
-      upsertProviderTemplateFromIntegration: vi.fn(),
-      upsertProviderTemplate: vi.fn(),
-      archiveProviderTemplate: vi.fn()
+    providerTemplateBackingServiceMock: {
+      upsertProviderTemplateBackingFromIntegration: vi.fn(),
+      updateProviderTemplateBacking: vi.fn(),
+      archiveProviderTemplateBacking: vi.fn()
     },
     providerTemplateArchivedQueueAddMock: vi.fn(),
     providerTemplateCreatedQueueAddMock: vi.fn(),
@@ -55,8 +55,8 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceMagicMcpBackingService: subspaceMagicMcpBackingServiceMock
+vi.mock('@metorial-subspace/module-integration', () => ({
+  providerTemplateBackingService: providerTemplateBackingServiceMock
 }));
 
 vi.mock('@metorial/module-access', () => ({
@@ -113,7 +113,9 @@ describe('providerTemplateService', () => {
       providerTemplate: providerTemplate as any
     });
 
-    expect(subspaceMagicMcpBackingServiceMock.archiveProviderTemplate).not.toHaveBeenCalled();
+    expect(
+      providerTemplateBackingServiceMock.archiveProviderTemplateBacking
+    ).not.toHaveBeenCalled();
     expect(providerTemplateArchivedQueueAddMock).toHaveBeenCalledWith({
       providerTemplateId: 'provider-template-1'
     });
@@ -144,10 +146,10 @@ describe('providerTemplateService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(archivedProviderTemplate);
     db.providerTemplate.update.mockResolvedValue(activeProviderTemplate);
-    subspaceMagicMcpBackingServiceMock.upsertProviderTemplateFromIntegration.mockResolvedValue(
+    providerTemplateBackingServiceMock.upsertProviderTemplateBackingFromIntegration.mockResolvedValue(
       {
         id: 'provider-template-1',
-        integrationId: 'integration-1'
+        integration: { id: 'integration-1' }
       }
     );
 

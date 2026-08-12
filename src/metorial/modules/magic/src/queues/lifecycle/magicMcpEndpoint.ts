@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import { magicMcpEndpointBackingService } from '@metorial-subspace/module-integration';
 import { createQueue } from '@metorial/queue';
 import {
   ensureMagicMcpEndpointBacking,
@@ -88,7 +88,7 @@ export let magicMcpEndpointDeletedQueueProcessor = magicMcpEndpointDeletedQueue.
     if (!magicMcpEndpoint) return;
 
     if (magicMcpEndpoint.hasSubspaceBacking) {
-      await subspaceMagicMcpBackingService.archiveEndpoint({
+      await magicMcpEndpointBackingService.archiveMagicMcpEndpointBacking({
         instance: magicMcpEndpoint.instance,
         magicMcpEndpointBackingId: magicMcpEndpoint.id
       });

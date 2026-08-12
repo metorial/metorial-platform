@@ -30,11 +30,11 @@ import {
   machineAccessAuthService,
   type OAuthTokenWithAuthorization
 } from '@metorial/module-machine-access';
-import { userAuthService } from '@metorial/module-user';
 import {
   resolveResourceScopeForOwner,
   resourceActorService
 } from '@metorial/module-resource-tenant';
+import { userAuthService } from '@metorial/module-user';
 import {
   instancePublishableTokenScopes,
   instancePublishableTokenWithConsumerScopes,

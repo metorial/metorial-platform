@@ -82,7 +82,7 @@ let buildConsumerMagicMcpServerCreateInput = (d: {
 };
 
 let hasProviderConfigFields = (providerContext: ConsumerProviderTemplateContext) => {
-  let schema = providerContext.configSchema?.configSchema as
+  let schema = providerContext.configSchema?.value.specification.configJsonSchema as
     | {
         properties?: Record<string, unknown>;
       }

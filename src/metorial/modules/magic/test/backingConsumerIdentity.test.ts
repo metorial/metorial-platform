@@ -37,15 +37,21 @@ vi.mock('@metorial/db', () => {
   };
 });
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceMagicMcpBackingService: {
-    upsertServer: vi.fn(),
-    upsertEndpoint: vi.fn()
-  }
+vi.mock('@metorial-subspace/module-integration', () => ({
+  magicMcpServerBackingService: {
+    upsertMagicMcpServerBacking: vi.fn()
+  },
+  magicMcpEndpointBackingService: {
+    upsertMagicMcpEndpointBacking: vi.fn()
+  },
+  integrationInstanceService: {}
 }));
 
 import { db } from '@metorial/db';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import {
+  magicMcpEndpointBackingService,
+  magicMcpServerBackingService
+} from '@metorial-subspace/module-integration';
 import {
   ensureMagicMcpEndpointBacking,
   ensureMagicMcpServerBacking
@@ -58,12 +64,12 @@ describe('Magic MCP consumer identity backing', () => {
     vi.mocked(db.project.findUniqueOrThrow).mockResolvedValue({
       magicMcpSessionDurationMinutes: 60
     } as any);
-    vi.mocked(subspaceMagicMcpBackingService.upsertServer).mockResolvedValue({
+    vi.mocked(magicMcpServerBackingService.upsertMagicMcpServerBacking).mockResolvedValue({
       ownerType: 'server_owned',
-      ephemeralManagedSessionId: 'ems_server'
+      ephemeralManagedSession: { id: 'ems_server', isReconciling: false }
     } as any);
-    vi.mocked(subspaceMagicMcpBackingService.upsertEndpoint).mockResolvedValue({
-      ephemeralManagedSessionId: 'ems_endpoint'
+    vi.mocked(magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking).mockResolvedValue({
+      ephemeralManagedSession: { id: 'ems_endpoint', isReconciling: false }
     } as any);
     vi.mocked(db.magicMcpServer.update).mockImplementation(
       (async (args: any) => ({ oid: args.where.oid, ...args.data }) as any) as any
@@ -108,11 +114,13 @@ describe('Magic MCP consumer identity backing', () => {
       server
     });
 
-    expect(subspaceMagicMcpBackingService.upsertServer).toHaveBeenCalledWith(
+    expect(magicMcpServerBackingService.upsertMagicMcpServerBacking).toHaveBeenCalledWith(
       expect.objectContaining({
-        magicMcpServerBackingId: 'magic_server',
-        identityActorId: 'actor_consumer',
-        identityId: 'identity_consumer'
+        input: expect.objectContaining({
+          id: 'magic_server',
+          identityActorId: 'actor_consumer',
+          identityId: 'identity_consumer'
+        })
       })
     );
   });
@@ -155,18 +163,22 @@ describe('Magic MCP consumer identity backing', () => {
       endpoint
     });
 
-    expect(subspaceMagicMcpBackingService.upsertServer).toHaveBeenCalledWith(
+    expect(magicMcpServerBackingService.upsertMagicMcpServerBacking).toHaveBeenCalledWith(
       expect.objectContaining({
-        magicMcpServerBackingId: 'linked_server',
-        identityActorId: 'actor_endpoint',
-        identityId: 'identity_endpoint'
+        input: expect.objectContaining({
+          id: 'linked_server',
+          identityActorId: 'actor_endpoint',
+          identityId: 'identity_endpoint'
+        })
       })
     );
-    expect(subspaceMagicMcpBackingService.upsertEndpoint).toHaveBeenCalledWith(
+    expect(magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking).toHaveBeenCalledWith(
       expect.objectContaining({
-        magicMcpEndpointBackingId: 'magic_endpoint',
-        identityActorId: 'actor_endpoint',
-        identityId: 'identity_endpoint'
+        input: expect.objectContaining({
+          id: 'magic_endpoint',
+          identityActorId: 'actor_endpoint',
+          identityId: 'identity_endpoint'
+        })
       })
     );
   });

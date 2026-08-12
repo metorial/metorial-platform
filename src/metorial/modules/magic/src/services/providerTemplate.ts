@@ -17,7 +17,7 @@ import {
   type AnyAccessTagSelector
 } from '@metorial/module-access';
 import { searchProviderTemplateIds } from '@metorial/module-search';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import { providerTemplateBackingService } from '@metorial-subspace/module-integration';
 import {
   providerTemplateArchivedQueue,
   providerTemplateCreatedQueue,
@@ -131,21 +131,24 @@ class ProviderTemplateServiceImpl {
     });
     if (existing) return existing;
 
-    let backing = await subspaceMagicMcpBackingService.upsertProviderTemplateFromIntegration({
-      instance: d.instance,
-      providerTemplateId: await ID.generateId('providerTemplate'),
-      integrationId
-    });
+    let backing =
+      await providerTemplateBackingService.upsertProviderTemplateBackingFromIntegration({
+        instance: d.instance,
+        input: {
+          providerTemplateId: await ID.generateId('providerTemplate'),
+          integrationId
+        }
+      });
 
     existing = await this.getActiveProviderTemplateByIntegrationId({
       instance: d.instance,
-      integrationId: backing.integrationId
+      integrationId: backing.integration.id
     });
     if (existing) return existing;
 
     let inactive = await this.getProviderTemplateByIntegrationId({
       instance: d.instance,
-      integrationId: backing.integrationId
+      integrationId: backing.integration.id
     });
     if (inactive && inactive.status !== 'deleted') {
       return await this.resurrectProviderTemplate({
@@ -153,7 +156,7 @@ class ProviderTemplateServiceImpl {
         organization: d.organization,
         instance: d.instance,
         input: d.input,
-        integrationId: backing.integrationId
+        integrationId: backing.integration.id
       });
     }
 
@@ -169,7 +172,7 @@ class ProviderTemplateServiceImpl {
             organizationOid: d.organization.oid,
             instanceOid: d.instance.oid,
             hasSubspaceBacking: true,
-            subspaceIntegrationId: backing.integrationId
+            subspaceIntegrationId: backing.integration.id
           }
         });
       });
@@ -180,7 +183,7 @@ class ProviderTemplateServiceImpl {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         let providerTemplate = await this.getProviderTemplateByIntegrationId({
           instance: d.instance,
-          integrationId: backing.integrationId
+          integrationId: backing.integration.id
         });
         if (providerTemplate && providerTemplate.status !== 'deleted') {
           return await this.resurrectProviderTemplate({
@@ -188,7 +191,7 @@ class ProviderTemplateServiceImpl {
             organization: d.organization,
             instance: d.instance,
             input: d.input,
-            integrationId: backing.integrationId
+            integrationId: backing.integration.id
           });
         }
       }
@@ -229,12 +232,14 @@ class ProviderTemplateServiceImpl {
 
     await providerTemplateUpdatedQueue.add({ providerTemplateId: providerTemplate.id });
     if (providerTemplate.hasSubspaceBacking) {
-      await subspaceMagicMcpBackingService.upsertProviderTemplate({
+      await providerTemplateBackingService.updateProviderTemplateBacking({
         instance: d.instance,
-        providerTemplateId: providerTemplate.id,
-        name: providerTemplate.name,
-        description: providerTemplate.description,
-        metadata: providerTemplate.metadata as Record<string, any>
+        input: {
+          providerTemplateId: providerTemplate.id,
+          name: providerTemplate.name,
+          description: providerTemplate.description,
+          metadata: providerTemplate.metadata as Record<string, any>
+        }
       });
     }
 

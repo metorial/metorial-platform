@@ -6,6 +6,9 @@ let { syncSubspaceTenantCronHandler } = vi.hoisted(() => ({
 
 vi.mock('@metorial/db', () => ({
   db: {
+    instance: {
+      findMany: vi.fn()
+    },
     project: {
       findMany: vi.fn(),
       findUnique: vi.fn()
@@ -36,15 +39,19 @@ vi.mock('@metorial/queue', () => ({
   }
 }));
 
-vi.mock('@metorial/internal-clients', () => ({
-  ensureInternalProjectTenant: vi.fn(),
-  ensureInternalScope: vi.fn()
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  subspaceScopeService: {
+    ensureForProject: vi.fn(),
+    ensureForInstance: vi.fn()
+  }
 }));
 
 import { db } from '@metorial/db';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import {
   syncSubspaceTenantCron,
   syncSubspaceTenantQueue,
+  syncSubspaceTenantQueueProcessor,
   syncSubspaceTenantSearchQueue,
   syncSubspaceTenantSearchQueueProcessor
 } from '../src/queues/syncSubspaceTenant';
@@ -89,5 +96,18 @@ describe('syncSubspaceTenant queues', () => {
     expect(syncSubspaceTenantSearchQueue.add).toHaveBeenCalledWith({
       cursor: 'proj-2'
     });
+  });
+
+  it('ensures the project tenant and each instance scope directly', async () => {
+    let project = { id: 'proj-1', oid: 1 };
+    let instances = [{ id: 'inst-1' }, { id: 'inst-2' }];
+    vi.mocked(db.project.findUnique).mockResolvedValue(project as any);
+    vi.mocked(db.instance.findMany).mockResolvedValue(instances as any);
+
+    await (syncSubspaceTenantQueueProcessor as any).handler({ projectId: project.id });
+
+    expect(subspaceScopeService.ensureForProject).toHaveBeenCalledWith(project);
+    expect(subspaceScopeService.ensureForInstance).toHaveBeenNthCalledWith(1, instances[0]);
+    expect(subspaceScopeService.ensureForInstance).toHaveBeenNthCalledWith(2, instances[1]);
   });
 });

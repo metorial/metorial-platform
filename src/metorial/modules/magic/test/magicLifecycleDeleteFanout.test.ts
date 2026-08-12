@@ -56,11 +56,13 @@ vi.mock('@metorial/db', () => {
   };
 });
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceMagicMcpBackingService: {
-    archiveServer: vi.fn(),
-    archiveEndpoint: vi.fn(),
-    resolveIntegrationResourceLinks: vi.fn()
+vi.mock('@metorial-subspace/module-integration', () => ({
+  magicMcpServerBackingService: {
+    archiveMagicMcpServerBacking: vi.fn(),
+    resolveMagicMcpIntegrationResourceLinks: vi.fn()
+  },
+  magicMcpEndpointBackingService: {
+    archiveMagicMcpEndpointBacking: vi.fn()
   }
 }));
 
@@ -90,7 +92,10 @@ vi.mock('../src/queues/lifecycle/providerTemplate', () => ({
 
 import { db } from '@metorial/db';
 import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import {
+  magicMcpEndpointBackingService,
+  magicMcpServerBackingService
+} from '@metorial-subspace/module-integration';
 import { magicMcpEndpointDeletedQueueProcessor } from '../src/queues/lifecycle/magicMcpEndpoint';
 import {
   magicMcpBackingCleanupBackingsManyQueueProcessor,
@@ -132,7 +137,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     expect(indexMagicMcpServerSearchQueue.add).toHaveBeenCalledWith({
       magicMcpServerId: 'server-1'
     });
-    expect(subspaceMagicMcpBackingService.archiveServer).toHaveBeenCalledWith({
+    expect(magicMcpServerBackingService.archiveMagicMcpServerBacking).toHaveBeenCalledWith({
       instance,
       magicMcpServerBackingId: 'server-1'
     });
@@ -149,7 +154,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     let instance = { id: 'instance-1', oid: 1n };
     vi.mocked(db.instance.findUnique).mockResolvedValue(instance as any);
     vi.mocked(
-      subspaceMagicMcpBackingService.resolveIntegrationResourceLinks
+      magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks
     ).mockResolvedValue({
       magicMcpServerBackingIds: ['backing-server-1'],
       integrationInstanceIds: [],
@@ -167,7 +172,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     });
 
     expect(
-      subspaceMagicMcpBackingService.resolveIntegrationResourceLinks
+      magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks
     ).toHaveBeenCalledWith({
       instance,
       integrationId: 'integration-1',
@@ -201,7 +206,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     let instance = { id: 'instance-1', oid: 1n };
     vi.mocked(db.instance.findUnique).mockResolvedValue(instance as any);
     vi.mocked(
-      subspaceMagicMcpBackingService.resolveIntegrationResourceLinks
+      magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks
     ).mockResolvedValue({
       magicMcpServerBackingIds: [],
       integrationInstanceIds: ['integration-instance-1'],
@@ -216,7 +221,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     });
 
     expect(
-      subspaceMagicMcpBackingService.resolveIntegrationResourceLinks
+      magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks
     ).toHaveBeenCalledWith({
       instance,
       integrationId: 'integration-1',
@@ -245,7 +250,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     let instance = { id: 'instance-1', oid: 1n };
     vi.mocked(db.instance.findUnique).mockResolvedValue(instance as any);
     vi.mocked(
-      subspaceMagicMcpBackingService.resolveIntegrationResourceLinks
+      magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks
     ).mockResolvedValue({
       magicMcpServerBackingIds: [],
       integrationInstanceIds: [],
@@ -260,7 +265,7 @@ describe('magic MCP lifecycle delete fanout', () => {
     });
 
     expect(
-      subspaceMagicMcpBackingService.resolveIntegrationResourceLinks
+      magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks
     ).not.toHaveBeenCalled();
     expect(db.magicMcpServer.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -368,9 +373,11 @@ describe('magic MCP lifecycle delete fanout', () => {
       magicMcpEndpointId: 'endpoint-1'
     });
 
-    expect(subspaceMagicMcpBackingService.archiveEndpoint).toHaveBeenCalledWith({
-      instance,
-      magicMcpEndpointBackingId: 'endpoint-1'
-    });
+    expect(magicMcpEndpointBackingService.archiveMagicMcpEndpointBacking).toHaveBeenCalledWith(
+      {
+        instance,
+        magicMcpEndpointBackingId: 'endpoint-1'
+      }
+    );
   });
 });

@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let reconcileProjectInstancesCronHandler:
-  | (() => Promise<void>)
-  | undefined;
+let reconcileProjectInstancesCronHandler: (() => Promise<void>) | undefined;
 
 process.env.REDIS_URL = 'redis://localhost:6379';
 
@@ -47,11 +45,6 @@ vi.mock('@metorial/queue', () => ({
   }
 }));
 
-vi.mock('@metorial/internal-clients', () => ({
-  ensureInternalProjectTenant: vi.fn(),
-  ensureInternalScope: vi.fn()
-}));
-
 vi.mock('../src/services', () => ({
   instanceService: {
     generateInstanceSlug: vi.fn()
@@ -76,10 +69,8 @@ describe('reconcileProjectInstances queues', () => {
   });
 
   it('creates a daily cron that enqueues the search queue', async () => {
-    let {
-      reconcileProjectInstancesCron,
-      reconcileProjectInstancesSearchQueue
-    } = await getModule();
+    let { reconcileProjectInstancesCron, reconcileProjectInstancesSearchQueue } =
+      await getModule();
 
     expect(reconcileProjectInstancesCron).toBeDefined();
 
