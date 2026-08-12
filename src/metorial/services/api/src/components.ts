@@ -4,6 +4,7 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
+import { integrationsApi } from '@metorial/api-integrations';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { authenticate } from '@metorial/auth';
 
@@ -41,6 +42,11 @@ let server = apiMux(
 Bun.serve({
   port: apiPort,
   fetch: server
+});
+
+Bun.serve({
+  port: integrationsApiPort,
+  fetch: integrationsApi.fetch
 });
 
 Bun.serve({

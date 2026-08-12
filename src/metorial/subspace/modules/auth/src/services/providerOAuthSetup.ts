@@ -270,7 +270,7 @@ class providerOAuthSetupServiceImpl {
         credentials,
         authMethod,
         callbackUrlOverride,
-        redirectUrl: `${env.service.PUBLIC_SERVICE_URL}/oauth-setup/${newId.id}/callback?client_secret=${clientSecret}`
+        redirectUrl: `${env.service.INTEGRATIONS_API_URL}/oauth-setup/${newId.id}/callback?client_secret=${clientSecret}`
       });
 
       let providerOAuthSetup = await db.providerOAuthSetup.create({

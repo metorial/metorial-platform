@@ -1,61 +1,57 @@
-import { apiMux } from '@lowerdeck/api-mux';
-import { rpcMux } from '@lowerdeck/rpc-server';
-import { getSentry } from '@lowerdeck/sentry';
-import { withTracingSuppressed } from '@lowerdeck/telemetry';
-import { db } from '@metorial-subspace/db';
-import { RedisClient } from 'bun';
-import { adminApp } from './api/admin';
-import { subspaceFrontendRPC } from './api/internal';
-import { app } from './api/public';
+import { createHono } from '@lowerdeck/hono';
+import { join, resolve, sep } from 'path';
+import { env } from './env';
 
-let Sentry = getSentry();
-let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {
-  tls: process.env.REDIS_URL?.startsWith('rediss://')
-});
+let frontendDist = join(process.cwd(), 'frontend', 'dist');
+let assetsDir = join(frontendDist, 'assets');
+let indexHtmlPath = join(frontendDist, 'index.html');
+let cachedIndexHtml: string | null = null;
+
+let serveAsset = async (key: string) => {
+  let targetPath = resolve(assetsDir, key);
+  if (!targetPath.startsWith(`${resolve(assetsDir)}${sep}`)) {
+    return new Response('Forbidden', { status: 403 });
+  }
+
+  let file = Bun.file(targetPath);
+  if (!(await file.exists())) return new Response('Not Found', { status: 404 });
+
+  return new Response(file, {
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Content-Length': String(file.size)
+    }
+  });
+};
+
+let renderIndexHtml = async () => {
+  if (process.env.NODE_ENV !== 'production' || !cachedIndexHtml) {
+    let template = await Bun.file(indexHtmlPath).text();
+    let runtimeConfig = JSON.stringify({
+      integrationsApiUrl: env.service.INTEGRATIONS_API_URL
+    }).replace(/</g, '\\u003c');
+    cachedIndexHtml = template.replace(
+      '<!-- RUNTIME_CONFIG -->',
+      `<script type="application/json" id="runtime-config">${runtimeConfig}</script>`
+    );
+  }
+
+  return new Response(cachedIndexHtml, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' }
+  });
+};
+
+export let app = createHono()
+  .get('/ping', c => c.text('OK'))
+  .get('/assets/:key*', async c => await serveAsset(c.req.param('key*')))
+  .get('/subspace-public/assets/:key*', async c => await serveAsset(c.req.param('key*')))
+  .get('/setup-session/:sessionId', async () => await renderIndexHtml())
+  .get('/integration-setup-session/:sessionId', async () => await renderIndexHtml());
 
 let server = Bun.serve({
-  fetch: apiMux(
-    [{ endpoint: rpcMux({ path: '/subspace-public/internal-api' }, [subspaceFrontendRPC]) }],
-    app.fetch as any
-  ),
-  port: 52071
+  fetch: app.fetch,
+  port: Number(process.env.PORT ?? 52071)
 });
 
-let adminServer = Bun.serve({
-  fetch: adminApp.fetch,
-  port: 52073
-});
-
-console.log(`Service running on http://localhost:${server.port}`);
-console.log(`Admin service running on http://localhost:${adminServer.port}`);
-
-if (
-  process.env.NODE_ENV === 'production' &&
-  process.env.SUBSPACE_MANAGED_HEALTH_CHECKS !== 'true'
-) {
-  // let startTime = Date.now();
-  // let hour = 60 * 60 * 1000;
-  // let maxUptime = hour * 4 + Math.random() * hour * 2;
-
-  Bun.serve({
-    fetch: async _ =>
-      await withTracingSuppressed(async () => {
-        // let uptime = Date.now() - startTime;
-        // if (uptime > maxUptime) {
-        //   return new Response('Service Unavailable', { status: 503 });
-        // }
-
-        try {
-          await db.backend.count();
-
-          await redis.ping();
-
-          return new Response('OK');
-        } catch (e) {
-          Sentry.captureException(e);
-          return new Response('Service Unavailable', { status: 503 });
-        }
-      }),
-    port: 12121
-  });
-}
+console.log(`Integration UI running on http://localhost:${server.port}`);

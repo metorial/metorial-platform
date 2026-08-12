@@ -7,6 +7,7 @@ import type {
   ProviderOAuthSetup,
   ProviderSpecification
 } from '@metorial-subspace/db';
+import { env } from '../../env';
 import {
   setupSessionAuthConfigPresenter,
   setupSessionAuthCredentialsPresenter,
@@ -56,7 +57,7 @@ export let setupSessionOAuthSetupPresenter = (
 
     url:
       status !== 'expired' && status !== 'completed'
-        ? `/oauth-setup/${providerOAuthSetup.id}?client_secret=${providerOAuthSetup.clientSecret}`
+        ? `${env.service.INTEGRATIONS_API_URL}/oauth-setup/${providerOAuthSetup.id}?client_secret=${providerOAuthSetup.clientSecret}`
         : null,
 
     authConfig: providerOAuthSetup.authConfig

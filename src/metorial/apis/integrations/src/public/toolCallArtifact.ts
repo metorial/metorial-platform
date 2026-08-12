@@ -1,7 +1,7 @@
 import { base62 } from '@lowerdeck/base62';
 import { createHono } from '@lowerdeck/hono';
 import { db } from '@metorial-subspace/db';
-import { env } from '../../env';
+import { env } from '../env';
 
 export let toolCallArtifactApp = createHono().get('/:urlKey', async c => {
   let urlKey = c.req.param('urlKey');

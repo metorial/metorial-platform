@@ -416,9 +416,6 @@ services:
     ports:
       - '52071:52071'
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/subspace
-      REDIS_URL: redis://redis:6379/0
-      NATS_URL: nats://nats-1:4222
       METORIAL_ENV: development
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
@@ -427,7 +424,8 @@ services:
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
       OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
       OTEL_DEBUG: ${OTEL_DEBUG:-false}
-      PUBLIC_SERVICE_URL: http://localhost:52071
+      INTEGRATIONS_API_URL: http://localhost:4316
+      INTEGRATIONS_UI_URL: http://localhost:52071
       SLATES_HUB_URL: http://slates-hub:52046/slates-hub
       VOYAGER_URL: http://voyager:52060/metorial-voyager
       OBJECT_STORAGE_URL: http://object-storage:52010
@@ -444,35 +442,6 @@ services:
       - ./apps/public/frontend/src:/app/src/metorial/subspace/apps/public/frontend/src:ro
       - ./apps/public/package.json:/app/src/metorial/subspace/apps/public/package.json:ro
       - /app/node_modules
-      - ./modules:/app/src/metorial/subspace/modules:ro
-      - ./packages:/app/src/metorial/subspace/packages:ro
-      - ./provider-backends:/app/src/metorial/subspace/provider-backends:ro
-      - ./db:/app/src/metorial/subspace/db
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      object-storage:
-        condition: service_healthy
-      slates-registry:
-        condition: service_healthy
-      forge:
-        condition: service_healthy
-      function-bay:
-        condition: service_healthy
-      signal:
-        condition: service_healthy
-      voyager:
-        condition: service_healthy
-      slates-hub:
-        condition: service_healthy
-      shuttle:
-        condition: service_healthy
-      nats-1:
-        condition: service_started
-      origin:
-        condition: service_healthy
     networks:
       - subspace-network
 
@@ -495,7 +464,8 @@ services:
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
       OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
       OTEL_DEBUG: ${OTEL_DEBUG:-false}
-      PUBLIC_SERVICE_URL: http://localhost:52071
+      INTEGRATIONS_API_URL: http://localhost:4316
+      INTEGRATIONS_UI_URL: http://localhost:52071
       SLATES_HUB_URL: http://slates-hub:52046/slates-hub
       VOYAGER_URL: http://voyager:52060/metorial-voyager
       OBJECT_STORAGE_URL: http://object-storage:52010

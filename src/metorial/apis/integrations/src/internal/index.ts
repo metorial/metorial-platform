@@ -10,4 +10,4 @@ export let rootFrontend = app.controller({
 
 export let subspaceFrontendRPC = createServer({})(rootFrontend);
 
-export type SubspaceFrontendClient = InferClient<typeof rootFrontend>;
+export type IntegrationsClient = InferClient<typeof rootFrontend>;

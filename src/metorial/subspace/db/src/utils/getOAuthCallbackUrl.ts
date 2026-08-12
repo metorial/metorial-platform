@@ -67,7 +67,7 @@ export let getOAuthCallbackUrl = async (
   }
 
   let slug = storedUrl.slug;
-  return `${env.service.PUBLIC_SERVICE_URL}/oauth-callback/${slug}`;
+  return `${env.service.INTEGRATIONS_API_URL}/oauth-callback/${slug}`;
 };
 
 export let parseTenantOAuthCallbackSlug = async (slug: string) => {

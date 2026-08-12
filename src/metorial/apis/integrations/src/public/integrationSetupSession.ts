@@ -1,22 +1,10 @@
-import { badRequestError, internalServerError, isServiceError } from '@lowerdeck/error';
 import { createHono, useRequestContext } from '@lowerdeck/hono';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
-import { getFullIntegrationSetupSession } from '../internal/integrationSetupSession';
+import { env } from '../env';
 import { providerSetupSessionUrl } from '../internal/presenters';
-import { renderIndexHtml } from './setupSession';
+import { integrationsRedirectUrl } from '../urls';
 
 export let integrationSetupSessionApp = createHono()
-  .use(async (c, next) => {
-    await next();
-
-    c.res.headers.set('Access-Control-Allow-Origin', c.req.header('Origin') || '*');
-    c.res.headers.set(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, OPTIONS, PATCH'
-    );
-    c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    c.res.headers.set('Access-Control-Allow-Credentials', 'true');
-  })
   .get('/:sessionId/:stepId', async c => {
     let sessionId = c.req.param('sessionId');
     let stepId = c.req.param('stepId');
@@ -53,46 +41,22 @@ export let integrationSetupSessionApp = createHono()
       (providerSetupSession.status === 'completed' && !shouldOpenCompletedToolFilterSession)
     ) {
       return c.redirect(
-        `/integration-setup-session/${session.id}?client_secret=${clientSecret}`
+        integrationsRedirectUrl(
+          env.service.INTEGRATIONS_UI_URL,
+          `/integration-setup-session/${session.id}`,
+          c.req.url
+        )
       );
     }
 
     return c.redirect(providerSetupSessionUrl(providerSetupSession));
   })
-  .get('/:sessionId/:key*?', async c => {
-    let sessionId = c.req.param('sessionId');
-    let clientSecret = c.req.query('client_secret');
-
-    let preload = {};
-
-    if (!clientSecret) {
-      preload = {
-        type: 'error',
-        error: badRequestError({
-          message: 'Invalid Integration Setup Session URL'
-        }).toResponse()
-      };
-    } else {
-      try {
-        preload = {
-          type: 'integration_setup_session',
-          data: await getFullIntegrationSetupSession({ sessionId, clientSecret }),
-          input: { sessionId, clientSecret }
-        };
-      } catch (e) {
-        if (isServiceError(e)) {
-          preload = {
-            type: 'error',
-            error: e.toResponse()
-          };
-        } else {
-          preload = {
-            type: 'error',
-            error: internalServerError().toResponse()
-          };
-        }
-      }
-    }
-
-    return await renderIndexHtml(preload);
+  .get('/:sessionId', c => {
+    return c.redirect(
+      integrationsRedirectUrl(
+        env.service.INTEGRATIONS_UI_URL,
+        `/integration-setup-session/${c.req.param('sessionId')}`,
+        c.req.url
+      )
+    );
   });

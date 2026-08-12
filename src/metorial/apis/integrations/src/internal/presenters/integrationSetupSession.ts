@@ -10,19 +10,19 @@ import type {
   ProviderListing,
   ProviderSetupSession
 } from '@metorial-subspace/db';
-import { env } from '../../../env';
+import { env } from '../../env';
 import { getImageUrl } from './utils';
 
 export let integrationSetupSessionUrl = (
   integrationSetupSession: Pick<IntegrationSetupSession, 'id' | 'clientSecret'>
 ) =>
-  `${env.service.PUBLIC_SERVICE_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`;
+  `${env.service.INTEGRATIONS_UI_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`;
 
 let integrationSetupSessionStepUrl = (d: {
   integrationSetupSession: Pick<IntegrationSetupSession, 'id' | 'clientSecret'>;
   step: Pick<IntegrationSetupSessionStep, 'id'>;
 }) =>
-  `${env.service.PUBLIC_SERVICE_URL}/integration-setup-session/${d.integrationSetupSession.id}/${d.step.id}?client_secret=${d.integrationSetupSession.clientSecret}`;
+  `${env.service.INTEGRATIONS_API_URL}/integration-setup-session/${d.integrationSetupSession.id}/${d.step.id}?client_secret=${d.integrationSetupSession.clientSecret}`;
 
 let setupStatus = (providerSetupSession: ProviderSetupSession | null) => {
   if (!providerSetupSession) return 'pending' as const;
