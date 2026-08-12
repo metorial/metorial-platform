@@ -1,7 +1,11 @@
 import * as RadixPopover from '@radix-ui/react-popover';
 import React, { useEffect, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { useDialogContext, useZindex } from '../dialog/state';
+import {
+  preventPopoverDismissForNestedOverlay,
+  useDialogContext,
+  useZindex
+} from '../dialog/state';
 import { theme } from '../theme';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
 
@@ -226,10 +230,9 @@ let Root = React.forwardRef<HTMLButtonElement, PopoverProps>(
             sideOffset={sideOffset}
             alignOffset={alignOffset}
             onOpenAutoFocus={onOpenAutoFocus}
-            onInteractOutside={event => {
-              let target = event.target as Element | null;
-              if (target?.closest('[data-metorial-select-content]')) event.preventDefault();
-            }}
+            onPointerDownOutside={preventPopoverDismissForNestedOverlay}
+            onInteractOutside={preventPopoverDismissForNestedOverlay}
+            onFocusOutside={preventPopoverDismissForNestedOverlay}
           >
             {children}
 

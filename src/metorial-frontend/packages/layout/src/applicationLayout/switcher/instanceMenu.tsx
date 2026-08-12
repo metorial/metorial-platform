@@ -212,6 +212,7 @@ export let SandboxButton = () => {
   return (
     <Menu
       title="Select Sandbox"
+      lightMode
       items={[
         ...devInstances.map(instance => ({
           id: instance.slug,
