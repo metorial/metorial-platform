@@ -31,11 +31,13 @@ export type CustomProviderFromFunction = {
     | {
         repositoryId: string;
         branch: string;
+        path?: string;
       }
     | {
         type: 'git';
         repositoryUrl: string;
         branch: string;
+        path?: string;
       };
 };
 

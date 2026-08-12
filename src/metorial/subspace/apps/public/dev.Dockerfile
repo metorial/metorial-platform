@@ -13,5 +13,4 @@ RUN sh ./src/metorial/subspace/scripts/prepare-docker-build.sh
 RUN cd /app/src/metorial/subspace/apps/public && bun run build
 
 # Run in dev mode with hot reloading.
-# `subspace-controller` performs schema/client initialization before this service starts.
 CMD ["sh", "-c", "cd /app/src/metorial/subspace/apps/public && bun run start:dev"]
