@@ -8,7 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
-import { providerAuthConfigEventPresenter } from '../../../presenters';
+import { providerAuthConfigEventPresenter } from '@metorial/presenters';
 
 let providerAuthConfigEventGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigEventId) {

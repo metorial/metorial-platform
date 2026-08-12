@@ -8,7 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { agentInstancePresenter, agentPresenter } from '../../../presenters';
+import { agentInstancePresenter, agentPresenter } from '@metorial/presenters';
 
 let agentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.agentId) {

@@ -8,7 +8,7 @@ import {
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { scmConnectionPresenter, scmConnectionSetupPresenter } from '../../../presenters';
+import { scmConnectionPresenter, scmConnectionSetupPresenter } from '@metorial/presenters';
 
 let scmConnectionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.scmConnectionId) {

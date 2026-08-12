@@ -16,7 +16,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { apiKeyPresenter } from '../../../presenters';
+import { apiKeyPresenter } from '@metorial/presenters';
 
 export let getApiKeyFilter = async (
   auth: AuthInfo,

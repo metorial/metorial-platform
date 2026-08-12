@@ -7,7 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { callbackDestinationPresenter } from '../../../presenters';
+import { callbackDestinationPresenter } from '@metorial/presenters';
 
 let callbackDestinationGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.callbackDestinationId) {

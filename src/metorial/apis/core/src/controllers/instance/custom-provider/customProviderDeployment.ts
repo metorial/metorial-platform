@@ -11,7 +11,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderDeploymentLogsPresenter,
   subspaceCustomProviderDeploymentPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 let customProviderDeploymentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderDeploymentId) {

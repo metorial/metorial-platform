@@ -4,7 +4,7 @@ import { protoGuardConfigService } from '@metorial-subspace/module-monitor';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { protoGuardConfigPresenter } from '../../../presenters';
+import { protoGuardConfigPresenter } from '@metorial/presenters';
 import { getRequiredParam } from './_shared';
 
 type ProtoGuardConfig = Awaited<ReturnType<typeof protoGuardConfigService.listFilters>>;

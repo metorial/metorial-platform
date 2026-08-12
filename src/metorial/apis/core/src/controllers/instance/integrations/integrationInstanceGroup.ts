@@ -11,7 +11,7 @@ import {
   integrationInstanceGroupPresenter,
   providerSessionPresenter,
   sessionTemplatePresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let integrationInstanceGroupProviderInputValidator = v.object({

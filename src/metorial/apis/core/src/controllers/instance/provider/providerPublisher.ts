@@ -5,7 +5,7 @@ import { publisherService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { publisherPresenter } from '../../../presenters';
+import { publisherPresenter } from '@metorial/presenters';
 
 let publisherGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.publisherId) {

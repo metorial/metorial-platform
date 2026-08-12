@@ -9,7 +9,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { networkInstanceGroup } from './_middleware';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
-import { enclavePresenter } from '../../../presenters';
+import { enclavePresenter } from '@metorial/presenters';
 
 let networkReadScopes = ['instance.network:read'] as const;
 

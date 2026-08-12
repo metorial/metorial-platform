@@ -10,7 +10,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { projectBrandPresenter, projectPresenter } from '../../../presenters';
+import { projectBrandPresenter, projectPresenter } from '@metorial/presenters';
 
 let magicMcpSessionDurationMinutesValidator = v.optional(
   v.number({ modifiers: [v.positive(), v.integer(), v.minValue(15), v.maxValue(108000)] })

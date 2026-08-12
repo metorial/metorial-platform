@@ -7,7 +7,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillTemplateItemPresenter } from '../../../presenters';
+import { skillTemplateItemPresenter } from '@metorial/presenters';
 import { skillTemplateGroup } from './skillTemplate';
 
 export let skillTemplateItemGroup = skillTemplateGroup.use(async ctx => {

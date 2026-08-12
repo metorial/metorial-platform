@@ -12,7 +12,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { identityDelegationRequestPresenter } from '../../../presenters';
+import { identityDelegationRequestPresenter } from '@metorial/presenters';
 
 let mapIdentityPermissions = (permissions?: ('provider:call' | 'provider:read')[]) =>
   permissions?.map(

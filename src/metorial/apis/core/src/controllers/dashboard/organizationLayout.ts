@@ -6,7 +6,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { organizationLayoutPresenter } from '../../presenters';
+import { organizationLayoutPresenter } from '@metorial/presenters';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 

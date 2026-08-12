@@ -18,7 +18,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillPresenter } from '../../../presenters';
+import { skillPresenter } from '@metorial/presenters';
 
 let skillClientNameValidator = v.string({
   modifiers: [

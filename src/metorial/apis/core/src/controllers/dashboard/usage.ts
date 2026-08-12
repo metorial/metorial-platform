@@ -4,7 +4,7 @@ import { usageService } from '@metorial/module-usage';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { usagePresenter } from '../../presenters';
+import { usagePresenter } from '@metorial/presenters';
 
 export let dashboardUsageController = Controller.create(
   {

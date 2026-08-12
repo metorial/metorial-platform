@@ -6,7 +6,7 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackEventPresenter } from '../../../presenters';
+import { callbackEventPresenter } from '@metorial/presenters';
 import { callbackGroup } from './callback';
 
 let callbackEventGroup = callbackGroup.use(async ctx => {

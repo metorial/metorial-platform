@@ -11,7 +11,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerAuthExportPresenter } from '../../../presenters';
+import { providerAuthExportPresenter } from '@metorial/presenters';
 
 let providerAuthExportGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthExportId) {

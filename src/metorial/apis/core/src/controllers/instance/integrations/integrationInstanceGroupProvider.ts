@@ -10,7 +10,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { integrationInstanceGroupProviderPresenter } from '../../../presenters';
+import { integrationInstanceGroupProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let integrationInstanceGroupProviderGroup = instanceGroup.use(async ctx => {

@@ -17,7 +17,7 @@ import {
   oauthApplicationClientSecretPresenter,
   serviceAccountCredentialPresenter,
   serviceAccountPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 let serviceAccountManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.serviceAccountId) {

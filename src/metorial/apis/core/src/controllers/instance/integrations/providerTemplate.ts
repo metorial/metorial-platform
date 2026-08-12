@@ -8,7 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerTemplatePresenter } from '../../../presenters';
+import { providerTemplatePresenter } from '@metorial/presenters';
 
 let providerTemplateCreateBodyValidator = v.object({
   name: v.string(),

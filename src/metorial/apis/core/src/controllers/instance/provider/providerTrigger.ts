@@ -8,7 +8,7 @@ import {
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerTriggerPresenter } from '../../../presenters';
+import { providerTriggerPresenter } from '@metorial/presenters';
 
 let providerTriggerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerTriggerId) {

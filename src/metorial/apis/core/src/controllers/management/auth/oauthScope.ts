@@ -5,7 +5,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { oauthScopePermissionsPresenter } from '../../../presenters';
+import { oauthScopePermissionsPresenter } from '@metorial/presenters';
 
 export let oauthScopeManagementController = Controller.create(
   {

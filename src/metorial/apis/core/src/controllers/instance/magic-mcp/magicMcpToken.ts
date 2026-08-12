@@ -15,7 +15,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { magicMcpTokenPresenter } from '../../../presenters';
+import { magicMcpTokenPresenter } from '@metorial/presenters';
 
 export let magicMcpTokenGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpTokenId) {

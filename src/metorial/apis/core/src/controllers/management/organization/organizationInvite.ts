@@ -7,7 +7,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { organizationInvitePresenter } from '../../../presenters';
+import { organizationInvitePresenter } from '@metorial/presenters';
 
 export let organizationInviteManagementController = Controller.create(
   {

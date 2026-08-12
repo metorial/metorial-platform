@@ -9,7 +9,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
-import { skillSyncPresenter, skillSyncRepositoryChecksPresenter } from '../../../presenters';
+import { skillSyncPresenter, skillSyncRepositoryChecksPresenter } from '@metorial/presenters';
 import { getSkillPluginAccess } from './skillPlugin';
 
 let readScopes = ['instance.skill:read'] as const;

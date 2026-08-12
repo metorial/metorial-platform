@@ -12,7 +12,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceCustomProviderCommitPresenter } from '../../../presenters';
+import { subspaceCustomProviderCommitPresenter } from '@metorial/presenters';
 
 let customProviderCommitGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderCommitId) {

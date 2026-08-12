@@ -10,7 +10,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillItemPresenter } from '../../../presenters';
+import { skillItemPresenter } from '@metorial/presenters';
 import { skillGroup } from './skill';
 
 let createSkillItemValidator = v.union([

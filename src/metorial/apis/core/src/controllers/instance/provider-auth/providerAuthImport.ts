@@ -13,7 +13,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { authImportSchemaPresenter, providerAuthImportPresenter } from '../../../presenters';
+import { authImportSchemaPresenter, providerAuthImportPresenter } from '@metorial/presenters';
 
 let providerAuthImportGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthImportId) {

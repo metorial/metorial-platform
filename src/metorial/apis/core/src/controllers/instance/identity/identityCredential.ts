@@ -12,7 +12,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { identityCredentialPresenter } from '../../../presenters';
+import { identityCredentialPresenter } from '@metorial/presenters';
 
 let identityCredentialGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.identityCredentialId) {

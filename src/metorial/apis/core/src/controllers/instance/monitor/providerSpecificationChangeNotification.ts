@@ -6,7 +6,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerSpecificationChangeNotificationPresenter } from '../../../presenters';
+import { providerSpecificationChangeNotificationPresenter } from '@metorial/presenters';
 import { getRequiredParam, notificationTargetValidator, stringOrArray } from './_shared';
 
 let providerSpecificationChangeNotificationGroup = instanceGroup.use(async ctx => {

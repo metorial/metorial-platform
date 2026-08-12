@@ -8,7 +8,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { cliDevicePresenter } from '../../../presenters';
+import { cliDevicePresenter } from '@metorial/presenters';
 
 let cliDeviceManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.cliDeviceId) {

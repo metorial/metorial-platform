@@ -11,7 +11,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerConfigVaultPresenter } from '../../../presenters';
+import { providerConfigVaultPresenter } from '@metorial/presenters';
 
 let providerConfigVaultGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigVaultId) {

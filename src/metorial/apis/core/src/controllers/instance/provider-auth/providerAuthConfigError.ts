@@ -14,7 +14,7 @@ import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
   providerAuthConfigErrorGroupPresenter,
   providerAuthConfigErrorPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 let providerAuthConfigErrorGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigErrorId) {

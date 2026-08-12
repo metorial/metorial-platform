@@ -63,7 +63,7 @@ let setupSessionStepPresenter = (
     object: 'integration.setup_session.step' as const,
     id: step.id,
     status,
-    url: `${env.service.PUBLIC_SERVICE_URL}/integration-setup-session/${integrationSetupSession.id}/${step.id}?client_secret=${integrationSetupSession.clientSecret}`,
+    url: `${env.service.INTEGRATIONS_API_URL}/integration-setup-session/${integrationSetupSession.id}/${step.id}?client_secret=${integrationSetupSession.clientSecret}`,
     integration_provider_id: setupProvider.integrationProvider.id,
     provider: v1ProviderPreview(setupProvider.integrationProvider.provider),
     provider_setup_session_id: providerSetupSession?.id ?? null,
@@ -82,7 +82,7 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
       integrationSetupSession.expiresAt <= new Date()
         ? ('expired' as const)
         : integrationSetupSession.status,
-    url: `${env.service.PUBLIC_SERVICE_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`,
+    url: `${env.service.INTEGRATIONS_UI_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`,
     name: integrationSetupSession.name,
     description: integrationSetupSession.description,
     metadata: integrationSetupSession.metadata,

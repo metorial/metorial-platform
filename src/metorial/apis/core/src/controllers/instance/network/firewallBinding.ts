@@ -11,7 +11,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { networkInstanceGroup } from './_middleware';
-import { firewallBindingPresenter } from '../../../presenters';
+import { firewallBindingPresenter } from '@metorial/presenters';
 import { firewallBindingTargetValidator } from './_validators';
 
 let networkReadScopes = ['instance.network:read'] as const;

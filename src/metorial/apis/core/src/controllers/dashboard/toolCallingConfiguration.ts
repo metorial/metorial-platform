@@ -9,7 +9,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { projectToolCallingConfigurationPresenter } from '../../presenters';
+import { projectToolCallingConfigurationPresenter } from '@metorial/presenters';
 
 let messageProcessingTimeoutMsValidator = v.optional(
   v.number({

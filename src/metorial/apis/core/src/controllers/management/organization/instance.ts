@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { instancePresenter } from '../../../presenters';
+import { instancePresenter } from '@metorial/presenters';
 
 let resolveProjectFilter = async (d: {
   organization: Parameters<typeof projectService.getManyProjectsByIds>[0]['organization'];

@@ -7,7 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerToolsPresenter, sessionTemplatePresenter } from '../../../presenters';
+import { providerToolsPresenter, sessionTemplatePresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from './_shared';
 
 let sessionTemplateGroup = instanceGroup.use(async ctx => {

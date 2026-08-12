@@ -13,7 +13,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillAgentPresenter } from '../../../presenters';
+import { skillAgentPresenter } from '@metorial/presenters';
 import { skillGroup } from './skill';
 
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;

@@ -8,7 +8,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerAuthCredentialsPresenter } from '../../../presenters';
+import { providerAuthCredentialsPresenter } from '@metorial/presenters';
 
 let normalizePublicOriginParam = (origin: ('custom' | 'managed')[] | undefined) =>
   origin?.map(value => (value === 'custom' ? 'tenant_created' : 'managed_backing'));

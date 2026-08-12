@@ -8,7 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { identityDelegationConfigPresenter } from '../../../presenters';
+import { identityDelegationConfigPresenter } from '@metorial/presenters';
 
 let identityDelegationConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.identityDelegationConfigId) {

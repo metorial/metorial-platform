@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { accessPolicyPresenter, accessPolicyVersionPresenter } from '../../../presenters';
+import { accessPolicyPresenter, accessPolicyVersionPresenter } from '@metorial/presenters';
 
 let accessEntrySchema = v.object({
   target: v.string(),

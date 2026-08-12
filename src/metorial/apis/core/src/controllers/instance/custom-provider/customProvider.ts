@@ -12,7 +12,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderEnvPresenter,
   subspaceCustomProviderPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 export let customProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {

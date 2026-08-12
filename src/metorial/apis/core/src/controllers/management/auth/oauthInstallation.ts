@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { oauthInstallationPresenter } from '../../../presenters';
+import { oauthInstallationPresenter } from '@metorial/presenters';
 
 let oauthInstallationManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.oauthInstallationId) {

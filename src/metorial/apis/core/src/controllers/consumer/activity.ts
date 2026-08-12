@@ -11,7 +11,7 @@ import {
   consumerActivitySessionConnectionPresenter,
   identityCredentialPresenter,
   toolCallPresenter
-} from '../../presenters';
+} from '@metorial/presenters';
 
 let activityInput = (ctx: {
   instance: Parameters<typeof consumerActivityService.listAgents>[0]['instance'];

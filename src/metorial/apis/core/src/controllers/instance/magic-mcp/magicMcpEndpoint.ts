@@ -18,7 +18,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { magicMcpEndpointPresenter } from '../../../presenters';
+import { magicMcpEndpointPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 import { getSkillPluginAccess } from '../skills';
 

@@ -14,7 +14,7 @@ import {
   consumerAndProfilePresenter,
   consumerPresenter,
   consumerProfilePresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 
 let getAssignedConsumerGroupsByProfileId = async (d: {

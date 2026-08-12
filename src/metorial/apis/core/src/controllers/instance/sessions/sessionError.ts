@@ -13,7 +13,7 @@ import {
   requireFineGrainedSessionParam
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceSessionErrorPresenter } from '../../../presenters';
+import { subspaceSessionErrorPresenter } from '@metorial/presenters';
 
 let sessionErrorGroup = instanceGroup
   .use(async ctx => {

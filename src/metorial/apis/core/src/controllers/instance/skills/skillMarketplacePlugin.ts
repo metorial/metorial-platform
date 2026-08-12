@@ -9,7 +9,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillMarketplacePluginPresenter } from '../../../presenters';
+import { skillMarketplacePluginPresenter } from '@metorial/presenters';
 import { skillMarketplaceGroup } from './skillMarketplace';
 import { getSkillPluginAccess } from './skillPlugin';
 

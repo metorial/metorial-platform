@@ -8,7 +8,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { magicMcpSessionPresenter } from '../../../presenters';
+import { magicMcpSessionPresenter } from '@metorial/presenters';
 
 export let magicMcpSessionGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpSessionId) {

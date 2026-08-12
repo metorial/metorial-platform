@@ -7,7 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { scmRepoPresenter, scmRepoPreviewPresenter } from '../../../presenters';
+import { scmRepoPresenter, scmRepoPreviewPresenter } from '@metorial/presenters';
 
 let scmRepoGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.scmRepositoryId) {

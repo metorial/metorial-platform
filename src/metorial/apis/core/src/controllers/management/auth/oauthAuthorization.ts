@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { oauthAuthorizationPresenter } from '../../../presenters';
+import { oauthAuthorizationPresenter } from '@metorial/presenters';
 
 let oauthAuthorizationManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.oauthAuthorizationId) {

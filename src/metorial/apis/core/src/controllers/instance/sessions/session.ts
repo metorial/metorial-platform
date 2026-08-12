@@ -18,7 +18,7 @@ import {
   requireFineGrainedSessionParam
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerSessionPresenter } from '../../../presenters';
+import { providerSessionPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from './_shared';
 import {
   resolveSessionProviderInput,

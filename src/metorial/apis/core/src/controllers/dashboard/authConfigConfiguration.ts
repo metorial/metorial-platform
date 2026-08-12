@@ -9,7 +9,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { projectAuthConfigConfigurationPresenter } from '../../presenters';
+import { projectAuthConfigConfigurationPresenter } from '@metorial/presenters';
 
 let consumerAuthClientRegistrationLimitValidator = v.optional(
   v.number({ modifiers: [v.positive(), v.integer(), v.minValue(1)] })

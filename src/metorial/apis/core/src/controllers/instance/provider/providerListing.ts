@@ -7,7 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerListingPresenter } from '../../../presenters';
+import { providerListingPresenter } from '@metorial/presenters';
 
 let providerListingGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerListingId) {

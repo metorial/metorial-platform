@@ -13,7 +13,7 @@ import {
   instanceLegacyPath,
   instancePath
 } from '../../../middleware/instanceGroup';
-import { providerToolPresenter } from '../../../presenters';
+import { providerToolPresenter } from '@metorial/presenters';
 
 let providerToolGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerToolId) {

@@ -14,7 +14,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillImportPresenter } from '../../../presenters';
+import { skillImportPresenter } from '@metorial/presenters';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;

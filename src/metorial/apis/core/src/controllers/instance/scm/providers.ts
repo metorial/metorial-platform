@@ -8,7 +8,7 @@ import {
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { scmProviderPresenter, scmProviderSetupPresenter } from '../../../presenters';
+import { scmProviderPresenter, scmProviderSetupPresenter } from '@metorial/presenters';
 
 let scmProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.scmProviderId) {

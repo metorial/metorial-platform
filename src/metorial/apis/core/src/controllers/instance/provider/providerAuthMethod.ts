@@ -8,7 +8,7 @@ import {
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerAuthMethodPresenter } from '../../../presenters';
+import { providerAuthMethodPresenter } from '@metorial/presenters';
 
 let providerAuthMethodGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthMethodId) {

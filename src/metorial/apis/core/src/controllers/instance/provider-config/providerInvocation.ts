@@ -8,7 +8,7 @@ import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
   providerInvocationPresenter,
   providerInvocationsPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 export let providerInvocationController = Controller.create(
   {

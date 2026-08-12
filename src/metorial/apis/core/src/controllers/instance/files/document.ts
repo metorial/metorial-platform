@@ -12,7 +12,7 @@ import {
   documentEditTokenPresenter,
   documentPermissionsPresenter,
   documentPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 
 export let documentGroup = instanceGroup.use(async ctx => {

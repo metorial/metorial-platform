@@ -12,7 +12,7 @@ import {
 import {
   oauthApplicationClientSecretPresenter,
   oauthApplicationPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 let oauthApplicationManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.oauthApplicationId) {

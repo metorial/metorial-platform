@@ -15,7 +15,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderEnvPresenter,
   subspaceCustomProviderVersionPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import {
   customProviderConfigValidator,
   customProviderFromValidator,

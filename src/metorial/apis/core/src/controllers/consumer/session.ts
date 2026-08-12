@@ -7,7 +7,7 @@ import {
   consumerGroupPresenter,
   consumerProfilePresenter,
   consumerSessionPresenter
-} from '../../presenters';
+} from '@metorial/presenters';
 
 export let consumerSessionController = Controller.create(
   {

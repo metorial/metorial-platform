@@ -7,8 +7,8 @@ import { isDashboardGroup } from '../../middleware/isDashboard';
 import {
   resourceCountResourceValidator,
   type ResourceCountResource
-} from '../../presenters/implementation/resourceCounts';
-import { resourceCountsPresenter } from '../../presenters';
+} from '@metorial/presenters/src/implementation/resourceCounts';
+import { resourceCountsPresenter } from '@metorial/presenters';
 
 let normalizeResources = (resource: ResourceCountResource | ResourceCountResource[]) => {
   let resources = Array.isArray(resource) ? resource : [resource];

@@ -31,7 +31,7 @@ import {
   magicMcpServerProviderPresenter,
   providerSessionPresenter,
   providerToolsPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 export let magicMcpServerGroup = instanceGroup.use(async ctx => {

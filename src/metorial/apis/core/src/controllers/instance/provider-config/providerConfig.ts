@@ -13,7 +13,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { configSchemaPresenter, providerConfigPresenter } from '../../../presenters';
+import { configSchemaPresenter, providerConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 
 let providerConfigGroup = instanceGroup.use(async ctx => {

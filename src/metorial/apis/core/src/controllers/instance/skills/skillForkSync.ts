@@ -6,7 +6,7 @@ import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { skillForkSyncPresenter } from '../../../presenters';
+import { skillForkSyncPresenter } from '@metorial/presenters';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;

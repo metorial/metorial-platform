@@ -14,7 +14,7 @@ import {
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { sessionParticipantPresenter } from '../../../presenters';
+import { sessionParticipantPresenter } from '@metorial/presenters';
 
 let normalizeParticipantTypes = (
   types:

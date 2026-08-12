@@ -4,7 +4,7 @@ import { userService } from '@metorial/module-user';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { userGroup } from '../../middleware/userGroup';
-import { userPresenter } from '../../presenters';
+import { userPresenter } from '@metorial/presenters';
 
 export let dashboardUserController = Controller.create(
   {

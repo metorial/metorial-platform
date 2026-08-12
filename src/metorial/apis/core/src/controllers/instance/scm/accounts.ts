@@ -3,7 +3,7 @@ import { scmRepositoryService } from '@metorial-subspace/module-custom-provider'
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { scmAccountPreviewPresenter } from '../../../presenters';
+import { scmAccountPreviewPresenter } from '@metorial/presenters';
 
 export let scmAccountsController = Controller.create(
   {

@@ -13,7 +13,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { teamPresenter } from '../../../presenters';
+import { teamPresenter } from '@metorial/presenters';
 
 export let teamManagementController = Controller.create(
   {

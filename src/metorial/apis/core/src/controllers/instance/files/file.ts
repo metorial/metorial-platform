@@ -7,7 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { filePresenter } from '../../../presenters';
+import { filePresenter } from '@metorial/presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 
 let purposeSlugs = [

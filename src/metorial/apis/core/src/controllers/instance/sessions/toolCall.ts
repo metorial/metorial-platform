@@ -7,7 +7,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { toolCallPresenter } from '../../../presenters';
+import { toolCallPresenter } from '@metorial/presenters';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 
 let toolCallGroup = instanceGroup.use(async ctx => {

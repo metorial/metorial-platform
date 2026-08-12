@@ -6,7 +6,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { protoGuardAlertPresenter } from '../../../presenters';
+import { protoGuardAlertPresenter } from '@metorial/presenters';
 import { getRequiredParam, stringOrArray } from './_shared';
 
 let protoGuardAlertGroup = instanceGroup.use(async ctx => {

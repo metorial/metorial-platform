@@ -28,7 +28,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       type: setupSession.typeSelected,
       status,
 
-      url: `${env.service.PUBLIC_SERVICE_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`,
+      url: `${env.service.INTEGRATIONS_UI_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`,
 
       name: setupSession.name,
       description: setupSession.description,

@@ -8,7 +8,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { documentVersionPresenter } from '../../../presenters';
+import { documentVersionPresenter } from '@metorial/presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 import { documentGroup } from './document';
 

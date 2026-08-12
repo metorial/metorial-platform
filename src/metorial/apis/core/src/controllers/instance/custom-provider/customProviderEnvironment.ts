@@ -8,7 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceCustomProviderEnvironmentPresenter } from '../../../presenters';
+import { subspaceCustomProviderEnvironmentPresenter } from '@metorial/presenters';
 
 let customProviderEnvironmentGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderEnvironmentId) {

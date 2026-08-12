@@ -6,7 +6,7 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerPresenter } from '../../../presenters';
+import { providerPresenter } from '@metorial/presenters';
 
 let providerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerId) {

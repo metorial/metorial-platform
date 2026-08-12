@@ -12,7 +12,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackInstancePresenter } from '../../../presenters';
+import { callbackInstancePresenter } from '@metorial/presenters';
 import { callbackGroup } from './callback';
 
 export let callbackInstanceController = Controller.create(

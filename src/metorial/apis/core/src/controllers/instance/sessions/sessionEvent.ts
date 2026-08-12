@@ -13,7 +13,7 @@ import {
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { subspaceSessionEventPresenter } from '../../../presenters';
+import { subspaceSessionEventPresenter } from '@metorial/presenters';
 
 let sessionEventGroup = instanceGroup
   .use(async ctx => {

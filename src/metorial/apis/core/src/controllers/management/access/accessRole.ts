@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { accessRolePresenter, accessRoleVersionPresenter } from '../../../presenters';
+import { accessRolePresenter, accessRoleVersionPresenter } from '@metorial/presenters';
 
 let accessRoleManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.accessRoleId) {

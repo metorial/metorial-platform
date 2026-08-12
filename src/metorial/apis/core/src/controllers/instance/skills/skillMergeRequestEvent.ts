@@ -6,7 +6,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { skillMergeRequestEventPresenter } from '../../../presenters';
+import { skillMergeRequestEventPresenter } from '@metorial/presenters';
 import {
   getSkillMergeRequestAccess,
   skillMergeRequestGroup,

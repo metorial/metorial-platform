@@ -3,7 +3,7 @@ import { organizationInviteJoinService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { userGroup } from '../../middleware/userGroup';
-import { organizationInvitePresenter } from '../../presenters';
+import { organizationInvitePresenter } from '@metorial/presenters';
 
 export let dashboardOrganizationInviteController = Controller.create(
   {

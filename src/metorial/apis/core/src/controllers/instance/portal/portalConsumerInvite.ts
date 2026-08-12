@@ -7,7 +7,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { consumerInvitePresenter } from '../../../presenters';
+import { consumerInvitePresenter } from '@metorial/presenters';
 import { portalGroup } from './portal';
 
 export let consumerInviteGroup = portalGroup.use(async ctx => {

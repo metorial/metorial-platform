@@ -10,7 +10,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillGroupPresenter } from '../../../presenters';
+import { skillGroupPresenter } from '@metorial/presenters';
 
 export let skillGroupGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(async ctx => {
   if (!ctx.params.skillGroupId) {

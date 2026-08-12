@@ -13,7 +13,7 @@ import {
   portalAuthSsoConnectionPresenter,
   portalAuthSsoTenantPresenter,
   portalAuthSsoTenantSetupPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { portalGroup } from './portal';
 
 let getPortalAresAppId = (portal: {

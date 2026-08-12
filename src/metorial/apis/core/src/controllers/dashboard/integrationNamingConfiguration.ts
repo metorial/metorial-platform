@@ -9,7 +9,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { projectIntegrationNamingConfigurationPresenter } from '../../presenters';
+import { projectIntegrationNamingConfigurationPresenter } from '@metorial/presenters';
 
 export let dashboardIntegrationNamingConfigurationController = Controller.create(
   {

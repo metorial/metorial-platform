@@ -9,7 +9,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { networkLogsPresenter, networkPresenter } from '../../../presenters';
+import { networkLogsPresenter, networkPresenter } from '@metorial/presenters';
 import { networkInstanceGroup } from './_middleware';
 
 let networkReadScopes = ['instance.network:read'] as const;

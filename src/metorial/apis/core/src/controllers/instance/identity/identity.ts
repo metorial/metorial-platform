@@ -8,7 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { identityPresenter } from '../../../presenters';
+import { identityPresenter } from '@metorial/presenters';
 
 let identityCredentialInputValidator = v.object({
   deployment_id: v.optional(

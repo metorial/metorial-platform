@@ -10,7 +10,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { integrationSetupSessionPresenter } from '../../../presenters';
+import { integrationSetupSessionPresenter } from '@metorial/presenters';
 
 let setupSessionConfigurationValidator = v.optional(
   v.object({

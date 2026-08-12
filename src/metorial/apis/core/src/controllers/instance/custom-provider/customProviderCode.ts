@@ -7,7 +7,7 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { bucketEditorTokenPresenter } from '../../../presenters';
+import { bucketEditorTokenPresenter } from '@metorial/presenters';
 
 let customProviderCodeGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {

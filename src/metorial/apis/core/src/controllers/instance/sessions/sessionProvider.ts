@@ -22,7 +22,7 @@ import {
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { sessionProviderPresenter } from '../../../presenters';
+import { sessionProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from './_shared';
 import {
   resolveSessionProviderInput,

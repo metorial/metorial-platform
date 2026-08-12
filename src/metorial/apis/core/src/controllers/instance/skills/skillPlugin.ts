@@ -10,7 +10,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillPluginPresenter } from '../../../presenters';
+import { skillPluginPresenter } from '@metorial/presenters';
 import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;

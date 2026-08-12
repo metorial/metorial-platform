@@ -6,7 +6,7 @@ import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
 import { userGroup } from '../../middleware/userGroup';
-import { organizationPresenter } from '../../presenters';
+import { organizationPresenter } from '@metorial/presenters';
 
 export let dashboardOrganizationController = Controller.create(
   {

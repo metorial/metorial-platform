@@ -1,6 +1,6 @@
 import { Controller, Path } from '@metorial/rest';
 import { apiGroup } from '../../middleware/apiGroup';
-import { tokenPresenter } from '../../presenters';
+import { tokenPresenter } from '@metorial/presenters';
 
 export let tokenController = Controller.create(
   {

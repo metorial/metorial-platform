@@ -7,7 +7,7 @@ import {
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { assistantMessagePresenter } from '../../../presenters';
+import { assistantMessagePresenter } from '@metorial/presenters';
 import {
   assistantConversationGroup,
   assistantMessageGroup,
