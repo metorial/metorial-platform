@@ -301,7 +301,7 @@ class ProviderRunConnection extends IProviderRunConnection {
   override async getConnectionDiagnostics(): Promise<ConnectionDiagnostics> {
     return {
       state: this.#state,
-      transport: 'shuttle',
+      transport: `metorial/mcp-connector`,
       protocolVersion: this.#initializeResult?.protocolVersion ?? null,
       serverInfo: this.#initializeResult
         ? {
