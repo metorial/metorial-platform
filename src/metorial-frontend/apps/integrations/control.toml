@@ -1,0 +1,11 @@
+name = "@metorial/app-integrations"
+group = "oss"
+
+[dev]
+run = ["vite --port 52071 --host 0.0.0.0"]
+
+[[dev.expose]]
+port = 52071
+
+[dev.env]
+VITE_INTEGRATIONS_API_URL = "http://{{HOSTNAME}}:4316"

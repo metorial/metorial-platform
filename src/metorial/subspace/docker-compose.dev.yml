@@ -406,45 +406,6 @@ services:
     networks:
       - subspace-network
 
-  subspace-public:
-    profiles: ['app']
-    build:
-      context: ../../..
-      dockerfile: ./src/metorial/subspace/apps/public/dev.Dockerfile
-    container_name: subspace-public-service
-    restart: unless-stopped
-    ports:
-      - '52071:52071'
-    environment:
-      METORIAL_ENV: development
-      OTEL_ENABLED: ${OTEL_ENABLED:-false}
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
-      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
-      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
-      OTEL_DEBUG: ${OTEL_DEBUG:-false}
-      INTEGRATIONS_API_URL: http://localhost:4316
-      INTEGRATIONS_UI_URL: http://localhost:52071
-      SLATES_HUB_URL: http://slates-hub:52046/slates-hub
-      VOYAGER_URL: http://voyager:52060/metorial-voyager
-      OBJECT_STORAGE_URL: http://object-storage:52010
-      MESSAGE_BUCKET_NAME: messages
-      SHUTTLE_URL: http://shuttle:52080/metorial-shuttle
-      SHUTTLE_LIVE_URL: http://shuttle:52080
-      SHUTTLE_PUBLIC_URL: http://localhost:52081
-      SLATES_HUB_PUBLIC_URL: http://localhost:52045
-      ORIGIN_URL: http://origin:52090/metorial-origin
-      REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
-
-    volumes:
-      - ./apps/public/src:/app/src/metorial/subspace/apps/public/src:ro
-      - ./apps/public/frontend/src:/app/src/metorial/subspace/apps/public/frontend/src:ro
-      - ./apps/public/package.json:/app/src/metorial/subspace/apps/public/package.json:ro
-      - /app/node_modules
-    networks:
-      - subspace-network
-
   subspace-worker:
     profiles: ['app']
     build:

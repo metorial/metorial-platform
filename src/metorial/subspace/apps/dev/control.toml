@@ -1,6 +1,4 @@
-# Disabled for now — use the individual apps instead:
-#   @metorial-subspace/app-public (52071)
-#   @metorial-subspace/app-worker
+# Disabled for now — use @metorial-subspace/app-worker directly.
 # The monolith hits a circular init in integration lifecycle queues.
 name = "@metorial/subspace-dev"
 group = "oss"
