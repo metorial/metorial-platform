@@ -1,5 +1,4 @@
-import { db, ProductAssistantOwner } from '@metorial/db';
-import { getId } from '../../id';
+import { db, ID, ProductAssistantOwner } from '@metorial/db';
 import type { Implementation } from './implementation';
 
 export let assistant = async (d: {
@@ -20,7 +19,7 @@ export let assistant = async (d: {
       implementationOid: implementation._persisted.oid
     },
     create: {
-      ...getId('productAssistant'),
+      id: await ID.generateId('productAssistant'),
       ownerType: ProductAssistantOwner.metorial,
       implementationOid: implementation._persisted.oid,
       name: d.name,

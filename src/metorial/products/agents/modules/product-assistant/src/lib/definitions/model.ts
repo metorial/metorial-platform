@@ -1,6 +1,5 @@
-import { db, type ProductAssistantModel as PersistedModel } from '@metorial/db';
+import { db, ID, type ProductAssistantModel as PersistedModel } from '@metorial/db';
 import type { LanguageModel } from 'ai';
-import { getId } from '../../id';
 import { getModelInfo } from './models';
 import type { Provider } from './provider';
 
@@ -38,7 +37,7 @@ export let model = async (d: {
     },
     update: inner,
     create: {
-      ...getId('productAssistantModel'),
+      id: await ID.generateId('productAssistantModel'),
       providerOid: provider._persisted.oid,
       ...inner
     }

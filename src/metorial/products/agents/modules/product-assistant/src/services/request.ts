@@ -7,9 +7,8 @@ import type {
   ResourceGroup,
   ResourceTenant
 } from '@metorial/db';
-import { db, Prisma, withTransaction } from '@metorial/db';
+import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
-import { getId } from '../id';
 import type { Implementation } from '../lib/definitions';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import {
@@ -24,7 +23,6 @@ import { processAssistantRequestQueue } from '../queues/processRequest';
 import { type InputMessage, type State } from '../types';
 import { productAssistantConversationItemInclude } from './message';
 import { productAssistantConversationParticipantService } from './participant';
-
 let serializeInputMessage = (
   input: InputMessage
 ): PrismaJson.ProductAssistantMessageSerializedContent => ({
@@ -334,7 +332,7 @@ class ProductAssistantRequestServiceImpl {
 
       let userMessage = await tx.productAssistantMessage.create({
         data: {
-          ...getId('productAssistantMessage'),
+          id: await ID.generateId('productAssistantMessage'),
           type: 'user',
           assistantOid: d.conversation.assistantOid,
           assistantInstanceOid: d.conversation.assistantInstanceOid,
@@ -347,7 +345,7 @@ class ProductAssistantRequestServiceImpl {
 
       let request = await tx.productAssistantRequest.create({
         data: {
-          ...getId('productAssistantRequest'),
+          id: await ID.generateId('productAssistantRequest'),
           status: 'pending',
           conversationOid: d.conversation.oid,
           assistantOid: d.conversation.assistantOid,
@@ -370,7 +368,7 @@ class ProductAssistantRequestServiceImpl {
 
       let item = await tx.productAssistantConversationItem.create({
         data: {
-          ...getId('productAssistantConversationItem'),
+          id: await ID.generateId('productAssistantConversationItem'),
           conversationOid: d.conversation.oid,
           messageOid: userMessage.oid
         },

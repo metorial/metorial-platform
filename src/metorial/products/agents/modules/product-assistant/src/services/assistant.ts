@@ -2,9 +2,8 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { ProductAssistant, ResourceTenant } from '@metorial/db';
-import { db, Prisma } from '@metorial/db';
+import { db, ID, Prisma } from '@metorial/db';
 import { assistants } from '../definitions/assistants';
-import { getId } from '../id';
 import {
   implementationModelInclude,
   type ImplementationModelWithProvider
@@ -168,7 +167,7 @@ class ProductAssistantServiceImpl {
       },
       update: {},
       create: {
-        ...getId('productAssistantInstance'),
+        id: await ID.generateId('productAssistantInstance'),
         assistantOid: d.assistant.oid,
         resourceTenantOid: d.tenant.oid
       },

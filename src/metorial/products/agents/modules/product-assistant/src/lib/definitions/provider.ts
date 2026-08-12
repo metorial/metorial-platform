@@ -1,5 +1,4 @@
-import { db, type ProductAssistantModelProvider } from '@metorial/db';
-import { getId } from '../../id';
+import { db, ID, type ProductAssistantModelProvider } from '@metorial/db';
 
 export type ProviderSlug = string;
 
@@ -17,7 +16,7 @@ export let provider = async (d: { slug: ProviderSlug; name: string }): Promise<P
     where: { slug: d.slug },
     update: { name: d.name, imageUrl },
     create: {
-      ...getId('productAssistantModelProvider'),
+      id: await ID.generateId('productAssistantModelProvider'),
       slug: d.slug,
       name: d.name,
       imageUrl

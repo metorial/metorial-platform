@@ -1,38 +1,43 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { createSubspaceControllerClient } from '@metorial-platform-systems/subspace-client';
+import { sessionMcpMessagingService, sessionService } from '@metorial-subspace/module-session';
+import { tenantService } from '@metorial-subspace/module-tenant';
+import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type {
   ProductAssistantSubspaceMcpConnection,
   ResourceGroup,
   ResourceTenant
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { env } from '../../../env';
-import { getId } from '../../../id';
-import {
-  ReusableHttpMcpTransport,
-  type MCPServerConfig
-} from '../../../lib/open-harness/lib/mcp';
+import { InternalMcpTransport, type MCPServerConfig } from '../../../lib/open-harness/lib/mcp';
 import type { SubspaceMcpToolList } from '../../../types';
-
 let CONNECTION_IDLE_MS = 15 * 60 * 1000;
 let CONNECTION_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 let TOOL_CACHE_TTL_MS = 10 * 60 * 1000;
 
-let subspace = createSubspaceControllerClient({
-  endpoint: env.subspace.SUBSPACE_URL,
-  getHeaders: async () => ({
-    'Subspace-Solution-Id': env.subspace.SUBSPACE_SOLUTION
-  })
-});
-
-type SubspaceControllerLike = {
-  session: {
-    get: (input: {
+type SubspaceServicesLike = {
+  tenant: {
+    getTenantAndEnvironmentById: (input: {
       tenantId: string;
       environmentId: string;
+    }) => Promise<{ tenant: any; environment: any }>;
+  };
+  session: {
+    getSessionByIdInternal: (input: {
+      tenant: any;
+      environment: any;
       sessionId: string;
     }) => Promise<{ id: string; status?: string }>;
   };
+};
+
+let subspaceServices: SubspaceServicesLike = {
+  tenant: {
+    getTenantAndEnvironmentById: input => tenantService.getTenantAndEnvironmentById(input)
+  },
+  session: {
+    getSessionByIdInternal: input => sessionService.getSessionByIdInternal(input)
+  }
 };
 
 let addMs = (date: Date, ms: number) => new Date(date.getTime() + ms);
@@ -59,16 +64,20 @@ export type ExplorerAssistantInput = {
 };
 
 export class SubspaceAssistant {
-  constructor(private readonly subspaceClient: SubspaceControllerLike) {}
+  constructor(private readonly subspaceServices: SubspaceServicesLike) {}
 
   async getInput(d: {
     tenant: ResourceTenant;
     environment: ResourceGroup;
     input: { sessionId: string };
   }): Promise<ExplorerAssistantInput> {
-    let session = await this.subspaceClient.session.get({
+    let scope = await this.subspaceServices.tenant.getTenantAndEnvironmentById({
       tenantId: d.tenant.identifier,
-      environmentId: d.environment.identifier,
+      environmentId: d.environment.identifier
+    });
+    let session = await this.subspaceServices.session.getSessionByIdInternal({
+      tenant: scope.tenant,
+      environment: scope.environment,
       sessionId: d.input.sessionId
     });
 
@@ -88,21 +97,30 @@ export class SubspaceAssistant {
     input: ExplorerAssistantInput;
   }): Promise<MCPServerConfig> {
     let existing = await this.getUsableConnection(d);
-    let url = this.getMcpUrl(d.input);
-
     return {
       name: 'Metorial Explorer',
       version: '1.0.0',
       transport: () =>
-        new ReusableHttpMcpTransport({
-          url,
-          headers: this.getMcpHeaders({
-            tenant: d.tenant,
-            environment: d.environment,
-            input: d.input,
-            url
-          }),
+        new InternalMcpTransport({
           connectionToken: existing?.connectionToken,
+          sendMessage: async (message, connectionToken, onProgress) =>
+            await sessionMcpMessagingService.send({
+              solutionId: d.input.solutionId,
+              tenantId: d.input.subspaceTenantId,
+              sessionId: d.input.sessionId,
+              connectionToken,
+              agentClient: {
+                name: 'Metorial Assistant',
+                type: 'system_client',
+                foreignId: `product-assistant:${d.tenant.id}:${d.environment.id}:${d.input.sessionId}`
+              },
+              connectionPrivateMetadata: {
+                source: 'product-assistant',
+                assistant: 'explorer'
+              },
+              message: message as JSONRPCMessage,
+              onProgress: async progress => await onProgress(progress)
+            }),
           getCachedTools: async () =>
             existing
               ? await this.getCachedTools({ connectionId: existing.connectionId })
@@ -157,7 +175,7 @@ export class SubspaceAssistant {
         expiresAt: addMs(now, TOOL_CACHE_TTL_MS)
       },
       create: {
-        ...getId('productAssistantSubspaceMcpToolCache'),
+        id: await ID.generateId('productAssistantSubspaceMcpToolCache'),
         connectionId: d.connectionId,
         tools: d.tools,
         cachedAt: now,
@@ -257,7 +275,7 @@ export class SubspaceAssistant {
           ...(existing?.connectionId == d.connectionId ? {} : { createdAt: now })
         },
         create: {
-          ...getId('productAssistantSubspaceMcpConnection'),
+          id: await ID.generateId('productAssistantSubspaceMcpConnection'),
           resourceTenantOid: d.tenant.oid,
           resourceGroupOid: d.environment.oid,
           sessionId: d.input.sessionId,
@@ -270,38 +288,9 @@ export class SubspaceAssistant {
       });
     });
   }
-
-  private getMcpUrl(input: ExplorerAssistantInput) {
-    let baseUrl = env.subspace.SUBSPACE_CONNECTION_URL.replace(/\/+$/, '');
-    let solutionId = encodeURIComponent(input.solutionId);
-    let tenantId = encodeURIComponent(input.subspaceTenantId);
-    let sessionId = encodeURIComponent(input.sessionId);
-
-    return `${baseUrl}/${solutionId}/${tenantId}/sessions/${sessionId}/mcp`;
-  }
-
-  private getMcpHeaders(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
-    input: ExplorerAssistantInput;
-    url: string;
-  }) {
-    return {
-      'Metorial-Proxy-URL': d.url,
-      'Metorial-Agent-Client': JSON.stringify({
-        name: 'Metorial Assistant',
-        type: 'system_client',
-        foreignId: `product-assistant:${d.tenant.id}:${d.environment.id}:${d.input.sessionId}`
-      }),
-      'Metorial-Connection-Private-Metadata': JSON.stringify({
-        source: 'product-assistant',
-        assistant: 'explorer'
-      })
-    };
-  }
 }
 
-export let subspaceAssistant = new SubspaceAssistant(subspace);
+export let subspaceAssistant = new SubspaceAssistant(subspaceServices);
 
-export let createSubspaceAssistantForTest = (client: SubspaceControllerLike) =>
-  new SubspaceAssistant(client);
+export let createSubspaceAssistantForTest = (services: SubspaceServicesLike) =>
+  new SubspaceAssistant(services);

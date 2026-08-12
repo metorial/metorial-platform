@@ -25,10 +25,16 @@ type JsonRpcMessage = {
   error?: unknown;
 };
 
-type ReusableHttpMcpTransportOptions = {
-  url: string;
-  headers?: Record<string, string>;
+type InternalMcpTransportOptions = {
   connectionToken?: string | null;
+  sendMessage: (
+    message: JsonRpcMessage,
+    connectionToken: string | null | undefined,
+    onProgress: (message: JsonRpcMessage) => Promise<void>
+  ) => Promise<{
+    responses: JsonRpcMessage[];
+    connection?: { id: string; token: string } | null;
+  }>;
   getCachedTools?: () => Promise<SubspaceMcpToolList | null | undefined>;
   setCachedTools?: (tools: SubspaceMcpToolList) => Promise<void>;
   onConnection?: (connection: {
@@ -47,28 +53,7 @@ let toError = (error: unknown) => {
 let isRequest = (message: JsonRpcMessage): message is JsonRpcMessage & { id: JsonRpcId } =>
   typeof message.id == 'string' || typeof message.id == 'number';
 
-let getHeader = (headers: Headers, name: string) =>
-  headers.get(name) ?? headers.get(name.toLowerCase());
-
-let parseSseMessages = (text: string): JsonRpcMessage[] => {
-  let messages: JsonRpcMessage[] = [];
-  let events = text.split(/\n\n+/g);
-
-  for (let event of events) {
-    let data = event
-      .split(/\r?\n/g)
-      .filter(line => line.startsWith('data:'))
-      .map(line => line.slice('data:'.length).trimStart())
-      .join('\n');
-
-    if (!data) continue;
-    messages.push(JSON.parse(data));
-  }
-
-  return messages;
-};
-
-export class ReusableHttpMcpTransport implements MCPTransport {
+export class InternalMcpTransport implements MCPTransport {
   onclose?: () => void;
   onerror?: (error: Error) => void;
   onmessage?: (message: JsonRpcMessage) => void;
@@ -76,7 +61,7 @@ export class ReusableHttpMcpTransport implements MCPTransport {
   private abortController?: AbortController;
   private connectionToken?: string | null;
 
-  constructor(private readonly options: ReusableHttpMcpTransportOptions) {
+  constructor(private readonly options: InternalMcpTransportOptions) {
     this.connectionToken = options.connectionToken;
   }
 
@@ -106,7 +91,21 @@ export class ReusableHttpMcpTransport implements MCPTransport {
         }
       }
 
-      let responses = await this.forward(message);
+      let result = await this.options.sendMessage(
+        message,
+        this.connectionToken,
+        async progress => this.onmessage?.(progress)
+      );
+      let responses = result.responses;
+
+      if (result.connection) {
+        this.connectionToken = result.connection.token;
+        await this.options.onConnection?.({
+          connectionId: result.connection.id,
+          connectionToken: result.connection.token,
+          mcpSessionId: result.connection.token
+        });
+      }
 
       if (this.shouldUseCachedTools(message)) {
         let response = responses.find(response => response.id === message.id);
@@ -136,68 +135,6 @@ export class ReusableHttpMcpTransport implements MCPTransport {
 
     let params = message.params as Record<string, unknown>;
     return !params.cursor;
-  }
-
-  private async forward(message: JsonRpcMessage): Promise<JsonRpcMessage[]> {
-    let headers: Record<string, string> = {
-      ...this.options.headers,
-      Accept: 'application/json, text/event-stream',
-      'Content-Type': 'application/json',
-      'mcp-protocol-version': '2025-06-18'
-    };
-
-    if (this.connectionToken) {
-      headers['MCP-Session-ID'] = this.connectionToken;
-    }
-
-    let response = await fetch(this.options.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(message),
-      signal: this.abortController?.signal
-    });
-
-    await this.captureConnectionHeaders(response.headers);
-
-    if (response.status == 202 || response.status == 204 || !isRequest(message)) {
-      return [];
-    }
-
-    if (!response.ok) {
-      let text = await response.text().catch(() => '');
-      throw new Error(
-        `MCP request failed (${response.status}): ${text || response.statusText}`
-      );
-    }
-
-    let contentType = response.headers.get('content-type') ?? '';
-    if (contentType.includes('application/json')) {
-      let json = await response.json();
-      return (Array.isArray(json) ? json : [json]) as JsonRpcMessage[];
-    }
-
-    if (contentType.includes('text/event-stream')) {
-      return parseSseMessages(await response.text());
-    }
-
-    throw new Error(`Unexpected MCP response content type: ${contentType}`);
-  }
-
-  private async captureConnectionHeaders(headers: Headers) {
-    let connectionId = getHeader(headers, 'Metorial-Connection-Id');
-    let connectionToken =
-      getHeader(headers, 'Metorial-Connection-Token') ?? getHeader(headers, 'Mcp-Session-Id');
-    let mcpSessionId = getHeader(headers, 'Mcp-Session-Id');
-
-    if (!connectionToken) return;
-    this.connectionToken = connectionToken;
-
-    if (!connectionId) return;
-    await this.options.onConnection?.({
-      connectionId,
-      connectionToken,
-      mcpSessionId
-    });
   }
 }
 

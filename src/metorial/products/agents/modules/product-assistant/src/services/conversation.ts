@@ -7,9 +7,8 @@ import type {
   ResourceGroup,
   ResourceTenant
 } from '@metorial/db';
-import { db, Prisma, withTransaction } from '@metorial/db';
+import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
-import { getId } from '../id';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import { resolveAssistantConversationInput } from '../lib/definitions/conversationInput';
 import type { State } from '../types';
@@ -228,7 +227,7 @@ class ProductAssistantConversationServiceImpl {
     return await withTransaction(async tx => {
       let rootMessage = await tx.productAssistantMessage.create({
         data: {
-          ...getId('productAssistantMessage'),
+          id: await ID.generateId('productAssistantMessage'),
           type: 'root',
           assistantOid: assistant.oid,
           assistantInstanceOid: assistantInstance.oid,
@@ -239,7 +238,7 @@ class ProductAssistantConversationServiceImpl {
 
       let conversation = await tx.productAssistantConversation.create({
         data: {
-          ...getId('productAssistantConversation'),
+          id: await ID.generateId('productAssistantConversation'),
           title: d.input.title,
           input: toNullableJson(conversationInput),
           assistantOid: assistant.oid,
@@ -250,13 +249,13 @@ class ProductAssistantConversationServiceImpl {
           rootMessageOid: rootMessage.oid,
           items: {
             create: {
-              ...getId('productAssistantConversationItem'),
+              id: await ID.generateId('productAssistantConversationItem'),
               messageOid: rootMessage.oid
             }
           },
           assistantConversationParticipants: {
             create: {
-              ...getId('productAssistantConversationParticipant'),
+              id: await ID.generateId('productAssistantConversationParticipant'),
               resourceActorOid: d.actor.oid
             }
           }
@@ -266,7 +265,7 @@ class ProductAssistantConversationServiceImpl {
 
       let request = await tx.productAssistantRequest.create({
         data: {
-          ...getId('productAssistantRequest'),
+          id: await ID.generateId('productAssistantRequest'),
           status: 'completed',
           conversationOid: conversation.oid,
           assistantOid: assistant.oid,

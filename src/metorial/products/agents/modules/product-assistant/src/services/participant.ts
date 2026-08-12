@@ -7,8 +7,7 @@ import type {
   ResourceGroup,
   ResourceTenant
 } from '@metorial/db';
-import { db, Prisma } from '@metorial/db';
-import { getId } from '../id';
+import { db, ID, Prisma } from '@metorial/db';
 
 type DbClient = typeof db | Prisma.TransactionClient;
 
@@ -127,7 +126,7 @@ class ProductAssistantConversationParticipantServiceImpl {
       },
       update: {},
       create: {
-        ...getId('productAssistantConversationParticipant'),
+        id: await ID.generateId('productAssistantConversationParticipant'),
         conversationOid: d.conversation.oid,
         resourceActorOid: d.actor.oid
       }

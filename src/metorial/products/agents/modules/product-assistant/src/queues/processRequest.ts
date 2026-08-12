@@ -1,7 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import { db, withTransaction, type ProductAssistantMessageStatus } from '@metorial/db';
+import { db, ID, withTransaction, type ProductAssistantMessageStatus } from '@metorial/db';
 import { createQueue, QueueRetryError, type IQueue } from '@metorial/queue';
-import { getId } from '../id';
 import { type Model } from '../lib/definitions';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import type { Agent } from '../lib/open-harness';
@@ -140,7 +139,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
 
       let run = await tx.productAssistantModelRun.create({
         data: {
-          ...getId('productAssistantModelRun'),
+          id: await ID.generateId('productAssistantModelRun'),
           status: 'running',
           resourceTenantOid: conversation.resourceTenantOid,
           requestOid: request.oid,
@@ -249,7 +248,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
             })
           : await tx.productAssistantMessage.create({
               data: {
-                ...getId('productAssistantMessage'),
+                id: await ID.generateId('productAssistantMessage'),
                 type: 'assistant',
                 status: messageStatus,
                 runOid: run.oid,
@@ -266,7 +265,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         if (!existingAssistantMessage) {
           await tx.productAssistantConversationItem.create({
             data: {
-              ...getId('productAssistantConversationItem'),
+              id: await ID.generateId('productAssistantConversationItem'),
               conversationOid: conversation.oid,
               messageOid: assistantMessage.oid
             }

@@ -7,8 +7,7 @@ import type {
   ResourceGroup,
   ResourceTenant
 } from '@metorial/db';
-import { db, Prisma } from '@metorial/db';
-import { getId } from '../../id';
+import { db, ID, Prisma } from '@metorial/db';
 import { Agent } from '../open-harness';
 import type { Model } from './model';
 
@@ -118,7 +117,7 @@ let buildImplementation = async (
       name: d.name
     },
     create: {
-      ...getId('productAssistantImplementation'),
+      id: await ID.generateId('productAssistantImplementation'),
       slug: d.slug,
       name: d.name
     }

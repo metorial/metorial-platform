@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ReusableHttpMcpTransport } from './mcp';
+import { InternalMcpTransport } from './mcp';
 import type { SubspaceMcpToolList } from '../../../types';
 
 let toolList = {
@@ -15,16 +15,15 @@ let toolList = {
   ]
 } satisfies SubspaceMcpToolList;
 
-describe('ReusableHttpMcpTransport', () => {
+describe('InternalMcpTransport', () => {
   it('returns cached tools without forwarding tools/list', async () => {
-    let transport = new ReusableHttpMcpTransport({
-      url: 'http://subspace.test/solution/tenant/sessions/session/mcp',
+    let sendMessage = vi.fn();
+    let transport = new InternalMcpTransport({
+      sendMessage,
       getCachedTools: async () => toolList
     });
     let messages: unknown[] = [];
-    let fetchMock = vi.fn();
 
-    vi.stubGlobal('fetch', fetchMock);
     transport.onmessage = message => messages.push(message);
 
     await transport.start();
@@ -34,7 +33,7 @@ describe('ReusableHttpMcpTransport', () => {
       method: 'tools/list'
     });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
     expect(messages).toEqual([
       {
         jsonrpc: '2.0',
@@ -42,38 +41,30 @@ describe('ReusableHttpMcpTransport', () => {
         result: toolList
       }
     ]);
-
-    vi.unstubAllGlobals();
   });
 
   it('captures and reuses Subspace connection tokens', async () => {
     let connections: unknown[] = [];
     let messages: unknown[] = [];
-    let calls: RequestInit[] = [];
-    let fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
-      calls.push(init);
+    let calls: Array<string | null | undefined> = [];
+    let sendMessage = vi.fn(
+      async (message: any, connectionToken: string | null | undefined) => {
+        calls.push(connectionToken);
+        return {
+          responses: [
+            {
+              jsonrpc: '2.0',
+              id: message.id,
+              result: calls.length == 1 ? { protocolVersion: '2025-06-18' } : { content: [] }
+            }
+          ],
+          connection: { id: 'conn_1', token: 'token_1' }
+        };
+      }
+    );
 
-      return new Response(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: calls.length,
-          result: calls.length == 1 ? { protocolVersion: '2025-06-18' } : { content: [] }
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Metorial-Connection-Id': 'conn_1',
-            'Metorial-Connection-Token': 'token_1',
-            'Mcp-Session-Id': 'token_1'
-          }
-        }
-      );
-    });
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    let transport = new ReusableHttpMcpTransport({
-      url: 'http://subspace.test/solution/tenant/sessions/session/mcp',
+    let transport = new InternalMcpTransport({
+      sendMessage,
       onConnection: async connection => {
         connections.push(connection);
       }
@@ -107,9 +98,7 @@ describe('ReusableHttpMcpTransport', () => {
         mcpSessionId: 'token_1'
       }
     ]);
-    expect((calls[1]!.headers as Record<string, string>)['MCP-Session-ID']).toBe('token_1');
+    expect(calls[1]).toBe('token_1');
     expect(messages).toHaveLength(2);
-
-    vi.unstubAllGlobals();
   });
 });
