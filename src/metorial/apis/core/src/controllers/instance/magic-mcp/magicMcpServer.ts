@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
@@ -18,7 +18,10 @@ import {
   magicMcpServerBackingService,
   magicMcpServerProviderService
 } from '@metorial-subspace/module-integration';
-import { sessionService } from '@metorial-subspace/module-session';
+import {
+  ephemeralManagedSessionService,
+  sessionService
+} from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -938,9 +941,23 @@ export let magicMcpServerControllerDashboard = Controller.create(
           instance: ctx.instance,
           magicMcpServerBackingId: magicMcpServer.id
         });
+        let ephemeralManagedSession =
+          await ephemeralManagedSessionService.getEphemeralManagedSessionById({
+            instance: ctx.instance,
+            ephemeralManagedSessionId: backing.ephemeralManagedSession.id
+          });
+        let resolvedSession = await ephemeralManagedSessionService.resolveBackingSessionById({
+          sessionId: ephemeralManagedSession.id,
+          tenantId: ephemeralManagedSession.tenant.id,
+          solutionId: ephemeralManagedSession.solution.id
+        });
+        if (!resolvedSession) {
+          throw new ServiceError(notFoundError('session', ephemeralManagedSession.id));
+        }
+
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
-          sessionId: backing.ephemeralManagedSession.id
+          sessionId: resolvedSession.id
         });
 
         return providerSessionPresenter.present({ session });
