@@ -7,6 +7,9 @@ import { apiServer } from '@metorial/api-core';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { authenticate } from '@metorial/auth';
 
+let { initializeSnowflakeWorkerLease } = await import('@metorial-subspace/db');
+await initializeSnowflakeWorkerLease({ redisUrl: process.env.REDIS_URL });
+
 let apiPort = parseInt(process.env.API_PORT || '4310');
 let filesPort = parseInt(process.env.FILES_PORT || '4318');
 let mcpPort = parseInt(process.env.MCP_PORT || '4311');

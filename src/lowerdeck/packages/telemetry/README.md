@@ -85,7 +85,7 @@ export OTEL_ALLOW_ROOT_SPANS=true
 Example:
 
 ```bash
-export OTEL_SERVICE_NAME="subspace-controller"
+export OTEL_SERVICE_NAME="metorial-api"
 ```
 
 ### `OTEL_RESOURCE_ATTRIBUTES`

@@ -14,9 +14,6 @@
     "prisma:generate": {},
     "prisma:push": {
       "cache": false,
-      "dependsOn": [
-        "^prisma:push"
-      ],
       "env": [
         "DATABASE_URL",
         "PAYMENT_DATABASE_URL",
