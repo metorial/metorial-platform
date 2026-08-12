@@ -1,0 +1,30 @@
+{
+  "name": "@metorial/audit-models",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "files": [
+    "src/**",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "mongoose": "^8.14.2"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

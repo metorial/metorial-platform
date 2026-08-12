@@ -1,0 +1,6 @@
+model AuditLogDirtyTracker {
+  resourceTenantOid BigInt         @id
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

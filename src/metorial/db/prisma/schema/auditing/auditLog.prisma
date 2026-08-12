@@ -1,0 +1,35 @@
+model AuditLog {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  resource String
+  action   String
+
+  ua String?
+  ip String?
+
+  /// [AuditEventPayload]
+  payload Json
+  /// [AuditEventPayload]
+  previousAttributes Json?
+
+  resourceTenantOid BigInt
+  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  resourceGroupOid BigInt
+  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  resourceActorOid BigInt
+  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+
+  eventOid BigInt
+  event    Event  @relation(fields: [eventOid], references: [oid], onDelete: Cascade)
+
+  recordedAt DateTime @default(now())
+
+  @@index([resourceTenantOid, recordedAt])
+  @@index([resourceGroupOid, recordedAt])
+  @@index([resourceActorOid, recordedAt])
+  @@index([resource, action, recordedAt])
+  @@index([eventOid])
+}
