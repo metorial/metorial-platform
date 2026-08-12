@@ -12,9 +12,9 @@ export let v1IdentityDelegationRequestPresenter = Presenter.create(
 
     id: identityDelegationRequest.id,
     status: identityDelegationRequest.status,
-    denied_reason: identityDelegationRequest.deniedReason,
+    denied_reason: identityDelegationRequest.delegation.deniedReason,
 
-    identity_id: identityDelegationRequest.identityId,
+    identity_id: identityDelegationRequest.identity.id,
 
     requester: await v1IdentityActorPresenter
       .present({ identityActor: identityDelegationRequest.requester }, opts)

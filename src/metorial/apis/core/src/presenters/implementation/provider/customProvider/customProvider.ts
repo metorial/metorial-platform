@@ -6,13 +6,13 @@ import { v1ProviderPresenter } from '../provider';
 import { v1BucketPresenter } from './bucket';
 
 export let v1CustomProviderPresenter = Presenter.create(customProviderType)
-  .presenter(async ({ customProvider }, opts) => ({
+  .presenter(async ({ customProvider, tenant }, opts) => ({
     object: 'custom_provider' as const,
 
     id: customProvider.id,
     status: customProvider.status,
 
-    type: customProvider.draft.from?.type!,
+    type: customProvider.payload.from?.type!,
 
     name: customProvider.name,
     description: customProvider.description,
@@ -23,30 +23,32 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
       : null,
 
     provider: customProvider.provider
-      ? await v1ProviderPresenter.present({ provider: customProvider.provider }, opts).run()
+      ? await v1ProviderPresenter
+          .present({ provider: customProvider.provider, tenant }, opts)
+          .run()
       : null,
 
     draft: {
-      object: `custom_provider.draft#${customProvider.draft.from?.type}`,
+      object: `custom_provider.draft#${customProvider.payload.from?.type}`,
 
       container_image:
-        customProvider.draft.containerTag &&
-        customProvider.draft.containerRegistry &&
-        customProvider.draft.containerRepository
+        customProvider.containerTag &&
+        customProvider.containerRegistry &&
+        customProvider.containerRepository
           ? {
               object: `custom_provider.draft.container_image`,
-              container_registry: customProvider.draft.containerRegistry.url!,
-              container_image_tag: customProvider.draft.containerTag.name!,
-              container_image: customProvider.draft.containerRepository.name!
+              container_registry: customProvider.containerRegistry.url!,
+              container_image_tag: customProvider.containerTag.name!,
+              container_image: customProvider.containerRepository.name!
             }
           : undefined,
 
       remote_mcp_server:
-        customProvider.draft.remoteProtocol && customProvider.draft.remoteUrl
+        customProvider.remoteProtocol && customProvider.remoteUrl
           ? {
               object: `custom_provider.draft.remote_mcp_server`,
-              url: customProvider.draft.remoteUrl,
-              transport: customProvider.draft.remoteProtocol
+              url: customProvider.remoteUrl,
+              transport: customProvider.remoteProtocol
             }
           : undefined,
 
@@ -54,9 +56,9 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
         object: `custom_provider.draft.config`,
         schema: {
           type: 'json_schema' as const,
-          schema: customProvider.draft.config?.schema!
+          schema: customProvider.payload.config?.schema!
         },
-        transformer: customProvider.draft.config?.transformer!
+        transformer: customProvider.payload.config?.transformer!
       }
     } as any,
 
@@ -190,13 +192,17 @@ export let v1CustomProviderPresenter = Presenter.create(customProviderType)
   .build();
 
 export let dashboardCustomProviderPresenter = Presenter.create(customProviderType)
-  .presenter(async ({ customProvider }, opts) => {
-    let inner = await v1CustomProviderPresenter.present({ customProvider }, opts).run();
+  .presenter(async ({ customProvider, tenant }, opts) => {
+    let inner = await v1CustomProviderPresenter
+      .present({ customProvider, tenant }, opts)
+      .run();
 
     return {
       ...inner,
-      draft_bucket: customProvider.draftBucket
-        ? await v1BucketPresenter.present({ bucket: customProvider.draftBucket }, opts).run()
+      draft_bucket: customProvider.draftCodeBucket
+        ? await v1BucketPresenter
+            .present({ bucket: customProvider.draftCodeBucket }, opts)
+            .run()
         : null
     };
   })

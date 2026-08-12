@@ -2,16 +2,16 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
-  subspaceIntegrationInstanceGroupProviderService,
-  subspaceIntegrationInstanceGroupService
-} from '@metorial/module-subspace';
+  integrationInstanceGroupProviderService,
+  integrationInstanceGroupService
+} from '@metorial-subspace/module-integration';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationInstanceGroupProviderPresenter } from '../../../presenters';
-import { toolFiltersValidator } from '../sessions/_shared';
+import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let integrationInstanceGroupProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceGroupProviderId) {
@@ -24,7 +24,7 @@ let integrationInstanceGroupProviderGroup = instanceGroup.use(async ctx => {
   }
 
   let integrationInstanceGroupProvider =
-    await subspaceIntegrationInstanceGroupProviderService.get({
+    await integrationInstanceGroupProviderService.getIntegrationInstanceGroupProviderById({
       instance: ctx.instance,
       integrationInstanceGroupProviderId: ctx.params.integrationInstanceGroupProviderId,
       allowDeleted: true
@@ -43,11 +43,12 @@ let integrationInstanceGroupGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let integrationInstanceGroup = await subspaceIntegrationInstanceGroupService.get({
-    instance: ctx.instance,
-    integrationInstanceGroupId: ctx.params.integrationInstanceGroupId,
-    allowDeleted: true
-  });
+  let integrationInstanceGroup =
+    await integrationInstanceGroupService.getIntegrationInstanceGroupById({
+      instance: ctx.instance,
+      integrationInstanceGroupId: ctx.params.integrationInstanceGroupId,
+      allowDeleted: true
+    });
 
   return { integrationInstanceGroup };
 });
@@ -107,28 +108,31 @@ export let integrationInstanceGroupProviderController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIntegrationInstanceGroupProviderService.list({
-          instance: ctx.instance,
-          allowDeleted: true,
-          status: normalizeArrayParam(ctx.query.status),
-          ids: normalizeArrayParam(ctx.query.id),
-          integrationInstanceGroupIds: normalizeArrayParam(
-            ctx.query.integration_instance_group_id
-          ),
-          integrationIds: normalizeArrayParam(ctx.query.integration_id),
-          integrationInstanceIds: normalizeArrayParam(ctx.query.integration_instance_id),
-          integrationInstanceProviderIds: normalizeArrayParam(
-            ctx.query.integration_instance_provider_id
-          ),
-          providerIds: normalizeArrayParam(ctx.query.provider_id),
-          integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
-          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
-          providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
-          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
-          sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
-          createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
-        });
+        let paginator =
+          await integrationInstanceGroupProviderService.listIntegrationInstanceGroupProviders(
+            {
+              instance: ctx.instance,
+              allowDeleted: true,
+              status: normalizeArrayParam(ctx.query.status),
+              ids: normalizeArrayParam(ctx.query.id),
+              integrationInstanceGroupIds: normalizeArrayParam(
+                ctx.query.integration_instance_group_id
+              ),
+              integrationIds: normalizeArrayParam(ctx.query.integration_id),
+              integrationInstanceIds: normalizeArrayParam(ctx.query.integration_instance_id),
+              integrationInstanceProviderIds: normalizeArrayParam(
+                ctx.query.integration_instance_provider_id
+              ),
+              providerIds: normalizeArrayParam(ctx.query.provider_id),
+              integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
+              providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+              providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
+              providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
+              sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
+              createdAt: ctx.query.created_at,
+              updatedAt: ctx.query.updated_at
+            }
+          );
 
         let list = await paginator.run(ctx.query);
 
@@ -189,11 +193,16 @@ export let integrationInstanceGroupProviderController = Controller.create(
         }
 
         let integrationInstanceGroupProvider =
-          await subspaceIntegrationInstanceGroupProviderService.set({
+          await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvider({
             instance: ctx.instance,
-            integrationInstanceGroupId: ctx.integrationInstanceGroup.id,
-            integrationInstanceProviderId: ctx.params.integrationInstanceProviderId,
-            toolFilters: ctx.body.tool_filters
+            integrationInstanceGroup: ctx.integrationInstanceGroup,
+            input: {
+              integrationInstanceProviderId: ctx.params.integrationInstanceProviderId,
+              toolFilters:
+                ctx.body.tool_filters === undefined
+                  ? undefined
+                  : normalizeToolFilters(ctx.body.tool_filters)
+            }
           });
 
         return integrationInstanceGroupProviderPresenter.present({
@@ -216,11 +225,12 @@ export let integrationInstanceGroupProviderController = Controller.create(
       .output(integrationInstanceGroupProviderPresenter)
       .do(async ctx => {
         let integrationInstanceGroupProvider =
-          await subspaceIntegrationInstanceGroupProviderService.delete({
-            instance: ctx.instance,
-            integrationInstanceGroupProviderId: ctx.integrationInstanceGroupProvider.id,
-            allowDeleted: true
-          });
+          await integrationInstanceGroupProviderService.archiveIntegrationInstanceGroupProvider(
+            {
+              instance: ctx.instance,
+              integrationInstanceGroupProvider: ctx.integrationInstanceGroupProvider
+            }
+          );
 
         return integrationInstanceGroupProviderPresenter.present({
           integrationInstanceGroupProvider

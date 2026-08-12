@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceAuthConfigEventService } from '@metorial/module-subspace';
+import { authConfigEventService } from '@metorial-subspace/module-auth';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -20,7 +20,7 @@ let providerAuthConfigEventGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authConfigEvent = await subspaceAuthConfigEventService.get({
+  let authConfigEvent = await authConfigEventService.getAuthConfigEventById({
     instance: ctx.instance,
     authConfigEventId: ctx.params.providerAuthConfigEventId
   });
@@ -78,7 +78,7 @@ export let providerAuthConfigEventController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceAuthConfigEventService.list({
+        let paginator = await authConfigEventService.listAuthConfigEvents({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           authConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),

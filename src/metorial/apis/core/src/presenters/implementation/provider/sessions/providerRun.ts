@@ -9,10 +9,10 @@ export let v1ProviderRunPresenter = Presenter.create(providerRunType)
 
     status: providerRun.status,
 
-    session_id: providerRun.sessionId,
-    session_provider_id: providerRun.sessionProviderId,
-    provider_id: providerRun.providerId,
-    connection_id: providerRun.connectionId,
+    session_id: providerRun.session.id,
+    session_provider_id: providerRun.sessionProvider.id,
+    provider_id: providerRun.provider.id,
+    connection_id: providerRun.connection.id,
 
     completed_at: providerRun.completedAt,
     created_at: providerRun.createdAt,

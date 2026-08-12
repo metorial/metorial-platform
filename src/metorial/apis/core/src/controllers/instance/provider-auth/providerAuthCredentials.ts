@@ -1,7 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderAuthCredentialsService } from '@metorial/module-subspace';
+import { providerAuthCredentialsService } from '@metorial-subspace/module-auth';
+import { providerService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -22,12 +23,16 @@ let providerAuthCredentialsGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authCredentials = await subspaceProviderAuthCredentialsService.get({
+  let authCredentials = await providerAuthCredentialsService.getProviderAuthCredentialsById({
     instance: ctx.instance,
     providerAuthCredentialsId: ctx.params.providerAuthCredentialsId
   });
+  let [enrichedAuthCredentials] = await providerAuthCredentialsService.enrichWithScopes({
+    instance: ctx.instance,
+    credentials: [authCredentials]
+  });
 
-  return { authCredentials };
+  return { authCredentials: enrichedAuthCredentials! };
 });
 
 export let providerAuthCredentialsController = Controller.create(
@@ -83,7 +88,7 @@ export let providerAuthCredentialsController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderAuthCredentialsService.list({
+        let paginator = await providerAuthCredentialsService.listProviderAuthCredentials({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -104,8 +109,12 @@ export let providerAuthCredentialsController = Controller.create(
           cursor: ctx.query.cursor,
           order: ctx.query.order
         });
+        let authCredentials = await providerAuthCredentialsService.enrichWithScopes({
+          instance: ctx.instance,
+          credentials: list.items
+        });
 
-        return Paginator.present(list, authCredentials =>
+        return Paginator.present({ ...list, items: authCredentials }, authCredentials =>
           providerAuthCredentialsPresenter.present({
             authCredentials
           })
@@ -181,19 +190,26 @@ export let providerAuthCredentialsController = Controller.create(
       )
       .output(providerAuthCredentialsPresenter)
       .do(async ctx => {
-        let authCredentials = await subspaceProviderAuthCredentialsService.create({
+        let provider = await providerService.getProviderById({
           instance: ctx.instance,
-          providerId: ctx.body.provider_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          config: {
-            type: 'oauth',
-            clientId: ctx.body.config.client_id,
-            clientSecret: ctx.body.config.client_secret,
-            scopes: ctx.body.config.scopes
-          },
-          metadata: ctx.body.metadata
+          providerId: ctx.body.provider_id
         });
+        let authCredentials =
+          await providerAuthCredentialsService.createProviderAuthCredentials({
+            instance: ctx.instance,
+            provider,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              config: {
+                type: 'oauth',
+                clientId: ctx.body.config.client_id,
+                clientSecret: ctx.body.config.client_secret,
+                scopes: ctx.body.config.scopes
+              },
+              metadata: ctx.body.metadata
+            }
+          });
 
         return providerAuthCredentialsPresenter.present({
           authCredentials
@@ -229,16 +245,19 @@ export let providerAuthCredentialsController = Controller.create(
       )
       .output(providerAuthCredentialsPresenter)
       .do(async ctx => {
-        let authCredentials = await subspaceProviderAuthCredentialsService.update({
-          instance: ctx.instance,
-          providerAuthCredentialsId: ctx.authCredentials.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          clientId: ctx.body.client_id,
-          clientSecret: ctx.body.client_secret,
-          scopes: ctx.body.scopes
-        });
+        let authCredentials =
+          await providerAuthCredentialsService.updateProviderAuthCredentials({
+            instance: ctx.instance,
+            providerAuthCredentials: ctx.authCredentials,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata,
+              clientId: ctx.body.client_id,
+              clientSecret: ctx.body.client_secret,
+              scopes: ctx.body.scopes
+            }
+          });
 
         return providerAuthCredentialsPresenter.present({
           authCredentials
@@ -259,10 +278,11 @@ export let providerAuthCredentialsController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerAuthCredentialsPresenter)
       .do(async ctx => {
-        let authCredentials = await subspaceProviderAuthCredentialsService.delete({
-          instance: ctx.instance,
-          providerAuthCredentialsId: ctx.authCredentials.id
-        });
+        let authCredentials =
+          await providerAuthCredentialsService.archiveProviderAuthCredentials({
+            instance: ctx.instance,
+            providerAuthCredentials: ctx.authCredentials
+          });
 
         return providerAuthCredentialsPresenter.present({
           authCredentials

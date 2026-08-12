@@ -1,7 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderConfigService } from '@metorial/module-subspace';
+import { providerService, providerVersionService } from '@metorial-subspace/module-catalog';
+import {
+  providerConfigService,
+  providerConfigVaultService,
+  providerDeploymentService
+} from '@metorial-subspace/module-deployment';
+import { normalizeToolFilters } from '@metorial-subspace/module-provider-internal';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -20,7 +26,7 @@ let providerConfigGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let config = await subspaceProviderConfigService.get({
+  let config = await providerConfigService.getProviderConfigById({
     instance: ctx.instance,
     providerConfigId: ctx.params.providerConfigId
   });
@@ -95,7 +101,7 @@ export let providerConfigController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderConfigService.list({
+        let paginator = await providerConfigService.listProviderConfigs({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -186,31 +192,44 @@ export let providerConfigController = Controller.create(
       )
       .output(providerConfigPresenter)
       .do(async ctx => {
-        let config = await subspaceProviderConfigService.create({
+        let provider = await providerService.getProviderById({
           instance: ctx.instance,
-          providerId: ctx.body.provider_id,
-          providerDeployment: ctx.body.provider_deployment_id
-            ? {
-                type: 'reference',
-                providerDeploymentId: ctx.body.provider_deployment_id
-              }
-            : undefined,
+          providerId: ctx.body.provider_id
+        });
+        let providerDeployment = ctx.body.provider_deployment_id
+          ? await providerDeploymentService.getProviderDeploymentById({
+              instance: ctx.instance,
+              providerDeploymentId: ctx.body.provider_deployment_id
+            })
+          : undefined;
+        let configVault =
+          'provider_config_vault_id' in ctx.body
+            ? await providerConfigVaultService.getProviderConfigVaultById({
+                instance: ctx.instance,
+                providerConfigVaultId: ctx.body.provider_config_vault_id
+              })
+            : undefined;
 
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters,
-
-          config:
-            'value' in ctx.body
-              ? {
-                  type: 'inline',
-                  data: ctx.body.value
-                }
-              : {
-                  type: 'vault',
-                  providerConfigVaultId: ctx.body.provider_config_vault_id
-                }
+        let config = await providerConfigService.createProviderConfig({
+          instance: ctx.instance,
+          provider,
+          providerDeployment,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            toolFilters: normalizeToolFilters(ctx.body.tool_filters as any),
+            config:
+              'value' in ctx.body
+                ? {
+                    type: 'inline',
+                    data: ctx.body.value
+                  }
+                : {
+                    type: 'vault',
+                    vault: configVault!
+                  }
+          }
         });
 
         return providerConfigPresenter.present({ config });
@@ -241,13 +260,17 @@ export let providerConfigController = Controller.create(
       )
       .output(providerConfigPresenter)
       .do(async ctx => {
-        let config = await subspaceProviderConfigService.update({
+        let config = await providerConfigService.updateProviderConfig({
           instance: ctx.instance,
-          providerConfigId: ctx.config.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters
+          providerConfig: ctx.config,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            ...(ctx.body.tool_filters !== undefined
+              ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
+              : {})
+          }
         });
 
         return providerConfigPresenter.present({ config });
@@ -267,9 +290,9 @@ export let providerConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .output(providerConfigPresenter)
       .do(async ctx => {
-        let config = await subspaceProviderConfigService.delete({
+        let config = await providerConfigService.archiveProviderConfig({
           instance: ctx.instance,
-          providerConfigId: ctx.config.id
+          providerConfig: ctx.config
         });
 
         return providerConfigPresenter.present({ config });
@@ -296,12 +319,36 @@ export let providerConfigController = Controller.create(
       )
       .output(configSchemaPresenter)
       .do(async ctx => {
-        let schema = await subspaceProviderConfigService.getConfigSchema({
+        let provider = ctx.query.provider_id
+          ? await providerService.getProviderById({
+              instance: ctx.instance,
+              providerId: ctx.query.provider_id
+            })
+          : undefined;
+        let providerConfig = ctx.query.provider_config_id
+          ? await providerConfigService.getProviderConfigById({
+              instance: ctx.instance,
+              providerConfigId: ctx.query.provider_config_id
+            })
+          : undefined;
+        let providerVersion = ctx.query.provider_version_id
+          ? await providerVersionService.getProviderVersionById({
+              instance: ctx.instance,
+              providerVersionId: ctx.query.provider_version_id
+            })
+          : undefined;
+        let providerDeployment = ctx.query.provider_deployment_id
+          ? await providerDeploymentService.getProviderDeploymentById({
+              instance: ctx.instance,
+              providerDeploymentId: ctx.query.provider_deployment_id
+            })
+          : undefined;
+        let schema = await providerConfigService.getProviderConfigSchema({
           instance: ctx.instance,
-          providerId: ctx.query.provider_id,
-          providerConfigId: ctx.query.provider_config_id,
-          providerVersionId: ctx.query.provider_version_id,
-          providerDeploymentId: ctx.query.provider_deployment_id
+          provider,
+          providerConfig,
+          providerVersion,
+          providerDeployment
         });
 
         return configSchemaPresenter.present({

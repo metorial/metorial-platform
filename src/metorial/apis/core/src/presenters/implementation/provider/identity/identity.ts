@@ -18,7 +18,7 @@ export let v1IdentityPresenter = Presenter.create(identityType)
     owner: {
       type: 'actor' as const,
       actor: await v1IdentityActorPresenter
-        .present({ identityActor: identity.owner.actor }, opts)
+        .present({ identityActor: identity.actor }, opts)
         .run()
     },
 
@@ -28,7 +28,7 @@ export let v1IdentityPresenter = Presenter.create(identityType)
       )
     ),
 
-    delegation_config_id: identity.delegationConfigId,
+    delegation_config_id: identity.delegationConfig?.id ?? null,
 
     created_at: identity.createdAt,
     updated_at: identity.updatedAt

@@ -1,6 +1,12 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
+import { env } from '@metorial-subspace/module-auth/src/env';
 import { providerSetupSessionType } from '../../../types';
+import {
+  presentRawProviderAuthMethod,
+  presentRawProviderConfig,
+  presentRawProviderDeploymentPreview
+} from '../auth/_raw';
 import { v1ProviderAuthConfigPresenter } from '../auth/authConfig';
 import { v1ProviderAuthCredentialsPresenter } from '../auth/authCredentials';
 import { v1ProviderAuthMethodPresenter } from '../auth/authMethod';
@@ -10,15 +16,19 @@ import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPrevie
 export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
   .presenter(async ({ setupSession }, opts) => {
     let configuration = (setupSession as { configuration?: any }).configuration;
+    let status =
+      setupSession.status === 'pending' && setupSession.expiresAt <= new Date()
+        ? ('expired' as const)
+        : setupSession.status;
 
     return {
       object: 'provider.setup_session' as const,
 
       id: setupSession.id,
-      type: setupSession.type,
-      status: setupSession.status,
+      type: setupSession.typeSelected,
+      status,
 
-      url: setupSession.url,
+      url: `${env.service.PUBLIC_SERVICE_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`,
 
       name: setupSession.name,
       description: setupSession.description,
@@ -60,37 +70,81 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
           }
         : null,
 
-      provider_id: setupSession.providerId ?? null,
-      identity_id: setupSession.identityId ?? null,
-      identity_credential_id: setupSession.identityCredentialId ?? null,
+      provider_id: setupSession.provider?.id ?? null,
+      identity_id: setupSession.identity?.id ?? null,
+      identity_credential_id: setupSession.identityCredential?.id ?? null,
 
-      auth_method: setupSession.authMethod
-        ? await v1ProviderAuthMethodPresenter
-            .present({ authMethod: setupSession.authMethod }, opts)
-            .run()
-        : null,
+      auth_method:
+        setupSession.provider && setupSession.authMethod
+          ? await v1ProviderAuthMethodPresenter
+              .present(
+                {
+                  authMethod: presentRawProviderAuthMethod(
+                    setupSession.authMethod,
+                    setupSession.provider
+                  )
+                },
+                opts
+              )
+              .run()
+          : null,
 
-      deployment: setupSession.deployment
-        ? await v1ProviderDeploymentPreviewPresenter
-            .present({ deployment: setupSession.deployment }, opts)
-            .run()
-        : null,
+      deployment:
+        setupSession.provider && setupSession.deployment
+          ? await v1ProviderDeploymentPreviewPresenter
+              .present(
+                {
+                  deployment: presentRawProviderDeploymentPreview(
+                    setupSession.deployment,
+                    setupSession.provider
+                  )
+                },
+                opts
+              )
+              .run()
+          : null,
 
-      credentials: setupSession.credentials
-        ? await v1ProviderAuthCredentialsPresenter
-            .present({ authCredentials: setupSession.credentials }, opts)
-            .run()
-        : null,
+      credentials:
+        setupSession.provider && setupSession.authCredentials
+          ? await v1ProviderAuthCredentialsPresenter
+              .present(
+                {
+                  authCredentials: {
+                    ...setupSession.authCredentials,
+                    provider: setupSession.provider
+                  }
+                },
+                opts
+              )
+              .run()
+          : null,
 
-      auth_config: setupSession.authConfig
-        ? await v1ProviderAuthConfigPresenter
-            .present({ authConfig: setupSession.authConfig }, opts)
-            .run()
-        : null,
+      auth_config:
+        setupSession.provider && setupSession.authConfig
+          ? await v1ProviderAuthConfigPresenter
+              .present(
+                {
+                  authConfig: {
+                    ...setupSession.authConfig,
+                    provider: setupSession.provider
+                  }
+                },
+                opts
+              )
+              .run()
+          : null,
 
-      config: setupSession.config
-        ? await v1ConfigPresenter.present({ config: setupSession.config }, opts).run()
-        : null,
+      config:
+        setupSession.provider && setupSession.config
+          ? await v1ConfigPresenter
+              .present(
+                {
+                  config: presentRawProviderConfig(setupSession.config, setupSession.provider)
+                },
+                opts
+              )
+              .run()
+          : null,
 
       ui_mode: setupSession.uiMode,
       redirect_url: setupSession.redirectUrl,

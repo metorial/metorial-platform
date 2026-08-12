@@ -9,8 +9,16 @@ import {
   v1IntegrationProviderSnapshot
 } from './integrationProvider';
 
-let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
-  toolFilter ? toolFilterPresenter(toolFilter as any) : null;
+let presentToolFilter = (
+  toolFilter: PrismaJson.ToolFilter | null | undefined,
+  isOverrideToolFilter?: boolean
+) =>
+  toolFilter
+    ? toolFilterPresenter({
+        ...toolFilter,
+        ignoreParentFilters: isOverrideToolFilter || undefined
+      })
+    : null;
 
 export let v1IntegrationInstanceGroupProviderPresenter = Presenter.create(
   integrationInstanceGroupProviderType
@@ -23,14 +31,18 @@ export let v1IntegrationInstanceGroupProviderPresenter = Presenter.create(
     description: integrationInstanceGroupProvider.description,
     metadata: integrationInstanceGroupProvider.metadata,
 
-    integration_id: integrationInstanceGroupProvider.integrationId,
-    integration_instance_group_id: integrationInstanceGroupProvider.integrationInstanceGroupId,
-    integration_instance_id: integrationInstanceGroupProvider.integrationInstanceId,
-    integration_provider_id: integrationInstanceGroupProvider.integrationProvider?.id ?? null,
+    integration_id: integrationInstanceGroupProvider.integration.id,
+    integration_instance_group_id:
+      integrationInstanceGroupProvider.integrationInstanceGroup.id,
+    integration_instance_id: integrationInstanceGroupProvider.integrationInstance.id,
+    integration_provider_id: integrationInstanceGroupProvider.integrationProvider.id,
     integration_instance_provider_id:
       integrationInstanceGroupProvider.integrationInstanceProvider.id,
 
-    tool_filter: presentToolFilter(integrationInstanceGroupProvider.toolFilter),
+    tool_filter: presentToolFilter(
+      integrationInstanceGroupProvider.toolFilter,
+      integrationInstanceGroupProvider.isOverrideToolFilter
+    ),
     is_override_tool_filter: integrationInstanceGroupProvider.isOverrideToolFilter,
 
     created_at: integrationInstanceGroupProvider.createdAt,
@@ -58,7 +70,7 @@ export let v1IntegrationInstanceGroupProviderPresenter = Presenter.create(
       created_at: v.date(),
       updated_at: v.date(),
       archived_at: v.nullable(v.date())
-    })
+    }) as any
   )
   .build();
 
@@ -73,10 +85,13 @@ export let dashboardIntegrationInstanceGroupProviderPresenter = Presenter.create
     return {
       ...inner,
 
-      provider: v1ProviderPreview(integrationInstanceGroupProvider.provider),
-      integration_provider: integrationInstanceGroupProvider.integrationProvider
+      provider: v1ProviderPreview(
+        integrationInstanceGroupProvider.integrationProvider.provider
+      ),
+      integration_provider: integrationInstanceGroupProvider.integrationProvider.currentVersion
         ? await dashboardIntegrationProviderSnapshot(
             integrationInstanceGroupProvider.integrationProvider,
+            integrationInstanceGroupProvider.integrationProvider.currentVersion,
             opts
           )
         : null,

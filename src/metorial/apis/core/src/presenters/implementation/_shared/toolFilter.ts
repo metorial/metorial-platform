@@ -1,5 +1,5 @@
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
-import { SubspaceProviderAuthConfig } from '@metorial/module-subspace';
+import type { ProviderAuthConfig } from '@metorial-subspace/db';
 
 let schema = v.union(
   [
@@ -44,7 +44,7 @@ let schema = v.union(
 );
 
 export let toolFilterPresenter = Object.assign(
-  (filter: SubspaceProviderAuthConfig['toolFilter']): ValidationTypeValue<typeof schema> => {
+  (filter: ProviderAuthConfig['toolFilter']): ValidationTypeValue<typeof schema> => {
     if (filter.type == 'v1.allow_all') {
       return {
         type: 'allow_all' as const,

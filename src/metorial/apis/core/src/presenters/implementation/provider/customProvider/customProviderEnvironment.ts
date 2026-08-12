@@ -10,11 +10,12 @@ export let v1CustomProviderEnvironmentPresenter = Presenter.create(
 
     id: customProviderEnvironment.id,
 
-    custom_provider_id: customProviderEnvironment.customProviderId,
-    provider_id: customProviderEnvironment.providerId ?? null,
-    current_provider_version_id: customProviderEnvironment.currentProviderVersionId ?? null,
+    custom_provider_id: customProviderEnvironment.customProvider.id,
+    provider_id: customProviderEnvironment.customProvider.provider?.id ?? null,
+    current_provider_version_id:
+      customProviderEnvironment.providerEnvironment?.currentVersion?.id ?? null,
 
-    instance_id: customProviderEnvironment.instanceId,
+    instance_id: customProviderEnvironment.environment.identifier,
 
     created_at: customProviderEnvironment.createdAt,
     updated_at: customProviderEnvironment.updatedAt

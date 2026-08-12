@@ -1,65 +1,74 @@
 import { v } from '@lowerdeck/validation';
+import { getOAuthCallbackUrl } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { providerTypeType } from '../../../types';
 
 export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
-  .presenter(async ({ providerType }) => ({
-    object: 'provider.type' as const,
-    id: providerType.id,
-    name: providerType.name,
-    backend: providerType.backend,
-    triggers:
-      providerType.triggers.status == 'enabled'
-        ? {
-            status: 'enabled' as const,
-            receiver_url: providerType.triggers.receiverUrl
-          }
-        : {
-            status: 'disabled' as const
-          },
-    config:
-      providerType.config.status === 'enabled'
-        ? {
-            status: 'enabled' as const,
-            read: {
-              status: providerType.config.read.status
+  .presenter(async ({ providerType, provider, tenant }) => {
+    let attributes = providerType.attributes;
+
+    return {
+      object: 'provider.type' as const,
+      id: providerType.id,
+      name: providerType.name,
+      backend: attributes.backend,
+      triggers:
+        attributes.triggers.status == 'enabled'
+          ? {
+              status: 'enabled' as const,
+              receiver_url: attributes.triggers.receiverUrl
             }
-          }
-        : {
-            status: 'disabled' as const
-          },
-    auth:
-      providerType.auth.status === 'enabled'
-        ? {
-            status: 'enabled' as const,
-            oauth:
-              providerType.auth.oauth.status === 'enabled'
-                ? {
-                    status: 'enabled' as const,
-                    oauth_callback_url: providerType.auth.oauth.oauthCallbackUrl ?? null,
-                    oauth_auto_registration: providerType.auth.oauth.oauthAutoRegistration
-                      ? {
-                          status: providerType.auth.oauth.oauthAutoRegistration.status
-                        }
-                      : {
-                          status: 'disabled' as const
-                        }
-                  }
-                : {
-                    status: 'disabled' as const
-                  },
-            export: {
-              status: providerType.auth.export.status
+          : {
+              status: 'disabled' as const
             },
-            import: {
-              status: providerType.auth.import.status
+      config:
+        attributes.config.status === 'enabled'
+          ? {
+              status: 'enabled' as const,
+              read: {
+                status: attributes.config.read.status
+              }
             }
-          }
-        : {
-            status: 'disabled' as const
-          },
-    created_at: providerType.createdAt
-  }))
+          : {
+              status: 'disabled' as const
+            },
+      auth:
+        attributes.auth.status === 'enabled'
+          ? {
+              status: 'enabled' as const,
+              oauth:
+                attributes.auth.oauth.status === 'enabled'
+                  ? {
+                      status: 'enabled' as const,
+                      oauth_callback_url: tenant
+                        ? ((await getOAuthCallbackUrl(providerType, provider, tenant)) as
+                            | string
+                            | null)
+                        : null,
+                      oauth_auto_registration: attributes.auth.oauth.oauthAutoRegistration
+                        ? {
+                            status: attributes.auth.oauth.oauthAutoRegistration.status
+                          }
+                        : {
+                            status: 'disabled' as const
+                          }
+                    }
+                  : {
+                      status: 'disabled' as const
+                    },
+              export: {
+                status: attributes.auth.export.status
+              },
+              import: {
+                status: attributes.auth.import.status
+              }
+            }
+          : {
+              status: 'disabled' as const
+            },
+      created_at: providerType.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.type', {

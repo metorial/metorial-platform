@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderListingCollectionService } from '@metorial/module-subspace';
+import { providerListingCollectionService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -18,7 +18,7 @@ let providerCollectionGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let collection = await subspaceProviderListingCollectionService.get({
+  let collection = await providerListingCollectionService.getProviderListingCollectionById({
     instance: ctx.instance,
     providerListingCollectionId: ctx.params.providerCollectionId
   });
@@ -58,7 +58,7 @@ export let providerCollectionController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderListingCollectionService.list({
+        let paginator = await providerListingCollectionService.listProviderListingCollections({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

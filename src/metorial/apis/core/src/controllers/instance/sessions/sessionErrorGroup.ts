@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionErrorGroupService } from '@metorial/module-subspace';
+import { sessionErrorGroupService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -18,7 +18,7 @@ let sessionErrorGroupGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let sessionErrorGroup = await subspaceSessionErrorGroupService.get({
+  let sessionErrorGroup = await sessionErrorGroupService.getSessionErrorGroupById({
     instance: ctx.instance,
     sessionErrorGroupId: ctx.params.sessionErrorGroupId
   });
@@ -75,9 +75,8 @@ export let sessionErrorGroupController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSessionErrorGroupService.list({
+        let paginator = await sessionErrorGroupService.listSessionErrorGroups({
           instance: ctx.instance,
-          allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type),
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),

@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { getOAuthCallbackUrl } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { providerType } from '../../../types';
 import { v1ProviderTypePresenter } from './providerType';
@@ -6,42 +7,74 @@ import { v1ProviderVersionPresenter } from './providerVersion';
 import { v1PublisherPresenter } from './publisher';
 
 export let v1ProviderPresenter = Presenter.create(providerType)
-  .presenter(async ({ provider }, opts) => ({
-    object: 'provider' as const,
-    id: provider.id,
-    access: provider.access,
-    status: provider.status,
+  .presenter(async ({ provider, tenant }, opts) => {
+    let rawProvider = 'defaultVariant' in provider ? provider : null;
+    let currentVersion = rawProvider
+      ? rawProvider.defaultVariant?.currentVersion
+        ? {
+            ...rawProvider.defaultVariant.currentVersion,
+            provider: rawProvider
+          }
+        : null
+      : provider.currentVersion;
+    let oauth = rawProvider
+      ? rawProvider.type.attributes.auth.status === 'enabled' &&
+        rawProvider.type.attributes.auth.oauth.status === 'enabled'
+        ? {
+            status: 'enabled' as 'enabled' | 'disabled',
+            callback_url: tenant
+              ? ((await getOAuthCallbackUrl(rawProvider.type, rawProvider, tenant)) as
+                  | string
+                  | null)
+              : null,
+            auto_registration: {
+              status:
+                rawProvider.type.attributes.auth.oauth.oauthAutoRegistration?.status ==
+                'supported'
+                  ? ('supported' as 'supported' | 'unsupported')
+                  : ('unsupported' as 'supported' | 'unsupported')
+            }
+          }
+        : null
+      : provider.oauth
+        ? {
+            status: provider.oauth.status as 'enabled' | 'disabled',
+            callback_url: provider.oauth.callbackUrl as string | null,
+            auto_registration: {
+              status:
+                provider.oauth.autoRegistration?.status == 'supported'
+                  ? ('supported' as 'supported' | 'unsupported')
+                  : ('unsupported' as 'supported' | 'unsupported')
+            }
+          }
+        : null;
 
-    publisher: await v1PublisherPresenter
-      .present({ publisher: provider.publisher }, opts)
-      .run(),
+    return {
+      object: 'provider' as const,
+      id: provider.id,
+      access: provider.access,
+      status: provider.status,
 
-    current_version: provider.currentVersion
-      ? await v1ProviderVersionPresenter
-          .present({ version: provider.currentVersion }, opts)
-          .run()
-      : null,
+      publisher: await v1PublisherPresenter
+        .present({ publisher: provider.publisher }, opts)
+        .run(),
 
-    oauth: provider.oauth
-      ? {
-          status: provider.oauth.status,
-          callback_url: provider.oauth.callbackUrl,
-          auto_registration:
-            provider.oauth.autoRegistration?.status == 'supported'
-              ? { status: 'supported' }
-              : { status: 'unsupported' }
-        }
-      : null,
+      current_version: currentVersion
+        ? await v1ProviderVersionPresenter.present({ version: currentVersion }, opts).run()
+        : null,
 
-    name: provider.name,
-    description: provider.description,
-    slug: provider.slug,
+      oauth,
 
-    metadata: provider.metadata,
+      name: provider.name,
+      description: provider.description,
+      slug: rawProvider ? (rawProvider.prettySlug ?? rawProvider.slug) : provider.slug,
 
-    created_at: provider.createdAt,
-    updated_at: provider.updatedAt
-  }))
+      metadata: provider.metadata,
+
+      created_at: provider.createdAt,
+      updated_at: provider.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider', { description: "String representing the object's type" }),
@@ -111,7 +144,14 @@ export let dashboardProviderPresenter = Presenter.create(providerType)
     return {
       ...inner,
       type: await v1ProviderTypePresenter
-        .present({ providerType: input.provider.type }, opts)
+        .present(
+          {
+            providerType: input.provider.type,
+            provider: input.provider as any,
+            tenant: input.tenant
+          },
+          opts
+        )
         .run(),
       tag: input.provider.tag
     };

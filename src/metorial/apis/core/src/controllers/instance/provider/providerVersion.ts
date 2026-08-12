@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderVersionService } from '@metorial/module-subspace';
+import { providerVersionService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -19,7 +19,7 @@ let providerVersionGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let version = await subspaceProviderVersionService.get({
+  let version = await providerVersionService.getProviderVersionById({
     instance: ctx.instance,
     providerVersionId: ctx.params.providerVersionId
   });
@@ -57,7 +57,7 @@ export let providerVersionController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderVersionService.list({
+        let paginator = await providerVersionService.listProviderVersions({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

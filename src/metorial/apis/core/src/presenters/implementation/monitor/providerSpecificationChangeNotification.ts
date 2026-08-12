@@ -53,17 +53,35 @@ let presentVersionPreview = (version: any) =>
 export let v1ProviderSpecificationChangeNotificationPresenter = Presenter.create(
   providerSpecificationChangeNotificationType
 )
-  .presenter(async ({ notification }) => ({
-    object: 'provider.specification_change_notification' as const,
-    id: notification.id,
-    provider_id: notification.providerId,
-    provider_version_id: notification.providerVersionId,
-    from_specification: presentSpecificationPreview(notification.fromSpecification),
-    to_specification: presentSpecificationPreview(notification.toSpecification),
-    from_provider_version: presentVersionPreview(notification.fromProviderVersion),
-    to_provider_version: presentVersionPreview(notification.toProviderVersion),
-    created_at: notification.createdAt
-  }))
+  .presenter(async ({ notification }) => {
+    let change = notification.versionSpecificationChange
+      ? {
+          fromSpecification: notification.versionSpecificationChange.fromSpecification,
+          toSpecification: notification.versionSpecificationChange.toSpecification,
+          fromVersion: notification.versionSpecificationChange.fromVersion,
+          toVersion: notification.versionSpecificationChange.toVersion
+        }
+      : notification.pairSpecificationChange
+        ? {
+            fromSpecification: notification.pairSpecificationChange.fromSpecification,
+            toSpecification: notification.pairSpecificationChange.toSpecification,
+            fromVersion: notification.pairSpecificationChange.fromPairVersion.version,
+            toVersion: notification.pairSpecificationChange.toPairVersion.version
+          }
+        : null;
+
+    return {
+      object: 'provider.specification_change_notification' as const,
+      id: notification.id,
+      provider_id: notification.version.provider.id,
+      provider_version_id: notification.version.id,
+      from_specification: presentSpecificationPreview(change?.fromSpecification),
+      to_specification: presentSpecificationPreview(change?.toSpecification),
+      from_provider_version: presentVersionPreview(change?.fromVersion),
+      to_provider_version: presentVersionPreview(change?.toVersion),
+      created_at: notification.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.specification_change_notification'),

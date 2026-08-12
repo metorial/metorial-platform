@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
-import { SubspaceIntegrationInstanceProviderSnapshot } from '@metorial/module-subspace';
+import type { Prisma as SubspacePrisma } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
+import type { integrationProviderInclude } from '@metorial-subspace/module-integration';
 import { integrationProviderType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthCredentialsPresenter, v1ProviderAuthMethodPresenter } from '../auth';
@@ -11,37 +12,65 @@ import {
 import { v1ProviderPreview } from '../provider';
 
 let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
-  toolFilter ? toolFilterPresenter(toolFilter as any) : null;
+  toolFilter ? toolFilterPresenter(toolFilter) : null;
+
+type RawIntegrationProvider = SubspacePrisma.IntegrationProviderGetPayload<{
+  include: typeof integrationProviderInclude;
+}>;
+type RawIntegrationProviderVersion = NonNullable<RawIntegrationProvider['currentVersion']>;
+
+let requireCurrentVersion = (integrationProvider: RawIntegrationProvider) => {
+  if (!integrationProvider.currentVersion) {
+    throw new Error(
+      `Integration provider "${integrationProvider.id}" has no current version to present.`
+    );
+  }
+
+  return integrationProvider.currentVersion;
+};
 
 export let v1IntegrationProviderSnapshot = Object.assign(
-  async (integrationProvider: SubspaceIntegrationInstanceProviderSnapshot, opts?: any) => {
+  async (
+    integrationProvider: RawIntegrationProvider,
+    version: RawIntegrationProviderVersion,
+    opts?: any
+  ) => {
+    let provider = integrationProvider.provider;
     return {
       object: 'integration.provider#snapshot' as const,
       id: integrationProvider.id,
 
       provider_version: {
         object: 'integration.provider.version' as const,
-        id: integrationProvider.providerVersionId,
-        index: integrationProvider.index
+        id: version.id,
+        index: version.index
       },
 
-      status: integrationProvider.status,
+      status: version.status,
       name: integrationProvider.name,
       description: integrationProvider.description,
       metadata: integrationProvider.metadata,
-      tool_filter: presentToolFilter(integrationProvider.toolFilter),
-      provider_id: integrationProvider.provider.id,
-      deployment_id: integrationProvider.deployment.id,
-      auth_method_id: integrationProvider.authMethod?.id ?? null,
-      auth_credentials_id: integrationProvider.authCredentials?.id ?? null,
-      config: integrationProvider.config
+      tool_filter: presentToolFilter(version.toolFilter),
+      provider_id: provider.id,
+      deployment_id: version.deployment.id,
+      auth_method_id: version.authMethod?.id ?? null,
+      auth_credentials_id: version.authCredentials?.id ?? null,
+      config: version.config
         ? await v1ProviderConfigPreviewPresenter
-            .present({ config: integrationProvider.config }, opts)
+            .present({ config: { ...version.config, provider } }, opts)
             .run()
         : null,
-      created_at: integrationProvider.createdAt,
-      updated_at: integrationProvider.updatedAt,
-      archived_at: integrationProvider.archivedAt
+      created_at: version.createdAt,
+      updated_at: version.createdAt,
+      archived_at:
+        integrationProvider.status === 'archived'
+          ? new Date(
+              Math.min(
+                version.createdAt.getTime(),
+                integrationProvider.archivedAt?.getTime() ?? Infinity
+              )
+            )
+          : null
     };
   },
   {
@@ -71,24 +100,29 @@ export let v1IntegrationProviderSnapshot = Object.assign(
 );
 
 export let dashboardIntegrationProviderSnapshot = Object.assign(
-  async (integrationProvider: SubspaceIntegrationInstanceProviderSnapshot, opts?: any) => {
-    let inner = await v1IntegrationProviderSnapshot(integrationProvider, opts);
+  async (
+    integrationProvider: RawIntegrationProvider,
+    version: RawIntegrationProviderVersion,
+    opts?: any
+  ) => {
+    let provider = integrationProvider.provider;
+    let inner = await v1IntegrationProviderSnapshot(integrationProvider, version, opts);
 
     return {
       ...inner,
 
-      provider: v1ProviderPreview(integrationProvider.provider),
+      provider: v1ProviderPreview(provider),
       deployment: await v1ProviderDeploymentPreviewPresenter
-        .present({ deployment: integrationProvider.deployment }, opts)
+        .present({ deployment: { ...version.deployment, provider } }, opts)
         .run(),
-      auth_method: integrationProvider.authMethod
+      auth_method: version.authMethod
         ? await v1ProviderAuthMethodPresenter
-            .present({ authMethod: integrationProvider.authMethod }, opts)
+            .present({ authMethod: { ...version.authMethod, provider } }, opts)
             .run()
         : null,
-      auth_credentials: integrationProvider.authCredentials
+      auth_credentials: version.authCredentials
         ? await v1ProviderAuthCredentialsPresenter
-            .present({ authCredentials: integrationProvider.authCredentials }, opts)
+            .present({ authCredentials: { ...version.authCredentials, provider } }, opts)
             .run()
         : null
     };
@@ -105,28 +139,40 @@ export let dashboardIntegrationProviderSnapshot = Object.assign(
 );
 
 export let v1IntegrationProviderPresenter = Presenter.create(integrationProviderType)
-  .presenter(async ({ integrationProvider }, opts) => ({
-    object: 'integration.provider' as const,
-    id: integrationProvider.id,
-    status: integrationProvider.status,
-    integration_id: integrationProvider.integrationId,
-    name: integrationProvider.name,
-    description: integrationProvider.description,
-    metadata: integrationProvider.metadata,
-    tool_filter: presentToolFilter(integrationProvider.toolFilter),
-    provider_id: integrationProvider.provider.id,
-    deployment_id: integrationProvider.deployment.id,
-    auth_method_id: integrationProvider.authMethod?.id ?? null,
-    auth_credentials_id: integrationProvider.authCredentials?.id ?? null,
-    config: integrationProvider.config
-      ? await v1ProviderConfigPreviewPresenter
-          .present({ config: integrationProvider.config }, opts)
-          .run()
-      : null,
-    created_at: integrationProvider.createdAt,
-    updated_at: integrationProvider.updatedAt,
-    archived_at: integrationProvider.archivedAt
-  }))
+  .presenter(async ({ integrationProvider }, opts) => {
+    let version = requireCurrentVersion(integrationProvider);
+
+    return {
+      object: 'integration.provider' as const,
+      id: integrationProvider.id,
+      status: integrationProvider.status,
+      integration_id: integrationProvider.integration.id,
+      name: integrationProvider.name,
+      description: integrationProvider.description,
+      metadata: integrationProvider.metadata,
+      tool_filter: presentToolFilter(version.toolFilter),
+      provider_id: integrationProvider.provider.id,
+      deployment_id: version.deployment.id,
+      auth_method_id: version.authMethod?.id ?? null,
+      auth_credentials_id: version.authCredentials?.id ?? null,
+      config: version.config
+        ? await v1ProviderConfigPreviewPresenter
+            .present(
+              {
+                config: {
+                  ...version.config,
+                  provider: integrationProvider.provider
+                }
+              },
+              opts
+            )
+            .run()
+        : null,
+      created_at: integrationProvider.createdAt,
+      updated_at: integrationProvider.updatedAt,
+      archived_at: integrationProvider.archivedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('integration.provider'),
@@ -151,6 +197,7 @@ export let v1IntegrationProviderPresenter = Presenter.create(integrationProvider
 
 export let dashboardIntegrationProviderPresenter = Presenter.create(integrationProviderType)
   .presenter(async ({ integrationProvider }, opts) => {
+    let version = requireCurrentVersion(integrationProvider);
     let inner = await v1IntegrationProviderPresenter
       .present({ integrationProvider }, opts)
       .run();
@@ -159,16 +206,40 @@ export let dashboardIntegrationProviderPresenter = Presenter.create(integrationP
       ...inner,
       provider: v1ProviderPreview(integrationProvider.provider),
       deployment: await v1ProviderDeploymentPreviewPresenter
-        .present({ deployment: integrationProvider.deployment }, opts)
+        .present(
+          {
+            deployment: {
+              ...version.deployment,
+              provider: integrationProvider.provider
+            }
+          },
+          opts
+        )
         .run(),
-      auth_method: integrationProvider.authMethod
+      auth_method: version.authMethod
         ? await v1ProviderAuthMethodPresenter
-            .present({ authMethod: integrationProvider.authMethod }, opts)
+            .present(
+              {
+                authMethod: {
+                  ...version.authMethod,
+                  provider: integrationProvider.provider
+                }
+              },
+              opts
+            )
             .run()
         : null,
-      auth_credentials: integrationProvider.authCredentials
+      auth_credentials: version.authCredentials
         ? await v1ProviderAuthCredentialsPresenter
-            .present({ authCredentials: integrationProvider.authCredentials }, opts)
+            .present(
+              {
+                authCredentials: {
+                  ...version.authCredentials,
+                  provider: integrationProvider.provider
+                }
+              },
+              opts
+            )
             .run()
         : null
     };

@@ -8,25 +8,26 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
     object: 'session.connection' as const,
 
     id: sessionConnection.id,
-    connection_state: sessionConnection.connectionState,
+    connection_state: sessionConnection.state,
     transport: sessionConnection.transport,
 
     usage: {
       total_productive_client_message_count:
-        sessionConnection.usage.totalProductiveClientMessageCount,
+        sessionConnection.totalProductiveClientMessageCount,
       total_productive_provider_message_count:
-        sessionConnection.usage.totalProductiveProviderMessageCount
+        sessionConnection.totalProductiveProviderMessageCount
     },
 
-    mcp: sessionConnection.mcp
-      ? {
-          capabilities: sessionConnection.mcp.capabilities,
-          protocol_version: sessionConnection.mcp.protocolVersion,
-          transport: sessionConnection.mcp.transport
-        }
-      : null,
+    mcp:
+      sessionConnection.mcpData.capabilities && sessionConnection.mcpData.protocolVersion
+        ? {
+            capabilities: sessionConnection.mcpData.capabilities,
+            protocol_version: sessionConnection.mcpData.protocolVersion,
+            transport: sessionConnection.mcpTransport
+          }
+        : null,
 
-    session_id: sessionConnection.sessionId,
+    session_id: sessionConnection.session.id,
 
     participant: sessionConnection.participant
       ? await v1SessionParticipantPresenter
@@ -55,13 +56,10 @@ export let v1SessionConnectionPresenter = Presenter.create(sessionConnectionType
         name: 'connection_state',
         description: 'Connection state'
       }),
-      transport: v.enumOf(
-        ['mcp', 'tool_call', 'metorial_protocol', 'system'] as const,
-        {
-          name: 'transport',
-          description: 'Transport protocol used'
-        }
-      ),
+      transport: v.enumOf(['mcp', 'tool_call', 'metorial_protocol', 'system'] as const, {
+        name: 'transport',
+        description: 'Transport protocol used'
+      }),
       usage: v.object(
         {
           total_productive_client_message_count: v.number({

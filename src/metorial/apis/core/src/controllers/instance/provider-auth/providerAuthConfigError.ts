@@ -2,9 +2,9 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
-  subspaceAuthConfigErrorGlobalService,
-  subspaceAuthConfigErrorService
-} from '@metorial/module-subspace';
+  authConfigErrorGlobalService,
+  authConfigErrorService
+} from '@metorial-subspace/module-auth';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -26,7 +26,7 @@ let providerAuthConfigErrorGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authConfigError = await subspaceAuthConfigErrorService.get({
+  let authConfigError = await authConfigErrorService.getAuthConfigErrorById({
     instance: ctx.instance,
     authConfigErrorId: ctx.params.providerAuthConfigErrorId
   });
@@ -44,7 +44,7 @@ let providerAuthConfigErrorGlobalGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authConfigErrorGroup = await subspaceAuthConfigErrorGlobalService.get({
+  let authConfigErrorGroup = await authConfigErrorGlobalService.getAuthConfigErrorGlobalById({
     instance: ctx.instance,
     authConfigErrorGlobalId: ctx.params.providerAuthConfigErrorGroupId
   });
@@ -110,7 +110,7 @@ export let providerAuthConfigErrorController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceAuthConfigErrorService.list({
+        let paginator = await authConfigErrorService.listAuthConfigErrors({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           authConfigEventIds: normalizeArrayParam(ctx.query.auth_config_event_id),
@@ -195,7 +195,7 @@ export let providerAuthConfigErrorController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceAuthConfigErrorGlobalService.list({
+        let paginator = await authConfigErrorGlobalService.listAuthConfigErrorGlobals({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

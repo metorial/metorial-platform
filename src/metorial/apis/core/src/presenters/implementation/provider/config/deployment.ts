@@ -19,17 +19,33 @@ export let v1ProviderDeploymentPresenter = Presenter.create(providerDeploymentTy
     metadata: deployment.metadata,
     tool_filter: toolFilterPresenter(deployment.toolFilter),
 
-    provider_id: deployment.providerId,
+    provider_id: deployment.provider.id,
 
-    locked_version: deployment.lockedVersion
+    locked_version: deployment.currentVersion?.lockedVersion
       ? await v1ProviderVersionPresenter
-          .present({ version: deployment.lockedVersion }, opts)
+          .present(
+            {
+              version: {
+                ...deployment.currentVersion.lockedVersion,
+                provider: deployment.provider
+              }
+            },
+            opts
+          )
           .run()
       : null,
 
     default_config: deployment.defaultConfig
       ? await v1ProviderConfigPreviewPresenter
-          .present({ config: deployment.defaultConfig }, opts)
+          .present(
+            {
+              config: {
+                ...deployment.defaultConfig,
+                provider: deployment.provider
+              }
+            },
+            opts
+          )
           .run()
       : null,
 

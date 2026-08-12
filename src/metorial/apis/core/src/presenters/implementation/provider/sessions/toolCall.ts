@@ -1,4 +1,6 @@
 import { v } from '@lowerdeck/validation';
+import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils';
+import { messageInputToToolCall, messageOutputToToolCall } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { toolCallType } from '../../../types';
 import { v1ProviderToolPresenter } from '../provider';
@@ -6,46 +8,63 @@ import { v1SessionErrorPresenter } from './sessionError';
 import { v1SessionParticipantPresenter } from './sessionParticipant';
 
 export let v1ProviderToolCallPresenter = Presenter.create(toolCallType)
-  .presenter(async ({ toolCall }, opts) => ({
-    object: 'session.tool_call' as const,
+  .presenter(async ({ toolCall }, opts) => {
+    if (toolCall.message.isOffloadedToStorage) {
+      let offloaded = await getOffloadedSessionMessage(toolCall.message);
+      if (offloaded) {
+        toolCall.message.input = offloaded.input;
+        toolCall.message.output = offloaded.output;
+      }
+    }
 
-    id: toolCall.id,
-    tool_key: toolCall.toolKey,
+    return {
+      object: 'session.tool_call' as const,
 
-    type: toolCall.type,
-    status: toolCall.status,
-    source: toolCall.source,
+      id: toolCall.id,
+      tool_key: toolCall.toolKey,
 
-    transport: toolCall.transport,
+      // Runtime was always tool_call even though the unchanged schema permits all message types.
+      type: 'tool_call' as typeof toolCall.message.type,
+      status: toolCall.message.status,
+      source: toolCall.message.source,
 
-    session_id: toolCall.sessionId,
-    message_id: toolCall.messageId,
-    session_provider_id: toolCall.sessionProviderId,
-    connection_id: toolCall.connectionId,
-    provider_run_id: toolCall.providerRunId,
+      transport: toolCall.message.transport,
 
-    sender_participant: toolCall.senderParticipant
-      ? await v1SessionParticipantPresenter
-          .present({ sessionParticipant: toolCall.senderParticipant }, opts)
-          .run()
-      : null,
-    responder_participant: toolCall.responderParticipant
-      ? await v1SessionParticipantPresenter
-          .present({ sessionParticipant: toolCall.responderParticipant }, opts)
-          .run()
-      : null,
+      session_id: toolCall.message.session.id,
+      message_id: toolCall.message.id,
+      session_provider_id: toolCall.message.sessionProvider?.id ?? null,
+      connection_id: toolCall.message.connection?.id ?? null,
+      provider_run_id: toolCall.message.providerRun?.id ?? null,
 
-    tool: await v1ProviderToolPresenter.present({ tool: toolCall.tool }, opts).run(),
+      sender_participant: toolCall.message.senderParticipant
+        ? await v1SessionParticipantPresenter
+            .present({ sessionParticipant: toolCall.message.senderParticipant }, opts)
+            .run()
+        : null,
+      responder_participant: toolCall.message.responderParticipant
+        ? await v1SessionParticipantPresenter
+            .present({ sessionParticipant: toolCall.message.responderParticipant }, opts)
+            .run()
+        : null,
 
-    input: toolCall.input,
-    output: toolCall.output,
+      tool: await v1ProviderToolPresenter.present({ tool: toolCall.tool }, opts).run(),
 
-    error: toolCall.error
-      ? await v1SessionErrorPresenter.present({ sessionError: toolCall.error }, opts).run()
-      : null,
+      input: toolCall.message.input
+        ? await messageInputToToolCall(toolCall.message.input, toolCall.message)
+        : null,
+      output: toolCall.message.output
+        ? await messageOutputToToolCall(toolCall.message.output, toolCall.message)
+        : null,
 
-    created_at: toolCall.createdAt
-  }))
+      error: toolCall.message.error
+        ? await v1SessionErrorPresenter
+            .present({ sessionError: toolCall.message.error }, opts)
+            .run()
+        : null,
+
+      created_at: toolCall.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('session.tool_call', {

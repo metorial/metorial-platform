@@ -25,21 +25,23 @@ export let v1IntegrationPresenter = Presenter.create(integrationType)
         integration.useIntegrationNameForSessionProviderNameTemplatesOverride
     },
 
-    implementation: integration.providerTemplateBackingId
+    implementation: integration.providerTemplateBacking
       ? {
           type: 'provider_template' as const,
-          provider_template_id: integration.providerTemplateBackingId
+          provider_template_id: integration.providerTemplateBacking.id
         }
-      : integration.magicMcpServerBackingId
+      : integration.magicMcpServerBacking
         ? {
             type: 'magic_mcp_server' as const,
-            magic_mcp_server_id: integration.magicMcpServerBackingId
+            magic_mcp_server_id: integration.magicMcpServerBacking.id
           }
         : null,
 
     providers: await Promise.all(
       integration.providers.map(integrationProvider =>
-        v1IntegrationProviderPresenter.present({ integrationProvider }, opts).run()
+        v1IntegrationProviderPresenter
+          .present({ integrationProvider: { ...integrationProvider, integration } }, opts)
+          .run()
       )
     ),
     created_at: integration.createdAt,
@@ -145,7 +147,9 @@ export let dashboardIntegrationPresenter = Presenter.create(integrationType)
       ...inner,
       providers: await Promise.all(
         integration.providers.map(integrationProvider =>
-          dashboardIntegrationProviderPresenter.present({ integrationProvider }, opts).run()
+          dashboardIntegrationProviderPresenter
+            .present({ integrationProvider: { ...integrationProvider, integration } }, opts)
+            .run()
         )
       )
     };

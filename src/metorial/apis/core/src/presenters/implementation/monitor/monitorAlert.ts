@@ -26,8 +26,8 @@ export let v1MonitorAlertPresenter = Presenter.create(monitorAlertType)
     id: alert.id,
     status: alert.status,
     monitor: await v1MonitorPresenter.present({ monitor: alert.monitor }, opts).run(),
-    proto_guard_alert_id: alert.protoGuardAlertId,
-    proto_guard_run_id: alert.protoGuardRunId,
+    proto_guard_alert_id: alert.protoGuardAlert?.id ?? null,
+    proto_guard_run_id: alert.protoGuardAlert?.run.id ?? null,
     specification_change_notification: alert.specificationChangeNotification
       ? await v1ProviderSpecificationChangeNotificationPresenter
           .present({ notification: alert.specificationChangeNotification }, opts)
@@ -35,18 +35,19 @@ export let v1MonitorAlertPresenter = Presenter.create(monitorAlertType)
       : null,
     created_at: alert.createdAt,
     resolved_at: alert.resolvedAt,
-    recipients: alert.recipients.map(recipient => ({
+    recipients: alert.monitorAlertRecipients.map(recipient => ({
       object: 'monitor.alert_recipient' as const,
       id: recipient.id,
-      recipient_id: recipient.recipientId,
+      recipient_id: recipient.recipient.id,
       viewed_at: recipient.viewedAt,
       created_at: recipient.createdAt
     })),
-    events: alert.events.map(event => ({
+    events: alert.monitorAlertEvents.map(event => ({
       object: 'monitor.alert_event' as const,
       id: event.id,
       type: event.type,
-      actor_id: event.actorId,
+      // The former RPC presenter exposed the internal actor OID as a decimal string.
+      actor_id: event.actorOid ? String(event.actorOid) : null,
       created_at: event.createdAt
     }))
   }))

@@ -1,7 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIntegrationSetupSessionService } from '@metorial/module-subspace';
+import {
+  integrationService,
+  integrationSetupSessionService
+} from '@metorial-subspace/module-integration';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -41,9 +44,9 @@ let toSubspaceSetupSessionConfiguration = (
     tool_filters?: { enabled?: boolean };
     ui?: { layout?: 'box' | 'side' | 'light' };
   } | null
-) =>
+): PrismaJson.ProviderSetupSessionConfiguration | undefined =>
   configuration
-    ? ({
+    ? {
         providerSearch: configuration.provider_search
           ? {
               groups: configuration.provider_search.groups?.map(group => ({
@@ -61,7 +64,7 @@ let toSubspaceSetupSessionConfiguration = (
           ? { enabled: configuration.tool_filters.enabled }
           : undefined,
         ui: configuration.ui ? { layout: configuration.ui.layout } : undefined
-      } as any)
+      }
     : undefined;
 
 let integrationSetupSessionGroup = instanceGroup.use(async ctx => {
@@ -74,11 +77,12 @@ let integrationSetupSessionGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let integrationSetupSession = await subspaceIntegrationSetupSessionService.get({
-    instance: ctx.instance,
-    integrationSetupSessionId: ctx.params.integrationSetupSessionId,
-    allowDeleted: true
-  });
+  let integrationSetupSession =
+    await integrationSetupSessionService.getIntegrationSetupSessionById({
+      instance: ctx.instance,
+      integrationSetupSessionId: ctx.params.integrationSetupSessionId,
+      allowDeleted: true
+    });
 
   return { integrationSetupSession };
 });
@@ -116,7 +120,7 @@ export let integrationSetupSessionController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIntegrationSetupSessionService.list({
+        let paginator = await integrationSetupSessionService.listIntegrationSetupSessions({
           instance: ctx.instance,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
@@ -175,20 +179,29 @@ export let integrationSetupSessionController = Controller.create(
       )
       .output(integrationSetupSessionPresenter)
       .do(async ctx => {
-        let integrationSetupSession = await subspaceIntegrationSetupSessionService.create({
+        let integration = await integrationService.getIntegrationById({
           instance: ctx.instance,
-          integrationId: ctx.body.integration_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          identityActorId: ctx.body.identity_actor_id,
-          identityId: ctx.body.identity_id,
-          expiresAt: ctx.body.expires_at,
-          redirectUrl: ctx.body.redirect_url,
-          configuration: toSubspaceSetupSessionConfiguration(ctx.body.configuration),
-          ip: ctx.context.ip,
-          ua: ctx.context.ua ?? ''
+          integrationId: ctx.body.integration_id
         });
+        let integrationSetupSession =
+          await integrationSetupSessionService.createIntegrationSetupSession({
+            instance: ctx.instance,
+            integration,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata,
+              identityActorId: ctx.body.identity_actor_id,
+              identityId: ctx.body.identity_id,
+              expiresAt: ctx.body.expires_at,
+              redirectUrl: ctx.body.redirect_url,
+              configuration: toSubspaceSetupSessionConfiguration(ctx.body.configuration)
+            },
+            import: {
+              ip: ctx.context.ip,
+              ua: ctx.context.ua ?? ''
+            }
+          });
 
         return integrationSetupSessionPresenter.present({ integrationSetupSession });
       })

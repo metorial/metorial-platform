@@ -1,27 +1,49 @@
+import { delay } from '@lowerdeck/delay';
 import { v } from '@lowerdeck/validation';
+import { db } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { sessionErrorType } from '../../../types';
 
 export let v1SessionErrorPresenter = Presenter.create(sessionErrorType)
-  .presenter(async ({ sessionError }) => ({
-    object: 'session.error' as const,
+  .presenter(async ({ sessionError }) => {
+    try {
+      let i = 0;
+      while (sessionError.isProcessing || !sessionError.group) {
+        if (i++ >= 10) break;
 
-    id: sessionError.id,
+        await delay(250);
 
-    code: sessionError.code,
-    message: sessionError.message,
-    data: sessionError.data,
-    status: sessionError.status,
+        let refreshedError = await db.sessionError.findUniqueOrThrow({
+          where: { oid: sessionError.oid },
+          include: { group: true }
+        });
+        sessionError = Object.assign(sessionError, refreshedError);
+      }
+    } catch (error) {
+      console.error('Error refreshing session error for presenter', error);
+    }
 
-    session_id: sessionError.sessionId,
-    provider_run_id: sessionError.providerRunId,
-    connection_id: sessionError.connectionId,
+    return {
+      object: 'session.error' as const,
 
-    group_id: sessionError.groupId,
-    similar_error_count: sessionError.similarErrorCount,
+      id: sessionError.id,
 
-    created_at: sessionError.createdAt
-  }))
+      code: sessionError.code,
+      message: sessionError.message,
+      // The former RPC returned null here despite the non-null API schema.
+      data: sessionError.payload as Record<string, any>,
+      status: sessionError.isProcessing ? ('processing' as const) : ('processed' as const),
+
+      session_id: sessionError.session.id,
+      provider_run_id: sessionError.providerRun?.id ?? null,
+      connection_id: sessionError.connection?.id ?? null,
+
+      group_id: sessionError.group?.id ?? null,
+      similar_error_count: sessionError.group?.occurrenceCount ?? 0,
+
+      created_at: sessionError.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('session.error', {

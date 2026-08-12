@@ -1,7 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionParticipantService } from '@metorial/module-subspace';
+import type { SessionParticipantType } from '@metorial-subspace/db';
+import { sessionParticipantService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -15,6 +16,25 @@ import {
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '../../../presenters';
 
+let normalizeParticipantTypes = (
+  types:
+    | (
+        | 'unknown'
+        | 'provider'
+        | 'system'
+        | 'tool_call'
+        | 'mcp_client'
+        | 'metorial_protocol_client'
+      )[]
+    | undefined
+): SessionParticipantType[] | undefined =>
+  types?.map(type => {
+    if (type === 'tool_call') return 'legacy_tool_call';
+    if (type === 'mcp_client') return 'legacy_mcp_client';
+    if (type === 'metorial_protocol_client') return 'legacy_metorial_protocol_client';
+    return type;
+  });
+
 let sessionParticipantGroup = instanceGroup
   .use(async ctx => {
     if (!ctx.params.sessionParticipantId) {
@@ -26,7 +46,7 @@ let sessionParticipantGroup = instanceGroup
       );
     }
 
-    let sessionParticipant = await subspaceSessionParticipantService.get({
+    let sessionParticipant = await sessionParticipantService.getSessionParticipantById({
       instance: ctx.instance,
       sessionParticipantId: ctx.params.sessionParticipantId
     });
@@ -128,10 +148,10 @@ export let sessionParticipantController = Controller.create(
           consumerIds: normalizeArrayParam(ctx.query.consumer_id)
         });
 
-        let paginator = await subspaceSessionParticipantService.list({
+        let paginator = await sessionParticipantService.listSessionParticipants({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
-          types: normalizeArrayParam(ctx.query.type),
+          types: normalizeParticipantTypes(normalizeArrayParam(ctx.query.type)),
           ids: normalizeArrayParam(ctx.query.id),
           agentIds: normalizeArrayParam(ctx.query.agent_id),
           actorIds,

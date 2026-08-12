@@ -3,6 +3,17 @@ import { Presenter } from '@metorial/presenter';
 import { identityDelegationType } from '../../../types';
 import { v1IdentityActorPresenter } from './identityActor';
 
+let mapPermissionsFromStorage = (permissions: ('provider_call' | 'provider_read')[]) =>
+  permissions.map(
+    permission =>
+      (
+        ({
+          provider_call: 'provider:call',
+          provider_read: 'provider:read'
+        }) as const
+      )[permission]
+  );
+
 let identityDelegationCredentialOverrideSchema = v.object({
   object: v.literal('identity.delegation_credential_override', {
     description: "String representing the object's type"
@@ -108,12 +119,12 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
     denied_reason: identityDelegation.deniedReason,
 
     delegation_level: identityDelegation.delegationLevel,
-    permissions: identityDelegation.permissions,
+    permissions: mapPermissionsFromStorage(identityDelegation.permissions),
 
     note: identityDelegation.note,
     metadata: identityDelegation.metadata,
 
-    delegation_config_id: identityDelegation.delegationConfigId,
+    delegation_config_id: identityDelegation.delegationConfig?.id ?? null,
 
     identity: {
       object: 'identity#preview' as const,
@@ -141,11 +152,11 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
           object: 'identity.delegation_request' as const,
           id: identityDelegation.request.id,
           status: identityDelegation.request.status,
-          denied_reason: identityDelegation.request.deniedReason,
+          denied_reason: identityDelegation.deniedReason,
           requester: await v1IdentityActorPresenter
             .present({ identityActor: identityDelegation.request.requester }, opts)
             .run(),
-          identity_id: identityDelegation.request.identityId,
+          identity_id: identityDelegation.request.identity.id,
           expires_at: identityDelegation.request.expiresAt,
           created_at: identityDelegation.request.createdAt
         }
@@ -160,14 +171,14 @@ export let v1IdentityDelegationPresenter = Presenter.create(identityDelegationTy
         }
       : null,
 
-    credential_overrides: identityDelegation.credentialOverrides.map(credentialOverride => ({
+    credential_overrides: identityDelegation.credentials.map(credentialOverride => ({
       object: 'identity.delegation_credential_override' as const,
 
       id: credentialOverride.id,
       status: credentialOverride.status,
 
-      permissions: credentialOverride.permissions,
-      credential_id: credentialOverride.credentialId,
+      permissions: mapPermissionsFromStorage(credentialOverride.permissions),
+      credential_id: credentialOverride.credential.id,
 
       created_at: credentialOverride.createdAt,
       expires_at: credentialOverride.expiresAt

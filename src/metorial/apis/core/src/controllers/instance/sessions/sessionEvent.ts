@@ -1,7 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionEventService } from '@metorial/module-subspace';
+import type { SessionEventType } from '@metorial-subspace/db';
+import { sessionEventService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -25,7 +26,7 @@ let sessionEventGroup = instanceGroup
       );
     }
 
-    let sessionEvent = await subspaceSessionEventService.get({
+    let sessionEvent = await sessionEventService.getSessionEventById({
       instance: ctx.instance,
       sessionEventId: ctx.params.sessionEventId
     });
@@ -96,11 +97,11 @@ export let sessionEventController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSessionEventService.list({
+        let paginator = await sessionEventService.listSessionEvents({
           instance: ctx.instance,
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
-          types: normalizeArrayParam(ctx.query.type),
+          types: normalizeArrayParam(ctx.query.type) as SessionEventType[] | undefined,
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),

@@ -11,32 +11,32 @@ export let v1ProviderToolPresenter = Presenter.create(providerToolType)
     name: tool.name,
     description: tool.description ?? null,
 
-    capabilities: tool.capabilities ?? {},
-    constraints: tool.constraints ?? [],
-    instructions: tool.instructions ?? [],
+    capabilities: tool.value.capabilities ?? {},
+    constraints: tool.value.constraints ?? [],
+    instructions: tool.value.instructions ?? [],
 
-    input_schema: tool.inputJsonSchema
+    input_schema: tool.value.inputJsonSchema
       ? {
           type: 'json_schema',
-          schema: tool.inputJsonSchema
+          schema: tool.value.inputJsonSchema
         }
       : null,
-    output_schema: tool.outputJsonSchema
+    output_schema: tool.value.outputJsonSchema
       ? {
           type: 'json_schema',
-          schema: tool.outputJsonSchema
+          schema: tool.value.outputJsonSchema
         }
       : null,
 
-    tags: tool.tags
+    tags: tool.value.tags
       ? {
-          destructive: tool.tags.destructive ?? null,
-          read_only: tool.tags.readOnly ?? null
+          destructive: tool.value.tags.destructive ?? null,
+          read_only: tool.value.tags.readOnly ?? null
         }
       : null,
 
-    specification_id: tool.specificationId,
-    provider_id: tool.providerId,
+    specification_id: tool.specification.id,
+    provider_id: tool.provider.id,
 
     created_at: tool.createdAt,
     updated_at: tool.updatedAt

@@ -6,17 +6,20 @@ export let v1ProviderAuthConfigSchemaPresenter = Presenter.create(authConfigSche
   .presenter(async ({ schema }) => ({
     object: 'provider.capabilities.auth_config.schema' as const,
 
-    schema: schema.authConfigSchema
-      ? { type: 'json_schema' as const, schema: schema.authConfigSchema }
+    schema: schema.authMethod.value.inputJsonSchema
+      ? {
+          type: 'json_schema' as const,
+          schema: schema.authMethod.value.inputJsonSchema
+        }
       : null,
 
-    visibility: schema.authConfigVisibility,
+    visibility: 'encrypted' as const,
 
-    specification_id: schema.specificationId,
-    provider_id: schema.providerId,
+    specification_id: schema.specification.id,
+    provider_id: schema.provider.id,
 
-    created_at: schema.createdAt,
-    updated_at: schema.updatedAt
+    created_at: schema.authMethod.createdAt,
+    updated_at: schema.authMethod.updatedAt
   }))
   .schema(
     v.object({

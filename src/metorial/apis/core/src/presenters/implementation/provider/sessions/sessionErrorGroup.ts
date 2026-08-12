@@ -10,9 +10,9 @@ export let v1SessionErrorGroupPresenter = Presenter.create(sessionErrorGroupType
 
     code: sessionErrorGroup.code,
     message: sessionErrorGroup.message,
-    data: sessionErrorGroup.data,
+    data: sessionErrorGroup.firstOccurrence?.payload || {},
 
-    provider_id: sessionErrorGroup.providerId,
+    provider_id: sessionErrorGroup.provider?.id ?? null,
 
     occurrence_count: sessionErrorGroup.occurrenceCount,
 

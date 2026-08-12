@@ -1,7 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIdentityDelegationService } from '@metorial/module-subspace';
+import {
+  identityActorService,
+  identityDelegationService,
+  identityService
+} from '@metorial-subspace/module-identity';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -9,6 +13,17 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { identityDelegationPresenter } from '../../../presenters';
+
+let mapIdentityPermissions = (permissions?: ('provider:call' | 'provider:read')[]) =>
+  permissions?.map(
+    permission =>
+      (
+        ({
+          'provider:call': 'provider_call',
+          'provider:read': 'provider_read'
+        }) as const
+      )[permission]
+  );
 
 let delegationCredentialOverrideValidator = v.object({
   credential_id: v.string({
@@ -39,7 +54,7 @@ let identityDelegationGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let identityDelegation = await subspaceIdentityDelegationService.get({
+  let identityDelegation = await identityDelegationService.getIdentityDelegationById({
     instance: ctx.instance,
     identityDelegationId: ctx.params.identityDelegationId,
     allowDeleted: false
@@ -114,11 +129,11 @@ export let identityDelegationController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIdentityDelegationService.list({
+        let paginator = await identityDelegationService.listIdentityDelegations({
           instance: ctx.instance,
 
           status: normalizeArrayParam(ctx.query.status),
-          permissions: normalizeArrayParam(ctx.query.permissions),
+          permissions: mapIdentityPermissions(normalizeArrayParam(ctx.query.permissions)),
           ids: normalizeArrayParam(ctx.query.id),
           ownerActorIds: normalizeArrayParam(ctx.query.owner_actor_id),
           delegatorActorIds: normalizeArrayParam(ctx.query.delegator_actor_id),
@@ -216,25 +231,39 @@ export let identityDelegationController = Controller.create(
       )
       .output(identityDelegationPresenter)
       .do(async ctx => {
-        let identityDelegation = await subspaceIdentityDelegationService.create({
+        let [identity, delegator, delegatee] = await Promise.all([
+          identityService.getIdentityById({
+            instance: ctx.instance,
+            identityId: ctx.body.identity_id
+          }),
+          ctx.body.delegator_actor_id
+            ? identityActorService.getIdentityActorById({
+                instance: ctx.instance,
+                identityActorId: ctx.body.delegator_actor_id
+              })
+            : Promise.resolve(undefined),
+          identityActorService.getIdentityActorById({
+            instance: ctx.instance,
+            identityActorId: ctx.body.delegatee_actor_id
+          })
+        ]);
+        let identityDelegation = await identityDelegationService.createIdentityDelegation({
           instance: ctx.instance,
-
-          identityId: ctx.body.identity_id,
-          delegatorActorId: ctx.body.delegator_actor_id,
-          delegateeActorId: ctx.body.delegatee_actor_id,
-
-          permissions: ctx.body.permissions,
-          expiresAt: ctx.body.expires_at,
-          delegationConfigId: ctx.body.delegation_config_id,
-
-          note: ctx.body.note,
-          metadata: ctx.body.metadata,
-
-          credentialOverrides: ctx.body.credential_overrides?.map(override => ({
-            credentialId: override.credential_id,
-            permissions: override.permissions,
-            expiresAt: override.expires_at
-          }))
+          input: {
+            identity,
+            delegator,
+            delegatee,
+            permissions: mapIdentityPermissions(ctx.body.permissions),
+            expiresAt: ctx.body.expires_at,
+            delegationConfigId: ctx.body.delegation_config_id,
+            note: ctx.body.note,
+            metadata: ctx.body.metadata,
+            credentialOverrides: ctx.body.credential_overrides?.map(override => ({
+              credentialId: override.credential_id,
+              permissions: mapIdentityPermissions(override.permissions),
+              expiresAt: override.expires_at
+            }))
+          }
         });
 
         return identityDelegationPresenter.present({ identityDelegation });
@@ -255,10 +284,9 @@ export let identityDelegationController = Controller.create(
       .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityDelegationPresenter)
       .do(async ctx => {
-        let identityDelegation = await subspaceIdentityDelegationService.revoke({
+        let identityDelegation = await identityDelegationService.revokeIdentityDelegation({
           instance: ctx.instance,
-          identityDelegationId: ctx.identityDelegation.id,
-          allowDeleted: false
+          delegation: ctx.identityDelegation
         });
 
         return identityDelegationPresenter.present({ identityDelegation });

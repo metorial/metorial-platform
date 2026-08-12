@@ -3,24 +3,30 @@ import { Presenter } from '@metorial/presenter';
 import { providerVersionType } from '../../../types';
 
 export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
-  .presenter(async ({ version }) => ({
-    object: 'provider.version' as const,
+  .presenter(async ({ version }) => {
+    let rawVersion = 'provider' in version ? version : null;
 
-    id: version.id,
-    version: version.name,
+    return {
+      object: 'provider.version' as const,
 
-    is_current: version.isCurrent,
+      id: version.id,
+      version: version.name,
 
-    name: version.name,
-    description: version.description,
-    metadata: version.metadata,
+      is_current: version.isCurrent,
 
-    specification_id: version.specificationId,
-    provider_id: version.providerId,
+      name: version.name,
+      description: version.description,
+      metadata: version.metadata,
 
-    created_at: version.createdAt,
-    updated_at: version.updatedAt
-  }))
+      specification_id: rawVersion
+        ? (rawVersion.specification?.id ?? null)
+        : version.specificationId,
+      provider_id: rawVersion ? rawVersion.provider.id : version.providerId,
+
+      created_at: version.createdAt,
+      updated_at: version.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.version', {

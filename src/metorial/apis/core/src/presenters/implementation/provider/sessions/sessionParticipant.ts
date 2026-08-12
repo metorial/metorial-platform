@@ -2,27 +2,37 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { sessionParticipantType } from '../../../types';
 
+let normalizeParticipantType = (
+  type:
+    | 'legacy_mcp_client'
+    | 'legacy_metorial_protocol_client'
+    | 'legacy_tool_call'
+    | 'agent'
+    | 'provider'
+    | 'system'
+    | 'unknown'
+) => (type.startsWith('legacy_') ? ('agent' as const) : type);
+
 export let v1SessionParticipantPresenter = Presenter.create(sessionParticipantType)
   .presenter(async ({ sessionParticipant }) => ({
     object: 'session.participant' as const,
 
     id: sessionParticipant.id,
-    type: sessionParticipant.type,
+    type: normalizeParticipantType(sessionParticipant.type),
 
     identifier: sessionParticipant.identifier,
     name: sessionParticipant.name,
-    data: sessionParticipant.data,
+    data: sessionParticipant.payload,
 
-    provider_id: sessionParticipant.providerId ?? null,
+    provider_id: sessionParticipant.provider?.id ?? null,
     connection_type: sessionParticipant.connectionType ?? null,
-    agent_id: sessionParticipant.agentId ?? null,
-    agent_instance_id: sessionParticipant.agentInstanceId ?? null,
-    identity_actor_id: sessionParticipant.identityActorId ?? null,
-    identity_id: sessionParticipant.identityId ?? null,
-    agent_actor_id: sessionParticipant.agentActorId ?? null,
-    agent_client_id: sessionParticipant.agentClientId ?? null,
-    consumer_id:
-      'consumerId' in sessionParticipant ? (sessionParticipant.consumerId ?? null) : null,
+    agent_id: sessionParticipant.agentInstance?.agent.id ?? null,
+    agent_instance_id: sessionParticipant.agentInstance?.id ?? null,
+    identity_actor_id: sessionParticipant.identityActor?.id ?? null,
+    identity_id: sessionParticipant.identity?.id ?? null,
+    agent_actor_id: sessionParticipant.agentInstance?.agent.actor?.id ?? null,
+    agent_client_id: sessionParticipant.agentInstance?.agentClient?.id ?? null,
+    consumer_id: sessionParticipant.consumerId ?? null,
 
     created_at: sessionParticipant.createdAt
   }))

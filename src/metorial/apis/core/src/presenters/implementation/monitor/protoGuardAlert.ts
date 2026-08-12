@@ -3,6 +3,11 @@ import { Presenter } from '@metorial/presenter';
 import { protoGuardAlertType } from '../../types';
 import { protoGuardIssueTypeValidator, protoGuardSeverityValidator } from './protoGuardShared';
 
+let presentNullableId = (entity: { id: string } | null | undefined): string | null =>
+  entity?.id ?? null;
+
+let presentNullableNumber = (value: number | null | undefined): number | null => value ?? null;
+
 let protoGuardAlertFilterSchema = v.object({
   object: v.literal('protoguard.alert_filter'),
   id: v.string(),
@@ -20,22 +25,22 @@ export let v1ProtoGuardAlertPresenter = Presenter.create(protoGuardAlertType)
   .presenter(async ({ alert }) => ({
     object: 'protoguard.alert' as const,
     id: alert.id,
-    run_id: alert.runId,
-    session_id: alert.sessionId,
-    session_message_id: alert.sessionMessageId,
-    session_connection_id: alert.sessionConnectionId,
-    provider_run_id: alert.providerRunId,
-    filters: alert.filters.map((filter: (typeof alert.filters)[number]) => ({
+    run_id: alert.run.id,
+    session_id: presentNullableId(alert.session),
+    session_message_id: presentNullableId(alert.message),
+    session_connection_id: presentNullableId(alert.connection),
+    provider_run_id: presentNullableId(alert.providerRun),
+    filters: alert.instances.map(instance => ({
       object: 'protoguard.alert_filter' as const,
-      id: filter.id,
-      filter_id: filter.filterId,
-      key: filter.key,
-      name: filter.name,
-      description: filter.description,
-      issue_type: filter.issueType,
-      severity: filter.severity,
-      confidence: filter.confidence,
-      created_at: filter.createdAt
+      id: instance.id,
+      filter_id: instance.filter.id,
+      key: instance.filter.key,
+      name: instance.filter.name,
+      description: instance.filter.description,
+      issue_type: instance.filter.issueType,
+      severity: instance.filter.severity,
+      confidence: presentNullableNumber(instance.confidence),
+      created_at: instance.createdAt
     })),
     created_at: alert.createdAt
   }))

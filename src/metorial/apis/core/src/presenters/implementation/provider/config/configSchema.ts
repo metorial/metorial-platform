@@ -6,14 +6,17 @@ export let v1ProviderConfigSchemaPresenter = Presenter.create(configSchemaType)
   .presenter(async ({ schema }) => ({
     object: 'provider.capabilities.config.schema' as const,
 
-    schema: schema.configSchema
-      ? { type: 'json_schema' as const, schema: schema.configSchema }
+    schema: schema.value.specification.configJsonSchema
+      ? {
+          type: 'json_schema' as const,
+          schema: schema.value.specification.configJsonSchema
+        }
       : null,
 
-    visibility: schema.configVisibility,
+    visibility: schema.value.specification.configVisibility,
 
-    specification_id: schema.specificationId,
-    provider_id: schema.providerId,
+    specification_id: schema.id,
+    provider_id: schema.provider.id,
 
     created_at: schema.createdAt,
     updated_at: schema.updatedAt

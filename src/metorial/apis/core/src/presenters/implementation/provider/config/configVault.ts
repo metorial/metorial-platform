@@ -15,11 +15,19 @@ export let v1ProviderConfigVaultPresenter = Presenter.create(providerConfigVault
     description: configVault.description,
     metadata: configVault.metadata,
 
-    provider_id: configVault.providerId,
+    provider_id: configVault.provider.id,
 
-    deployment: configVault.deploymentId
+    deployment: configVault.deployment
       ? await v1ProviderDeploymentPreviewPresenter
-          .present({ deployment: configVault.deploymentId }, opts)
+          .present(
+            {
+              deployment: {
+                ...configVault.deployment,
+                provider: configVault.provider
+              }
+            },
+            opts
+          )
           .run()
       : null,
 

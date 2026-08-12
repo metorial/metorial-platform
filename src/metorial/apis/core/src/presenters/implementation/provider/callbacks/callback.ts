@@ -1,5 +1,4 @@
 import { v } from '@lowerdeck/validation';
-import type { SubspaceCallbackDestination } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { callbackType } from '../../../types';
 import { v1CallbackDestinationPresenter } from './callbackDestination';
@@ -59,10 +58,6 @@ let callbackTriggerSchema = v.object({
 
 export let v1CallbackPresenter = Presenter.create(callbackType)
   .presenter(async ({ callback }, opts) => {
-    let callbackWithDestinations = callback as typeof callback & {
-      destinations?: SubspaceCallbackDestination[];
-    };
-
     return {
       object: 'callback' as const,
 
@@ -74,18 +69,23 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
       poll_interval_seconds_override: callback.pollIntervalSecondsOverride,
 
       provider_deployment: await v1ProviderDeploymentPreviewPresenter
-        .present({ deployment: callback.providerDeployment }, opts)
+        .present(
+          {
+            deployment: callback.providerDeployment
+          },
+          opts
+        )
         .run(),
 
       destinations: await Promise.all(
-        (callbackWithDestinations.destinations ?? []).map(async destination =>
+        callback.callbackDestinationLinks.map(async link =>
           v1CallbackDestinationPresenter
-            .present({ callbackDestination: destination }, opts)
+            .present({ callbackDestination: link.callbackDestination }, opts)
             .run()
         )
       ),
 
-      provider_triggers: callback.providerTriggers.map(trigger => ({
+      provider_triggers: callback.callbackProviderTriggers.map(trigger => ({
         object: 'callback.provider_trigger' as const,
         id: trigger.id,
 
@@ -95,9 +95,9 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
         provider_trigger: {
           object: 'provider.trigger#preview' as const,
 
-          id: trigger.providerTriggerId,
-          key: trigger.providerTriggerKey,
-          name: trigger.providerTriggerName
+          id: trigger.providerTrigger.id,
+          key: trigger.providerTrigger.key,
+          name: trigger.providerTrigger.name
         }
       })),
 

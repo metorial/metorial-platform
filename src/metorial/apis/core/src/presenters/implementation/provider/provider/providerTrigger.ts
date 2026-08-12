@@ -1,51 +1,91 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { providerTriggerType } from '../../../types';
+import {
+  type PresentedProviderTrigger,
+  type RawProviderTrigger,
+  providerTriggerType
+} from '../../../types';
+
+let isRawProviderTrigger = (
+  trigger: RawProviderTrigger | PresentedProviderTrigger
+): trigger is RawProviderTrigger => 'value' in trigger;
 
 export let v1ProviderTriggerPresenter = Presenter.create(providerTriggerType)
-  .presenter(async ({ trigger }) => ({
-    object: 'provider.capabilities.trigger' as const,
-    id: trigger.id,
-
-    key: trigger.key,
-    name: trigger.name,
-    description: trigger.description ?? null,
-
-    input_schema: trigger.inputJsonSchema
-      ? {
-          type: 'json_schema' as const,
-          schema: trigger.inputJsonSchema
-        }
-      : null,
-    output_schema: trigger.outputJsonSchema
-      ? {
-          type: 'json_schema' as const,
-          schema: trigger.outputJsonSchema
-        }
-      : null,
-
-    invocation:
-      trigger.invocation.type === 'polling'
+  .presenter(async ({ trigger }) => {
+    let rawTrigger = isRawProviderTrigger(trigger) ? trigger : null;
+    let presentedTrigger = trigger as PresentedProviderTrigger;
+    let inputJsonSchema = rawTrigger
+      ? rawTrigger.value.inputJsonSchema
+      : presentedTrigger.inputJsonSchema;
+    let outputJsonSchema = rawTrigger
+      ? rawTrigger.value.outputJsonSchema
+      : presentedTrigger.outputJsonSchema;
+    let invocation = rawTrigger
+      ? rawTrigger.value.invocation.type === 'polling'
         ? {
             type: 'polling' as const,
-            interval_seconds: trigger.invocation.intervalSeconds
+            interval_seconds: rawTrigger.value.invocation.intervalSeconds
           }
         : {
             type: 'webhook' as const,
             auto_registration: {
-              status: trigger.invocation.autoRegistration ? 'supported' : 'unsupported'
+              status: rawTrigger.value.invocation.autoRegistration
+                ? ('supported' as const)
+                : ('unsupported' as const)
             },
             auto_unregistration: {
-              status: trigger.invocation.autoUnregistration ? 'supported' : 'unsupported'
+              status: rawTrigger.value.invocation.autoUnregistration
+                ? ('supported' as const)
+                : ('unsupported' as const)
             }
-          },
+          }
+      : presentedTrigger.invocation.type === 'polling'
+        ? {
+            type: 'polling' as const,
+            interval_seconds: presentedTrigger.invocation.intervalSeconds
+          }
+        : {
+            type: 'webhook' as const,
+            auto_registration: {
+              status: presentedTrigger.invocation.autoRegistration.status
+            },
+            auto_unregistration: {
+              status: presentedTrigger.invocation.autoUnregistration.status
+            }
+          };
 
-    provider_id: trigger.providerId,
-    provider_specification_id: trigger.specificationId,
+    return {
+      object: 'provider.capabilities.trigger' as const,
+      id: trigger.id,
 
-    created_at: trigger.createdAt,
-    updated_at: trigger.updatedAt
-  }))
+      key: trigger.key,
+      name: trigger.name,
+      description: trigger.description ?? null,
+
+      input_schema: inputJsonSchema
+        ? {
+            type: 'json_schema' as const,
+            schema: inputJsonSchema
+          }
+        : null,
+      output_schema: outputJsonSchema
+        ? {
+            type: 'json_schema' as const,
+            schema: outputJsonSchema
+          }
+        : null,
+
+      invocation,
+
+      provider_id: rawTrigger ? rawTrigger.provider.id : presentedTrigger.providerId,
+      provider_specification_id: rawTrigger
+        ? rawTrigger.specification.id
+        : presentedTrigger.specificationId,
+
+      created_at: trigger.createdAt,
+      updated_at: trigger.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.capabilities.trigger', {

@@ -14,17 +14,17 @@ export let v1IntegrationInstancePresenter = Presenter.create(integrationInstance
     name: integrationInstance.name,
     description: integrationInstance.description,
     metadata: integrationInstance.metadata,
-    integration_id: integrationInstance.integrationId,
-    identity_actor_id: integrationInstance.identityActorId,
-    identity_id: integrationInstance.identityId,
-    implementation: integrationInstance.magicMcpServerBackingId
+    integration_id: integrationInstance.integration.id,
+    identity_actor_id: integrationInstance.identityActor?.id ?? null,
+    identity_id: integrationInstance.identity?.id ?? null,
+    implementation: integrationInstance.magicMcpServerBackings[0]
       ? {
           type: 'magic_mcp_server' as const,
-          magic_mcp_server_id: integrationInstance.magicMcpServerBackingId
+          magic_mcp_server_id: integrationInstance.magicMcpServerBackings[0].id
         }
       : null,
     providers: await Promise.all(
-      integrationInstance.providers.map(integrationInstanceProvider =>
+      integrationInstance.integrationInstanceProviders.map(integrationInstanceProvider =>
         v1IntegrationInstanceProviderPresenter
           .present({ integrationInstanceProvider }, opts)
           .run()
@@ -68,7 +68,7 @@ export let dashboardIntegrationInstancePresenter = Presenter.create(integrationI
     return {
       ...inner,
       providers: await Promise.all(
-        integrationInstance.providers.map(integrationInstanceProvider =>
+        integrationInstance.integrationInstanceProviders.map(integrationInstanceProvider =>
           dashboardIntegrationInstanceProviderPresenter
             .present({ integrationInstanceProvider }, opts)
             .run()

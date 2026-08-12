@@ -15,8 +15,9 @@ export let v1IdentityDelegationConfigPresenter = Presenter.create(identityDelega
     description: identityDelegationConfig.description,
     metadata: identityDelegationConfig.metadata,
 
-    sub_delegation_behavior: identityDelegationConfig.subDelegationBehavior,
-    sub_delegation_depth: identityDelegationConfig.subDelegationDepth,
+    sub_delegation_behavior:
+      identityDelegationConfig.currentVersion?.subDelegationBehavior ?? 'deny',
+    sub_delegation_depth: identityDelegationConfig.currentVersion?.subDelegationDepth ?? 0,
 
     created_at: identityDelegationConfig.createdAt,
     updated_at: identityDelegationConfig.updatedAt

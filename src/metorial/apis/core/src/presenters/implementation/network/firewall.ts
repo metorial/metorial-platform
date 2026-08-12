@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { firewallType } from '../../types';
+import { presentNetworkPolicyRule } from './networkPolicyRule';
 
 let networkPolicyPreviewSchema = v.object({
   object: v.literal('network.policy#preview'),
@@ -38,28 +39,15 @@ export let v1FirewallPresenter = Presenter.create(firewallType)
     name: firewall.name,
     description: firewall.description,
     status: firewall.status,
-    network_id: firewall.networkId,
-    network_policies: firewall.networkPolicies.map(policy => ({
+    network_id: firewall.network.id,
+    network_policies: firewall.networkPolicyLinks.map(({ networkPolicy }) => ({
       object: 'network.policy#preview' as const,
-      id: policy.id,
-      name: policy.name,
-      version: policy.version,
-      rules: policy.rules.map(rule => ({
-        object: 'network.policy.rule' as const,
-        id: rule.id,
-        effect: rule.effect,
-        direction: rule.direction,
-        cidrs: rule.cidrs,
-        description: rule.description ?? null,
-        enabled: rule.enabled,
-        priority: rule.priority,
-        ports:
-          rule.ports?.map(port => ({
-            object: 'network.policy.port_range' as const,
-            from: port.from,
-            to: port.to
-          })) ?? null
-      }))
+      id: networkPolicy.id,
+      name: networkPolicy.name,
+      version: networkPolicy.currentVersionNumber,
+      rules: (
+        (networkPolicy.currentVersion?.rules ?? []) as PrismaJson.NetworkPolicyRules
+      ).map(presentNetworkPolicyRule)
     })),
     created_at: firewall.createdAt,
     updated_at: firewall.updatedAt,

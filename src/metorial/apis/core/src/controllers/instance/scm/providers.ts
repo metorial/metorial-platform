@@ -2,9 +2,9 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
-  subspaceScmProviderService,
-  subspaceScmProviderSetupSessionService
-} from '@metorial/module-subspace';
+  scmProviderService,
+  scmProviderSetupSessionService
+} from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
@@ -20,7 +20,7 @@ let scmProviderGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let scmProvider = await subspaceScmProviderService.get({
+  let scmProvider = await scmProviderService.getScmProviderById({
     instance: ctx.instance,
     scmProviderId: ctx.params.scmProviderId
   });
@@ -43,16 +43,23 @@ export let scmProvidersController = Controller.create(
       .outputList(scmProviderPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
-        let paginator = await subspaceScmProviderService.list({
-          instance: ctx.instance
+        let list = await scmProviderService.listScmProviders({
+          instance: ctx.instance,
+          ...ctx.query
         });
 
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, scmProvider =>
-          scmProviderPresenter.present({
-            scmProvider
-          })
+        return Paginator.present(
+          {
+            items: list.items,
+            pagination: {
+              hasNextPage: list.pagination.has_more_after,
+              hasPreviousPage: list.pagination.has_more_before
+            }
+          },
+          scmProvider =>
+            scmProviderPresenter.present({
+              scmProvider
+            })
         );
       }),
 
@@ -85,7 +92,7 @@ export let scmProvidersController = Controller.create(
       )
       .output(scmProviderSetupPresenter)
       .do(async ctx => {
-        let scmProviderSetup = await subspaceScmProviderSetupSessionService.create({
+        let scmProviderSetup = await scmProviderSetupSessionService.createScmProviderSetupSession({
           instance: ctx.instance,
           type: ctx.body.type
         });

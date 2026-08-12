@@ -14,7 +14,7 @@ export let v1ProviderConfigPreviewPresenter = Presenter.create(configPreviewType
     description: config.description,
     metadata: config.metadata,
 
-    provider_id: config.providerId,
+    provider_id: config.provider.id,
 
     created_at: config.createdAt,
     updated_at: config.updatedAt

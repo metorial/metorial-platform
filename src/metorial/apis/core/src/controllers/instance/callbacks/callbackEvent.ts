@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCallbackEventService } from '@metorial/module-subspace';
+import { callbackEventService } from '@metorial-subspace/module-callback';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -19,7 +19,7 @@ let callbackEventGroup = callbackGroup.use(async ctx => {
     );
   }
 
-  let callbackEvent = await subspaceCallbackEventService.get({
+  let callbackEvent = await callbackEventService.getCallbackEvent({
     instance: ctx.instance,
     callbackId: ctx.callback.id,
     slateTriggerEventId: ctx.params.callbackEventId
@@ -59,16 +59,28 @@ export let callbackEventController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCallbackEventService.list({
+        let list = await callbackEventService.listCallbackEvents({
           instance: ctx.instance,
           callbackId: ctx.callback.id,
-          eventTypes: normalizeArrayParam(ctx.query.type)
+          input: {
+            eventTypes: normalizeArrayParam(ctx.query.type),
+            limit: ctx.query.limit,
+            after: ctx.query.after,
+            before: ctx.query.before,
+            cursor: ctx.query.cursor,
+            order: ctx.query.order
+          }
         });
 
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, callbackEvent =>
-          callbackEventPresenter.present({ callbackEvent })
+        return Paginator.present(
+          {
+            items: list.items,
+            pagination: {
+              hasNextPage: list.pagination.has_more_after,
+              hasPreviousPage: list.pagination.has_more_before
+            }
+          },
+          callbackEvent => callbackEventPresenter.present({ callbackEvent })
         );
       }),
 

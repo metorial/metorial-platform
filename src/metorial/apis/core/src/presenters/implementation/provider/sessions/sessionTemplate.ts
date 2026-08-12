@@ -14,10 +14,10 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
     description: sessionTemplate.description,
     metadata: sessionTemplate.metadata,
 
-    integration_instance_id: sessionTemplate.integrationInstanceId,
-    integration_instance_group_id: sessionTemplate.integrationInstanceGroupId,
-    identity_actor_id: sessionTemplate.identityActorId ?? null,
-    identity_id: sessionTemplate.identityId ?? null,
+    integration_instance_id: sessionTemplate.integrationInstance?.id ?? null,
+    integration_instance_group_id: sessionTemplate.integrationInstanceGroup?.id ?? null,
+    identity_actor_id: sessionTemplate.identityActor?.id ?? null,
+    identity_id: sessionTemplate.identity?.id ?? null,
 
     providers: await Promise.all(
       sessionTemplate.providers

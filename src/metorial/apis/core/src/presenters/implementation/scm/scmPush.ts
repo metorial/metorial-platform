@@ -1,3 +1,4 @@
+import { shadowId } from '@lowerdeck/shadow-id';
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { scmPushType } from '../../types';
@@ -11,24 +12,26 @@ export let v1ScmPushPresenter = Presenter.create(scmPushType)
 
     actor: {
       object: 'scm.actor' as const,
-      id: scmPush.actor.id,
-      external_id: scmPush.actor.externalId,
-      name: scmPush.actor.name,
-      email: scmPush.actor.email
+      id: shadowId(
+        'spco_',
+        [scmPush.repo.id],
+        [scmPush.senderIdentifier ?? scmPush.pusherEmail ?? scmPush.id]
+      ),
+      external_id: scmPush.senderIdentifier,
+      name: scmPush.pusherName,
+      email: scmPush.pusherEmail
     },
 
     commit: {
       object: 'scm.commit' as const,
-      id: scmPush.commit.id,
-      sha: scmPush.commit.sha,
-      branch: scmPush.commit.branch,
-      message: scmPush.commit.message,
-      created_at: scmPush.commit.createdAt
+      id: shadowId('spco_', [scmPush.id], [scmPush.sha]),
+      sha: scmPush.sha,
+      branch: scmPush.branchName,
+      message: scmPush.commitMessage,
+      created_at: scmPush.createdAt
     },
 
-    repository: await v1ScmRepoPresenter
-      .present({ scmRepo: scmPush.repository as any }, opts)
-      .run(),
+    repository: await v1ScmRepoPresenter.present({ scmRepo: scmPush.repo }, opts).run(),
 
     created_at: scmPush.createdAt
   }))

@@ -13,7 +13,7 @@ export let v1ProviderDeploymentPreviewPresenter = Presenter.create(deploymentPre
     description: deployment.description,
     metadata: deployment.metadata,
 
-    provider_id: deployment.providerId,
+    provider_id: deployment.provider.id,
 
     created_at: deployment.createdAt,
     updated_at: deployment.updatedAt

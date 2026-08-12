@@ -1,4 +1,6 @@
 import { v } from '@lowerdeck/validation';
+import { getOffloadedSessionMessage } from '@metorial-subspace/connection-utils';
+import { messageTranslator } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { sessionMessageType } from '../../../types';
 import { v1SessionErrorPresenter } from './sessionError';
@@ -6,72 +8,110 @@ import { v1SessionParticipantPresenter } from './sessionParticipant';
 import { v1ProviderToolCallPresenter } from './toolCall';
 
 export let v1SubspaceSessionMessagePresenter = Presenter.create(sessionMessageType)
-  .presenter(async ({ sessionMessage }, opts) => ({
-    object: 'session.message' as const,
+  .presenter(async ({ sessionMessage }, opts) => {
+    if (sessionMessage.isOffloadedToStorage) {
+      let offloaded = await getOffloadedSessionMessage(sessionMessage);
+      if (offloaded) {
+        sessionMessage.input = offloaded.input;
+        sessionMessage.output = offloaded.output;
+      }
+    }
 
-    id: sessionMessage.id,
-    type: sessionMessage.type,
-    status: sessionMessage.status,
-    source: sessionMessage.source,
+    return {
+      object: 'session.message' as const,
 
-    session_id: sessionMessage.sessionId,
-    session_provider_id: sessionMessage.sessionProviderId,
-    connection_id: sessionMessage.connectionId,
-    provider_run_id: sessionMessage.providerRunId,
+      id: sessionMessage.id,
+      type: sessionMessage.type,
+      status: sessionMessage.status,
+      source: sessionMessage.source,
 
-    hierarchy: {
-      object: 'session.message.hierarchy',
-      type: sessionMessage.hierarchy.type,
-      parent_message_id: sessionMessage.hierarchy.parentMessageId ?? null,
-      child_message_ids: sessionMessage.hierarchy.childMessageIds
-    },
+      session_id: sessionMessage.session.id,
+      session_provider_id: sessionMessage.sessionProvider?.id ?? null,
+      connection_id: sessionMessage.connection?.id ?? null,
+      provider_run_id: sessionMessage.providerRun?.id ?? null,
 
-    transport: {
-      object: 'session.message.transport',
-      type: sessionMessage.transport.type,
-      mcp: sessionMessage.transport.mcp
-        ? {
-            object: 'session.message.transport.mcp' as const,
-            id: sessionMessage.transport.mcp.id,
-            protocol_version: sessionMessage.transport.mcp.protocolVersion,
-            transport: sessionMessage.transport.mcp.transport
-          }
+      hierarchy: {
+        object: 'session.message.hierarchy',
+        type: sessionMessage.parentMessage ? 'child' : 'parent',
+        parent_message_id: sessionMessage.parentMessage?.id ?? null,
+        child_message_ids: sessionMessage.childMessages.map(message => message.id)
+      },
+
+      transport: {
+        object: 'session.message.transport',
+        type: sessionMessage.transport,
+        mcp:
+          sessionMessage.transport === 'mcp'
+            ? {
+                object: 'session.message.transport.mcp' as const,
+                id:
+                  sessionMessage.input?.data?.id ??
+                  sessionMessage.clientMcpId ??
+                  sessionMessage.id,
+                protocol_version: sessionMessage.connection?.mcpProtocolVersion ?? 'unknown',
+                transport: {
+                  none: 'unknown',
+                  sse: 'sse',
+                  streamable_http: 'streamable_http'
+                }[sessionMessage.connection?.mcpTransport ?? 'none']
+              }
+            : null,
+        // The former pre-presenter inverted this transport check; preserve its final API output.
+        tool_call:
+          sessionMessage.transport !== 'tool_call' && sessionMessage.toolCall?.id
+            ? {
+                object: 'session.message.transport.tool_call' as const,
+                id: sessionMessage.toolCall.id
+              }
+            : null
+      },
+
+      input: sessionMessage.input
+        ? ((await messageTranslator.inputToMcpBasic(
+            sessionMessage.input,
+            sessionMessage
+          )) as Record<string, any>)
         : null,
-      tool_call: sessionMessage.transport.toolCall?.id
-        ? {
-            object: 'session.message.transport.tool_call' as const,
-            id: sessionMessage.transport.toolCall.id
-          }
-        : null
-    },
+      output: sessionMessage.output
+        ? ((await messageTranslator.outputToMcpBasic(
+            sessionMessage.output,
+            sessionMessage
+          )) as Record<string, any>)
+        : null,
 
-    input: sessionMessage.input as Record<string, any> | null,
-    output: sessionMessage.output as Record<string, any> | null,
+      tool_call: sessionMessage.toolCall
+        ? await v1ProviderToolCallPresenter
+            .present(
+              {
+                toolCall: {
+                  ...sessionMessage.toolCall,
+                  message: sessionMessage
+                }
+              },
+              opts
+            )
+            .run()
+        : null,
 
-    tool_call: sessionMessage.toolCall
-      ? await v1ProviderToolCallPresenter
-          .present({ toolCall: sessionMessage.toolCall as any }, opts)
-          .run()
-      : null,
+      sender_participant: await v1SessionParticipantPresenter
+        .present({ sessionParticipant: sessionMessage.senderParticipant }, opts)
+        .run(),
 
-    sender_participant: await v1SessionParticipantPresenter
-      .present({ sessionParticipant: sessionMessage.senderParticipant as any }, opts)
-      .run(),
+      responder_participant: sessionMessage.responderParticipant
+        ? await v1SessionParticipantPresenter
+            .present({ sessionParticipant: sessionMessage.responderParticipant }, opts)
+            .run()
+        : null,
 
-    responder_participant: sessionMessage.responderParticipant
-      ? await v1SessionParticipantPresenter
-          .present({ sessionParticipant: sessionMessage.responderParticipant as any }, opts)
-          .run()
-      : null,
+      error: sessionMessage.error
+        ? await v1SessionErrorPresenter
+            .present({ sessionError: sessionMessage.error }, opts)
+            .run()
+        : null,
 
-    error: sessionMessage.error
-      ? await v1SessionErrorPresenter
-          .present({ sessionError: sessionMessage.error }, opts)
-          .run()
-      : null,
-
-    created_at: sessionMessage.createdAt
-  }))
+      created_at: sessionMessage.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('session.message', {

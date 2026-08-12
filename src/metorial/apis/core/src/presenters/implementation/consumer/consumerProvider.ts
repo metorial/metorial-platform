@@ -49,7 +49,12 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
 
       provider_template: v1ProviderTemplatePreview(consumerProvider.providerTemplate),
       provider: await v1ProviderPresenter
-        .present({ provider: consumerProvider.provider }, opts)
+        .present(
+          {
+            provider: consumerProvider.provider
+          },
+          opts
+        )
         .run(),
 
       deployment: {
@@ -58,15 +63,16 @@ export let v1ConsumerProviderPresenter = Presenter.create(consumerProviderType)
         name: consumerProvider.deployment.name,
         description: consumerProvider.deployment.description,
         is_default: consumerProvider.deployment.isDefault,
-        provider_id: consumerProvider.deployment.providerId,
-        locked_version_id: consumerProvider.deployment.lockedVersion?.id ?? null
+        provider_id: consumerProvider.deployment.provider.id,
+        locked_version_id:
+          consumerProvider.deployment.currentVersion?.lockedVersion?.id ?? null
       },
       tool_filter: presentToolFilter(consumerProvider.toolFilter),
 
-      config_schema: consumerProvider.configSchema?.configSchema
+      config_schema: consumerProvider.configSchema?.value.specification.configJsonSchema
         ? {
             type: 'json_schema' as const,
-            schema: consumerProvider.configSchema.configSchema
+            schema: consumerProvider.configSchema.value.specification.configJsonSchema
           }
         : null,
 

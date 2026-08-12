@@ -4,27 +4,30 @@ import { bucketType } from '../../../types';
 import { v1ScmRepoPresenter } from '../../scm';
 
 export let v1BucketPresenter = Presenter.create(bucketType)
-  .presenter(async ({ bucket }, opts) => ({
-    object: 'bucket' as const,
+  .presenter(async ({ bucket }, opts) => {
+    let rawBucket = 'scmRepo' in bucket ? bucket : null;
+    let scmRepo = rawBucket ? rawBucket.scmRepo : bucket.scmRepoLink?.repository;
 
-    id: bucket.id,
+    return {
+      object: 'bucket' as const,
 
-    is_immutable: bucket.isImmutable,
-    is_read_only: bucket.isReadOnly,
+      id: bucket.id,
 
-    scm_repo_link: bucket.scmRepoLink
-      ? {
-          object: 'bucket.scm_repo' as const,
-          is_linked: true as const,
-          path: bucket.scmRepoLink.path,
-          repository: await v1ScmRepoPresenter
-            .present({ scmRepo: bucket.scmRepoLink.repository }, opts)
-            .run()
-        }
-      : null,
+      is_immutable: bucket.isImmutable,
+      is_read_only: bucket.isReadOnly,
 
-    created_at: bucket.createdAt
-  }))
+      scm_repo_link: scmRepo
+        ? {
+            object: 'bucket.scm_repo' as const,
+            is_linked: true as const,
+            path: rawBucket ? rawBucket.scmRepoPath : bucket.scmRepoLink!.path,
+            repository: await v1ScmRepoPresenter.present({ scmRepo }, opts).run()
+          }
+        : null,
+
+      created_at: bucket.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('bucket', {

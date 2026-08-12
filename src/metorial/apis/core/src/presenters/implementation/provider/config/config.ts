@@ -19,18 +19,34 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
     metadata: config.metadata,
     tool_filter: toolFilterPresenter(config.toolFilter),
 
-    provider_id: config.providerId,
-    specification_id: config.specificationId,
+    provider_id: config.provider.id,
+    specification_id: config.specification.id,
 
     deployment: config.deployment
       ? await v1ProviderDeploymentPreviewPresenter
-          .present({ deployment: config.deployment }, opts)
+          .present(
+            {
+              deployment: {
+                ...config.deployment,
+                provider: config.provider
+              }
+            },
+            opts
+          )
           .run()
       : null,
 
     from_vault: config.fromVault
       ? await v1ProviderConfigVaultPresenter
-          .present({ configVault: config.fromVault }, opts)
+          .present(
+            {
+              configVault: {
+                ...config.fromVault,
+                provider: config.provider
+              }
+            },
+            opts
+          )
           .run()
       : null,
 

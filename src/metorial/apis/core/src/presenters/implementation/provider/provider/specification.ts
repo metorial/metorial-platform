@@ -14,20 +14,44 @@ export let v1ProviderSpecificationPresenter = Presenter.create(providerSpecifica
     name: specification.name,
     description: specification.description,
 
-    config_schema: specification.configSchema,
-    config_visibility: specification.configVisibility,
+    config_schema: specification.value.specification.configJsonSchema,
+    config_visibility: specification.value.specification.configVisibility,
 
     tools: await Promise.all(
-      specification.tools.map(t => v1ProviderToolPresenter.present({ tool: t }, opts).run())
-    ),
-
-    auth_methods: await Promise.all(
-      specification.authMethods.map(a =>
-        v1ProviderAuthMethodPresenter.present({ authMethod: a }, opts).run()
+      specification.providerTools.map(tool =>
+        v1ProviderToolPresenter
+          .present(
+            {
+              tool: {
+                ...tool,
+                provider: specification.provider,
+                specification
+              }
+            },
+            opts
+          )
+          .run()
       )
     ),
 
-    provider_id: specification.providerId,
+    auth_methods: await Promise.all(
+      specification.providerAuthMethods.map(authMethod =>
+        v1ProviderAuthMethodPresenter
+          .present(
+            {
+              authMethod: {
+                ...authMethod,
+                provider: specification.provider,
+                specification
+              }
+            },
+            opts
+          )
+          .run()
+      )
+    ),
+
+    provider_id: specification.provider.id,
 
     created_at: specification.createdAt,
     updated_at: specification.updatedAt

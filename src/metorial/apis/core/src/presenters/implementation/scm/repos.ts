@@ -6,7 +6,7 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   .presenter(async ({ repoPreviews }) => ({
     object: 'scm.repository.list#preview' as const,
 
-    repos: repoPreviews.repositories.map(r => ({
+    repos: repoPreviews.repositories.map((r: any) => ({
       object: 'scm.repository.item#preview' as const,
 
       provider: r.provider,
@@ -41,26 +41,38 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
   .build();
 
 export let v1ScmRepoPresenter = Presenter.create(scmRepoType)
-  .presenter(async ({ scmRepo }) => ({
-    object: 'scm.repository' as const,
+  .presenter(async ({ scmRepo }) => {
+    let rawScmRepo = 'externalUrl' in scmRepo ? scmRepo : null;
 
-    id: scmRepo.id,
+    return {
+      object: 'scm.repository' as const,
 
-    provider: {
-      object: 'scm.provider' as const,
-      type: scmRepo.provider.type,
-      id: scmRepo.provider.id,
-      name: scmRepo.provider.name,
-      owner: scmRepo.provider.owner
-    },
+      id: scmRepo.id,
 
-    url: scmRepo.url,
+      provider: rawScmRepo
+        ? {
+            object: 'scm.provider' as const,
+            type: rawScmRepo.provider,
+            id: rawScmRepo.externalId,
+            name: rawScmRepo.externalName,
+            owner: rawScmRepo.externalOwner
+          }
+        : {
+            object: 'scm.provider' as const,
+            type: scmRepo.provider.type,
+            id: scmRepo.provider.id,
+            name: scmRepo.provider.name,
+            owner: scmRepo.provider.owner
+          },
 
-    is_private: scmRepo.isPrivate,
-    default_branch: scmRepo.defaultBranch,
+      url: rawScmRepo ? rawScmRepo.externalUrl : scmRepo.url,
 
-    created_at: scmRepo.createdAt
-  }))
+      is_private: rawScmRepo ? rawScmRepo.externalIsPrivate : scmRepo.isPrivate,
+      default_branch: scmRepo.defaultBranch,
+
+      created_at: scmRepo.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('scm.repository'),

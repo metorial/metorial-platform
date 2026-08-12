@@ -1,5 +1,4 @@
 import { v } from '@lowerdeck/validation';
-import { SubspaceNetworkPolicyRule } from '@metorial/module-subspace';
 import { Presenter } from '@metorial/presenter';
 import { networkPolicyRuleType } from '../../types';
 
@@ -23,7 +22,7 @@ export let networkPolicyRuleSchema = v.object({
   )
 });
 
-export let presentNetworkPolicyRule = (rule: SubspaceNetworkPolicyRule) => ({
+export let presentNetworkPolicyRule = (rule: PrismaJson.NetworkPolicyRule) => ({
   object: 'network.policy.rule' as const,
   id: rule.id,
   effect: rule.effect,

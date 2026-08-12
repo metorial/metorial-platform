@@ -38,9 +38,9 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
     status: customProviderDeployment.status,
     trigger: customProviderDeployment.trigger,
 
-    custom_provider_id: customProviderDeployment.customProviderId,
-    provider_id: customProviderDeployment.providerId ?? null,
-    custom_provider_version_id: customProviderDeployment.customProviderVersionId ?? null,
+    custom_provider_id: customProviderDeployment.customProvider.id,
+    provider_id: customProviderDeployment.customProvider.provider?.id ?? null,
+    custom_provider_version_id: customProviderDeployment.customProviderVersion?.id ?? null,
 
     commit: customProviderDeployment.commit
       ? {
@@ -52,19 +52,19 @@ export let v1CustomProviderDeploymentPresenter = Presenter.create(customProvider
         }
       : null,
 
-    immutable_bucket: customProviderDeployment.immutableBucket
+    immutable_bucket: customProviderDeployment.immutableCodeBucket
       ? await v1BucketPresenter
-          .present({ bucket: customProviderDeployment.immutableBucket }, opts)
+          .present({ bucket: customProviderDeployment.immutableCodeBucket }, opts)
           .run()
       : null,
 
     actor: await v1ActorPreviewPresenter
-      .present({ actor: customProviderDeployment.actor }, opts)
+      .present({ actor: customProviderDeployment.creatorActor }, opts)
       .run(),
 
-    scm_push: customProviderDeployment.scmPush
+    scm_push: customProviderDeployment.scmRepoPush
       ? await v1ScmPushPresenter
-          .present({ scmPush: customProviderDeployment.scmPush }, opts)
+          .present({ scmPush: customProviderDeployment.scmRepoPush }, opts)
           .run()
       : null,
 
@@ -137,9 +137,9 @@ export let dashboardCustomProviderDeploymentPresenter = Presenter.create(
     return {
       ...inner,
 
-      immutable_bucket: customProviderDeployment.immutableBucket
+      immutable_bucket: customProviderDeployment.immutableCodeBucket
         ? await v1BucketPresenter
-            .present({ bucket: customProviderDeployment.immutableBucket }, opts)
+            .present({ bucket: customProviderDeployment.immutableCodeBucket }, opts)
             .run()
         : null
     };

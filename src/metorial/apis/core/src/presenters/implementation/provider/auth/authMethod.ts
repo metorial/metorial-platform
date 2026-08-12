@@ -1,47 +1,83 @@
+import { shadowId } from '@lowerdeck/shadow-id';
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { providerAuthMethodType } from '../../../types';
+import {
+  type PresentedProviderAuthMethod,
+  providerAuthMethodType,
+  type RawProviderAuthMethod
+} from '../../../types';
+
+let isRawProviderAuthMethod = (
+  authMethod: RawProviderAuthMethod | PresentedProviderAuthMethod
+): authMethod is RawProviderAuthMethod => 'value' in authMethod;
 
 export let v1ProviderAuthMethodPresenter = Presenter.create(providerAuthMethodType)
-  .presenter(async ({ authMethod }) => ({
-    object: 'provider.capabilities.auth_method' as const,
-    id: authMethod.id,
-    type: authMethod.type,
+  .presenter(async ({ authMethod }) => {
+    let rawAuthMethod = isRawProviderAuthMethod(authMethod) ? authMethod : null;
+    let presentedAuthMethod = authMethod as PresentedProviderAuthMethod;
+    let capabilities = rawAuthMethod
+      ? rawAuthMethod.value.capabilities
+      : presentedAuthMethod.capabilities;
+    let inputJsonSchema = rawAuthMethod
+      ? rawAuthMethod.value.inputJsonSchema
+      : presentedAuthMethod.inputJsonSchema;
+    let outputJsonSchema = rawAuthMethod
+      ? rawAuthMethod.value.outputJsonSchema
+      : presentedAuthMethod.outputJsonSchema;
+    let scopes =
+      authMethod.type === 'oauth'
+        ? rawAuthMethod
+          ? (rawAuthMethod.value.scopes ?? []).map(scope => ({
+              object: 'provider.capabilities.auth_method.scope' as const,
+              id: shadowId('pamsco_', [authMethod.id], [scope.id]),
+              name: scope.title,
+              scope: scope.id,
+              description: scope.description ?? null
+            }))
+          : (presentedAuthMethod.scopes ?? []).map(scope => ({
+              object: 'provider.capabilities.auth_method.scope' as const,
+              id: scope.id,
+              name: scope.title,
+              scope: scope.scope,
+              description: scope.description ?? null
+            }))
+        : null;
 
-    key: authMethod.key,
-    name: authMethod.name,
-    description: authMethod.description,
+    return {
+      object: 'provider.capabilities.auth_method' as const,
+      id: authMethod.id,
+      type: authMethod.type,
 
-    capabilities: authMethod.capabilities,
+      key: authMethod.key,
+      name: authMethod.name,
+      description: authMethod.description,
 
-    input_schema: authMethod.inputJsonSchema
-      ? {
-          type: 'json_schema',
-          schema: authMethod.inputJsonSchema
-        }
-      : null,
-    output_schema: authMethod.outputJsonSchema
-      ? {
-          type: 'json_schema',
-          schema: authMethod.outputJsonSchema
-        }
-      : null,
+      capabilities,
 
-    scopes:
-      authMethod.scopes?.map(scope => ({
-        object: 'provider.capabilities.auth_method.scope' as const,
-        id: scope.id,
-        name: scope.title,
-        scope: scope.scope,
-        description: scope.description ?? null
-      })) ?? null,
+      input_schema: inputJsonSchema
+        ? {
+            type: 'json_schema',
+            schema: inputJsonSchema
+          }
+        : null,
+      output_schema: outputJsonSchema
+        ? {
+            type: 'json_schema',
+            schema: outputJsonSchema
+          }
+        : null,
 
-    provider_id: authMethod.providerId,
-    provider_specification_id: authMethod.specificationId,
+      scopes,
 
-    created_at: authMethod.createdAt,
-    updated_at: authMethod.updatedAt
-  }))
+      provider_id: rawAuthMethod ? rawAuthMethod.provider.id : presentedAuthMethod.providerId,
+      provider_specification_id: rawAuthMethod
+        ? rawAuthMethod.specification.id
+        : presentedAuthMethod.specificationId,
+
+      created_at: authMethod.createdAt,
+      updated_at: authMethod.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.capabilities.auth_method', {

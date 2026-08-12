@@ -10,7 +10,7 @@ export let v1AgentInstancePresenter = Presenter.create(agentInstanceType)
     name: agentInstance.name,
     version: agentInstance.version,
     description: agentInstance.description,
-    agent_id: agentInstance.agentId,
+    agent_id: agentInstance.agent.id,
     agent_client: agentInstance.agentClient
       ? {
           object: 'agent.client' as const,

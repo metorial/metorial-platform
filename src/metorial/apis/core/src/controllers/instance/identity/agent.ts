@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceAgentInstanceService, subspaceAgentService } from '@metorial/module-subspace';
+import { agentInstanceService, agentService } from '@metorial-subspace/module-agent';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -20,7 +20,7 @@ let agentGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let agent = await subspaceAgentService.get({
+  let agent = await agentService.getAgentById({
     instance: ctx.instance,
     agentId: ctx.params.agentId,
     allowDeleted: false
@@ -39,11 +39,10 @@ let agentInstanceGroup = agentGroup.use(async ctx => {
     );
   }
 
-  let agentInstance = await subspaceAgentInstanceService.get({
+  let agentInstance = await agentInstanceService.getAgentInstanceById({
     instance: ctx.instance,
-    agentId: ctx.agent.id,
-    agentInstanceId: ctx.params.agentInstanceId,
-    allowDeleted: false
+    agent: ctx.agent,
+    agentInstanceId: ctx.params.agentInstanceId
   });
 
   return { agentInstance };
@@ -88,7 +87,7 @@ export let agentController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceAgentService.list({
+        let paginator = await agentService.listAgents({
           instance: ctx.instance,
           allowDeleted: true,
           search: ctx.query.search,
@@ -97,7 +96,7 @@ export let agentController = Controller.create(
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at,
           types: normalizeArrayParam(ctx.query.type)
-        } as any);
+        });
 
         let list = await paginator.run(ctx.query);
 
@@ -140,10 +139,9 @@ export let agentController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceAgentInstanceService.list({
+        let paginator = await agentInstanceService.listAgentInstances({
           instance: ctx.instance,
-          agentId: ctx.agent.id,
-          allowDeleted: false,
+          agent: ctx.agent,
           ids: normalizeArrayParam(ctx.query.id),
           types: normalizeArrayParam(ctx.query.type),
           agentClientIds: normalizeArrayParam(ctx.query.agent_client_id),

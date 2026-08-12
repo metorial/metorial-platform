@@ -2,16 +2,16 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
-  subspaceIntegrationInstanceProviderService,
-  subspaceIntegrationInstanceService
-} from '@metorial/module-subspace';
+  integrationInstanceProviderService,
+  integrationInstanceService
+} from '@metorial-subspace/module-integration';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationInstanceProviderPresenter } from '../../../presenters';
-import { toolFiltersValidator } from '../sessions/_shared';
+import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let integrationInstanceProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceProviderId) {
@@ -23,11 +23,12 @@ let integrationInstanceProviderGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let integrationInstanceProvider = await subspaceIntegrationInstanceProviderService.get({
-    instance: ctx.instance,
-    integrationInstanceProviderId: ctx.params.integrationInstanceProviderId,
-    allowDeleted: true
-  });
+  let integrationInstanceProvider =
+    await integrationInstanceProviderService.getIntegrationInstanceProviderById({
+      instance: ctx.instance,
+      integrationInstanceProviderId: ctx.params.integrationInstanceProviderId,
+      allowDeleted: true
+    });
 
   return { integrationInstanceProvider };
 });
@@ -42,7 +43,7 @@ let integrationInstanceGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let integrationInstance = await subspaceIntegrationInstanceService.get({
+  let integrationInstance = await integrationInstanceService.getIntegrationInstanceById({
     instance: ctx.instance,
     integrationInstanceId: ctx.params.integrationInstanceId,
     allowDeleted: true
@@ -97,23 +98,24 @@ export let integrationInstanceProviderController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIntegrationInstanceProviderService.list({
-          instance: ctx.instance,
-          search: ctx.query.search,
-          allowDeleted: true,
-          status: normalizeArrayParam(ctx.query.status),
-          ids: normalizeArrayParam(ctx.query.id),
-          integrationIds: normalizeArrayParam(ctx.query.integration_id),
-          integrationInstanceIds: normalizeArrayParam(ctx.query.integration_instance_id),
-          providerIds: normalizeArrayParam(ctx.query.provider_id),
-          integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
-          providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
-          providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
-          providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
-          sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
-          createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
-        });
+        let paginator =
+          await integrationInstanceProviderService.listIntegrationInstanceProviders({
+            instance: ctx.instance,
+            search: ctx.query.search,
+            allowDeleted: true,
+            status: normalizeArrayParam(ctx.query.status),
+            ids: normalizeArrayParam(ctx.query.id),
+            integrationIds: normalizeArrayParam(ctx.query.integration_id),
+            integrationInstanceIds: normalizeArrayParam(ctx.query.integration_instance_id),
+            providerIds: normalizeArrayParam(ctx.query.provider_id),
+            integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
+            providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+            providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
+            providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
+            sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
+            createdAt: ctx.query.created_at,
+            updatedAt: ctx.query.updated_at
+          });
 
         let list = await paginator.run(ctx.query);
 
@@ -175,18 +177,22 @@ export let integrationInstanceProviderController = Controller.create(
           );
         }
 
-        let integrationInstanceProvider = await subspaceIntegrationInstanceProviderService.set(
-          {
+        let integrationInstanceProvider =
+          await integrationInstanceProviderService.setIntegrationInstanceProvider({
             instance: ctx.instance,
-            integrationInstanceId: ctx.integrationInstance.id,
-            providerId: ctx.params.providerId,
-            providerDeploymentId: ctx.body.provider_deployment_id,
-            providerConfigId: ctx.body.provider_config_id,
-            providerAuthConfigId: ctx.body.provider_auth_config_id ?? undefined,
-            toolFilters: ctx.body.tool_filters,
-            isOverrideToolFilter: ctx.body.is_override_tool_filter
-          } as any
-        );
+            integrationInstance: ctx.integrationInstance,
+            input: {
+              providerId: ctx.params.providerId,
+              providerDeploymentId: ctx.body.provider_deployment_id,
+              providerConfigId: ctx.body.provider_config_id,
+              providerAuthConfigId: ctx.body.provider_auth_config_id ?? undefined,
+              toolFilters:
+                ctx.body.tool_filters === undefined
+                  ? undefined
+                  : normalizeToolFilters(ctx.body.tool_filters),
+              isOverrideToolFilter: ctx.body.is_override_tool_filter
+            }
+          });
 
         return integrationInstanceProviderPresenter.present({ integrationInstanceProvider });
       })

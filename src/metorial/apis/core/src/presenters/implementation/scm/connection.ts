@@ -65,9 +65,9 @@ export let v1ScmConnectionSetupPresenter = Presenter.create(scmConnectionSetupTy
     url: scmConnectionSetup.url,
     status: scmConnectionSetup.status,
 
-    connection: scmConnectionSetup.connection
+    connection: scmConnectionSetup.installation
       ? await v1ScmConnectionPresenter
-          .present({ scmConnection: scmConnectionSetup.connection }, opts)
+          .present({ scmConnection: scmConnectionSetup.installation }, opts)
           .run()
       : null,
 

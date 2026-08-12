@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceMonitorService } from '@metorial/module-subspace';
+import { monitorService } from '@metorial-subspace/module-monitor';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -15,7 +15,7 @@ import {
 } from './_shared';
 
 let monitorGroup = instanceGroup.use(async ctx => {
-  let monitor = await subspaceMonitorService.get({
+  let monitor = await monitorService.getMonitorById({
     instance: ctx.instance,
     monitorId: getRequiredParam(ctx.params, 'monitorId')
   });
@@ -58,7 +58,7 @@ export let monitorController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceMonitorService.list({
+        let paginator = await monitorService.listMonitors({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           targets: normalizeArrayParam(ctx.query.target),

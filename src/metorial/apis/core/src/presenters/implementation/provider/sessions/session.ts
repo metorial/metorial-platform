@@ -16,20 +16,25 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
     connection_url: `${getConfig().urls.apiUrl}/connect/mcp/${session.id}`,
     client_secret: session.clientSecret ?? null,
     usage: {
-      total_productive_client_message_count: session.usage.totalProductiveClientMessageCount,
-      total_productive_provider_message_count:
-        session.usage.totalProductiveProviderMessageCount
+      total_productive_client_message_count: session.totalProductiveClientMessageCount,
+      total_productive_provider_message_count: session.totalProductiveProviderMessageCount
     },
     providers: await Promise.all(
       session.providers
         .sort((a, b) => a.id.localeCompare(b.id))
         .map(p => v1SessionProviderPresenter.present({ sessionProvider: p }, opts).run())
     ),
-    from_templates_ids: session.fromTemplatesIds,
+    from_templates_ids: [
+      ...new Set(
+        session.providers.flatMap(provider =>
+          provider.fromTemplate ? [provider.fromTemplate.id] : []
+        )
+      )
+    ],
     has_errors: session.hasErrors,
     has_warnings: session.hasWarnings,
-    identity_actor_id: session.identityActorId ?? null,
-    identity_id: session.identityId ?? null,
+    identity_actor_id: session.identityActor?.id ?? null,
+    identity_id: session.identity?.id ?? null,
     created_at: session.createdAt,
     updated_at: session.updatedAt
   }))

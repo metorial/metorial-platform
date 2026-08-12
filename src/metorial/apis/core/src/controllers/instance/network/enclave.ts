@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceEnclaveService } from '@metorial/module-subspace';
+import { enclaveService } from '@metorial-subspace/module-enclave';
 import { Controller, Path } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -23,7 +23,7 @@ export let enclaveGroup = networkInstanceGroup.use(async ctx => {
     );
   }
 
-  let enclave = await subspaceEnclaveService.get({
+  let enclave = await enclaveService.getEnclaveById({
     instance: ctx.instance,
     enclaveId: ctx.params.enclaveId
   });
@@ -59,7 +59,7 @@ export let enclaveController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceEnclaveService.list({
+        let paginator = await enclaveService.listEnclaves({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           slugs: normalizeArrayParam(ctx.query.slug),
@@ -124,7 +124,7 @@ export let dashboardEnclaveController = Controller.create(
         })
       )
       .do(async ctx => {
-        let enclaves = await subspaceEnclaveService.getLastUsedEnclaves({
+        let enclaves = await enclaveService.getLastUsedEnclaves({
           instance: ctx.instance,
           limit: ctx.query.limit
         });

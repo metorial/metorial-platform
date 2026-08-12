@@ -17,8 +17,8 @@ export let v1EnclavePresenter = Presenter.create(enclaveType)
     slug: enclave.slug,
     name: enclave.name,
     description: enclave.description,
-    network_id: enclave.networkId,
-    provider_deployment_id: enclave.providerDeploymentId,
+    network_id: enclave.network.id,
+    provider_deployment_id: enclave.providerDeployment.id,
     enclave_environment: {
       object: 'enclave.environment#preview' as const,
       id: enclave.enclaveEnvironment.id,

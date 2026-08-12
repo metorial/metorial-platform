@@ -1,11 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
-import { subspaceProtoGuardConfigService } from '@metorial/module-subspace';
+import { protoGuardConfigService } from '@metorial-subspace/module-monitor';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { protoGuardConfigPresenter } from '../../../presenters';
 import { getRequiredParam } from './_shared';
+
+type ProtoGuardConfig = Awaited<ReturnType<typeof protoGuardConfigService.listFilters>>;
 
 export let protoGuardConfigController = Controller.create(
   {
@@ -21,7 +23,7 @@ export let protoGuardConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.monitor:read'] }))
       .output(protoGuardConfigPresenter)
       .do(async ctx => {
-        let config = await subspaceProtoGuardConfigService.get({
+        let config = await protoGuardConfigService.listFilters({
           instance: ctx.instance
         });
 
@@ -47,21 +49,27 @@ export let protoGuardConfigController = Controller.create(
       .output(protoGuardConfigPresenter)
       .do(async ctx => {
         let filterId = getRequiredParam(ctx.params, 'filterId');
-        let config;
+        let config: ProtoGuardConfig | undefined;
 
         if (ctx.body.enabled !== undefined) {
-          config = await subspaceProtoGuardConfigService.setFilterEnabled({
+          await protoGuardConfigService.setTenantFilterEnabled({
             instance: ctx.instance,
             filterId,
             enabled: ctx.body.enabled
           });
+          config = await protoGuardConfigService.listFilters({
+            instance: ctx.instance
+          });
         }
 
         if (ctx.body.alert_confidence_threshold !== undefined) {
-          config = await subspaceProtoGuardConfigService.setFilterAlertConfidenceThreshold({
+          await protoGuardConfigService.setTenantFilterAlertConfidenceThreshold({
             instance: ctx.instance,
             filterId,
             threshold: ctx.body.alert_confidence_threshold
+          });
+          config = await protoGuardConfigService.listFilters({
+            instance: ctx.instance
           });
         }
 
@@ -99,9 +107,13 @@ export let protoGuardConfigController = Controller.create(
       )
       .output(protoGuardConfigPresenter)
       .do(async ctx => {
-        let config = await subspaceProtoGuardConfigService.setAlertFilterCountThreshold({
+        await protoGuardConfigService.setTenantAlertFilterCountThreshold({
           instance: ctx.instance,
           threshold: ctx.body.threshold
+        });
+
+        let config = await protoGuardConfigService.listFilters({
+          instance: ctx.instance
         });
 
         return protoGuardConfigPresenter.present({ config });

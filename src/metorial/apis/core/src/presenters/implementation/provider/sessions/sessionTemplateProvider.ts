@@ -12,17 +12,35 @@ export let v1SessionTemplateProviderPresenter = Presenter.create(sessionTemplate
     id: sessionTemplateProvider.id,
 
     status: sessionTemplateProvider.status,
-    tool_filter: toolFilterPresenter(sessionTemplateProvider.toolFilter as any),
+    tool_filter: toolFilterPresenter(
+      sessionTemplateProvider.toolFilter as PrismaJson.ToolFilter
+    ),
 
-    provider_id: sessionTemplateProvider.providerId,
-    session_template_id: sessionTemplateProvider.sessionTemplateId,
+    provider_id: sessionTemplateProvider.provider.id,
+    session_template_id: sessionTemplateProvider.sessionTemplate.id,
 
     deployment: await v1ProviderDeploymentPreviewPresenter
-      .present({ deployment: sessionTemplateProvider.deployment }, opts)
+      .present(
+        {
+          deployment: {
+            ...sessionTemplateProvider.deployment,
+            provider: sessionTemplateProvider.provider
+          }
+        },
+        opts
+      )
       .run(),
 
     config: await v1ProviderConfigPreviewPresenter
-      .present({ config: sessionTemplateProvider.config }, opts)
+      .present(
+        {
+          config: {
+            ...sessionTemplateProvider.config,
+            provider: sessionTemplateProvider.provider
+          }
+        },
+        opts
+      )
       .run(),
 
     auth_config: sessionTemplateProvider.authConfig

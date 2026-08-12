@@ -10,9 +10,11 @@ export let v1NetworkPolicyPresenter = Presenter.create(networkPolicyType)
     name: networkPolicy.name,
     description: networkPolicy.description,
     status: networkPolicy.status,
-    version: networkPolicy.version,
-    rules: networkPolicy.rules.map(presentNetworkPolicyRule),
-    firewall_ids: networkPolicy.firewallIds ?? null,
+    version: networkPolicy.currentVersionNumber,
+    rules: ((networkPolicy.currentVersion?.rules ?? []) as PrismaJson.NetworkPolicyRules).map(
+      presentNetworkPolicyRule
+    ),
+    firewall_ids: networkPolicy.firewallLinks.map(link => link.firewall.id) as string[] | null,
     created_at: networkPolicy.createdAt,
     updated_at: networkPolicy.updatedAt,
     archived_at: networkPolicy.archivedAt

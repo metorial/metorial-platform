@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceMonitorAlertService } from '@metorial/module-subspace';
+import { alertService } from '@metorial-subspace/module-monitor';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -17,7 +17,7 @@ import {
 } from './_shared';
 
 let monitorAlertGroup = instanceGroup.use(async ctx => {
-  let alert = await subspaceMonitorAlertService.get({
+  let alert = await alertService.getAlertById({
     instance: ctx.instance,
     alertId: getRequiredParam(ctx.params, 'monitorAlertId'),
     ...actorInput(ctx)
@@ -69,7 +69,7 @@ export let monitorAlertController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceMonitorAlertService.list({
+        let paginator = await alertService.listAlerts({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           monitorIds: normalizeArrayParam(ctx.query.monitor_id),
@@ -113,7 +113,7 @@ export let monitorAlertController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.monitor:write'] }))
       .output(monitorAlertPresenter)
       .do(async ctx => {
-        let alert = await subspaceMonitorAlertService.viewed({
+        let alert = await alertService.markViewed({
           instance: ctx.instance,
           alertId: getRequiredParam(ctx.params, 'monitorAlertId'),
           ...actorInput(ctx)
@@ -130,7 +130,7 @@ export let monitorAlertController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.monitor:write'] }))
       .output(monitorAlertPresenter)
       .do(async ctx => {
-        let alert = await subspaceMonitorAlertService.resolve({
+        let alert = await alertService.resolveAlert({
           instance: ctx.instance,
           alertId: getRequiredParam(ctx.params, 'monitorAlertId'),
           ...actorInput(ctx)
@@ -150,7 +150,7 @@ export let monitorAlertController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.monitor:write'] }))
       .output(monitorAlertPresenter)
       .do(async ctx => {
-        let alert = await subspaceMonitorAlertService.unresolve({
+        let alert = await alertService.unresolveAlert({
           instance: ctx.instance,
           alertId: getRequiredParam(ctx.params, 'monitorAlertId'),
           ...actorInput(ctx)

@@ -11,27 +11,41 @@ import {
   v1ProviderConfigPreviewPresenter,
   v1ProviderDeploymentPreviewPresenter
 } from '../config';
-import { dashboardIntegrationProviderSnapshot } from '../integrations';
 import { v1ProviderPreview } from '../provider';
 
-let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | null | undefined) =>
-  toolFilter ? toolFilterPresenter(toolFilter as any) : null;
+let presentToolFilter = (
+  toolFilter: PrismaJson.ToolFilter | null | undefined,
+  isOverrideToolFilter?: boolean
+) =>
+  toolFilter
+    ? toolFilterPresenter({
+        ...toolFilter,
+        ignoreParentFilters: isOverrideToolFilter || undefined
+      })
+    : null;
 
 export let v1MagicMcpServerProviderPresenter = Presenter.create(magicMcpServerProviderType)
   .presenter(async ({ magicMcpServer, magicMcpServerProvider }, opts) => {
-    let integrationProvider: any = await dashboardIntegrationProviderSnapshot(
-      magicMcpServerProvider.integrationProvider,
-      opts
-    );
-    let config = magicMcpServerProvider.config
+    let instanceVersion = magicMcpServerProvider.integrationInstanceProvider?.currentVersion;
+    let integrationVersion = magicMcpServerProvider.integrationProvider.currentVersion;
+    if (!integrationVersion) {
+      throw new Error(
+        `Integration provider "${magicMcpServerProvider.integrationProvider.id}" has no current version to present.`
+      );
+    }
+    let effectiveIntegrationVersion =
+      instanceVersion?.integrationProviderVersion ?? integrationVersion;
+    let provider = magicMcpServerProvider.integrationProvider.provider;
+    let rawConfig = instanceVersion?.config ?? integrationVersion.config;
+    let config = rawConfig
       ? await v1ProviderConfigPreviewPresenter
-          .present({ config: magicMcpServerProvider.config }, opts)
+          .present({ config: { ...rawConfig, provider } }, opts)
           .run()
-      : integrationProvider.config;
+      : null;
     let providerManagementMode =
-      magicMcpServerProvider.ownerType === 'server_owned'
+      magicMcpServerProvider.magicMcpServerBacking.ownerType === 'server_owned'
         ? ('manual' as const)
-        : magicMcpServerProvider.ownerType === 'integration'
+        : magicMcpServerProvider.magicMcpServerBacking.ownerType === 'integration'
           ? ('inherited_from_integration' as const)
           : ('inherited_from_provider_template' as const);
 
@@ -41,18 +55,70 @@ export let v1MagicMcpServerProviderPresenter = Presenter.create(magicMcpServerPr
       status: magicMcpServerProvider.status,
       magic_mcp_server_id: magicMcpServer.id,
       provider_management_mode: providerManagementMode,
-      name: magicMcpServerProvider.name,
-      description: magicMcpServerProvider.description,
-      metadata: magicMcpServerProvider.metadata,
-      tool_filter: presentToolFilter(magicMcpServerProvider.toolFilter),
-      provider: v1ProviderPreview(magicMcpServerProvider.provider),
-      deployment: integrationProvider.deployment,
-      auth_method: integrationProvider.auth_method,
-      auth_credentials: integrationProvider.auth_credentials,
+      name:
+        magicMcpServerProvider.integrationInstanceProvider?.name ??
+        magicMcpServerProvider.integrationProvider.name,
+      description:
+        magicMcpServerProvider.integrationInstanceProvider?.description ??
+        magicMcpServerProvider.integrationProvider.description,
+      metadata:
+        magicMcpServerProvider.integrationInstanceProvider?.metadata ??
+        magicMcpServerProvider.integrationProvider.metadata,
+      tool_filter: presentToolFilter(
+        (instanceVersion?.toolFilter ??
+          integrationVersion.toolFilter) as PrismaJson.ToolFilter | null,
+        instanceVersion?.isOverrideToolFilter
+      ),
+      provider: v1ProviderPreview(provider),
+      deployment: await v1ProviderDeploymentPreviewPresenter
+        .present(
+          {
+            deployment: {
+              ...effectiveIntegrationVersion.deployment,
+              provider
+            }
+          },
+          opts
+        )
+        .run(),
+      auth_method: effectiveIntegrationVersion.authMethod
+        ? await v1ProviderAuthMethodPresenter
+            .present(
+              {
+                authMethod: {
+                  ...effectiveIntegrationVersion.authMethod,
+                  provider
+                }
+              },
+              opts
+            )
+            .run()
+        : null,
+      auth_credentials: effectiveIntegrationVersion.authCredentials
+        ? await v1ProviderAuthCredentialsPresenter
+            .present(
+              {
+                authCredentials: {
+                  ...effectiveIntegrationVersion.authCredentials,
+                  provider
+                }
+              },
+              opts
+            )
+            .run()
+        : null,
       config,
-      auth_config: magicMcpServerProvider.authConfig
+      auth_config: instanceVersion?.authConfig
         ? await v1ProviderAuthConfigPreviewPresenter
-            .present({ authConfig: magicMcpServerProvider.authConfig }, opts)
+            .present(
+              {
+                authConfig: {
+                  ...instanceVersion.authConfig,
+                  providerId: provider.id
+                }
+              },
+              opts
+            )
             .run()
         : null,
       created_at: magicMcpServerProvider.createdAt,

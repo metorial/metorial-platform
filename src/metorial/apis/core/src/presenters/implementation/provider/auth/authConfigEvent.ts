@@ -1,28 +1,62 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
+import { normalizeStoredProviderInvocationId } from '@metorial-subspace/provider-utils';
 import { providerAuthConfigEventType } from '../../../types';
 
+let normalizeAuthConfigEventSourceType = (sourceType: string) => {
+  if (
+    sourceType === 'slates.auth_config_event' ||
+    sourceType === 'shuttle.server_auth_config_event'
+  ) {
+    return 'auth_config_event';
+  }
+
+  if (
+    sourceType === 'slates.oauth_setup_event' ||
+    sourceType === 'slates.oauth_setup' ||
+    sourceType === 'shuttle.server_oauth_setup'
+  ) {
+    return 'oauth_setup_event';
+  }
+
+  return 'unknown';
+};
+
 export let v1ProviderAuthConfigEventPresenter = Presenter.create(providerAuthConfigEventType)
-  .presenter(async ({ authConfigEvent }) => ({
-    object: 'provider.auth_config_event' as const,
+  .presenter(async ({ authConfigEvent }) => {
+    let authConfigErrorId = authConfigEvent.errors[0]?.id ?? null;
+    let status =
+      authConfigEvent.status === 'failed' ||
+      authConfigErrorId ||
+      authConfigEvent.type.endsWith('_failed') ||
+      authConfigEvent.type.includes('error')
+        ? ('error' as const)
+        : ('success' as const);
 
-    id: authConfigEvent.id,
-    type: authConfigEvent.type,
-    status: authConfigEvent.status,
-    source_type: authConfigEvent.sourceType,
-    source_id: authConfigEvent.sourceId,
+    return {
+      object: 'provider.auth_config_event' as const,
 
-    provider_auth_config_id: authConfigEvent.authConfigId,
-    provider_auth_credentials_id: authConfigEvent.authCredentialsId,
-    provider_oauth_setup_id: authConfigEvent.providerOAuthSetupId,
-    provider_id: authConfigEvent.providerId,
-    provider_auth_error_id: (authConfigEvent.authConfigErrorId ?? null) as string | null,
+      id: authConfigEvent.id,
+      type: authConfigEvent.type,
+      status,
+      source_type: normalizeAuthConfigEventSourceType(authConfigEvent.sourceType),
+      source_id: authConfigEvent.sourceId,
 
-    provider_invocation_id: authConfigEvent.providerInvocationId,
+      provider_auth_config_id: authConfigEvent.authConfig?.id ?? null,
+      provider_auth_credentials_id: authConfigEvent.authCredentials?.id ?? null,
+      provider_oauth_setup_id: authConfigEvent.oauthSetup?.id ?? null,
+      provider_id: authConfigEvent.provider.id,
+      provider_auth_error_id: authConfigErrorId as string | null,
 
-    created_at: authConfigEvent.createdAt,
-    updated_at: authConfigEvent.updatedAt
-  }))
+      provider_invocation_id: normalizeStoredProviderInvocationId({
+        sourceType: authConfigEvent.sourceType,
+        providerInvocationId: authConfigEvent.providerInvocationId
+      }),
+
+      created_at: authConfigEvent.createdAt,
+      updated_at: authConfigEvent.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.auth_config_event'),

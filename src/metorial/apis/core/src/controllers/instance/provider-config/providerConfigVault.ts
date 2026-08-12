@@ -1,7 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderConfigVaultService } from '@metorial/module-subspace';
+import { providerService } from '@metorial-subspace/module-catalog';
+import {
+  providerConfigVaultService,
+  providerDeploymentService
+} from '@metorial-subspace/module-deployment';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -19,7 +23,7 @@ let providerConfigVaultGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let configVault = await subspaceProviderConfigVaultService.get({
+  let configVault = await providerConfigVaultService.getProviderConfigVaultById({
     instance: ctx.instance,
     providerConfigVaultId: ctx.params.providerConfigVaultId
   });
@@ -74,7 +78,7 @@ export let providerConfigVaultController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderConfigVaultService.list({
+        let paginator = await providerConfigVaultService.listProviderConfigVaults({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -157,17 +161,30 @@ export let providerConfigVaultController = Controller.create(
       )
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
-        let configVault = await subspaceProviderConfigVaultService.create({
+        let provider = await providerService.getProviderById({
           instance: ctx.instance,
-          providerId: ctx.body.provider_id,
-          providerDeploymentId: ctx.body.provider_deployment_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          config: {
-            type: 'inline',
-            data: ctx.body.value
-          },
-          metadata: ctx.body.metadata
+          providerId: ctx.body.provider_id
+        });
+        let providerDeployment = ctx.body.provider_deployment_id
+          ? await providerDeploymentService.getProviderDeploymentById({
+              instance: ctx.instance,
+              providerDeploymentId: ctx.body.provider_deployment_id
+            })
+          : undefined;
+
+        let configVault = await providerConfigVaultService.createProviderConfigVault({
+          instance: ctx.instance,
+          provider,
+          providerDeployment,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            config: {
+              type: 'inline',
+              data: ctx.body.value
+            },
+            metadata: ctx.body.metadata
+          }
         });
 
         return providerConfigVaultPresenter.present({
@@ -202,12 +219,14 @@ export let providerConfigVaultController = Controller.create(
       )
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
-        let configVault = await subspaceProviderConfigVaultService.update({
+        let configVault = await providerConfigVaultService.updateProviderConfigVault({
           instance: ctx.instance,
-          providerConfigVaultId: ctx.configVault.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          providerConfigVault: ctx.configVault,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
+          }
         });
 
         return providerConfigVaultPresenter.present({
@@ -229,9 +248,9 @@ export let providerConfigVaultController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.config_vault:write'] }))
       .output(providerConfigVaultPresenter)
       .do(async ctx => {
-        let configVault = await subspaceProviderConfigVaultService.delete({
+        let configVault = await providerConfigVaultService.archiveProviderConfigVault({
           instance: ctx.instance,
-          providerConfigVaultId: ctx.configVault.id
+          providerConfigVault: ctx.configVault
         });
 
         return providerConfigVaultPresenter.present({

@@ -60,50 +60,115 @@ let callbackInstanceTriggerSchema = v.object({
 });
 
 export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
-  .presenter(async ({ callbackInstance }, opts) => ({
-    object: 'callback.instance' as const,
-    id: callbackInstance.id,
-    status: callbackInstance.status,
+  .presenter(async ({ callbackInstance, receiver }, opts) => {
+    let pair = callbackInstance.providerDeploymentConfigPair;
+    let deployment = pair.providerDeploymentVersion.deployment;
+    let provider = deployment.provider;
+    let config = pair.providerConfigVersion.config;
+    let authConfig = pair.providerAuthConfigVersion?.authConfig;
 
-    deployment: await v1ProviderDeploymentPreviewPresenter
-      .present({ deployment: callbackInstance.deployment }, opts)
-      .run(),
+    return {
+      object: 'callback.instance' as const,
+      id: callbackInstance.id,
+      status: callbackInstance.status,
 
-    config: await v1ProviderConfigPreviewPresenter
-      .present({ config: callbackInstance.config }, opts)
-      .run(),
+      deployment: await v1ProviderDeploymentPreviewPresenter
+        .present(
+          {
+            deployment
+          },
+          opts
+        )
+        .run(),
 
-    auth_config: callbackInstance.authConfig
-      ? await v1ProviderAuthConfigPreviewPresenter
-          .present({ authConfig: callbackInstance.authConfig }, opts)
-          .run()
-      : null,
+      config: await v1ProviderConfigPreviewPresenter
+        .present(
+          {
+            config: {
+              ...config,
+              provider
+            }
+          },
+          opts
+        )
+        .run(),
 
-    webhook_url:
-      (callbackInstance as typeof callbackInstance & { webhookUrl?: string | null })
-        .webhookUrl ?? null,
+      auth_config: authConfig
+        ? await v1ProviderAuthConfigPreviewPresenter
+            .present(
+              {
+                authConfig: {
+                  ...authConfig,
+                  providerId: provider.id
+                }
+              },
+              opts
+            )
+            .run()
+        : null,
 
-    triggers: await Promise.all(
-      callbackInstance.triggers.map(async trigger => ({
-        object: 'callback.instance.trigger' as const,
-        id: trigger.id,
-        source: trigger.source,
-        poll_interval_seconds: trigger.pollIntervalSeconds,
-        next_poll_at: trigger.nextPollAt,
-        last_polled_at: trigger.lastPolledAt,
-        webhook_url: trigger.webhookUrl,
-        is_webhook_registered: trigger.isWebhookRegistered,
-        provider_trigger: trigger.providerTrigger
-          ? await v1ProviderTriggerPresenter
-              .present({ trigger: trigger.providerTrigger }, opts)
-              .run()
-          : null
-      }))
-    ),
+      webhook_url: receiver?.receiverWebhookUrl ?? null,
 
-    created_at: callbackInstance.createdAt,
-    updated_at: callbackInstance.updatedAt
-  }))
+      triggers: await Promise.all(
+        (receiver?.triggers ?? []).map(async trigger => ({
+          object: 'callback.instance.trigger' as const,
+          id: trigger.id,
+          source: trigger.source,
+          poll_interval_seconds: trigger.pollIntervalSeconds,
+          next_poll_at: trigger.nextPollAt,
+          last_polled_at: trigger.lastPolledAt,
+          webhook_url: trigger.webhookUrl,
+          is_webhook_registered: trigger.isWebhookRegistered,
+          provider_trigger: trigger.providerTrigger
+            ? await v1ProviderTriggerPresenter
+                .present(
+                  {
+                    trigger: {
+                      id: trigger.providerTrigger.id,
+                      key: trigger.providerTrigger.key,
+                      name: trigger.providerTrigger.name,
+                      description: trigger.providerTrigger.description,
+                      inputJsonSchema: trigger.providerTrigger.value.inputJsonSchema,
+                      outputJsonSchema: trigger.providerTrigger.value.outputJsonSchema ?? null,
+                      invocation:
+                        trigger.providerTrigger.value.invocation.type === 'polling'
+                          ? {
+                              type: 'polling',
+                              intervalSeconds:
+                                trigger.providerTrigger.value.invocation.intervalSeconds
+                            }
+                          : {
+                              type: 'webhook',
+                              autoRegistration: {
+                                status: trigger.providerTrigger.value.invocation
+                                  .autoRegistration
+                                  ? 'supported'
+                                  : 'unsupported'
+                              },
+                              autoUnregistration: {
+                                status: trigger.providerTrigger.value.invocation
+                                  .autoUnregistration
+                                  ? 'supported'
+                                  : 'unsupported'
+                              }
+                            },
+                      providerId: trigger.providerTrigger.provider.id,
+                      specificationId: trigger.providerTrigger.specification.id,
+                      createdAt: trigger.providerTrigger.createdAt,
+                      updatedAt: trigger.providerTrigger.updatedAt
+                    }
+                  },
+                  opts
+                )
+                .run()
+            : null
+        }))
+      ),
+
+      created_at: callbackInstance.createdAt,
+      updated_at: callbackInstance.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('callback.instance', {
@@ -127,7 +192,9 @@ export let v1CallbackInstancePresenter = Presenter.create(callbackInstanceType)
           name: 'webhook_url',
           description:
             'Shared webhook URL for manual provider setup on this callback instance',
-          examples: ['https://api.example.com/slates-hub/triggers/receiver-webhook/shtr_abc123']
+          examples: [
+            'https://api.example.com/slates-hub/triggers/receiver-webhook/shtr_abc123'
+          ]
         })
       ),
       triggers: v.array(callbackInstanceTriggerSchema, {

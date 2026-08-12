@@ -1,10 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  subspaceProviderAuthConfigService,
-  subspaceProviderAuthMethodService
-} from '@metorial/module-subspace';
+import { providerAuthConfigService } from '@metorial-subspace/module-auth';
+import { providerAuthMethodService, providerService } from '@metorial-subspace/module-catalog';
+import { providerDeploymentService } from '@metorial-subspace/module-deployment';
+import { normalizeToolFilters } from '@metorial-subspace/module-provider-internal';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -23,7 +23,7 @@ let providerAuthConfigGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authConfig = await subspaceProviderAuthConfigService.get({
+  let authConfig = await providerAuthConfigService.getProviderAuthConfigById({
     instance: ctx.instance,
     providerAuthConfigId: ctx.params.providerAuthConfigId
   });
@@ -103,7 +103,7 @@ export let providerAuthConfigController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderAuthConfigService.list({
+        let paginator = await providerAuthConfigService.listProviderAuthConfigs({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -194,31 +194,38 @@ export let providerAuthConfigController = Controller.create(
       )
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
-        let authMethod = await subspaceProviderAuthMethodService.get({
+        let authMethod = await providerAuthMethodService.getProviderAuthMethodById({
           instance: ctx.instance,
           providerAuthMethodId: ctx.body.provider_auth_method_id
         });
-
-        let authConfig = await subspaceProviderAuthConfigService.create({
+        let provider = await providerService.getProviderById({
           instance: ctx.instance,
-          providerId: authMethod.providerId,
-          providerAuthMethodId: ctx.body.provider_auth_method_id,
+          providerId: authMethod.provider.id
+        });
+        let providerDeployment = ctx.body.provider_deployment_id
+          ? await providerDeploymentService.getProviderDeploymentById({
+              instance: ctx.instance,
+              providerDeploymentId: ctx.body.provider_deployment_id
+            })
+          : undefined;
 
-          providerDeployment: ctx.body.provider_deployment_id
-            ? {
-                type: 'reference',
-                providerDeploymentId: ctx.body.provider_deployment_id
-              }
-            : undefined,
-
-          name: ctx.body.name,
-          description: ctx.body.description,
-          ip: ctx.context.ip,
-          ua: ctx.context.ua ?? '',
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters,
-
-          config: ctx.body.value
+        let authConfig = await providerAuthConfigService.createProviderAuthConfig({
+          instance: ctx.instance,
+          provider,
+          providerDeployment,
+          source: 'manual',
+          import: {
+            ip: ctx.context.ip,
+            ua: ctx.context.ua ?? ''
+          },
+          input: {
+            authMethodId: ctx.body.provider_auth_method_id,
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            toolFilters: normalizeToolFilters(ctx.body.tool_filters as any),
+            config: ctx.body.value
+          }
         });
 
         return providerAuthConfigPresenter.present({
@@ -256,15 +263,21 @@ export let providerAuthConfigController = Controller.create(
       )
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
-        let authConfig = await subspaceProviderAuthConfigService.update({
+        let authConfig = await providerAuthConfigService.updateProviderAuthConfig({
           instance: ctx.instance,
-          providerAuthConfigId: ctx.authConfig.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters,
-          ip: ctx.context.ip,
-          ua: ctx.context.ua ?? ''
+          providerAuthConfig: ctx.authConfig,
+          import: {
+            ip: ctx.context.ip,
+            ua: ctx.context.ua ?? ''
+          },
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            ...(ctx.body.tool_filters !== undefined
+              ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
+              : {})
+          }
         });
 
         return providerAuthConfigPresenter.present({
@@ -286,9 +299,9 @@ export let providerAuthConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
-        let authConfig = await subspaceProviderAuthConfigService.delete({
+        let authConfig = await providerAuthConfigService.archiveProviderAuthConfig({
           instance: ctx.instance,
-          providerAuthConfigId: ctx.authConfig.id
+          providerAuthConfig: ctx.authConfig
         });
 
         return providerAuthConfigPresenter.present({ authConfig });

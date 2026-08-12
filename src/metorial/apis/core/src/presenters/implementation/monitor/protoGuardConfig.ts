@@ -24,16 +24,16 @@ export let v1ProtoGuardConfigPresenter = Presenter.create(protoGuardConfigType)
     alert_filter_count_threshold: config.alertFilterCountThreshold,
     filters: config.filters.map(item => ({
       object: 'protoguard.filter' as const,
-      id: item.id,
-      key: item.key,
-      name: item.name,
-      description: item.description,
-      issue_type: item.issueType,
-      severity: item.severity,
-      score_weight: item.scoreWeight,
-      default_enabled: item.defaultEnabled,
+      id: item.filter.id,
+      key: item.filter.key,
+      name: item.filter.name,
+      description: item.filter.description,
+      issue_type: item.filter.issueType,
+      severity: item.filter.severity,
+      score_weight: item.filter.scoreWeight,
+      default_enabled: item.filter.defaultEnabled,
       enabled: item.enabled,
-      default_alert_confidence_threshold: item.defaultAlertConfidenceThreshold,
+      default_alert_confidence_threshold: item.filter.alertConfidenceThreshold,
       alert_confidence_threshold: item.alertConfidenceThreshold
     }))
   }))

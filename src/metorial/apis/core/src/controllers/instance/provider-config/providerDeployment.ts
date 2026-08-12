@@ -1,7 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
-import { subspaceProviderDeploymentService } from '@metorial/module-subspace';
+import { providerService, providerVersionService } from '@metorial-subspace/module-catalog';
+import {
+  providerConfigService,
+  providerConfigVaultService,
+  providerDeploymentService
+} from '@metorial-subspace/module-deployment';
+import { normalizeToolFilters } from '@metorial-subspace/module-provider-internal';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -20,7 +26,7 @@ let providerDeploymentGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let deployment = await subspaceProviderDeploymentService.get({
+  let deployment = await providerDeploymentService.getProviderDeploymentById({
     instance: ctx.instance,
     providerDeploymentId: ctx.params.providerDeploymentId
   });
@@ -81,9 +87,14 @@ let createSchema = v.intersection([
   ])
 ]);
 
-type ProviderDeploymentCreateConfig = NonNullable<
-  Parameters<typeof subspaceProviderDeploymentService.create>[0]['config']
->;
+type ProviderDeploymentCreateConfig =
+  | { type: 'reference'; providerConfigId: string }
+  | {
+      type: 'ephemeral';
+      config:
+        | { type: 'inline'; data: Record<string, any> }
+        | { type: 'vault'; providerConfigVaultId: string };
+    };
 
 let mapProviderDeploymentConfig = (
   config: ValidationTypeValue<typeof createSchema>
@@ -231,7 +242,7 @@ export let providerDeploymentController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderDeploymentService.list({
+        let paginator = await providerDeploymentService.listProviderDeployments({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -283,15 +294,52 @@ export let providerDeploymentController = Controller.create(
       .body('default', createSchema)
       .output(providerDeploymentPresenter)
       .do(async ctx => {
-        let deployment = await subspaceProviderDeploymentService.create({
+        let provider = await providerService.getProviderById({
           instance: ctx.instance,
-          providerId: ctx.body.provider_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          lockedProviderVersionId: ctx.body.locked_provider_version_id,
-          config: mapProviderDeploymentConfig(ctx.body),
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters
+          providerId: ctx.body.provider_id
+        });
+        let lockedVersion = ctx.body.locked_provider_version_id
+          ? await providerVersionService.getProviderVersionById({
+              instance: ctx.instance,
+              providerVersionId: ctx.body.locked_provider_version_id
+            })
+          : undefined;
+        let configInput = mapProviderDeploymentConfig(ctx.body);
+        let config =
+          configInput?.type === 'reference'
+            ? {
+                type: 'config' as const,
+                config: await providerConfigService.getProviderConfigById({
+                  instance: ctx.instance,
+                  providerConfigId: configInput.providerConfigId
+                })
+              }
+            : configInput?.config.type === 'inline'
+              ? {
+                  type: 'inline' as const,
+                  data: configInput.config.data
+                }
+              : configInput?.config.type === 'vault'
+                ? {
+                    type: 'vault' as const,
+                    vault: await providerConfigVaultService.getProviderConfigVaultById({
+                      instance: ctx.instance,
+                      providerConfigVaultId: configInput.config.providerConfigVaultId
+                    })
+                  }
+                : { type: 'none' as const };
+
+        let deployment = await providerDeploymentService.createProviderDeployment({
+          instance: ctx.instance,
+          provider,
+          lockedVersion,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            config,
+            metadata: ctx.body.metadata,
+            toolFilters: normalizeToolFilters(ctx.body.tool_filters as any)
+          }
         });
 
         return providerDeploymentPresenter.present({
@@ -334,14 +382,52 @@ export let providerDeploymentController = Controller.create(
       )
       .output(providerDeploymentPresenter)
       .do(async ctx => {
-        let deployment = await subspaceProviderDeploymentService.update({
+        if (ctx.body.locked_provider_version_id !== undefined && ctx.deployment.isEphemeral) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot update locked version on ephemeral provider deployment',
+              description:
+                'Ephemeral provider deployments are short-lived and cannot have their locked version changed.'
+            })
+          );
+        }
+
+        let lockedVersion:
+          | Awaited<ReturnType<typeof providerVersionService.getProviderVersionById>>
+          | null
+          | undefined = undefined;
+        if (ctx.body.locked_provider_version_id !== undefined) {
+          lockedVersion =
+            ctx.body.locked_provider_version_id === null
+              ? null
+              : await providerVersionService.getProviderVersionById({
+                  instance: ctx.instance,
+                  providerVersionId: ctx.body.locked_provider_version_id
+                });
+
+          if (lockedVersion && lockedVersion.providerOid !== ctx.deployment.providerOid) {
+            throw new ServiceError(
+              badRequestError({
+                message: 'Provider version does not belong to this deployment provider',
+                description:
+                  'The locked provider version must belong to the same provider as the deployment.'
+              })
+            );
+          }
+        }
+
+        let deployment = await providerDeploymentService.updateProviderDeployment({
           instance: ctx.instance,
-          providerDeploymentId: ctx.deployment.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters,
-          lockedProviderVersionId: ctx.body.locked_provider_version_id
+          providerDeployment: ctx.deployment,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            ...(ctx.body.tool_filters !== undefined
+              ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
+              : {}),
+            lockedVersion
+          }
         });
 
         return providerDeploymentPresenter.present({
@@ -363,9 +449,9 @@ export let providerDeploymentController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.deployment:write'] }))
       .output(providerDeploymentPresenter)
       .do(async ctx => {
-        let deployment = await subspaceProviderDeploymentService.delete({
+        let deployment = await providerDeploymentService.archiveProviderDeployment({
           instance: ctx.instance,
-          providerDeploymentId: ctx.deployment.id
+          providerDeployment: ctx.deployment
         });
 
         return providerDeploymentPresenter.present({

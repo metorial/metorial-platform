@@ -11,14 +11,14 @@ export let v1ProviderAuthCredentialsPresenter = Presenter.create(providerAuthCre
     status: authCredentials.status,
 
     is_default: authCredentials.isDefault,
-    is_managed: authCredentials.isManaged,
+    is_managed: authCredentials.origin !== 'tenant_created',
 
     name: authCredentials.name,
     description: authCredentials.description,
     metadata: authCredentials.metadata,
     scopes: (authCredentials.scopes ?? null) as string[] | null,
 
-    provider_id: authCredentials.providerId,
+    provider_id: authCredentials.provider.id,
 
     created_at: authCredentials.createdAt,
     updated_at: authCredentials.updatedAt

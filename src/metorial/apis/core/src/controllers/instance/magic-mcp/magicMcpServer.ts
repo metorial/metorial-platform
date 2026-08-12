@@ -13,11 +13,12 @@ import {
   type MagicMcpServerOwnerFilter
 } from '@metorial/module-magic';
 import {
-  subspaceIntegrationInstanceService,
-  subspaceIntegrationService,
-  subspaceMagicMcpBackingService,
-  subspaceSessionService
-} from '@metorial/module-subspace';
+  integrationInstanceService,
+  integrationService,
+  magicMcpServerBackingService,
+  magicMcpServerProviderService
+} from '@metorial-subspace/module-integration';
+import { sessionService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -31,7 +32,7 @@ import {
   providerSessionPresenter,
   providerToolsPresenter
 } from '../../../presenters';
-import { toolFiltersValidator } from '../sessions/_shared';
+import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerId) {
@@ -56,11 +57,17 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
 let magicMcpServerStatusValues = ['active', 'archived', 'deleted'] as const;
 let magicMcpServerOwnerFilterValues = ['organization', 'consumer'] as const;
 
+type RawMagicMcpServerProvider = Awaited<
+  ReturnType<typeof magicMcpServerProviderService.getMagicMcpServerProviderById>
+>;
+
 let validateLinkedIntegrationInstanceForMagicMcpServer = async (d: {
-  instance: Parameters<typeof subspaceIntegrationInstanceService.get>[0]['instance'];
+  instance: Parameters<
+    typeof integrationInstanceService.getIntegrationInstanceById
+  >[0]['instance'];
   integrationInstanceId: string;
 }) => {
-  let integrationInstance = await subspaceIntegrationInstanceService.get({
+  let integrationInstance = await integrationInstanceService.getIntegrationInstanceById({
     instance: d.instance,
     integrationInstanceId: d.integrationInstanceId
   });
@@ -78,7 +85,7 @@ let validateLinkedIntegrationInstanceForMagicMcpServer = async (d: {
     );
   }
 
-  if (!integrationInstance.providers.length) {
+  if (!integrationInstance.integrationInstanceProviders.length) {
     throw new ServiceError(
       badRequestError({
         message:
@@ -197,21 +204,21 @@ let getMagicMcpServerPresentationData = async (d: {
     };
   }
 
-  let backing = await subspaceMagicMcpBackingService.getServer({
+  let backing = await magicMcpServerBackingService.getMagicMcpServerBackingById({
     instance: d.instance,
     magicMcpServerBackingId: magicMcpServer.id
   });
   let integration =
-    (backing.ownerIntegrationId ?? backing.integrationId)
-      ? await subspaceIntegrationService.get({
+    (backing.ownerIntegration?.id ?? backing.integration?.id)
+      ? await integrationService.getIntegrationById({
           instance: d.instance,
-          integrationId: backing.ownerIntegrationId ?? backing.integrationId!,
+          integrationId: backing.ownerIntegration?.id ?? backing.integration!.id,
           allowDeleted: true
         })
       : null;
-  let integrationInstance = await subspaceIntegrationInstanceService.get({
+  let integrationInstance = await integrationInstanceService.getIntegrationInstanceById({
     instance: d.instance,
-    integrationInstanceId: backing.integrationInstanceId,
+    integrationInstanceId: backing.integrationInstance.id,
     allowDeleted: true
   });
   let magicMcpServerProvidersPaginator =
@@ -246,27 +253,26 @@ let getMagicMcpServerListPresentationData = async (d: {
   let backedServerIds = d.magicMcpServers
     .filter(magicMcpServer => magicMcpServer.hasSubspaceBacking)
     .map(magicMcpServer => magicMcpServer.id);
-  let providersByServerId = new Map<string, any[]>();
+  let providersByServerId = new Map<string, RawMagicMcpServerProvider[]>();
 
   if (backedServerIds.length > 0) {
     let after: string | undefined;
 
     while (true) {
-      let result = await subspaceMagicMcpBackingService.listServerProviders({
+      let paginator = await magicMcpServerProviderService.listMagicMcpServerProviders({
         instance: d.instance,
         allowDeleted: true,
-        magicMcpServerBackingIds: backedServerIds,
-        limit: 100,
-        ...(after ? { after } : {})
+        magicMcpServerBackingIds: backedServerIds
       });
+      let result = await paginator.run({ limit: 100, ...(after ? { after } : {}) });
 
       for (let provider of result.items) {
-        let providers = providersByServerId.get(provider.magicMcpServerId) ?? [];
+        let providers = providersByServerId.get(provider.magicMcpServerBacking.id) ?? [];
         providers.push(provider);
-        providersByServerId.set(provider.magicMcpServerId, providers);
+        providersByServerId.set(provider.magicMcpServerBacking.id, providers);
       }
 
-      if (!result.pagination.has_more_after || result.items.length === 0) break;
+      if (!result.pagination.hasNextPage || result.items.length === 0) break;
       after = result.items[result.items.length - 1]!.id;
     }
   }
@@ -447,7 +453,11 @@ export let magicMcpServerController = Controller.create(
           accessTags: ctx.accessTags
         });
 
-        return providerToolsPresenter.present({ items });
+        return providerToolsPresenter.present({
+          items: items as unknown as Parameters<
+            typeof providerToolsPresenter.present
+          >[0]['items']
+        });
       }),
 
     listProviders: magicMcpServerGroup
@@ -570,7 +580,10 @@ export let magicMcpServerController = Controller.create(
             providerDeploymentId: ctx.body.provider_deployment_id,
             providerConfigId: ctx.body.provider_config_id,
             providerAuthConfigId: ctx.body.provider_auth_config_id,
-            toolFilters: ctx.body.tool_filters
+            toolFilters:
+              ctx.body.tool_filters === undefined
+                ? undefined
+                : normalizeToolFilters(ctx.body.tool_filters)
           }
         });
 
@@ -653,7 +666,10 @@ export let magicMcpServerController = Controller.create(
             providerDeploymentId: ctx.body.provider_deployment_id,
             providerConfigId: ctx.body.provider_config_id,
             providerAuthConfigId: ctx.body.provider_auth_config_id,
-            toolFilters: ctx.body.tool_filters
+            toolFilters:
+              ctx.body.tool_filters === undefined
+                ? undefined
+                : normalizeToolFilters(ctx.body.tool_filters)
           }
         });
 
@@ -918,13 +934,13 @@ export let magicMcpServerControllerDashboard = Controller.create(
           instance: ctx.instance,
           server: ctx.magicMcpServer
         });
-        let { sessionId } = await subspaceMagicMcpBackingService.getServerSession({
+        let backing = await magicMcpServerBackingService.getMagicMcpServerBackingById({
           instance: ctx.instance,
           magicMcpServerBackingId: magicMcpServer.id
         });
-        let session = await subspaceSessionService.get({
+        let session = await sessionService.getSessionById({
           instance: ctx.instance,
-          sessionId
+          sessionId: backing.ephemeralManagedSession.id
         });
 
         return providerSessionPresenter.present({ session });

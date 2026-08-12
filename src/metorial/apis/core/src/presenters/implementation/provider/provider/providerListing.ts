@@ -58,7 +58,7 @@ let presentProviderListingDocs = (docs: any) => {
 };
 
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
-  .presenter(async ({ providerListing }, opts) => {
+  .presenter(async ({ providerListing, tenant }, opts) => {
     return {
       object: 'provider.listing' as const,
       id: providerListing.id,
@@ -78,15 +78,17 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
 
       name: providerListing.name,
       description: providerListing.description,
-      slug: providerListing.slug,
+      slug: providerListing.prettySlug ?? providerListing.slug,
 
       image_url: await getImageUrl(providerListing),
 
-      readme: providerListing.readme,
+      readme:
+        (providerListing as typeof providerListing & { readme?: string | null }).readme ??
+        null,
       skills: providerListing.skills,
 
       provider: await v1ProviderPresenter
-        .present({ provider: providerListing.provider }, opts)
+        .present({ provider: providerListing.provider, tenant }, opts)
         .run(),
 
       categories: await Promise.all(
@@ -205,7 +207,13 @@ export let dashboardProviderListingPresenter = Presenter.create(providerListingT
       ...inner,
       docs: presentProviderListingDocs((input.providerListing as any).docs),
       provider: await dashboardProviderPresenter
-        .present({ provider: input.providerListing.provider }, opts)
+        .present(
+          {
+            provider: input.providerListing.provider,
+            tenant: input.tenant
+          },
+          opts
+        )
         .run()
     };
   })

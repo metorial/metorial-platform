@@ -10,10 +10,11 @@ export let v1SessionWarningPresenter = Presenter.create(sessionWarningType)
 
     code: sessionWarning.code,
     message: sessionWarning.message,
-    data: sessionWarning.data,
+    // The former RPC returned null here despite the non-null API schema.
+    data: sessionWarning.payload as Record<string, any>,
 
-    session_id: sessionWarning.sessionId,
-    connection_id: sessionWarning.connectionId,
+    session_id: sessionWarning.session.id,
+    connection_id: sessionWarning.connection?.id ?? null,
 
     created_at: sessionWarning.createdAt
   }))

@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceFirewallService } from '@metorial/module-subspace';
+import { firewallService, type FirewallBindingInput } from '@metorial-subspace/module-enclave';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -24,7 +24,7 @@ export let firewallGroup = networkInstanceGroup.use(async ctx => {
     );
   }
 
-  let firewall = await subspaceFirewallService.get({
+  let firewall = await firewallService.getFirewallById({
     instance: ctx.instance,
     firewallId: ctx.params.firewallId,
     allowDeleted: true
@@ -68,7 +68,7 @@ export let firewallController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceFirewallService.list({
+        let paginator = await firewallService.listFirewalls({
           instance: ctx.instance,
           allowDeleted: true,
           ids: normalizeArrayParam(ctx.query.id),
@@ -119,19 +119,21 @@ export let firewallController = Controller.create(
       )
       .output(firewallPresenter)
       .do(async ctx => {
-        let firewall = await subspaceFirewallService.create({
+        let firewall = await firewallService.createFirewall({
           instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          slug: ctx.body.slug,
-          networkId: ctx.body.network_id,
-          bindings: ctx.body.bindings?.map(binding => ({
-            targetType: binding.target_type,
-            enclaveId: binding.enclave_id,
-            providerId: binding.provider_id,
-            networkId: binding.network_id
-          })),
-          networkPolicyIds: ctx.body.network_policy_ids
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            slug: ctx.body.slug,
+            networkId: ctx.body.network_id,
+            bindings: ctx.body.bindings?.map(binding => ({
+              targetType: binding.target_type,
+              enclaveId: binding.enclave_id,
+              providerId: binding.provider_id,
+              networkId: binding.network_id
+            })) as FirewallBindingInput[] | undefined,
+            networkPolicyIds: ctx.body.network_policy_ids
+          }
         });
 
         return firewallPresenter.present({ firewall });
@@ -154,13 +156,15 @@ export let firewallController = Controller.create(
       )
       .output(firewallPresenter)
       .do(async ctx => {
-        let firewall = await subspaceFirewallService.update({
+        let firewall = await firewallService.updateFirewall({
           instance: ctx.instance,
-          firewallId: ctx.firewall.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          slug: ctx.body.slug,
-          networkPolicyIds: ctx.body.network_policy_ids
+          firewall: ctx.firewall,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            slug: ctx.body.slug,
+            networkPolicyIds: ctx.body.network_policy_ids
+          }
         });
 
         return firewallPresenter.present({ firewall });
@@ -174,12 +178,12 @@ export let firewallController = Controller.create(
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .output(firewallPresenter)
       .do(async ctx => {
-        await subspaceFirewallService.delete({
+        await firewallService.archiveFirewall({
           instance: ctx.instance,
-          firewallId: ctx.firewall.id
+          firewall: ctx.firewall
         });
 
-        let firewall = await subspaceFirewallService.get({
+        let firewall = await firewallService.getFirewallById({
           instance: ctx.instance,
           firewallId: ctx.firewall.id,
           allowDeleted: true
@@ -209,9 +213,9 @@ export let firewallController = Controller.create(
       )
       .output(firewallPresenter)
       .do(async ctx => {
-        let firewall = await subspaceFirewallService.addNetworkPolicy({
+        let firewall = await firewallService.addFirewallNetworkPolicy({
           instance: ctx.instance,
-          firewallId: ctx.firewall.id,
+          firewall: ctx.firewall,
           networkPolicyId: ctx.body.network_policy_id,
           position: ctx.body.position
         });
@@ -233,9 +237,9 @@ export let firewallController = Controller.create(
       .use(checkAccess({ possibleScopes: [...networkWriteScopes] }))
       .output(firewallPresenter)
       .do(async ctx => {
-        let firewall = await subspaceFirewallService.removeNetworkPolicy({
+        let firewall = await firewallService.removeFirewallNetworkPolicy({
           instance: ctx.instance,
-          firewallId: ctx.firewall.id,
+          firewall: ctx.firewall,
           networkPolicyId: ctx.params.networkPolicyId
         });
 

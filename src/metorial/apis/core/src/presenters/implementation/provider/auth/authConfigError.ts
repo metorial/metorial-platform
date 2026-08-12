@@ -1,31 +1,57 @@
+import { delay } from '@lowerdeck/delay';
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
+import { db } from '@metorial-subspace/db';
+import { normalizeStoredProviderInvocationId } from '@metorial-subspace/provider-utils';
 import { providerAuthConfigErrorType } from '../../../types';
 
 export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthConfigErrorType)
-  .presenter(async ({ authConfigError }) => ({
-    object: 'provider.auth_config_error' as const,
+  .presenter(async ({ authConfigError }) => {
+    try {
+      let i = 0;
+      while (authConfigError.isProcessing || !authConfigError.group) {
+        if (i++ >= 10) break;
 
-    id: authConfigError.id,
-    status: authConfigError.status,
+        await delay(250);
 
-    type: authConfigError.type,
-    code: authConfigError.code,
-    message: authConfigError.message,
+        let refreshedError = await db.providerAuthConfigError.findUniqueOrThrow({
+          where: { oid: authConfigError.oid },
+          include: { group: true }
+        });
 
-    auth_config_event_id: authConfigError.authConfigEventId,
-    provider_auth_config_id: authConfigError.authConfigId,
-    provider_auth_credentials_id: authConfigError.authCredentialsId,
-    provider_oauth_setup_id: authConfigError.providerOAuthSetupId,
-    provider_id: authConfigError.providerId,
+        authConfigError = Object.assign(authConfigError, refreshedError);
+      }
+    } catch (error) {
+      console.error('Error refreshing auth config error for presenter', error);
+    }
 
-    provider_invocation_id: authConfigError.providerInvocationId,
+    return {
+      object: 'provider.auth_config_error' as const,
 
-    group_id: authConfigError.groupId,
-    similar_error_count: authConfigError.similarErrorCount,
+      id: authConfigError.id,
+      status: authConfigError.isProcessing ? ('processing' as const) : ('processed' as const),
 
-    created_at: authConfigError.createdAt
-  }))
+      type: authConfigError.type,
+      code: authConfigError.code,
+      message: authConfigError.message,
+
+      auth_config_event_id: authConfigError.authConfigEvent?.id ?? null,
+      provider_auth_config_id: authConfigError.authConfig?.id ?? null,
+      provider_auth_credentials_id: authConfigError.authCredentials?.id ?? null,
+      provider_oauth_setup_id: authConfigError.oauthSetup?.id ?? null,
+      provider_id: authConfigError.provider.id,
+
+      provider_invocation_id: normalizeStoredProviderInvocationId({
+        sourceType: authConfigError.sourceType,
+        providerInvocationId: authConfigError.providerInvocationId
+      }),
+
+      group_id: authConfigError.group?.id ?? null,
+      similar_error_count: authConfigError.group?.occurrenceCount ?? 0,
+
+      created_at: authConfigError.createdAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('provider.auth_config_error'),

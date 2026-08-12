@@ -14,7 +14,7 @@ export let v1ProviderAuthConfigErrorGroupPresenter = Presenter.create(
     code: authConfigErrorGroup.code,
     message: authConfigErrorGroup.message,
 
-    provider_id: authConfigErrorGroup.providerId,
+    provider_id: authConfigErrorGroup.provider.id,
 
     occurrence_count: authConfigErrorGroup.occurrenceCount,
 

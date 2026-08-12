@@ -5,6 +5,7 @@ import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
 import { v1ProviderAuthMethodPresenter } from './authMethod';
 import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPreview';
+import { presentRawProviderAuthMethod, presentRawProviderDeploymentPreview } from './_raw';
 
 export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigType)
   .presenter(async ({ authConfig }, opts) => ({
@@ -17,27 +18,48 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
 
     is_default: authConfig.isDefault,
 
-    provider_id: authConfig.providerId,
+    provider_id: authConfig.provider.id,
 
     name: authConfig.name,
     description: authConfig.description,
     metadata: authConfig.metadata,
     tool_filter: toolFilterPresenter(authConfig.toolFilter),
 
-    deployment: authConfig.deploymentPreview
+    deployment: authConfig.deployment
       ? await v1ProviderDeploymentPreviewPresenter
-          .present({ deployment: authConfig.deploymentPreview }, opts)
+          .present(
+            {
+              deployment: presentRawProviderDeploymentPreview(
+                authConfig.deployment,
+                authConfig.provider
+              )
+            },
+            opts
+          )
           .run()
       : null,
 
-    credentials: authConfig.credentials
+    credentials: authConfig.authCredentials
       ? await v1ProviderAuthCredentialsPresenter
-          .present({ authCredentials: authConfig.credentials }, opts)
+          .present(
+            {
+              authCredentials: {
+                ...authConfig.authCredentials,
+                provider: authConfig.provider
+              }
+            },
+            opts
+          )
           .run()
       : null,
 
     auth_method: await v1ProviderAuthMethodPresenter
-      .present({ authMethod: authConfig.authMethod }, opts)
+      .present(
+        {
+          authMethod: presentRawProviderAuthMethod(authConfig.authMethod, authConfig.provider)
+        },
+        opts
+      )
       .run(),
 
     created_at: authConfig.createdAt,

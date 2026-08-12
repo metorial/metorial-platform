@@ -15,42 +15,75 @@ export let v1CustomProviderCommitPresenter = Presenter.create(customProviderComm
     trigger: customProviderCommit.trigger,
     // type: customProviderCommit.type,
 
-    error: customProviderCommit.error,
+    error: customProviderCommit.errorCode
+      ? {
+          code: customProviderCommit.errorCode,
+          message: customProviderCommit.errorMessage ?? customProviderCommit.errorCode
+        }
+      : null,
 
-    custom_provider_id: customProviderCommit.customProviderId,
-    provider_id: customProviderCommit.providerId ?? null,
-    custom_provider_deployment_id: customProviderCommit.customProviderDeploymentId ?? null,
+    custom_provider_id: customProviderCommit.customProvider.id,
+    provider_id: customProviderCommit.customProvider.provider?.id ?? null,
+    custom_provider_deployment_id: customProviderCommit.customProviderDeployment?.id ?? null,
 
     to_environment: await v1CustomProviderEnvironmentPresenter
-      .present({ customProviderEnvironment: customProviderCommit.toEnvironment }, opts)
+      .present(
+        {
+          customProviderEnvironment: {
+            ...customProviderCommit.toEnvironment,
+            customProvider: customProviderCommit.customProvider
+          }
+        },
+        opts
+      )
       .run(),
     from_environment: customProviderCommit.fromEnvironment
       ? await v1CustomProviderEnvironmentPresenter
-          .present({ customProviderEnvironment: customProviderCommit.fromEnvironment }, opts)
+          .present(
+            {
+              customProviderEnvironment: {
+                ...customProviderCommit.fromEnvironment,
+                customProvider: customProviderCommit.customProvider
+              }
+            },
+            opts
+          )
           .run()
       : null,
 
     target_custom_provider_version: await v1CustomProviderVersionPresenter
       .present(
-        { customProviderVersion: customProviderCommit.targetCustomProviderVersion },
+        {
+          customProviderVersion: {
+            ...customProviderCommit.targetCustomProviderVersion,
+            customProvider: customProviderCommit.customProvider
+          }
+        },
         opts
       )
       .run(),
-    previous_custom_provider_version: customProviderCommit.previousCustomProviderVersion
+    previous_custom_provider_version: customProviderCommit.toEnvironmentVersionBefore
       ? await v1CustomProviderVersionPresenter
           .present(
-            { customProviderVersion: customProviderCommit.previousCustomProviderVersion },
+            {
+              customProviderVersion: {
+                ...customProviderCommit.toEnvironmentVersionBefore,
+                customProvider: customProviderCommit.customProvider
+              }
+            },
             opts
           )
           .run()
       : null,
 
     actor: await v1ActorPreviewPresenter
-      .present({ actor: customProviderCommit.actor }, opts)
+      .present({ actor: customProviderCommit.creatorActor }, opts)
       .run(),
 
-    scm_push: customProviderCommit.scmPush
-      ? await v1ScmPushPresenter.present({ scmPush: customProviderCommit.scmPush }, opts).run()
+    scm_push: customProviderCommit.scmRepoPush
+      ? await v1ScmPushPresenter
+          .present({ scmPush: customProviderCommit.scmRepoPush }, opts)
+          .run()
       : null,
 
     created_at: customProviderCommit.createdAt,

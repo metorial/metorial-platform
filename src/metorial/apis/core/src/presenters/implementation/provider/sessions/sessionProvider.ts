@@ -6,7 +6,7 @@ import { v1ProviderConfigPreviewPresenter } from '../config/configPreview';
 import { v1ProviderDeploymentPreviewPresenter } from '../config/deploymentPreview';
 
 let presentToolFilter = (toolFilter: PrismaJson.ToolFilter | PrismaJson.ToolFilterChain) =>
-  toolFilterPresenter(toolFilter as any);
+  toolFilterPresenter(toolFilter as PrismaJson.ToolFilter);
 
 export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
   .presenter(async ({ sessionProvider }, opts) => ({
@@ -16,24 +16,39 @@ export let v1SessionProviderPresenter = Presenter.create(sessionProviderType)
     status: sessionProvider.status,
 
     usage: {
-      total_productive_client_message_count:
-        sessionProvider.usage.totalProductiveClientMessageCount,
+      total_productive_client_message_count: sessionProvider.totalProductiveClientMessageCount,
       total_productive_provider_message_count:
-        sessionProvider.usage.totalProductiveProviderMessageCount
+        sessionProvider.totalProductiveProviderMessageCount
     },
 
-    tool_filter: presentToolFilter(sessionProvider.toolFilter),
+    tool_filter: presentToolFilter(sessionProvider.toolFilter as PrismaJson.ToolFilterChain),
 
-    provider_id: sessionProvider.providerId,
-    session_id: sessionProvider.sessionId,
-    from_template_id: sessionProvider.fromTemplateId,
-    from_template_provider_id: sessionProvider.fromTemplateProviderId,
+    provider_id: sessionProvider.provider.id,
+    session_id: sessionProvider.session.id,
+    from_template_id: sessionProvider.fromTemplate?.id ?? null,
+    from_template_provider_id: sessionProvider.fromTemplateProvider?.id ?? null,
 
     deployment: await v1ProviderDeploymentPreviewPresenter
-      .present({ deployment: sessionProvider.deployment }, opts)
+      .present(
+        {
+          deployment: {
+            ...sessionProvider.deployment,
+            provider: sessionProvider.provider
+          }
+        },
+        opts
+      )
       .run(),
     config: await v1ProviderConfigPreviewPresenter
-      .present({ config: sessionProvider.config }, opts)
+      .present(
+        {
+          config: {
+            ...sessionProvider.config,
+            provider: sessionProvider.provider
+          }
+        },
+        opts
+      )
       .run(),
     auth_config: sessionProvider.authConfig
       ? {

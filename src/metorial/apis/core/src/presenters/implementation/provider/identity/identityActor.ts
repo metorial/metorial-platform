@@ -11,7 +11,7 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
     type: identityActor.type,
     status: identityActor.status,
 
-    agent_id: identityActor.agentId,
+    agent_id: identityActor.agent?.id ?? null,
 
     name: identityActor.name,
     description: identityActor.description,

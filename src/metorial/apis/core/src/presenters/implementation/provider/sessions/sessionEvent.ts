@@ -42,7 +42,7 @@ export let v1SubspaceSessionEventPresenter = Presenter.create(sessionEventType)
           .run()
       : null,
 
-    session_id: sessionEvent.sessionId,
+    session_id: sessionEvent.session.id,
 
     created_at: sessionEvent.createdAt
   }))

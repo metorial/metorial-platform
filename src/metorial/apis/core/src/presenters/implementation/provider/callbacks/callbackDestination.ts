@@ -3,36 +3,29 @@ import { Presenter } from '@metorial/presenter';
 import { callbackDestinationType } from '../../../types';
 
 export let v1CallbackDestinationPresenter = Presenter.create(callbackDestinationType)
-  .presenter(async ({ callbackDestination }) => ({
-    object: 'callback.destination' as const,
-    id: callbackDestination.id,
-    status: callbackDestination.status,
-    name: callbackDestination.name,
-    description: callbackDestination.description,
-    metadata: callbackDestination.metadata,
-    url: callbackDestination.url,
-    method: callbackDestination.method,
-    signing_secret:
-      (
-        callbackDestination as typeof callbackDestination & {
-          webhook?: {
-            signatureToken?: string | null;
-            signingSecret?: string | null;
-          } | null;
-        }
-      ).webhook?.signatureToken ??
-      (
-        callbackDestination as typeof callbackDestination & {
-          webhook?: {
-            signatureToken?: string | null;
-            signingSecret?: string | null;
-          } | null;
-        }
-      ).webhook?.signingSecret ??
-      null,
-    created_at: callbackDestination.createdAt,
-    updated_at: callbackDestination.updatedAt
-  }))
+  .presenter(async ({ callbackDestination }) => {
+    let enriched = callbackDestination as typeof callbackDestination & {
+      signalDestination?: {
+        webhook?: {
+          signingSecret?: string | null;
+        } | null;
+      } | null;
+    };
+
+    return {
+      object: 'callback.destination' as const,
+      id: callbackDestination.id,
+      status: callbackDestination.status,
+      name: callbackDestination.name,
+      description: callbackDestination.description,
+      metadata: callbackDestination.metadata,
+      url: callbackDestination.url,
+      method: callbackDestination.method,
+      signing_secret: enriched.signalDestination?.webhook?.signingSecret ?? null,
+      created_at: callbackDestination.createdAt,
+      updated_at: callbackDestination.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('callback.destination', {

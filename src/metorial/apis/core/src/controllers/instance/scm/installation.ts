@@ -1,9 +1,9 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
-  subspaceScmConnectionService,
-  subspaceScmConnectionSetupSessionService
-} from '@metorial/module-subspace';
+  scmConnectionService,
+  scmConnectionSetupSessionService
+} from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
@@ -25,17 +25,24 @@ export let scmInstallationController = Controller.create(
       .outputList(scmConnectionPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
-        let paginator = await subspaceScmConnectionService.list({
+        let list = await scmConnectionService.listScmConnections({
           instance: ctx.instance,
-          organizationActor: ctx.actor!
+          organizationActor: ctx.actor!,
+          ...ctx.query
         });
 
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, scmConnection =>
-          scmConnectionPresenter.present({
-            scmConnection
-          })
+        return Paginator.present(
+          {
+            items: list.items,
+            pagination: {
+              hasNextPage: list.pagination.has_more_after,
+              hasPreviousPage: list.pagination.has_more_before
+            }
+          },
+          scmConnection =>
+            scmConnectionPresenter.present({
+              scmConnection
+            })
         );
       }),
 
@@ -55,13 +62,13 @@ export let scmInstallationController = Controller.create(
       )
       .output(scmConnectionSetupPresenter)
       .do(async ctx => {
-        let scmConnectionSetup = await subspaceScmConnectionSetupSessionService.create({
-          instance: ctx.instance,
-          redirectUrl: ctx.body.redirect_url,
-
-          // @ts-ignore
-          organizationActor: ctx.actor!
-        });
+        let scmConnectionSetup = await scmConnectionSetupSessionService.createScmConnectionSetupSession(
+          {
+            instance: ctx.instance,
+            redirectUrl: ctx.body.redirect_url,
+            organizationActor: ctx.actor!
+          }
+        );
 
         return scmConnectionSetupPresenter.present({
           scmConnectionSetup

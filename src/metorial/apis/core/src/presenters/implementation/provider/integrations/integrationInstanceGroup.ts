@@ -11,10 +11,10 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
     name: integrationInstanceGroup.name,
     description: integrationInstanceGroup.description,
     metadata: integrationInstanceGroup.metadata,
-    implementation: integrationInstanceGroup.magicMcpEndpointBackingId
+    implementation: integrationInstanceGroup.magicMcpEndpointBacking
       ? {
           type: 'magic_mcp_endpoint' as const,
-          magic_mcp_endpoint_id: integrationInstanceGroup.magicMcpEndpointBackingId
+          magic_mcp_endpoint_id: integrationInstanceGroup.magicMcpEndpointBacking.id
         }
       : null,
     providers: await Promise.all(

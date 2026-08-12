@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIdentityService } from '@metorial/module-subspace';
+import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -47,7 +47,7 @@ let identityGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let identity = await subspaceIdentityService.get({
+  let identity = await identityService.getIdentityById({
     instance: ctx.instance,
     identityId: ctx.params.identityId,
     allowDeleted: false
@@ -109,7 +109,7 @@ export let identityController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIdentityService.list({
+        let paginator = await identityService.listIdentities({
           instance: ctx.instance,
           allowDeleted: true,
 
@@ -179,20 +179,24 @@ export let identityController = Controller.create(
       )
       .output(identityPresenter)
       .do(async ctx => {
-        let identity = await subspaceIdentityService.create({
+        let actor = await identityActorService.getIdentityActorById({
           instance: ctx.instance,
-          identityActorId: ctx.body.actor_id,
-
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-
-          inputs: (ctx.body.credentials ?? []).map(input => ({
-            deploymentId: input.deployment_id,
-            configId: input.config_id,
-            authConfigId: input.auth_config_id,
-            delegationConfigId: input.delegation_config_id
-          }))
+          identityActorId: ctx.body.actor_id
+        });
+        let identity = await identityService.createIdentity({
+          instance: ctx.instance,
+          actor,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            inputs: (ctx.body.credentials ?? []).map(input => ({
+              deploymentId: input.deployment_id,
+              configId: input.config_id,
+              authConfigId: input.auth_config_id,
+              delegationConfigId: input.delegation_config_id
+            }))
+          }
         });
 
         return identityPresenter.present({ identity });
@@ -230,14 +234,14 @@ export let identityController = Controller.create(
       )
       .output(identityPresenter)
       .do(async ctx => {
-        let identity = await subspaceIdentityService.update({
+        let identity = await identityService.updateIdentity({
           instance: ctx.instance,
-          identityId: ctx.identity.id,
-          allowDeleted: false,
-
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          identity: ctx.identity,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
+          }
         });
 
         return identityPresenter.present({ identity });
@@ -252,10 +256,9 @@ export let identityController = Controller.create(
       .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityPresenter)
       .do(async ctx => {
-        let identity = await subspaceIdentityService.delete({
+        let identity = await identityService.archiveIdentity({
           instance: ctx.instance,
-          identityId: ctx.identity.id,
-          allowDeleted: false
+          identity: ctx.identity
         });
 
         return identityPresenter.present({ identity });

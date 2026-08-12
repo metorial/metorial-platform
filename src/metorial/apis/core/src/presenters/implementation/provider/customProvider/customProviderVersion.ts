@@ -27,42 +27,64 @@ export let v1CustomProviderVersionPresenter = Presenter.create(customProviderVer
 
     id: customProviderVersion.id,
     status: customProviderVersion.status,
-    index: customProviderVersion.index,
 
-    config: customProviderVersion.config
+    config: customProviderVersion.payload?.config
       ? {
           object: 'custom_provider.version.config' as const,
           schema: {
             type: 'json_schema' as const,
-            schema: customProviderVersion.config.schema
+            schema: customProviderVersion.payload.config.schema
           },
-          transformer: customProviderVersion.config.transformer
+          transformer: customProviderVersion.payload.config.transformer
         }
       : null,
 
-    custom_provider_id: customProviderVersion.customProviderId,
-    provider_id: customProviderVersion.providerId ?? null,
+    custom_provider_id: customProviderVersion.customProvider.id,
+    provider_id: customProviderVersion.customProvider.provider?.id ?? null,
 
-    identifier: customProviderVersion.identifier,
+    identifier: customProviderVersion.versionIdentifier,
+    index: customProviderVersion.versionIndex,
     deployment: await v1CustomProviderDeploymentPresenter
-      .present({ customProviderDeployment: customProviderVersion.deployment }, opts)
+      .present(
+        {
+          customProviderDeployment: {
+            ...customProviderVersion.deployment,
+            customProvider: customProviderVersion.customProvider,
+            creatorActor: customProviderVersion.creatorActor,
+            customProviderVersion,
+            immutableCodeBucket: customProviderVersion.immutableCodeBucket
+          }
+        },
+        opts
+      )
       .run(),
 
     environments: await Promise.all(
-      customProviderVersion.environments.map(
-        async (env: (typeof customProviderVersion.environments)[number]) => ({
+      customProviderVersion.customProviderEnvironmentVersions.map(async envVersion => {
+        let env = envVersion.customProviderEnvironment;
+        return {
           object: 'custom_provider.environment' as const,
           id: env.id,
-          is_current_version_for_environment: env.isCurrentVersionForEnvironment,
+          is_current_version_for_environment:
+            customProviderVersion.providerVersion?.oid ===
+            env.providerEnvironment?.currentVersion?.oid,
           environment: await v1CustomProviderEnvironmentPresenter
-            .present({ customProviderEnvironment: env.environment }, opts)
+            .present(
+              {
+                customProviderEnvironment: {
+                  ...env,
+                  customProvider: customProviderVersion.customProvider
+                }
+              },
+              opts
+            )
             .run()
-        })
-      )
+        };
+      })
     ),
 
     actor: await v1ActorPreviewPresenter
-      .present({ actor: customProviderVersion.actor }, opts)
+      .present({ actor: customProviderVersion.creatorActor }, opts)
       .run(),
 
     container_image:

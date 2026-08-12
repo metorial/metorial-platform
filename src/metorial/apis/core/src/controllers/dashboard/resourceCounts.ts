@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { subspaceResourceCountService } from '@metorial/module-subspace';
+import { resourceCountService } from '@metorial-subspace/module-tenant';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup } from '../../middleware/instanceGroup';
@@ -51,7 +51,7 @@ export let dashboardResourceCountsController = Controller.create(
         let countByResource = new Map<ResourceCountResource, number>();
 
         if (resources.length > 0) {
-          let subspaceCounts = await subspaceResourceCountService.get({
+          let subspaceCounts = await resourceCountService.getResourceCounts({
             instance: ctx.instance,
             resource: resources
           });

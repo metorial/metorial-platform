@@ -1,7 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceFirewallBindingService } from '@metorial/module-subspace';
+import {
+  firewallBindingService,
+  type FirewallBindingInput
+} from '@metorial-subspace/module-enclave';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -24,7 +27,7 @@ export let firewallBindingGroup = networkInstanceGroup.use(async ctx => {
     );
   }
 
-  let firewallBinding = await subspaceFirewallBindingService.get({
+  let firewallBinding = await firewallBindingService.getFirewallBindingById({
     instance: ctx.instance,
     firewallBindingId: ctx.params.firewallBindingId
   });
@@ -65,7 +68,7 @@ export let firewallBindingController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceFirewallBindingService.list({
+        let paginator = await firewallBindingService.listFirewallBindings({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           firewallIds: normalizeArrayParam(ctx.query.firewall_id),
@@ -113,13 +116,15 @@ export let firewallBindingController = Controller.create(
       )
       .output(firewallBindingPresenter)
       .do(async ctx => {
-        let firewallBinding = await subspaceFirewallBindingService.create({
+        let firewallBinding = await firewallBindingService.createFirewallBinding({
           instance: ctx.instance,
           firewallId: ctx.body.firewall_id,
-          targetType: ctx.body.target_type,
-          enclaveId: ctx.body.enclave_id,
-          providerId: ctx.body.provider_id,
-          networkId: ctx.body.network_id
+          input: {
+            targetType: ctx.body.target_type,
+            enclaveId: ctx.body.enclave_id,
+            providerId: ctx.body.provider_id,
+            networkId: ctx.body.network_id
+          } as FirewallBindingInput
         });
 
         return firewallBindingPresenter.present({ firewallBinding });
@@ -138,9 +143,9 @@ export let firewallBindingController = Controller.create(
       .do(async ctx => {
         let firewallBinding = ctx.firewallBinding;
 
-        await subspaceFirewallBindingService.delete({
+        await firewallBindingService.deleteFirewallBinding({
           instance: ctx.instance,
-          firewallBindingId: firewallBinding.id
+          firewallBinding
         });
 
         return firewallBindingPresenter.present({ firewallBinding });

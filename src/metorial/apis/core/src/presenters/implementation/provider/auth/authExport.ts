@@ -10,17 +10,17 @@ export let v1ProviderAuthExportPresenter = Presenter.create(providerAuthExportTy
     id: authExport.id,
     note: authExport.note,
     ip: authExport.ip,
-    user_agent: authExport.userAgent,
+    user_agent: authExport.ua,
     metadata: authExport.metadata,
 
     auth_config: await v1ProviderAuthConfigPresenter
       .present({ authConfig: authExport.authConfig }, opts)
       .run(),
 
-    provider_id: authExport.providerId,
-    provider_deployment_id: authExport.providerDeploymentId,
-    auth_method_id: authExport.authMethodId,
-    credentials_id: authExport.credentialsId,
+    provider_id: authExport.authConfig.provider.id,
+    provider_deployment_id: authExport.authConfig.deployment?.id ?? null,
+    auth_method_id: authExport.authConfig.authMethod.id,
+    credentials_id: authExport.authConfig.authCredentials?.id ?? null,
 
     value: value ?? null,
 

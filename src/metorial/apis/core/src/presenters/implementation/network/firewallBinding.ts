@@ -1,7 +1,18 @@
 import { v } from '@lowerdeck/validation';
-import { SubspaceFirewallBinding } from '@metorial/module-subspace';
+import type { Prisma } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import { firewallBindingType } from '../../types';
+
+type FirewallBindingRecord = Prisma.FirewallBindingGetPayload<{
+  include: {
+    firewall: { select: { id: true; slug: true; name: true } };
+    enclave: { select: { id: true; slug: true; name: true } };
+    provider: {
+      select: { id: true; slug: true; name: true; prettySlug: true };
+    };
+    network: { select: { id: true; name: true } };
+  };
+}>;
 
 let firewallPreviewSchema = v.object({
   object: v.literal('network.firewall#preview'),
@@ -17,15 +28,35 @@ let bindingTargetPreviewSchema = v.object({
   name: v.string()
 });
 
-let presentBindingTarget = (firewallBinding: SubspaceFirewallBinding) => {
-  if (!firewallBinding.target) return null;
+let presentBindingTarget = (firewallBinding: FirewallBindingRecord) => {
+  if (firewallBinding.targetType === 'enclave' && firewallBinding.enclave) {
+    return {
+      object: 'network.firewall.binding.target#preview' as const,
+      type: firewallBinding.targetType,
+      id: firewallBinding.enclave.id,
+      name: firewallBinding.enclave.name
+    };
+  }
 
-  return {
-    object: 'network.firewall.binding.target#preview' as const,
-    type: firewallBinding.targetType,
-    id: firewallBinding.target.id,
-    name: firewallBinding.target.name
-  };
+  if (firewallBinding.targetType === 'provider' && firewallBinding.provider) {
+    return {
+      object: 'network.firewall.binding.target#preview' as const,
+      type: firewallBinding.targetType,
+      id: firewallBinding.provider.id,
+      name: firewallBinding.provider.name
+    };
+  }
+
+  if (firewallBinding.targetType === 'network' && firewallBinding.network) {
+    return {
+      object: 'network.firewall.binding.target#preview' as const,
+      type: firewallBinding.targetType,
+      id: firewallBinding.network.id,
+      name: firewallBinding.network.name
+    };
+  }
+
+  return null;
 };
 
 export let v1FirewallBindingPresenter = Presenter.create(firewallBindingType)

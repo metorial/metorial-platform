@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceScmRepositoryService } from '@metorial/module-subspace';
+import { scmRepositoryService } from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -19,7 +19,7 @@ let scmRepoGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let scmRepo = await subspaceScmRepositoryService.get({
+  let scmRepo = await scmRepositoryService.getScmRepositoryById({
     instance: ctx.instance,
     scmRepositoryId: ctx.params.scmRepositoryId
   });
@@ -56,7 +56,7 @@ export let scmReposController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceScmRepositoryService.list({
+        let paginator = await scmRepositoryService.listScmRepositories({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           customProviderIds: normalizeArrayParam(ctx.query.provider_id),
@@ -110,12 +110,14 @@ export let scmReposController = Controller.create(
       )
       .output(scmRepoPreviewPresenter)
       .do(async ctx => {
-        let repoPreviews = await subspaceScmRepositoryService.listRepositoryPreviews({
+        let repoPreviews = await scmRepositoryService.listScmRepositoryPreviews({
           instance: ctx.instance,
-          scmConnectionId: ctx.body.installation_id,
-          externalAccountId: ctx.body.external_account_id,
-          cursor: ctx.body.cursor,
-          limit: ctx.body.limit
+          input: {
+            scmConnectionId: ctx.body.installation_id,
+            externalAccountId: ctx.body.external_account_id,
+            cursor: ctx.body.cursor,
+            limit: ctx.body.limit
+          }
         });
 
         return scmRepoPreviewPresenter.present({
@@ -157,10 +159,12 @@ export let scmReposController = Controller.create(
       .output(scmRepoPresenter)
       .do(async ctx => {
         if ('external_repo_id' in ctx.body) {
-          let scmRepo = await subspaceScmRepositoryService.linkRepository({
+          let scmRepo = await scmRepositoryService.linkScmRepository({
             instance: ctx.instance,
-            scmConnectionId: ctx.body.installation_id,
-            externalId: ctx.body.external_repo_id
+            input: {
+              scmConnectionId: ctx.body.installation_id,
+              externalId: ctx.body.external_repo_id
+            }
           });
 
           return scmRepoPresenter.present({
@@ -168,12 +172,14 @@ export let scmReposController = Controller.create(
           });
         }
 
-        let scmRepo = await subspaceScmRepositoryService.createRepository({
+        let scmRepo = await scmRepositoryService.createScmRepository({
           instance: ctx.instance,
-          scmConnectionId: ctx.body.installation_id,
-          externalAccountId: (ctx.body as any).external_account_id,
-          name: (ctx.body as any).name,
-          isPrivate: !!(ctx.body as any).is_private
+          input: {
+            scmConnectionId: ctx.body.installation_id,
+            externalAccountId: (ctx.body as any).external_account_id,
+            name: (ctx.body as any).name,
+            isPrivate: !!(ctx.body as any).is_private
+          }
         });
 
         return scmRepoPresenter.present({

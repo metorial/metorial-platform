@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIdentityDelegationConfigService } from '@metorial/module-subspace';
+import { identityDelegationConfigService } from '@metorial-subspace/module-identity';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -20,11 +20,12 @@ let identityDelegationConfigGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let identityDelegationConfig = await subspaceIdentityDelegationConfigService.get({
-    instance: ctx.instance,
-    identityDelegationConfigId: ctx.params.identityDelegationConfigId,
-    allowDeleted: false
-  });
+  let identityDelegationConfig =
+    await identityDelegationConfigService.getIdentityDelegationConfigById({
+      instance: ctx.instance,
+      identityDelegationConfigId: ctx.params.identityDelegationConfigId,
+      allowDeleted: false
+    });
 
   return { identityDelegationConfig };
 });
@@ -74,7 +75,7 @@ export let identityDelegationConfigController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIdentityDelegationConfigService.list({
+        let paginator = await identityDelegationConfigService.listIdentityDelegationConfigs({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -157,16 +158,17 @@ export let identityDelegationConfigController = Controller.create(
       )
       .output(identityDelegationConfigPresenter)
       .do(async ctx => {
-        let identityDelegationConfig = await subspaceIdentityDelegationConfigService.create({
-          instance: ctx.instance,
-
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-
-          subDelegationBehavior: ctx.body.sub_delegation_behavior,
-          subDelegationDepth: ctx.body.sub_delegation_depth
-        });
+        let identityDelegationConfig =
+          await identityDelegationConfigService.createIdentityDelegationConfig({
+            instance: ctx.instance,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata,
+              subDelegationBehavior: ctx.body.sub_delegation_behavior,
+              subDelegationDepth: ctx.body.sub_delegation_depth
+            }
+          });
 
         return identityDelegationConfigPresenter.present({ identityDelegationConfig });
       }),
@@ -220,18 +222,18 @@ export let identityDelegationConfigController = Controller.create(
       )
       .output(identityDelegationConfigPresenter)
       .do(async ctx => {
-        let identityDelegationConfig = await subspaceIdentityDelegationConfigService.update({
-          instance: ctx.instance,
-          identityDelegationConfigId: ctx.identityDelegationConfig.id,
-          allowDeleted: false,
-
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-
-          subDelegationBehavior: ctx.body.sub_delegation_behavior,
-          subDelegationDepth: ctx.body.sub_delegation_depth
-        });
+        let identityDelegationConfig =
+          await identityDelegationConfigService.updateIdentityDelegationConfig({
+            instance: ctx.instance,
+            identityDelegationConfig: ctx.identityDelegationConfig,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata,
+              subDelegationBehavior: ctx.body.sub_delegation_behavior,
+              subDelegationDepth: ctx.body.sub_delegation_depth
+            }
+          });
 
         return identityDelegationConfigPresenter.present({ identityDelegationConfig });
       }),
@@ -251,11 +253,11 @@ export let identityDelegationConfigController = Controller.create(
       .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityDelegationConfigPresenter)
       .do(async ctx => {
-        let identityDelegationConfig = await subspaceIdentityDelegationConfigService.delete({
-          instance: ctx.instance,
-          identityDelegationConfigId: ctx.identityDelegationConfig.id,
-          allowDeleted: false
-        });
+        let identityDelegationConfig =
+          await identityDelegationConfigService.archiveIdentityDelegationConfig({
+            instance: ctx.instance,
+            identityDelegationConfig: ctx.identityDelegationConfig
+          });
 
         return identityDelegationConfigPresenter.present({ identityDelegationConfig });
       })

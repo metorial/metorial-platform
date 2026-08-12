@@ -9,14 +9,14 @@ export let v1IdentityCredentialPresenter = Presenter.create(identityCredentialTy
     id: identityCredential.id,
     status: identityCredential.status,
 
-    identity_id: identityCredential.identityId,
-    provider_id: identityCredential.providerId,
+    identity_id: identityCredential.identity.id,
+    provider_id: identityCredential.provider.id,
 
-    deployment_id: identityCredential.deploymentId,
-    config_id: identityCredential.configId,
-    auth_config_id: identityCredential.authConfigId,
+    deployment_id: identityCredential.deployment?.id ?? null,
+    config_id: identityCredential.config?.id ?? null,
+    auth_config_id: identityCredential.authConfig?.id ?? null,
 
-    delegation_config_id: identityCredential.delegationConfigId,
+    delegation_config_id: identityCredential.delegationConfig?.id ?? null,
 
     created_at: identityCredential.createdAt,
     updated_at: identityCredential.updatedAt

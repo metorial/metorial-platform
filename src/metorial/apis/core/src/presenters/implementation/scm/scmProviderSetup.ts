@@ -13,9 +13,9 @@ export let v1ScmProviderSetupPresenter = Presenter.create(scmProviderSetupType)
     url: scmProviderSetup.url,
     status: scmProviderSetup.status,
 
-    provider: scmProviderSetup.provider
+    provider: scmProviderSetup.backend
       ? await v1ScmProviderPresenter
-          .present({ scmProvider: scmProviderSetup.provider }, opts)
+          .present({ scmProvider: scmProviderSetup.backend }, opts)
           .run()
       : null,
 

@@ -1,7 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderAuthMethodService } from '@metorial/module-subspace';
+import {
+  providerAuthMethodService,
+  providerVersionService
+} from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
@@ -17,7 +20,7 @@ let providerAuthMethodGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authMethod = await subspaceProviderAuthMethodService.get({
+  let authMethod = await providerAuthMethodService.getProviderAuthMethodById({
     instance: ctx.instance,
     providerAuthMethodId: ctx.params.providerAuthMethodId
   });
@@ -48,9 +51,13 @@ export let providerAuthMethodController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderAuthMethodService.list({
+        let providerVersion = await providerVersionService.getProviderVersionById({
           instance: ctx.instance,
           providerVersionId: ctx.query.provider_version_id
+        });
+        let paginator = await providerAuthMethodService.listProviderAuthMethods({
+          instance: ctx.instance,
+          providerVersion
         });
 
         let list = await paginator.run(ctx.query);

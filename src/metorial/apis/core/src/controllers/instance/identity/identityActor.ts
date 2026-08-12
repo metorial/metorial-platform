@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIdentityActorService } from '@metorial/module-subspace';
+import { identityActorService } from '@metorial-subspace/module-identity';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -20,7 +20,7 @@ let identityActorGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let identityActor = await subspaceIdentityActorService.get({
+  let identityActor = await identityActorService.getIdentityActorById({
     instance: ctx.instance,
     identityActorId: ctx.params.identityActorId,
     allowDeleted: false
@@ -84,7 +84,7 @@ export let identityActorController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIdentityActorService.list({
+        let paginator = await identityActorService.listIdentityActors({
           instance: ctx.instance,
           allowDeleted: true,
 
@@ -149,13 +149,14 @@ export let identityActorController = Controller.create(
       )
       .output(identityActorPresenter)
       .do(async ctx => {
-        let identityActor = await subspaceIdentityActorService.create({
+        let identityActor = await identityActorService.createIdentityActor({
           instance: ctx.instance,
-
-          type: ctx.body.type,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          input: {
+            type: ctx.body.type,
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
+          }
         });
 
         return identityActorPresenter.present({ identityActor });
@@ -193,14 +194,14 @@ export let identityActorController = Controller.create(
       )
       .output(identityActorPresenter)
       .do(async ctx => {
-        let identityActor = await subspaceIdentityActorService.update({
+        let identityActor = await identityActorService.updateIdentityActor({
           instance: ctx.instance,
-          identityActorId: ctx.identityActor.id,
-          allowDeleted: false,
-
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          identityActor: ctx.identityActor,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
+          }
         });
 
         return identityActorPresenter.present({ identityActor });
@@ -215,10 +216,9 @@ export let identityActorController = Controller.create(
       .use(hasFlags(['identity-management', 'paid-identity']))
       .output(identityActorPresenter)
       .do(async ctx => {
-        let identityActor = await subspaceIdentityActorService.delete({
+        let identityActor = await identityActorService.archiveIdentityActor({
           instance: ctx.instance,
-          identityActorId: ctx.identityActor.id,
-          allowDeleted: false
+          identityActor: ctx.identityActor
         });
 
         return identityActorPresenter.present({ identityActor });

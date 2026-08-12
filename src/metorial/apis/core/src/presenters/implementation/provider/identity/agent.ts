@@ -12,7 +12,7 @@ export let v1AgentPresenter = Presenter.create(agentType)
     description: agent.description,
     slug: agent.slug,
     metadata: agent.metadata,
-    actor_id: agent.actorId,
+    actor_id: agent.actor.id,
     created_at: agent.createdAt,
     updated_at: agent.updatedAt,
     archived_at: agent.archivedAt

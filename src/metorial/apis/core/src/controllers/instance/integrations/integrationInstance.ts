@@ -1,7 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIntegrationInstanceService } from '@metorial/module-subspace';
+import {
+  integrationInstanceService,
+  integrationService
+} from '@metorial-subspace/module-integration';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -12,7 +15,7 @@ import {
   providerSessionPresenter,
   sessionTemplatePresenter
 } from '../../../presenters';
-import { toolFiltersValidator } from '../sessions/_shared';
+import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let integrationInstanceProviderInputValidator = v.object({
   provider_id: v.string(),
@@ -32,7 +35,7 @@ let integrationInstanceGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let integrationInstance = await subspaceIntegrationInstanceService.get({
+  let integrationInstance = await integrationInstanceService.getIntegrationInstanceById({
     instance: ctx.instance,
     integrationInstanceId: ctx.params.integrationInstanceId,
     allowDeleted: true
@@ -83,7 +86,7 @@ export let integrationInstanceController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIntegrationInstanceService.list({
+        let paginator = await integrationInstanceService.listIntegrationInstances({
           instance: ctx.instance,
           search: ctx.query.search,
           allowDeleted: true,
@@ -150,13 +153,16 @@ export let integrationInstanceController = Controller.create(
       )
       .output(sessionTemplatePresenter)
       .do(async ctx => {
-        let sessionTemplate = await subspaceIntegrationInstanceService.createSessionTemplate({
-          instance: ctx.instance,
-          integrationInstanceId: ctx.integrationInstance.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
-        });
+        let sessionTemplate =
+          await integrationInstanceService.createSessionTemplateForIntegrationInstance({
+            instance: ctx.instance,
+            integrationInstance: ctx.integrationInstance,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata
+            }
+          });
 
         return sessionTemplatePresenter.present({ sessionTemplate });
       }),
@@ -184,12 +190,14 @@ export let integrationInstanceController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        let session = await subspaceIntegrationInstanceService.createSession({
+        let session = await integrationInstanceService.createSessionForIntegrationInstance({
           instance: ctx.instance,
-          integrationInstanceId: ctx.integrationInstance.id,
-          name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          integrationInstance: ctx.integrationInstance,
+          input: {
+            name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
+          }
         });
 
         return providerSessionPresenter.present({ session });
@@ -215,21 +223,30 @@ export let integrationInstanceController = Controller.create(
       )
       .output(integrationInstancePresenter)
       .do(async ctx => {
-        let integrationInstance = await subspaceIntegrationInstanceService.create({
+        let integration = await integrationService.getIntegrationById({
           instance: ctx.instance,
-          integrationId: ctx.body.integration_id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          identityActorId: ctx.body.identity_actor_id,
-          identityId: ctx.body.identity_id,
-          providers: ctx.body.providers?.map(provider => ({
-            providerId: provider.provider_id,
-            providerConfigId: provider.provider_config_id,
-            providerAuthConfigId: provider.provider_auth_config_id ?? undefined,
-            toolFilters: provider.tool_filters,
-            isOverrideToolFilter: provider.is_override_tool_filter
-          }))
+          integrationId: ctx.body.integration_id
+        });
+        let integrationInstance = await integrationInstanceService.createIntegrationInstance({
+          instance: ctx.instance,
+          integration,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            identityActorId: ctx.body.identity_actor_id,
+            identityId: ctx.body.identity_id,
+            providers: ctx.body.providers?.map(provider => ({
+              providerId: provider.provider_id,
+              providerConfigId: provider.provider_config_id,
+              providerAuthConfigId: provider.provider_auth_config_id ?? undefined,
+              toolFilters:
+                provider.tool_filters === undefined
+                  ? undefined
+                  : normalizeToolFilters(provider.tool_filters),
+              isOverrideToolFilter: provider.is_override_tool_filter
+            }))
+          }
         });
 
         return integrationInstancePresenter.present({ integrationInstance });
@@ -260,22 +277,26 @@ export let integrationInstanceController = Controller.create(
       )
       .output(integrationInstancePresenter)
       .do(async ctx => {
-        let integrationInstance = await subspaceIntegrationInstanceService.update({
+        let integrationInstance = await integrationInstanceService.updateIntegrationInstance({
           instance: ctx.instance,
-          integrationInstanceId: ctx.integrationInstance.id,
-          allowDeleted: true,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          identityActorId: ctx.body.identity_actor_id,
-          identityId: ctx.body.identity_id,
-          providers: ctx.body.providers?.map(provider => ({
-            providerId: provider.provider_id,
-            providerConfigId: provider.provider_config_id,
-            providerAuthConfigId: provider.provider_auth_config_id ?? undefined,
-            toolFilters: provider.tool_filters,
-            isOverrideToolFilter: provider.is_override_tool_filter
-          }))
+          integrationInstance: ctx.integrationInstance,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            identityActorId: ctx.body.identity_actor_id,
+            identityId: ctx.body.identity_id,
+            providers: ctx.body.providers?.map(provider => ({
+              providerId: provider.provider_id,
+              providerConfigId: provider.provider_config_id,
+              providerAuthConfigId: provider.provider_auth_config_id ?? undefined,
+              toolFilters:
+                provider.tool_filters === undefined
+                  ? undefined
+                  : normalizeToolFilters(provider.tool_filters),
+              isOverrideToolFilter: provider.is_override_tool_filter
+            }))
+          }
         });
 
         return integrationInstancePresenter.present({ integrationInstance });
@@ -295,10 +316,9 @@ export let integrationInstanceController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(integrationInstancePresenter)
       .do(async ctx => {
-        let integrationInstance = await subspaceIntegrationInstanceService.delete({
+        let integrationInstance = await integrationInstanceService.archiveIntegrationInstance({
           instance: ctx.instance,
-          integrationInstanceId: ctx.integrationInstance.id,
-          allowDeleted: true
+          integrationInstance: ctx.integrationInstance
         });
 
         return integrationInstancePresenter.present({ integrationInstance });
