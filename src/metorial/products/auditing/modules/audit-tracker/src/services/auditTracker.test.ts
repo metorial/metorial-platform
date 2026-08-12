@@ -41,6 +41,10 @@ let auditScope = {
   resourceTenantOid: 1n,
   resourceGroupOid: 2n,
   resourceActorOid: 3n,
+  actor: {
+    type: 'org_actor' as const,
+    id: 'oac_1'
+  },
   context: {} as any
 };
 
@@ -110,6 +114,37 @@ describe('auditTrackerService', () => {
         payload: {
           name: 'Updated',
           validated: true
+        }
+      })
+    );
+  });
+
+  it('stashes a system actor without a resource actor oid', async () => {
+    await (auditTrackerService.recordEvent as any)(
+      {
+        resourceTenantOid: 1n,
+        resourceGroupOid: 2n,
+        actor: {
+          type: 'system',
+          id: 'audit-worker'
+        },
+        context: {} as any
+      },
+      'widget',
+      'create',
+      {
+        payload: {
+          oid: 4n
+        }
+      }
+    );
+
+    expect(stashAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceActorOid: undefined,
+        actor: {
+          type: 'system',
+          id: 'audit-worker'
         }
       })
     );

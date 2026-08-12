@@ -1,4 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { createAuditScope } from '@metorial/audit-scope';
 import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
 import { consumerProfileService } from '@metorial/module-consumer';
@@ -28,6 +29,7 @@ export let instanceGroup = apiGroup.use(async ctx => {
       resourceTenant: ctx.auth.restrictions.resourceTenant,
       resourceGroup: ctx.auth.restrictions.resourceGroup,
       resourceActor: undefined,
+      auditScope: ctx.auth.auditScope,
       accessTagGrants: ctx.auth.restrictions.accessTagGrants,
       member: undefined,
       ...consumerPlaceholder
@@ -46,6 +48,7 @@ export let instanceGroup = apiGroup.use(async ctx => {
       resourceTenant: ctx.auth.restrictions.resourceTenant,
       resourceGroup: ctx.auth.restrictions.resourceGroup,
       resourceActor: ctx.auth.restrictions.resourceActor,
+      auditScope: ctx.auth.auditScope,
       member: undefined,
       ...consumerPlaceholder
     };
@@ -79,6 +82,10 @@ export let instanceGroup = apiGroup.use(async ctx => {
     authInfo: ctx.auth,
     instanceId
   });
+  let organizationActor = res.actor;
+  if (!organizationActor) {
+    throw new Error('Instance access did not resolve an organization actor');
+  }
 
   let consumerId = ctx.headers['metorial-consumer-profile-id'];
 
@@ -115,14 +122,32 @@ export let instanceGroup = apiGroup.use(async ctx => {
       portal: consumerProfile.surface.portal,
       consumerProfile: consumerProfile,
       resourceActor,
-      // Selecting a consumer profile changes the effective Cargo principal. Keep the
-      // high-level organization actor on `actor`, but do not let member permissions
-      // turn this restricted profile context into privileged resource access.
+      auditScope: createAuditScope({
+        resourceTenant: res.resourceTenant,
+        resourceGroup: res.resourceGroup,
+        resourceActor,
+        actor: {
+          type: 'consumer_profile',
+          id: consumerProfile.id
+        },
+        context: ctx.context
+      }),
       member: undefined
     });
   }
 
-  return Object.assign(res, consumerPlaceholder);
+  return Object.assign(res, consumerPlaceholder, {
+    auditScope: createAuditScope({
+      resourceTenant: res.resourceTenant,
+      resourceGroup: res.resourceGroup,
+      resourceActor: res.resourceActor,
+      actor: {
+        type: 'org_actor',
+        id: organizationActor.id
+      },
+      context: ctx.context
+    })
+  });
 });
 
 export let instancePath = (path: string, sdkPath: string) => [

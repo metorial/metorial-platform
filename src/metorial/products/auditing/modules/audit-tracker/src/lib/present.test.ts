@@ -55,6 +55,10 @@ describe('presentStashedAuditEvent', () => {
       resourceTenantOid: 1n,
       resourceGroupOid: 2n,
       resourceActorOid: 3n,
+      actor: {
+        type: 'org_actor',
+        id: 'oac_1'
+      },
       context: { ip: '127.0.0.1' },
       resource: 'organization',
       action: 'create',

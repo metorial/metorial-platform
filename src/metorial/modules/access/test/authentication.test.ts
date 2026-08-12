@@ -257,6 +257,11 @@ describe('AuthenticationService', () => {
             resourceType: 'subspace.session',
             resourceId: 'ses_1',
             roles: ['instance.provider.session:read']
+          },
+          {
+            resourceType: 'subspace.session',
+            resourceId: 'ses_2',
+            roles: ['instance.provider.session:read']
           }
         ],
         fineGrainedKey: {
@@ -276,6 +281,19 @@ describe('AuthenticationService', () => {
       });
 
       expect(result.type).toBe('fine_grained');
+      expect(result.auditScope).toEqual({
+        resourceTenantOid: 100n,
+        resourceGroupOid: 101n,
+        resourceActorOid: undefined,
+        actor: {
+          type: 'fine_grained_token',
+          id: 'fgk_1',
+          metadata: {
+            sessionIds: ['ses_1', 'ses_2']
+          }
+        },
+        context: mockContext
+      });
       expect(fineGrainedAuthService.authenticateWithFineGrainedToken).toHaveBeenCalledWith({
         token: 'metorial_fk_abc',
         context: mockContext
@@ -446,6 +464,16 @@ describe('AuthenticationService', () => {
         expect(result.apiKey).toEqual(mockApiKey);
         expect(result.machineAccess).toEqual(mockMachineAccess);
         expect(result.orgScopes).toEqual(instancePublishableTokenScopes);
+        expect(result.auditScope).toEqual({
+          resourceTenantOid: 100n,
+          resourceGroupOid: 101n,
+          resourceActorOid: 102n,
+          actor: {
+            type: 'org_actor',
+            id: 'actor-1'
+          },
+          context: mockContext
+        });
         expect(result.restrictions.type).toBe('instance');
         if (result.restrictions.type === 'instance') {
           expect(result.restrictions.organization).toEqual(mockOrg);
@@ -537,6 +565,16 @@ describe('AuthenticationService', () => {
       expect(result.type).toBe('machine');
       if (result.type === 'machine' && result.restrictions.type === 'instance') {
         expect(result.orgScopes).toEqual(instancePublishableTokenWithConsumerScopes);
+        expect(result.auditScope).toEqual({
+          resourceTenantOid: 100n,
+          resourceGroupOid: 101n,
+          resourceActorOid: 103n,
+          actor: {
+            type: 'consumer_profile',
+            id: 'cop_1'
+          },
+          context: mockContext
+        });
         expect(result.restrictions.consumer).toEqual(
           expect.objectContaining({
             consumerSurface: mockConsumerSurface,
@@ -753,6 +791,16 @@ describe('AuthenticationService', () => {
       if (result.type === 'machine') {
         expect(result.orgScopes).toEqual(instanceSecretTokenScopes);
         expect(result.orgScopes.length).toBeGreaterThan(instancePublishableTokenScopes.length);
+        expect(result.auditScope).toEqual({
+          resourceTenantOid: 100n,
+          resourceGroupOid: 101n,
+          resourceActorOid: 102n,
+          actor: {
+            type: 'org_actor',
+            id: 'actor-1'
+          },
+          context: mockContext
+        });
       }
     });
 
@@ -810,6 +858,7 @@ describe('AuthenticationService', () => {
         expect(result.apiKey).toEqual(mockApiKey);
         expect(result.machineAccess).toEqual(mockMachineAccess);
         expect(result.orgScopes).toEqual(orgManagementTokenScopes);
+        expect(result.auditScope).toBeUndefined();
         expect(result.restrictions.type).toBe('organization');
         if (result.restrictions.type === 'organization') {
           expect(result.restrictions.organization).toEqual(mockOrg);

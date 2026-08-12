@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { isIntegrationsCorsOriginAllowed } from './cors';
 
 let defaults = {
-  integrationsUiUrl: 'https://integrations-ui.example.com',
+  integrationsUiUrl: 'https://integrations.example.com',
   isDevelopment: false
 };
 
@@ -11,7 +11,7 @@ describe('isIntegrationsCorsOriginAllowed', () => {
     expect(
       isIntegrationsCorsOriginAllowed({
         ...defaults,
-        origin: 'https://integrations-ui.example.com'
+        origin: 'https://integrations.example.com'
       })
     ).toBe(true);
     expect(

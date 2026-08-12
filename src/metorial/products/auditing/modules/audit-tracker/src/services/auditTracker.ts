@@ -52,6 +52,7 @@ class AuditTrackerServiceImpl {
       resourceTenantOid: auditScope.resourceTenantOid,
       resourceGroupOid: auditScope.resourceGroupOid,
       resourceActorOid: auditScope.resourceActorOid,
+      actor: auditScope.actor,
       context: auditScope.context,
       resource: String(resource),
       action: String(action),

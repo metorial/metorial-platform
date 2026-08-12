@@ -14,8 +14,12 @@ model AuditLog {
   resourceGroupOid BigInt
   resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
 
-  resourceActorOid BigInt
-  resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
+  resourceActorOid BigInt?
+  resourceActor    ResourceActor? @relation(fields: [resourceActorOid], references: [oid], onDelete: SetNull)
+
+  actorType     String?
+  actorId       String?
+  actorMetadata Json?
 
   eventOid BigInt?
   event    Event?  @relation(fields: [eventOid], references: [oid], onDelete: SetNull)
@@ -25,6 +29,7 @@ model AuditLog {
   @@index([resourceTenantOid, recordedAt])
   @@index([resourceGroupOid, recordedAt])
   @@index([resourceActorOid, recordedAt])
+  @@index([actorType, actorId, recordedAt])
   @@index([resource, action, recordedAt])
   @@index([eventOid])
 }

@@ -1,3 +1,4 @@
+import type { AuditActor } from '@metorial/audit-scope';
 import mongoose from 'mongoose';
 import { dbConnect, isAuditDbEnabled } from '../connection';
 
@@ -6,12 +7,19 @@ export interface AuditEventContext {
   ua?: string | null;
 }
 
+export interface AuditEventActor {
+  type: AuditActor['type'];
+  id: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface AuditEvent {
   _id: string;
 
   resourceTenantOid: string;
   resourceGroupOid: string;
-  resourceActorOid: string;
+  resourceActorOid?: string;
+  actor?: AuditEventActor;
   context: AuditEventContext;
   resource: string;
   action: string;
@@ -24,7 +32,8 @@ export type AuditEventInput = {
   id: string;
   resourceTenantOid: bigint | string | number;
   resourceGroupOid: bigint | string | number;
-  resourceActorOid: bigint | string | number;
+  resourceActorOid?: bigint | string | number;
+  actor?: AuditActor;
   context: AuditEventContext;
   resource: string;
   action: string;
@@ -37,7 +46,12 @@ export let AuditEventSchema = new mongoose.Schema<AuditEvent>({
   _id: { type: String, required: true },
   resourceTenantOid: { type: String, index: true },
   resourceGroupOid: { type: String, index: true },
-  resourceActorOid: { type: String, index: true },
+  resourceActorOid: { type: String, index: true, required: false },
+  actor: {
+    type: { type: String, required: false },
+    id: { type: String, required: false },
+    metadata: { type: mongoose.Schema.Types.Mixed, required: false }
+  },
   context: {
     ip: String,
     ua: { type: String, required: false }
@@ -50,6 +64,7 @@ export let AuditEventSchema = new mongoose.Schema<AuditEvent>({
 });
 
 AuditEventSchema.index({ resourceTenantOid: 1, recordedAt: -1 });
+AuditEventSchema.index({ 'actor.type': 1, 'actor.id': 1, recordedAt: -1 });
 AuditEventSchema.index({ resource: 1, action: 1, recordedAt: -1 });
 
 export let AuditEventModel = mongoose.model<AuditEvent>('AuditEvent', AuditEventSchema);
@@ -79,7 +94,17 @@ export let ingestAuditEvent = async (event: AuditEventInput) => {
     _id: event.id,
     resourceTenantOid: toOidString(event.resourceTenantOid),
     resourceGroupOid: toOidString(event.resourceGroupOid),
-    resourceActorOid: toOidString(event.resourceActorOid),
+    resourceActorOid:
+      event.resourceActorOid === undefined ? undefined : toOidString(event.resourceActorOid),
+    actor: event.actor
+      ? {
+          type: event.actor.type,
+          id: event.actor.id,
+          metadata: event.actor.metadata
+            ? (toMongoValue(event.actor.metadata) as AuditEventActor['metadata'])
+            : undefined
+        }
+      : undefined,
     context: {
       ip: event.context.ip,
       ua: event.context.ua
@@ -94,9 +119,5 @@ export let ingestAuditEvent = async (event: AuditEventInput) => {
     recordedAt: event.recordedAt
   };
 
-  await AuditEventModel.updateOne(
-    { _id: doc._id },
-    { $setOnInsert: doc },
-    { upsert: true }
-  );
+  await AuditEventModel.updateOne({ _id: doc._id }, { $setOnInsert: doc }, { upsert: true });
 };

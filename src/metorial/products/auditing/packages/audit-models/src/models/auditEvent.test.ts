@@ -59,6 +59,10 @@ describe('audit models', () => {
       resourceTenantOid: 1n,
       resourceGroupOid: 2n,
       resourceActorOid: 3n,
+      actor: {
+        type: 'org_actor',
+        id: 'oac_1'
+      },
       context: { ip: '127.0.0.1', ua: 'test' },
       resource: 'organization',
       action: 'create',
@@ -75,6 +79,11 @@ describe('audit models', () => {
           resourceTenantOid: '1',
           resourceGroupOid: '2',
           resourceActorOid: '3',
+          actor: {
+            type: 'org_actor',
+            id: 'oac_1',
+            metadata: undefined
+          },
           context: { ip: '127.0.0.1', ua: 'test' },
           resource: 'organization',
           action: 'create',
@@ -82,6 +91,43 @@ describe('audit models', () => {
           previousAttributes: { name: 'Old' },
           recordedAt: new Date('2026-08-12T10:00:00.000Z')
         }
+      },
+      { upsert: true }
+    );
+  });
+
+  it('stores a fine-grained actor without a resource actor oid', async () => {
+    await ingestAuditEvent({
+      id: 'event-2',
+      resourceTenantOid: 1n,
+      resourceGroupOid: 2n,
+      actor: {
+        type: 'fine_grained_token',
+        id: 'fgk_1',
+        metadata: {
+          sessionIds: ['ses_1', 'ses_2']
+        }
+      },
+      context: { ip: '127.0.0.1' },
+      resource: 'organization',
+      action: 'create',
+      payload: {},
+      recordedAt: new Date('2026-08-12T10:00:00.000Z')
+    });
+
+    expect(mockUpdateOne).toHaveBeenCalledWith(
+      { _id: 'event-2' },
+      {
+        $setOnInsert: expect.objectContaining({
+          resourceActorOid: undefined,
+          actor: {
+            type: 'fine_grained_token',
+            id: 'fgk_1',
+            metadata: {
+              sessionIds: ['ses_1', 'ses_2']
+            }
+          }
+        })
       },
       { upsert: true }
     );

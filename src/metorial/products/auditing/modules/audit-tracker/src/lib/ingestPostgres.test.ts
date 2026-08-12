@@ -16,29 +16,21 @@ import { ingestAuditEventToPostgres } from './ingestPostgres';
 
 describe('ingestAuditEventToPostgres', () => {
   let eventCreate = vi.fn();
-  let auditLogCreate = vi.fn();
-  let eventFindUnique = vi.fn();
-  let dirtyTrackerUpsert = vi.fn();
+  let dirtyTrackerCreateMany = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     generateId.mockResolvedValue('aud_test');
     eventCreate.mockResolvedValue({});
-    auditLogCreate.mockResolvedValue({});
-    dirtyTrackerUpsert.mockResolvedValue({});
-    eventFindUnique.mockResolvedValue(null);
+    dirtyTrackerCreateMany.mockResolvedValue({});
 
     withTransaction.mockImplementation(async (fn: any) =>
       fn({
         event: {
-          findUnique: eventFindUnique,
           create: eventCreate
         },
-        auditLog: {
-          create: auditLogCreate
-        },
         auditLogDirtyTracker: {
-          upsert: dirtyTrackerUpsert
+          createMany: dirtyTrackerCreateMany
         }
       })
     );
@@ -50,6 +42,10 @@ describe('ingestAuditEventToPostgres', () => {
       resourceTenantOid: 1n,
       resourceGroupOid: 2n,
       resourceActorOid: 3n,
+      actor: {
+        type: 'org_actor',
+        id: 'oac_1'
+      },
       context: { ip: '127.0.0.1', ua: 'test' },
       resource: 'organization',
       action: 'create',
@@ -69,6 +65,9 @@ describe('ingestAuditEventToPostgres', () => {
         resourceTenantOid: 1n,
         resourceGroupOid: 2n,
         resourceActorOid: 3n,
+        actorType: 'org_actor',
+        actorId: 'oac_1',
+        actorMetadata: undefined,
         recordedAt: new Date('2026-08-12T10:00:00.000Z'),
         auditLogs: {
           create: {
@@ -80,62 +79,53 @@ describe('ingestAuditEventToPostgres', () => {
             resourceTenantOid: 1n,
             resourceGroupOid: 2n,
             resourceActorOid: 3n,
+            actorType: 'org_actor',
+            actorId: 'oac_1',
+            actorMetadata: undefined,
             recordedAt: new Date('2026-08-12T10:00:00.000Z')
           }
         }
       }
     });
-    expect(dirtyTrackerUpsert).toHaveBeenCalledWith({
-      where: { resourceTenantOid: 1n },
-      create: { resourceTenantOid: 1n },
-      update: {}
+    expect(dirtyTrackerCreateMany).toHaveBeenCalledWith({
+      data: { resourceTenantOid: 1n },
+      skipDuplicates: true
     });
   });
 
-  it('creates a missing audit log when the event already exists', async () => {
-    eventFindUnique.mockResolvedValueOnce({
-      oid: 10n,
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
-      auditLogs: []
-    });
-
+  it('stores a fine-grained actor without a resource actor oid', async () => {
     await ingestAuditEventToPostgres({
-      id: 'evt_test',
+      id: 'evt_fine_grained',
       resourceTenantOid: 1n,
       resourceGroupOid: 2n,
-      resourceActorOid: 3n,
+      actor: {
+        type: 'fine_grained_token',
+        id: 'fgk_1',
+        metadata: {
+          sessionIds: ['ses_1']
+        }
+      },
       context: { ip: '127.0.0.1' },
       resource: 'organization',
       action: 'create',
-      payload: { name: 'Acme' },
+      payload: {},
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
 
-    expect(eventCreate).not.toHaveBeenCalled();
-    expect(auditLogCreate).toHaveBeenCalledWith({
+    expect(eventCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        id: 'aud_test',
-        eventOid: 10n,
-        resourceTenantOid: 1n
+        resourceActorOid: null,
+        actorType: 'fine_grained_token',
+        actorId: 'fgk_1',
+        actorMetadata: {
+          sessionIds: ['ses_1']
+        }
       })
     });
-    expect(dirtyTrackerUpsert).toHaveBeenCalledWith({
-      where: { resourceTenantOid: 1n },
-      create: { resourceTenantOid: 1n },
-      update: {}
-    });
   });
 
-  it('is a no-op when the event and audit log already exist', async () => {
-    eventFindUnique.mockResolvedValueOnce({
-      oid: 10n,
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
-      auditLogs: [{ oid: 11n }]
-    });
+  it('ignores duplicate events', async () => {
+    eventCreate.mockRejectedValueOnce({ code: 'P2002' });
 
     await ingestAuditEventToPostgres({
       id: 'evt_test',
@@ -149,7 +139,24 @@ describe('ingestAuditEventToPostgres', () => {
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
 
-    expect(eventCreate).not.toHaveBeenCalled();
-    expect(auditLogCreate).not.toHaveBeenCalled();
+    expect(dirtyTrackerCreateMany).not.toHaveBeenCalled();
+  });
+
+  it('propagates non-duplicate database errors', async () => {
+    eventCreate.mockRejectedValueOnce({ code: 'P2003' });
+
+    await expect(
+      ingestAuditEventToPostgres({
+        id: 'evt_test',
+        resourceTenantOid: 1n,
+        resourceGroupOid: 2n,
+        resourceActorOid: 3n,
+        context: { ip: '127.0.0.1' },
+        resource: 'organization',
+        action: 'create',
+        payload: { name: 'Acme' },
+        recordedAt: new Date('2026-08-12T10:00:00.000Z')
+      })
+    ).rejects.toEqual({ code: 'P2003' });
   });
 });

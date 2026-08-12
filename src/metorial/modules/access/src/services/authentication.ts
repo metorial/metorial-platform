@@ -6,6 +6,7 @@ import {
   getConsumerAccessContextForSession
 } from '@metorial/consumer-auth';
 import { Context } from '@metorial/context';
+import { createAuditScope, type AuditScope } from '@metorial/audit-scope';
 import {
   ApiKey,
   Consumer,
@@ -70,7 +71,9 @@ type AuthenticatedResourceScope = {
   resourceGroup: ResourceGroup;
 };
 
-export type AuthInfo =
+export type AuthInfo = {
+  auditScope?: AuditScope;
+} & (
   | {
       type: 'user';
       user: User;
@@ -114,7 +117,8 @@ export type AuthInfo =
         resourceGroup: ResourceGroup;
         accessTagGrants: FineGrainedAccessTagGrant[];
       };
-    };
+    }
+);
 
 class AuthenticationService {
   private async getResourceScopeForOwner(
@@ -252,6 +256,24 @@ class AuthenticationService {
 
       return {
         type: 'fine_grained',
+        auditScope: createAuditScope({
+          resourceTenant: resourceScope.resourceTenant,
+          resourceGroup: resourceScope.resourceGroup,
+          actor: {
+            type: 'fine_grained_token',
+            id: res.fineGrainedKey.id,
+            metadata: {
+              sessionIds: [
+                ...new Set(
+                  res.accessTagGrants
+                    .filter(grant => grant.resourceType == 'subspace.session')
+                    .map(grant => grant.resourceId)
+                )
+              ]
+            }
+          },
+          context: d.context
+        }),
         fineGrainedKey: res.fineGrainedKey,
         orgScopes: res.orgScopes,
         restrictions: {
@@ -377,6 +399,21 @@ class AuthenticationService {
 
       return {
         type: 'machine',
+        auditScope: createAuditScope({
+          resourceTenant: resourceScope.resourceTenant,
+          resourceGroup: resourceScope.resourceGroup,
+          resourceActor,
+          actor: consumer
+            ? {
+                type: 'consumer_profile',
+                id: consumer.consumerProfile.id
+              }
+            : {
+                type: 'org_actor',
+                id: machineAccess.actor.id
+              },
+          context: d.context
+        }),
         apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
         oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,

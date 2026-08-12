@@ -19,6 +19,7 @@ vi.mock('@metorial/redis', () => ({
 import {
   acknowledgeClaimedAuditEvent,
   claimAuditEvents,
+  decodeStashedAuditEvent,
   listClaimedAuditEvents,
   stashAuditEvent
 } from './stash';
@@ -38,6 +39,10 @@ describe('stashAuditEvent', () => {
       resourceTenantOid: 1n,
       resourceGroupOid: 2n,
       resourceActorOid: 3n,
+      actor: {
+        type: 'org_actor' as const,
+        id: 'oac_1'
+      },
       context: {} as any,
       resource: 'organization',
       action: 'create',
@@ -66,6 +71,10 @@ describe('stashAuditEvent', () => {
         resourceTenantOid: 1n,
         resourceGroupOid: 2n,
         resourceActorOid: 3n,
+        actor: {
+          type: 'system',
+          id: 'test'
+        },
         context: {} as any,
         resource: 'organization',
         action: 'create',
@@ -73,6 +82,17 @@ describe('stashAuditEvent', () => {
         recordedAt: new Date()
       })
     ).rejects.toThrow('Redis unavailable');
+  });
+
+  it('decodes legacy stashed events without actor metadata', () => {
+    let legacyEvent = {
+      id: 'event-1',
+      resourceTenantOid: 1n,
+      resourceGroupOid: 2n,
+      resourceActorOid: 3n
+    };
+
+    expect(decodeStashedAuditEvent(serialize.encode(legacyEvent))).toEqual(legacyEvent);
   });
 
   it('atomically claims a batch of the oldest pending events', async () => {

@@ -1,5 +1,5 @@
 import { serialize } from '@lowerdeck/serialize';
-import type { AuditScope } from '@metorial/audit-scope';
+import type { AuditActor, AuditScope } from '@metorial/audit-scope';
 import { createRedisClient } from '@metorial/redis';
 
 let getRedis = createRedisClient({}).lazy();
@@ -28,7 +28,8 @@ export interface StashedAuditEvent {
   id: string;
   resourceTenantOid: bigint;
   resourceGroupOid: bigint;
-  resourceActorOid: bigint;
+  resourceActorOid?: bigint;
+  actor?: AuditActor;
   context: AuditScope['context'];
   resource: string;
   action: string;

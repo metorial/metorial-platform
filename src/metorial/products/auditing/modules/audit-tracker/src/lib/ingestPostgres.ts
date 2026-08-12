@@ -7,7 +7,8 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
   await withTransaction(async db => {
     let resourceTenantOid = toOid(event.resourceTenantOid);
     let resourceGroupOid = toOid(event.resourceGroupOid);
-    let resourceActorOid = toOid(event.resourceActorOid);
+    let resourceActorOid =
+      event.resourceActorOid === undefined ? null : toOid(event.resourceActorOid);
 
     try {
       await db.event.create({
@@ -20,6 +21,9 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
           resourceTenantOid,
           resourceGroupOid,
           resourceActorOid,
+          actorType: event.actor?.type ?? null,
+          actorId: event.actor?.id ?? null,
+          actorMetadata: event.actor?.metadata,
           recordedAt: event.recordedAt,
           auditLogs: {
             create: {
@@ -31,6 +35,9 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
               resourceTenantOid,
               resourceGroupOid,
               resourceActorOid,
+              actorType: event.actor?.type ?? null,
+              actorId: event.actor?.id ?? null,
+              actorMetadata: event.actor?.metadata,
               recordedAt: event.recordedAt
             }
           }
