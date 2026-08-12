@@ -34,7 +34,7 @@ type ManagedProviderAuthCredentialsRecord = Prisma.ManagedProviderAuthCredential
 }>;
 
 let getProviderAuthMethodForProvider = async (d: {
-  provider: Awaited<ReturnType<typeof providerService.getProviderById>>;
+  provider: Awaited<ReturnType<typeof providerService.getProviderByIdInternal>>;
   providerAuthMethodId: string;
 }) => {
   if (!d.provider.defaultVariant?.currentVersion?.specificationOid) {
@@ -131,7 +131,7 @@ class managedProviderAuthCredentialsServiceImpl {
   }) {
     let solution = await getMetorialSolution();
 
-    let provider = await providerService.getProviderById({
+    let provider = await providerService.getProviderByIdInternal({
       providerId: d.input.providerId
     });
 
@@ -189,7 +189,7 @@ class managedProviderAuthCredentialsServiceImpl {
       {};
 
     if (d.input.providerAuthMethodId) {
-      let provider = await providerService.getProviderById({
+      let provider = await providerService.getProviderByIdInternal({
         providerId:
           d.managedProviderAuthCredentials.provider?.id ??
           d.managedProviderAuthCredentials.initialProviderAuthMethod.provider.id

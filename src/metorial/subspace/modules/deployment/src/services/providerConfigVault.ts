@@ -89,6 +89,31 @@ export type ArchiveProviderConfigVaultParams = {
   providerConfigVault: ProviderConfigVault;
 };
 
+type ListProviderConfigVaultsParams = {
+  search?: string;
+
+  status?: ProviderConfigVaultStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderConfigVaultByIdParams = {
+  providerConfigVaultId: string;
+  allowDeleted?: boolean;
+};
+
+type GetManyProviderConfigVaultsByIdsParams = {
+  ids: string[];
+  allowDeleted?: boolean;
+};
+
 class providerConfigVaultServiceImpl {
   async createProviderConfigVault(d: MetorialFacing<CreateProviderConfigVaultParams>) {
     let { instance, organizationActor, ...rest } = d;
@@ -144,23 +169,20 @@ class providerConfigVaultServiceImpl {
     return configVault;
   }
 
-  async listProviderConfigVaults(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listProviderConfigVaults(d: MetorialFacing<ListProviderConfigVaultsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    search?: string;
+    return this.listProviderConfigVaultsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    status?: ProviderConfigVaultStatus[];
-    allowDeleted?: boolean;
-
-    ids?: string[];
-    providerIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listProviderConfigVaultsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderConfigVaultsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providers = await resolveProviders(ts, d.providerIds);
@@ -204,12 +226,20 @@ class providerConfigVaultServiceImpl {
     );
   }
 
-  async getProviderConfigVaultById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerConfigVaultId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderConfigVaultById(d: MetorialFacing<GetProviderConfigVaultByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderConfigVaultByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderConfigVaultByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderConfigVaultByIdParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providerConfigVault = await db.providerConfigVault.findFirst({
@@ -228,12 +258,22 @@ class providerConfigVaultServiceImpl {
     return providerConfigVault;
   }
 
-  async getManyProviderConfigVaultsByIds(d: {
-    tenant: Tenant;
-    environment: Environment;
-    ids: string[];
-    allowDeleted?: boolean;
-  }) {
+  async getManyProviderConfigVaultsByIds(
+    d: MetorialFacing<GetManyProviderConfigVaultsByIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProviderConfigVaultsByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProviderConfigVaultsByIdsInternal(
+    d: { tenant: Tenant; environment: Environment } & GetManyProviderConfigVaultsByIdsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await db.providerConfigVault.findMany({

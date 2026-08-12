@@ -4,11 +4,12 @@ import type {
   CallbackReceiverRegistration,
   Provider,
   ProviderSpecification,
-  ProviderTrigger,
-  Tenant
+  ProviderTrigger
 } from '@metorial-subspace/db';
 import { db } from '@metorial-subspace/db';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { resolveMetorialFacing } from '@metorial-subspace/module-tenant';
+import type { Instance } from '@metorial/db';
 
 export type CallbackInstanceReceiverTrigger = Awaited<
   ReturnType<typeof slates.slateTriggerReceiver.get>
@@ -66,21 +67,23 @@ export let enrichTriggers = (
 };
 
 export let enrichCallbackInstanceTriggers = async (
-  tenant: Tenant,
+  instance: Instance,
   callback: Callback,
   instances: CallbackInstanceWithRegistration[]
 ): Promise<Map<string, CallbackInstanceReceiver>> => {
+  let { tenant } = await resolveMetorialFacing({ instance });
   let receiverIdToInstanceIds = new Map<string, string[]>();
-  for (let instance of instances) {
+  for (let callbackInstance of instances) {
     let receiverId =
-      instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
+      callbackInstance.slateTriggerReceiverId ??
+      callbackInstance.activeRegistration?.slateTriggerReceiverId;
     if (!receiverId) continue;
     let ids = receiverIdToInstanceIds.get(receiverId);
     if (!ids) {
       ids = [];
       receiverIdToInstanceIds.set(receiverId, ids);
     }
-    ids.push(instance.id);
+    ids.push(callbackInstance.id);
   }
 
   let result = new Map<string, CallbackInstanceReceiver>();
@@ -122,12 +125,14 @@ export let enrichCallbackInstanceTriggers = async (
 };
 
 export let enrichSingleCallbackInstanceTriggers = async (
-  tenant: Tenant,
+  instance: Instance,
   callback: Callback,
-  instance: CallbackInstanceWithRegistration
+  callbackInstance: CallbackInstanceWithRegistration
 ): Promise<CallbackInstanceReceiver | undefined> => {
+  let { tenant } = await resolveMetorialFacing({ instance });
   let receiverId =
-    instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
+    callbackInstance.slateTriggerReceiverId ??
+    callbackInstance.activeRegistration?.slateTriggerReceiverId;
   if (!receiverId) return undefined;
 
   let slatesTenant = await getTenantForSlates(tenant);

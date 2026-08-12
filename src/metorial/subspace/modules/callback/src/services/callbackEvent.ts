@@ -58,6 +58,10 @@ export type GetCallbackEventParams = {
   slateTriggerEventId: string;
 };
 
+type ListCallbackEventSourceIdsParams = {
+  callbackEventIds: string[];
+};
+
 class callbackEventServiceImpl {
   private async resolveContext(d: {
     tenant: Tenant;
@@ -148,7 +152,20 @@ class callbackEventServiceImpl {
     return toCallbackEvent(event);
   }
 
-  async listCallbackEventSourceIds(d: { tenant: Tenant; callbackEventIds: string[] }) {
+  async listCallbackEventSourceIds(d: MetorialFacing<ListCallbackEventSourceIdsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listCallbackEventSourceIdsInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async listCallbackEventSourceIdsInternal(d: {
+    tenant: Tenant;
+    callbackEventIds: string[];
+  }) {
     if (d.callbackEventIds.length === 0) return [];
 
     let signalTenant = await getTenantForSignal(d.tenant);

@@ -9,7 +9,11 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { buildStoredProviderInvocationIdFilter } from '@metorial-subspace/provider-utils';
 
 let include = {
@@ -29,20 +33,37 @@ let include = {
 };
 export let authConfigEventInclude = include;
 
+type ListAuthConfigEventsParams = {
+  ids?: string[];
+  authConfigIds?: string[];
+  authCredentialsIds?: string[];
+  providerOAuthSetupIds?: string[];
+  providerIds?: string[];
+  providerInvocationIds?: string[];
+  types?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetAuthConfigEventByIdParams = {
+  authConfigEventId: string;
+};
+
 class authConfigEventServiceImpl {
-  async listAuthConfigEvents(d: {
-    tenant: Tenant;
-    environment: Environment;
-    ids?: string[];
-    authConfigIds?: string[];
-    authCredentialsIds?: string[];
-    providerOAuthSetupIds?: string[];
-    providerIds?: string[];
-    providerInvocationIds?: string[];
-    types?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listAuthConfigEvents(d: MetorialFacing<ListAuthConfigEventsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listAuthConfigEventsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listAuthConfigEventsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListAuthConfigEventsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let authConfigs = await resolveProviderAuthConfigs(ts, d.authConfigIds);
@@ -89,11 +110,20 @@ class authConfigEventServiceImpl {
     );
   }
 
-  async getAuthConfigEventById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    authConfigEventId: string;
-  }) {
+  async getAuthConfigEventById(d: MetorialFacing<GetAuthConfigEventByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getAuthConfigEventByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getAuthConfigEventByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetAuthConfigEventByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let authConfigEvent = await db.providerAuthConfigEvent.findFirst({

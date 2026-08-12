@@ -50,8 +50,10 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import {
   checkTenant,
   getMetorialSolution,
+  type MetorialFacing,
   type MetorialFacingWithOptionalConsumerActor,
   resolveConsumerActorIds,
+  resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -133,31 +135,67 @@ export type ArchiveProviderConfigParams = {
   _canArchiveOwned?: boolean;
 };
 
+type ListProviderConfigsParams = {
+  search?: string;
+
+  status?: ProviderConfigStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerSpecificationIds?: string[];
+  providerDeploymentIds?: string[];
+  availableForUse?: boolean;
+  availableForProviderDeploymentId?: string;
+  providerConfigVaultIds?: string[];
+  actorIds?: string[];
+  consumerIds?: string[];
+  identityIds?: string[];
+  identityCredentialIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderConfigByIdParams = {
+  providerConfigId: string;
+  allowDeleted?: boolean;
+};
+
+type GetManyProviderConfigsByIdsParams = {
+  ids: string[];
+  allowDeleted?: boolean;
+};
+
+type GetProviderConfigSchemaParams = {
+  provider?: Provider & { defaultVariant: ProviderVariant | null };
+  providerVersion?: ProviderVersion;
+  providerDeployment?: ProviderDeployment & {
+    currentVersion: ProviderDeploymentVersion | null;
+  };
+  providerConfig?: ProviderConfig & { deployment: ProviderDeployment | null };
+};
+
+type EnsureDefaultEmptyProviderConfigParams = {
+  provider: Provider & { defaultVariant: ProviderVariant | null };
+  providerDeployment: ProviderDeployment;
+};
+
 class providerConfigServiceImpl {
-  async listProviderConfigs(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listProviderConfigs(d: MetorialFacing<ListProviderConfigsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    search?: string;
+    return this.listProviderConfigsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    status?: ProviderConfigStatus[];
-    allowDeleted?: boolean;
-
-    ids?: string[];
-    providerIds?: string[];
-    providerSpecificationIds?: string[];
-    providerDeploymentIds?: string[];
-    availableForUse?: boolean;
-    availableForProviderDeploymentId?: string;
-    providerConfigVaultIds?: string[];
-    actorIds?: string[];
-    consumerIds?: string[];
-    identityIds?: string[];
-    identityCredentialIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listProviderConfigsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderConfigsParams
+  ) {
     let actorIds = d.actorIds;
     if (d.consumerIds) {
       let consumerActorIds = await resolveConsumerActorIds(d.consumerIds);
@@ -250,12 +288,20 @@ class providerConfigServiceImpl {
     );
   }
 
-  async getProviderConfigById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerConfigId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderConfigById(d: MetorialFacing<GetProviderConfigByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderConfigByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderConfigByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderConfigByIdParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providerConfig = await withTransaction(
@@ -279,12 +325,20 @@ class providerConfigServiceImpl {
     return providerConfig;
   }
 
-  async getManyProviderConfigsByIds(d: {
-    tenant: Tenant;
-    environment: Environment;
-    ids: string[];
-    allowDeleted?: boolean;
-  }) {
+  async getManyProviderConfigsByIds(d: MetorialFacing<GetManyProviderConfigsByIdsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProviderConfigsByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProviderConfigsByIdsInternal(
+    d: { tenant: Tenant; environment: Environment } & GetManyProviderConfigsByIdsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await db.providerConfig.findMany({
@@ -300,17 +354,20 @@ class providerConfigServiceImpl {
     });
   }
 
-  async getProviderConfigSchema(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async getProviderConfigSchema(d: MetorialFacing<GetProviderConfigSchemaParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    provider?: Provider & { defaultVariant: ProviderVariant | null };
-    providerVersion?: ProviderVersion;
-    providerDeployment?: ProviderDeployment & {
-      currentVersion: ProviderDeploymentVersion | null;
-    };
-    providerConfig?: ProviderConfig & { deployment: ProviderDeployment | null };
-  }) {
+    return this.getProviderConfigSchemaInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderConfigSchemaInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderConfigSchemaParams
+  ) {
     if (d.providerConfig) {
       return await db.providerSpecification.findFirstOrThrow({
         where: { oid: d.providerConfig.specificationOid },
@@ -624,12 +681,22 @@ class providerConfigServiceImpl {
     });
   }
 
-  async ensureDefaultEmptyProviderConfig(d: {
-    tenant: Tenant;
-    environment: Environment;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-    providerDeployment: ProviderDeployment;
-  }) {
+  async ensureDefaultEmptyProviderConfig(
+    d: MetorialFacing<EnsureDefaultEmptyProviderConfigParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.ensureDefaultEmptyProviderConfigInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async ensureDefaultEmptyProviderConfigInternal(
+    d: { tenant: Tenant; environment: Environment } & EnsureDefaultEmptyProviderConfigParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 

@@ -272,7 +272,7 @@ class providerSetupSessionInternalServiceImpl {
         );
       }
 
-      let setup = await providerOAuthSetupService.createProviderOAuthSetup({
+      let setup = await providerOAuthSetupService.createProviderOAuthSetupInternal({
         tenant: d.tenant,
         environment: d.environment,
         provider: d.provider,
@@ -629,7 +629,7 @@ class providerSetupSessionInternalServiceImpl {
       currentVersion: ProviderDeploymentVersion | null;
     };
   }) {
-    let schema = await providerConfigService.getProviderConfigSchema({
+    let schema = await providerConfigService.getProviderConfigSchemaInternal({
       tenant: d.tenant,
       environment: d.environment,
       provider: d.provider,

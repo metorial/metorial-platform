@@ -74,32 +74,26 @@ class sessionConnectionServiceImpl {
       environment: scope.environment
     });
 
-    return {
-      run: async (query: Parameters<typeof paginator.run>[0]) => {
-        let list = await paginator.run(query);
-        let participants = await enrichSessionParticipantsWithConsumer({
-          instanceOid: instance.oid,
-          participants: list.items
-            .map(item => item.participant)
-            .filter(
-              (participant): participant is NonNullable<typeof participant> => !!participant
-            )
-        });
-        let participantMap = new Map(
-          participants.map(participant => [participant.id, participant])
-        );
+    return paginator.mapAll(async items => {
+      let participants = await enrichSessionParticipantsWithConsumer({
+        instanceOid: instance.oid,
+        participants: items
+          .map(item => item.participant)
+          .filter(
+            (participant): participant is NonNullable<typeof participant> => !!participant
+          )
+      });
+      let participantMap = new Map(
+        participants.map(participant => [participant.id, participant])
+      );
 
-        return {
-          ...list,
-          items: list.items.map(item => ({
-            ...item,
-            participant: item.participant
-              ? (participantMap.get(item.participant.id) ?? item.participant)
-              : null
-          }))
-        };
-      }
-    };
+      return items.map(item => ({
+        ...item,
+        participant: item.participant
+          ? (participantMap.get(item.participant.id) ?? item.participant)
+          : null
+      }));
+    });
   }
 
   async listSessionConnectionsInternal(

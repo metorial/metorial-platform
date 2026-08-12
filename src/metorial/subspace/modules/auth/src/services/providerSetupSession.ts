@@ -43,7 +43,9 @@ import {
   getMetorialSolution,
   checkTenant,
   metorialDb,
+  type MetorialFacing,
   type MetorialFacingWithOptionalConsumerActor,
+  resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -146,24 +148,41 @@ export type UpdateProviderSetupSessionParams = {
   };
 };
 
+type ListProviderSetupSessionsParams = {
+  status?: ProviderSetupSessionStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerAuthMethodIds?: string[];
+  providerDeploymentIds?: string[];
+  providerAuthConfigIds?: string[];
+  providerAuthCredentialsIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderSetupSessionByIdParams = {
+  providerSetupSessionId: string;
+  allowDeleted?: boolean;
+};
+
 class providerSetupSessionServiceImpl {
-  async listProviderSetupSessions(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listProviderSetupSessions(d: MetorialFacing<ListProviderSetupSessionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: ProviderSetupSessionStatus[];
-    allowDeleted?: boolean;
+    return this.listProviderSetupSessionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    providerIds?: string[];
-    providerAuthMethodIds?: string[];
-    providerDeploymentIds?: string[];
-    providerAuthConfigIds?: string[];
-    providerAuthCredentialsIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listProviderSetupSessionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderSetupSessionsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providers = await resolveProviders(ts, d.providerIds);
@@ -206,12 +225,20 @@ class providerSetupSessionServiceImpl {
     );
   }
 
-  async getProviderSetupSessionById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerSetupSessionId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderSetupSessionById(d: MetorialFacing<GetProviderSetupSessionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderSetupSessionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderSetupSessionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderSetupSessionByIdParams
+  ) {
     let solution = await getMetorialSolution();
     let providerSetupSession = await db.providerSetupSession.findFirst({
       where: {
@@ -267,16 +294,17 @@ class providerSetupSessionServiceImpl {
         );
       }
 
-      identity = await db.identity.findFirst({
+      let consumerIdentity = await db.identity.findFirst({
         where: {
           id: actor.defaultIdentityId,
           tenantOid: scope.tenant.oid,
           environmentOid: scope.environment.oid
         }
       });
-      if (!identity) {
+      if (!consumerIdentity) {
         throw new ServiceError(notFoundError('identity', actor.defaultIdentityId));
       }
+      identity = consumerIdentity;
 
       privateMetadata = {
         $owner: 'consumer',

@@ -11,7 +11,11 @@ import {
   resolvePublishers
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import type { ProviderCapabilityFilter } from './provider';
 import {
   getProviderCapabilityFilter,
@@ -56,13 +60,55 @@ let getInclude = (tenant: Tenant | undefined, solution: Solution) => ({
   }
 });
 
+type GetProviderListingByIdParams = {
+  providerListingId: string;
+  includeDeprecated?: boolean;
+};
+
+type ListProviderListingsParams = {
+  search?: string;
+
+  ids?: string[];
+  providerCollectionIds?: string[];
+  providerCategoryIds?: string[];
+  providerGroupIds?: string[];
+  publisherIds?: string[];
+
+  isPublic?: boolean;
+  onlyFromTenant?: boolean;
+
+  isVerified?: boolean;
+  isOfficial?: boolean;
+  isMetorial?: boolean;
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+
+  orderByRank?: boolean;
+  orderByUse?: ProviderListingOrderByUse;
+
+  capabilities?: ProviderCapabilityFilter;
+  includeDeprecated?: boolean;
+};
+
 class ProviderListingService {
-  async getProviderListingById(d: {
-    providerListingId: string;
-    tenant?: Tenant;
-    environment?: Environment;
-    includeDeprecated?: boolean;
-  }) {
+  async getProviderListingById(d: MetorialFacing<GetProviderListingByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderListingByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderListingByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderListingByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let providerListing = await db.providerListing.findFirst({
@@ -107,34 +153,23 @@ class ProviderListingService {
     return providerListing;
   }
 
-  async listProviderListings(d: {
-    search?: string;
+  async listProviderListings(d: MetorialFacing<ListProviderListingsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerCollectionIds?: string[];
-    providerCategoryIds?: string[];
-    providerGroupIds?: string[];
-    publisherIds?: string[];
+    return this.listProviderListingsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    isPublic?: boolean;
-    onlyFromTenant?: boolean;
-
-    isVerified?: boolean;
-    isOfficial?: boolean;
-    isMetorial?: boolean;
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-
-    tenant?: Tenant;
-    environment?: Environment;
-
-    orderByRank?: boolean;
-    orderByUse?: ProviderListingOrderByUse;
-
-    capabilities?: ProviderCapabilityFilter;
-    includeDeprecated?: boolean;
-  }) {
+  async listProviderListingsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderListingsParams
+  ) {
     let solution = await getMetorialSolution();
 
     let collections = await resolveProviderCollections(d.providerCollectionIds);
@@ -213,16 +248,6 @@ class ProviderListingService {
                     provider: getProviderEnvironmentVisibilityFilter(d)
                   }
                 : undefined!,
-
-              // d.tenant.onlyIncludeVerifiedOfficialOrFromTenant
-              //   ? {
-              //       OR: [
-              //         { isVerified: true },
-              //         { isOfficial: true },
-              //         d.tenant && d.environment ? { ownerTenantOid: d.tenant.oid } : undefined!
-              //       ].filter(Boolean)
-              //     }
-              //   : undefined!,
 
               d.ids
                 ? {

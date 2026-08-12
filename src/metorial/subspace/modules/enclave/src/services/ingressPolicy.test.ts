@@ -11,7 +11,7 @@ let { mockDb, mockEnclaveService, mockRecordIngressNetworkLog, mockGetMetorialSo
       }
     },
     mockEnclaveService: {
-      getCompiledNetworkRules: vi.fn()
+      getCompiledNetworkRulesInternal: vi.fn()
     },
     mockRecordIngressNetworkLog: vi.fn(),
     mockGetMetorialSolution: vi.fn()
@@ -44,7 +44,7 @@ let enclave = {
   compiledNetworkRules: null
 } as any;
 
-describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
+describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDb.ephemeralManagedSession.findMany.mockResolvedValue([]);
@@ -58,12 +58,12 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
         providers: [{ deployment: { enclave } }]
       }
     ]);
-    mockEnclaveService.getCompiledNetworkRules.mockResolvedValueOnce({
+    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
       ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
       egress: { direction: 'egress', entries: [] }
     });
 
-    let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
+    let result = await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
       tenant,
       environment,
       sessionIds: ['ses_test'],
@@ -88,12 +88,12 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
         providers: [{ deployment: { enclave } }]
       }
     ]);
-    mockEnclaveService.getCompiledNetworkRules.mockResolvedValueOnce({
+    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
       ingress: { direction: 'ingress', entries: [{ cidr: '198.51.100.0/24' }] },
       egress: { direction: 'egress', entries: [] }
     });
 
-    let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
+    let result = await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
       tenant,
       environment,
       sessionIds: ['ses_test'],
@@ -130,7 +130,7 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
       }
     ]);
 
-    let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
+    let result = await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
       tenant,
       environment,
       sessionIds: ['ses_plain'],

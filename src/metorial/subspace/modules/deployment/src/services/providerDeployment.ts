@@ -47,8 +47,10 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import {
   checkTenant,
   getMetorialSolution,
+  type MetorialFacing,
   type MetorialFacingWithOptionalConsumerActor,
   resolveConsumerActorIds,
+  resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -137,6 +139,40 @@ export type ArchiveProviderDeploymentParams = {
   providerDeployment: ProviderDeployment;
 };
 
+type ListProviderDeploymentsParams = {
+  search?: string;
+
+  status?: ProviderDeploymentStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerVersionIds?: string[];
+  actorIds?: string[];
+  consumerIds?: string[];
+  identityIds?: string[];
+  identityCredentialIds?: string[];
+
+  capabilities?: ProviderCapabilityFilter;
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderDeploymentByIdParams = {
+  providerDeploymentId: string;
+  allowDeleted?: boolean;
+};
+
+type GetManyProviderDeploymentsByIdsParams = {
+  ids: string[];
+  allowDeleted?: boolean;
+};
+
+type EnsureDefaultProviderDeploymentParams = {
+  provider: Provider & { defaultVariant: ProviderVariant | null };
+};
+
 class providerDeploymentServiceImpl {
   async createProviderDeployment(
     d: MetorialFacingWithOptionalConsumerActor<CreateProviderDeploymentParams>
@@ -198,28 +234,20 @@ class providerDeploymentServiceImpl {
     return deployment;
   }
 
-  async listProviderDeployments(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listProviderDeployments(d: MetorialFacing<ListProviderDeploymentsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    search?: string;
+    return this.listProviderDeploymentsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    status?: ProviderDeploymentStatus[];
-    allowDeleted?: boolean;
-
-    ids?: string[];
-    providerIds?: string[];
-    providerVersionIds?: string[];
-    actorIds?: string[];
-    consumerIds?: string[];
-    identityIds?: string[];
-    identityCredentialIds?: string[];
-
-    capabilities?: ProviderCapabilityFilter;
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listProviderDeploymentsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderDeploymentsParams
+  ) {
     let actorIds = d.actorIds;
     if (d.consumerIds) {
       let consumerActorIds = await resolveConsumerActorIds(d.consumerIds);
@@ -283,12 +311,20 @@ class providerDeploymentServiceImpl {
     );
   }
 
-  async getProviderDeploymentById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerDeploymentId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderDeploymentById(d: MetorialFacing<GetProviderDeploymentByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderDeploymentByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderDeploymentByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderDeploymentByIdParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providerDeployment = await withTransaction(
@@ -312,12 +348,22 @@ class providerDeploymentServiceImpl {
     return providerDeployment;
   }
 
-  async getManyProviderDeploymentsByIds(d: {
-    tenant: Tenant;
-    environment: Environment;
-    ids: string[];
-    allowDeleted?: boolean;
-  }) {
+  async getManyProviderDeploymentsByIds(
+    d: MetorialFacing<GetManyProviderDeploymentsByIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProviderDeploymentsByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProviderDeploymentsByIdsInternal(
+    d: { tenant: Tenant; environment: Environment } & GetManyProviderDeploymentsByIdsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await db.providerDeployment.findMany({
@@ -511,11 +557,22 @@ class providerDeploymentServiceImpl {
     });
   }
 
-  async ensureDefaultProviderDeployment(d: {
-    tenant: Tenant;
-    environment: Environment;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-  }) {
+  async ensureDefaultProviderDeployment(
+    d: MetorialFacing<EnsureDefaultProviderDeploymentParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.ensureDefaultProviderDeploymentInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async ensureDefaultProviderDeploymentInternal(
+    d: { tenant: Tenant; environment: Environment } & EnsureDefaultProviderDeploymentParams
+  ) {
     let currentDefault = await this.getDefaultProviderDeployment(d);
     if (currentDefault) return currentDefault;
 

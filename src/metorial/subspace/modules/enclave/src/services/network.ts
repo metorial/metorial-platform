@@ -51,6 +51,8 @@ export type GetNetworkByIdParams = {
   networkId: string;
 };
 
+export type GetNetworkForEnvironmentParams = {};
+
 class networkServiceImpl {
   async listNetworks(d: MetorialFacing<ListNetworksParams>) {
     let { instance, organizationActor, ...rest } = d;
@@ -106,17 +108,32 @@ class networkServiceImpl {
   }
 
   async getNetwork(d: MetorialFacing<GetNetworkByIdParams>) {
+    return this.getNetworkById(d);
+  }
+
+  async getNetworkById(d: MetorialFacing<GetNetworkByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getNetworkById({
+    return this.getNetworkByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
   }
 
-  async getNetworkForEnvironment(d: { tenant: Tenant; environment: Environment }) {
+  async getNetworkForEnvironment(d: MetorialFacing<GetNetworkForEnvironmentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkForEnvironmentInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getNetworkForEnvironmentInternal(d: { tenant: Tenant; environment: Environment }) {
     let network = await db.network.findFirst({
       where: {
         tenantOid: d.tenant.oid,
@@ -131,7 +148,11 @@ class networkServiceImpl {
     return network;
   }
 
-  async getNetworkById(d: { tenant: Tenant; environment: Environment; networkId: string }) {
+  async getNetworkByIdInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+    networkId: string;
+  }) {
     if (d.networkId === 'default') {
       return networkInternalService.ensureNetworkForEnvironment(d);
     }

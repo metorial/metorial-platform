@@ -31,7 +31,9 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import {
   getMetorialSolution,
   checkTenant,
+  type MetorialFacing,
   type MetorialFacingWithOptionalConsumerActor,
+  resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -178,6 +180,47 @@ export type ArchiveProviderAuthCredentialsParams = {
   providerAuthCredentials: ProviderAuthCredentials;
 };
 
+type ListProviderAuthCredentialsParams = {
+  status?: ProviderAuthCredentialsStatus[];
+  allowDeleted?: boolean;
+
+  origin?: ProviderAuthCredentialsListOrigin[];
+  search?: string;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerAuthMethodIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderAuthCredentialsByIdParams = {
+  providerAuthCredentialsId: string;
+  allowDeleted?: boolean;
+};
+
+type GetManyProviderAuthCredentialsByIdsParams = {
+  ids: string[];
+  allowDeleted?: boolean;
+};
+
+type SyncProviderAuthCredentialsScopesParams = {
+  providerAuthCredentials: ProviderAuthCredentials;
+};
+
+type EnsureDefaultProviderAuthCredentialsParams = {
+  provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
+};
+
+type GetProviderAuthCredentialsForBackendUseParams = {
+  provider: Provider & { defaultVariant: ProviderVariant | null };
+  providerAuthCredentials: ProviderAuthCredentials;
+  providerAuthMethod: {
+    globalOid: bigint;
+  };
+};
+
 class providerAuthCredentialsServiceImpl {
   async createProviderAuthCredentials(
     d: MetorialFacingWithOptionalConsumerActor<CreateParams>
@@ -248,23 +291,20 @@ class providerAuthCredentialsServiceImpl {
     return authCredentials;
   }
 
-  async listProviderAuthCredentials(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listProviderAuthCredentials(d: MetorialFacing<ListProviderAuthCredentialsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: ProviderAuthCredentialsStatus[];
-    allowDeleted?: boolean;
+    return this.listProviderAuthCredentialsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    origin?: ProviderAuthCredentialsListOrigin[];
-    search?: string;
-
-    ids?: string[];
-    providerIds?: string[];
-    providerAuthMethodIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listProviderAuthCredentialsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderAuthCredentialsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providers = await resolveProviders(ts, d.providerIds);
@@ -344,10 +384,11 @@ class providerAuthCredentialsServiceImpl {
     );
   }
 
-  async enrichWithScopes<T extends ProviderAuthCredentials>(d: {
-    tenant: Tenant;
-    credentials: T[];
-  }): Promise<(T & { scopes: string[] | null })[]> {
+  async enrichWithScopes<T extends ProviderAuthCredentials>(
+    d: MetorialFacing<{ credentials: T[] }>
+  ): Promise<(T & { scopes: string[] | null })[]> {
+    let { tenant } = await resolveMetorialFacing(d);
+
     let byBackend = new Map<bigint, T[]>();
     for (let cred of d.credentials) {
       let group = byBackend.get(cred.backendOid) ?? [];
@@ -359,7 +400,7 @@ class providerAuthCredentialsServiceImpl {
       Array.from(byBackend.entries()).map(async ([_, creds]) => {
         let backend = await getBackend({ entity: creds[0]! });
         let { scopes } = await backend.auth.getManyProviderAuthCredentialsScopes({
-          tenant: d.tenant,
+          tenant,
           backings: creds.map(c => ({
             id: c.id,
             slateCredentialsOid: c.slateCredentialsOid,
@@ -377,12 +418,22 @@ class providerAuthCredentialsServiceImpl {
     return results.flat();
   }
 
-  async getProviderAuthCredentialsById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerAuthCredentialsId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderAuthCredentialsById(
+    d: MetorialFacing<GetProviderAuthCredentialsByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderAuthCredentialsByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderAuthCredentialsByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderAuthCredentialsByIdParams
+  ) {
     let solution = await getMetorialSolution();
     let providerAuthCredentials = await withTransaction(
       async db =>
@@ -408,12 +459,22 @@ class providerAuthCredentialsServiceImpl {
     });
   }
 
-  async getManyProviderAuthCredentialsByIds(d: {
-    tenant: Tenant;
-    environment: Environment;
-    ids: string[];
-    allowDeleted?: boolean;
-  }) {
+  async getManyProviderAuthCredentialsByIds(
+    d: MetorialFacing<GetManyProviderAuthCredentialsByIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProviderAuthCredentialsByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProviderAuthCredentialsByIdsInternal(
+    d: { tenant: Tenant; environment: Environment } & GetManyProviderAuthCredentialsByIdsParams
+  ) {
     let solution = await getMetorialSolution();
     return await db.providerAuthCredentials.findMany({
       where: {
@@ -504,10 +565,21 @@ class providerAuthCredentialsServiceImpl {
     });
   }
 
-  async syncProviderAuthCredentialsScopes(d: {
-    tenant: Tenant;
-    providerAuthCredentials: ProviderAuthCredentials;
-  }) {
+  async syncProviderAuthCredentialsScopes(
+    d: MetorialFacing<SyncProviderAuthCredentialsScopesParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.syncProviderAuthCredentialsScopesInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async syncProviderAuthCredentialsScopesInternal(
+    d: { tenant: Tenant } & SyncProviderAuthCredentialsScopesParams
+  ) {
     return withTransaction(
       async db => {
         let scopes = (
@@ -590,11 +662,22 @@ class providerAuthCredentialsServiceImpl {
     return this.createProviderAuthCredentialsInner(d);
   }
 
-  async ensureDefaultProviderAuthCredentials(d: {
-    tenant: Tenant;
-    environment: Environment;
-    provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
-  }) {
+  async ensureDefaultProviderAuthCredentials(
+    d: MetorialFacing<EnsureDefaultProviderAuthCredentialsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.ensureDefaultProviderAuthCredentialsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async ensureDefaultProviderAuthCredentialsInternal(
+    d: { tenant: Tenant; environment: Environment } & EnsureDefaultProviderAuthCredentialsParams
+  ) {
     let solution = await getMetorialSolution();
     let getExisting = () =>
       db.providerAuthCredentials.findFirst({
@@ -625,14 +708,21 @@ class providerAuthCredentialsServiceImpl {
     });
   }
 
-  async getProviderAuthCredentialsForBackendUse(d: {
-    tenant: Tenant;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-    providerAuthCredentials: ProviderAuthCredentials;
-    providerAuthMethod: {
-      globalOid: bigint;
-    };
-  }) {
+  async getProviderAuthCredentialsForBackendUse(
+    d: MetorialFacing<GetProviderAuthCredentialsForBackendUseParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderAuthCredentialsForBackendUseInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async getProviderAuthCredentialsForBackendUseInternal(
+    d: { tenant: Tenant } & GetProviderAuthCredentialsForBackendUseParams
+  ) {
     let managedCredentials = await this.getManagedProviderAuthCredentialsContext(d);
     if (!managedCredentials) {
       return d.providerAuthCredentials;
@@ -724,7 +814,7 @@ class providerAuthCredentialsServiceImpl {
         })
       );
 
-      return await this.syncProviderAuthCredentialsScopes({
+      return await this.syncProviderAuthCredentialsScopesInternal({
         tenant: d.tenant,
         providerAuthCredentials
       });

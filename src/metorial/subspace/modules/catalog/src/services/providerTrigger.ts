@@ -8,16 +8,39 @@ import {
   type ProviderVersion,
   type Tenant
 } from '@metorial-subspace/db';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
-class providerTriggerServiceImpl {
-  async listProviderTriggers(d: {
-    tenant?: Tenant;
-    environment?: Environment;
+type ListProviderTriggersParams = {
+  providerVersion: ProviderVersion;
+};
 
-    providerVersion: ProviderVersion;
-  }) {
+type GetProviderTriggerByIdParams = {
+  providerTriggerId: string;
+};
+
+class providerTriggerServiceImpl {
+  async listProviderTriggers(d: MetorialFacing<ListProviderTriggersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listProviderTriggersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderTriggersInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderTriggersParams
+  ) {
     let solution = await getMetorialSolution();
 
     let versionOid = d.providerVersion?.oid;
@@ -112,11 +135,23 @@ class providerTriggerServiceImpl {
     );
   }
 
-  async getProviderTriggerById(d: {
-    tenant?: Tenant;
-    environment?: Environment;
-    providerTriggerId: string;
-  }) {
+  async getProviderTriggerById(d: MetorialFacing<GetProviderTriggerByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderTriggerByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderTriggerByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderTriggerByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let providerTrigger = await db.providerTrigger.findFirst({

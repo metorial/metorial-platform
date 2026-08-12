@@ -27,7 +27,9 @@ import { checkProviderMatch } from '@metorial-subspace/module-provider-internal'
 import {
   getMetorialSolution,
   checkTenant,
+  type MetorialFacing,
   type MetorialFacingWithOptionalConsumerActor,
+  resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -57,21 +59,39 @@ export interface ProviderAuthImportParams {
   providerAuthConfig?: ProviderAuthConfig & { authMethod: { id: string } };
 }
 
+type ListProviderAuthImportsParams = {
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerAuthCredentialsIds?: string[];
+  providerAuthConfigIds?: string[];
+  providerDeploymentIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderAuthImportByIdParams = {
+  providerAuthImportId: string;
+  allowDeleted?: boolean;
+};
+
 class providerAuthImportServiceImpl {
-  async listProviderAuthImports(d: {
-    tenant: Tenant;
-    environment: Environment;
-    allowDeleted?: boolean;
+  async listProviderAuthImports(d: MetorialFacing<ListProviderAuthImportsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
-    providerAuthCredentialsIds?: string[];
-    providerAuthConfigIds?: string[];
-    providerDeploymentIds?: string[];
+    return this.listProviderAuthImportsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listProviderAuthImportsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderAuthImportsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providers = await resolveProviders(ts, d.providerIds);
@@ -112,12 +132,20 @@ class providerAuthImportServiceImpl {
     );
   }
 
-  async getProviderAuthImportById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerAuthImportId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderAuthImportById(d: MetorialFacing<GetProviderAuthImportByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderAuthImportByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderAuthImportByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderAuthImportByIdParams
+  ) {
     let solution = await getMetorialSolution();
     let providerAuthImport = await db.providerAuthImport.findFirst({
       where: {
@@ -136,6 +164,23 @@ class providerAuthImportServiceImpl {
   }
 
   async getProviderAuthImportSchema(
+    d: MetorialFacing<
+      ProviderAuthImportParams & {
+        input: { authMethodId?: string };
+      }
+    >
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderAuthImportSchemaInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderAuthImportSchemaInternal(
     d: ProviderAuthImportParams & {
       input: { authMethodId?: string };
     }
@@ -168,7 +213,7 @@ class providerAuthImportServiceImpl {
         authMethodId: d.input.authMethodId
       });
 
-    return await providerAuthConfigService.getProviderAuthConfigSchema({
+    return await providerAuthConfigService.getProviderAuthConfigSchemaInternal({
       tenant: d.tenant,
       environment: d.environment,
 

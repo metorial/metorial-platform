@@ -7,7 +7,11 @@ import {
   type Session,
   type Tenant
 } from '@metorial-subspace/db';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { isIpAllowedByIngressAllowList } from '../lib/ingressAllowList';
 import { recordIngressNetworkLog } from '../lib/ingressNetworkLogBuffer';
 import { enclaveService } from './enclave';
@@ -26,6 +30,22 @@ export type EnclaveIngressCheckResult = {
   allowed: boolean;
   enclaveIds: string[];
   deniedEnclaveIds: string[];
+};
+
+type CheckSessionIngressAccessParams = {
+  sessionIds: string[];
+  sourceIp: string;
+  hostname?: string | null;
+  port?: number | null;
+  recordLog?: boolean;
+};
+
+type AssertSessionIngressAccessParams = {
+  sessionId: string;
+  sourceIp: string;
+  hostname?: string | null;
+  port?: number | null;
+  recordLog?: boolean;
 };
 
 let dedupeEnclaves = (enclaves: (Enclave | null)[]) => {
@@ -108,15 +128,20 @@ class enclaveIngressPolicyServiceImpl {
     return sessionsByRequestedId;
   }
 
-  async checkSessionIngressAccess(d: {
-    tenant: Tenant;
-    environment: Environment;
-    sessionIds: string[];
-    sourceIp: string;
-    hostname?: string | null;
-    port?: number | null;
-    recordLog?: boolean;
-  }): Promise<{
+  async checkSessionIngressAccess(d: MetorialFacing<CheckSessionIngressAccessParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.checkSessionIngressAccessInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async checkSessionIngressAccessInternal(
+    d: { tenant: Tenant; environment: Environment } & CheckSessionIngressAccessParams
+  ): Promise<{
     object: 'enclave.ingress_check';
     results: EnclaveIngressCheckResult[];
   }> {
@@ -149,7 +174,7 @@ class enclaveIngressPolicyServiceImpl {
       let deniedEnclaves: Enclave[] = [];
 
       for (let enclave of enclaves) {
-        let compiledNetworkRules = await enclaveService.getCompiledNetworkRules({
+        let compiledNetworkRules = await enclaveService.getCompiledNetworkRulesInternal({
           tenant: d.tenant,
           environment: d.environment,
           enclave
@@ -203,16 +228,21 @@ class enclaveIngressPolicyServiceImpl {
     };
   }
 
-  async assertSessionIngressAccess(d: {
-    tenant: Tenant;
-    environment: Environment;
-    sessionId: string;
-    sourceIp: string;
-    hostname?: string | null;
-    port?: number | null;
-    recordLog?: boolean;
-  }) {
-    let check = await this.checkSessionIngressAccess({
+  async assertSessionIngressAccess(d: MetorialFacing<AssertSessionIngressAccessParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.assertSessionIngressAccessInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async assertSessionIngressAccessInternal(
+    d: { tenant: Tenant; environment: Environment } & AssertSessionIngressAccessParams
+  ) {
+    let check = await this.checkSessionIngressAccessInternal({
       ...d,
       sessionIds: [d.sessionId]
     });

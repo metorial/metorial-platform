@@ -58,8 +58,26 @@ export type ArchiveCallbackDestinationParams = {
   callbackDestination: CallbackDestination;
 };
 
+type EnrichCallbackDestinationParams = {
+  callbackDestination: CallbackDestination;
+};
+
+type EnrichCallbackDestinationsParams = {
+  callbackDestinations: CallbackDestination[];
+};
+
 class callbackDestinationServiceImpl {
-  async enrichCallbackDestination(d: {
+  async enrichCallbackDestination(d: MetorialFacing<EnrichCallbackDestinationParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.enrichCallbackDestinationInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async enrichCallbackDestinationInternal(d: {
     tenant: Tenant;
     callbackDestination: CallbackDestination;
   }): Promise<EnrichedCallbackDestination> {
@@ -82,13 +100,23 @@ class callbackDestinationServiceImpl {
     }
   }
 
-  async enrichCallbackDestinations(d: {
+  async enrichCallbackDestinations(d: MetorialFacing<EnrichCallbackDestinationsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.enrichCallbackDestinationsInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async enrichCallbackDestinationsInternal(d: {
     tenant: Tenant;
     callbackDestinations: CallbackDestination[];
   }) {
     return await Promise.all(
       d.callbackDestinations.map(callbackDestination =>
-        this.enrichCallbackDestination({ tenant: d.tenant, callbackDestination })
+        this.enrichCallbackDestinationInternal({ tenant: d.tenant, callbackDestination })
       )
     );
   }

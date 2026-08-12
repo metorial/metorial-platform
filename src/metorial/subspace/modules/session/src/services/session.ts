@@ -135,16 +135,12 @@ class sessionServiceImpl {
       environment: scope.environment
     });
 
-    return {
-      run: async (query: Parameters<typeof paginator.run>[0]) => {
-        let list = await paginator.run(query);
-        let sessions = await enrichSessions({
-          instance,
-          sessions: list.items
-        });
-        return { ...list, items: sessions };
-      }
-    };
+    return paginator.mapAll(sessions =>
+      enrichSessions({
+        instance,
+        sessions
+      })
+    );
   }
 
   async listSessionsInternal(

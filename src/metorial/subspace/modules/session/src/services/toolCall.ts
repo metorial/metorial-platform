@@ -123,36 +123,30 @@ class toolCallServiceImpl {
       environment: scope.environment
     });
 
-    return {
-      run: async (query: Parameters<typeof paginator.run>[0]) => {
-        let list = await paginator.run(query);
-        let participants = await enrichSessionParticipantsWithConsumer({
-          instanceOid: instance.oid,
-          participants: list.items.flatMap(item =>
-            [item.message.senderParticipant, item.message.responderParticipant].filter(
-              (participant): participant is NonNullable<typeof participant> => !!participant
-            )
+    return paginator.mapAll(async items => {
+      let participants = await enrichSessionParticipantsWithConsumer({
+        instanceOid: instance.oid,
+        participants: items.flatMap(item =>
+          [item.message.senderParticipant, item.message.responderParticipant].filter(
+            (participant): participant is NonNullable<typeof participant> => !!participant
           )
-        });
-        let participantMap = new Map(
-          participants.map(participant => [participant.id, participant])
-        );
+        )
+      });
+      let participantMap = new Map(
+        participants.map(participant => [participant.id, participant])
+      );
 
-        return {
-          ...list,
-          items: list.items.map(item => ({
-            ...item,
-            senderParticipant:
-              participantMap.get(item.message.senderParticipant.id) ??
-              item.message.senderParticipant,
-            responderParticipant: item.message.responderParticipant
-              ? (participantMap.get(item.message.responderParticipant.id) ??
-                item.message.responderParticipant)
-              : null
-          }))
-        };
-      }
-    };
+      return items.map(item => ({
+        ...item,
+        senderParticipant:
+          participantMap.get(item.message.senderParticipant.id) ??
+          item.message.senderParticipant,
+        responderParticipant: item.message.responderParticipant
+          ? (participantMap.get(item.message.responderParticipant.id) ??
+            item.message.responderParticipant)
+          : null
+      }));
+    });
   }
 
   async listToolCallsInternal(d: { tenant: Tenant; environment: Environment } & ListToolCallsParams) {

@@ -727,6 +727,19 @@ class integrationInstanceGroupServiceImpl {
     });
   }
 
+  async createSessionTemplateForIntegrationInstanceGroup(
+    d: MetorialFacing<CreateSessionTemplateForIntegrationInstanceGroupParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.createSessionTemplateForIntegrationInstanceGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
   async createSessionTemplateForIntegrationInstanceGroupInternal(
     d: {
       tenant: Tenant;

@@ -11,7 +11,11 @@ import {
 } from '@metorial-subspace/db';
 import type { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { providerVariantInclude } from './providerVariant';
 
 let include = {
@@ -109,13 +113,36 @@ export let getProviderCapabilityFilter = (d: ProviderCapabilityFilter) => {
   };
 };
 
+type GetProviderByIdParams = {
+  providerId: string;
+  includeDeprecated?: boolean;
+};
+
+type ListProvidersParams = {
+  search?: string;
+  ids?: string[];
+  capabilities?: ProviderCapabilityFilter;
+  includeDeprecated?: boolean;
+};
+
 class providerServiceImpl {
-  async getProviderById(d: {
-    providerId: string;
-    tenant?: Tenant;
-    environment?: Environment;
-    includeDeprecated?: boolean;
-  }) {
+  async getProviderById(d: MetorialFacing<GetProviderByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let provider = await db.provider.findFirst({
@@ -149,15 +176,23 @@ class providerServiceImpl {
     return provider;
   }
 
-  async listProviders(d: {
-    tenant?: Tenant;
-    environment?: Environment;
-    search?: string;
+  async listProviders(d: MetorialFacing<ListProvidersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    capabilities?: ProviderCapabilityFilter;
-    includeDeprecated?: boolean;
-  }) {
+    return this.listProvidersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProvidersInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProvidersParams
+  ) {
     let solution = await getMetorialSolution();
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});

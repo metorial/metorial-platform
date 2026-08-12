@@ -3,24 +3,48 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter, resolveProviders } from '@metorial-subspace/list-utils';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
+type ListProviderSpecificationsParams = {
+  ids?: string[];
+  providerIds?: string[];
+  providerVersionIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+  includeDeprecated?: boolean;
+};
+
+type GetProviderSpecificationByIdParams = {
+  providerSpecificationId: string;
+  includeDeprecated?: boolean;
+};
+
 class providerSpecificationServiceImpl {
-  async listProviderSpecifications(d: {
-    tenant?: Tenant;
-    environment?: Environment;
+  async listProviderSpecifications(d: MetorialFacing<ListProviderSpecificationsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
-    providerVersionIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
+    return this.listProviderSpecificationsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-    includeDeprecated?: boolean;
-  }) {
+  async listProviderSpecificationsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderSpecificationsParams
+  ) {
     let solution = await getMetorialSolution();
 
     let includeDeprecated =
@@ -92,12 +116,23 @@ class providerSpecificationServiceImpl {
     );
   }
 
-  async getProviderSpecificationById(d: {
-    tenant?: Tenant;
-    environment?: Environment;
-    providerSpecificationId: string;
-    includeDeprecated?: boolean;
-  }) {
+  async getProviderSpecificationById(d: MetorialFacing<GetProviderSpecificationByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderSpecificationByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderSpecificationByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderSpecificationByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let providerSpecification = await db.providerSpecification.findFirst({

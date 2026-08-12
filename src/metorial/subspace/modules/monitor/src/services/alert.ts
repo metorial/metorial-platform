@@ -13,7 +13,8 @@ import {
 import {
   getMetorialSolution,
   type MetorialFacing,
-  resolveMetorialFacing
+  resolveMetorialFacing,
+  resolveMetorialFacingWithOptionalActor
 } from '@metorial-subspace/module-tenant';
 import {
   normalizeDateFilter,
@@ -325,8 +326,11 @@ class alertServiceImpl {
 
   async getAlertById(d: MetorialFacing<GetAlertByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.getAlertByIdInternal({ ...rest, tenant, environment });
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.getAlertByIdInternal({ ...rest, tenant, environment, actor });
   }
 
   async getAlertByIdInternal(d: GetAlertByIdParams) {
@@ -335,8 +339,11 @@ class alertServiceImpl {
 
   async markViewed(d: MetorialFacing<GetAlertByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.markViewedInternal({ ...rest, tenant, environment });
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.markViewedInternal({ ...rest, tenant, environment, actor });
   }
 
   async markViewedInternal(d: GetAlertByIdParams) {
@@ -365,8 +372,11 @@ class alertServiceImpl {
 
   async resolveAlert(d: MetorialFacing<GetAlertByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.resolveAlertInternal({ ...rest, tenant, environment });
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.resolveAlertInternal({ ...rest, tenant, environment, actor });
   }
 
   async resolveAlertInternal(d: GetAlertByIdParams) {
@@ -406,8 +416,11 @@ class alertServiceImpl {
 
   async unresolveAlert(d: MetorialFacing<GetAlertByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
-    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
-    return this.unresolveAlertInternal({ ...rest, tenant, environment });
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.unresolveAlertInternal({ ...rest, tenant, environment, actor });
   }
 
   async unresolveAlertInternal(d: GetAlertByIdParams) {

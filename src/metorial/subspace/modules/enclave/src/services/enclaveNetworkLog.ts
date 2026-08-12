@@ -1,7 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Tenant } from '@metorial-subspace/db';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { functionBay, getTenantForFunctionBay } from '../functionBay';
 
 export type EnclaveNetworkLogDirection = 'ingress' | 'egress';
@@ -25,6 +29,18 @@ export type EnclaveNetworkLogsResponse = {
   direction: EnclaveNetworkLogDirection;
   enclaveIds: string[];
   records: EnclaveNetworkLogRecord[];
+};
+
+type ListNetworkLogsParams = {
+  direction: EnclaveNetworkLogDirection;
+  enclaveIds?: string[];
+  filters: {
+    hostnames?: string[];
+    ips?: string[];
+    from?: string;
+    to?: string;
+    intervalMinutes?: number;
+  };
 };
 
 let presentNetworkLogRecord = (r: {
@@ -58,19 +74,20 @@ let getBucketStart = (date: Date, intervalMinutes: number) => {
 };
 
 class enclaveNetworkLogServiceImpl {
-  async listNetworkLogs(d: {
-    tenant: Tenant;
-    environment: Environment;
-    direction: EnclaveNetworkLogDirection;
-    enclaveIds?: string[];
-    filters: {
-      hostnames?: string[];
-      ips?: string[];
-      from?: string;
-      to?: string;
-      intervalMinutes?: number;
-    };
-  }): Promise<EnclaveNetworkLogsResponse> {
+  async listNetworkLogs(d: MetorialFacing<ListNetworkLogsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listNetworkLogsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listNetworkLogsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListNetworkLogsParams
+  ): Promise<EnclaveNetworkLogsResponse> {
     if (d.direction === 'ingress') {
       return await this.listIngressNetworkLogs(d);
     }

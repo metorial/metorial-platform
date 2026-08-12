@@ -36,7 +36,7 @@ vi.mock('@metorial-subspace/provider', () => ({
 
 vi.mock('../../services/enclave', () => ({
   enclaveService: {
-    getCompiledNetworkRules: vi.fn(async () => ({
+    getCompiledNetworkRulesInternal: vi.fn(async () => ({
       ingress: { direction: 'ingress', entries: [] },
       egress: { direction: 'egress', entries: [{ cidr: '0.0.0.0/0' }] }
     }))

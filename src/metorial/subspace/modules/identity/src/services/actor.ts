@@ -185,15 +185,14 @@ class identityActorServiceImpl {
       }
     }
 
-    let paginator = this.listIdentityActorsInternal({ ...rest, ids, tenant, environment });
+    let paginator = await this.listIdentityActorsInternal({
+      ...rest,
+      ids,
+      tenant,
+      environment
+    });
 
-    return {
-      run: async (query: Parameters<typeof paginator.run>[0]) => {
-        let list = await paginator.run(query);
-        let items = await enrichIdentityActors(list.items);
-        return { ...list, items };
-      }
-    };
+    return paginator.mapAll(items => enrichIdentityActors(items));
   }
 
   async listIdentityActorsInternal(d: Omit<ListIdentityActorsParams, 'consumerIds'>) {

@@ -181,7 +181,7 @@ class sessionProviderServiceImpl {
     if (!sessionProvider)
       throw new ServiceError(notFoundError('sessionProvider', d.sessionProviderId));
 
-    return await sessionProviderNameTemplateService.ensureForSessionProvider({
+    return await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: d.tenant,
       provider: sessionProvider
     });

@@ -127,6 +127,30 @@ export type ArchiveNetworkPolicyParams = {
   networkPolicy: NetworkPolicy;
 };
 
+type ListNetworkPoliciesParams = {
+  status?: NetworkPolicyStatus[];
+  allowDeleted?: boolean;
+  ids?: string[];
+  firewallIds?: string[];
+  search?: string;
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetNetworkPolicyByIdParams = {
+  networkPolicyId: string;
+  allowDeleted?: boolean;
+};
+
+type ListNetworkPolicyVersionsParams = {
+  networkPolicy: NetworkPolicy;
+};
+
+type GetNetworkPolicyVersionParams = {
+  networkPolicy: NetworkPolicy;
+  version: number;
+};
+
 class networkPolicyServiceImpl {
   async createNetworkPolicy(d: MetorialFacing<CreateNetworkPolicyParams>) {
     let { instance, organizationActor, ...rest } = d;
@@ -248,17 +272,20 @@ class networkPolicyServiceImpl {
     return networkPolicy;
   }
 
-  async listNetworkPolicies(d: {
-    tenant: Tenant;
-    environment: Environment;
-    status?: NetworkPolicyStatus[];
-    allowDeleted?: boolean;
-    ids?: string[];
-    firewallIds?: string[];
-    search?: string;
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listNetworkPolicies(d: MetorialFacing<ListNetworkPoliciesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listNetworkPoliciesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listNetworkPoliciesInternal(
+    d: { tenant: Tenant; environment: Environment } & ListNetworkPoliciesParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let firewalls = await resolveFirewalls(ts, d.firewallIds);
@@ -299,12 +326,20 @@ class networkPolicyServiceImpl {
     );
   }
 
-  async getNetworkPolicyById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicyId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getNetworkPolicyById(d: MetorialFacing<GetNetworkPolicyByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkPolicyByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getNetworkPolicyByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetNetworkPolicyByIdParams
+  ) {
     let networkPolicy = await db.networkPolicy.findFirst({
       where: {
         id: d.networkPolicyId,
@@ -553,11 +588,20 @@ class networkPolicyServiceImpl {
     });
   }
 
-  async listNetworkPolicyVersions(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-  }) {
+  async listNetworkPolicyVersions(d: MetorialFacing<ListNetworkPolicyVersionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listNetworkPolicyVersionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listNetworkPolicyVersionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListNetworkPolicyVersionsParams
+  ) {
     checkTenant(d, d.networkPolicy);
 
     return Paginator.create(({ prisma }) =>
@@ -571,12 +615,20 @@ class networkPolicyServiceImpl {
     );
   }
 
-  async getNetworkPolicyVersion(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-    version: number;
-  }) {
+  async getNetworkPolicyVersion(d: MetorialFacing<GetNetworkPolicyVersionParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkPolicyVersionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getNetworkPolicyVersionInternal(
+    d: { tenant: Tenant; environment: Environment } & GetNetworkPolicyVersionParams
+  ) {
     checkTenant(d, d.networkPolicy);
 
     let networkPolicyVersion = await db.networkPolicyVersion.findFirst({

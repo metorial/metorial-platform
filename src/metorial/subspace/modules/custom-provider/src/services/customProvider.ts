@@ -34,7 +34,9 @@ import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-
 import {
   checkTenant,
   getMetorialSolution,
+  type MetorialFacing,
   type MetorialFacingWithActor,
+  resolveMetorialFacing,
   resolveMetorialFacingWithActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -145,6 +147,26 @@ export type ArchiveCustomProviderParams = {
   customProvider: CustomProvider;
 };
 
+type ListCustomProvidersParams = {
+  search?: string;
+
+  status?: CustomProviderStatus[];
+  type?: CustomProviderType[];
+  allowDeleted?: boolean;
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+
+  ids?: string[];
+  providerIds?: string[];
+  scmRepositoryIds?: string[];
+};
+
+type GetCustomProviderByIdParams = {
+  customProviderId: string;
+  allowDeleted?: boolean;
+};
+
 class customProviderServiceImpl {
   async enrichCustomProviders<
     T extends CustomProvider & {
@@ -175,23 +197,20 @@ class customProviderServiceImpl {
     });
   }
 
-  async listCustomProviders(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listCustomProviders(d: MetorialFacing<ListCustomProvidersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    search?: string;
+    return this.listCustomProvidersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    status?: CustomProviderStatus[];
-    type?: CustomProviderType[];
-    allowDeleted?: boolean;
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-
-    ids?: string[];
-    providerIds?: string[];
-    scmRepositoryIds?: string[];
-  }) {
+  async listCustomProvidersInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCustomProvidersParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providers = await resolveProviders(ts, d.providerIds);
@@ -235,12 +254,20 @@ class customProviderServiceImpl {
     );
   }
 
-  async getCustomProviderById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    customProviderId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getCustomProviderById(d: MetorialFacing<GetCustomProviderByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCustomProviderByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCustomProviderByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCustomProviderByIdParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProvider = await db.customProvider.findFirst({

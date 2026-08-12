@@ -42,7 +42,12 @@ import {
   checkProviderMatch,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
-import { checkTenant, getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import {
   createIntegrationProviderVersion,
@@ -85,7 +90,7 @@ let resolveAuthMethod = async (d: {
   });
   if (!version) return null;
 
-  let paginator = await providerAuthMethodService.listProviderAuthMethods({
+  let paginator = await providerAuthMethodService.listProviderAuthMethodsInternal({
     tenant: d.tenant,
     environment: d.environment,
     providerVersion: version
@@ -120,12 +125,12 @@ let validateMaterialInput = async (d: {
 }) => {
   let [deployment, explicitAuthMethod, explicitAuthCredentials, config] = await Promise.all([
     d.input.providerDeploymentId
-      ? providerDeploymentService.getProviderDeploymentById({
+      ? providerDeploymentService.getProviderDeploymentByIdInternal({
           tenant: d.tenant,
           environment: d.environment,
           providerDeploymentId: d.input.providerDeploymentId
         })
-      : providerDeploymentService.ensureDefaultProviderDeployment({
+      : providerDeploymentService.ensureDefaultProviderDeploymentInternal({
           tenant: d.tenant,
           environment: d.environment,
           provider: d.provider
@@ -138,14 +143,14 @@ let validateMaterialInput = async (d: {
         })
       : null,
     d.input.providerAuthCredentialsId
-      ? providerAuthCredentialsService.getProviderAuthCredentialsById({
+      ? providerAuthCredentialsService.getProviderAuthCredentialsByIdInternal({
           tenant: d.tenant,
           environment: d.environment,
           providerAuthCredentialsId: d.input.providerAuthCredentialsId
         })
       : null,
     d.input.providerConfigId
-      ? providerConfigService.getProviderConfigById({
+      ? providerConfigService.getProviderConfigByIdInternal({
           tenant: d.tenant,
           environment: d.environment,
           providerConfigId: d.input.providerConfigId
@@ -214,7 +219,7 @@ let inferReconciliationAuthMaterial = async (d: {
     currentVersion: ProviderDeploymentVersion | null;
   };
 }) => {
-  let provider = await providerService.getProviderById({
+  let provider = await providerService.getProviderByIdInternal({
     tenant: d.tenant,
     environment: d.environment,
     providerId: d.deployment.provider.id
@@ -226,12 +231,13 @@ let inferReconciliationAuthMaterial = async (d: {
     };
   }
 
-  let credentialsPaginator = await providerAuthCredentialsService.listProviderAuthCredentials({
-    tenant: d.tenant,
-    environment: d.environment,
-    providerIds: [provider.id],
-    status: ['active']
-  });
+  let credentialsPaginator =
+    await providerAuthCredentialsService.listProviderAuthCredentialsInternal({
+      tenant: d.tenant,
+      environment: d.environment,
+      providerIds: [provider.id],
+      status: ['active']
+    });
   let credentials = await credentialsPaginator.run({ limit: 100 });
   let authCredentials = credentials.items[0] ?? null;
   let authMethod = await resolveAuthMethod({
@@ -247,6 +253,63 @@ let inferReconciliationAuthMaterial = async (d: {
     authCredentialsOid:
       authCredentials && authMethod?.type === 'oauth' ? authCredentials.oid : null
   };
+};
+
+export type ListIntegrationProvidersParams = {
+  search?: string;
+  includeMagicMcpBackings?: boolean;
+
+  status?: IntegrationProviderStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  integrationIds?: string[];
+  providerIds?: string[];
+  providerDeploymentIds?: string[];
+  providerAuthMethodIds?: string[];
+  providerAuthCredentialsIds?: string[];
+  providerConfigIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIntegrationProviderByIdParams = {
+  integrationProviderId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIntegrationProviderParams = {
+  integration: Integration;
+  input: {
+    providerId: string;
+    providerDeploymentId?: string | null;
+    providerAuthMethodId?: string | null;
+    providerAuthCredentialsId?: string | null;
+    providerConfigId?: string | null;
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    toolFilters?: PrismaJson.ToolFilter | null;
+  };
+};
+
+export type UpdateIntegrationProviderParams = {
+  integrationProvider: IntegrationProvider;
+  input: {
+    providerDeploymentId?: string;
+    providerAuthMethodId?: string | null;
+    providerAuthCredentialsId?: string | null;
+    providerConfigId?: string | null;
+    name?: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    toolFilters?: PrismaJson.ToolFilter | null;
+  };
+};
+
+export type ArchiveIntegrationProviderParams = {
+  integrationProvider: IntegrationProvider;
 };
 
 class integrationProviderServiceImpl {
@@ -301,27 +364,20 @@ class integrationProviderServiceImpl {
     };
   }
 
-  async listIntegrationProvidersInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listIntegrationProviders(d: MetorialFacing<ListIntegrationProvidersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    search?: string;
-    includeMagicMcpBackings?: boolean;
+    return this.listIntegrationProvidersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    status?: IntegrationProviderStatus[];
-    allowDeleted?: boolean;
-
-    ids?: string[];
-    integrationIds?: string[];
-    providerIds?: string[];
-    providerDeploymentIds?: string[];
-    providerAuthMethodIds?: string[];
-    providerAuthCredentialsIds?: string[];
-    providerConfigIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listIntegrationProvidersInternal(
+    d: { tenant: Tenant; environment: Environment } & ListIntegrationProvidersParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
@@ -393,12 +449,20 @@ class integrationProviderServiceImpl {
     );
   }
 
-  async getIntegrationProviderByIdInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    integrationProviderId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIntegrationProviderById(d: MetorialFacing<GetIntegrationProviderByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getIntegrationProviderByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getIntegrationProviderByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetIntegrationProviderByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let integrationProvider = await db.integrationProvider.findFirst({
@@ -417,28 +481,26 @@ class integrationProviderServiceImpl {
     return integrationProvider;
   }
 
-  async createIntegrationProviderInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    integration: Integration;
-    input: {
-      providerId: string;
-      providerDeploymentId?: string | null;
-      providerAuthMethodId?: string | null;
-      providerAuthCredentialsId?: string | null;
-      providerConfigId?: string | null;
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      toolFilters?: PrismaJson.ToolFilter | null;
-    };
-  }) {
+  async createIntegrationProvider(d: MetorialFacing<CreateIntegrationProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.createIntegrationProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async createIntegrationProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateIntegrationProviderParams
+  ) {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.integration);
     checkDeletedRelation(d.integration);
 
-    let provider = await providerService.getProviderById({
+    let provider = await providerService.getProviderByIdInternal({
       tenant: d.tenant,
       environment: d.environment,
       providerId: d.input.providerId
@@ -545,7 +607,7 @@ class integrationProviderServiceImpl {
 
     checkTenant(d, d.integration);
 
-    let deployment = await providerDeploymentService.getProviderDeploymentById({
+    let deployment = await providerDeploymentService.getProviderDeploymentByIdInternal({
       tenant: d.tenant,
       environment: d.environment,
       providerDeploymentId: d.input.providerDeploymentId
@@ -659,21 +721,20 @@ class integrationProviderServiceImpl {
     });
   }
 
-  async updateIntegrationProviderInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    integrationProvider: IntegrationProvider;
-    input: {
-      providerDeploymentId?: string;
-      providerAuthMethodId?: string | null;
-      providerAuthCredentialsId?: string | null;
-      providerConfigId?: string | null;
-      name?: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      toolFilters?: PrismaJson.ToolFilter | null;
-    };
-  }) {
+  async updateIntegrationProvider(d: MetorialFacing<UpdateIntegrationProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateIntegrationProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateIntegrationProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateIntegrationProviderParams
+  ) {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.integrationProvider);
@@ -782,11 +843,20 @@ class integrationProviderServiceImpl {
     });
   }
 
-  async archiveIntegrationProviderInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    integrationProvider: IntegrationProvider;
-  }) {
+  async archiveIntegrationProvider(d: MetorialFacing<ArchiveIntegrationProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveIntegrationProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveIntegrationProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveIntegrationProviderParams
+  ) {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.integrationProvider);

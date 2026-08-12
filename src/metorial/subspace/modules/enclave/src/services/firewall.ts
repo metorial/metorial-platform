@@ -110,21 +110,39 @@ export type ArchiveFirewallParams = {
   firewall: Firewall;
 };
 
+type ListFirewallsParams = {
+  status?: FirewallStatus[];
+  allowDeleted?: boolean;
+  ids?: string[];
+  slugs?: string[];
+  networkIds?: string[];
+  enclaveIds?: string[];
+  providerIds?: string[];
+  networkPolicyIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetFirewallByIdParams = {
+  firewallId: string;
+  allowDeleted?: boolean;
+};
+
 class firewallServiceImpl {
-  async listFirewalls(d: {
-    tenant: Tenant;
-    environment: Environment;
-    status?: FirewallStatus[];
-    allowDeleted?: boolean;
-    ids?: string[];
-    slugs?: string[];
-    networkIds?: string[];
-    enclaveIds?: string[];
-    providerIds?: string[];
-    networkPolicyIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listFirewalls(d: MetorialFacing<ListFirewallsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listFirewallsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listFirewallsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListFirewallsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let networks = await resolveNetworks(ts, d.networkIds);
@@ -163,12 +181,20 @@ class firewallServiceImpl {
     );
   }
 
-  async getFirewallById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    firewallId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getFirewallById(d: MetorialFacing<GetFirewallByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getFirewallByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getFirewallByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetFirewallByIdParams
+  ) {
     let firewall = await db.firewall.findFirst({
       where: {
         id: d.firewallId,
@@ -302,7 +328,7 @@ class firewallServiceImpl {
       });
 
       if (d.input.bindings?.length) {
-        await firewallBindingService.createFirewallBindings({
+        await firewallBindingService.createFirewallBindingsInternal({
           tenant: d.tenant,
           environment: d.environment,
           firewall,

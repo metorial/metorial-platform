@@ -678,7 +678,7 @@ class sessionTemplateServiceImpl {
       });
       if (!currentVersion) continue;
 
-      let paginator = await providerToolService.listProviderTools({
+      let paginator = await providerToolService.listProviderToolsInternal({
         tenant: d.tenant,
         environment: d.environment,
         providerVersion: currentVersion

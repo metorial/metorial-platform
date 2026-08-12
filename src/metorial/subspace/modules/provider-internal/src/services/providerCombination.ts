@@ -164,7 +164,7 @@ class providerCombinationServiceImpl {
 
               deployment =
                 deployment ??
-                (await providerDeploymentService.ensureDefaultProviderDeployment({
+                (await providerDeploymentService.ensureDefaultProviderDeploymentInternal({
                   tenant: d.tenant,
                   environment: d.environment,
                   provider
@@ -235,7 +235,7 @@ class providerCombinationServiceImpl {
                   );
                 }
 
-                config = await providerConfigService.ensureDefaultEmptyProviderConfig({
+                config = await providerConfigService.ensureDefaultEmptyProviderConfigInternal({
                   tenant: d.tenant,
                   environment: d.environment,
                   provider,

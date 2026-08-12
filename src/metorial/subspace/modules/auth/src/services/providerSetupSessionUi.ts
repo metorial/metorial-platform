@@ -18,6 +18,10 @@ import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspac
 import { providerListingService, providerService } from '@metorial-subspace/module-catalog';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import {
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
@@ -128,7 +132,7 @@ class providerSetupSessionUiServiceImpl {
       };
     }
 
-    let schema = await providerConfigService.getProviderConfigSchema({
+    let schema = await providerConfigService.getProviderConfigSchemaInternal({
       tenant: fullSession.tenant,
       environment: fullSession.environment,
       provider: fullSession.provider,
@@ -154,7 +158,25 @@ class providerSetupSessionUiServiceImpl {
     };
   }
 
-  async getConfigSchemaWithoutSession(d: {
+  async getConfigSchemaWithoutSession(
+    d: MetorialFacing<{
+      provider: Provider & { defaultVariant: ProviderVariant | null };
+      deployment?: ProviderDeployment & {
+        currentVersion: ProviderDeploymentVersion | null;
+      };
+    }>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getConfigSchemaWithoutSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getConfigSchemaWithoutSessionInternal(d: {
     tenant: Tenant;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
@@ -164,7 +186,7 @@ class providerSetupSessionUiServiceImpl {
   }) {
     checkProviderMatch(d.provider, d.deployment);
 
-    let schema = await providerConfigService.getProviderConfigSchema({
+    let schema = await providerConfigService.getProviderConfigSchemaInternal({
       tenant: d.tenant,
       environment: d.environment,
 
@@ -203,7 +225,7 @@ class providerSetupSessionUiServiceImpl {
 
     this.assertSelectedAuthMethod(fullSession);
 
-    let schema = await providerAuthConfigService.getProviderAuthConfigSchema({
+    let schema = await providerAuthConfigService.getProviderAuthConfigSchemaInternal({
       tenant: fullSession.tenant,
       environment: fullSession.environment,
 
@@ -513,7 +535,7 @@ class providerSetupSessionUiServiceImpl {
 
     let providerSearch = session.configuration?.providerSearch;
 
-    let paginator = await providerListingService.listProviderListings({
+    let paginator = await providerListingService.listProviderListingsInternal({
       tenant: session.tenant,
       environment: session.environment,
       search: d.search,
@@ -593,7 +615,7 @@ class providerSetupSessionUiServiceImpl {
           );
         }
 
-        let provider = await providerService.getProviderById({
+        let provider = await providerService.getProviderByIdInternal({
           providerId: d.providerId,
           tenant: session.tenant,
           environment: session.environment

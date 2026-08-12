@@ -162,7 +162,7 @@ export let reconcileProviderAuthCredentialsScopesQueueProcessor =
     if (!providerAuthCredentials) throw new QueueRetryError();
     if (!providerAuthCredentials.tenant) return;
 
-    await providerAuthCredentialsService.syncProviderAuthCredentialsScopes({
+    await providerAuthCredentialsService.syncProviderAuthCredentialsScopesInternal({
       tenant: providerAuthCredentials.tenant,
       providerAuthCredentials
     });

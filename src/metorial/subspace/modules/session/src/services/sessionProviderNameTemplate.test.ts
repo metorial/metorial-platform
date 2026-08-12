@@ -59,7 +59,7 @@ describe('sessionProviderNameTemplateService', () => {
   });
 
   it('uses provider names when tenant integration-name flag is disabled', async () => {
-    let res = await sessionProviderNameTemplateService.ensureForSessionProvider({
+    let res = await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: tenant(false),
       provider: provider({ providerName: 'Slack', integrationName: 'Customer CRM' })
     });
@@ -71,7 +71,7 @@ describe('sessionProviderNameTemplateService', () => {
   });
 
   it('uses integration names when tenant integration-name flag is enabled', async () => {
-    let res = await sessionProviderNameTemplateService.ensureForSessionProvider({
+    let res = await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: tenant(true),
       provider: provider({ providerName: 'Slack', integrationName: 'Customer CRM' })
     });
@@ -80,7 +80,7 @@ describe('sessionProviderNameTemplateService', () => {
   });
 
   it('lets integration override false beat tenant true', async () => {
-    let res = await sessionProviderNameTemplateService.ensureForSessionProvider({
+    let res = await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: tenant(true),
       provider: provider({
         providerName: 'Slack',
@@ -93,7 +93,7 @@ describe('sessionProviderNameTemplateService', () => {
   });
 
   it('lets integration override true beat tenant false', async () => {
-    let res = await sessionProviderNameTemplateService.ensureForSessionProvider({
+    let res = await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: tenant(false),
       provider: provider({
         providerName: 'Slack',
@@ -106,7 +106,7 @@ describe('sessionProviderNameTemplateService', () => {
   });
 
   it('keeps initialized templates stable', async () => {
-    let res = await sessionProviderNameTemplateService.ensureForSessionProvider({
+    let res = await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: tenant(true),
       provider: provider({
         providerName: 'Slack',
@@ -125,7 +125,7 @@ describe('sessionProviderNameTemplateService', () => {
       .mockRejectedValueOnce({ code: 'P2002' })
       .mockResolvedValueOnce({ count: 1 } as any);
 
-    let res = await sessionProviderNameTemplateService.ensureForSessionProvider({
+    let res = await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: tenant(true),
       provider: provider({ providerName: 'Slack', integrationName: 'Customer CRM' })
     });
@@ -146,7 +146,7 @@ describe('sessionProviderNameTemplateService', () => {
       }
     } as any);
 
-    let res = await sessionProviderNameTemplateService.ensureForSessionProvider({
+    let res = await sessionProviderNameTemplateService.ensureForSessionProviderInternal({
       tenant: tenant(true),
       provider: {
         ...provider({

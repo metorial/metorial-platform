@@ -9,24 +9,74 @@ import {
   resolveCustomProviders,
   resolveCustomProviderVersions
 } from '@metorial-subspace/list-utils';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getTenantForOrigin, origin } from '../origin';
 
 let include = { scmRepo: true };
 
+type ListBucketsParams = {
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+
+  ids?: string[];
+  customProviderIds?: string[];
+  customProviderVersionIds?: string[];
+  customProviderDeploymentIds?: string[];
+};
+
+type GetBucketByIdParams = {
+  bucketId: string;
+};
+
+type GetFilesInBucketParams = {
+  bucket: CodeBucket;
+  prefix?: string;
+};
+
+type GetFileInBucketParams = {
+  bucket: CodeBucket;
+  filename: string;
+};
+
+type SetFileInBucketParams = {
+  bucket: CodeBucket;
+  filename: string;
+  content: string;
+  encoding: 'utf-8' | 'base64';
+};
+
+type DeleteFileInBucketParams = {
+  bucket: CodeBucket;
+  filename: string;
+};
+
+type GetZipUrlParams = {
+  bucket: CodeBucket;
+};
+
+type GetEditorUrlParams = {
+  bucket: CodeBucket;
+};
+
 class bucketServiceImpl {
-  async listBuckets(d: {
-    tenant: Tenant;
-    environment: Environment;
+  async listBuckets(d: MetorialFacing<ListBucketsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
+    return this.listBucketsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    customProviderIds?: string[];
-    customProviderVersionIds?: string[];
-    customProviderDeploymentIds?: string[];
-  }) {
+  async listBucketsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListBucketsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
@@ -77,9 +127,21 @@ class bucketServiceImpl {
     );
   }
 
-  async getBucketById(d: { tenant: Tenant; environment: Environment; bucketId: string }) {
+  async getBucketById(d: MetorialFacing<GetBucketByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getBucketByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getBucketByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetBucketByIdParams
+  ) {
     let solution = await getMetorialSolution();
-    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let codeBucket = await db.codeBucket.findFirst({
       where: {
         id: d.bucketId,
@@ -93,7 +155,17 @@ class bucketServiceImpl {
     return codeBucket;
   }
 
-  async getFilesInBucket(d: { tenant: Tenant; bucket: CodeBucket; prefix?: string }) {
+  async getFilesInBucket(d: MetorialFacing<GetFilesInBucketParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getFilesInBucketInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async getFilesInBucketInternal(d: { tenant: Tenant } & GetFilesInBucketParams) {
     let tenant = await getTenantForOrigin(d.tenant);
     let files = await origin.codeBucket.getFiles({
       tenantId: tenant.id,
@@ -112,7 +184,17 @@ class bucketServiceImpl {
     );
   }
 
-  async getFileInBucket(d: { tenant: Tenant; bucket: CodeBucket; filename: string }) {
+  async getFileInBucket(d: MetorialFacing<GetFileInBucketParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getFileInBucketInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async getFileInBucketInternal(d: { tenant: Tenant } & GetFileInBucketParams) {
     let tenant = await getTenantForOrigin(d.tenant);
     let file = await origin.codeBucket.getFile({
       tenantId: tenant.id,
@@ -130,13 +212,17 @@ class bucketServiceImpl {
     };
   }
 
-  async setFileInBucket(d: {
-    tenant: Tenant;
-    bucket: CodeBucket;
-    filename: string;
-    content: string;
-    encoding: 'utf-8' | 'base64';
-  }) {
+  async setFileInBucket(d: MetorialFacing<SetFileInBucketParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.setFileInBucketInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async setFileInBucketInternal(d: { tenant: Tenant } & SetFileInBucketParams) {
     let tenant = await getTenantForOrigin(d.tenant);
     await origin.codeBucket.setFile({
       tenantId: tenant.id,
@@ -156,7 +242,17 @@ class bucketServiceImpl {
     };
   }
 
-  async deleteFileInBucket(d: { tenant: Tenant; bucket: CodeBucket; filename: string }) {
+  async deleteFileInBucket(d: MetorialFacing<DeleteFileInBucketParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.deleteFileInBucketInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async deleteFileInBucketInternal(d: { tenant: Tenant } & DeleteFileInBucketParams) {
     let tenant = await getTenantForOrigin(d.tenant);
     await origin.codeBucket.deleteFile({
       tenantId: tenant.id,
@@ -172,7 +268,17 @@ class bucketServiceImpl {
     };
   }
 
-  async getZipUrl(d: { tenant: Tenant; bucket: CodeBucket }) {
+  async getZipUrl(d: MetorialFacing<GetZipUrlParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getZipUrlInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async getZipUrlInternal(d: { tenant: Tenant } & GetZipUrlParams) {
     let tenant = await getTenantForOrigin(d.tenant);
     let res = await origin.codeBucket.getAsZip({
       tenantId: tenant.id,
@@ -182,7 +288,17 @@ class bucketServiceImpl {
     return res;
   }
 
-  async getEditorUrl(d: { tenant: Tenant; bucket: CodeBucket }) {
+  async getEditorUrl(d: MetorialFacing<GetEditorUrlParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getEditorUrlInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async getEditorUrlInternal(d: { tenant: Tenant } & GetEditorUrlParams) {
     let tenant = await getTenantForOrigin(d.tenant);
     let res = await origin.codeBucket.getEditorToken({
       tenantId: tenant.id,

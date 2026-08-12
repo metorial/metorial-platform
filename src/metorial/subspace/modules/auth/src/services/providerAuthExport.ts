@@ -21,7 +21,9 @@ import {
 import {
   checkTenant,
   getMetorialSolution,
+  type MetorialFacing,
   type MetorialFacingWithOptionalConsumerActor,
+  resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -49,20 +51,38 @@ export type CreateProviderAuthExportParams = {
   };
 };
 
+type ListProviderAuthExportsParams = {
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerAuthCredentialsIds?: string[];
+  providerAuthConfigIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderAuthExportByIdParams = {
+  providerAuthExportId: string;
+  allowDeleted?: boolean;
+};
+
 class providerAuthExportServiceImpl {
-  async listProviderAuthExports(d: {
-    tenant: Tenant;
-    environment: Environment;
-    allowDeleted?: boolean;
+  async listProviderAuthExports(d: MetorialFacing<ListProviderAuthExportsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
-    providerAuthCredentialsIds?: string[];
-    providerAuthConfigIds?: string[];
+    return this.listProviderAuthExportsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listProviderAuthExportsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderAuthExportsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providers = await resolveProviders(ts, d.providerIds);
@@ -101,12 +121,20 @@ class providerAuthExportServiceImpl {
     );
   }
 
-  async getProviderAuthExportById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerAuthExportId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderAuthExportById(d: MetorialFacing<GetProviderAuthExportByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderAuthExportByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderAuthExportByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderAuthExportByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let providerAuthExport = await db.providerAuthExport.findFirst({

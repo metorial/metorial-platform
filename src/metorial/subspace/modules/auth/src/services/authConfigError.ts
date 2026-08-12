@@ -9,7 +9,11 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { buildStoredProviderInvocationIdFilter } from '@metorial-subspace/provider-utils';
 
 let include = {
@@ -22,21 +26,38 @@ let include = {
 };
 export let authConfigErrorInclude = include;
 
+type ListAuthConfigErrorsParams = {
+  ids?: string[];
+  authConfigEventIds?: string[];
+  authConfigIds?: string[];
+  authCredentialsIds?: string[];
+  providerOAuthSetupIds?: string[];
+  providerIds?: string[];
+  authConfigErrorGlobalIds?: string[];
+  providerInvocationIds?: string[];
+  types?: string[];
+  createdAt?: DateFilter;
+};
+
+type GetAuthConfigErrorByIdParams = {
+  authConfigErrorId: string;
+};
+
 class authConfigErrorServiceImpl {
-  async listAuthConfigErrors(d: {
-    tenant: Tenant;
-    environment: Environment;
-    ids?: string[];
-    authConfigEventIds?: string[];
-    authConfigIds?: string[];
-    authCredentialsIds?: string[];
-    providerOAuthSetupIds?: string[];
-    providerIds?: string[];
-    authConfigErrorGlobalIds?: string[];
-    providerInvocationIds?: string[];
-    types?: string[];
-    createdAt?: DateFilter;
-  }) {
+  async listAuthConfigErrors(d: MetorialFacing<ListAuthConfigErrorsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listAuthConfigErrorsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listAuthConfigErrorsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListAuthConfigErrorsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
@@ -109,11 +130,20 @@ class authConfigErrorServiceImpl {
     );
   }
 
-  async getAuthConfigErrorById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    authConfigErrorId: string;
-  }) {
+  async getAuthConfigErrorById(d: MetorialFacing<GetAuthConfigErrorByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getAuthConfigErrorByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getAuthConfigErrorByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetAuthConfigErrorByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let authConfigError = await db.providerAuthConfigError.findFirst({

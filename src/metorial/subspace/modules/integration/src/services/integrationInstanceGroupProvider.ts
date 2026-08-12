@@ -31,7 +31,12 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { normalizeToolFilters } from '@metorial-subspace/module-provider-internal';
-import { checkTenant, getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import {
   enqueueIntegrationInstanceGroupProviderSet,
   enqueueIntegrationInstanceGroupProvidersSet
@@ -81,30 +86,62 @@ export let resolveIntegrationInstanceGroupProviderToolFilterInput = (d: {
   return { toolFilter, isOverrideToolFilter };
 };
 
+export type ListIntegrationInstanceGroupProvidersParams = {
+  includeMagicMcpBackings?: boolean;
+
+  status?: IntegrationInstanceGroupProviderStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  integrationInstanceGroupIds?: string[];
+  integrationIds?: string[];
+  integrationInstanceIds?: string[];
+  integrationInstanceProviderIds?: string[];
+  providerIds?: string[];
+  integrationProviderIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  sessionTemplateIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIntegrationInstanceGroupProviderByIdParams = {
+  integrationInstanceGroupProviderId: string;
+  allowDeleted?: boolean;
+};
+
+export type SetIntegrationInstanceGroupProviderParams = {
+  integrationInstanceGroup: IntegrationInstanceGroup;
+  input: SetIntegrationInstanceGroupProviderInput;
+};
+
+export type ArchiveIntegrationInstanceGroupProviderParams = {
+  integrationInstanceGroupProvider: IntegrationInstanceGroupProvider;
+};
+
 class integrationInstanceGroupProviderServiceImpl {
-  async listIntegrationInstanceGroupProvidersInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    includeMagicMcpBackings?: boolean;
+  async listIntegrationInstanceGroupProviders(
+    d: MetorialFacing<ListIntegrationInstanceGroupProvidersParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: IntegrationInstanceGroupProviderStatus[];
-    allowDeleted?: boolean;
+    return this.listIntegrationInstanceGroupProvidersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    integrationInstanceGroupIds?: string[];
-    integrationIds?: string[];
-    integrationInstanceIds?: string[];
-    integrationInstanceProviderIds?: string[];
-    providerIds?: string[];
-    integrationProviderIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    sessionTemplateIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listIntegrationInstanceGroupProvidersInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & ListIntegrationInstanceGroupProvidersParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
@@ -198,12 +235,25 @@ class integrationInstanceGroupProviderServiceImpl {
     );
   }
 
-  async getIntegrationInstanceGroupProviderByIdInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    integrationInstanceGroupProviderId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIntegrationInstanceGroupProviderById(
+    d: MetorialFacing<GetIntegrationInstanceGroupProviderByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getIntegrationInstanceGroupProviderByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getIntegrationInstanceGroupProviderByIdInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & GetIntegrationInstanceGroupProviderByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let provider = await db.integrationInstanceGroupProvider.findFirst({
@@ -466,12 +516,25 @@ class integrationInstanceGroupProviderServiceImpl {
     });
   }
 
-  async setIntegrationInstanceGroupProviderInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    integrationInstanceGroup: IntegrationInstanceGroup;
-    input: SetIntegrationInstanceGroupProviderInput;
-  }) {
+  async setIntegrationInstanceGroupProvider(
+    d: MetorialFacing<SetIntegrationInstanceGroupProviderParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.setIntegrationInstanceGroupProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async setIntegrationInstanceGroupProviderInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & SetIntegrationInstanceGroupProviderParams
+  ) {
     let [provider] = await this.setIntegrationInstanceGroupProvidersInternal({
       ...d,
       input: [d.input]
@@ -526,11 +589,25 @@ class integrationInstanceGroupProviderServiceImpl {
     return providers;
   }
 
-  async archiveIntegrationInstanceGroupProviderInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    integrationInstanceGroupProvider: IntegrationInstanceGroupProvider;
-  }) {
+  async archiveIntegrationInstanceGroupProvider(
+    d: MetorialFacing<ArchiveIntegrationInstanceGroupProviderParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveIntegrationInstanceGroupProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveIntegrationInstanceGroupProviderInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & ArchiveIntegrationInstanceGroupProviderParams
+  ) {
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.integrationInstanceGroupProvider);

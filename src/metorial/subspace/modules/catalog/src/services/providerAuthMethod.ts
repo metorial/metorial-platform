@@ -9,16 +9,41 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
+type ListProviderAuthMethodsParams = {
+  providerVersion: ProviderVersion;
+  includeDeprecated?: boolean;
+};
+
+type GetProviderAuthMethodByIdParams = {
+  providerAuthMethodId: string;
+  includeDeprecated?: boolean;
+};
+
 class providerAuthMethodServiceImpl {
-  async listProviderAuthMethods(d: {
-    tenant?: Tenant;
-    environment?: Environment;
-    providerVersion: ProviderVersion;
-    includeDeprecated?: boolean;
-  }) {
+  async listProviderAuthMethods(d: MetorialFacing<ListProviderAuthMethodsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listProviderAuthMethodsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderAuthMethodsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderAuthMethodsParams
+  ) {
     let solution = await getMetorialSolution();
 
     let versionOid = d.providerVersion?.oid;
@@ -92,12 +117,23 @@ class providerAuthMethodServiceImpl {
     );
   }
 
-  async getProviderAuthMethodByIdInternal(d: {
-    tenant: Tenant;
-    environment: Environment;
-    providerAuthMethodId: string;
-    includeDeprecated?: boolean;
-  }) {
+  async getProviderAuthMethodById(d: MetorialFacing<GetProviderAuthMethodByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderAuthMethodByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderAuthMethodByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderAuthMethodByIdParams
+  ) {
     let solution = await getMetorialSolution();
 
     let providerAuthMethod = await withTransaction(

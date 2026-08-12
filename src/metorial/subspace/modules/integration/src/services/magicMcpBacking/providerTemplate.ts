@@ -4,17 +4,18 @@ import {
   db,
   type Environment,
   snowflake,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { integrationService } from '../integration';
 import { magicMcpProviderTemplateBackingInclude, withMagicMcpBackingLock } from './shared';
 
-type UpdateProviderTemplateBackingInput = {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
+type UpdateProviderTemplateBackingParams = {
   input: {
     providerTemplateId: string;
     name: string;
@@ -24,18 +25,46 @@ type UpdateProviderTemplateBackingInput = {
   };
 };
 
-type UpsertProviderTemplateBackingFromIntegrationInput = {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
+type UpsertProviderTemplateBackingFromIntegrationParams = {
   input: {
     providerTemplateId: string;
     integrationId: string;
   };
 };
 
+type GetProviderTemplateBackingByIdParams = {
+  providerTemplateBackingId: string;
+};
+
+type GetManyProviderTemplateBackingsByIdsParams = {
+  providerTemplateBackingIds: string[];
+};
+
+type GetManyProviderTemplateBackingsByIntegrationIdsParams = {
+  integrationIds: string[];
+};
+
+type ArchiveProviderTemplateBackingParams = {
+  providerTemplateBackingId: string;
+};
+
 class providerTemplateBackingServiceImpl {
-  async updateProviderTemplateBacking(d: UpdateProviderTemplateBackingInput) {
+  async updateProviderTemplateBacking(
+    d: MetorialFacing<UpdateProviderTemplateBackingParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateProviderTemplateBackingInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateProviderTemplateBackingInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateProviderTemplateBackingParams
+  ) {
     await withMagicMcpBackingLock(
       `provider_template:${d.input.providerTemplateId}`,
       async () => {
@@ -63,17 +92,34 @@ class providerTemplateBackingServiceImpl {
       }
     );
 
-    return await this.getProviderTemplateBackingById({
+    return await this.getProviderTemplateBackingByIdInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       providerTemplateBackingId: d.input.providerTemplateId
     });
   }
 
   async upsertProviderTemplateBackingFromIntegration(
-    d: UpsertProviderTemplateBackingFromIntegrationInput
+    d: MetorialFacing<UpsertProviderTemplateBackingFromIntegrationParams>
   ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.upsertProviderTemplateBackingFromIntegrationInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async upsertProviderTemplateBackingFromIntegrationInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & UpsertProviderTemplateBackingFromIntegrationParams
+  ) {
+    let solution = await getMetorialSolution();
+
     await withMagicMcpBackingLock(
       [
         `provider_template:${d.input.providerTemplateId}`,
@@ -109,7 +155,7 @@ class providerTemplateBackingServiceImpl {
         integration: {
           id: d.input.integrationId,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -117,18 +163,30 @@ class providerTemplateBackingServiceImpl {
     });
   }
 
-  async getProviderTemplateBackingById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerTemplateBackingId: string;
-  }) {
+  async getProviderTemplateBackingById(
+    d: MetorialFacing<GetProviderTemplateBackingByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderTemplateBackingByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderTemplateBackingByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderTemplateBackingByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let backing = await db.providerTemplateBacking.findFirst({
       where: {
         id: d.providerTemplateBackingId,
         integration: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -141,20 +199,35 @@ class providerTemplateBackingServiceImpl {
     return backing;
   }
 
-  async getManyProviderTemplateBackingsByIds(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerTemplateBackingIds: string[];
-  }) {
+  async getManyProviderTemplateBackingsByIds(
+    d: MetorialFacing<GetManyProviderTemplateBackingsByIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProviderTemplateBackingsByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProviderTemplateBackingsByIdsInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & GetManyProviderTemplateBackingsByIdsParams
+  ) {
     if (d.providerTemplateBackingIds.length === 0) return [];
+
+    let solution = await getMetorialSolution();
 
     return await db.providerTemplateBacking.findMany({
       where: {
         id: { in: d.providerTemplateBackingIds },
         integration: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -162,20 +235,35 @@ class providerTemplateBackingServiceImpl {
     });
   }
 
-  async getManyProviderTemplateBackingsByIntegrationIds(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationIds: string[];
-  }) {
+  async getManyProviderTemplateBackingsByIntegrationIds(
+    d: MetorialFacing<GetManyProviderTemplateBackingsByIntegrationIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProviderTemplateBackingsByIntegrationIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProviderTemplateBackingsByIntegrationIdsInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & GetManyProviderTemplateBackingsByIntegrationIdsParams
+  ) {
     if (d.integrationIds.length === 0) return [];
+
+    let solution = await getMetorialSolution();
 
     return await db.providerTemplateBacking.findMany({
       where: {
         integration: {
           id: { in: d.integrationIds },
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -183,13 +271,23 @@ class providerTemplateBackingServiceImpl {
     });
   }
 
-  async archiveProviderTemplateBacking(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerTemplateBackingId: string;
-  }) {
-    return await this.getProviderTemplateBackingById(d);
+  async archiveProviderTemplateBacking(
+    d: MetorialFacing<ArchiveProviderTemplateBackingParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveProviderTemplateBackingInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveProviderTemplateBackingInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveProviderTemplateBackingParams
+  ) {
+    return await this.getProviderTemplateBackingByIdInternal(d);
   }
 }
 

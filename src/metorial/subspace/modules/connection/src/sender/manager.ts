@@ -386,7 +386,7 @@ export class SenderManager {
         where: { oid: session.environmentOid }
       });
 
-      await enclaveIngressPolicyService.assertSessionIngressAccess({
+      await enclaveIngressPolicyService.assertSessionIngressAccessInternal({
         tenant: session.tenant,
         environment,
         sessionId: session.id,
@@ -896,7 +896,7 @@ export class SenderManager {
       }
     });
 
-    return await sessionProviderNameTemplateService.ensureForSessionProviders({
+    return await sessionProviderNameTemplateService.ensureForSessionProvidersInternal({
       tenant: this.tenant,
       providers
     });
