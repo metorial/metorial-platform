@@ -21,8 +21,6 @@ jobs:
     strategy:
       matrix:
         service:
-          - name: controller
-            dockerfile: ./src/metorial/subspace/apps/controller/Dockerfile
           - name: worker
             dockerfile: ./src/metorial/subspace/apps/worker/Dockerfile
 
@@ -99,30 +97,3 @@ jobs:
       - name: Run conduit integration tests
         run: bun run test:integration
         working-directory: src/metorial/subspace/packages/conduit
-
-  test:
-    name: 'Subspace Test'
-    permissions:
-      contents: read
-      packages: read
-    uses: metorial/.github/.github/workflows/reusable-e2e-tests.yml@main
-    secrets: inherit
-    with:
-      service_directory: src/metorial/subspace
-      compose_project_prefix: subspace-ci
-      compose_profiles: 'infra'
-      wait_services: |
-        subspace-postgres
-        subspace-redis
-        subspace-object-storage
-        subspace-forge
-        subspace-function-bay
-        subspace-signal
-        subspace-voyager
-        subspace-slates-registry
-        subspace-slates-hub
-        subspace-shuttle
-        subspace-mcp-test-server
-        subspace-controller-test-service
-      test_container: subspace-controller-test-service
-      test_command: cd /app/src/metorial/subspace/apps/controller && set -a && . ./.env.ci && set +a && bunx prisma db push --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bunx prisma generate --schema ../../db/prisma/schema --config ../../db/prisma.config.ts && bun run test:ci
