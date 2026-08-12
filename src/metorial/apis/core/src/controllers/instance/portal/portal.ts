@@ -21,7 +21,7 @@ let presentPortal = async (portal: Parameters<typeof portalPresenter.present>[0]
 
   return portalPresenter.present({
     portal,
-    portalUrl: portalService.getPortalHost({ portal }).host,
+    portalUrl: (await portalService.getPortalHost({ portal })).host,
     namespaces: namespacesByPortalOid.get(portal.oid) ?? []
   });
 };
@@ -76,14 +76,19 @@ export let portalController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = portalService.listPortals({
+        let paginator = await portalService.listPortals({
           instance: ctx.instance,
           search: ctx.query.search
         });
         let list = await paginator.run(ctx.query);
 
         let portalUrls = Object.fromEntries(
-          list.items.map(portal => [portal.id, portalService.getPortalHost({ portal }).host])
+          await Promise.all(
+            list.items.map(async portal => [
+              portal.id,
+              (await portalService.getPortalHost({ portal })).host
+            ])
+          )
         );
         let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
           portals: list.items
