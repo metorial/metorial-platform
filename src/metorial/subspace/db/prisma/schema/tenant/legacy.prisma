@@ -238,6 +238,9 @@ model TenantActor {
   name                String
   organizationActorId String?
 
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
   resourceActorId         String?
   resourceActorIdentifier String?
 
@@ -254,5 +257,7 @@ model TenantActor {
   monitorAlertRecipients    MonitorAlertRecipient[]
 
   @@unique([tenantOid, identifier])
+  @@unique([tenantOid, organizationActorOid])
+  @@index([organizationActorOid])
   @@map("Actor")
 }

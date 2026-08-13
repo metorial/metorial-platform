@@ -30,6 +30,7 @@ model OrganizationActor {
   consumers         Consumer[]
   instanceConsumers InstanceConsumer[]
   consumerProfiles  ConsumerProfile[]
+  tenantActors      TenantActor[]
 
   @@index([organizationOid])
 }

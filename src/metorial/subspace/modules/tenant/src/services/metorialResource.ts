@@ -9,8 +9,9 @@ import type {
   OrganizationMember as MetorialOrganizationMember,
   Project as MetorialProject
 } from '@metorial/db';
-import { db } from '@metorial-subspace/db';
+import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from '../lib/metorialDb';
+import { getOrganizationActorInternalActorIdentifier } from '../lib/scopeIds';
 import { subspaceScopeService } from './subspaceScope';
 
 let assertIdentity = (
@@ -84,7 +85,7 @@ class metorialResourceServiceImpl {
     });
     assertIdentity('project', project, matches);
 
-    return await db.project.upsert({
+    let mirrored = await db.project.upsert({
       where: { oid: project.oid },
       update: {
         status: project.status,
@@ -109,6 +110,9 @@ class metorialResourceServiceImpl {
         updatedAt: project.updatedAt
       }
     });
+
+    await linkOrganizationActorsToTenant(tenant, project.organizationOid);
+    return mirrored;
   }
 
   async syncInstance(instance: MetorialInstance) {
@@ -171,7 +175,7 @@ class metorialResourceServiceImpl {
     });
     assertIdentity('organization actor', actor, matches);
 
-    return await db.organizationActor.upsert({
+    let mirrored = await db.organizationActor.upsert({
       where: { oid: actor.oid },
       update: {
         type: actor.type,
@@ -196,6 +200,9 @@ class metorialResourceServiceImpl {
         updatedAt: actor.updatedAt
       }
     });
+
+    await linkOrganizationActorToTenants(actor);
+    return mirrored;
   }
 
   async syncOrganizationMember(member: MetorialOrganizationMember) {
@@ -487,6 +494,57 @@ class metorialResourceServiceImpl {
     });
   }
 }
+
+let linkOrganizationActorToTenants = async (actor: MetorialOrganizationActor) => {
+  let projects = await db.project.findMany({
+    where: { organizationOid: actor.organizationOid },
+    select: { tenantOid: true }
+  });
+  let existingActors = await db.tenantActor.findMany({
+    where: {
+      OR: [
+        { organizationActorId: actor.id },
+        { identifier: getOrganizationActorInternalActorIdentifier(actor) },
+        ...(actor.internalActorIdentifier
+          ? [{ identifier: actor.internalActorIdentifier }]
+          : []),
+        ...(actor.subspaceActorId ? [{ id: actor.subspaceActorId }] : [])
+      ]
+    },
+    select: { tenantOid: true }
+  });
+  let tenantOids = [
+    ...new Set([
+      ...projects.map(project => project.tenantOid),
+      ...existingActors.map(existing => existing.tenantOid)
+    ])
+  ];
+
+  for (let tenantOid of tenantOids) {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: tenantOid }
+    });
+    if (!tenant) continue;
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant,
+      organizationActor: actor
+    });
+  }
+};
+
+let linkOrganizationActorsToTenant = async (tenant: Tenant, organizationOid: bigint) => {
+  let organizationActors = await metorialDb.organizationActor.findMany({
+    where: { organizationOid }
+  });
+
+  for (let organizationActor of organizationActors) {
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant,
+      organizationActor
+    });
+  }
+};
 
 export let metorialResourceService = Service.create(
   'metorialResourceService',

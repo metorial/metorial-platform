@@ -254,7 +254,7 @@ let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedPro
 let loadOrganizationActor = async (
   organizationActor: Pick<OrganizationActor, 'id'> & Partial<OrganizationActor>
 ) => {
-  if (organizationActor.name && organizationActor.type) {
+  if (organizationActor.name && organizationActor.type && organizationActor.oid != null) {
     return organizationActor as OrganizationActor;
   }
 
@@ -556,22 +556,14 @@ class subspaceScopeServiceImpl {
     tenant: Tenant;
     organizationActor: Pick<OrganizationActor, 'id'> & Partial<OrganizationActor>;
   }): Promise<TenantActor> {
-    if (d.organizationActor.subspaceActorId) {
-      return await actorService.getActorById({
-        tenant: d.tenant,
-        id: d.organizationActor.subspaceActorId
-      });
-    }
-
     let loadedOrganizationActor = await loadOrganizationActor(d.organizationActor);
-    if (loadedOrganizationActor.subspaceActorId) {
-      return await actorService.getActorById({
-        tenant: d.tenant,
-        id: loadedOrganizationActor.subspaceActorId
-      });
-    }
-
     let actorIdentifier = getOrganizationActorIdentifier(loadedOrganizationActor);
+    let existing = await actorService.findActorForOrganizationActor({
+      tenant: d.tenant,
+      organizationActor: loadedOrganizationActor,
+      identifier: actorIdentifier
+    });
+
     let resourceActor = await resolveOrganizationActorResourceActor({
       tenantId: d.tenant.id,
       organizationActor: loadedOrganizationActor
@@ -580,10 +572,12 @@ class subspaceScopeServiceImpl {
     let actor = await actorService.upsertActor({
       tenant: d.tenant,
       input: {
+        id: existing?.id,
         identifier: actorIdentifier,
         name: loadedOrganizationActor.name,
         type: 'external',
         organizationActorId: loadedOrganizationActor.id,
+        organizationActorOid: loadedOrganizationActor.oid,
         resourceActorId: resourceActor.id,
         resourceActorIdentifier: resourceActor.identifier
       }

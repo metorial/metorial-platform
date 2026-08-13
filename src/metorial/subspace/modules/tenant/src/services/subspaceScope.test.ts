@@ -6,11 +6,19 @@ let mocks = vi.hoisted(() => ({
   projectUpdate: vi.fn(),
   instanceUpdate: vi.fn(),
   organizationUpdate: vi.fn(),
+  organizationActorFind: vi.fn(),
+  organizationActorUpdate: vi.fn(),
   resourceTenantFind: vi.fn(),
   resourceGroupFind: vi.fn(),
+  resourceActorFind: vi.fn(),
+  resourceActorCreate: vi.fn(),
+  projectFindFirst: vi.fn(),
   tenantUpsert: vi.fn(),
   environmentUpsert: vi.fn(),
-  solutionUpsert: vi.fn()
+  solutionUpsert: vi.fn(),
+  findActorForOrganizationActor: vi.fn(),
+  upsertActor: vi.fn(),
+  generateId: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -22,7 +30,7 @@ vi.mock('@lowerdeck/service', () => ({
 }));
 
 vi.mock('@metorial/db', () => ({
-  ID: { generateId: vi.fn() }
+  ID: { generateId: mocks.generateId }
 }));
 
 vi.mock('@metorial-subspace/db', () => ({
@@ -40,7 +48,7 @@ vi.mock('../lib/metorialDb', () => ({
   metorialDb: {
     project: {
       findUniqueOrThrow: vi.fn(),
-      findFirst: vi.fn(),
+      findFirst: mocks.projectFindFirst,
       update: mocks.projectUpdate
     },
     instance: {
@@ -48,6 +56,10 @@ vi.mock('../lib/metorialDb', () => ({
       update: mocks.instanceUpdate
     },
     organization: { update: mocks.organizationUpdate },
+    organizationActor: {
+      findUniqueOrThrow: mocks.organizationActorFind,
+      update: mocks.organizationActorUpdate
+    },
     resourceTenant: {
       findUniqueOrThrow: mocks.resourceTenantFind,
       upsert: vi.fn()
@@ -55,6 +67,10 @@ vi.mock('../lib/metorialDb', () => ({
     resourceGroup: {
       findUniqueOrThrow: mocks.resourceGroupFind,
       upsert: vi.fn()
+    },
+    resourceActor: {
+      findFirst: mocks.resourceActorFind,
+      create: mocks.resourceActorCreate
     }
   }
 }));
@@ -72,7 +88,10 @@ vi.mock('./solution', () => ({
 }));
 
 vi.mock('./actor', () => ({
-  actorService: {}
+  actorService: {
+    findActorForOrganizationActor: mocks.findActorForOrganizationActor,
+    upsertActor: mocks.upsertActor
+  }
 }));
 
 import { subspaceScopeService } from './subspaceScope';
@@ -212,5 +231,104 @@ describe('Subspace canonical scope reconciliation', () => {
     );
     expect(mocks.tenantFind).not.toHaveBeenCalled();
     expect(mocks.environmentFind).not.toHaveBeenCalled();
+  });
+});
+
+describe('Organization actor tenant linking', () => {
+  let tenant = {
+    oid: 20n,
+    id: 'ktn_20',
+    identifier: 'mte-pro-2'
+  };
+  let organizationActor = {
+    oid: 4n,
+    id: 'oac_4',
+    name: 'User',
+    type: 'member',
+    internalActorIdentifier: 'mte-oac-oac_4',
+    subspaceActorId: 'act_other_tenant'
+  };
+  let resourceActor = {
+    oid: 300n,
+    id: 'rac_300',
+    identifier: 'mte-oac-oac_4'
+  };
+  let tenantActor = {
+    oid: 40n,
+    id: 'act_40',
+    identifier: 'mte-oac-oac_4',
+    organizationActorOid: 4n
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.projectFindFirst.mockResolvedValue({
+      id: 'prj_2',
+      resourceTenantOid: 100n
+    });
+    mocks.resourceActorFind.mockResolvedValue(resourceActor);
+    mocks.findActorForOrganizationActor.mockResolvedValue(null);
+    mocks.upsertActor.mockResolvedValue(tenantActor);
+  });
+
+  it('creates a tenant actor for this tenant even when Metorial already stores another tenant actor id', async () => {
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant: tenant as any,
+      organizationActor: organizationActor as any
+    });
+
+    expect(mocks.findActorForOrganizationActor).toHaveBeenCalledWith({
+      tenant,
+      organizationActor,
+      identifier: 'mte-oac-oac_4'
+    });
+    expect(mocks.upsertActor).toHaveBeenCalledWith({
+      tenant,
+      input: expect.objectContaining({
+        identifier: 'mte-oac-oac_4',
+        name: 'User',
+        type: 'external',
+        organizationActorId: 'oac_4',
+        organizationActorOid: 4n,
+        resourceActorId: 'rac_300',
+        resourceActorIdentifier: 'mte-oac-oac_4'
+      })
+    });
+    expect(mocks.organizationActorUpdate).not.toHaveBeenCalled();
+  });
+
+  it('reuses an existing tenant actor in this tenant and backfills the organization actor relation', async () => {
+    mocks.findActorForOrganizationActor.mockResolvedValue({
+      id: 'act_existing',
+      organizationActorOid: null
+    });
+    mocks.upsertActor.mockResolvedValue({
+      ...tenantActor,
+      id: 'act_existing'
+    });
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant: tenant as any,
+      organizationActor: {
+        ...organizationActor,
+        subspaceActorId: null,
+        internalActorIdentifier: null
+      } as any
+    });
+
+    expect(mocks.upsertActor).toHaveBeenCalledWith({
+      tenant,
+      input: expect.objectContaining({
+        id: 'act_existing',
+        organizationActorOid: 4n
+      })
+    });
+    expect(mocks.organizationActorUpdate).toHaveBeenCalledWith({
+      where: { id: 'oac_4' },
+      data: {
+        internalActorIdentifier: 'mte-oac-oac_4',
+        subspaceActorId: 'act_existing'
+      }
+    });
   });
 });

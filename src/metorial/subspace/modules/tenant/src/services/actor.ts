@@ -5,6 +5,27 @@ import { db, getId, type Tenant, type TenantActorType } from '@metorial-subspace
 let include = {};
 
 class actorServiceImpl {
+  async findActorForOrganizationActor(d: {
+    tenant: Tenant;
+    organizationActor: { oid: bigint; id: string; subspaceActorId?: string | null };
+    identifier: string;
+  }) {
+    return await db.tenantActor.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        OR: [
+          { identifier: d.identifier },
+          { organizationActorOid: d.organizationActor.oid },
+          { organizationActorId: d.organizationActor.id },
+          ...(d.organizationActor.subspaceActorId
+            ? [{ id: d.organizationActor.subspaceActorId }]
+            : [])
+        ]
+      },
+      include
+    });
+  }
+
   async upsertActor(d: {
     tenant: Tenant;
     input: {
@@ -13,6 +34,7 @@ class actorServiceImpl {
       identifier: string;
       type: TenantActorType;
       organizationActorId?: string;
+      organizationActorOid?: bigint;
       resourceActorId?: string;
       resourceActorIdentifier?: string;
     };
@@ -33,6 +55,7 @@ class actorServiceImpl {
         identifier: d.input.identifier,
         type: d.input.type,
         organizationActorId: d.input.organizationActorId,
+        organizationActorOid: d.input.organizationActorOid,
         resourceActorId: d.input.resourceActorId,
         resourceActorIdentifier: d.input.resourceActorIdentifier
       },
@@ -43,6 +66,7 @@ class actorServiceImpl {
         type: d.input.type,
         tenantOid: d.tenant.oid,
         organizationActorId: d.input.organizationActorId,
+        organizationActorOid: d.input.organizationActorOid,
         resourceActorId: d.input.resourceActorId,
         resourceActorIdentifier: d.input.resourceActorIdentifier
       },

@@ -20,13 +20,17 @@ let mocks = vi.hoisted(() => ({
   consumerProfileUpsert: vi.fn(),
   metorialOrganizationFind: vi.fn(),
   metorialProjectFind: vi.fn(),
+  tenantFindUnique: vi.fn(),
+  tenantActorFindMany: vi.fn(),
   metorialActorFind: vi.fn(),
+  metorialActorFindMany: vi.fn(),
   metorialMemberFind: vi.fn(),
   metorialInstanceFind: vi.fn(),
   metorialConsumerFind: vi.fn(),
   metorialInstanceConsumerFind: vi.fn(),
   ensureForProject: vi.fn(),
-  ensureForInstance: vi.fn()
+  ensureForInstance: vi.fn(),
+  ensureForOrganizationActor: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -42,6 +46,12 @@ vi.mock('@metorial-subspace/db', () => ({
     organization: {
       findMany: mocks.organizationFindMany,
       upsert: mocks.organizationUpsert
+    },
+    tenant: {
+      findUnique: mocks.tenantFindUnique
+    },
+    tenantActor: {
+      findMany: mocks.tenantActorFindMany
     },
     project: {
       findMany: mocks.projectFindMany,
@@ -80,7 +90,10 @@ vi.mock('../lib/metorialDb', () => ({
     organization: { findUniqueOrThrow: mocks.metorialOrganizationFind },
     project: { findUniqueOrThrow: mocks.metorialProjectFind },
     instance: { findUniqueOrThrow: mocks.metorialInstanceFind },
-    organizationActor: { findUniqueOrThrow: mocks.metorialActorFind },
+    organizationActor: {
+      findUniqueOrThrow: mocks.metorialActorFind,
+      findMany: mocks.metorialActorFindMany
+    },
     organizationMember: { findUniqueOrThrow: mocks.metorialMemberFind },
     consumer: { findUniqueOrThrow: mocks.metorialConsumerFind },
     instanceConsumer: { findUniqueOrThrow: mocks.metorialInstanceConsumerFind }
@@ -90,7 +103,8 @@ vi.mock('../lib/metorialDb', () => ({
 vi.mock('./subspaceScope', () => ({
   subspaceScopeService: {
     ensureForProject: mocks.ensureForProject,
-    ensureForInstance: mocks.ensureForInstance
+    ensureForInstance: mocks.ensureForInstance,
+    ensureForOrganizationActor: mocks.ensureForOrganizationActor
   }
 }));
 
@@ -123,6 +137,10 @@ describe('Metorial resource synchronization', () => {
     mocks.consumerFindMany.mockResolvedValue([]);
     mocks.instanceConsumerFindMany.mockResolvedValue([]);
     mocks.consumerProfileFindMany.mockResolvedValue([]);
+    mocks.metorialActorFindMany.mockResolvedValue([]);
+    mocks.tenantFindUnique.mockResolvedValue(null);
+    mocks.tenantActorFindMany.mockResolvedValue([]);
+    mocks.ensureForOrganizationActor.mockResolvedValue({ oid: 40n, id: 'act_40' });
   });
 
   it('creates the organization mirror with the exact Metorial oid and id', async () => {
@@ -268,6 +286,115 @@ describe('Metorial resource synchronization', () => {
         })
       })
     );
+  });
+
+  it('creates a tenant actor for each tenant of the organization', async () => {
+    let actor = {
+      oid: 4n,
+      id: 'oac_4',
+      type: 'member',
+      isSystem: null,
+      email: 'user@example.com',
+      name: 'User',
+      image: { type: 'default' },
+      organizationOid: organization.oid,
+      createdAt,
+      updatedAt
+    };
+    let tenantA = { oid: 20n, id: 'tnt_20' };
+    let tenantB = { oid: 21n, id: 'tnt_21' };
+    mocks.metorialOrganizationFind.mockResolvedValue(organization);
+    mocks.organizationUpsert.mockResolvedValue(organization);
+    mocks.organizationActorUpsert.mockResolvedValue(actor);
+    mocks.projectFindMany.mockResolvedValue([{ tenantOid: 20n }, { tenantOid: 20n }, { tenantOid: 21n }]);
+    mocks.tenantFindUnique.mockImplementation(async ({ where }: { where: { oid: bigint } }) =>
+      where.oid === 20n ? tenantA : tenantB
+    );
+
+    await metorialResourceService.syncOrganizationActor(actor as any);
+
+    expect(mocks.ensureForOrganizationActor).toHaveBeenCalledTimes(2);
+    expect(mocks.ensureForOrganizationActor).toHaveBeenCalledWith({
+      tenant: tenantA,
+      organizationActor: actor
+    });
+    expect(mocks.ensureForOrganizationActor).toHaveBeenCalledWith({
+      tenant: tenantB,
+      organizationActor: actor
+    });
+  });
+
+  it('backfills organizationActorOid on tenant actors that already exist by public id', async () => {
+    let actor = {
+      oid: 4n,
+      id: 'oac_4',
+      type: 'member',
+      isSystem: null,
+      email: 'user@example.com',
+      name: 'User',
+      image: { type: 'default' },
+      organizationOid: organization.oid,
+      subspaceActorId: 'act_legacy',
+      createdAt,
+      updatedAt
+    };
+    let tenant = { oid: 22n, id: 'tnt_22' };
+    mocks.metorialOrganizationFind.mockResolvedValue(organization);
+    mocks.organizationUpsert.mockResolvedValue(organization);
+    mocks.organizationActorUpsert.mockResolvedValue(actor);
+    mocks.tenantActorFindMany.mockResolvedValue([{ tenantOid: 22n }]);
+    mocks.tenantFindUnique.mockResolvedValue(tenant);
+
+    await metorialResourceService.syncOrganizationActor(actor as any);
+
+    expect(mocks.tenantActorFindMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { organizationActorId: 'oac_4' },
+          { identifier: 'mte-oac-oac_4' },
+          { id: 'act_legacy' }
+        ]
+      },
+      select: { tenantOid: true }
+    });
+    expect(mocks.ensureForOrganizationActor).toHaveBeenCalledWith({
+      tenant,
+      organizationActor: actor
+    });
+  });
+
+  it('links existing organization actors onto a newly synced tenant', async () => {
+    let project = {
+      oid: 2n,
+      id: 'prj_2',
+      status: 'active',
+      slug: 'project',
+      name: 'Project',
+      organizationOid: 1n,
+      deletedAt: null,
+      createdAt,
+      updatedAt
+    };
+    let tenant = { oid: 20n, id: 'tnt_20' };
+    let actor = {
+      oid: 4n,
+      id: 'oac_4',
+      type: 'member',
+      name: 'User',
+      organizationOid: 1n
+    };
+    mocks.metorialOrganizationFind.mockResolvedValue(organization);
+    mocks.organizationUpsert.mockResolvedValue(organization);
+    mocks.ensureForProject.mockResolvedValue({ tenant });
+    mocks.projectUpsert.mockResolvedValue(project);
+    mocks.metorialActorFindMany.mockResolvedValue([actor]);
+
+    await metorialResourceService.syncProject(project as any);
+
+    expect(mocks.ensureForOrganizationActor).toHaveBeenCalledWith({
+      tenant,
+      organizationActor: actor
+    });
   });
 
   it('copies consumers without out-of-scope references', async () => {
