@@ -19,20 +19,27 @@ export class RetryManager {
         lastError = err instanceof Error ? err : new Error(String(err));
 
         let retryable = shouldRetry ? shouldRetry(lastError, attempt) : true;
-
-        if (attempt < this.maxRetries && retryable) {
-          let backoffMs = this.calculateBackoff(attempt);
-          console.warn(
-            `${context} failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffMs}ms:`,
-            lastError.message
-          );
-          await this.sleep(backoffMs);
+        if (!retryable) {
+          throw lastError;
         }
+
+        if (attempt >= this.maxRetries) {
+          break;
+        }
+
+        let backoffMs = this.calculateBackoff(attempt);
+        console.warn(
+          `${context} failed (attempt ${attempt + 1}/${this.maxRetries + 1}), retrying in ${backoffMs}ms:`,
+          lastError.message
+        );
+        await this.sleep(backoffMs);
       }
     }
 
     if (lastError) {
-      throw lastError;
+      throw new Error(
+        `${context} failed after ${this.maxRetries + 1} attempts: ${lastError.message}`
+      );
     }
 
     throw new Error(`${context} failed after ${this.maxRetries + 1} attempts`);

@@ -301,7 +301,7 @@ describe('Advanced Scenarios Integration', () => {
           // Don't return - simulate hanging/crash
           await new Promise(() => {}); // Never resolves
         },
-        { timeoutExtensionThreshold: 5000 }
+        { timeoutExtensionMs: 0 }
       );
       await receiver1.start();
 
@@ -390,7 +390,7 @@ describe('Advanced Scenarios Integration', () => {
             // Hang forever (timeout will occur)
             await new Promise(() => {});
           },
-          { timeoutExtensionThreshold: 10000 } // Don't send extensions
+          { timeoutExtensionMs: 0 } // Don't send extensions — sender timeout should fail over
         );
       };
 
