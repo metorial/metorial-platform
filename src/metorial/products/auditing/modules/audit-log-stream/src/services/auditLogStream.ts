@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   AuditLogStream,
   AuditLogStreamStatus,
@@ -9,6 +10,7 @@ import {
   Organization,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { AuditLogStreamProvider, sanitizeAuditLogStreamProviderData } from '../destinations';
 import { markAuditLogOrganizationDirty } from '../lib/dirty';
 import { encryptAuditLogStreamProviderData } from '../lib/providerData';
@@ -29,12 +31,19 @@ class AuditLogStreamService {
 
   async createAuditLogStream(d: {
     organization: Organization;
+    auditScope: AuditScope;
     input: {
       provider: AuditLogStreamProvider;
       providerData: Record<string, unknown>;
     };
   }) {
     return withTransaction(async db => {
+      await Fabric.fire('organization.audit_log_stream.created:before', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        input: { provider: d.input.provider }
+      });
+
       let streamId = await ID.generateId('auditLogStream');
       let { encryptedProviderData, providerData } = await encryptAuditLogStreamProviderData({
         streamId,
@@ -65,12 +74,21 @@ class AuditLogStreamService {
       });
       await markAuditLogOrganizationDirty(d.organization.oid, db);
 
+      await Fabric.fire('organization.audit_log_stream.created:after', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        auditLogStream: stream,
+        input: { provider: d.input.provider }
+      });
+
       return stream;
     });
   }
 
   async updateAuditLogStream(d: {
+    organization: Organization;
     auditLogStream: AuditLogStream;
+    auditScope: AuditScope;
     input: {
       provider?: AuditLogStreamProvider;
       providerData?: Record<string, unknown>;
@@ -102,6 +120,16 @@ class AuditLogStreamService {
     }
 
     return withTransaction(async db => {
+      await Fabric.fire('organization.audit_log_stream.updated:before', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        auditLogStream: d.auditLogStream,
+        input: {
+          provider: d.input.provider,
+          status: d.input.status
+        }
+      });
+
       let stream = await db.auditLogStream.update({
         where: { oid: d.auditLogStream.oid },
         data: {
@@ -125,11 +153,26 @@ class AuditLogStreamService {
         await markAuditLogOrganizationDirty(stream.organizationOid, db);
       }
 
+      await Fabric.fire('organization.audit_log_stream.updated:after', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        auditLogStream: stream,
+        previousAuditLogStream: d.auditLogStream,
+        input: {
+          provider: d.input.provider,
+          status: d.input.status
+        }
+      });
+
       return stream;
     });
   }
 
-  async resumeAuditLogStream(d: { auditLogStream: AuditLogStream }) {
+  async resumeAuditLogStream(d: {
+    organization: Organization;
+    auditLogStream: AuditLogStream;
+    auditScope: AuditScope;
+  }) {
     if (!d.auditLogStream.isPausedDueToError) {
       throw new ServiceError(
         badRequestError({
@@ -139,6 +182,12 @@ class AuditLogStreamService {
     }
 
     return withTransaction(async db => {
+      await Fabric.fire('organization.audit_log_stream.resumed:before', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        auditLogStream: d.auditLogStream
+      });
+
       let stream = await db.auditLogStream.update({
         where: { oid: d.auditLogStream.oid },
         data: {
@@ -148,13 +197,40 @@ class AuditLogStreamService {
       });
       await markAuditLogOrganizationDirty(stream.organizationOid, db);
 
+      await Fabric.fire('organization.audit_log_stream.resumed:after', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        auditLogStream: stream,
+        previousAuditLogStream: d.auditLogStream
+      });
+
       return stream;
     });
   }
 
-  async deleteAuditLogStream(d: { auditLogStream: AuditLogStream }) {
-    return db.auditLogStream.delete({
-      where: { oid: d.auditLogStream.oid }
+  async deleteAuditLogStream(d: {
+    organization: Organization;
+    auditLogStream: AuditLogStream;
+    auditScope: AuditScope;
+  }) {
+    return withTransaction(async db => {
+      await Fabric.fire('organization.audit_log_stream.deleted:before', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        auditLogStream: d.auditLogStream
+      });
+
+      let stream = await db.auditLogStream.delete({
+        where: { oid: d.auditLogStream.oid }
+      });
+
+      await Fabric.fire('organization.audit_log_stream.deleted:after', {
+        organization: d.organization,
+        auditScope: d.auditScope,
+        auditLogStream: stream
+      });
+
+      return stream;
     });
   }
 }

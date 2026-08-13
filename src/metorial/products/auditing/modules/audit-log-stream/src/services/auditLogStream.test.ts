@@ -25,7 +25,8 @@ let {
 let transactionDb = {
   auditLogStream: {
     create: insertStream,
-    update: updateStream
+    update: updateStream,
+    delete: deleteStream
   },
   auditLogStreamEvent: {
     create: insertEvent
@@ -48,7 +49,6 @@ vi.mock('@lowerdeck/encryption', () => ({
 vi.mock('@metorial/db', () => ({
   db: {
     auditLogStream: {
-      delete: deleteStream,
       findMany: findStreams
     },
     auditLogStreamEvent: {
@@ -61,6 +61,11 @@ vi.mock('@metorial/db', () => ({
   withTransaction: (callback: (db: typeof transactionDb) => unknown) => callback(transactionDb)
 }));
 
+vi.mock('@metorial/fabric', () => ({
+  Fabric: { fire: vi.fn() }
+}));
+
+import { Fabric } from '@metorial/fabric';
 import { auditLogStreamService } from './auditLogStream';
 import { auditLogStreamEventService } from './auditLogStreamEvent';
 
@@ -68,6 +73,12 @@ let organization = {
   oid: 2n,
   id: 'org_1'
 } as any;
+let auditScope = {
+  organizationOid: organization.oid,
+  organizationActorOid: 4n,
+  actor: { type: 'org_actor' as const, id: 'oac_1' },
+  context: { ip: '127.0.0.1' }
+};
 let createdAt = new Date('2026-08-13T10:00:00.000Z');
 let updatedAt = new Date('2026-08-13T10:05:00.000Z');
 let datadogData = {
@@ -143,6 +154,7 @@ describe('auditLogStreamService', () => {
   it('creates a stream and lifecycle event from a resolved organization', async () => {
     let result = await auditLogStreamService.createAuditLogStream({
       organization,
+      auditScope,
       input: {
         provider: 'datadog',
         providerData: datadogData
@@ -173,13 +185,23 @@ describe('auditLogStreamService', () => {
       update: { revision: { increment: 1 } }
     });
     expect(result).toHaveProperty('encryptedProviderData');
+    expect(Fabric.fire).toHaveBeenCalledWith(
+      'organization.audit_log_stream.created:after',
+      expect.objectContaining({
+        organization,
+        auditScope,
+        auditLogStream: expect.objectContaining({ id: 'als_1', provider: 'datadog' })
+      })
+    );
   });
 
   it('updates a resolved stream and records disabling', async () => {
     updateStream.mockResolvedValueOnce({ ...auditLogStream, status: 'inactive' });
 
     let result = await auditLogStreamService.updateAuditLogStream({
+      organization,
       auditLogStream,
+      auditScope,
       input: { status: 'inactive' }
     });
 
@@ -210,7 +232,9 @@ describe('auditLogStreamService', () => {
     };
 
     await auditLogStreamService.updateAuditLogStream({
+      organization,
       auditLogStream,
+      auditScope,
       input: {
         provider: 'splunk',
         providerData
@@ -234,7 +258,9 @@ describe('auditLogStreamService', () => {
   it('requires provider data when changing a resolved stream provider', async () => {
     await expect(
       auditLogStreamService.updateAuditLogStream({
+        organization,
         auditLogStream,
+        auditScope,
         input: { provider: 'splunk' }
       })
     ).rejects.toBeDefined();
@@ -247,7 +273,9 @@ describe('auditLogStreamService', () => {
     updateStream.mockResolvedValueOnce({ ...inactiveStream, status: 'active' });
 
     await auditLogStreamService.updateAuditLogStream({
+      organization,
       auditLogStream: inactiveStream,
+      auditScope,
       input: { status: 'active' }
     });
 
@@ -273,7 +301,9 @@ describe('auditLogStreamService', () => {
     });
 
     let result = await auditLogStreamService.resumeAuditLogStream({
-      auditLogStream: pausedStream
+      organization,
+      auditLogStream: pausedStream,
+      auditScope
     });
 
     expect(updateStream).toHaveBeenCalledWith({
@@ -286,12 +316,22 @@ describe('auditLogStreamService', () => {
     expect(result.isPausedDueToError).toBe(false);
     expect(result.accessStatus).toBe('error');
     expect(dirtyTrackerUpsert).toHaveBeenCalled();
+    expect(Fabric.fire).toHaveBeenCalledWith(
+      'organization.audit_log_stream.resumed:after',
+      expect.objectContaining({
+        organization,
+        auditScope,
+        previousAuditLogStream: pausedStream
+      })
+    );
   });
 
   it('rejects resuming a stream that is not error-paused', async () => {
     await expect(
       auditLogStreamService.resumeAuditLogStream({
-        auditLogStream
+        organization,
+        auditLogStream,
+        auditScope
       })
     ).rejects.toBeDefined();
 
@@ -299,12 +339,24 @@ describe('auditLogStreamService', () => {
   });
 
   it('deletes a resolved stream', async () => {
-    let result = await auditLogStreamService.deleteAuditLogStream({ auditLogStream });
+    let result = await auditLogStreamService.deleteAuditLogStream({
+      organization,
+      auditLogStream,
+      auditScope
+    });
 
     expect(deleteStream).toHaveBeenCalledWith({
       where: { oid: auditLogStream.oid }
     });
     expect(result).toBe(auditLogStream);
+    expect(Fabric.fire).toHaveBeenCalledWith(
+      'organization.audit_log_stream.deleted:after',
+      expect.objectContaining({
+        organization,
+        auditScope,
+        auditLogStream
+      })
+    );
   });
 });
 

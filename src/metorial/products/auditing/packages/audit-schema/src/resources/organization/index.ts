@@ -14,12 +14,14 @@ import {
   projectRetentionResource,
   projectToolCallingConfigurationResource
 } from './projectSettings';
+import { auditLogStreamResource } from './auditLogStream';
 import { teamMemberResource, teamResource } from './team';
 
 export let organizationResources = resourceSet({
   organization_actor: organizationActorResource,
   organization_member: organizationMemberResource,
   organization_invite: organizationInviteResource,
+  audit_log_stream: auditLogStreamResource,
   team: teamResource,
   team_member: teamMemberResource,
   access_role: accessRoleResource,

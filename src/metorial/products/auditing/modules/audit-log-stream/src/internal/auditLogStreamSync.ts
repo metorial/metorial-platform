@@ -1,7 +1,10 @@
 import { Service } from '@lowerdeck/service';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { auditLogService } from '@metorial/module-audit-log';
-import { deliverAuditLogStreamEvents } from '../destinations';
+import { organizationActorService } from '@metorial/module-organization';
+import { AuditLogDestinationError, deliverAuditLogStreamEvents } from '../destinations';
 import { markAuditLogOrganizationDirty } from '../lib/dirty';
 import { decryptAuditLogStreamProviderData } from '../lib/providerData';
 
@@ -13,6 +16,22 @@ let startOfUtcDay = (date: Date) =>
 
 let errorMessage = (error: unknown) =>
   (error instanceof Error ? error.message : String(error)).slice(0, 4000);
+
+let createSystemAuditScope = async (organizationOid: bigint) => {
+  let organization = await db.organization.findUniqueOrThrow({
+    where: { oid: organizationOid }
+  });
+  let organizationActor = await organizationActorService.getSystemActor({ organization });
+
+  return {
+    organization,
+    auditScope: createOrganizationActorAuditScope({
+      organization,
+      organizationActor,
+      context: { ip: '0.0.0.0', ua: 'Metorial System' }
+    })
+  };
+};
 
 class AuditLogStreamSyncService {
   async syncBatch(d: {
@@ -106,6 +125,22 @@ class AuditLogStreamSyncService {
       }
     } catch (error) {
       let message = errorMessage(error);
+      let destinationError = error instanceof AuditLogDestinationError ? error.details : null;
+      let details = {
+        provider: stream.provider,
+        code: destinationError?.code ?? 'unknown_error',
+        errorName: error instanceof Error ? error.name : typeof error,
+        httpStatusCode: destinationError?.httpStatusCode ?? null,
+        httpStatusText: destinationError?.httpStatusText ?? null,
+        providerErrorCode: destinationError?.providerErrorCode ?? null,
+        responseBody: destinationError?.responseBody ?? null,
+        batchIdentifier: d.batchIdentifier,
+        batchNumber: d.batchNumber,
+        successfulBatchCount: d.successfulBatchCount,
+        eventCount: batch.items.length,
+        firstEventId: batch.items.at(0)?.id ?? null,
+        lastEventId: batch.items.at(-1)?.id ?? null
+      };
       let consecutiveErrorCount = stream.consecutiveErrorCount + 1;
       let shouldPause = consecutiveErrorCount >= AUDIT_LOG_STREAM_MAX_CONSECUTIVE_ERRORS;
 
@@ -136,18 +171,43 @@ class AuditLogStreamSyncService {
               id: await ID.generateId('auditLogStreamEvent'),
               type: 'error',
               message,
+              errorDetails: details,
               auditLogStreamOid: stream.oid
             }
           });
         }
         if (shouldPause && !stream.isPausedDueToError) {
+          let { organization, auditScope } = await createSystemAuditScope(
+            stream.organizationOid
+          );
+
+          await Fabric.fire('organization.audit_log_stream.paused:before', {
+            organization,
+            auditScope,
+            auditLogStream: stream
+          });
+
           await db.auditLogStreamEvent.create({
             data: {
               id: await ID.generateId('auditLogStreamEvent'),
               type: 'error_paused',
               message,
+              errorDetails: details,
               auditLogStreamOid: stream.oid
             }
+          });
+
+          await Fabric.fire('organization.audit_log_stream.paused:after', {
+            organization,
+            auditScope,
+            auditLogStream: {
+              ...stream,
+              accessStatus: 'error',
+              errorMessage: message,
+              consecutiveErrorCount,
+              isPausedDueToError: true
+            },
+            previousAuditLogStream: stream
           });
         }
         if (!shouldPause) {

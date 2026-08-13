@@ -109,15 +109,24 @@ describe('Splunk audit log destination', () => {
       })
     );
 
-    await expect(
-      splunkDestination.deliver({
-        providerData: {
-          endpoint: 'https://splunk.example.com/services/collector',
-          token: 'splunk-secret'
-        },
-        events: [auditLog]
-      })
-    ).rejects.toThrow('Splunk audit log delivery failed with response code 4');
+    let promise = splunkDestination.deliver({
+      providerData: {
+        endpoint: 'https://splunk.example.com/services/collector',
+        token: 'splunk-secret'
+      },
+      events: [auditLog]
+    });
+
+    await expect(promise).rejects.toMatchObject({
+      message: 'Splunk audit log delivery failed with response code 4',
+      details: {
+        code: 'provider_error',
+        httpStatusCode: 200,
+        httpStatusText: null,
+        providerErrorCode: '4',
+        responseBody: '{"text":"Invalid token","code":4}'
+      }
+    });
   });
 
   it('reports HTTP failures without exposing the HEC token', async () => {
@@ -144,5 +153,12 @@ describe('Splunk audit log destination', () => {
 
     expect(error.message).toBe('Splunk audit log delivery failed with HTTP 503 Unavailable');
     expect(error.message).not.toContain('splunk-secret');
+    expect((error as any).details).toEqual({
+      code: 'http_error',
+      httpStatusCode: 503,
+      httpStatusText: 'Unavailable',
+      providerErrorCode: null,
+      responseBody: null
+    });
   });
 });

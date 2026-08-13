@@ -11,3 +11,4 @@ export * from './projectSettings';
 export * from './apiKey';
 export * from './oauth';
 export * from './serviceAccount';
+export * from './auditLogStream';

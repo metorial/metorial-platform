@@ -85,7 +85,7 @@ describe('Datadog audit log destination', () => {
 
   it('reports HTTP failures without exposing the API key', async () => {
     fetchMock.mockResolvedValue(
-      new Response(null, {
+      new Response('Invalid API key dd-secret', {
         status: 403,
         statusText: 'Forbidden'
       })
@@ -107,5 +107,12 @@ describe('Datadog audit log destination', () => {
 
     expect(error.message).toBe('Datadog audit log delivery failed with HTTP 403 Forbidden');
     expect(error.message).not.toContain('dd-secret');
+    expect((error as any).details).toEqual({
+      code: 'http_error',
+      httpStatusCode: 403,
+      httpStatusText: 'Forbidden',
+      providerErrorCode: null,
+      responseBody: 'Invalid API key [REDACTED]'
+    });
   });
 });

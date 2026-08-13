@@ -1,5 +1,9 @@
 import { v } from '@lowerdeck/validation';
-import { destination } from '../destination';
+import {
+  AuditLogDestinationError,
+  destination,
+  readAuditLogDestinationResponseBody
+} from '../destination';
 
 export let datadogProviderDataSchema = v.object({
   apiKey: v.string({ modifiers: [v.minLength(1)] }),
@@ -41,10 +45,19 @@ export let datadogDestination = destination({
     });
 
     if (!response.ok) {
-      throw new Error(
+      throw new AuditLogDestinationError(
         `Datadog audit log delivery failed with HTTP ${response.status}${
           response.statusText ? ` ${response.statusText}` : ''
-        }`
+        }`,
+        {
+          code: 'http_error',
+          httpStatusCode: response.status,
+          httpStatusText: response.statusText || null,
+          providerErrorCode: null,
+          responseBody: await readAuditLogDestinationResponseBody(response, [
+            providerData.apiKey
+          ])
+        }
       );
     }
   }

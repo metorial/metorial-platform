@@ -54,8 +54,9 @@ model AuditLogStreamEvent {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  type    AuditLogStreamEventType
-  message String?
+  type         AuditLogStreamEventType
+  message      String?
+  errorDetails Json?
 
   auditLogStreamOid BigInt
   auditLogStream    AuditLogStream @relation(fields: [auditLogStreamOid], references: [oid], onDelete: Cascade)

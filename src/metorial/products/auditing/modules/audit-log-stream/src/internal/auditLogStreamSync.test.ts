@@ -4,9 +4,12 @@ let {
   decrypt,
   deliver,
   dirtyUpsert,
+  findOrganization,
   findRun,
   findStream,
+  fire,
   generateId,
+  getSystemActor,
   insertEvent,
   listBatch,
   updateRun,
@@ -16,9 +19,12 @@ let {
   decrypt: vi.fn(),
   deliver: vi.fn(),
   dirtyUpsert: vi.fn(),
+  findOrganization: vi.fn(),
   findRun: vi.fn(),
   findStream: vi.fn(),
+  fire: vi.fn(),
   generateId: vi.fn(),
+  getSystemActor: vi.fn(),
   insertEvent: vi.fn(),
   listBatch: vi.fn(),
   updateRun: vi.fn(),
@@ -49,12 +55,34 @@ vi.mock('@metorial/db', () => ({
     },
     auditLogStream: {
       findUnique: findStream
+    },
+    organization: {
+      findUniqueOrThrow: findOrganization
     }
   },
   ID: {
     generateId
   },
   withTransaction: (callback: (db: typeof transactionDb) => unknown) => callback(transactionDb)
+}));
+
+vi.mock('@metorial/fabric', () => ({
+  Fabric: { fire }
+}));
+
+vi.mock('@metorial/audit-scope', () => ({
+  createOrganizationActorAuditScope: vi.fn(() => ({
+    organizationOid: 2n,
+    organizationActorOid: 9n,
+    actor: { type: 'org_actor', id: 'oac_system' },
+    context: { ip: '0.0.0.0', ua: 'Metorial System' }
+  }))
+}));
+
+vi.mock('@metorial/module-organization', () => ({
+  organizationActorService: {
+    getSystemActor
+  }
 }));
 
 vi.mock('@metorial/module-audit-log', () => ({
@@ -64,6 +92,14 @@ vi.mock('@metorial/module-audit-log', () => ({
 }));
 
 vi.mock('../destinations', () => ({
+  AuditLogDestinationError: class AuditLogDestinationError extends Error {
+    constructor(
+      message: string,
+      readonly details: Record<string, unknown>
+    ) {
+      super(message);
+    }
+  },
   deliverAuditLogStreamEvents: deliver
 }));
 
@@ -75,6 +111,7 @@ import {
   AUDIT_LOG_STREAM_MAX_CONSECUTIVE_ERRORS,
   auditLogStreamSyncService
 } from './auditLogStreamSync';
+import { AuditLogDestinationError } from '../destinations';
 
 let createdAt = new Date('2026-08-13T10:30:00.000Z');
 let auditLog = {
@@ -128,6 +165,8 @@ describe('auditLogStreamSyncService', () => {
     updateStream.mockResolvedValue({});
     insertEvent.mockResolvedValue({});
     dirtyUpsert.mockResolvedValue({});
+    findOrganization.mockResolvedValue({ oid: 2n, id: 'org_1' });
+    getSystemActor.mockResolvedValue({ oid: 9n, id: 'oac_system' });
   });
 
   it('creates and completes a run while advancing the cursor after delivery', async () => {
@@ -218,6 +257,21 @@ describe('auditLogStreamSyncService', () => {
         id: 'alse_1',
         type: 'error',
         message: 'HTTP 503',
+        errorDetails: {
+          provider: 'datadog',
+          code: 'unknown_error',
+          errorName: 'Error',
+          httpStatusCode: null,
+          httpStatusText: null,
+          providerErrorCode: null,
+          responseBody: null,
+          batchIdentifier: 'alsb_1',
+          batchNumber: 3,
+          successfulBatchCount: 2,
+          eventCount: 1,
+          firstEventId: 'aud_1',
+          lastEventId: 'aud_1'
+        },
         auditLogStreamOid: 10n
       }
     });
@@ -237,7 +291,15 @@ describe('auditLogStreamSyncService', () => {
       isStarted: true,
       consecutiveErrorCount: AUDIT_LOG_STREAM_MAX_CONSECUTIVE_ERRORS - 1
     });
-    deliver.mockRejectedValueOnce(new Error('still unavailable'));
+    deliver.mockRejectedValueOnce(
+      new AuditLogDestinationError('still unavailable', {
+        code: 'http_error',
+        httpStatusCode: 503,
+        httpStatusText: 'Unavailable',
+        providerErrorCode: null,
+        responseBody: '{"error":"overloaded"}'
+      })
+    );
 
     await auditLogStreamSyncService.syncBatch(job);
 
@@ -253,9 +315,32 @@ describe('auditLogStreamSyncService', () => {
         id: 'alse_1',
         type: 'error_paused',
         message: 'still unavailable',
+        errorDetails: expect.objectContaining({
+          provider: 'datadog',
+          code: 'http_error',
+          httpStatusCode: 503,
+          httpStatusText: 'Unavailable',
+          responseBody: '{"error":"overloaded"}',
+          batchIdentifier: 'alsb_1',
+          batchNumber: 1,
+          eventCount: 1
+        }),
         auditLogStreamOid: 10n
       }
     });
+    expect(fire).toHaveBeenCalledWith(
+      'organization.audit_log_stream.paused:after',
+      expect.objectContaining({
+        auditLogStream: expect.objectContaining({
+          id: 'als_1',
+          isPausedDueToError: true,
+          consecutiveErrorCount: 100
+        }),
+        previousAuditLogStream: expect.objectContaining({
+          isPausedDueToError: false
+        })
+      })
+    );
     expect(dirtyUpsert).not.toHaveBeenCalled();
   });
 

@@ -41,7 +41,12 @@ import {
   recordProjectUpdated,
   recordServiceAccountCreated,
   recordTeamCreated,
-  recordTeamMemberAdded
+  recordTeamMemberAdded,
+  recordAuditLogStreamCreated,
+  recordAuditLogStreamUpdated,
+  recordAuditLogStreamDeleted,
+  recordAuditLogStreamPaused,
+  recordAuditLogStreamResumed
 } from './index';
 
 let organization = { oid: 1n, id: 'org_1' };
@@ -484,6 +489,113 @@ describe('audit Fabric listeners', () => {
     } as any);
 
     expect(recordEvent).not.toHaveBeenCalled();
+  });
+
+  it('records audit log stream create, update, delete, pause, and resume without secrets', async () => {
+    let auditLogStream = {
+      id: 'als_1',
+      provider: 'datadog',
+      status: 'active',
+      accessStatus: 'ok',
+      isPausedDueToError: false,
+      errorMessage: null,
+      consecutiveErrorCount: 0,
+      isStarted: true,
+      providerDataRedacted: { site: 'datadoghq.eu' },
+      encryptedProviderData: 'secret',
+      createdAt: new Date('2026-08-13T10:00:00.000Z'),
+      updatedAt: new Date('2026-08-13T10:05:00.000Z')
+    };
+    let pausedStream = {
+      ...auditLogStream,
+      accessStatus: 'error',
+      isPausedDueToError: true,
+      errorMessage: 'delivery failed',
+      consecutiveErrorCount: 100
+    };
+
+    await recordAuditLogStreamCreated({
+      organization,
+      auditScope,
+      auditLogStream,
+      input: { provider: 'datadog' }
+    } as any);
+    await recordAuditLogStreamUpdated({
+      organization,
+      auditScope,
+      auditLogStream: { ...auditLogStream, status: 'inactive' },
+      previousAuditLogStream: auditLogStream,
+      input: { status: 'inactive' }
+    } as any);
+    await recordAuditLogStreamDeleted({
+      organization,
+      auditScope,
+      auditLogStream
+    } as any);
+    await recordAuditLogStreamPaused({
+      organization,
+      auditScope,
+      auditLogStream: pausedStream,
+      previousAuditLogStream: auditLogStream
+    } as any);
+    await recordAuditLogStreamResumed({
+      organization,
+      auditScope,
+      auditLogStream,
+      previousAuditLogStream: pausedStream
+    } as any);
+
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      1,
+      auditScope,
+      'audit_log_stream',
+      'create',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          id: 'als_1',
+          provider: 'datadog',
+          providerDataRedacted: { site: 'datadoghq.eu' }
+        })
+      })
+    );
+    expect(recordEvent.mock.calls[0][3].payload).not.toHaveProperty('encryptedProviderData');
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      2,
+      auditScope,
+      'audit_log_stream',
+      'update',
+      expect.objectContaining({
+        previousPayload: expect.objectContaining({ status: 'active' })
+      })
+    );
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      3,
+      auditScope,
+      'audit_log_stream',
+      'delete',
+      expect.objectContaining({
+        payload: expect.objectContaining({ id: 'als_1' })
+      })
+    );
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      4,
+      auditScope,
+      'audit_log_stream',
+      'pause',
+      expect.objectContaining({
+        payload: expect.objectContaining({ isPausedDueToError: true }),
+        previousPayload: expect.objectContaining({ isPausedDueToError: false })
+      })
+    );
+    expect(recordEvent).toHaveBeenNthCalledWith(
+      5,
+      auditScope,
+      'audit_log_stream',
+      'resume',
+      expect.objectContaining({
+        payload: expect.objectContaining({ isPausedDueToError: false })
+      })
+    );
   });
 });
 

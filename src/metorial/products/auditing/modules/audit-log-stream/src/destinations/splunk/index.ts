@@ -1,5 +1,9 @@
 import { v } from '@lowerdeck/validation';
-import { destination } from '../destination';
+import {
+  AuditLogDestinationError,
+  destination,
+  readAuditLogDestinationResponseBody
+} from '../destination';
 
 export let splunkProviderDataSchema = v.object({
   endpoint: v.string({ modifiers: [v.url()] }),
@@ -46,14 +50,32 @@ export let splunkDestination = destination({
     });
 
     if (!response.ok) {
-      throw new Error(
+      throw new AuditLogDestinationError(
         `Splunk audit log delivery failed with HTTP ${response.status}${
           response.statusText ? ` ${response.statusText}` : ''
-        }`
+        }`,
+        {
+          code: 'http_error',
+          httpStatusCode: response.status,
+          httpStatusText: response.statusText || null,
+          providerErrorCode: null,
+          responseBody: await readAuditLogDestinationResponseBody(response, [
+            providerData.token
+          ])
+        }
       );
     }
 
-    let responseData: unknown = await response.json();
+    let responseBody = await readAuditLogDestinationResponseBody(response, [
+      providerData.token
+    ]);
+    let responseData: unknown;
+    try {
+      responseData = responseBody ? JSON.parse(responseBody) : null;
+    } catch {
+      responseData = null;
+    }
+
     if (
       typeof responseData != 'object' ||
       responseData === null ||
@@ -64,7 +86,16 @@ export let splunkDestination = destination({
         typeof responseData == 'object' && responseData !== null && 'code' in responseData
           ? String(responseData.code)
           : 'unknown';
-      throw new Error(`Splunk audit log delivery failed with response code ${code}`);
+      throw new AuditLogDestinationError(
+        `Splunk audit log delivery failed with response code ${code}`,
+        {
+          code: 'provider_error',
+          httpStatusCode: response.status,
+          httpStatusText: response.statusText || null,
+          providerErrorCode: code,
+          responseBody
+        }
+      );
     }
   }
 });
