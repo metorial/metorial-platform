@@ -2,19 +2,15 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   AccessPolicy,
-  AccessPolicyInstance,
-  AccessPolicyProject,
-  AccessPolicyRole,
   AccessPolicyType,
-  AccessPolicyVersion,
   AccessRole,
   db,
   ID,
   Organization,
-  OrganizationActor,
+  Prisma,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
@@ -60,13 +56,9 @@ export let accessPolicyInclude = {
   }
 } as const;
 
-export type AccessPolicyWithRelations = AccessPolicy & {
-  organization: Organization;
-  accessPolicyRoles: AccessPolicyRole[];
-  accessPolicyProjects: AccessPolicyProject[];
-  accessPolicyInstances: AccessPolicyInstance[];
-  accessPolicyVersions: AccessPolicyVersion[];
-};
+export type AccessPolicyWithRelations = Prisma.AccessPolicyGetPayload<{
+  include: typeof accessPolicyInclude;
+}>;
 
 let getTargetType = (target: string) => {
   if (target.startsWith('org_')) return 'organization';
@@ -212,8 +204,7 @@ let syncCurrentPolicyTargets = async (d: {
 class AccessPolicyService {
   async createAccessPolicy(d: {
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -267,8 +258,10 @@ class AccessPolicyService {
       });
 
       await Fabric.fire('organization.access_policy.created:after', {
-        ...d,
-        accessPolicy
+        organization: d.organization,
+        input: d.input,
+        accessPolicy,
+        auditScope: d.auditScope
       });
 
       return accessPolicy;
@@ -278,8 +271,7 @@ class AccessPolicyService {
   async updateAccessPolicy(d: {
     accessPolicy: AccessPolicy;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     allowDefaultDocumentUpdate?: boolean;
     input: {
       name?: string;
@@ -317,7 +309,7 @@ class AccessPolicyService {
           name: d.input.name,
           description: d.input.description,
           document: resolved?.document,
-          hasBeenCustomized: !d.allowDefaultDocumentUpdate && d.performedBy.type != 'system',
+          hasBeenCustomized: !d.allowDefaultDocumentUpdate && d.auditScope.actor.type != 'system',
           accessPolicyVersions: resolved
             ? {
                 create: {
@@ -347,8 +339,11 @@ class AccessPolicyService {
       }
 
       await Fabric.fire('organization.access_policy.updated:after', {
-        ...d,
-        accessPolicy
+        organization: d.organization,
+        input: d.input,
+        accessPolicy,
+        previousAccessPolicy: d.accessPolicy,
+        auditScope: d.auditScope
       });
 
       return accessPolicy;
@@ -358,8 +353,7 @@ class AccessPolicyService {
   async deleteAccessPolicy(d: {
     accessPolicy: AccessPolicyWithRelations;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     if (d.accessPolicy.type != 'custom') {
       throw new ServiceError(
@@ -374,7 +368,11 @@ class AccessPolicyService {
       await db.accessPolicy.delete({
         where: { oid: d.accessPolicy.oid }
       });
-      await Fabric.fire('organization.access_policy.deleted:after', d);
+      await Fabric.fire('organization.access_policy.deleted:after', {
+        organization: d.organization,
+        accessPolicy: d.accessPolicy,
+        auditScope: d.auditScope
+      });
 
       return d.accessPolicy;
     });

@@ -1,16 +1,17 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
   getImageUrl,
   ID,
   Organization,
-  OrganizationActor,
   Project,
   type ProjectBrand,
   withTransaction
 } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { brandService, subspaceScopeService } from '@metorial-subspace/module-tenant';
 import { cleanupFileImage, resolveFileImage } from '../lib/fileImage';
 import { syncBrandQueue } from '../queues/syncBrand';
@@ -55,7 +56,7 @@ class ProjectBrandService {
       imageFileId?: string | null;
       image?: PrismaJson.EntityImage;
     };
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
     isAutoUpdate?: boolean;
   }): Promise<ProjectBrandOverride> {
     let currentBrand = await this.getProjectBrand({
@@ -93,11 +94,19 @@ class ProjectBrandService {
 
     await withTransaction(async db => {
       if (didNameChange || didImageChange) {
+        await Fabric.fire('organization.project.brand.updated:before', {
+          organization: d.project.organization,
+          project: d.project,
+          brand: currentBrand,
+          input: d.input,
+          auditScope: d.auditScope
+        });
+
         await db.projectBrandUpdate.create({
           data: {
             id: await ID.generateId('projectBrandUpdate'),
             brandOid: currentBrand.oid,
-            createdByOid: d.performedBy.oid,
+            createdByOid: d.auditScope.organizationActorOid!,
             before: {
               name: currentName,
               image: currentImage
@@ -142,6 +151,17 @@ class ProjectBrandService {
       project: d.project
     });
     if (!brand) throw new Error('Project brand was not found after upsert');
+
+    if (didNameChange || didImageChange) {
+      await Fabric.fire('organization.project.brand.updated:after', {
+        organization: d.project.organization,
+        project: d.project,
+        brand,
+        previousBrand: currentBrand,
+        input: d.input,
+        auditScope: d.auditScope
+      });
+    }
 
     await this.syncProjectBrandToSubspace({
       project: brand.project,

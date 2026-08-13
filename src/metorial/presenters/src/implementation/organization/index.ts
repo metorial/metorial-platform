@@ -1,4 +1,5 @@
 export * from './instance';
+export * from './auditLog';
 export * from './organization';
 export * from './organizationActor';
 export * from './organizationConfig';

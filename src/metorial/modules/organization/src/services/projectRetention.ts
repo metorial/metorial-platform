@@ -1,10 +1,9 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   Organization,
-  OrganizationActor,
   Project,
   withTransaction
 } from '@metorial/db';
@@ -34,8 +33,7 @@ class ProjectRetentionService {
   async updateProjectRetention(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       logRetentionInDays?: number;
       enforceSessionExpiry?: boolean;
@@ -62,8 +60,11 @@ class ProjectRetentionService {
       );
 
       await Fabric.fire('organization.project.retention.updated:after', {
-        ...d,
-        project
+        organization: d.organization,
+        input: d.input,
+        project,
+        previousProject: d.project,
+        auditScope: d.auditScope
       });
 
       return project;

@@ -61,6 +61,13 @@ import { oauthApplicationService } from '../src/services/oauthApplication';
 let baseContext = {} as any;
 let baseOrg = { oid: 'org-oid' } as any;
 let baseActor = { oid: 'actor-oid', organizationOid: 'org-oid' } as any;
+let testAuditScope = {
+  organizationOid: baseOrg.oid,
+  organizationActorOid: baseActor.oid,
+  actor: { type: 'org_actor' as const, id: (baseActor as any).id ?? 'actor-id' },
+  context: baseContext
+} as any;
+
 
 describe('oauthApplicationService', () => {
   beforeEach(() => {
@@ -141,8 +148,7 @@ describe('oauthApplicationService', () => {
   it('creates a server-side oauth app with scoped installation and machine access', async () => {
     let result = await oauthApplicationService.createOAuthApplication({
       organization: baseOrg,
-      performedBy: baseActor,
-      context: baseContext,
+      auditScope: testAuditScope,
       input: {
         type: 'server_side',
         accessLevel: 'organization',
@@ -155,8 +161,7 @@ describe('oauthApplicationService', () => {
     expect(machineAccessCreateMock).toHaveBeenCalledWith({
       type: 'organization_management',
       organization: baseOrg,
-      performedBy: baseActor,
-      context: baseContext,
+      auditScope: testAuditScope,
       input: {
         name: 'SERVICE ACCOUNTServer App',
         hasCustomScopes: true,
@@ -178,8 +183,7 @@ describe('oauthApplicationService', () => {
   it('creates an oauth app with local http redirect uris', async () => {
     await oauthApplicationService.createOAuthApplication({
       organization: baseOrg,
-      performedBy: baseActor,
-      context: baseContext,
+      auditScope: testAuditScope,
       input: {
         type: 'server_side',
         accessLevel: 'organization',
@@ -210,8 +214,7 @@ describe('oauthApplicationService', () => {
     await expect(
       oauthApplicationService.createOAuthApplication({
         organization: baseOrg,
-        performedBy: baseActor,
-        context: baseContext,
+        auditScope: testAuditScope,
         input: {
           type: 'server_side',
           accessLevel: 'organization',
@@ -268,8 +271,7 @@ describe('oauthApplicationService', () => {
         accessLevel: 'organization'
       } as any,
       organization: baseOrg,
-      performedBy: baseActor,
-      context: baseContext,
+      auditScope: testAuditScope,
       input: {
         name: 'Server App 2',
         redirectUris: ['https://example.com/callback'],
@@ -286,8 +288,7 @@ describe('oauthApplicationService', () => {
         hasCustomScopes: true,
         scopes: ['organization:write']
       },
-      performedBy: baseActor,
-      context: baseContext
+      auditScope: testAuditScope
     });
     expect(mockDb.oAuthInstallation.update).toHaveBeenCalledWith({
       where: { oid: 'oauth-installation-oid' },
@@ -306,8 +307,7 @@ describe('oauthApplicationService', () => {
         accessLevel: 'organization'
       } as any,
       organization: baseOrg,
-      performedBy: baseActor,
-      context: baseContext,
+      auditScope: testAuditScope,
       input: {
         redirectUris: [
           'http://localhost:3000/callback',
@@ -340,8 +340,7 @@ describe('oauthApplicationService', () => {
           accessLevel: 'organization'
         } as any,
         organization: baseOrg,
-        performedBy: baseActor,
-        context: baseContext,
+        auditScope: testAuditScope,
         input: {
           redirectUris: ['http://example.com/callback']
         }
@@ -362,8 +361,7 @@ describe('oauthApplicationService', () => {
           isImportedFromOtherInstance: false
         } as any,
         organization: baseOrg,
-        performedBy: baseActor,
-        context: baseContext,
+        auditScope: testAuditScope,
         input: {
           name: 'Internal App'
         }
@@ -379,8 +377,7 @@ describe('oauthApplicationService', () => {
           isImportedFromOtherInstance: false
         } as any,
         organization: baseOrg,
-        performedBy: baseActor,
-        context: baseContext
+        auditScope: testAuditScope
       })
     ).rejects.toThrow(ServiceError);
 
@@ -466,8 +463,7 @@ describe('oauthApplicationService', () => {
         status: 'active'
       } as any,
       organization: baseOrg,
-      performedBy: baseActor,
-      context: baseContext
+      auditScope: testAuditScope
     });
 
     expect(mockDb.oAuthAuthorization.updateMany).toHaveBeenCalled();

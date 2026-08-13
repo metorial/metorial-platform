@@ -42,32 +42,22 @@ export let v1ScmRepoPreviewPresenter = Presenter.create(scmRepoPreviewType)
 
 export let v1ScmRepoPresenter = Presenter.create(scmRepoType)
   .presenter(async ({ scmRepo }) => {
-    let rawScmRepo = 'externalUrl' in scmRepo ? scmRepo : null;
-
     return {
       object: 'scm.repository' as const,
 
       id: scmRepo.id,
 
-      provider: rawScmRepo
-        ? {
-            object: 'scm.provider' as const,
-            type: rawScmRepo.provider,
-            id: rawScmRepo.externalId,
-            name: rawScmRepo.externalName,
-            owner: rawScmRepo.externalOwner
-          }
-        : {
-            object: 'scm.provider' as const,
-            type: scmRepo.provider.type,
-            id: scmRepo.provider.id,
-            name: scmRepo.provider.name,
-            owner: scmRepo.provider.owner
-          },
+      provider: {
+        object: 'scm.provider' as const,
+        type: scmRepo.provider,
+        id: scmRepo.externalId,
+        name: scmRepo.externalName,
+        owner: scmRepo.externalOwner
+      },
 
-      url: rawScmRepo ? rawScmRepo.externalUrl : scmRepo.url,
+      url: scmRepo.externalUrl,
 
-      is_private: rawScmRepo ? rawScmRepo.externalIsPrivate : scmRepo.isPrivate,
+      is_private: scmRepo.externalIsPrivate,
       default_branch: scmRepo.defaultBranch,
 
       created_at: scmRepo.createdAt

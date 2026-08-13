@@ -1,3 +1,11 @@
+
+let testAuditScope = {
+  organizationOid: 1n,
+  organizationActorOid: 1n,
+  actor: { type: 'org_actor' as const, id: 'actor-1' },
+  context: { ip: '127.0.0.1', ua: 'test' }
+};
+
 import { ServiceError } from '@lowerdeck/error';
 import { addDays } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -118,8 +126,7 @@ describe('OrganizationInviteService', () => {
             message: 'Welcome!'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
         });
 
         expect(result).toEqual(mockInvite);
@@ -183,8 +190,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
         });
 
         expect(result.message).toBeNull();
@@ -227,8 +233,7 @@ describe('OrganizationInviteService', () => {
             role: 'admin'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
         });
 
         expect(result.role).toBe('admin');
@@ -260,8 +265,7 @@ describe('OrganizationInviteService', () => {
               role: 'member'
             },
             organization: mockOrg as any,
-            context: {} as any,
-            performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
           })
         ).rejects.toThrow(ServiceError);
       });
@@ -297,8 +301,7 @@ describe('OrganizationInviteService', () => {
               role: 'member'
             },
             organization: mockOrg as any,
-            context: {} as any,
-            performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
           })
         ).rejects.toThrow(ServiceError);
       });
@@ -345,8 +348,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
         });
 
         expect(result).toEqual(newInvite);
@@ -390,8 +392,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
         });
 
         expect(result).toEqual(mockInvite);
@@ -439,8 +440,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         });
 
         expect(sendOrgInviteEmail.send).not.toHaveBeenCalled();
@@ -473,8 +473,7 @@ describe('OrganizationInviteService', () => {
       let result = await organizationInviteService.deleteOrganizationInvite({
         invite: mockInvite as any,
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.status).toBe('deleted');
@@ -498,8 +497,7 @@ describe('OrganizationInviteService', () => {
         organizationInviteService.deleteOrganizationInvite({
           invite: mockInvite as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -527,8 +525,7 @@ describe('OrganizationInviteService', () => {
       let result1 = await organizationInviteService.deleteOrganizationInvite({
         invite: emailInvite as any,
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result1.status).toBe('deleted');
@@ -552,8 +549,7 @@ describe('OrganizationInviteService', () => {
       let result2 = await organizationInviteService.deleteOrganizationInvite({
         invite: linkInvite as any,
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result2.status).toBe('deleted');
@@ -587,8 +583,7 @@ describe('OrganizationInviteService', () => {
           role: 'admin'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.role).toBe('admin');
@@ -628,8 +623,7 @@ describe('OrganizationInviteService', () => {
           role: 'member'
         },
         organization: { id: 'org-1', oid: 1 } as any,
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.role).toBe('member');
@@ -645,8 +639,7 @@ describe('OrganizationInviteService', () => {
             role: 'admin'
           },
           organization: { id: 'org-1', oid: 1 } as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -681,8 +674,7 @@ describe('OrganizationInviteService', () => {
         invite: emailInvite as any,
         input: { role: 'admin' },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result1.role).toBe('admin');
@@ -713,8 +705,7 @@ describe('OrganizationInviteService', () => {
         invite: linkInvite as any,
         input: { role: 'admin' },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result2.role).toBe('admin');
@@ -749,8 +740,7 @@ describe('OrganizationInviteService', () => {
 
       let result = await organizationInviteService.ensureOrganizationInviteLink({
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result).toEqual(recentLink);
@@ -802,8 +792,7 @@ describe('OrganizationInviteService', () => {
 
       let result = await organizationInviteService.ensureOrganizationInviteLink({
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.type).toBe('link');
@@ -853,8 +842,7 @@ describe('OrganizationInviteService', () => {
 
       let result = await organizationInviteService.ensureOrganizationInviteLink({
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       // Should trigger creation of a new link
@@ -887,8 +875,7 @@ describe('OrganizationInviteService', () => {
 
       let result = await organizationInviteService.ensureOrganizationInviteLink({
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy1 as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.invitedByOid).toBe(1);
@@ -1116,8 +1103,7 @@ describe('OrganizationInviteService', () => {
           role: 'member'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.expiresAt).toBeDefined();
@@ -1157,8 +1143,7 @@ describe('OrganizationInviteService', () => {
         organizationInviteService.deleteOrganizationInvite({
           invite: rejectedInvite as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).resolves.toBeDefined(); // Rejected invites can be deleted
     });
@@ -1174,8 +1159,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: { id: 'org-1', oid: 1 } as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -1213,15 +1197,13 @@ describe('OrganizationInviteService', () => {
       let result1 = await organizationInviteService.createOrganizationInvite({
         input: { type: 'email', email: 'user1@example.com', role: 'member' },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       let result2 = await organizationInviteService.createOrganizationInvite({
         input: { type: 'email', email: 'user2@example.com', role: 'member' },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result1.key).not.toBe(result2.key);
@@ -1252,8 +1234,7 @@ describe('OrganizationInviteService', () => {
       await organizationInviteService.createOrganizationInvite({
         input: { type: 'link', role: 'member' },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(Fabric.fire).toHaveBeenCalledWith(
@@ -1286,8 +1267,7 @@ describe('OrganizationInviteService', () => {
       await organizationInviteService.deleteOrganizationInvite({
         invite: mockInvite as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(Fabric.fire).toHaveBeenCalledWith(
@@ -1321,8 +1301,7 @@ describe('OrganizationInviteService', () => {
         invite: mockInvite as any,
         input: { role: 'admin' },
         organization: { id: 'org-1', oid: 1 } as any,
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(Fabric.fire).toHaveBeenCalledWith(

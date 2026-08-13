@@ -34,6 +34,13 @@ const baseOrg = { oid: 'org-oid' } as any;
 const baseUser = { oid: 'user-oid' } as any;
 const baseInstance = { oid: 'instance-oid' } as any;
 const baseActor = { oid: 'actor-oid' } as any;
+let testAuditScope = {
+  organizationOid: baseOrg.oid,
+  organizationActorOid: baseActor.oid,
+  actor: { type: 'org_actor' as const, id: (baseActor as any).id ?? 'actor-id' },
+  context: baseContext
+} as any;
+
 
 describe('machineAccessService', () => {
   beforeEach(() => {
@@ -46,8 +53,7 @@ describe('machineAccessService', () => {
         type: 'organization_management',
         input: { name: 'org-mgmt' },
         organization: baseOrg,
-        performedBy: baseActor,
-        context: baseContext
+        auditScope: testAuditScope
       });
       expect(result).toMatchObject({
         status: 'active',
@@ -64,8 +70,7 @@ describe('machineAccessService', () => {
         input: { name: 'inst-secret' },
         organization: baseOrg,
         instance: baseInstance,
-        performedBy: baseActor,
-        context: baseContext
+        auditScope: testAuditScope
       });
       expect(result).toMatchObject({
         status: 'active',
@@ -90,8 +95,7 @@ describe('machineAccessService', () => {
           user: baseUser
         },
         organization: baseOrg,
-        performedBy: baseActor,
-        context: baseContext
+        auditScope: testAuditScope
       });
 
       expect(result).toMatchObject({

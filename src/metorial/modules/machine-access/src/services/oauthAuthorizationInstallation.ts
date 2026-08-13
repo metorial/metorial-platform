@@ -6,6 +6,8 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
@@ -123,18 +125,20 @@ class OAuthAuthorizationInstallationService {
             return currentInstallation;
           }
 
+          let systemActor = await organizationActorService.getSystemActor({
+            organization: d.organization
+          });
           let actor = await organizationActorService.createOrganizationActor({
             input: {
               type: 'oauth_application',
               name: `APP ${d.oauthApplication.name}`
             },
             organization: d.organization,
-            performedBy: {
-              type: 'actor',
-              actor: await organizationActorService.getSystemActor({
-                organization: d.organization
-              })
-            }
+            auditScope: createOrganizationActorAuditScope({
+              organization: d.organization,
+              organizationActor: systemActor,
+              context: { ip: '0.0.0.0', ua: 'Metorial System' }
+            })
           });
 
           return await db.oAuthInstallation.update({
@@ -154,6 +158,7 @@ class OAuthAuthorizationInstallationService {
           Fabric.fire('machine_access.oauth_installation.updated:after', {
             oauthApplication: installation.oauthApplication,
             oauthInstallation: installation,
+            previousOAuthInstallation: existing,
             organization: installation.organization,
             appActor: installation.appActor
           })
@@ -201,8 +206,11 @@ class OAuthAuthorizationInstallationService {
         let createdMachineAccess = await machineAccessService.createMachineAccess({
           type: 'organization_management',
           organization: d.organization,
-          performedBy: d.member.actor,
-          context: d.context,
+          auditScope: createOrganizationActorAuditScope({
+            organization: d.organization,
+            organizationActor: d.member.actor,
+            context: d.context
+          }),
           kind: 'user',
           linkedTo: {
             type: 'user',
@@ -233,8 +241,11 @@ class OAuthAuthorizationInstallationService {
               scopes: d.scopes,
               name: `OAUTH USER ${d.oauthApplication.name}`
             },
-            performedBy: d.member.actor,
-            context: d.context
+            auditScope: createOrganizationActorAuditScope({
+              organization: d.organization,
+              organizationActor: d.member.actor,
+              context: d.context
+            })
           });
           machineAccessOid = updatedMachineAccess.oid;
         } else {
@@ -265,15 +276,13 @@ class OAuthAuthorizationInstallationService {
         await Fabric.fire('machine_access.oauth_authorization.updated:before', {
           oauthApplication: d.oauthApplication,
           oauthInstallation: d.oauthInstallation,
-          organization: d.organization,
-          context: d.context
+          organization: d.organization
         });
       } else {
         await Fabric.fire('machine_access.oauth_authorization.created:before', {
           oauthApplication: d.oauthApplication,
           oauthInstallation: d.oauthInstallation,
-          organization: d.organization,
-          context: d.context
+          organization: d.organization
         });
       }
 
@@ -301,7 +310,7 @@ class OAuthAuthorizationInstallationService {
             oauthAuthorization: updatedAuthorization,
             organization: updatedAuthorization.oauthInstallation.organization,
             appActor: updatedAuthorization.oauthInstallation.appActor,
-            context: d.context
+            previousOAuthAuthorization: oauthAuthorization
           })
         );
       } else {
@@ -311,8 +320,7 @@ class OAuthAuthorizationInstallationService {
             oauthInstallation: updatedAuthorization.oauthInstallation,
             oauthAuthorization: updatedAuthorization,
             organization: updatedAuthorization.oauthInstallation.organization,
-            appActor: updatedAuthorization.oauthInstallation.appActor,
-            context: d.context
+            appActor: updatedAuthorization.oauthInstallation.appActor
           })
         );
       }
@@ -376,8 +384,7 @@ class OAuthAuthorizationInstallationService {
       await Fabric.fire('machine_access.oauth_authorization.created:before', {
         oauthApplication: d.oauthApplication,
         oauthInstallation: installation,
-        organization: installation.organization,
-        context: undefined
+        organization: installation.organization
       });
 
       let authorization = await db.oAuthAuthorization.create({
@@ -409,8 +416,7 @@ class OAuthAuthorizationInstallationService {
           oauthInstallation: authorization.oauthInstallation,
           oauthAuthorization: authorization,
           organization: authorization.oauthInstallation.organization,
-          appActor: authorization.oauthInstallation.appActor,
-          context: undefined
+          appActor: authorization.oauthInstallation.appActor
         });
 
         let serviceAccountCredential = await db.serviceAccountCredential.create({
@@ -429,8 +435,7 @@ class OAuthAuthorizationInstallationService {
             oauthInstallation: authorization.oauthInstallation,
             oauthAuthorization: authorization,
             organization: authorization.oauthInstallation.organization,
-            appActor: authorization.oauthInstallation.appActor,
-            context: undefined
+            appActor: authorization.oauthInstallation.appActor
           })
         );
       }
@@ -441,8 +446,7 @@ class OAuthAuthorizationInstallationService {
           oauthInstallation: authorization.oauthInstallation,
           oauthAuthorization: authorization,
           organization: authorization.oauthInstallation.organization,
-          appActor: authorization.oauthInstallation.appActor,
-          context: undefined
+          appActor: authorization.oauthInstallation.appActor
         })
       );
 
@@ -452,8 +456,7 @@ class OAuthAuthorizationInstallationService {
 
   async revokeOAuthInstallation(d: {
     oauthInstallation: OAuthInstallation;
-    performedBy: OrganizationActor;
-    context?: Context;
+    auditScope: AuditScope;
   }) {
     let now = new Date();
 
@@ -477,8 +480,7 @@ class OAuthAuthorizationInstallationService {
         oauthApplication: existingInstallation.oauthApplication,
         oauthInstallation: existingInstallation,
         organization: existingInstallation.organization,
-        performedBy: d.performedBy,
-        context: d.context
+        auditScope: d.auditScope
       });
 
       await db.oAuthAuthorization.updateMany({
@@ -507,10 +509,10 @@ class OAuthAuthorizationInstallationService {
         Fabric.fire('machine_access.oauth_installation.revoked:after', {
           oauthApplication: installation.oauthApplication,
           oauthInstallation: installation,
+          previousOAuthInstallation: existingInstallation,
           organization: installation.organization,
           appActor: installation.appActor,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         })
       );
 

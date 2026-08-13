@@ -11,7 +11,6 @@ export let v1ProjectPresenter = Presenter.create(projectType)
     slug: project.slug,
     name: project.name,
     organization_id: project.organization.id,
-    magic_mcp_session_duration_minutes: project.magicMcpSessionDurationMinutes,
     created_at: project.createdAt,
     updated_at: project.updatedAt
   }))
@@ -44,11 +43,6 @@ export let v1ProjectPresenter = Presenter.create(projectType)
         name: 'organization_id',
         description: `The organization's unique identifier`,
         examples: ['org_7hNkPqRsTuVwXyZa']
-      }),
-      magic_mcp_session_duration_minutes: v.number({
-        name: 'magic_mcp_session_duration_minutes',
-        description: 'How long magic MCP sessions last before they are rotated',
-        examples: [1440]
       }),
       created_at: v.date({
         name: 'created_at',

@@ -1,0 +1,102 @@
+import { v } from '@lowerdeck/validation';
+import { Presenter } from '@metorial/presenter';
+import { auditLogType } from '../../types';
+
+let actorRecordSchema = v.union([
+  v.object({
+    object: v.literal('organization_actor'),
+    id: v.string(),
+    type: v.enumOf(['member', 'machine_access', 'system', 'oauth_application', 'agent']),
+    name: v.string(),
+    email: v.nullable(v.string()),
+    image_url: v.string(),
+    member: v.nullable(
+      v.object({
+        id: v.string(),
+        status: v.enumOf(['active', 'deleted']),
+        role: v.enumOf(['member', 'admin'])
+      })
+    )
+  }),
+  v.object({
+    object: v.literal('consumer_profile'),
+    id: v.string(),
+    status: v.enumOf(['active', 'deleted']),
+    name: v.string(),
+    email: v.string(),
+    instance_id: v.string(),
+    organization_actor_id: v.nullable(v.string())
+  })
+]);
+
+export let v1AuditLogPresenter = Presenter.create(auditLogType)
+  .presenter(async ({ auditLog }) => ({
+    object: 'organization.audit_log',
+    id: auditLog.id,
+    event_id: auditLog.eventId ?? null,
+    resource: auditLog.resource,
+    action: auditLog.action,
+    organization_id: auditLog.organizationId,
+    instance_id: auditLog.instanceId ?? null,
+    organization_actor_id: auditLog.organizationActorId ?? null,
+    actor: auditLog.actor
+      ? {
+          type: auditLog.actor.type,
+          id: auditLog.actor.id,
+          metadata: auditLog.actor.metadata ?? null,
+          record: auditLog.actor.record
+            ? auditLog.actor.record.object == 'organization_actor'
+              ? {
+                  object: auditLog.actor.record.object,
+                  id: auditLog.actor.record.id,
+                  type: auditLog.actor.record.type,
+                  name: auditLog.actor.record.name,
+                  email: auditLog.actor.record.email,
+                  image_url: auditLog.actor.record.imageUrl,
+                  member: auditLog.actor.record.member ?? null
+                }
+              : {
+                  object: auditLog.actor.record.object,
+                  id: auditLog.actor.record.id,
+                  status: auditLog.actor.record.status,
+                  name: auditLog.actor.record.name,
+                  email: auditLog.actor.record.email,
+                  instance_id: auditLog.actor.record.instanceId,
+                  organization_actor_id: auditLog.actor.record.organizationActorId ?? null
+                }
+            : null
+        }
+      : null,
+    context: auditLog.context,
+    payload: auditLog.payload ?? null,
+    previous_attributes: auditLog.previousAttributes ?? null,
+    recorded_at: auditLog.recordedAt
+  }))
+  .schema(
+    v.object({
+      object: v.literal('organization.audit_log'),
+      id: v.string(),
+      event_id: v.nullable(v.string()),
+      resource: v.string(),
+      action: v.string(),
+      organization_id: v.string(),
+      instance_id: v.nullable(v.string()),
+      organization_actor_id: v.nullable(v.string()),
+      actor: v.nullable(
+        v.object({
+          type: v.string(),
+          id: v.nullable(v.string()),
+          metadata: v.nullable(v.typedAny<{}>('audit_log_actor_metadata')),
+          record: v.nullable(actorRecordSchema)
+        })
+      ),
+      context: v.object({
+        ip: v.nullable(v.string()),
+        ua: v.nullable(v.string())
+      }),
+      payload: v.nullable(v.typedAny<{}>('audit_log_payload')),
+      previous_attributes: v.nullable(v.typedAny<{}>('audit_log_previous_attributes')),
+      recorded_at: v.date()
+    })
+  )
+  .build();

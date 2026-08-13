@@ -256,10 +256,28 @@ describe('OrganizationService', () => {
           performedBy: mockUser
         })
       );
+      expect(Fabric.fire).toHaveBeenCalledWith('organization.initialized:after', {
+        organization: mockOrg,
+        auditScope: expect.objectContaining({
+          organizationOid: mockOrg.oid,
+          organizationActorOid: mockMemberActor.oid,
+          actor: {
+            type: 'org_actor',
+            id: mockMemberActor.id
+          }
+        })
+      });
       expect(authBootstrapService.ensureOrganizationAuthVersionV2).toHaveBeenCalledWith(
         expect.objectContaining({
           organization: mockOrg,
-          performedBy: mockSystemActor
+          auditScope: expect.objectContaining({
+            organizationOid: mockOrg.oid,
+            organizationActorOid: mockSystemActor.oid,
+            actor: {
+              type: 'org_actor',
+              id: mockSystemActor.id
+            }
+          })
         })
       );
     });
@@ -380,8 +398,13 @@ describe('OrganizationService', () => {
           }
         },
         organization: mockOrg,
-        context: {},
-        performedBy: { type: 'user', user: mockUser }
+        auditScope: expect.objectContaining({
+          organizationOid: mockOrg.oid,
+          actor: {
+            type: 'system',
+            id: mockUser.id
+          }
+        })
       });
     });
 
@@ -419,8 +442,14 @@ describe('OrganizationService', () => {
         user: mockUser,
         organization: mockOrg,
         input: { role: 'admin' },
-        context: {},
-        performedBy: { type: 'actor', actor: mockSystemActor }
+        auditScope: expect.objectContaining({
+          organizationOid: mockOrg.oid,
+          organizationActorOid: mockSystemActor.oid,
+          actor: {
+            type: 'org_actor',
+            id: mockSystemActor.id
+          }
+        })
       });
     });
 
@@ -569,8 +598,7 @@ describe('OrganizationService', () => {
           name: 'New Name'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: {} as any
       });
 
       expect(result.name).toBe('New Name');
@@ -582,7 +610,7 @@ describe('OrganizationService', () => {
         'organization.updated:after',
         expect.objectContaining({
           organization: updatedOrg,
-          performedBy: mockPerformedBy
+          previousOrganization: mockOrg
         })
       );
     });
@@ -610,8 +638,7 @@ describe('OrganizationService', () => {
           image: newImage as any
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: {} as any
       });
 
       expect(result.image).toEqual(newImage);
@@ -647,8 +674,7 @@ describe('OrganizationService', () => {
           image: { type: 'default' } as any
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: {} as any
       });
 
       expect(fileReferenceService.deleteFileReferenceByIdAndCleanup).toHaveBeenCalledWith({
@@ -681,8 +707,7 @@ describe('OrganizationService', () => {
           image: newImage as any
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: {} as any
       });
 
       expect(result.name).toBe('Updated Org');
@@ -708,8 +733,7 @@ describe('OrganizationService', () => {
           name: 'Updated'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: {} as any
       });
 
       expect(syncProfileQueue.add).toHaveBeenCalledWith(
@@ -747,8 +771,7 @@ describe('OrganizationService', () => {
             slug: 'new-slug'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
 
@@ -797,8 +820,7 @@ describe('OrganizationService', () => {
           slug: 'new-slug'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: {} as any
       });
 
       expect(result).toEqual(updatedOrg);
@@ -833,8 +855,7 @@ describe('OrganizationService', () => {
             name: 'New Name'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -853,8 +874,7 @@ describe('OrganizationService', () => {
             name: 'New Name'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -876,8 +896,7 @@ describe('OrganizationService', () => {
       let result = await organizationService.updateOrganization({
         input: {},
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: {} as any
       });
 
       expect(result).toEqual(updatedOrg);
@@ -895,8 +914,7 @@ describe('OrganizationService', () => {
             name: 'New Name'
           },
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+          auditScope: {} as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -910,8 +928,7 @@ describe('OrganizationService', () => {
       await expect(
         organizationService.deleteOrganization({
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -923,8 +940,7 @@ describe('OrganizationService', () => {
       await expect(
         organizationService.deleteOrganization({
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -936,8 +952,7 @@ describe('OrganizationService', () => {
       await expect(
         organizationService.deleteOrganization({
           organization: mockOrg as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
     });

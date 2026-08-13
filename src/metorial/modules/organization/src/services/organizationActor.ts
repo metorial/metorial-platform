@@ -1,14 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
   ID,
   Organization,
   OrganizationActor,
   OrganizationActorType,
-  User,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
@@ -29,8 +28,7 @@ class OrganizationActorService {
       image?: PrismaJson.EntityImage;
     };
     organization: Organization;
-    context?: Context;
-    performedBy: { type: 'user'; user: User } | { type: 'actor'; actor: OrganizationActor };
+    auditScope: AuditScope;
   }) {
     return withTransaction(async db => {
       await Fabric.fire('organization.actor.created:before', d);
@@ -52,9 +50,9 @@ class OrganizationActorService {
       });
 
       await Fabric.fire('organization.actor.created:after', {
-        ...d,
+        organization: d.organization,
         actor,
-        performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
+        auditScope: d.auditScope
       });
 
       return actor;
@@ -83,14 +81,10 @@ class OrganizationActorService {
       email?: string;
       image?: PrismaJson.EntityImage;
     };
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     return withTransaction(async db => {
-      await Fabric.fire('organization.actor.updated:before', {
-        ...d,
-        performedBy: d.performedBy
-      });
+      await Fabric.fire('organization.actor.updated:before', d);
 
       let actor = await db.organizationActor.update({
         where: { oid: d.actor.oid },
@@ -104,9 +98,11 @@ class OrganizationActorService {
       });
 
       await Fabric.fire('organization.actor.updated:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         actor,
-        performedBy: d.performedBy
+        previousActor: d.actor,
+        auditScope: d.auditScope
       });
 
       return actor;

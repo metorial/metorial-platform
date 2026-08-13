@@ -188,6 +188,12 @@ let baseMember = {
   user: baseUser,
   organization: baseOrg
 } as any;
+let testAuditScope = {
+  organizationOid: baseOrg.oid,
+  organizationActorOid: baseMember.actor.oid,
+  actor: { type: 'org_actor' as const, id: baseMember.actor.id ?? 'actor-id' },
+  context: baseContext
+} as any;
 
 describe('oauthAuthorizationService', () => {
   beforeEach(() => {
@@ -1035,8 +1041,7 @@ describe('oauthAuthorizationService', () => {
       oauthAuthorization: {
         oid: 300n
       } as any,
-      performedBy: baseMember.actor,
-      context: baseContext
+      auditScope: testAuditScope
     });
 
     expect(mockDb.oAuthAuthorization.update).toHaveBeenCalledWith(
@@ -1067,8 +1072,7 @@ describe('oauthAuthorizationService', () => {
         oauthAuthorization: {
           oid: 300n
         } as any,
-        performedBy: baseMember.actor,
-        context: baseContext
+        auditScope: testAuditScope
       })
     ).rejects.toThrow(ServiceError);
 

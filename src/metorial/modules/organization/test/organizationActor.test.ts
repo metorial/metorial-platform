@@ -1,3 +1,11 @@
+
+let testAuditScope = {
+  organizationOid: 1n,
+  organizationActorOid: 1n,
+  actor: { type: 'org_actor' as const, id: 'actor-1' },
+  context: { ip: '127.0.0.1', ua: 'test' }
+};
+
 import { ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -90,8 +98,7 @@ describe('OrganizationActorService', () => {
           email: 'john@example.com'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result).toEqual(mockActor);
@@ -104,7 +111,7 @@ describe('OrganizationActorService', () => {
         'organization.actor.created:after',
         expect.objectContaining({
           actor: mockActor,
-          performedBy: mockActor
+          auditScope: testAuditScope
         })
       );
     });
@@ -140,8 +147,7 @@ describe('OrganizationActorService', () => {
           image: { type: 'url', url: 'https://example.com/logo.svg' }
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result.isSystem).toBe(true);
@@ -182,8 +188,7 @@ describe('OrganizationActorService', () => {
           image: customImage as any
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result.image).toEqual(customImage);
@@ -209,14 +214,13 @@ describe('OrganizationActorService', () => {
           name: 'Test User'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: { type: 'user', user: { id: 'user-1', oid: 1 } as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result.image).toEqual({ type: 'default' });
     });
 
-    it('should handle actor performedBy', async () => {
+    it('should propagate auditScope to fabric events', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let mockPerformedByActor = { id: 'actor-0', oid: 0 };
       let mockActor = { id: 'actor-5', oid: 5 };
@@ -237,14 +241,13 @@ describe('OrganizationActorService', () => {
           name: 'Test User'
         },
         organization: mockOrg as any,
-        context: {} as any,
-        performedBy: { type: 'actor', actor: mockPerformedByActor as any }
+        auditScope: testAuditScope as any
       });
 
       expect(Fabric.fire).toHaveBeenCalledWith(
         'organization.actor.created:after',
         expect.objectContaining({
-          performedBy: mockPerformedByActor
+          auditScope: testAuditScope
         })
       );
     });
@@ -313,8 +316,7 @@ describe('OrganizationActorService', () => {
           name: 'Updated Name',
           email: 'updated@example.com'
         },
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result).toEqual(updatedActor);
@@ -326,7 +328,7 @@ describe('OrganizationActorService', () => {
         'organization.actor.updated:after',
         expect.objectContaining({
           actor: updatedActor,
-          performedBy: mockPerformedBy
+          auditScope: testAuditScope
         })
       );
     });
@@ -350,8 +352,7 @@ describe('OrganizationActorService', () => {
         input: {
           name: 'New Name'
         },
-        context: {} as any,
-        performedBy: { id: 'actor-2', oid: 2 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.name).toBe('New Name');
@@ -377,8 +378,7 @@ describe('OrganizationActorService', () => {
         input: {
           image: newImage as any
         },
-        context: {} as any,
-        performedBy: { id: 'actor-2', oid: 2 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.image).toEqual(newImage);
@@ -502,8 +502,7 @@ describe('OrganizationActorService', () => {
             name: 'Test'
           },
           organization: { id: 'org-1', oid: 1 } as any,
-          context: {} as any,
-          performedBy: { type: 'user', user: { id: 'user-1', oid: 1 } as any }
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -516,8 +515,7 @@ describe('OrganizationActorService', () => {
           actor: { id: 'actor-1', oid: 1 } as any,
           organization: { id: 'org-1', oid: 1 } as any,
           input: { name: 'New Name' },
-          context: {} as any,
-          performedBy: { id: 'actor-2', oid: 2 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });

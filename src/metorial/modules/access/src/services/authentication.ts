@@ -71,11 +71,10 @@ type AuthenticatedResourceScope = {
   resourceGroup: ResourceGroup;
 };
 
-export type AuthInfo = {
-  auditScope?: AuditScope;
-} & (
+export type AuthInfo =
   | {
       type: 'user';
+      auditScope?: undefined;
       user: User;
       userSession?: UserSession;
       machineAccess?: MachineAccess;
@@ -83,6 +82,7 @@ export type AuthInfo = {
     }
   | {
       type: 'machine';
+      auditScope: AuditScope;
       user?: User;
       apiKey?: ApiKey;
       oauthToken?: OAuthTokenWithAuthorization;
@@ -107,6 +107,7 @@ export type AuthInfo = {
     }
   | {
       type: 'fine_grained';
+      auditScope: AuditScope;
       fineGrainedKey: FineGrainedKey;
       orgScopes: Scope[];
       restrictions: {
@@ -117,8 +118,7 @@ export type AuthInfo = {
         resourceGroup: ResourceGroup;
         accessTagGrants: FineGrainedAccessTagGrant[];
       };
-    }
-);
+    };
 
 class AuthenticationService {
   private async getResourceScopeForOwner(
@@ -258,7 +258,6 @@ class AuthenticationService {
         type: 'fine_grained',
         auditScope: createAuditScope({
           organization: res.fineGrainedKey.instance.organization,
-          project: res.fineGrainedKey.instance.project,
           instance: res.fineGrainedKey.instance,
           actor: {
             type: 'fine_grained_token',
@@ -402,7 +401,6 @@ class AuthenticationService {
         type: 'machine',
         auditScope: createAuditScope({
           organization: machineAccess.organization,
-          project: machineAccess.instance.project,
           instance: machineAccess.instance,
           organizationActor: consumer ? undefined : machineAccess.actor,
           actor: consumer

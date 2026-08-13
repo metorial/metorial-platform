@@ -1,5 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import { ID, User, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
@@ -56,26 +57,32 @@ class OrganizationInviteJoinService {
         };
       }
 
+      let previousInvite = invite;
+      let auditScope = createOrganizationActorAuditScope({
+        organization: invite.organization,
+        organizationActor: invite.invitedBy,
+        context: d.context
+      });
+
       await Fabric.fire('organization.invitation.accepted:before', {
         user: d.user,
-        performedBy: invite.invitedBy,
         organization: invite.organization,
-        invite
+        invite,
+        auditScope
       });
 
       let member = await organizationMemberService.createOrganizationMember({
         user: d.user,
         organization: invite.organization,
         input: { role: invite.role },
-        context: d.context,
-        performedBy: { type: 'actor', actor: invite.invitedBy }
+        auditScope
       });
 
       await Fabric.fire('organization.invitation.join.created:before', {
         invite,
         member,
-        performedBy: invite.invitedBy,
-        organization: invite.organization
+        organization: invite.organization,
+        auditScope
       });
 
       let join = await db.organizationInviteJoin.create({
@@ -90,8 +97,8 @@ class OrganizationInviteJoinService {
         join,
         invite,
         member,
-        performedBy: invite.invitedBy,
-        organization: invite.organization
+        organization: invite.organization,
+        auditScope
       });
 
       if (invite.type === 'email' && invite.email) {
@@ -115,9 +122,10 @@ class OrganizationInviteJoinService {
 
       await Fabric.fire('organization.invitation.accepted:after', {
         user: d.user,
-        performedBy: invite.invitedBy,
         organization: invite.organization,
-        invite
+        invite,
+        previousInvite,
+        auditScope
       });
 
       return {
@@ -142,11 +150,18 @@ class OrganizationInviteJoinService {
         );
       }
 
+      let previousInvite = invite;
+      let auditScope = createOrganizationActorAuditScope({
+        organization: invite.organization,
+        organizationActor: invite.invitedBy,
+        context: d.context
+      });
+
       await Fabric.fire('organization.invitation.rejected:before', {
         user: d.user,
-        performedBy: invite.invitedBy,
         organization: invite.organization,
-        invite
+        invite,
+        auditScope
       });
 
       if (invite.type === 'email' && invite.email) {
@@ -165,9 +180,10 @@ class OrganizationInviteJoinService {
 
       await Fabric.fire('organization.invitation.rejected:after', {
         user: d.user,
-        performedBy: invite.invitedBy,
         organization: invite.organization,
-        invite
+        invite,
+        previousInvite,
+        auditScope
       });
 
       return {

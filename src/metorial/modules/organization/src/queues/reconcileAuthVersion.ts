@@ -44,8 +44,7 @@ export let reconcileAuthVersionQueueProcessor = reconcileAuthVersionQueue.proces
     if (!organization) throw new QueueRetryError();
 
     await authBootstrapService.ensureOrganizationAuthVersionV2({
-      organization,
-      context: { ip: '0.0.0.0', ua: 'Metorial' }
+      organization
     });
   }
 );

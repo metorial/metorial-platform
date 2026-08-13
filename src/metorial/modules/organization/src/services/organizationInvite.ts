@@ -1,12 +1,11 @@
 import { conflictError, forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
   ID,
   Organization,
-  OrganizationActor,
   OrganizationInvite,
   OrganizationMemberRole,
   withTransaction
@@ -47,8 +46,7 @@ class OrganizationInviteService {
         }
     );
     organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     return withTransaction(async db => {
       await Fabric.fire('organization.invitation.created:before', d);
@@ -109,7 +107,7 @@ class OrganizationInviteService {
           expiresAt: addDays(new Date(), 14),
 
           organizationOid: d.organization.oid,
-          invitedByOid: d.performedBy.oid,
+          invitedByOid: d.auditScope.organizationActorOid!,
 
           message:
             d.input.type == 'email' || d.input.type == 'onboarding' ? d.input.message : null,
@@ -133,8 +131,10 @@ class OrganizationInviteService {
       }
 
       await Fabric.fire('organization.invitation.created:after', {
-        ...d,
-        invite
+        organization: d.organization,
+        input: d.input,
+        invite,
+        auditScope: d.auditScope
       });
 
       return invite;
@@ -144,8 +144,7 @@ class OrganizationInviteService {
   async deleteOrganizationInvite(d: {
     invite: OrganizationInvite;
     organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     await this.ensureOrganizationInviteActive(d.invite);
 
@@ -165,8 +164,9 @@ class OrganizationInviteService {
       });
 
       await Fabric.fire('organization.invitation.deleted:after', {
-        ...d,
-        invite
+        organization: d.organization,
+        invite,
+        auditScope: d.auditScope
       });
 
       return invite;
@@ -179,8 +179,7 @@ class OrganizationInviteService {
       role: OrganizationMemberRole;
     };
     organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     await this.ensureOrganizationInviteActive(d.invite);
 
@@ -197,8 +196,11 @@ class OrganizationInviteService {
       });
 
       await Fabric.fire('organization.invitation.updated:after', {
-        ...d,
-        invite
+        organization: d.organization,
+        input: d.input,
+        invite,
+        previousInvite: d.invite,
+        auditScope: d.auditScope
       });
 
       return invite;
@@ -207,14 +209,13 @@ class OrganizationInviteService {
 
   async ensureOrganizationInviteLink(d: {
     organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     return withTransaction(async db => {
       let recentLink = await db.organizationInvite.findFirst({
         where: {
           organizationOid: d.organization.oid,
-          invitedByOid: d.performedBy.oid,
+          invitedByOid: d.auditScope.organizationActorOid!,
           type: 'link',
           status: 'pending',
           expiresAt: {
@@ -235,8 +236,7 @@ class OrganizationInviteService {
           type: 'link'
         },
         organization: d.organization,
-        context: d.context,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
     });
   }

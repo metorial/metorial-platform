@@ -12,6 +12,7 @@ import {
   SkillConfiguration,
   withTransaction
 } from '@metorial/db';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { skillConfigurationService } from '@metorial/cargo-module-skill';
@@ -346,9 +347,13 @@ class ConsumerSurfaceServiceImpl {
       kind: 'system_internal',
       organization: d.organization,
       instance: d.instance,
-      context: d.context,
       type: 'instance_access_token_publishable',
-      performedBy: systemActor,
+      auditScope: createOrganizationActorAuditScope({
+        organization: d.organization,
+        organizationActor: systemActor,
+        instance: d.instance,
+        context: d.context
+      }),
       input: {
         name: `Publishable API Key for Consumer Surface ${d.input.name}`
       }

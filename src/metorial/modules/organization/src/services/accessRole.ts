@@ -2,14 +2,13 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   AccessRole,
   AccessRoleVersion,
   db,
   ID,
   Organization,
-  OrganizationActor,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
@@ -37,8 +36,7 @@ export type AccessRoleWithRelations = AccessRole & {
 class AccessRoleService {
   async createAccessRole(d: {
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -79,8 +77,10 @@ class AccessRoleService {
       });
 
       await Fabric.fire('organization.access_role.created:after', {
-        ...d,
-        accessRole
+        organization: d.organization,
+        input: d.input,
+        accessRole,
+        auditScope: d.auditScope
       });
 
       return accessRole;
@@ -90,8 +90,7 @@ class AccessRoleService {
   async updateAccessRole(d: {
     accessRole: AccessRole;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string | null;
@@ -137,8 +136,11 @@ class AccessRoleService {
       });
 
       await Fabric.fire('organization.access_role.updated:after', {
-        ...d,
-        accessRole
+        organization: d.organization,
+        input: d.input,
+        accessRole,
+        previousAccessRole: d.accessRole,
+        auditScope: d.auditScope
       });
 
       return accessRole;
@@ -148,8 +150,7 @@ class AccessRoleService {
   async deleteAccessRole(d: {
     accessRole: AccessRoleWithRelations;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     if (d.accessRole.isAdmin) {
       throw new ServiceError(
@@ -176,7 +177,11 @@ class AccessRoleService {
     return await withTransaction(async db => {
       await Fabric.fire('organization.access_role.deleted:before', d);
       await db.accessRole.delete({ where: { oid: d.accessRole.oid } });
-      await Fabric.fire('organization.access_role.deleted:after', d);
+      await Fabric.fire('organization.access_role.deleted:after', {
+        organization: d.organization,
+        accessRole: d.accessRole,
+        auditScope: d.auditScope
+      });
 
       return d.accessRole;
     });

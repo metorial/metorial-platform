@@ -1,12 +1,10 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
 import {
-  Organization,
-  OrganizationActor,
-  OrganizationMember,
-  withTransaction
-} from '@metorial/db';
+  createOrganizationActorAuditScope,
+  type AuditScope
+} from '@metorial/audit-scope';
+import { Organization, OrganizationMember, withTransaction } from '@metorial/db';
 import {
   adminScopes,
   defaultAdminScopesHash,
@@ -57,15 +55,20 @@ class AuthBootstrapService {
 
   async ensureOrganizationAuthVersionV2(d: {
     organization: Organization;
-    context: Context;
-    performedBy?: OrganizationActor;
+    auditScope?: AuditScope;
   }) {
     return withTransaction(async db => {
       let organization = await db.organization.findUniqueOrThrow({
         where: { oid: d.organization.oid }
       });
-      let performedBy =
-        d.performedBy ?? (await organizationActorService.getSystemActor({ organization }));
+      let systemActor = await organizationActorService.getSystemActor({ organization });
+      let auditScope =
+        d.auditScope ??
+        createOrganizationActorAuditScope({
+          organization,
+          organizationActor: systemActor,
+          context: { ip: '0.0.0.0', ua: 'Metorial System' }
+        });
 
       let everyoneDocument = await this.getEveryonePolicyDocument({ organization });
       let everyonePolicy = await accessPolicyService.getDefaultAccessPolicy({
@@ -75,8 +78,7 @@ class AuthBootstrapService {
       if (!everyonePolicy) {
         everyonePolicy = await accessPolicyService.createAccessPolicy({
           organization,
-          performedBy,
-          context: d.context,
+          auditScope,
           input: {
             type: 'everyone',
             name: 'Everyone',
@@ -90,8 +92,7 @@ class AuthBootstrapService {
         everyonePolicy = await accessPolicyService.updateAccessPolicy({
           accessPolicy: everyonePolicy,
           organization,
-          performedBy,
-          context: d.context,
+          auditScope,
           allowDefaultDocumentUpdate: true,
           input: {
             document: everyoneDocument,
@@ -113,8 +114,7 @@ class AuthBootstrapService {
       if (!adminPolicy) {
         adminPolicy = await accessPolicyService.createAccessPolicy({
           organization,
-          performedBy,
-          context: d.context,
+          auditScope,
           input: {
             type: 'admin',
             name: 'Administrators',
@@ -128,8 +128,7 @@ class AuthBootstrapService {
         adminPolicy = await accessPolicyService.updateAccessPolicy({
           accessPolicy: adminPolicy,
           organization,
-          performedBy,
-          context: d.context,
+          auditScope,
           allowDefaultDocumentUpdate: true,
           input: {
             document: adminDocument,
@@ -182,7 +181,7 @@ class AuthBootstrapService {
           ...organization,
           authVersion: 'v2' as const
         },
-        performedBy,
+        auditScope,
         everyonePolicy,
         adminPolicy
       };

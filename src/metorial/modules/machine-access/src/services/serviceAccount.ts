@@ -1,7 +1,7 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
@@ -10,7 +10,6 @@ import {
   OAuthApplicationClientSecret,
   OAuthAuthorizationStatus,
   Organization,
-  OrganizationActor,
   ServiceAccount,
   ServiceAccountStatus,
   withTransaction
@@ -72,8 +71,7 @@ class ServiceAccountService {
 
   async createServiceAccount(d: {
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -85,8 +83,7 @@ class ServiceAccountService {
 
       let oauthApplication = await oauthApplicationService.createOAuthApplication({
         organization: d.organization,
-        performedBy: d.performedBy,
-        context: d.context,
+        auditScope: d.auditScope,
         input: {
           type: 'server_side',
           accessLevel: 'organization',
@@ -127,8 +124,7 @@ class ServiceAccountService {
       oauthApplication: OAuthApplication;
     };
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string | null;
@@ -146,8 +142,7 @@ class ServiceAccountService {
       await oauthApplicationService.updateOAuthApplication({
         oauthApplication: d.serviceAccount.oauthApplication,
         organization: d.organization,
-        performedBy: d.performedBy,
-        context: d.context,
+        auditScope: d.auditScope,
         input: {
           name: d.input.name,
           description: d.input.description,
@@ -171,7 +166,18 @@ class ServiceAccountService {
         Fabric.fire('machine_access.service_account.updated:after', {
           ...d,
           serviceAccount,
-          oauthApplication: d.serviceAccount.oauthApplication
+          previousServiceAccount: {
+            ...d.serviceAccount,
+            organization: d.organization,
+            oauthApplication: {
+              ...d.serviceAccount.oauthApplication,
+              organization: d.organization
+            }
+          },
+          oauthApplication: {
+            ...d.serviceAccount.oauthApplication,
+            organization: d.organization
+          }
         })
       );
 
@@ -184,8 +190,7 @@ class ServiceAccountService {
       oauthApplication: OAuthApplication;
     };
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.assertServiceAccountActive(d.serviceAccount);
 
@@ -198,8 +203,7 @@ class ServiceAccountService {
       await oauthApplicationService.archiveOAuthApplication({
         oauthApplication: d.serviceAccount.oauthApplication,
         organization: d.organization,
-        performedBy: d.performedBy,
-        context: d.context
+        auditScope: d.auditScope
       });
 
       let serviceAccount = await db.serviceAccount.update({
@@ -216,7 +220,10 @@ class ServiceAccountService {
         Fabric.fire('machine_access.service_account.archived:after', {
           ...d,
           serviceAccount,
-          oauthApplication: d.serviceAccount.oauthApplication
+          oauthApplication: {
+            ...d.serviceAccount.oauthApplication,
+            organization: d.organization
+          }
         })
       );
 
@@ -275,19 +282,23 @@ class ServiceAccountService {
     serviceAccount: ServiceAccount & {
       oauthApplication: OAuthApplication;
     };
+    auditScope?: AuditScope;
   }) {
     await this.assertServiceAccountActive(d.serviceAccount);
 
     return await oauthApplicationService.createOAuthApplicationClientSecret({
-      oauthApplication: d.serviceAccount.oauthApplication
+      oauthApplication: d.serviceAccount.oauthApplication,
+      auditScope: d.auditScope
     });
   }
 
   async deleteServiceAccountClientSecret(d: {
     oauthApplicationClientSecret: OAuthApplicationClientSecret;
+    auditScope?: AuditScope;
   }) {
     return await oauthApplicationService.deleteOAuthApplicationClientSecret({
-      oauthApplicationClientSecret: d.oauthApplicationClientSecret
+      oauthApplicationClientSecret: d.oauthApplicationClientSecret,
+      auditScope: d.auditScope
     });
   }
 

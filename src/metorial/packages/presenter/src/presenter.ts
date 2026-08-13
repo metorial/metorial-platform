@@ -97,9 +97,6 @@ export class Presenter<Type extends PresentableType<any, any>, Output extends {}
         //   }
         // }
 
-        // @ts-ignore
-        result.__typename = this.name;
-
         return result;
       }
     };

@@ -284,7 +284,6 @@ describe('AuthenticationService', () => {
       expect(result.type).toBe('fine_grained');
       expect(result.auditScope).toEqual({
         organizationOid: 1n,
-        projectOid: 21n,
         instanceOid: 2n,
         organizationActorOid: undefined,
         actor: {
@@ -468,7 +467,6 @@ describe('AuthenticationService', () => {
         expect(result.orgScopes).toEqual(instancePublishableTokenScopes);
         expect(result.auditScope).toEqual({
           organizationOid: 1n,
-          projectOid: 21n,
           instanceOid: 2n,
           organizationActorOid: 11n,
           actor: {
@@ -570,7 +568,6 @@ describe('AuthenticationService', () => {
         expect(result.orgScopes).toEqual(instancePublishableTokenWithConsumerScopes);
         expect(result.auditScope).toEqual({
           organizationOid: 1n,
-          projectOid: 21n,
           instanceOid: 2n,
           organizationActorOid: undefined,
           actor: {
@@ -798,7 +795,6 @@ describe('AuthenticationService', () => {
         expect(result.orgScopes.length).toBeGreaterThan(instancePublishableTokenScopes.length);
         expect(result.auditScope).toEqual({
           organizationOid: 1n,
-          projectOid: 21n,
           instanceOid: 2n,
           organizationActorOid: 11n,
           actor: {
@@ -866,7 +862,6 @@ describe('AuthenticationService', () => {
         expect(result.orgScopes).toEqual(orgManagementTokenScopes);
         expect(result.auditScope).toEqual({
           organizationOid: 1n,
-          projectOid: undefined,
           instanceOid: undefined,
           organizationActorOid: 11n,
           actor: {

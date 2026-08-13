@@ -1,7 +1,11 @@
 import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   AccessPolicy,
   AccessPolicyAssignment,
+  AccessPolicyInstance,
+  AccessPolicyProject,
+  AccessPolicyRole,
   AccessRole,
   ApiKey,
   ConsumerAuthTenant,
@@ -12,10 +16,12 @@ import {
   ConsumerProfileGroup,
   ConsumerSurface,
   Instance,
+  InstanceConsumer,
   MachineAccess,
   MagicMcpEndpoint,
   MagicMcpServer,
   OAuthApplication,
+  OAuthApplicationClientSecret,
   OAuthAuthorization,
   OAuthInstallation,
   OAuthToken,
@@ -28,8 +34,10 @@ import {
   OrganizationMember,
   Portal,
   Project,
+  ProjectBrand,
   ResourceGroup,
   ResourceTenant,
+  Sandbox,
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
@@ -82,13 +90,13 @@ export type MachineAccessInput =
   | {
       type: 'organization_management';
       organization: Organization;
-      performedBy: OrganizationActor;
+      auditScope: AuditScope;
     }
   | {
       type: 'instance_secret' | 'instance_publishable';
       organization: Organization;
       instance: Instance;
-      performedBy: OrganizationActor;
+      auditScope: AuditScope;
     };
 
 export type OAuthApplicationCreateInput = {
@@ -228,6 +236,116 @@ export type KeyProviderEventBase = {
   context?: Context;
 };
 
+export type OrganizationUpdateInput = {
+  name?: string;
+  slug?: string;
+  image?: PrismaJson.EntityImage;
+  imageFileId?: string | null;
+};
+
+export type ProjectCreateInput = {
+  name: string;
+  magicMcpSessionDurationMinutes?: number;
+};
+
+export type ProjectUpdateInput = {
+  name?: string;
+  slug?: string;
+  onlyAllowTrustedProviders?: boolean;
+  magicMcpSessionDurationMinutes?: number;
+};
+
+export type InstanceCreateInput = {
+  name: string;
+  type: Instance['type'];
+};
+
+export type InstanceUpdateInput = {
+  name?: string;
+  slug?: string;
+  type?: Instance['type'];
+};
+
+export type AuditProject = Project & {
+  organization: Organization;
+};
+
+export type AuditInstance = Instance & {
+  organization: Organization;
+  project: Project;
+  sandbox?: Sandbox | null;
+};
+
+export type AuditProjectBrand = ProjectBrand & {
+  project: Project & { organization: Organization };
+};
+
+export type AuditAccessRole = AccessRole & {
+  organization: Organization;
+};
+
+export type AuditAccessPolicy = AccessPolicy & {
+  organization: Organization;
+  accessPolicyRoles: (AccessPolicyRole & {
+    accessRole: AccessRole;
+  })[];
+  accessPolicyProjects: (AccessPolicyProject & {
+    project: Project;
+  })[];
+  accessPolicyInstances: (AccessPolicyInstance & {
+    instance: Instance & {
+      project: Project;
+      organization: Organization;
+    };
+  })[];
+};
+
+export type AuditOrganizationActor = OrganizationActor & {
+  organization: Organization;
+  teams?: (TeamMember & { team: Team })[] | null;
+  member?: OrganizationMember | null;
+};
+
+export type AuditOrganizationMember = OrganizationMember & {
+  organization: Organization;
+  actor: OrganizationActor & {
+    teams: (TeamMember & { team: Team })[];
+  };
+  policies?: (AccessPolicyAssignment & {
+    accessPolicy: AccessPolicy;
+  })[];
+  user: { id: string; email: string; name: string; image: PrismaJson.EntityImage };
+};
+
+export type AuditOrganizationInvite = OrganizationInvite & {
+  organization: Organization;
+  invitedBy: OrganizationActor;
+};
+
+export type AuditTeam = Team & {
+  organization: Organization;
+  projects: (TeamProject & { project: Project })[];
+  policies?: (AccessPolicyAssignment & {
+    accessPolicy: AccessPolicy;
+  })[];
+};
+
+export type AuditServiceAccount = ServiceAccount & {
+  organization: Organization;
+  policies?: (AccessPolicyAssignment & {
+    accessPolicy: AccessPolicy;
+  })[];
+  oauthApplication: OAuthApplication & {
+    organization: Organization | null;
+    clientSecrets?: OAuthApplicationClientSecret[] | null;
+  };
+};
+
+export type AuditOAuthApplication = OAuthApplication & {
+  organization: Organization | null;
+  clientSecrets?: OAuthApplicationClientSecret[] | null;
+};
+
 // prettier-ignore
 export interface FabricEvents {
   'resource_tenant.resource_group.created:after': {
@@ -256,64 +374,67 @@ export interface FabricEvents {
 
   'organization.created:before': { performedBy: User; context: Context };
   'organization.created:after': { organization: Organization, performedBy: User; context: Context };
-  'organization.updated:before': { organization: Organization, performedBy: OrganizationActor; context: Context };
-  'organization.updated:after': { organization: Organization, performedBy: OrganizationActor; context: Context };
-  'organization.deleted:before': { organization: Organization, performedBy: OrganizationActor; context: Context };
-  'organization.deleted:after': { organization: Organization, performedBy: OrganizationActor; context: Context };
+  'organization.initialized:after': { organization: Organization; auditScope: AuditScope };
+  'organization.updated:before': { organization: Organization; input: OrganizationUpdateInput; auditScope: AuditScope };
+  'organization.updated:after': { organization: Organization; previousOrganization: Organization; input: OrganizationUpdateInput; auditScope: AuditScope };
+  'organization.deleted:before': { organization: Organization; auditScope: AuditScope };
+  'organization.deleted:after': { organization: Organization; auditScope: AuditScope };
 
-  'organization.actor.created:before': { organization: Organization, performedBy: {type: 'user', user: User} | {type: 'actor', actor: OrganizationActor}; context?: Context };
-  'organization.actor.created:after': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
-  'organization.actor.updated:before': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
-  'organization.actor.updated:after': { organization: Organization, actor: OrganizationActor; performedBy: OrganizationActor; context?: Context };
+  'organization.actor.created:before': { organization: Organization; input: { type: OrganizationActor['type'] | 'primary_system'; name: string; email?: string; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
+  'organization.actor.created:after': { organization: Organization; actor: AuditOrganizationActor; auditScope: AuditScope };
+  'organization.actor.updated:before': { organization: Organization; actor: OrganizationActor; input: { type?: OrganizationActor['type']; name?: string; email?: string; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
+  'organization.actor.updated:after': { organization: Organization; actor: AuditOrganizationActor; previousActor: OrganizationActor; input: { type?: OrganizationActor['type']; name?: string; email?: string; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
 
-  'organization.member.created:before': { organization: Organization; actor: OrganizationActor; user: User; performedBy: OrganizationActor; context?: Context };
-  'organization.member.created:after': { organization: Organization; actor: OrganizationActor; user: User; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
-  'organization.member.updated:before': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
-  'organization.member.updated:after': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
-  'organization.member.deleted:before': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
-  'organization.member.deleted:after': { organization: Organization; member: OrganizationMember, performedBy: OrganizationActor; context?: Context };
+  'organization.member.created:before': { organization: Organization; actor: OrganizationActor; user: User; auditScope: AuditScope };
+  'organization.member.created:after': { organization: Organization; actor: OrganizationActor; user: User; member: AuditOrganizationMember; auditScope: AuditScope };
+  'organization.member.updated:before': { organization: Organization; member: OrganizationMember; input: { role?: OrganizationMember['role'] }; auditScope: AuditScope };
+  'organization.member.updated:after': { organization: Organization; member: AuditOrganizationMember; previousMember: OrganizationMember; input: { role?: OrganizationMember['role'] }; auditScope: AuditScope };
+  'organization.member.deleted:before': { organization: Organization; member: OrganizationMember; auditScope: AuditScope };
+  'organization.member.deleted:after': { organization: Organization; member: AuditOrganizationMember; auditScope: AuditScope };
 
-  'organization.config.updated:before': { organization: Organization; user: User; config: OrganizationConfig; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
-  'organization.config.updated:after': { organization: Organization; user: User; config: OrganizationConfig; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
-  'organization.layout.updated:before': { organization: Organization; user: User; layout: OrganizationLayout; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
-  'organization.layout.updated:after': { organization: Organization; user: User; layout: OrganizationLayout; performedBy: OrganizationActor; context?: Context; input: { value: unknown } };
+  'organization.config.updated:before': { organization: Organization; user: User; config: OrganizationConfig; auditScope: AuditScope; input: { value: unknown } };
+  'organization.config.updated:after': { organization: Organization; user: User; config: OrganizationConfig; previousConfig: OrganizationConfig; auditScope: AuditScope; input: { value: unknown } };
+  'organization.layout.updated:before': { organization: Organization; user: User; layout: OrganizationLayout; auditScope: AuditScope; input: { value: unknown } };
+  'organization.layout.updated:after': { organization: Organization; user: User; layout: OrganizationLayout; previousLayout: OrganizationLayout; auditScope: AuditScope; input: { value: unknown } };
 
-  'organization.invitation.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.created:after': { organization: Organization, invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.updated:before': { organization: Organization, invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.updated:after': { organization: Organization, invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.deleted:before': { organization: Organization, invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.deleted:after': { organization: Organization, invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
-  
-  'organization.invitation.accepted:before': { organization: Organization, invite: OrganizationInvite; user: User; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.accepted:after': { organization: Organization, invite: OrganizationInvite; user: User; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.rejected:before': { organization: Organization, invite: OrganizationInvite; user: User; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.rejected:after': { organization: Organization, invite: OrganizationInvite; user: User; performedBy: OrganizationActor; context?: Context };
+  'organization.invitation.created:before': { organization: Organization; input: { role: OrganizationMember['role'] } & ({ type: 'email'; email: string; message?: string } | { type: 'link' } | { type: 'onboarding'; email: string; message?: string }); auditScope: AuditScope };
+  'organization.invitation.created:after': { organization: Organization; invite: AuditOrganizationInvite; input: { role: OrganizationMember['role'] } & ({ type: 'email'; email: string; message?: string } | { type: 'link' } | { type: 'onboarding'; email: string; message?: string }); auditScope: AuditScope };
+  'organization.invitation.updated:before': { organization: Organization; invite: OrganizationInvite; input: { role: OrganizationMember['role'] }; auditScope: AuditScope };
+  'organization.invitation.updated:after': { organization: Organization; invite: AuditOrganizationInvite; previousInvite: OrganizationInvite; input: { role: OrganizationMember['role'] }; auditScope: AuditScope };
+  'organization.invitation.deleted:before': { organization: Organization; invite: OrganizationInvite; auditScope: AuditScope };
+  'organization.invitation.deleted:after': { organization: Organization; invite: AuditOrganizationInvite; auditScope: AuditScope };
 
-  'organization.invitation.join.created:before': { organization: Organization, member: OrganizationMember; invite: OrganizationInvite; performedBy: OrganizationActor; context?: Context };
-  'organization.invitation.join.created:after': { organization: Organization, member: OrganizationMember; invite: OrganizationInvite; join: OrganizationInviteJoin; performedBy: OrganizationActor; context?: Context };
+  'organization.invitation.accepted:before': { organization: Organization; invite: OrganizationInvite; user: User; auditScope: AuditScope };
+  'organization.invitation.accepted:after': { organization: Organization; invite: AuditOrganizationInvite; previousInvite: OrganizationInvite; user: User; auditScope: AuditScope };
+  'organization.invitation.rejected:before': { organization: Organization; invite: OrganizationInvite; user: User; auditScope: AuditScope };
+  'organization.invitation.rejected:after': { organization: Organization; invite: AuditOrganizationInvite; previousInvite: OrganizationInvite; user: User; auditScope: AuditScope };
 
-  'organization.project.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.project.created:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
-  'organization.project.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
-  'organization.project.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
-  'organization.project.retention.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
-  'organization.project.retention.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
-  'organization.project.auth_config_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean } };
-  'organization.project.auth_config_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean } };
-  'organization.project.integration_naming_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { useIntegrationNames?: boolean } };
-  'organization.project.integration_naming_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean } };
-  'organization.project.tool_calling_configuration.updated:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };
-  'organization.project.tool_calling_configuration.updated:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number }; configuration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs?: number } };
-  'organization.project.deleted:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
-  'organization.project.deleted:after': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
+  'organization.invitation.join.created:before': { organization: Organization; member: OrganizationMember; invite: OrganizationInvite; auditScope: AuditScope };
+  'organization.invitation.join.created:after': { organization: Organization; member: OrganizationMember; invite: OrganizationInvite; join: OrganizationInviteJoin; auditScope: AuditScope };
 
-  'organization.project.instance.created:before': { organization: Organization, project: Project, performedBy: OrganizationActor; context?: Context };
-  'organization.project.instance.created:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
-  'organization.project.instance.updated:before': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
-  'organization.project.instance.updated:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
-  'organization.project.instance.deleted:before': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
-  'organization.project.instance.deleted:after': { organization: Organization, project: Project; instance: Instance, performedBy: OrganizationActor; context?: Context };
+  'organization.project.created:before': { organization: Organization; input: ProjectCreateInput; auditScope: AuditScope };
+  'organization.project.created:after': { organization: Organization; project: AuditProject; input: ProjectCreateInput; auditScope: AuditScope };
+  'organization.project.updated:before': { organization: Organization; project: Project; input: ProjectUpdateInput; auditScope: AuditScope };
+  'organization.project.updated:after': { organization: Organization; project: AuditProject; previousProject: Project; input: ProjectUpdateInput; auditScope: AuditScope };
+  'organization.project.retention.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
+  'organization.project.retention.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
+  'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
+  'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean } };
+  'organization.project.integration_naming_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean } };
+  'organization.project.integration_naming_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean }; previousConfiguration: { useIntegrationNames: boolean } };
+  'organization.project.tool_calling_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };
+  'organization.project.tool_calling_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number }; configuration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number }; previousConfiguration: { collectOperationDescriptionForToolCalls: boolean, messageProcessingTimeoutMs: number } };
+  'organization.project.brand.updated:before': { organization: Organization; project: Project; brand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
+  'organization.project.brand.updated:after': { organization: Organization; project: Project; brand: AuditProjectBrand; previousBrand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
+  'organization.project.deleted:before': { organization: Organization; project: Project; auditScope: AuditScope };
+  'organization.project.deleted:after': { organization: Organization; project: AuditProject; auditScope: AuditScope };
+
+  'organization.project.instance.created:before': { organization: Organization; project: Project; input: InstanceCreateInput; auditScope: AuditScope };
+  'organization.project.instance.created:after': { organization: Organization; project: Project; instance: AuditInstance; input: InstanceCreateInput; auditScope: AuditScope };
+  'organization.project.instance.updated:before': { organization: Organization; project: Project; instance: Instance; input: InstanceUpdateInput; auditScope: AuditScope };
+  'organization.project.instance.updated:after': { organization: Organization; project: Project; instance: AuditInstance; previousInstance: Instance; input: InstanceUpdateInput; auditScope: AuditScope };
+  'organization.project.instance.deleted:before': { organization: Organization; project: Project; instance: Instance; auditScope: AuditScope };
+  'organization.project.instance.deleted:after': { organization: Organization; project: Project; instance: AuditInstance; auditScope: AuditScope };
 
   'key_provider.imported:before': KeyProviderEventBase & { currentCount: number };
   'key_provider.imported:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider };
@@ -322,114 +443,114 @@ export interface FabricEvents {
   'key_provider.default.set:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider };
   'key_provider.validated:after': KeyProviderEventBase & { keyProvider: KeyProviderEventKeyProvider, validation: KeyProviderEventValidation };
 
-  'organization.team.created:before': { organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'organization.team.created:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
-  'organization.team.updated:before': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
-  'organization.team.updated:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
-  'organization.team.deleted:before': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
-  'organization.team.deleted:after': { organization: Organization, team: Team, performedBy: OrganizationActor; context?: Context };
+  'organization.team.created:before': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope };
+  'organization.team.created:after': { organization: Organization; team: AuditTeam; input: { name: string; description?: string }; auditScope: AuditScope };
+  'organization.team.updated:before': { organization: Organization; team: Team; input: { name?: string; description?: string }; auditScope: AuditScope };
+  'organization.team.updated:after': { organization: Organization; team: AuditTeam; previousTeam: Team; input: { name?: string; description?: string }; auditScope: AuditScope };
+  'organization.team.deleted:before': { organization: Organization; team: Team; auditScope: AuditScope };
+  'organization.team.deleted:after': { organization: Organization; team: AuditTeam; auditScope: AuditScope };
 
-  'organization.team.member.added:before': { organization: Organization, team: Team, actor: OrganizationActor, performedBy: OrganizationActor; context?: Context };
-  'organization.team.member.added:after': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
-  'organization.team.member.removed:before': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
-  'organization.team.member.removed:after': { organization: Organization, team: Team, actor: OrganizationActor, member: TeamMember; performedBy: OrganizationActor; context?: Context };
+  'organization.team.member.added:before': { organization: Organization; team: Team; actor: OrganizationActor; auditScope: AuditScope };
+  'organization.team.member.added:after': { organization: Organization; team: Team; actor: OrganizationActor; member: TeamMember; auditScope: AuditScope };
+  'organization.team.member.removed:before': { organization: Organization; team: Team; actor: OrganizationActor; member: TeamMember; auditScope: AuditScope };
+  'organization.team.member.removed:after': { organization: Organization; team: Team; actor: OrganizationActor; member: TeamMember; auditScope: AuditScope };
 
-  'organization.team.project.assigned:before': { organization: Organization, team: Team, project: Project, performedBy: OrganizationActor; context?: Context };
-  'organization.team.project.assigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
-  'organization.team.project.unassigned:before': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
-  'organization.team.project.unassigned:after': { organization: Organization, team: Team, project: Project, teamProject: TeamProject; performedBy: OrganizationActor; context?: Context };
+  'organization.team.project.assigned:before': { organization: Organization; team: Team; project: Project; auditScope: AuditScope };
+  'organization.team.project.assigned:after': { organization: Organization; team: Team; project: Project; teamProject: TeamProject; auditScope: AuditScope };
+  'organization.team.project.unassigned:before': { organization: Organization; team: Team; project: Project; teamProject: TeamProject; auditScope: AuditScope };
+  'organization.team.project.unassigned:after': { organization: Organization; team: Team; project: Project; teamProject: TeamProject; auditScope: AuditScope };
 
-  'organization.access_role.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; } };
-  'organization.access_role.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; }; accessRole: AccessRole };
-  'organization.access_role.updated:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
-  'organization.access_role.updated:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
-  'organization.access_role.deleted:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole };
-  'organization.access_role.deleted:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessRole: AccessRole };
+  'organization.access_role.created:before': { organization: Organization; auditScope: AuditScope; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; } };
+  'organization.access_role.created:after': { organization: Organization; auditScope: AuditScope; input: { name: string; description?: string; scopes?: string[]; isAdmin?: boolean; message?: string; }; accessRole: AuditAccessRole };
+  'organization.access_role.updated:before': { organization: Organization; auditScope: AuditScope; accessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
+  'organization.access_role.updated:after': { organization: Organization; auditScope: AuditScope; accessRole: AuditAccessRole; previousAccessRole: AccessRole; input: { name?: string; description?: string | null; scopes?: string[]; message?: string; } };
+  'organization.access_role.deleted:before': { organization: Organization; auditScope: AuditScope; accessRole: AccessRole };
+  'organization.access_role.deleted:after': { organization: Organization; auditScope: AuditScope; accessRole: AuditAccessRole };
 
-  'organization.access_policy.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; } };
-  'organization.access_policy.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; }; accessPolicy: AccessPolicy };
-  'organization.access_policy.updated:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
-  'organization.access_policy.updated:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
-  'organization.access_policy.deleted:before': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
-  'organization.access_policy.deleted:after': { organization: Organization; performedBy: OrganizationActor; context: Context; accessPolicy: AccessPolicy };
-  'organization.access_policy.assignment.team.created:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.team.created:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.team.deleted:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.team.deleted:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.member.created:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.member.created:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.member.deleted:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.member.deleted:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.service_account.created:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.service_account.created:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.service_account.deleted:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
-  'organization.access_policy.assignment.service_account.deleted:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; performedBy: OrganizationActor; context: Context };
+  'organization.access_policy.created:before': { organization: Organization; auditScope: AuditScope; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; } };
+  'organization.access_policy.created:after': { organization: Organization; auditScope: AuditScope; input: { name: string; description?: string; document: PrismaJson.PolicyDocument; type?: AccessPolicy['type']; message?: string; }; accessPolicy: AuditAccessPolicy };
+  'organization.access_policy.updated:before': { organization: Organization; auditScope: AuditScope; accessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
+  'organization.access_policy.updated:after': { organization: Organization; auditScope: AuditScope; accessPolicy: AuditAccessPolicy; previousAccessPolicy: AccessPolicy; input: { name?: string; description?: string | null; document?: PrismaJson.PolicyDocument; message?: string; } };
+  'organization.access_policy.deleted:before': { organization: Organization; auditScope: AuditScope; accessPolicy: AccessPolicy };
+  'organization.access_policy.deleted:after': { organization: Organization; auditScope: AuditScope; accessPolicy: AuditAccessPolicy };
+  'organization.access_policy.assignment.team.created:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; auditScope: AuditScope };
+  'organization.access_policy.assignment.team.created:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.team.deleted:before': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.team.deleted:after': { organization: Organization; team: Team; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.member.created:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; auditScope: AuditScope };
+  'organization.access_policy.assignment.member.created:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.member.deleted:before': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.member.deleted:after': { organization: Organization; member: OrganizationMember; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.service_account.created:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; auditScope: AuditScope };
+  'organization.access_policy.assignment.service_account.created:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.service_account.deleted:before': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
+  'organization.access_policy.assignment.service_account.deleted:after': { organization: Organization; serviceAccount: ServiceAccount; accessPolicy: AccessPolicy; accessPolicyAssignment: AccessPolicyAssignment; auditScope: AuditScope };
 
   'billing.plan.created:after': { plan: FabricBillingPlan };
   'billing.plan.updated:after': { plan: FabricBillingPlan };
   'billing.account.created:after': { account: FabricBillingAccount };
   'billing.subscription.updated:after': { subscription: FabricOrganizationSubscription };
 
-  'machine_access.created:before': MachineAccessInput & { context?: Context };
-  'machine_access.created:after': MachineAccessInput & { context?: Context, machineAccess: MachineAccess };
-  'machine_access.updated:before': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'machine_access.updated:after': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'machine_access.deleted:before': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
-  'machine_access.deleted:after': { machineAccess: MachineAccess, organization: Organization, performedBy: OrganizationActor; context?: Context };
+  'machine_access.created:before': MachineAccessInput;
+  'machine_access.created:after': MachineAccessInput & { machineAccess: MachineAccess };
+  'machine_access.updated:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
+  'machine_access.updated:after': { machineAccess: MachineAccess; previousMachineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
+  'machine_access.deleted:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
+  'machine_access.deleted:after': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
 
-  'machine_access.api_key.created:before': { machineAccess: MachineAccess, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.created:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.updated:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.updated:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.revoked:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.revoked:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.rotated:before': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.rotated:after': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  'machine_access.api_key.expired:before': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
-  'machine_access.api_key.expired:after': { machineAccess: MachineAccess, apiKey: ApiKey; organization: Organization; performedBy: OrganizationActor };
-  'machine_access.api_key:revealed': { machineAccess: MachineAccess, apiKey: ApiKey, organization: Organization; performedBy: OrganizationActor; context?: Context };
-  
-  'machine_access.oauth_application.created:before': { organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; };
-  'machine_access.oauth_application.created:after': { organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; oauthApplication: OAuthApplication; };
-  'machine_access.oauth_application.updated:before': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; input: OAuthApplicationUpdateInput; };
-  'machine_access.oauth_application.updated:after': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; input: OAuthApplicationUpdateInput; };
-  'machine_access.oauth_application.archived:before': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; };
-  'machine_access.oauth_application.archived:after': { oauthApplication: OAuthApplication; organization: Organization | null; performedBy: OrganizationActor | null; context: Context | null; };
-  'machine_access.oauth_application.client_secret.create:after': { oauthApplication: OAuthApplication; };
-  'machine_access.oauth_application.client_secret.revoked:after': { oauthApplication: OAuthApplication; };
+  'machine_access.api_key.created:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.created:after': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.updated:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.updated:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.revoked:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.revoked:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.rotated:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.rotated:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.expired:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.expired:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key:revealed': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
 
-  'machine_access.oauth_installation.created:before': { oauthApplication: OAuthApplication; organization: Organization; context?: Context; };
-  'machine_access.oauth_installation.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.oauth_installation.updated:before': { oauthApplication: OAuthApplication; organization: Organization; context?: Context; };
-  'machine_access.oauth_installation.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.oauth_installation.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; performedBy: OrganizationActor; context?: Context; };
-  'machine_access.oauth_installation.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
-  
-  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; context?: Context; };
-  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; context?: Context; };
-  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
-  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; performedBy: OrganizationActor; context?: Context; };
-  
-  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
-  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
-  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
-  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; performedBy: OrganizationActor; context?: Context; };
-  
-  'machine_access.oauth_token.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.oauth_token.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.oauth_token.refreshed:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.oauth_token.refreshed:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_application.created:before': { organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; };
+  'machine_access.oauth_application.created:after': { organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationCreateInput; serverSideMachineAccess: MachineAccess | null; oauthApplication: OAuthApplication; };
+  'machine_access.oauth_application.updated:before': { oauthApplication: OAuthApplication; organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationUpdateInput; };
+  'machine_access.oauth_application.updated:after': { oauthApplication: OAuthApplication; previousOAuthApplication: OAuthApplication; organization: Organization | null; auditScope: AuditScope | null; input: OAuthApplicationUpdateInput; };
+  'machine_access.oauth_application.archived:before': { oauthApplication: OAuthApplication; organization: Organization | null; auditScope: AuditScope | null; };
+  'machine_access.oauth_application.archived:after': { oauthApplication: OAuthApplication; organization: Organization | null; auditScope: AuditScope | null; };
+  'machine_access.oauth_application.client_secret.create:after': { oauthApplication: OAuthApplication; oauthApplicationClientSecret: OAuthApplicationClientSecret; auditScope?: AuditScope | null };
+  'machine_access.oauth_application.client_secret.revoked:after': { oauthApplication: OAuthApplication; oauthApplicationClientSecret: OAuthApplicationClientSecret; auditScope?: AuditScope | null };
 
-  'machine_access.service_account.created:before': { organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountCreateInput; };
-  'machine_access.service_account.created:after': { organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountCreateInput; serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; };
-  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountUpdateInput; };
-  'machine_access.service_account.updated:after': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; input: ServiceAccountUpdateInput; };
-  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
-  'machine_access.service_account.archived:after': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; performedBy: OrganizationActor; context: Context; };
-  'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
-  'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; context?: Context; };
+  'machine_access.oauth_installation.created:before': { oauthApplication: OAuthApplication; organization: Organization; auditScope?: AuditScope };
+  'machine_access.oauth_installation.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.oauth_installation.updated:before': { oauthApplication: OAuthApplication; organization: Organization; auditScope?: AuditScope };
+  'machine_access.oauth_installation.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; previousOAuthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.oauth_installation.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope: AuditScope };
+  'machine_access.oauth_installation.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; previousOAuthInstallation: OAuthInstallation; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
+
+  'machine_access.oauth_authorization.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope };
+  'machine_access.oauth_authorization.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.oauth_authorization.updated:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; organization: Organization; auditScope?: AuditScope };
+  'machine_access.oauth_authorization.updated:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.oauth_authorization.revoked:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
+  'machine_access.oauth_authorization.revoked:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; previousOAuthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope: AuditScope };
+
+  'machine_access.oauth_authorization_request.accepted:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
+  'machine_access.oauth_authorization_request.accepted:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
+  'machine_access.oauth_authorization_request.denied:before': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
+  'machine_access.oauth_authorization_request.denied:after': { oauthApplication: OAuthApplication; oauthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; previousOAuthAuthorizationRequest: OAuthAuthorizationRequestWithRelations; organization: Organization; member: OrganizationMember; auditScope: AuditScope };
+
+  'machine_access.oauth_token.created:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.oauth_token.created:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.oauth_token.refreshed:before': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.oauth_token.refreshed:after': { oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; oauthToken: OAuthToken; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+
+  'machine_access.service_account.created:before': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; };
+  'machine_access.service_account.created:after': { organization: Organization; auditScope: AuditScope; input: ServiceAccountCreateInput; serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; };
+  'machine_access.service_account.updated:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; };
+  'machine_access.service_account.updated:after': { serviceAccount: AuditServiceAccount; previousServiceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; input: ServiceAccountUpdateInput; };
+  'machine_access.service_account.archived:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; organization: Organization; auditScope: AuditScope; };
+  'machine_access.service_account.archived:after': { serviceAccount: AuditServiceAccount; oauthApplication: AuditOAuthApplication; organization: Organization; auditScope: AuditScope; };
+  'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
+  'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 
   'portal.created:before': { organization: Organization; instance: Instance; context: Context; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.created:after': { organization: Organization; instance: Instance; portal: Portal; context: Context; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
@@ -547,6 +668,7 @@ export interface FabricEvents {
   'consumer.profile.group.removed:before': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
   'consumer.profile.group.removed:after': { consumerProfile: ConsumerProfile, consumerGroup: ConsumerGroup, consumerProfileGroup: ConsumerProfileGroup };
 
+  'consumer.created:after': { consumer: Consumer; instanceConsumer: InstanceConsumer };
   'consumer.updated:after': { consumer: Consumer };
   'consumer.deleted:after': { consumerId: string };
 

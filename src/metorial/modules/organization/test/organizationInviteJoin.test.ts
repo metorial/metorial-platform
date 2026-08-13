@@ -1,3 +1,11 @@
+
+let testAuditScope = {
+  organizationOid: 1n,
+  organizationActorOid: 1n,
+  actor: { type: 'org_actor' as const, id: 'actor-1' },
+  context: { ip: '127.0.0.1', ua: 'test' }
+};
+
 import { ServiceError, notFoundError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -269,8 +277,15 @@ describe('OrganizationInviteJoinService', () => {
         user: mockUser,
         organization: mockOrg,
         input: { role: 'member' },
-        context: mockContext,
-        performedBy: { type: 'actor', actor: mockInvitedBy }
+        auditScope: expect.objectContaining({
+          organizationOid: mockOrg.oid,
+          organizationActorOid: mockInvitedBy.oid,
+          actor: {
+            type: 'org_actor',
+            id: mockInvitedBy.id
+          },
+          context: mockContext
+        })
       });
       expect(Fabric.fire).toHaveBeenCalledWith(
         'organization.invitation.accepted:before',
@@ -790,8 +805,15 @@ describe('OrganizationInviteJoinService', () => {
         user: mockUser,
         organization: mockOrg,
         input: { role: 'admin' },
-        context: mockContext,
-        performedBy: { type: 'actor', actor: mockInvitedBy }
+        auditScope: expect.objectContaining({
+          organizationOid: mockOrg.oid,
+          organizationActorOid: mockInvitedBy.oid,
+          actor: {
+            type: 'org_actor',
+            id: mockInvitedBy.id
+          },
+          context: mockContext
+        })
       });
     });
   });
@@ -853,7 +875,15 @@ describe('OrganizationInviteJoinService', () => {
         'organization.invitation.rejected:before',
         expect.objectContaining({
           user: mockUser,
-          performedBy: mockInvitedBy,
+          auditScope: expect.objectContaining({
+            organizationOid: mockOrg.oid,
+            organizationActorOid: mockInvitedBy.oid,
+            actor: {
+              type: 'org_actor',
+              id: mockInvitedBy.id
+            },
+            context: mockContext
+          }),
           organization: mockOrg,
           invite: mockInvite
         })
@@ -862,7 +892,15 @@ describe('OrganizationInviteJoinService', () => {
         'organization.invitation.rejected:after',
         expect.objectContaining({
           user: mockUser,
-          performedBy: mockInvitedBy,
+          auditScope: expect.objectContaining({
+            organizationOid: mockOrg.oid,
+            organizationActorOid: mockInvitedBy.oid,
+            actor: {
+              type: 'org_actor',
+              id: mockInvitedBy.id
+            },
+            context: mockContext
+          }),
           organization: mockOrg,
           invite: rejectedInvite
         })

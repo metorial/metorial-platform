@@ -9,6 +9,8 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
+import type { AuditScope } from '@metorial/audit-scope';
+import { createAuditScope, createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
@@ -149,22 +151,44 @@ class OrganizationService {
           }
         },
         organization,
-        context: d.context,
-        performedBy: { type: 'user', user: d.performedBy }
+        auditScope: createAuditScope({
+          organization,
+          actor: { type: 'system', id: d.performedBy.id },
+          context: d.context
+        })
       });
 
       await authBootstrapService.ensureOrganizationAuthVersionV2({
         organization,
-        context: d.context,
-        performedBy: systemActor
+        auditScope: createOrganizationActorAuditScope({
+          organization,
+          organizationActor: systemActor,
+          context: d.context
+        })
       });
 
       let member = await organizationMemberService.createOrganizationMember({
         user: d.performedBy,
         organization,
         input: { role: 'admin' },
-        context: d.context,
-        performedBy: { type: 'actor', actor: systemActor }
+        auditScope: createOrganizationActorAuditScope({
+          organization,
+          organizationActor: systemActor,
+          context: d.context
+        })
+      });
+
+      await Fabric.fire('organization.initialized:after', {
+        organization,
+        auditScope: {
+          organizationOid: organization.oid,
+          organizationActorOid: member.actor.oid,
+          actor: {
+            type: 'org_actor',
+            id: member.actor.id
+          },
+          context: d.context
+        }
       });
 
       await syncProfileQueue.add({ organizationId: organization.id }, { delay: 5000 });
@@ -189,8 +213,7 @@ class OrganizationService {
       imageFileId?: string | null;
     };
     organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     await this.ensureOrganizationActive(d.organization);
 
@@ -247,9 +270,10 @@ class OrganizationService {
       }
 
       await Fabric.fire('organization.updated:after', {
-        ...d,
+        input: d.input,
         organization,
-        performedBy: d.performedBy
+        previousOrganization: d.organization,
+        auditScope: d.auditScope
       });
 
       await addAfterTransactionHook(() =>
@@ -263,11 +287,7 @@ class OrganizationService {
     });
   }
 
-  async deleteOrganization(d: {
-    organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
-  }) {
+  async deleteOrganization(d: { organization: Organization; auditScope: AuditScope }) {
     await this.ensureOrganizationActive(d.organization);
 
     throw new ServiceError(

@@ -9,6 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@metorial/audit-scope": "workspace:*",
     "@metorial/context": "^1.0.0",
     "@metorial/db": "^1.0.0",
     "@metorial-subspace/db": "^1.0.0",

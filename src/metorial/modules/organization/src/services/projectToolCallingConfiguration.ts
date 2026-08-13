@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
-import { Organization, OrganizationActor, Project } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
+import { Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
 
@@ -35,8 +35,7 @@ class ProjectToolCallingConfigurationService {
   async updateProjectToolCallingConfiguration(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       collectOperationDescriptionForToolCalls?: boolean;
       messageProcessingTimeoutMs?: number;
@@ -64,12 +63,19 @@ class ProjectToolCallingConfigurationService {
     });
 
     await Fabric.fire('organization.project.tool_calling_configuration.updated:after', {
-      ...d,
+      organization: d.organization,
+      input: d.input,
+      project: d.project,
       configuration: {
         collectOperationDescriptionForToolCalls:
           updatedTenant.collectOperationDescriptionForToolCalls,
-        messageProcessingTimeoutMs: updatedTenant.messageProcessingTimeoutMs
-      }
+        messageProcessingTimeoutMs: updatedTenant.messageProcessingTimeoutMs ?? 0
+      },
+      previousConfiguration: {
+        collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls,
+        messageProcessingTimeoutMs: tenant.messageProcessingTimeoutMs ?? 0
+      },
+      auditScope: d.auditScope
     });
 
     return {

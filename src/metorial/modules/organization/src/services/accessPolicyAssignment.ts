@@ -1,11 +1,10 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   AccessPolicy,
   ID,
   Organization,
-  OrganizationActor,
   OrganizationMember,
   ServiceAccount,
   Team,
@@ -53,8 +52,7 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     team: Team;
     accessPolicy: AccessPolicy;
-    performedBy?: OrganizationActor;
-    context?: Context;
+    auditScope?: AuditScope;
     allowDefault?: boolean;
   }) {
     assertPolicyBelongsToOrganization(d);
@@ -70,11 +68,12 @@ class AccessPolicyAssignmentService {
       });
       if (existingAssignment) return existingAssignment;
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.team.created:before', {
-          ...d,
-          performedBy: d.performedBy,
-          context: d.context
+          organization: d.organization,
+          team: d.team,
+          accessPolicy: d.accessPolicy,
+          auditScope: d.auditScope
         });
       }
 
@@ -87,12 +86,13 @@ class AccessPolicyAssignmentService {
         include: accessPolicyAssignmentInclude
       });
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.team.created:after', {
-          ...d,
+          organization: d.organization,
+          team: d.team,
+          accessPolicy: d.accessPolicy,
           accessPolicyAssignment,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         });
       }
 
@@ -104,8 +104,7 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     team: Team;
     accessPolicy: AccessPolicy;
-    performedBy?: OrganizationActor;
-    context?: Context;
+    auditScope?: AuditScope;
     allowDefault?: boolean;
   }) {
     assertAssignablePolicy(d);
@@ -120,12 +119,13 @@ class AccessPolicyAssignmentService {
       });
       if (!accessPolicyAssignment) return null;
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.team.deleted:before', {
-          ...d,
+          organization: d.organization,
+          team: d.team,
+          accessPolicy: d.accessPolicy,
           accessPolicyAssignment,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         });
       }
 
@@ -136,12 +136,13 @@ class AccessPolicyAssignmentService {
         }
       });
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.team.deleted:after', {
-          ...d,
+          organization: d.organization,
+          team: d.team,
+          accessPolicy: d.accessPolicy,
           accessPolicyAssignment,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         });
       }
     });
@@ -151,8 +152,7 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     member: OrganizationMember;
     accessPolicy: AccessPolicy;
-    performedBy?: OrganizationActor;
-    context?: Context;
+    auditScope?: AuditScope;
     allowDefault?: boolean;
   }) {
     assertPolicyBelongsToOrganization(d);
@@ -169,11 +169,12 @@ class AccessPolicyAssignmentService {
       });
       if (existingAssignment) return existingAssignment;
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.member.created:before', {
-          ...d,
-          performedBy: d.performedBy,
-          context: d.context
+          organization: d.organization,
+          member: d.member,
+          accessPolicy: d.accessPolicy,
+          auditScope: d.auditScope
         });
       }
 
@@ -195,12 +196,13 @@ class AccessPolicyAssignmentService {
         include: accessPolicyAssignmentInclude
       });
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.member.created:after', {
-          ...d,
+          organization: d.organization,
+          member: d.member,
+          accessPolicy: d.accessPolicy,
           accessPolicyAssignment,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         });
       }
 
@@ -213,8 +215,7 @@ class AccessPolicyAssignmentService {
     member: OrganizationMember;
     accessPolicy: AccessPolicy;
     allowDefault?: boolean;
-    performedBy?: OrganizationActor;
-    context?: Context;
+    auditScope?: AuditScope;
   }) {
     if (d.accessPolicy.type !== 'admin') assertAssignablePolicy(d);
 
@@ -228,16 +229,20 @@ class AccessPolicyAssignmentService {
       });
       if (!accessPolicyAssignment) return null;
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.member.deleted:before', {
-          ...d,
+          organization: d.organization,
+          member: d.member,
+          accessPolicy: d.accessPolicy,
           accessPolicyAssignment,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         });
       }
 
-      if (d.accessPolicy.type == 'admin' && d.performedBy?.oid == d.member.actorOid) {
+      if (
+        d.accessPolicy.type == 'admin' &&
+        d.auditScope?.organizationActorOid == d.member.actorOid
+      ) {
         throw new ServiceError(
           badRequestError({
             message: 'You cannot remove your own admin access policy'
@@ -261,12 +266,13 @@ class AccessPolicyAssignmentService {
         });
       }
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire('organization.access_policy.assignment.member.deleted:after', {
-          ...d,
+          organization: d.organization,
+          member: d.member,
+          accessPolicy: d.accessPolicy,
           accessPolicyAssignment,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         });
       }
     });
@@ -276,8 +282,7 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     serviceAccount: ServiceAccount;
     accessPolicy: AccessPolicy;
-    performedBy?: OrganizationActor;
-    context?: Context;
+    auditScope?: AuditScope;
     allowDefault?: boolean;
   }) {
     assertPolicyBelongsToOrganization(d);
@@ -293,13 +298,14 @@ class AccessPolicyAssignmentService {
       });
       if (existingAssignment) return existingAssignment;
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire(
           'organization.access_policy.assignment.service_account.created:before',
           {
-            ...d,
-            performedBy: d.performedBy,
-            context: d.context
+            organization: d.organization,
+            serviceAccount: d.serviceAccount,
+            accessPolicy: d.accessPolicy,
+            auditScope: d.auditScope
           }
         );
       }
@@ -313,14 +319,15 @@ class AccessPolicyAssignmentService {
         include: accessPolicyAssignmentInclude
       });
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire(
           'organization.access_policy.assignment.service_account.created:after',
           {
-            ...d,
+            organization: d.organization,
+            serviceAccount: d.serviceAccount,
+            accessPolicy: d.accessPolicy,
             accessPolicyAssignment,
-            performedBy: d.performedBy,
-            context: d.context
+            auditScope: d.auditScope
           }
         );
       }
@@ -333,8 +340,7 @@ class AccessPolicyAssignmentService {
     organization: Organization;
     serviceAccount: ServiceAccount;
     accessPolicy: AccessPolicy;
-    performedBy?: OrganizationActor;
-    context?: Context;
+    auditScope?: AuditScope;
     allowDefault?: boolean;
   }) {
     assertAssignablePolicy(d);
@@ -349,14 +355,15 @@ class AccessPolicyAssignmentService {
       });
       if (!accessPolicyAssignment) return null;
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire(
           'organization.access_policy.assignment.service_account.deleted:before',
           {
-            ...d,
+            organization: d.organization,
+            serviceAccount: d.serviceAccount,
+            accessPolicy: d.accessPolicy,
             accessPolicyAssignment,
-            performedBy: d.performedBy,
-            context: d.context
+            auditScope: d.auditScope
           }
         );
       }
@@ -368,14 +375,15 @@ class AccessPolicyAssignmentService {
         }
       });
 
-      if (d.performedBy && d.context) {
+      if (d.auditScope) {
         await Fabric.fire(
           'organization.access_policy.assignment.service_account.deleted:after',
           {
-            ...d,
+            organization: d.organization,
+            serviceAccount: d.serviceAccount,
+            accessPolicy: d.accessPolicy,
             accessPolicyAssignment,
-            performedBy: d.performedBy,
-            context: d.context
+            auditScope: d.auditScope
           }
         );
       }

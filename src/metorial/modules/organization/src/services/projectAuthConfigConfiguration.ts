@@ -1,7 +1,7 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
-import { db, Organization, OrganizationActor, Project } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
+import { db, Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
 
@@ -40,8 +40,7 @@ class ProjectAuthConfigConfigurationService {
   async updateProjectAuthConfigConfiguration(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
@@ -79,12 +78,19 @@ class ProjectAuthConfigConfigurationService {
     });
 
     await Fabric.fire('organization.project.auth_config_configuration.updated:after', {
-      ...d,
+      organization: d.organization,
+      input: d.input,
       project,
+      previousProject: d.project,
       configuration: {
         allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
         allowAuthConfigImport: updatedTenant.allowAuthConfigImport
-      }
+      },
+      previousConfiguration: {
+        allowAuthConfigExport: tenant.allowAuthConfigExport,
+        allowAuthConfigImport: tenant.allowAuthConfigImport
+      },
+      auditScope: d.auditScope
     });
 
     return {

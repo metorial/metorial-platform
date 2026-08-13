@@ -108,6 +108,7 @@ import {
   UserStatus,
   UserType
 } from '@metorial/db';
+import type { AuditLog } from '@metorial/module-audit-log';
 import type {
   AvailableProductAssistant,
   ProductAssistantConversationItemWithMessage,
@@ -1072,6 +1073,10 @@ export let userType = PresentableType.create<{
 export let projectType = PresentableType.create<{
   project: Project & { organization: Organization };
 }>()('project');
+
+export let auditLogType = PresentableType.create<{
+  auditLog: AuditLog;
+}>()('auditLog');
 
 export let organizationConfigType = PresentableType.create<{
   config: OrganizationConfig & {

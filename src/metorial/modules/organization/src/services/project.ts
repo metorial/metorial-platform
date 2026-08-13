@@ -8,7 +8,7 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
@@ -99,8 +99,7 @@ class ProjectService {
 
   async createProject(d: {
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       magicMcpSessionDurationMinutes?: number;
@@ -126,8 +125,7 @@ class ProjectService {
       await instanceService.createInstance({
         project,
         organization: d.organization,
-        performedBy: d.performedBy,
-        context: d.context,
+        auditScope: d.auditScope,
         input: {
           name: `Production`,
           type: 'production'
@@ -140,9 +138,10 @@ class ProjectService {
       );
 
       await Fabric.fire('organization.project.created:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         project,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
       return project;
@@ -152,8 +151,7 @@ class ProjectService {
   async updateProject(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       slug?: string;
@@ -200,9 +198,11 @@ class ProjectService {
       );
 
       await Fabric.fire('organization.project.updated:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         project,
-        performedBy: d.performedBy
+        previousProject: d.project,
+        auditScope: d.auditScope
       });
 
       return project;
@@ -212,8 +212,7 @@ class ProjectService {
   async deleteProject(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.ensureProjectActive(d.project);
 

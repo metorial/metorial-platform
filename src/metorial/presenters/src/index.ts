@@ -26,6 +26,7 @@ import {
   v1AccessPolicyVersionPresenter,
   v1AccessRolePresenter,
   v1AccessRoleVersionPresenter,
+  v1AuditLogPresenter,
   v1AgentInstancePresenter,
   v1AgentPresenter,
   v1ApiKeyPresenter,
@@ -237,6 +238,7 @@ import {
   accessPolicyVersionType,
   accessRoleType,
   accessRoleVersionType,
+  auditLogType,
   agentInstanceType,
   agentType,
   apiKeyType,
@@ -598,6 +600,11 @@ export let organizationLayoutPresenter = declarePresenter(organizationLayoutType
 export let projectPresenter = declarePresenter(projectType, {
   mt_2025_01_01_dashboard: v1ProjectPresenter,
   mt_2026_01_01_magnetar: v1ProjectPresenter
+});
+
+export let auditLogPresenter = declarePresenter(auditLogType, {
+  mt_2025_01_01_dashboard: v1AuditLogPresenter,
+  mt_2026_01_01_magnetar: v1AuditLogPresenter
 });
 
 export let projectBrandPresenter = declarePresenter(projectBrandType, {
