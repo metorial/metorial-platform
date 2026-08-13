@@ -77,14 +77,9 @@ model Skill {
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
   owningSkillEntity SkillEntity? @relation("SkillEntityOwner")
-  forks             SkillFork[]  @relation("SkillForkParent")
-  fork              SkillFork?   @relation("SkillForkChild")
 
   parentTemplateOid BigInt?
   parentTemplate    SkillTemplate? @relation(fields: [parentTemplateOid], references: [oid], onDelete: SetNull)
-
-  ownerTenantActorOid BigInt?
-  ownerTenantActor    TenantActor? @relation(fields: [ownerTenantActorOid], references: [oid], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -93,55 +88,6 @@ model Skill {
   skillProviders     SkillProvider[]
   skillItems         SkillItem[]
   skillProviderLinks SkillProviderLink[]
-  skillEvents        SkillEvent[]
-  skillGroupItems    SkillGroupItem[]
-}
-
-enum SkillEventType {
-  created
-  updated
-  forked
-  duplicated
-}
-
-model SkillEvent {
-  oid BigInt @id
-  id  String @unique
-
-  type SkillEventType
-
-  skillOid BigInt
-  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
-
-  tenantActorOid BigInt
-  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-}
-
-model SkillFork {
-  oid BigInt @id
-  id  String @unique
-
-  parentSkillOid BigInt
-  parentSkill    Skill  @relation("SkillForkParent", fields: [parentSkillOid], references: [oid], onDelete: Cascade)
-
-  childSkillOid BigInt @unique
-  childSkill    Skill  @relation("SkillForkChild", fields: [childSkillOid], references: [oid], onDelete: Cascade)
-
-  tenantActorOid BigInt
-  tenantActor    TenantActor @relation(fields: [tenantActorOid], references: [oid], onDelete: Cascade)
-
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
-
-  environmentOid BigInt
-  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
-
-  solutionOid Int
-  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
 }
 
 enum SkillIntegrationStatus {
