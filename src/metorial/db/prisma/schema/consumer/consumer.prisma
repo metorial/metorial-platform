@@ -123,8 +123,8 @@ model ConsumerProfile {
   organizationMemberOid BigInt?
   organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
 
-  organizationActorOid BigInt?
-  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+  organizationActorOid BigInt
+  organizationActor    OrganizationActor @relation(fields: [organizationActorOid], references: [oid], onDelete: Cascade)
 
   personalConsumerGroupOid BigInt        @unique
   personalConsumerGroup    ConsumerGroup @relation("ConsumerProfilePersonalGroup", fields: [personalConsumerGroupOid], references: [oid], onDelete: Cascade)
