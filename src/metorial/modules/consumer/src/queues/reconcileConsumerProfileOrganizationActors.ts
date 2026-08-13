@@ -8,7 +8,7 @@ export let RECONCILE_CONSUMER_PROFILE_ORGANIZATION_ACTORS_BATCH_SIZE = 500;
 export let reconcileConsumerProfileOrganizationActorsCron = createCron(
   {
     name: 'cons/profileOrgActor/rec/cron',
-    cron: '30 5 * * *'
+    cron: '0 * * * *'
   },
   async () => {
     await reconcileConsumerProfileOrganizationActorsSearchQueue.add(
