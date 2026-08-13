@@ -30,7 +30,7 @@ export let v1PortalPresenter = Presenter.create(portalType)
       )
     },
     urls: namespaces
-      ? portalService.getPortalUrls({ portal, namespaces })
+      ? await portalService.getPortalUrls({ portal, namespaces })
       : ([{ type: 'default' as const, url: portalUrl }] as any),
     created_at: portal.createdAt,
     updated_at: portal.updatedAt

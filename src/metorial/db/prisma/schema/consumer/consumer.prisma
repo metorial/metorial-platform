@@ -33,18 +33,19 @@ model Consumer {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  profiles             ConsumerProfile[]
-  instanceConsumers    InstanceConsumer[]
-  consumerActors       ConsumerActor[]
-  consumerTokens       ConsumerToken[]
-  integrations         ConsumerIntegration[]
-  integrationEndpoints ConsumerIntegrationEndpoint[]
-  integrationSessions  ConsumerIntegrationSession[]
-  invites              ConsumerInvite[]
-  createdSkills        Skill[]
-  consumerSkills       ConsumerSkill[]
-  workspaceProfiles    WorkspaceProfile[]
-  resourceActors       ResourceActor[]
+  profiles                   ConsumerProfile[]
+  instanceConsumers          InstanceConsumer[]
+  consumerActors             ConsumerActor[]
+  consumerTokens             ConsumerToken[]
+  integrations               ConsumerIntegration[]
+  integrationEndpoints       ConsumerIntegrationEndpoint[]
+  integrationSessions        ConsumerIntegrationSession[]
+  invites                    ConsumerInvite[]
+  createdSkills              Skill[]
+  consumerSkills             ConsumerSkill[]
+  workspaceProfiles          WorkspaceProfile[]
+  resourceActors             ResourceActor[]
+  consumerOrganizationActors ConsumerOrganizationActor[]
 
   @@unique([email, organizationOid])
 }
@@ -122,8 +123,8 @@ model ConsumerProfile {
   organizationMemberOid BigInt?
   organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
 
-  organizationActorOid BigInt?
-  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+  organizationActorOid BigInt            @unique
+  organizationActor    OrganizationActor @relation(fields: [organizationActorOid], references: [oid], onDelete: Cascade)
 
   personalConsumerGroupOid BigInt        @unique
   personalConsumerGroup    ConsumerGroup @relation("ConsumerProfilePersonalGroup", fields: [personalConsumerGroupOid], references: [oid], onDelete: Cascade)
@@ -213,4 +214,18 @@ model ConsumerProfileGroup {
   createdAt DateTime @default(now())
 
   @@unique([profileOid, groupOid])
+}
+
+model ConsumerOrganizationActor {
+  oid BigInt @id @default(autoincrement())
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  organizationActorOid BigInt
+  organizationActor    OrganizationActor @relation(fields: [organizationActorOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([consumerOid, organizationActorOid])
 }
