@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => {
     accessTag: { create: vi.fn() },
     consumer: { findUnique: vi.fn() },
     consumerGroup: { create: vi.fn() },
+    consumerOrganizationActor: { upsert: vi.fn() },
     consumerProfile: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -183,6 +184,19 @@ describe('consumer profile organization actors', () => {
       },
       organization,
       performedBy: { type: 'actor', actor: systemActor }
+    });
+    expect(mocks.db.consumerOrganizationActor.upsert).toHaveBeenCalledWith({
+      where: {
+        consumerOid_organizationActorOid: {
+          consumerOid: 5n,
+          organizationActorOid: 8n
+        }
+      },
+      create: {
+        consumerOid: 5n,
+        organizationActorOid: 8n
+      },
+      update: {}
     });
     expect(mocks.db.consumerProfile.update).toHaveBeenCalledWith({
       where: { oid: 7n },
