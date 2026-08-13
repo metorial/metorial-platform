@@ -843,7 +843,6 @@ class ConsumerProfileServiceImpl {
     inviteStatus?: ConsumerProfileInviteStatus;
     rejectIfActiveProfileExists?: boolean;
 
-    aresUserId?: string;
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
@@ -889,20 +888,8 @@ class ConsumerProfileServiceImpl {
         return await withTransaction(async db => {
           let existingProfile = await db.consumerProfile.findFirst({
             where: {
-              OR: [
-                ...(d.aresUserId
-                  ? [
-                      {
-                        surfaceOid: d.surface.oid,
-                        aresUserId: d.aresUserId
-                      }
-                    ]
-                  : []),
-                {
-                  email: consumerEmailEquals(email),
-                  surfaceOid: d.surface.oid
-                }
-              ]
+              email: consumerEmailEquals(email),
+              surfaceOid: d.surface.oid
             },
             include: { surface: { include: { portal: true } } }
           });
@@ -926,8 +913,7 @@ class ConsumerProfileServiceImpl {
 
             let nextInviteStatus = d.inviteStatus ?? existingProfile.inviteStatus;
             let shouldActivate =
-              (d.aresUserId && existingProfile.inviteStatus == 'invited') ||
-              (nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted');
+              nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted';
 
             let organizationIdentity = await this.resolveOrganizationIdentity({
               consumerProfile: existingProfile,
@@ -945,7 +931,6 @@ class ConsumerProfileServiceImpl {
               },
               data: {
                 status: 'active',
-                aresUserId: d.aresUserId,
                 email,
                 name: d.name,
                 inviteStatus: shouldActivate ? existingProfile.inviteStatus : nextInviteStatus,
@@ -1005,7 +990,6 @@ class ConsumerProfileServiceImpl {
               data: {
                 id: await ID.generateId('consumerProfile'),
                 status: 'active',
-                aresUserId: d.aresUserId,
                 email,
                 name: d.name,
                 inviteStatus: d.inviteStatus ?? 'unset',

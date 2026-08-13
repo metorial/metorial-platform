@@ -72,26 +72,8 @@ let generatePortalSlug = createSlugGenerator(async candidate => {
 let getPortalSlug = async (d: { input: string; current?: string }) =>
   toDnsSafeSlug(await generatePortalSlug(d));
 
-let getPortalRedirectDomains = () => {
-  return env.portal.PORTAL_REDIRECT_DOMAINS.split(',')
-    .map(domain => domain.trim())
-    .filter(domain => domain.length > 0);
-};
-
 let buildPortalUrlFromId = (portalId: string) => {
   return buildPortalUrlFromTemplate(env.portal.PORTAL_HOST_TEMPLATE, portalId);
-};
-
-let buildPortalAresRedirectUrl = (d: { portalId: string; portalUrl: string }) => {
-  let url = new URL(d.portalUrl);
-  url.searchParams.set('__metorial_portal_action__', 'sso_callback');
-  url.searchParams.set('portal_id', d.portalId);
-
-  return url.toString();
-};
-
-let buildPortalAresAppSlug = (portalId: string) => {
-  return `metorial-portal-${portalId}`;
 };
 
 type PortalSurface = ConsumerSurfaceWithPublishableApiKey;
@@ -150,28 +132,6 @@ class PortalServiceImpl {
     });
 
     return portal!;
-  }
-
-  private async configurePortalAres(d: {
-    portalId: string;
-    portalSlug: string;
-    surface: PortalSurface;
-  }): Promise<PortalSurface> {
-    if (d.surface.status != 'active') {
-      return d.surface;
-    }
-
-    return await consumerSurfaceService.configureConsumerSurfaceAres({
-      consumerSurface: d.surface,
-      aresApp: {
-        slug: buildPortalAresAppSlug(d.portalId),
-        defaultRedirectUrl: buildPortalAresRedirectUrl({
-          portalId: d.portalId,
-          portalUrl: buildPortalUrlFromId(d.portalSlug)
-        }),
-        redirectDomains: getPortalRedirectDomains()
-      }
-    });
   }
 
   async getPortalById(d: { instance: Instance; portalId: string }) {
@@ -272,74 +232,58 @@ class PortalServiceImpl {
       input: d.input.name
     });
 
-    let surface = await consumerSurfaceService.createConsumerSurface({
-      organization: d.organization,
-      instance: d.instance,
-      context: d.context,
-      input: {
-        name: d.input.name,
-        description: d.input.description,
-        sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds ?? 60 * 60 * 24 * 7,
-        allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
-        allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing
-      }
-    });
-
-    try {
-      surface = await this.configurePortalAres({
-        portalId,
-        portalSlug: slug,
-        surface
+    let portal = await withTransaction(async db => {
+      let surface = await consumerSurfaceService.createConsumerSurface({
+        organization: d.organization,
+        instance: d.instance,
+        context: d.context,
+        input: {
+          name: d.input.name,
+          description: d.input.description,
+          sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds ?? 60 * 60 * 24 * 7,
+          allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
+          allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing
+        }
       });
 
-      let portal = await withTransaction(async db => {
-        await Fabric.fire('portal.created:before', d);
+      await Fabric.fire('portal.created:before', d);
 
-        let portal = await db.portal.create({
-          data: {
-            id: portalId,
-            status: 'active',
-            name: d.input.name,
-            description: d.input.description,
-            slug,
-            allowedRedirectUrlFilters: toNullablePortalAllowedRedirectUrlFilters(
-              resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
-            ),
-            organizationOid: d.organization.oid,
-            surfaceOid: surface.oid,
-            instanceOid: d.instance.oid
-          },
-          include
-        });
-
-        await Fabric.fire('portal.created:after', {
-          ...d,
-          portal
-        });
-
-        return portal;
-      });
-
-      await delay(2000);
-
-      portal = await db.portal.findUniqueOrThrow({
-        where: { oid: portal.oid },
+      let portal = await db.portal.create({
+        data: {
+          id: portalId,
+          status: 'active',
+          name: d.input.name,
+          description: d.input.description,
+          slug,
+          allowedRedirectUrlFilters: toNullablePortalAllowedRedirectUrlFilters(
+            resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
+          ),
+          organizationOid: d.organization.oid,
+          surfaceOid: surface.oid,
+          instanceOid: d.instance.oid
+        },
         include
       });
 
-      return await this.enrichPortal({
-        instance: d.instance,
+      await Fabric.fire('portal.created:after', {
+        ...d,
         portal
       });
-    } catch (error) {
-      await Promise.allSettled([
-        consumerSurfaceService.deleteConsumerSurface({
-          consumerSurface: surface
-        })
-      ]);
 
-      throw error;
-    }
+      return portal;
+    });
+
+    await delay(2000);
+
+    portal = await db.portal.findUniqueOrThrow({
+      where: { oid: portal.oid },
+      include
+    });
+
+    return await this.enrichPortal({
+      instance: d.instance,
+      portal
+    });
   }
 
   async updatePortal(d: {
@@ -403,17 +347,6 @@ class PortalServiceImpl {
 
       return portal;
     });
-
-    let surfaceRes = await this.configurePortalAres({
-      portalId: portal.id,
-      portalSlug: portal.slug,
-      surface
-    });
-
-    surface = {
-      ...surface,
-      ...surfaceRes
-    };
 
     return await this.enrichPortal({
       instance: portal.instance,

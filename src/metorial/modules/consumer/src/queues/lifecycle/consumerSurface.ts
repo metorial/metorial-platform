@@ -1,45 +1,5 @@
 import { db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { consumerAresService } from '../../services/consumerAccess/ares';
-
-let disconnectConsumerSurfaceAres = async (d: {
-  consumerSurface: {
-    consumerAuthTenantOid?: bigint | null;
-  };
-  status: 'archived' | 'deleted';
-}) => {
-  if (!d.consumerSurface.consumerAuthTenantOid) return;
-  let consumerAuthTenantOid = d.consumerSurface.consumerAuthTenantOid;
-
-  await withTransaction(async db => {
-    let consumerAuthTenant = await db.consumerAuthTenant.findUniqueOrThrow({
-      where: {
-        oid: consumerAuthTenantOid
-      }
-    });
-
-    if (consumerAuthTenant.aresAppId) {
-      await consumerAresService.updateApp({
-        id: consumerAuthTenant.aresAppId,
-        slug: consumerAuthTenant.aresAppSlug
-          ? `${consumerAuthTenant.aresAppSlug}-${d.status}-${Date.now()}`
-          : undefined,
-        redirectDomains: ['invalid.invalid']
-      });
-
-      await db.consumerAuthTenant.update({
-        where: {
-          oid: consumerAuthTenant.oid
-        },
-        data: {
-          aresAppId: null,
-          aresAppSlug: null,
-          aresClientId: null
-        }
-      });
-    }
-  });
-};
 
 let deactivateConsumerSurfaceResources = async (d: {
   publishableApiKeyOid: bigint;
@@ -130,11 +90,6 @@ export let consumerSurfaceArchivedQueueProcessor = consumerSurfaceArchivedQueue.
     });
     if (!consumerSurface || consumerSurface.status !== 'archived') return;
 
-    await disconnectConsumerSurfaceAres({
-      consumerSurface,
-      status: 'archived'
-    });
-
     await deactivateConsumerSurfaceResources({
       publishableApiKeyOid: consumerSurface.publishableApiKeyOid,
       consumerSurfaceOid: consumerSurface.oid
@@ -160,11 +115,6 @@ export let consumerSurfaceDeletedQueueProcessor = consumerSurfaceDeletedQueue.pr
       }
     });
     if (!consumerSurface || consumerSurface.status !== 'deleted') return;
-
-    await disconnectConsumerSurfaceAres({
-      consumerSurface,
-      status: 'deleted'
-    });
 
     await deactivateConsumerSurfaceResources({
       publishableApiKeyOid: consumerSurface.publishableApiKeyOid,
