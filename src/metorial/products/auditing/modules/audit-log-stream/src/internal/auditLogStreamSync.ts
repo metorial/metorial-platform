@@ -73,196 +73,202 @@ class AuditLogStreamSyncService {
       };
     }
 
-    await withTransaction(async db => {
-      await db.auditLogStreamRun.upsert({
-        where: { id: d.runId },
-        create: {
-          id: d.runId,
-          status: 'running',
+    try {
+      await withTransaction(async db => {
+        await db.auditLogStreamRun.upsert({
+          where: { id: d.runId },
+          create: {
+            id: d.runId,
+            status: 'running',
+            batchIdentifier: d.batchIdentifier,
+            batchNumber: d.batchNumber,
+            successfulBatchCount: d.successfulBatchCount,
+            recordsSynced: 0,
+            auditLogStreamOid: stream.oid
+          },
+          update: {}
+        });
+
+        if (!stream.isStarted) {
+          await db.auditLogStream.update({
+            where: { oid: stream.oid },
+            data: { isStarted: true }
+          });
+          await db.auditLogStreamEvent.create({
+            data: {
+              id: await ID.generateId('auditLogStreamEvent'),
+              type: 'started',
+              auditLogStreamOid: stream.oid
+            }
+          });
+        }
+      });
+
+      let batch = await auditLogService.listAuditLogsForStream({
+        organizationOid: stream.organizationOid,
+        recordedAtGte: startOfUtcDay(stream.createdAt),
+        afterOid: stream.lastAuditLogOid,
+        limit: AUDIT_LOG_STREAM_BATCH_SIZE
+      });
+
+      try {
+        if (batch.items.length) {
+          let providerData = await decryptAuditLogStreamProviderData({
+            streamId: stream.id,
+            provider: stream.provider,
+            encryptedProviderData: stream.encryptedProviderData
+          });
+          await deliverAuditLogStreamEvents({
+            provider: stream.provider,
+            providerData,
+            events: batch.items
+          });
+        }
+      } catch (error) {
+        let message = errorMessage(error);
+        let destinationError = error instanceof AuditLogDestinationError ? error.details : null;
+        let details = {
+          provider: stream.provider,
+          code: destinationError?.code ?? 'unknown_error',
+          errorName: error instanceof Error ? error.name : typeof error,
+          httpStatusCode: destinationError?.httpStatusCode ?? null,
+          httpStatusText: destinationError?.httpStatusText ?? null,
+          providerErrorCode: destinationError?.providerErrorCode ?? null,
+          responseBody: destinationError?.responseBody ?? null,
           batchIdentifier: d.batchIdentifier,
           batchNumber: d.batchNumber,
           successfulBatchCount: d.successfulBatchCount,
-          recordsSynced: 0,
-          auditLogStreamOid: stream.oid
-        },
-        update: {}
-      });
+          eventCount: batch.items.length,
+          firstEventId: batch.items.at(0)?.id ?? null,
+          lastEventId: batch.items.at(-1)?.id ?? null
+        };
+        let consecutiveErrorCount = stream.consecutiveErrorCount + 1;
+        let shouldPause = consecutiveErrorCount >= AUDIT_LOG_STREAM_MAX_CONSECUTIVE_ERRORS;
 
-      if (!stream.isStarted) {
-        await db.auditLogStream.update({
-          where: { oid: stream.oid },
-          data: { isStarted: true }
-        });
-        await db.auditLogStreamEvent.create({
-          data: {
-            id: await ID.generateId('auditLogStreamEvent'),
-            type: 'started',
-            auditLogStreamOid: stream.oid
+        await withTransaction(async db => {
+          await db.auditLogStreamRun.update({
+            where: { id: d.runId },
+            data: {
+              status: 'error',
+              errorMessage: message,
+              recordsSynced: 0,
+              successfulBatchCount: d.successfulBatchCount,
+              completedAt: new Date()
+            }
+          });
+          await db.auditLogStream.update({
+            where: { oid: stream.oid },
+            data: {
+              accessStatus: 'error',
+              errorMessage: message,
+              consecutiveErrorCount,
+              isPausedDueToError: shouldPause
+            }
+          });
+
+          if (stream.accessStatus != 'error') {
+            await db.auditLogStreamEvent.create({
+              data: {
+                id: await ID.generateId('auditLogStreamEvent'),
+                type: 'error',
+                message,
+                errorDetails: details,
+                auditLogStreamOid: stream.oid
+              }
+            });
+          }
+          if (shouldPause && !stream.isPausedDueToError) {
+            let { organization, auditScope } = await createSystemAuditScope(
+              stream.organizationOid
+            );
+
+            await Fabric.fire('organization.audit_log_stream.paused:before', {
+              organization,
+              auditScope,
+              auditLogStream: stream
+            });
+
+            await db.auditLogStreamEvent.create({
+              data: {
+                id: await ID.generateId('auditLogStreamEvent'),
+                type: 'error_paused',
+                message,
+                errorDetails: details,
+                auditLogStreamOid: stream.oid
+              }
+            });
+
+            await Fabric.fire('organization.audit_log_stream.paused:after', {
+              organization,
+              auditScope,
+              auditLogStream: {
+                ...stream,
+                accessStatus: 'error',
+                errorMessage: message,
+                consecutiveErrorCount,
+                isPausedDueToError: true
+              },
+              previousAuditLogStream: stream
+            });
           }
         });
+
+        if (!shouldPause) {
+          await markAuditLogOrganizationDirty(stream.organizationOid);
+        }
+
+        return {
+          status: 'error' as const,
+          recordsSynced: 0,
+          successfulBatchCount: d.successfulBatchCount,
+          shouldContinue: false
+        };
       }
-    });
 
-    let batch = await auditLogService.listAuditLogsForStream({
-      organizationOid: stream.organizationOid,
-      recordedAtGte: startOfUtcDay(stream.createdAt),
-      afterOid: stream.lastAuditLogOid,
-      limit: AUDIT_LOG_STREAM_BATCH_SIZE
-    });
-
-    try {
-      if (batch.items.length) {
-        let providerData = await decryptAuditLogStreamProviderData({
-          streamId: stream.id,
-          provider: stream.provider,
-          encryptedProviderData: stream.encryptedProviderData
-        });
-        await deliverAuditLogStreamEvents({
-          provider: stream.provider,
-          providerData,
-          events: batch.items
-        });
-      }
-    } catch (error) {
-      let message = errorMessage(error);
-      let destinationError = error instanceof AuditLogDestinationError ? error.details : null;
-      let details = {
-        provider: stream.provider,
-        code: destinationError?.code ?? 'unknown_error',
-        errorName: error instanceof Error ? error.name : typeof error,
-        httpStatusCode: destinationError?.httpStatusCode ?? null,
-        httpStatusText: destinationError?.httpStatusText ?? null,
-        providerErrorCode: destinationError?.providerErrorCode ?? null,
-        responseBody: destinationError?.responseBody ?? null,
-        batchIdentifier: d.batchIdentifier,
-        batchNumber: d.batchNumber,
-        successfulBatchCount: d.successfulBatchCount,
-        eventCount: batch.items.length,
-        firstEventId: batch.items.at(0)?.id ?? null,
-        lastEventId: batch.items.at(-1)?.id ?? null
-      };
-      let consecutiveErrorCount = stream.consecutiveErrorCount + 1;
-      let shouldPause = consecutiveErrorCount >= AUDIT_LOG_STREAM_MAX_CONSECUTIVE_ERRORS;
-
+      let successfulBatchCount = d.successfulBatchCount + 1;
       await withTransaction(async db => {
         await db.auditLogStreamRun.update({
           where: { id: d.runId },
           data: {
-            status: 'error',
-            errorMessage: message,
-            recordsSynced: 0,
-            successfulBatchCount: d.successfulBatchCount,
+            status: 'success',
+            recordsSynced: batch.items.length,
+            successfulBatchCount,
             completedAt: new Date()
           }
         });
         await db.auditLogStream.update({
           where: { oid: stream.oid },
           data: {
-            accessStatus: 'error',
-            errorMessage: message,
-            consecutiveErrorCount,
-            isPausedDueToError: shouldPause
+            lastAuditLogOid: batch.lastAuditLogOid ?? undefined,
+            lastEventId: batch.items.at(-1)?.id,
+            accessStatus: 'ok',
+            errorMessage: null,
+            consecutiveErrorCount: 0,
+            isPausedDueToError: false
           }
         });
 
-        if (stream.accessStatus != 'error') {
+        if (stream.accessStatus == 'error') {
           await db.auditLogStreamEvent.create({
             data: {
               id: await ID.generateId('auditLogStreamEvent'),
-              type: 'error',
-              message,
-              errorDetails: details,
+              type: 'recovered',
               auditLogStreamOid: stream.oid
             }
           });
-        }
-        if (shouldPause && !stream.isPausedDueToError) {
-          let { organization, auditScope } = await createSystemAuditScope(
-            stream.organizationOid
-          );
-
-          await Fabric.fire('organization.audit_log_stream.paused:before', {
-            organization,
-            auditScope,
-            auditLogStream: stream
-          });
-
-          await db.auditLogStreamEvent.create({
-            data: {
-              id: await ID.generateId('auditLogStreamEvent'),
-              type: 'error_paused',
-              message,
-              errorDetails: details,
-              auditLogStreamOid: stream.oid
-            }
-          });
-
-          await Fabric.fire('organization.audit_log_stream.paused:after', {
-            organization,
-            auditScope,
-            auditLogStream: {
-              ...stream,
-              accessStatus: 'error',
-              errorMessage: message,
-              consecutiveErrorCount,
-              isPausedDueToError: true
-            },
-            previousAuditLogStream: stream
-          });
-        }
-        if (!shouldPause) {
-          await markAuditLogOrganizationDirty(stream.organizationOid, db);
         }
       });
 
       return {
-        status: 'error' as const,
-        recordsSynced: 0,
-        successfulBatchCount: d.successfulBatchCount,
-        shouldContinue: false
+        status: 'success' as const,
+        recordsSynced: batch.items.length,
+        successfulBatchCount,
+        shouldContinue: batch.items.length == AUDIT_LOG_STREAM_BATCH_SIZE
       };
+    } catch (error) {
+      await markAuditLogOrganizationDirty(stream.organizationOid);
+      throw error;
     }
-
-    let successfulBatchCount = d.successfulBatchCount + 1;
-    await withTransaction(async db => {
-      await db.auditLogStreamRun.update({
-        where: { id: d.runId },
-        data: {
-          status: 'success',
-          recordsSynced: batch.items.length,
-          successfulBatchCount,
-          completedAt: new Date()
-        }
-      });
-      await db.auditLogStream.update({
-        where: { oid: stream.oid },
-        data: {
-          lastAuditLogOid: batch.lastAuditLogOid ?? undefined,
-          lastEventId: batch.items.at(-1)?.id,
-          accessStatus: 'ok',
-          errorMessage: null,
-          consecutiveErrorCount: 0,
-          isPausedDueToError: false
-        }
-      });
-
-      if (stream.accessStatus == 'error') {
-        await db.auditLogStreamEvent.create({
-          data: {
-            id: await ID.generateId('auditLogStreamEvent'),
-            type: 'recovered',
-            auditLogStreamOid: stream.oid
-          }
-        });
-      }
-    });
-
-    return {
-      status: 'success' as const,
-      recordsSynced: batch.items.length,
-      successfulBatchCount,
-      shouldContinue: batch.items.length == AUDIT_LOG_STREAM_BATCH_SIZE
-    };
   }
 }
 

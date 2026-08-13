@@ -1,15 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { deleteDirty, findDirty, generateId, scavengeAdd, syncAdd, syncAddMany, syncBatch } =
-  vi.hoisted(() => ({
-    deleteDirty: vi.fn(),
-    findDirty: vi.fn(),
-    generateId: vi.fn(),
-    scavengeAdd: vi.fn(),
-    syncAdd: vi.fn(),
-    syncAddMany: vi.fn(),
-    syncBatch: vi.fn()
-  }));
+let {
+  deleteDirty,
+  dirtyUpsert,
+  findDirty,
+  findStream,
+  generateId,
+  scavengeAdd,
+  syncAdd,
+  syncAddMany,
+  syncBatch
+} = vi.hoisted(() => ({
+  deleteDirty: vi.fn(),
+  dirtyUpsert: vi.fn(),
+  findDirty: vi.fn(),
+  findStream: vi.fn(),
+  generateId: vi.fn(),
+  scavengeAdd: vi.fn(),
+  syncAdd: vi.fn(),
+  syncAddMany: vi.fn(),
+  syncBatch: vi.fn()
+}));
 
 vi.mock('@metorial/cron', () => ({
   createCron: vi.fn((_config, handler) => ({ handler }))
@@ -36,7 +47,11 @@ vi.mock('@metorial/db', () => ({
   db: {
     auditLogDirtyTracker: {
       findMany: findDirty,
-      deleteMany: deleteDirty
+      deleteMany: deleteDirty,
+      upsert: dirtyUpsert
+    },
+    auditLogStream: {
+      findUnique: findStream
     }
   },
   ID: {
@@ -44,7 +59,7 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('../services', () => ({
+vi.mock('../internal/auditLogStreamSync', () => ({
   auditLogStreamSyncService: {
     syncBatch
   }
@@ -192,6 +207,52 @@ describe('audit log stream sync queues', () => {
     });
 
     expect(syncAdd).not.toHaveBeenCalled();
+  });
+
+  it('re-dirties the organization when a batch job throws', async () => {
+    syncBatch.mockRejectedValueOnce(new Error('worker crashed'));
+    findStream.mockResolvedValue({
+      organizationOid: 2n,
+      isPausedDueToError: false
+    });
+    dirtyUpsert.mockResolvedValue({});
+
+    await expect(
+      (syncAuditLogStreamQueueProcessor as any).handler({
+        auditLogStreamId: 'als_1',
+        runId: 'alsr_current',
+        batchIdentifier: 'alsb_shared',
+        batchNumber: 3,
+        successfulBatchCount: 2
+      })
+    ).rejects.toThrow('worker crashed');
+
+    expect(dirtyUpsert).toHaveBeenCalledWith({
+      where: { organizationOid: 2n },
+      create: { organizationOid: 2n },
+      update: { revision: { increment: 1 } }
+    });
+    expect(syncAdd).not.toHaveBeenCalled();
+  });
+
+  it('does not re-dirty a stream that is paused due to errors', async () => {
+    syncBatch.mockRejectedValueOnce(new Error('worker crashed'));
+    findStream.mockResolvedValue({
+      organizationOid: 2n,
+      isPausedDueToError: true
+    });
+
+    await expect(
+      (syncAuditLogStreamQueueProcessor as any).handler({
+        auditLogStreamId: 'als_1',
+        runId: 'alsr_current',
+        batchIdentifier: 'alsb_shared',
+        batchNumber: 3,
+        successfulBatchCount: 2
+      })
+    ).rejects.toThrow('worker crashed');
+
+    expect(dirtyUpsert).not.toHaveBeenCalled();
   });
 
   it('starts the scavenger every fifteen minutes', async () => {

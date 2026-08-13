@@ -58,6 +58,9 @@ vi.mock('@metorial/db', () => ({
     },
     organization: {
       findUniqueOrThrow: findOrganization
+    },
+    auditLogDirtyTracker: {
+      upsert: dirtyUpsert
     }
   },
   ID: {
@@ -342,6 +345,19 @@ describe('auditLogStreamSyncService', () => {
       })
     );
     expect(dirtyUpsert).not.toHaveBeenCalled();
+  });
+
+  it('re-dirties the organization when listing the batch fails', async () => {
+    listBatch.mockRejectedValueOnce(new Error('database unavailable'));
+
+    await expect(auditLogStreamSyncService.syncBatch(job)).rejects.toThrow(
+      'database unavailable'
+    );
+    expect(dirtyUpsert).toHaveBeenCalledWith({
+      where: { organizationOid: 2n },
+      create: { organizationOid: 2n },
+      update: { revision: { increment: 1 } }
+    });
   });
 
   it('emits recovered and resets failures after a successful batch', async () => {
