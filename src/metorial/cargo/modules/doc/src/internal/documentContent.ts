@@ -71,7 +71,7 @@ class InternalDocumentContentServiceImpl {
     return await withTransaction(async db => {
       let now = new Date();
       let shouldCreateNewVersion =
-        internalDocumentVersioningService.shouldCreateNewVersionForWrite(d.document, now);
+        await internalDocumentVersioningService.shouldCreateNewVersionForWrite(d.document, now);
 
       let liveContentOid = d.document.contentOid;
       let activeVersion = d.document.currentVersion;
@@ -296,7 +296,7 @@ class InternalDocumentContentServiceImpl {
         isContentOwner: d.document.isContentOwner || !shouldKeepParentSync,
         didCreateVersion,
         draftVersionExpiresAt:
-          internalDocumentVersioningService.getNextDraftVersionExpiresAt(now)
+          await internalDocumentVersioningService.getNextDraftVersionExpiresAt(now)
       };
     });
   }
