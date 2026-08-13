@@ -17,6 +17,7 @@ import {
   ID,
   Instance,
   InstanceConsumer,
+  Organization,
   OrganizationMember,
   Prisma,
   User,
@@ -24,7 +25,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
-import { namespaceService } from '@metorial/module-organization';
+import { namespaceService, organizationActorService } from '@metorial/module-organization';
 import { searchConsumerIds } from '@metorial/module-search';
 import {
   consumerEmailEquals,
@@ -88,6 +89,151 @@ class ConsumerProfileServiceImpl {
         })
       );
     }
+  }
+
+  private async resolveOrganizationIdentity(d: {
+    consumerProfile?: ConsumerProfile;
+    surface: ConsumerSurface;
+    organization: Organization;
+    instanceConsumer: InstanceConsumer;
+    member?: OrganizationMember;
+    name: string;
+    email: string;
+  }) {
+    return withTransaction(
+      async db => {
+        if (d.surface.type === 'organization_members') {
+          let organizationMemberOid =
+            d.consumerProfile?.organizationMemberOid ??
+            d.member?.oid ??
+            d.consumerProfile?.organizationMemberOid ??
+            d.instanceConsumer.organizationMemberOid;
+
+          if (!organizationMemberOid) {
+            let consumer = await db.consumer.findUnique({
+              where: { oid: d.instanceConsumer.consumerOid },
+              select: { organizationMemberOid: true }
+            });
+            organizationMemberOid = consumer?.organizationMemberOid ?? null;
+          }
+
+          let member = organizationMemberOid
+            ? await db.organizationMember.findUnique({
+                where: { oid: organizationMemberOid }
+              })
+            : null;
+
+          return {
+            organizationMemberOid: member?.oid ?? null,
+            organizationActorOid: member?.actorOid ?? null
+          };
+        }
+
+        let currentOrganizationActor = d.consumerProfile?.organizationActorOid
+          ? await db.organizationActor.findUnique({
+              where: { oid: d.consumerProfile.organizationActorOid },
+              include: {
+                consumerProfiles: {
+                  select: { oid: true }
+                }
+              }
+            })
+          : null;
+        if (
+          currentOrganizationActor?.type === 'consumer_profile' &&
+          currentOrganizationActor.consumerProfiles.every(
+            profile => profile.oid === d.consumerProfile?.oid
+          )
+        ) {
+          return {
+            organizationMemberOid: null,
+            organizationActorOid: currentOrganizationActor.oid
+          };
+        }
+
+        let systemActor = await organizationActorService.getSystemActor({
+          organization: d.organization
+        });
+        let organizationActor = await organizationActorService.createOrganizationActor({
+          input: {
+            type: 'consumer_profile',
+            name: d.name,
+            email: d.email
+          },
+          organization: d.organization,
+          performedBy: { type: 'actor', actor: systemActor }
+        });
+
+        await db.consumerOrganizationActor.upsert({
+          where: {
+            consumerOid_organizationActorOid: {
+              consumerOid: d.instanceConsumer.consumerOid,
+              organizationActorOid: organizationActor.oid
+            }
+          },
+          create: {
+            consumerOid: d.instanceConsumer.consumerOid,
+            organizationActorOid: organizationActor.oid
+          },
+          update: {}
+        });
+
+        return {
+          organizationMemberOid: null,
+          organizationActorOid: organizationActor.oid
+        };
+      },
+      { ifExists: true }
+    );
+  }
+
+  async reconcileConsumerProfileOrganizationActor(d: { consumerProfile: ConsumerProfile }) {
+    return await ensureProfileLock.usingLock(
+      `${d.consumerProfile.instanceOid}-${normalizeConsumerEmail(d.consumerProfile.email)}`,
+      async () =>
+        await withTransaction(async db => {
+          let consumerProfile = await db.consumerProfile.findUnique({
+            where: { oid: d.consumerProfile.oid },
+            include: {
+              organization: true,
+              surface: true
+            }
+          });
+          if (!consumerProfile) return null;
+
+          let instanceConsumer = await db.instanceConsumer.findUnique({
+            where: {
+              instanceOid_consumerOid: {
+                instanceOid: consumerProfile.instanceOid,
+                consumerOid: consumerProfile.consumerOid
+              }
+            }
+          });
+          if (!instanceConsumer) return null;
+
+          let organizationIdentity = await this.resolveOrganizationIdentity({
+            consumerProfile,
+            surface: consumerProfile.surface,
+            organization: consumerProfile.organization,
+            instanceConsumer,
+            name: consumerProfile.name,
+            email: consumerProfile.email
+          });
+
+          if (
+            consumerProfile.organizationMemberOid ===
+              organizationIdentity.organizationMemberOid &&
+            consumerProfile.organizationActorOid === organizationIdentity.organizationActorOid
+          ) {
+            return consumerProfile;
+          }
+
+          return await db.consumerProfile.update({
+            where: { oid: consumerProfile.oid },
+            data: organizationIdentity
+          });
+        })
+    );
   }
 
   private async getAssignableGroupsOrThrow(d: {
@@ -780,6 +926,17 @@ class ConsumerProfileServiceImpl {
             let shouldActivate =
               (d.aresUserId && existingProfile.inviteStatus == 'invited') ||
               (nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted');
+
+            let organizationIdentity = await this.resolveOrganizationIdentity({
+              consumerProfile: existingProfile,
+              surface: d.surface,
+              organization,
+              instanceConsumer,
+              member: d.member,
+              name: d.name,
+              email
+            });
+
             let consumerProfile = await db.consumerProfile.update({
               where: {
                 oid: existingProfile.oid
@@ -791,15 +948,14 @@ class ConsumerProfileServiceImpl {
                 name: d.name,
                 inviteStatus: shouldActivate ? existingProfile.inviteStatus : nextInviteStatus,
                 consumerOid: instanceConsumer.consumerOid,
-                organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
-                organizationActorOid:
-                  d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                ...organizationIdentity,
                 deletedAt: null,
                 ssoGroupIds,
                 ssoRoles
               },
               include
             });
+
             return {
               lifecycleAction: 'updated' as const,
               instanceConsumer,
@@ -812,10 +968,17 @@ class ConsumerProfileServiceImpl {
             surface: d.surface
           });
 
+          let organizationIdentity = await this.resolveOrganizationIdentity({
+            surface: d.surface,
+            organization,
+            instanceConsumer,
+            member: d.member,
+            name: d.name,
+            email
+          });
+
           let accessTag = await db.accessTag.create({
-            data: {
-              instanceOid: d.surface.instanceOid
-            }
+            data: { instanceOid: d.surface.instanceOid }
           });
 
           let personalConsumerGroup = await db.consumerGroup.create({
@@ -849,9 +1012,7 @@ class ConsumerProfileServiceImpl {
                 instanceOid: d.surface.instanceOid,
                 surfaceOid: d.surface.oid,
                 consumerOid: instanceConsumer.consumerOid,
-                organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
-                organizationActorOid:
-                  d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                ...organizationIdentity,
                 accessTagOid: accessTag.oid,
                 personalConsumerGroupOid: personalConsumerGroup.oid
               },
