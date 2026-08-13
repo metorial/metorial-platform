@@ -26,7 +26,6 @@ export type DashboardOrganizationsTeamsListOutput = {
         slug: string;
         name: string;
         organizationId: string;
-        magicMcpSessionDurationMinutes: number;
         createdAt: Date;
         updatedAt: Date;
       };
@@ -81,10 +80,6 @@ export let mapDashboardOrganizationsTeamsListOutput =
                     name: mtMap.objectField('name', mtMap.passthrough()),
                     organizationId: mtMap.objectField(
                       'organization_id',
-                      mtMap.passthrough()
-                    ),
-                    magicMcpSessionDurationMinutes: mtMap.objectField(
-                      'magic_mcp_session_duration_minutes',
                       mtMap.passthrough()
                     ),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
