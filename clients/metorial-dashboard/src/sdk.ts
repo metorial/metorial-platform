@@ -62,9 +62,6 @@ import {
   MetorialDashboardInstanceNetworksEndpoint,
   MetorialDashboardInstancePortalsAccessEndpoint,
   MetorialDashboardInstancePortalsAccessRequestsEndpoint,
-  MetorialDashboardInstancePortalsAuthAppEndpoint,
-  MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint,
-  MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint,
   MetorialDashboardInstancePortalsConsumerGroupsEndpoint,
   MetorialDashboardInstancePortalsConsumerInvitesEndpoint,
   MetorialDashboardInstancePortalsConsumerProfilesEndpoint,
@@ -149,6 +146,8 @@ import {
   MetorialDashboardOrganizationsAccessPoliciesEndpoint,
   MetorialDashboardOrganizationsAccessRolesEndpoint,
   MetorialDashboardOrganizationsApiKeysEndpoint,
+  MetorialDashboardOrganizationsAuditLogStreamsEndpoint,
+  MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
   MetorialDashboardOrganizationsInvitesEndpoint,
@@ -653,17 +652,6 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     consumerProfiles: new MetorialDashboardInstancePortalsConsumerProfilesEndpoint(manager),
     consumerInvites: new MetorialDashboardInstancePortalsConsumerInvitesEndpoint(manager),
     providerGroups: new MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint(manager),
-    auth: {
-      app: new MetorialDashboardInstancePortalsAuthAppEndpoint(manager),
-      ssoTenants: Object.assign(
-        new MetorialDashboardInstancePortalsAuthSsoTenantsEndpoint(manager),
-        {
-          connections: new MetorialDashboardInstancePortalsAuthSsoTenantsConnectionsEndpoint(
-            manager
-          )
-        }
-      )
-    },
     accessRequests: new MetorialDashboardInstancePortalsAccessRequestsEndpoint(manager)
   }),
 
@@ -721,6 +709,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     members: new MetorialDashboardOrganizationsTeamsMembersEndpoint(manager),
     policies: new MetorialDashboardOrganizationsTeamsPoliciesEndpoint(manager)
   }),
+
+  auditLogStreams: Object.assign(
+    new MetorialDashboardOrganizationsAuditLogStreamsEndpoint(manager),
+    {
+      events: new MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint(manager)
+    }
+  ),
 
   customProviders: Object.assign(
     new MetorialDashboardInstanceCustomProvidersEndpoint(manager),
