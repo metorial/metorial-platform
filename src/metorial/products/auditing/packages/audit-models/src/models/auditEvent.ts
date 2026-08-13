@@ -16,9 +16,10 @@ export interface AuditEventActor {
 export interface AuditEvent {
   _id: string;
 
-  resourceTenantOid: string;
-  resourceGroupOid: string;
-  resourceActorOid?: string;
+  organizationOid: string;
+  projectOid?: string;
+  instanceOid?: string;
+  organizationActorOid?: string;
   actor?: AuditEventActor;
   context: AuditEventContext;
   resource: string;
@@ -30,9 +31,10 @@ export interface AuditEvent {
 
 export type AuditEventInput = {
   id: string;
-  resourceTenantOid: bigint | string | number;
-  resourceGroupOid: bigint | string | number;
-  resourceActorOid?: bigint | string | number;
+  organizationOid: bigint | string | number;
+  projectOid?: bigint | string | number;
+  instanceOid?: bigint | string | number;
+  organizationActorOid?: bigint | string | number;
   actor?: AuditActor;
   context: AuditEventContext;
   resource: string;
@@ -44,9 +46,10 @@ export type AuditEventInput = {
 
 export let AuditEventSchema = new mongoose.Schema<AuditEvent>({
   _id: { type: String, required: true },
-  resourceTenantOid: { type: String, index: true },
-  resourceGroupOid: { type: String, index: true },
-  resourceActorOid: { type: String, index: true, required: false },
+  organizationOid: { type: String, index: true },
+  projectOid: { type: String, index: true, required: false },
+  instanceOid: { type: String, index: true, required: false },
+  organizationActorOid: { type: String, index: true, required: false },
   actor: {
     type: { type: String, required: false },
     id: { type: String, required: false },
@@ -63,7 +66,10 @@ export let AuditEventSchema = new mongoose.Schema<AuditEvent>({
   recordedAt: { type: Date, index: true }
 });
 
-AuditEventSchema.index({ resourceTenantOid: 1, recordedAt: -1 });
+AuditEventSchema.index({ organizationOid: 1, recordedAt: -1 });
+AuditEventSchema.index({ projectOid: 1, recordedAt: -1 });
+AuditEventSchema.index({ instanceOid: 1, recordedAt: -1 });
+AuditEventSchema.index({ organizationActorOid: 1, recordedAt: -1 });
 AuditEventSchema.index({ 'actor.type': 1, 'actor.id': 1, recordedAt: -1 });
 AuditEventSchema.index({ resource: 1, action: 1, recordedAt: -1 });
 
@@ -85,6 +91,9 @@ let toMongoValue = (value: unknown): unknown => {
 
 let toOidString = (value: bigint | string | number) => String(value);
 
+let toOptionalOidString = (value?: bigint | string | number) =>
+  value === undefined ? undefined : toOidString(value);
+
 export let ingestAuditEvent = async (event: AuditEventInput) => {
   if (!isAuditDbEnabled()) return;
 
@@ -92,10 +101,10 @@ export let ingestAuditEvent = async (event: AuditEventInput) => {
 
   let doc: AuditEvent = {
     _id: event.id,
-    resourceTenantOid: toOidString(event.resourceTenantOid),
-    resourceGroupOid: toOidString(event.resourceGroupOid),
-    resourceActorOid:
-      event.resourceActorOid === undefined ? undefined : toOidString(event.resourceActorOid),
+    organizationOid: toOidString(event.organizationOid),
+    projectOid: toOptionalOidString(event.projectOid),
+    instanceOid: toOptionalOidString(event.instanceOid),
+    organizationActorOid: toOptionalOidString(event.organizationActorOid),
     actor: event.actor
       ? {
           type: event.actor.type,

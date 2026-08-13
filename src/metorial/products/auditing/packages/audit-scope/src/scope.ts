@@ -21,23 +21,26 @@ export interface AuditActor {
 }
 
 export interface AuditScope {
-  resourceTenantOid: bigint;
-  resourceGroupOid: bigint;
-  resourceActorOid?: bigint;
+  organizationOid: bigint;
+  projectOid?: bigint;
+  instanceOid?: bigint;
+  organizationActorOid?: bigint;
   actor: AuditActor;
   context: Context;
 }
 
 export let createAuditScope = (d: {
-  resourceTenant: { oid: bigint };
-  resourceGroup: { oid: bigint };
-  resourceActor?: { oid: bigint } | null;
+  organization: { oid: bigint };
+  project?: { oid: bigint } | null;
+  instance?: { oid: bigint } | null;
+  organizationActor?: { oid: bigint } | null;
   actor: AuditActor;
   context: Context;
 }): AuditScope => ({
-  resourceTenantOid: d.resourceTenant.oid,
-  resourceGroupOid: d.resourceGroup.oid,
-  resourceActorOid: d.resourceActor?.oid,
+  organizationOid: d.organization.oid,
+  projectOid: d.project?.oid,
+  instanceOid: d.instance?.oid,
+  organizationActorOid: d.organizationActor?.oid,
   actor: d.actor,
   context: d.context
 });

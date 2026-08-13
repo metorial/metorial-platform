@@ -257,8 +257,9 @@ class AuthenticationService {
       return {
         type: 'fine_grained',
         auditScope: createAuditScope({
-          resourceTenant: resourceScope.resourceTenant,
-          resourceGroup: resourceScope.resourceGroup,
+          organization: res.fineGrainedKey.instance.organization,
+          project: res.fineGrainedKey.instance.project,
+          instance: res.fineGrainedKey.instance,
           actor: {
             type: 'fine_grained_token',
             id: res.fineGrainedKey.id,
@@ -400,9 +401,10 @@ class AuthenticationService {
       return {
         type: 'machine',
         auditScope: createAuditScope({
-          resourceTenant: resourceScope.resourceTenant,
-          resourceGroup: resourceScope.resourceGroup,
-          resourceActor,
+          organization: machineAccess.organization,
+          project: machineAccess.instance.project,
+          instance: machineAccess.instance,
+          organizationActor: consumer ? undefined : machineAccess.actor,
           actor: consumer
             ? {
                 type: 'consumer_profile',
@@ -448,6 +450,15 @@ class AuthenticationService {
     ) {
       return {
         type: 'machine',
+        auditScope: createAuditScope({
+          organization: machineAccess.organization,
+          organizationActor: machineAccess.actor,
+          actor: {
+            type: 'org_actor',
+            id: machineAccess.actor.id
+          },
+          context: d.context
+        }),
         apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
         oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,

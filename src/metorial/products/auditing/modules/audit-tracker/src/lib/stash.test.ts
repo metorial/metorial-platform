@@ -36,9 +36,10 @@ describe('stashAuditEvent', () => {
   it('appends a losslessly serialized event to the audit stash', async () => {
     let event = {
       id: 'event-1',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: 4n,
       actor: {
         type: 'org_actor' as const,
         id: 'oac_1'
@@ -47,7 +48,7 @@ describe('stashAuditEvent', () => {
       resource: 'organization',
       action: 'create',
       payload: {
-        oid: 4n,
+        oid: 5n,
         createdAt: new Date('2026-08-12T10:00:00.000Z')
       },
       recordedAt: new Date('2026-08-12T10:01:00.000Z')
@@ -68,9 +69,10 @@ describe('stashAuditEvent', () => {
     await expect(
       stashAuditEvent({
         id: 'event-1',
-        resourceTenantOid: 1n,
-        resourceGroupOid: 2n,
-        resourceActorOid: 3n,
+        organizationOid: 1n,
+        projectOid: 2n,
+        instanceOid: 3n,
+        organizationActorOid: 4n,
         actor: {
           type: 'system',
           id: 'test'
@@ -84,15 +86,16 @@ describe('stashAuditEvent', () => {
     ).rejects.toThrow('Redis unavailable');
   });
 
-  it('decodes legacy stashed events without actor metadata', () => {
-    let legacyEvent = {
+  it('decodes stashed events without actor metadata', () => {
+    let event = {
       id: 'event-1',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: 4n
     };
 
-    expect(decodeStashedAuditEvent(serialize.encode(legacyEvent))).toEqual(legacyEvent);
+    expect(decodeStashedAuditEvent(serialize.encode(event))).toEqual(event);
   });
 
   it('atomically claims a batch of the oldest pending events', async () => {

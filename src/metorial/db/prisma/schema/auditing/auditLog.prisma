@@ -32,4 +32,8 @@ model AuditLog {
   @@index([actorType, actorId, recordedAt])
   @@index([resource, action, recordedAt])
   @@index([eventOid])
+  @@index([organizationOid, recordedAt])
+  @@index([projectOid, recordedAt])
+  @@index([instanceOid, recordedAt])
+  @@index([organizationActorOid, recordedAt])
 }

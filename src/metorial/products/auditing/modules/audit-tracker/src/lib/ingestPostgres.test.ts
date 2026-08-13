@@ -39,9 +39,10 @@ describe('ingestAuditEventToPostgres', () => {
   it('creates an event and linked audit log in postgres', async () => {
     await ingestAuditEventToPostgres({
       id: 'evt_test',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: 4n,
       actor: {
         type: 'org_actor',
         id: 'oac_1'
@@ -49,7 +50,7 @@ describe('ingestAuditEventToPostgres', () => {
       context: { ip: '127.0.0.1', ua: 'test' },
       resource: 'organization',
       action: 'create',
-      payload: { oid: 4n, name: 'Acme' },
+      payload: { oid: 5n, name: 'Acme' },
       previousAttributes: { name: 'Old' },
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
@@ -62,9 +63,10 @@ describe('ingestAuditEventToPostgres', () => {
         action: 'create',
         ip: '127.0.0.1',
         ua: 'test',
-        resourceTenantOid: 1n,
-        resourceGroupOid: 2n,
-        resourceActorOid: 3n,
+        organizationOid: 1n,
+        projectOid: 2n,
+        instanceOid: 3n,
+        organizationActorOid: 4n,
         actorType: 'org_actor',
         actorId: 'oac_1',
         actorMetadata: undefined,
@@ -76,9 +78,10 @@ describe('ingestAuditEventToPostgres', () => {
             action: 'create',
             ip: '127.0.0.1',
             ua: 'test',
-            resourceTenantOid: 1n,
-            resourceGroupOid: 2n,
-            resourceActorOid: 3n,
+            organizationOid: 1n,
+            projectOid: 2n,
+            instanceOid: 3n,
+            organizationActorOid: 4n,
             actorType: 'org_actor',
             actorId: 'oac_1',
             actorMetadata: undefined,
@@ -88,16 +91,17 @@ describe('ingestAuditEventToPostgres', () => {
       }
     });
     expect(dirtyTrackerCreateMany).toHaveBeenCalledWith({
-      data: { resourceTenantOid: 1n },
+      data: { organizationOid: 1n },
       skipDuplicates: true
     });
   });
 
-  it('stores a fine-grained actor without a resource actor oid', async () => {
+  it('stores a fine-grained actor without an organization actor oid', async () => {
     await ingestAuditEventToPostgres({
       id: 'evt_fine_grained',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
       actor: {
         type: 'fine_grained_token',
         id: 'fgk_1',
@@ -114,7 +118,7 @@ describe('ingestAuditEventToPostgres', () => {
 
     expect(eventCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        resourceActorOid: null,
+        organizationActorOid: null,
         actorType: 'fine_grained_token',
         actorId: 'fgk_1',
         actorMetadata: {
@@ -129,9 +133,10 @@ describe('ingestAuditEventToPostgres', () => {
 
     await ingestAuditEventToPostgres({
       id: 'evt_test',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: 4n,
       context: { ip: '127.0.0.1' },
       resource: 'organization',
       action: 'create',
@@ -148,9 +153,10 @@ describe('ingestAuditEventToPostgres', () => {
     await expect(
       ingestAuditEventToPostgres({
         id: 'evt_test',
-        resourceTenantOid: 1n,
-        resourceGroupOid: 2n,
-        resourceActorOid: 3n,
+        organizationOid: 1n,
+        projectOid: 2n,
+        instanceOid: 3n,
+        organizationActorOid: 4n,
         context: { ip: '127.0.0.1' },
         resource: 'organization',
         action: 'create',

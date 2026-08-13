@@ -52,9 +52,10 @@ describe('presentStashedAuditEvent', () => {
   it('presents payload and previousAttributes with magnetar before storage', async () => {
     let event = {
       id: 'evt_1',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: 4n,
       actor: {
         type: 'org_actor',
         id: 'oac_1'

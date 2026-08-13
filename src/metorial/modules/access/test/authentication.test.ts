@@ -268,8 +268,9 @@ describe('AuthenticationService', () => {
           id: 'fgk_1',
           instance: {
             id: 'ins_1',
-            project: { id: 'prj_1' },
-            organization: { id: 'org_1' }
+            oid: 2n,
+            project: { id: 'prj_1', oid: 21n },
+            organization: { id: 'org_1', oid: 1n }
           }
         }
       } as any);
@@ -282,9 +283,10 @@ describe('AuthenticationService', () => {
 
       expect(result.type).toBe('fine_grained');
       expect(result.auditScope).toEqual({
-        resourceTenantOid: 100n,
-        resourceGroupOid: 101n,
-        resourceActorOid: undefined,
+        organizationOid: 1n,
+        projectOid: 21n,
+        instanceOid: 2n,
+        organizationActorOid: undefined,
         actor: {
           type: 'fine_grained_token',
           id: 'fgk_1',
@@ -430,9 +432,9 @@ describe('AuthenticationService', () => {
 
   describe('authenticateApiKey - instance tokens', () => {
     it('should authenticate instance_publishable token with restricted scopes', async () => {
-      let mockOrg = { id: 'org-1', slug: 'test-org', name: 'Test Org' };
-      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
-      let mockProject = { id: 'proj-1', name: 'Test Project' };
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', oid: 11n, organizationId: 'org-1' };
+      let mockProject = { id: 'proj-1', oid: 21n, name: 'Test Project' };
       let mockInstance = {
         id: 'inst-1',
         oid: 2n,
@@ -465,9 +467,10 @@ describe('AuthenticationService', () => {
         expect(result.machineAccess).toEqual(mockMachineAccess);
         expect(result.orgScopes).toEqual(instancePublishableTokenScopes);
         expect(result.auditScope).toEqual({
-          resourceTenantOid: 100n,
-          resourceGroupOid: 101n,
-          resourceActorOid: 102n,
+          organizationOid: 1n,
+          projectOid: 21n,
+          instanceOid: 2n,
+          organizationActorOid: 11n,
           actor: {
             type: 'org_actor',
             id: 'actor-1'
@@ -485,8 +488,8 @@ describe('AuthenticationService', () => {
 
     it('should attach consumer context to instance_publishable tokens', async () => {
       let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
-      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
-      let mockProject = { id: 'proj-1', name: 'Test Project' };
+      let mockActor = { id: 'actor-1', oid: 11n, organizationId: 'org-1' };
+      let mockProject = { id: 'proj-1', oid: 21n, name: 'Test Project' };
       let mockInstance = {
         id: 'inst-1',
         oid: 2n,
@@ -566,9 +569,10 @@ describe('AuthenticationService', () => {
       if (result.type === 'machine' && result.restrictions.type === 'instance') {
         expect(result.orgScopes).toEqual(instancePublishableTokenWithConsumerScopes);
         expect(result.auditScope).toEqual({
-          resourceTenantOid: 100n,
-          resourceGroupOid: 101n,
-          resourceActorOid: 103n,
+          organizationOid: 1n,
+          projectOid: 21n,
+          instanceOid: 2n,
+          organizationActorOid: undefined,
           actor: {
             type: 'consumer_profile',
             id: 'cop_1'
@@ -759,11 +763,12 @@ describe('AuthenticationService', () => {
     });
 
     it('should authenticate instance_secret token with broader scopes', async () => {
-      let mockOrg = { id: 'org-1', slug: 'test-org' };
-      let mockActor = { id: 'actor-1' };
-      let mockProject = { id: 'proj-1' };
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org' };
+      let mockActor = { id: 'actor-1', oid: 11n };
+      let mockProject = { id: 'proj-1', oid: 21n };
       let mockInstance = {
         id: 'inst-1',
+        oid: 2n,
         slug: 'test-instance',
         project: mockProject
       };
@@ -792,9 +797,10 @@ describe('AuthenticationService', () => {
         expect(result.orgScopes).toEqual(instanceSecretTokenScopes);
         expect(result.orgScopes.length).toBeGreaterThan(instancePublishableTokenScopes.length);
         expect(result.auditScope).toEqual({
-          resourceTenantOid: 100n,
-          resourceGroupOid: 101n,
-          resourceActorOid: 102n,
+          organizationOid: 1n,
+          projectOid: 21n,
+          instanceOid: 2n,
+          organizationActorOid: 11n,
           actor: {
             type: 'org_actor',
             id: 'actor-1'
@@ -832,8 +838,8 @@ describe('AuthenticationService', () => {
 
   describe('authenticateApiKey - organization tokens', () => {
     it('should authenticate organization_management token', async () => {
-      let mockOrg = { id: 'org-1', slug: 'test-org', name: 'Test Org' };
-      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', oid: 11n, organizationId: 'org-1' };
       let mockMachineAccess = {
         type: 'organization_management',
         organization: mockOrg,
@@ -858,7 +864,17 @@ describe('AuthenticationService', () => {
         expect(result.apiKey).toEqual(mockApiKey);
         expect(result.machineAccess).toEqual(mockMachineAccess);
         expect(result.orgScopes).toEqual(orgManagementTokenScopes);
-        expect(result.auditScope).toBeUndefined();
+        expect(result.auditScope).toEqual({
+          organizationOid: 1n,
+          projectOid: undefined,
+          instanceOid: undefined,
+          organizationActorOid: 11n,
+          actor: {
+            type: 'org_actor',
+            id: 'actor-1'
+          },
+          context: mockContext
+        });
         expect(result.restrictions.type).toBe('organization');
         if (result.restrictions.type === 'organization') {
           expect(result.restrictions.organization).toEqual(mockOrg);
@@ -868,8 +884,8 @@ describe('AuthenticationService', () => {
     });
 
     it('uses machine access user fallback for oauth organization tokens', async () => {
-      let mockOrg = { id: 'org-1', slug: 'test-org', name: 'Test Org' };
-      let mockActor = { id: 'actor-1', organizationId: 'org-1' };
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org', name: 'Test Org' };
+      let mockActor = { id: 'actor-1', oid: 11n, organizationId: 'org-1' };
       let mockUser = { id: 'user-1' };
       let mockMachineAccess = {
         type: 'organization_management',
@@ -931,8 +947,8 @@ describe('AuthenticationService', () => {
     });
 
     it('should not include user scopes in organization_management token', async () => {
-      let mockOrg = { id: 'org-1', slug: 'test-org' };
-      let mockActor = { id: 'actor-1' };
+      let mockOrg = { id: 'org-1', oid: 1n, slug: 'test-org' };
+      let mockActor = { id: 'actor-1', oid: 11n };
       let mockMachineAccess = {
         type: 'organization_management',
         organization: mockOrg,

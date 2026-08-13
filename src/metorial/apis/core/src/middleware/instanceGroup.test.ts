@@ -72,10 +72,10 @@ it('builds an audit scope after resolving a user instance', async () => {
   let context = { ip: '127.0.0.1', ua: 'test-agent' };
   mocks.accessInstance.mockResolvedValue({
     type: 'user',
-    instance: { id: 'ins_1' },
-    organization: { id: 'org_1' },
-    project: { id: 'prj_1' },
-    actor: { id: 'act_1' },
+    instance: { id: 'ins_1', oid: 3n },
+    organization: { id: 'org_1', oid: 1n },
+    project: { id: 'prj_1', oid: 2n },
+    actor: { id: 'act_1', oid: 4n },
     member: { id: 'mem_1' },
     resourceTenant: { oid: 10n },
     resourceGroup: { oid: 20n },
@@ -89,9 +89,10 @@ it('builds an audit scope after resolving a user instance', async () => {
   });
 
   expect(result.auditScope).toEqual({
-    resourceTenantOid: 10n,
-    resourceGroupOid: 20n,
-    resourceActorOid: 30n,
+    organizationOid: 1n,
+    projectOid: 2n,
+    instanceOid: 3n,
+    organizationActorOid: 4n,
     actor: {
       type: 'org_actor',
       id: 'act_1'
@@ -102,13 +103,13 @@ it('builds an audit scope after resolving a user instance', async () => {
 
 it('overrides the audit actor when a consumer profile is selected', async () => {
   let context = { ip: '127.0.0.1', ua: 'test-agent' };
-  let instance = { id: 'ins_1' };
+  let instance = { id: 'ins_1', oid: 3n };
   mocks.accessInstance.mockResolvedValue({
     type: 'user',
     instance,
-    organization: { id: 'org_1' },
-    project: { id: 'prj_1' },
-    actor: { id: 'act_1' },
+    organization: { id: 'org_1', oid: 1n },
+    project: { id: 'prj_1', oid: 2n },
+    actor: { id: 'act_1', oid: 4n },
     member: { id: 'mem_1' },
     resourceTenant: { oid: 10n },
     resourceGroup: { oid: 20n },
@@ -135,9 +136,10 @@ it('overrides the audit actor when a consumer profile is selected', async () => 
   });
 
   expect(result.auditScope).toEqual({
-    resourceTenantOid: 10n,
-    resourceGroupOid: 20n,
-    resourceActorOid: 40n,
+    organizationOid: 1n,
+    projectOid: 2n,
+    instanceOid: 3n,
+    organizationActorOid: undefined,
     actor: {
       type: 'consumer_profile',
       id: 'cop_1'

@@ -49,9 +49,10 @@ class AuditTrackerServiceImpl {
 
     await stashAuditEvent({
       id: await ID.generateId('auditEvent'),
-      resourceTenantOid: auditScope.resourceTenantOid,
-      resourceGroupOid: auditScope.resourceGroupOid,
-      resourceActorOid: auditScope.resourceActorOid,
+      organizationOid: auditScope.organizationOid,
+      projectOid: auditScope.projectOid,
+      instanceOid: auditScope.instanceOid,
+      organizationActorOid: auditScope.organizationActorOid,
       actor: auditScope.actor,
       context: auditScope.context,
       resource: String(resource),

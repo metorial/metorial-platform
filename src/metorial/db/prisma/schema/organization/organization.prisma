@@ -100,6 +100,7 @@ model Organization {
   namespaceProperties                    NamespaceProperty[]
   auditLogs                              AuditLog[]
   events                                 Event[]
+  auditLogDirtyTrackers                  AuditLogDirtyTracker[]
 
   @@index([authVersion])
   @@index([previousSlugs])

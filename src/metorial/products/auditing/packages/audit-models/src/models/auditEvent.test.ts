@@ -56,9 +56,10 @@ describe('audit models', () => {
   it('upserts an audit event with bigint fields converted to strings', async () => {
     await ingestAuditEvent({
       id: 'event-1',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: 4n,
       actor: {
         type: 'org_actor',
         id: 'oac_1'
@@ -66,7 +67,7 @@ describe('audit models', () => {
       context: { ip: '127.0.0.1', ua: 'test' },
       resource: 'organization',
       action: 'create',
-      payload: { oid: 4n, name: 'Acme' },
+      payload: { oid: 5n, name: 'Acme' },
       previousAttributes: { name: 'Old' },
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
@@ -76,9 +77,10 @@ describe('audit models', () => {
       {
         $setOnInsert: {
           _id: 'event-1',
-          resourceTenantOid: '1',
-          resourceGroupOid: '2',
-          resourceActorOid: '3',
+          organizationOid: '1',
+          projectOid: '2',
+          instanceOid: '3',
+          organizationActorOid: '4',
           actor: {
             type: 'org_actor',
             id: 'oac_1',
@@ -87,7 +89,7 @@ describe('audit models', () => {
           context: { ip: '127.0.0.1', ua: 'test' },
           resource: 'organization',
           action: 'create',
-          payload: { oid: '4', name: 'Acme' },
+          payload: { oid: '5', name: 'Acme' },
           previousAttributes: { name: 'Old' },
           recordedAt: new Date('2026-08-12T10:00:00.000Z')
         }
@@ -96,11 +98,12 @@ describe('audit models', () => {
     );
   });
 
-  it('stores a fine-grained actor without a resource actor oid', async () => {
+  it('stores a fine-grained actor without an organization actor oid', async () => {
     await ingestAuditEvent({
       id: 'event-2',
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
       actor: {
         type: 'fine_grained_token',
         id: 'fgk_1',
@@ -119,7 +122,7 @@ describe('audit models', () => {
       { _id: 'event-2' },
       {
         $setOnInsert: expect.objectContaining({
-          resourceActorOid: undefined,
+          organizationActorOid: undefined,
           actor: {
             type: 'fine_grained_token',
             id: 'fgk_1',

@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { createAuditScope } from './scope';
 
 describe('createAuditScope', () => {
-  it('creates an organization actor scope with a resource actor', () => {
+  it('creates an organization actor scope', () => {
     let context = { ip: '127.0.0.1' };
 
     expect(
       createAuditScope({
-        resourceTenant: { oid: 1n },
-        resourceGroup: { oid: 2n },
-        resourceActor: { oid: 3n },
+        organization: { oid: 1n },
+        project: { oid: 2n },
+        instance: { oid: 3n },
+        organizationActor: { oid: 4n },
         actor: {
           type: 'org_actor',
           id: 'oac_1'
@@ -17,9 +18,10 @@ describe('createAuditScope', () => {
         context
       })
     ).toEqual({
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: 3n,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: 4n,
       actor: {
         type: 'org_actor',
         id: 'oac_1'
@@ -28,13 +30,14 @@ describe('createAuditScope', () => {
     });
   });
 
-  it('creates a fine-grained scope without a resource actor', () => {
+  it('creates a fine-grained scope without an organization actor', () => {
     let context = { ip: '127.0.0.1' };
 
     expect(
       createAuditScope({
-        resourceTenant: { oid: 1n },
-        resourceGroup: { oid: 2n },
+        organization: { oid: 1n },
+        project: { oid: 2n },
+        instance: { oid: 3n },
         actor: {
           type: 'fine_grained_token',
           id: 'fgk_1',
@@ -45,9 +48,10 @@ describe('createAuditScope', () => {
         context
       })
     ).toEqual({
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
-      resourceActorOid: undefined,
+      organizationOid: 1n,
+      projectOid: 2n,
+      instanceOid: 3n,
+      organizationActorOid: undefined,
       actor: {
         type: 'fine_grained_token',
         id: 'fgk_1',
@@ -61,8 +65,7 @@ describe('createAuditScope', () => {
 
   it('accepts consumer-profile and system actors', () => {
     let base = {
-      resourceTenant: { oid: 1n },
-      resourceGroup: { oid: 2n },
+      organization: { oid: 1n },
       context: { ip: '127.0.0.1' }
     };
 

@@ -36,9 +36,10 @@ beforeEach(() => {
 
 it('preserves an audit scope returned by bearer authentication', async () => {
   let auditScope = {
-    resourceTenantOid: 1n,
-    resourceGroupOid: 2n,
-    resourceActorOid: 3n,
+    organizationOid: 1n,
+    projectOid: 2n,
+    instanceOid: 3n,
+    organizationActorOid: 4n,
     actor: {
       type: 'org_actor',
       id: 'oac_1'

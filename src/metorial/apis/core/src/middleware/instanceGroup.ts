@@ -123,9 +123,9 @@ export let instanceGroup = apiGroup.use(async ctx => {
       consumerProfile: consumerProfile,
       resourceActor,
       auditScope: createAuditScope({
-        resourceTenant: res.resourceTenant,
-        resourceGroup: res.resourceGroup,
-        resourceActor,
+        organization: res.organization,
+        project: res.project,
+        instance: res.instance,
         actor: {
           type: 'consumer_profile',
           id: consumerProfile.id
@@ -138,9 +138,10 @@ export let instanceGroup = apiGroup.use(async ctx => {
 
   return Object.assign(res, consumerPlaceholder, {
     auditScope: createAuditScope({
-      resourceTenant: res.resourceTenant,
-      resourceGroup: res.resourceGroup,
-      resourceActor: res.resourceActor,
+      organization: res.organization,
+      project: res.project,
+      instance: res.instance,
+      organizationActor,
       actor: {
         type: 'org_actor',
         id: organizationActor.id

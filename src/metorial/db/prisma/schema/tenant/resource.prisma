@@ -45,7 +45,6 @@ model ResourceTenant {
   productAssistantConversations          ProductAssistantConversation[]
   productAssistantModelRuns              ProductAssistantModelRun[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
-  auditLogDirtyTrackers                  AuditLogDirtyTracker[]
 }
 
 enum ResourceGroupType {

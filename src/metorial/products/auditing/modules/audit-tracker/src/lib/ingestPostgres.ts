@@ -3,12 +3,15 @@ import type { StashedAuditEvent } from './stash';
 
 let toOid = (value: bigint | string | number) => BigInt(value);
 
+let toOptionalOid = (value?: bigint | string | number) =>
+  value === undefined ? null : toOid(value);
+
 export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
   await withTransaction(async db => {
-    let resourceTenantOid = toOid(event.resourceTenantOid);
-    let resourceGroupOid = toOid(event.resourceGroupOid);
-    let resourceActorOid =
-      event.resourceActorOid === undefined ? null : toOid(event.resourceActorOid);
+    let organizationOid = toOid(event.organizationOid);
+    let projectOid = toOptionalOid(event.projectOid);
+    let instanceOid = toOptionalOid(event.instanceOid);
+    let organizationActorOid = toOptionalOid(event.organizationActorOid);
 
     try {
       await db.event.create({
@@ -18,9 +21,10 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
           action: event.action,
           ip: event.context.ip,
           ua: event.context.ua ?? null,
-          resourceTenantOid,
-          resourceGroupOid,
-          resourceActorOid,
+          organizationOid,
+          projectOid,
+          instanceOid,
+          organizationActorOid,
           actorType: event.actor?.type ?? null,
           actorId: event.actor?.id ?? null,
           actorMetadata: event.actor?.metadata,
@@ -32,9 +36,10 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
               action: event.action,
               ip: event.context.ip,
               ua: event.context.ua ?? null,
-              resourceTenantOid,
-              resourceGroupOid,
-              resourceActorOid,
+              organizationOid,
+              projectOid,
+              instanceOid,
+              organizationActorOid,
               actorType: event.actor?.type ?? null,
               actorId: event.actor?.id ?? null,
               actorMetadata: event.actor?.metadata,
@@ -45,7 +50,7 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
       });
 
       await db.auditLogDirtyTracker.createMany({
-        data: { resourceTenantOid },
+        data: { organizationOid },
         skipDuplicates: true
       });
     } catch (error: any) {

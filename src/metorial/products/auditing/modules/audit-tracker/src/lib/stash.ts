@@ -26,9 +26,10 @@ return values
 
 export interface StashedAuditEvent {
   id: string;
-  resourceTenantOid: bigint;
-  resourceGroupOid: bigint;
-  resourceActorOid?: bigint;
+  organizationOid: bigint;
+  projectOid?: bigint;
+  instanceOid?: bigint;
+  organizationActorOid?: bigint;
   actor?: AuditActor;
   context: AuditScope['context'];
   resource: string;

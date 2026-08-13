@@ -38,9 +38,10 @@ vi.mock('@metorial/db', () => ({
 import { auditTrackerService } from './auditTracker';
 
 let auditScope = {
-  resourceTenantOid: 1n,
-  resourceGroupOid: 2n,
-  resourceActorOid: 3n,
+  organizationOid: 1n,
+  projectOid: 2n,
+  instanceOid: 3n,
+  organizationActorOid: 4n,
   actor: {
     type: 'org_actor' as const,
     id: 'oac_1'
@@ -119,11 +120,12 @@ describe('auditTrackerService', () => {
     );
   });
 
-  it('stashes a system actor without a resource actor oid', async () => {
+  it('stashes a system actor without an organization actor oid', async () => {
     await (auditTrackerService.recordEvent as any)(
       {
-        resourceTenantOid: 1n,
-        resourceGroupOid: 2n,
+        organizationOid: 1n,
+        projectOid: 2n,
+        instanceOid: 3n,
         actor: {
           type: 'system',
           id: 'audit-worker'
@@ -141,7 +143,7 @@ describe('auditTrackerService', () => {
 
     expect(stashAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        resourceActorOid: undefined,
+        organizationActorOid: undefined,
         actor: {
           type: 'system',
           id: 'audit-worker'
