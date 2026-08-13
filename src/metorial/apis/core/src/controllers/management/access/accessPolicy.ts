@@ -121,8 +121,7 @@ export let accessPolicyManagementController = Controller.create(
       .do(async ctx => {
         let accessPolicy = await accessPolicyService.createAccessPolicy({
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -167,8 +166,7 @@ export let accessPolicyManagementController = Controller.create(
         let accessPolicy = await accessPolicyService.updateAccessPolicy({
           accessPolicy: ctx.accessPolicy,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -200,8 +198,7 @@ export let accessPolicyManagementController = Controller.create(
         await accessPolicyService.deleteAccessPolicy({
           accessPolicy: ctx.accessPolicy,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return accessPolicyPresenter.present({ accessPolicy: ctx.accessPolicy });

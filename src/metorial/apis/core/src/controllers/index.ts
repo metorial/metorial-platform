@@ -170,6 +170,7 @@ import {
 import {
   accessPolicyManagementController,
   accessRoleManagementController,
+  auditLogManagementController,
   cliDeviceManagementController,
   instanceManagementController,
   managementApiKeyController,
@@ -603,6 +604,7 @@ export let dashboardController = Controller.create<any>(
 
     instanceManagementController,
     organizationManagementController,
+    auditLogManagementController,
     accessRoleManagementController,
     accessPolicyManagementController,
     oauthScopeManagementController,

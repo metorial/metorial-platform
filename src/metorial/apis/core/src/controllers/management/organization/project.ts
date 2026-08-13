@@ -135,8 +135,7 @@ export let projectManagementController = Controller.create(
             magicMcpSessionDurationMinutes: ctx.body.magic_mcp_session_duration_minutes
           },
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return projectPresenter.present({ project });
@@ -168,8 +167,7 @@ export let projectManagementController = Controller.create(
         project = await projectService.deleteProject({
           project,
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return projectPresenter.present({ project });
@@ -212,8 +210,7 @@ export let projectManagementController = Controller.create(
             name: ctx.body.name,
             magicMcpSessionDurationMinutes: ctx.body.magic_mcp_session_duration_minutes
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return projectPresenter.present({ project });
@@ -267,7 +264,7 @@ export let projectManagementController = Controller.create(
             name: ctx.body.name,
             imageFileId: ctx.body.image_file_id
           },
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return projectBrandPresenter.present({ projectBrand });

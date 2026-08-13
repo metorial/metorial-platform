@@ -149,8 +149,7 @@ export let serviceAccountManagementController = Controller.create(
       .do(async ctx => {
         let serviceAccount = await serviceAccountService.createServiceAccount({
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -186,8 +185,7 @@ export let serviceAccountManagementController = Controller.create(
         let serviceAccount = await serviceAccountService.updateServiceAccount({
           serviceAccount: ctx.serviceAccount,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -215,8 +213,7 @@ export let serviceAccountManagementController = Controller.create(
         let serviceAccount = await serviceAccountService.archiveServiceAccount({
           serviceAccount: ctx.serviceAccount,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return serviceAccountPresenter.present({ serviceAccount });
@@ -239,7 +236,8 @@ export let serviceAccountManagementController = Controller.create(
       .do(async ctx => {
         let oauthApplicationClientSecret =
           await serviceAccountService.createServiceAccountClientSecret({
-            serviceAccount: ctx.serviceAccount
+            serviceAccount: ctx.serviceAccount,
+            auditScope: ctx.auditScope
           });
 
         return oauthApplicationClientSecretPresenter.present({
@@ -264,7 +262,8 @@ export let serviceAccountManagementController = Controller.create(
       .do(async ctx => {
         let oauthApplicationClientSecret =
           await serviceAccountService.deleteServiceAccountClientSecret({
-            oauthApplicationClientSecret: ctx.oauthApplicationClientSecret
+            oauthApplicationClientSecret: ctx.oauthApplicationClientSecret,
+            auditScope: ctx.auditScope
           });
 
         return oauthApplicationClientSecretPresenter.present({
@@ -359,8 +358,7 @@ export let serviceAccountManagementController = Controller.create(
           organization: ctx.organization,
           serviceAccount: ctx.serviceAccount,
           accessPolicy,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         let serviceAccount = await serviceAccountService.getServiceAccountById({
@@ -394,8 +392,7 @@ export let serviceAccountManagementController = Controller.create(
           organization: ctx.organization,
           serviceAccount: ctx.serviceAccount,
           accessPolicy,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         let serviceAccount = await serviceAccountService.getServiceAccountById({

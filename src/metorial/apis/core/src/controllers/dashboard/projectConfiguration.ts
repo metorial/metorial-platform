@@ -104,8 +104,7 @@ export let dashboardProjectConfigurationController = Controller.create(
         project = await projectRetentionService.updateProjectRetention({
           project,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             logRetentionInDays: ctx.body.log_retention_in_days,
             enforceSessionExpiry: ctx.body.enforce_session_expiry

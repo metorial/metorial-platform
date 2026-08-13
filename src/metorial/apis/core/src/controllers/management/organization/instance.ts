@@ -153,8 +153,7 @@ export let instanceManagementController = Controller.create(
         instance = await instanceService.deleteInstance({
           instance,
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return instancePresenter.present({ instance });
@@ -196,8 +195,7 @@ export let instanceManagementController = Controller.create(
           input: {
             name: ctx.body.name
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return instancePresenter.present({ instance });

@@ -37,7 +37,6 @@ beforeEach(() => {
 it('preserves an audit scope returned by bearer authentication', async () => {
   let auditScope = {
     organizationOid: 1n,
-    projectOid: 2n,
     instanceOid: 3n,
     organizationActorOid: 4n,
     actor: {

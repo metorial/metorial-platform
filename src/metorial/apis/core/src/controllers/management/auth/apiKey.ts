@@ -254,10 +254,9 @@ export let managementApiKeyController = Controller.create(
               expiresAt: ctx.body.expires_at,
               ipFilters: ctx.body.ip_filters
             },
-            context: ctx.context,
             type: 'organization_management_token',
             organization: ctx.organization,
-            performedBy: ctx.actor
+            auditScope: ctx.auditScope
           });
 
           return apiKeyPresenter.present({
@@ -294,12 +293,11 @@ export let managementApiKeyController = Controller.create(
               expiresAt: ctx.body.expires_at,
               ipFilters: ctx.body.ip_filters
             },
-            context: ctx.context,
             type: ctx.body.type,
 
             instance,
             organization: ctx.organization,
-            performedBy: ctx.actor
+            auditScope: ctx.auditScope
           });
 
           return apiKeyPresenter.present({
@@ -356,8 +354,7 @@ export let managementApiKeyController = Controller.create(
             expiresAt: ctx.body.expires_at,
             ipFilters: ctx.body.ip_filters
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return apiKeyPresenter.present({
@@ -397,8 +394,7 @@ export let managementApiKeyController = Controller.create(
 
         apiKey = await apiKeyService.revokeApiKey({
           apiKey,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return apiKeyPresenter.present({
@@ -445,8 +441,7 @@ export let managementApiKeyController = Controller.create(
 
         let res = await apiKeyService.rotateApiKey({
           apiKey,
-          context: ctx.context,
-          performedBy: ctx.actor,
+          auditScope: ctx.auditScope,
           input: {
             currentExpiresAt: ctx.body.current_expires_at
           }
@@ -491,8 +486,7 @@ export let managementApiKeyController = Controller.create(
 
         let secret = await apiKeyService.revealApiKey({
           apiKey,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return apiKeyPresenter.present({

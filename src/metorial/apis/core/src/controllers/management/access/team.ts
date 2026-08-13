@@ -83,8 +83,7 @@ export let teamManagementController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return teamPresenter.present({ team });
@@ -112,8 +111,7 @@ export let teamManagementController = Controller.create(
             description: ctx.body.description
           },
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return teamPresenter.present({ team });
@@ -147,8 +145,7 @@ export let teamManagementController = Controller.create(
           team,
           organization: ctx.organization,
           actor,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         team = await teamService.getTeamById({
@@ -184,8 +181,7 @@ export let teamManagementController = Controller.create(
           team,
           organization: ctx.organization,
           actor,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         team = await teamService.getTeamById({
@@ -223,8 +219,7 @@ export let teamManagementController = Controller.create(
           organization: ctx.organization,
           team,
           accessPolicy,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         team = await teamService.getTeamById({
@@ -262,8 +257,7 @@ export let teamManagementController = Controller.create(
           organization: ctx.organization,
           team,
           accessPolicy,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         team = await teamService.getTeamById({

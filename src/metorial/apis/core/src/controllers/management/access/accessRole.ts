@@ -110,8 +110,7 @@ export let accessRoleManagementController = Controller.create(
       .do(async ctx => {
         let accessRole = await accessRoleService.createAccessRole({
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -144,8 +143,7 @@ export let accessRoleManagementController = Controller.create(
         let accessRole = await accessRoleService.updateAccessRole({
           accessRole: ctx.accessRole,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -169,8 +167,7 @@ export let accessRoleManagementController = Controller.create(
         let accessRole = await accessRoleService.deleteAccessRole({
           accessRole: ctx.accessRole,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return accessRolePresenter.present({ accessRole });

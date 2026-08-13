@@ -116,8 +116,7 @@ export let dashboardToolCallingConfigurationController = Controller.create(
           await projectToolCallingConfigurationService.updateProjectToolCallingConfiguration({
             project,
             organization: ctx.organization,
-            performedBy: ctx.actor,
-            context: ctx.context,
+            auditScope: ctx.auditScope,
             input: {
               collectOperationDescriptionForToolCalls:
                 ctx.body.collect_operation_description_for_tool_calls,

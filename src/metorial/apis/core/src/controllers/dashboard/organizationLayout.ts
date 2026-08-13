@@ -118,8 +118,7 @@ export let dashboardOrganizationLayoutController = Controller.create(
           value: ctx.body.value,
           user,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return organizationLayoutPresenter.present({ layout });

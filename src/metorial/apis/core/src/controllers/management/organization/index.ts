@@ -1,3 +1,4 @@
+export * from './auditLog';
 export * from './instance';
 export * from './organization';
 export * from './organizationInvite';

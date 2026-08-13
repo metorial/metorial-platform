@@ -109,8 +109,7 @@ export let dashboardIntegrationNamingConfigurationController = Controller.create
             {
               project,
               organization: ctx.organization,
-              performedBy: ctx.actor,
-              context: ctx.context,
+              auditScope: ctx.auditScope,
               input: {
                 useIntegrationNames: ctx.body.use_integration_name_in_tool_names
               }

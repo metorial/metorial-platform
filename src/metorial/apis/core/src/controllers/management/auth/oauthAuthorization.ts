@@ -111,8 +111,7 @@ export let oauthAuthorizationManagementController = Controller.create(
       .do(async ctx => {
         let oauthAuthorization = await oauthAuthorizationService.revokeOAuthAuthorization({
           oauthAuthorization: ctx.oauthAuthorization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return oauthAuthorizationPresenter.present({ oauthAuthorization });

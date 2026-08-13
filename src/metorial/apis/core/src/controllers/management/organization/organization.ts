@@ -45,8 +45,7 @@ export let organizationManagementController = Controller.create(
             imageFileId: ctx.body.image_file_id
           },
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationPresenter.present({ organization });

@@ -147,8 +147,7 @@ export let sandboxManagementController = Controller.create(
           },
           project,
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return sandboxPresenter.present({ sandbox });
@@ -190,8 +189,7 @@ export let sandboxManagementController = Controller.create(
           input: {
             name: ctx.body.name
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return sandboxPresenter.present({ sandbox });

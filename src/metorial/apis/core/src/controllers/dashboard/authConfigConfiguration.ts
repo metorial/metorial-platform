@@ -120,8 +120,7 @@ export let dashboardAuthConfigConfigurationController = Controller.create(
           await projectAuthConfigConfigurationService.updateProjectAuthConfigConfiguration({
             project,
             organization: ctx.organization,
-            performedBy: ctx.actor,
-            context: ctx.context,
+            auditScope: ctx.auditScope,
             input: {
               allowAuthConfigExport: ctx.body.allow_auth_config_export,
               allowAuthConfigImport: ctx.body.allow_auth_config_import,

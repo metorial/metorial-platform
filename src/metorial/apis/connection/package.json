@@ -17,7 +17,6 @@
     "@metorial/fabric": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
     "@metorial/module-magic": "^1.0.0",
-    "@metorial/module-protect": "^1.0.0",
     "@metorial-subspace/module-connection": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.25.2",

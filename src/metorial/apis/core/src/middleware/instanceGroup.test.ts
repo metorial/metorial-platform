@@ -90,7 +90,6 @@ it('builds an audit scope after resolving a user instance', async () => {
 
   expect(result.auditScope).toEqual({
     organizationOid: 1n,
-    projectOid: 2n,
     instanceOid: 3n,
     organizationActorOid: 4n,
     actor: {
@@ -137,7 +136,6 @@ it('overrides the audit actor when a consumer profile is selected', async () => 
 
   expect(result.auditScope).toEqual({
     organizationOid: 1n,
-    projectOid: 2n,
     instanceOid: 3n,
     organizationActorOid: undefined,
     actor: {
