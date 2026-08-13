@@ -139,7 +139,7 @@ class ConsumerProfileServiceImpl {
           ? await db.organizationActor.findUnique({
               where: { oid: d.consumerProfile.organizationActorOid },
               include: {
-                consumerProfiles: {
+                consumerProfile: {
                   select: { oid: true }
                 }
               }
@@ -147,9 +147,7 @@ class ConsumerProfileServiceImpl {
           : null;
         if (
           currentOrganizationActor?.type === 'consumer_profile' &&
-          currentOrganizationActor.consumerProfiles.every(
-            profile => profile.oid === d.consumerProfile?.oid
-          )
+          currentOrganizationActor.consumerProfile?.oid === d.consumerProfile?.oid
         ) {
           return {
             organizationMemberOid: null,

@@ -165,7 +165,7 @@ describe('consumer profile organization actors', () => {
     mocks.db.organizationActor.findUnique.mockResolvedValue({
       oid: 21n,
       type: 'member',
-      consumerProfiles: [{ oid: 7n }]
+      consumerProfile: { oid: 7n }
     });
     mocks.db.consumerProfile.update.mockImplementation(async ({ data }) => ({
       ...consumerProfile,
@@ -215,7 +215,7 @@ describe('consumer profile organization actors', () => {
     mocks.db.organizationActor.findUnique.mockResolvedValue({
       oid: 8n,
       type: 'consumer_profile',
-      consumerProfiles: [{ oid: 7n }]
+      consumerProfile: { oid: 7n }
     });
 
     await consumerProfileService.reconcileConsumerProfileOrganizationActor({
@@ -226,7 +226,7 @@ describe('consumer profile organization actors', () => {
     expect(mocks.db.consumerProfile.update).not.toHaveBeenCalled();
   });
 
-  it('replaces a consumer profile actor shared by another profile', async () => {
+  it('replaces a consumer profile actor linked to another profile', async () => {
     let consumerProfile = profile({ organizationActorOid: 8n });
     mocks.db.consumerProfile.findUnique.mockResolvedValue(consumerProfile);
     mocks.createOrganizationActor.mockResolvedValue({
@@ -237,7 +237,7 @@ describe('consumer profile organization actors', () => {
     mocks.db.organizationActor.findUnique.mockResolvedValue({
       oid: 8n,
       type: 'consumer_profile',
-      consumerProfiles: [{ oid: 7n }, { oid: 9n }]
+      consumerProfile: { oid: 9n }
     });
 
     await consumerProfileService.reconcileConsumerProfileOrganizationActor({
