@@ -13,7 +13,6 @@ class actorServiceImpl {
       identifier: string;
       type: TenantActorType;
       organizationActorId?: string;
-      consumerId?: string;
       resourceActorId?: string;
       resourceActorIdentifier?: string;
     };
@@ -34,7 +33,6 @@ class actorServiceImpl {
         identifier: d.input.identifier,
         type: d.input.type,
         organizationActorId: d.input.organizationActorId,
-        consumerId: d.input.consumerId,
         resourceActorId: d.input.resourceActorId,
         resourceActorIdentifier: d.input.resourceActorIdentifier
       },
@@ -45,7 +43,6 @@ class actorServiceImpl {
         type: d.input.type,
         tenantOid: d.tenant.oid,
         organizationActorId: d.input.organizationActorId,
-        consumerId: d.input.consumerId,
         resourceActorId: d.input.resourceActorId,
         resourceActorIdentifier: d.input.resourceActorIdentifier
       },

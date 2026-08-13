@@ -237,7 +237,6 @@ model TenantActor {
   identifier          String
   name                String
   organizationActorId String?
-  consumerId          String?
 
   resourceActorId         String?
   resourceActorIdentifier String?

@@ -22,7 +22,6 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
-  type MetorialFacingWithOptionalConsumerActor,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
@@ -153,10 +152,8 @@ class providerAuthExportServiceImpl {
     return providerAuthExport;
   }
 
-  async createProviderAuthExport(
-    d: MetorialFacingWithOptionalConsumerActor<CreateProviderAuthExportParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async createProviderAuthExport(d: MetorialFacing<CreateProviderAuthExportParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);

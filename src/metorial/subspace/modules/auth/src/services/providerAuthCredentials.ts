@@ -32,7 +32,6 @@ import {
   getMetorialSolution,
   checkTenant,
   type MetorialFacing,
-  type MetorialFacingWithOptionalConsumerActor,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
@@ -222,10 +221,8 @@ type GetProviderAuthCredentialsForBackendUseParams = {
 };
 
 class providerAuthCredentialsServiceImpl {
-  async createProviderAuthCredentials(
-    d: MetorialFacingWithOptionalConsumerActor<CreateParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async createProviderAuthCredentials(d: MetorialFacing<CreateParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -245,10 +242,8 @@ class providerAuthCredentialsServiceImpl {
     return authCredentials;
   }
 
-  async updateProviderAuthCredentials(
-    d: MetorialFacingWithOptionalConsumerActor<UpdateProviderAuthCredentialsParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async updateProviderAuthCredentials(d: MetorialFacing<UpdateProviderAuthCredentialsParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -269,9 +264,9 @@ class providerAuthCredentialsServiceImpl {
   }
 
   async archiveProviderAuthCredentials(
-    d: MetorialFacingWithOptionalConsumerActor<ArchiveProviderAuthCredentialsParams>
+    d: MetorialFacing<ArchiveProviderAuthCredentialsParams>
   ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -441,7 +436,10 @@ class providerAuthCredentialsServiceImpl {
           where: {
             id: d.providerAuthCredentialsId,
             ...normalizeStatusForGet(d).noParent,
-            OR: [getTenantOwnedWhere({ ...d, solution }), getManagedBackingWhere({ tenant: d.tenant, solution })]
+            OR: [
+              getTenantOwnedWhere({ ...d, solution }),
+              getManagedBackingWhere({ tenant: d.tenant, solution })
+            ]
           },
           include
         }),
@@ -480,7 +478,10 @@ class providerAuthCredentialsServiceImpl {
       where: {
         id: { in: d.ids },
         ...normalizeStatusForGet(d).noParent,
-        OR: [getTenantOwnedWhere({ ...d, solution }), getManagedBackingWhere({ tenant: d.tenant, solution })]
+        OR: [
+          getTenantOwnedWhere({ ...d, solution }),
+          getManagedBackingWhere({ tenant: d.tenant, solution })
+        ]
       },
       include
     });
@@ -676,7 +677,10 @@ class providerAuthCredentialsServiceImpl {
   }
 
   async ensureDefaultProviderAuthCredentialsInternal(
-    d: { tenant: Tenant; environment: Environment } & EnsureDefaultProviderAuthCredentialsParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & EnsureDefaultProviderAuthCredentialsParams
   ) {
     let solution = await getMetorialSolution();
     let getExisting = () =>

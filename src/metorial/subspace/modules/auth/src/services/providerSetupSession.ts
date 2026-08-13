@@ -44,7 +44,6 @@ import {
   checkTenant,
   metorialDb,
   type MetorialFacing,
-  type MetorialFacingWithOptionalConsumerActor,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
@@ -260,11 +259,11 @@ class providerSetupSessionServiceImpl {
   }
 
   async createProviderSetupSession(
-    d: MetorialFacingWithOptionalConsumerActor<CreateProviderSetupSessionParams> & {
+    d: MetorialFacing<CreateProviderSetupSessionParams> & {
       consumerId?: string;
     }
   ) {
-    let { instance, organizationActor, consumer, consumerId, ...rest } = d;
+    let { instance, organizationActor, consumerId, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let identity = rest.identity;
@@ -510,10 +509,8 @@ class providerSetupSessionServiceImpl {
     });
   }
 
-  async updateProviderSetupSession(
-    d: MetorialFacingWithOptionalConsumerActor<UpdateProviderSetupSessionParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async updateProviderSetupSession(d: MetorialFacing<UpdateProviderSetupSessionParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);

@@ -48,7 +48,6 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
-  type MetorialFacingWithOptionalConsumerActor,
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
@@ -174,10 +173,8 @@ type EnsureDefaultProviderDeploymentParams = {
 };
 
 class providerDeploymentServiceImpl {
-  async createProviderDeployment(
-    d: MetorialFacingWithOptionalConsumerActor<CreateProviderDeploymentParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async createProviderDeployment(d: MetorialFacing<CreateProviderDeploymentParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -194,10 +191,8 @@ class providerDeploymentServiceImpl {
     return deployment;
   }
 
-  async updateProviderDeployment(
-    d: MetorialFacingWithOptionalConsumerActor<UpdateProviderDeploymentParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async updateProviderDeployment(d: MetorialFacing<UpdateProviderDeploymentParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -214,10 +209,8 @@ class providerDeploymentServiceImpl {
     return deployment;
   }
 
-  async archiveProviderDeployment(
-    d: MetorialFacingWithOptionalConsumerActor<ArchiveProviderDeploymentParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async archiveProviderDeployment(d: MetorialFacing<ArchiveProviderDeploymentParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);

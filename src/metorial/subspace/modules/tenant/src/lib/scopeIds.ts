@@ -1,11 +1,4 @@
-import type {
-  Consumer,
-  Instance,
-  Organization,
-  OrganizationActor,
-  Project,
-  User
-} from '@metorial/db';
+import type { Instance, Organization, OrganizationActor, Project, User } from '@metorial/db';
 
 export let getProjectInternalTenantIdentifier = (project: Pick<Project, 'oid'>) =>
   `mte-pro-${project.oid}`;
@@ -23,6 +16,3 @@ export let getInstanceInternalEnvironmentIdentifier = (instance: Pick<Instance, 
 export let getOrganizationActorInternalActorIdentifier = (
   organizationActor: Pick<OrganizationActor, 'id'>
 ) => `mte-oac-${organizationActor.id}`;
-
-export let getConsumerInternalActorIdentifier = (consumer: Pick<Consumer, 'id'>) =>
-  `mte-con-${consumer.id}`;

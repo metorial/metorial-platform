@@ -51,7 +51,6 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
-  type MetorialFacingWithOptionalConsumerActor,
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
@@ -420,10 +419,8 @@ class providerConfigServiceImpl {
     return version.specification;
   }
 
-  async createProviderConfig(
-    d: MetorialFacingWithOptionalConsumerActor<CreateProviderConfigParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async createProviderConfig(d: MetorialFacing<CreateProviderConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -440,10 +437,8 @@ class providerConfigServiceImpl {
     return config;
   }
 
-  async updateProviderConfig(
-    d: MetorialFacingWithOptionalConsumerActor<UpdateProviderConfigParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async updateProviderConfig(d: MetorialFacing<UpdateProviderConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -460,10 +455,8 @@ class providerConfigServiceImpl {
     return config;
   }
 
-  async archiveProviderConfig(
-    d: MetorialFacingWithOptionalConsumerActor<ArchiveProviderConfigParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async archiveProviderConfig(d: MetorialFacing<ArchiveProviderConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);

@@ -1,4 +1,4 @@
-import type { Consumer, Instance, OrganizationActor, Project } from '@metorial/db';
+import type { Instance, OrganizationActor, Project } from '@metorial/db';
 import type { ProviderEventBase } from '@metorial/fabric';
 import type { Environment, Solution, Tenant, TenantActor } from '@metorial-subspace/db';
 import { subspaceScopeService } from '../services/subspaceScope';
@@ -14,21 +14,6 @@ export type MetorialFacing<T> = Omit<T, ScopeKeys> & {
 export type MetorialFacingWithActor<T> = Omit<T, ScopeKeys> & {
   instance: Instance;
   organizationActor: OrganizationActor;
-  project?: Project;
-};
-
-export type MetorialFacingWithConsumerActor<T> = Omit<T, ScopeKeys> & {
-  instance: Instance;
-  project?: Project;
-} & (
-    | { organizationActor: OrganizationActor; consumer?: undefined }
-    | { organizationActor?: undefined; consumer: Consumer }
-  );
-
-export type MetorialFacingWithOptionalConsumerActor<T> = Omit<T, ScopeKeys> & {
-  instance: Instance;
-  organizationActor?: OrganizationActor;
-  consumer?: Consumer;
   project?: Project;
 };
 
@@ -56,14 +41,13 @@ export let toProviderEventBase = (d: {
   organizationActor?: OrganizationActor;
   [key: string]: unknown;
 }): ProviderEventBase => {
-  let { instance, organizationActor, consumer, project, ...input } = d;
+  let { instance, organizationActor, project, ...input } = d;
   return { instance, organizationActor, input };
 };
 
 export let resolveMetorialFacing = async (d: {
   instance: Instance;
   organizationActor?: OrganizationActor;
-  consumer?: Consumer;
 }): Promise<ResolvedMetorialScope> => {
   let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
     d.instance
@@ -86,7 +70,6 @@ export let resolveMetorialFacingWithActor = async (d: {
 export let resolveMetorialFacingWithOptionalActor = async (d: {
   instance: Instance;
   organizationActor?: OrganizationActor;
-  consumer?: Consumer;
 }): Promise<ResolvedMetorialScope & { actor?: TenantActor }> => {
   let scope = await resolveMetorialFacing(d);
 
@@ -94,14 +77,6 @@ export let resolveMetorialFacingWithOptionalActor = async (d: {
     let actor = await subspaceScopeService.ensureForOrganizationActor({
       tenant: scope.tenant,
       organizationActor: d.organizationActor
-    });
-    return { ...scope, actor };
-  }
-
-  if (d.consumer) {
-    let actor = await subspaceScopeService.ensureForConsumer({
-      tenant: scope.tenant,
-      consumer: d.consumer
     });
     return { ...scope, actor };
   }

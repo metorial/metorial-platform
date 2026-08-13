@@ -1,4 +1,9 @@
-import { notFoundError, ServiceError, badRequestError, forbiddenError } from '@lowerdeck/error';
+import {
+  notFoundError,
+  ServiceError,
+  badRequestError,
+  forbiddenError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -28,7 +33,6 @@ import {
   getMetorialSolution,
   checkTenant,
   type MetorialFacing,
-  type MetorialFacingWithOptionalConsumerActor,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase
@@ -225,7 +229,7 @@ class providerAuthImportServiceImpl {
   }
 
   async createProviderAuthImport(
-    d: MetorialFacingWithOptionalConsumerActor<
+    d: MetorialFacing<
       ProviderAuthImportParams & {
         input: {
           ip: string | undefined;
@@ -238,7 +242,7 @@ class providerAuthImportServiceImpl {
       }
     >
   ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -285,7 +289,7 @@ class providerAuthImportServiceImpl {
 
     if (checkRes.type === 'update_config') {
       await checkManagedCredentialsBlocked(checkRes.providerAuthConfig);
-      
+
       let authConfigRes = await providerAuthConfigService.updateProviderAuthConfigInternal({
         tenant: d.tenant,
         environment: d.environment,

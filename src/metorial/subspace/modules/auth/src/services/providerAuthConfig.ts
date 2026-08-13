@@ -45,7 +45,6 @@ import {
   getMetorialSolution,
   checkTenant,
   type MetorialFacing,
-  type MetorialFacingWithOptionalConsumerActor,
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
@@ -178,10 +177,8 @@ type GetProviderAuthConfigSchemaParams = {
 };
 
 class providerAuthConfigServiceImpl {
-  async createProviderAuthConfig(
-    d: MetorialFacingWithOptionalConsumerActor<CreateProviderAuthConfigParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async createProviderAuthConfig(d: MetorialFacing<CreateProviderAuthConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -198,10 +195,8 @@ class providerAuthConfigServiceImpl {
     return authConfig;
   }
 
-  async updateProviderAuthConfig(
-    d: MetorialFacingWithOptionalConsumerActor<UpdateProviderAuthConfigParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async updateProviderAuthConfig(d: MetorialFacing<UpdateProviderAuthConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -218,10 +213,8 @@ class providerAuthConfigServiceImpl {
     return authConfig;
   }
 
-  async archiveProviderAuthConfig(
-    d: MetorialFacingWithOptionalConsumerActor<ArchiveProviderAuthConfigParams>
-  ) {
-    let { instance, organizationActor, consumer, ...rest } = d;
+  async archiveProviderAuthConfig(d: MetorialFacing<ArchiveProviderAuthConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     let eventBase = toProviderEventBase(d);
@@ -513,12 +506,14 @@ class providerAuthConfigServiceImpl {
 
       if (credentials && authMethod.type === 'oauth') {
         credentials =
-          await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUseInternal({
-            tenant: d.tenant,
-            provider: d.provider,
-            providerAuthCredentials: credentials,
-            providerAuthMethod: authMethod
-          });
+          await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUseInternal(
+            {
+              tenant: d.tenant,
+              provider: d.provider,
+              providerAuthCredentials: credentials,
+              providerAuthMethod: authMethod
+            }
+          );
       }
 
       let backendRes = await providerAuthConfigInternalService.createBackendProviderAuthConfig(

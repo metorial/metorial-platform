@@ -2,7 +2,6 @@ import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { Service } from '@lowerdeck/service';
 import {
   ID,
-  type Consumer,
   type Instance,
   type Organization,
   type OrganizationActor,
@@ -19,7 +18,6 @@ import {
 import { env } from '../env';
 import { metorialDb } from '../lib/metorialDb';
 import {
-  getConsumerInternalActorIdentifier,
   getInstanceInternalEnvironmentIdentifier,
   getOrganizationActorInternalActorIdentifier,
   getProjectInternalTenantIdentifier
@@ -132,9 +130,6 @@ let getOrganizationActorIdentifier = (
 ) =>
   organizationActor.internalActorIdentifier ??
   getOrganizationActorInternalActorIdentifier(organizationActor);
-
-let getConsumerActorIdentifier = (consumer: Pick<Consumer, 'id'> & Partial<Consumer>) =>
-  consumer.internalActorIdentifier ?? getConsumerInternalActorIdentifier(consumer);
 
 let loadProjectWithInstances = async (project: ScopeProject): Promise<LoadedProject> => {
   if (
@@ -268,14 +263,6 @@ let loadOrganizationActor = async (
   });
 };
 
-let loadConsumer = async (consumer: Pick<Consumer, 'id'> & Partial<Consumer>) => {
-  if (consumer.name) return consumer as Consumer;
-
-  return await metorialDb.consumer.findUniqueOrThrow({
-    where: { id: consumer.id }
-  });
-};
-
 let resolveProjectResourceTenant = async (project: ScopeProject) => {
   let loadedProject = await loadProjectWithInstances(project);
 
@@ -389,30 +376,6 @@ let resolveOrganizationActorResourceActor = async (d: {
   });
 };
 
-let resolveConsumerResourceActor = async (d: {
-  tenantId: string;
-  consumer: Pick<Consumer, 'id'> & Partial<Consumer>;
-}) => {
-  let loadedConsumer = await loadConsumer(d.consumer);
-  let resourceTenantOid = await getProjectResourceTenantOidForSubspaceTenant(d.tenantId);
-
-  let resourceActor = await metorialDb.resourceActor.findFirst({
-    where: {
-      consumerOid: loadedConsumer.oid,
-      resourceTenantOid
-    },
-    orderBy: { createdAt: 'asc' }
-  });
-
-  if (!resourceActor) {
-    throw new Error(
-      `No Metorial resource actor exists for consumer ${loadedConsumer.id} in subspace tenant ${d.tenantId}`
-    );
-  }
-
-  return resourceActor;
-};
-
 let persistProjectTenantLink = async (d: {
   project: Project;
   tenantId: string;
@@ -484,26 +447,6 @@ let persistOrganizationActorLink = async (d: {
 
   await metorialDb.organizationActor.update({
     where: { id: d.organizationActor.id },
-    data: update
-  });
-};
-
-let persistConsumerLink = async (d: {
-  consumer: Consumer;
-  actorId: string;
-  actorIdentifier: string;
-}) => {
-  let update: Prisma.ConsumerUpdateInput = {
-    ...(d.consumer.internalActorIdentifier
-      ? {}
-      : { internalActorIdentifier: d.actorIdentifier }),
-    ...(!d.consumer.subspaceActorId ? { subspaceActorId: d.actorId } : {})
-  };
-
-  if (!hasUpdates(update)) return;
-
-  await metorialDb.consumer.update({
-    where: { id: d.consumer.id },
     data: update
   });
 };
@@ -648,52 +591,6 @@ class subspaceScopeServiceImpl {
 
     await persistOrganizationActorLink({
       organizationActor: loadedOrganizationActor,
-      actorId: actor.id,
-      actorIdentifier
-    });
-
-    return actor;
-  }
-
-  async ensureForConsumer(d: {
-    tenant: Tenant;
-    consumer: Pick<Consumer, 'id'> & Partial<Consumer>;
-  }): Promise<TenantActor> {
-    if (d.consumer.subspaceActorId) {
-      return await actorService.getActorById({
-        tenant: d.tenant,
-        id: d.consumer.subspaceActorId
-      });
-    }
-
-    let loadedConsumer = await loadConsumer(d.consumer);
-    if (loadedConsumer.subspaceActorId) {
-      return await actorService.getActorById({
-        tenant: d.tenant,
-        id: loadedConsumer.subspaceActorId
-      });
-    }
-
-    let actorIdentifier = getConsumerActorIdentifier(loadedConsumer);
-    let resourceActor = await resolveConsumerResourceActor({
-      tenantId: d.tenant.id,
-      consumer: loadedConsumer
-    });
-
-    let actor = await actorService.upsertActor({
-      tenant: d.tenant,
-      input: {
-        identifier: actorIdentifier,
-        name: loadedConsumer.name,
-        type: 'external',
-        consumerId: loadedConsumer.id,
-        resourceActorId: resourceActor.id,
-        resourceActorIdentifier: resourceActor.identifier
-      }
-    });
-
-    await persistConsumerLink({
-      consumer: loadedConsumer,
       actorId: actor.id,
       actorIdentifier
     });
