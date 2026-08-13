@@ -29,9 +29,9 @@ model Tenant {
 
   createdAt DateTime @default(now())
 
-  logRetentionInDays   Int     @default(30)
-  messageProcessingTimeoutMs Int @default(30000)
-  enforceSessionExpiry Boolean @default(false)
+  logRetentionInDays         Int     @default(30)
+  messageProcessingTimeoutMs Int     @default(30000)
+  enforceSessionExpiry       Boolean @default(false)
 
   allowAuthConfigExport Boolean @default(false)
   allowAuthConfigImport Boolean @default(false)
@@ -133,6 +133,7 @@ model Tenant {
   protoGuardAlerts                         ProtoGuardAlert[]
   monitors                                 Monitor[]
   monitorAlerts                            MonitorAlert[]
+  projects                                 Project[]
 }
 
 enum EnvironmentType {
@@ -223,6 +224,7 @@ model Environment {
   protoGuardAlerts                         ProtoGuardAlert[]
   monitors                                 Monitor[]
   monitorAlerts                            MonitorAlert[]
+  instances                                Instance[]
 }
 
 enum TenantActorType {

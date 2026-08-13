@@ -10,6 +10,7 @@ import {
   type Project
 } from '@metorial/db';
 import {
+  db as subspaceDb,
   type Environment,
   type Solution,
   type Tenant,
@@ -62,6 +63,12 @@ let hasUpdates = (update: Record<string, unknown>) =>
 let solutionProm = new ProgrammablePromise<Solution>();
 let solutionBootStarted = false;
 
+let isCanonicalProjectIdentifier = (identifier: string | null | undefined) =>
+  identifier?.startsWith('mte-pro-') ?? false;
+
+let isCanonicalEnvironmentIdentifier = (identifier: string | null | undefined) =>
+  identifier?.startsWith('mte-ins-') ?? false;
+
 let ensureSolutionBoot = () => {
   if (solutionBootStarted) return;
   solutionBootStarted = true;
@@ -89,19 +96,35 @@ let ensureSolutionBoot = () => {
 };
 
 let getProjectTenantIdentifier = (project: ScopeProject) => {
-  if (project.internalTenantIdentifier) return project.internalTenantIdentifier;
-  if (project.oid != null) return getProjectInternalTenantIdentifier({ oid: project.oid });
-  throw new Error(`Project ${project.id} is missing oid and internalTenantIdentifier`);
+  if (project.oid == null) throw new Error(`Project ${project.id} is missing oid`);
+
+  let expected = getProjectInternalTenantIdentifier({ oid: project.oid });
+  if (
+    isCanonicalProjectIdentifier(project.internalTenantIdentifier) &&
+    project.internalTenantIdentifier !== expected
+  ) {
+    throw new Error(
+      `Project ${project.id} has canonical tenant identifier ${project.internalTenantIdentifier}, expected ${expected}`
+    );
+  }
+
+  return expected;
 };
 
 let getInstanceEnvironmentIdentifier = (instance: ScopeInstance) => {
-  if (instance.internalEnvironmentIdentifier) return instance.internalEnvironmentIdentifier;
-  if (instance.oid != null) {
-    return getInstanceInternalEnvironmentIdentifier({ oid: instance.oid });
+  if (instance.oid == null) throw new Error(`Instance ${instance.id} is missing oid`);
+
+  let expected = getInstanceInternalEnvironmentIdentifier({ oid: instance.oid });
+  if (
+    isCanonicalEnvironmentIdentifier(instance.internalEnvironmentIdentifier) &&
+    instance.internalEnvironmentIdentifier !== expected
+  ) {
+    throw new Error(
+      `Instance ${instance.id} has canonical environment identifier ${instance.internalEnvironmentIdentifier}, expected ${expected}`
+    );
   }
-  throw new Error(
-    `Instance ${instance.id} is missing oid and internalEnvironmentIdentifier`
-  );
+
+  return expected;
 };
 
 let getOrganizationActorIdentifier = (
@@ -151,6 +174,86 @@ let loadInstanceWithSubspaceContext = async (
       organization: true
     }
   });
+};
+
+let assertCanonicalProjectScope = async (project: LoadedProject) => {
+  if (!isCanonicalProjectIdentifier(project.internalTenantIdentifier)) return;
+
+  let expectedIdentifier = getProjectTenantIdentifier(project);
+  if (!project.subspaceTenantId) {
+    throw new Error(
+      `Project ${project.id} has canonical tenant identifier but no subspace tenant id`
+    );
+  }
+
+  let tenant = await subspaceDb.tenant.findUnique({
+    where: { id: project.subspaceTenantId },
+    select: { identifier: true }
+  });
+  if (tenant?.identifier !== expectedIdentifier) {
+    throw new Error(
+      `Project ${project.id} canonical tenant link does not resolve to ${expectedIdentifier}`
+    );
+  }
+};
+
+let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedProject) => {
+  let hasCanonicalTenant = isCanonicalProjectIdentifier(instance.internalTenantIdentifier);
+  let hasCanonicalEnvironment = isCanonicalEnvironmentIdentifier(
+    instance.internalEnvironmentIdentifier
+  );
+  if (!hasCanonicalTenant && !hasCanonicalEnvironment) return;
+
+  let expectedTenantIdentifier = getProjectTenantIdentifier(project);
+  let expectedEnvironmentIdentifier = getInstanceEnvironmentIdentifier(instance);
+
+  if (hasCanonicalTenant) {
+    if (instance.internalTenantIdentifier !== expectedTenantIdentifier) {
+      throw new Error(
+        `Instance ${instance.id} canonical tenant identifier does not match project ${project.id}`
+      );
+    }
+    if (!instance.subspaceTenantId) {
+      throw new Error(
+        `Instance ${instance.id} has canonical tenant identifier but no subspace tenant id`
+      );
+    }
+
+    let tenant = await subspaceDb.tenant.findUnique({
+      where: { id: instance.subspaceTenantId },
+      select: { oid: true, identifier: true }
+    });
+    if (tenant?.identifier !== expectedTenantIdentifier) {
+      throw new Error(
+        `Instance ${instance.id} canonical tenant link does not resolve to ${expectedTenantIdentifier}`
+      );
+    }
+
+    if (hasCanonicalEnvironment) {
+      if (!instance.subspaceEnvironmentId) {
+        throw new Error(
+          `Instance ${instance.id} has canonical environment identifier but no subspace environment id`
+        );
+      }
+
+      let environment = await subspaceDb.environment.findUnique({
+        where: { id: instance.subspaceEnvironmentId },
+        select: { identifier: true, tenantOid: true }
+      });
+      if (
+        environment?.identifier !== expectedEnvironmentIdentifier ||
+        environment.tenantOid !== tenant.oid
+      ) {
+        throw new Error(
+          `Instance ${instance.id} canonical environment link does not resolve beneath its canonical tenant`
+        );
+      }
+    }
+  } else if (hasCanonicalEnvironment) {
+    throw new Error(
+      `Instance ${instance.id} has a canonical environment linked to a legacy tenant`
+    );
+  }
 };
 
 let loadOrganizationActor = async (
@@ -315,11 +418,11 @@ let persistProjectTenantLink = async (d: {
   tenantId: string;
   tenantIdentifier: string;
 }) => {
+  if (isCanonicalProjectIdentifier(d.project.internalTenantIdentifier)) return d.project;
+
   let update: Prisma.ProjectUpdateInput = {
-    ...(d.project.internalTenantIdentifier
-      ? {}
-      : { internalTenantIdentifier: d.tenantIdentifier }),
-    ...(!d.project.subspaceTenantId ? { subspaceTenantId: d.tenantId } : {})
+    internalTenantIdentifier: d.tenantIdentifier,
+    subspaceTenantId: d.tenantId
   };
 
   if (!hasUpdates(update)) return d.project;
@@ -337,18 +440,24 @@ let persistInstanceScope = async (d: {
   environmentId: string;
   environmentIdentifier: string;
 }) => {
+  let canonicalTenant = isCanonicalProjectIdentifier(d.instance.internalTenantIdentifier);
+  let canonicalEnvironment = isCanonicalEnvironmentIdentifier(
+    d.instance.internalEnvironmentIdentifier
+  );
   let update: Prisma.InstanceUpdateInput = {
-    ...(d.instance.internalTenantIdentifier
+    ...(canonicalTenant
       ? {}
-      : { internalTenantIdentifier: d.tenantIdentifier }),
-    ...(d.instance.internalEnvironmentIdentifier
+      : {
+          internalTenantIdentifier: d.tenantIdentifier,
+          subspaceTenantId: d.tenantId
+        }),
+    ...(canonicalEnvironment
       ? {}
-      : { internalEnvironmentIdentifier: d.environmentIdentifier }),
-    ...(!d.instance.subspaceTenantId ? { subspaceTenantId: d.tenantId } : {}),
-    ...(!d.instance.subspaceEnvironmentId
-      ? { subspaceEnvironmentId: d.environmentId }
-      : {}),
-    ...(!d.instance.lastSubspaceSyncAt ? { lastSubspaceSyncAt: new Date() } : {})
+      : {
+          internalEnvironmentIdentifier: d.environmentIdentifier,
+          subspaceEnvironmentId: d.environmentId
+        }),
+    lastSubspaceSyncAt: new Date()
   };
 
   if (!hasUpdates(update)) return;
@@ -407,6 +516,11 @@ class subspaceScopeServiceImpl {
 
   async ensureForProject(project: ScopeProject) {
     let loadedProject = await loadProjectWithInstances(project);
+    await assertCanonicalProjectScope(loadedProject);
+    for (let instance of loadedProject.instances ?? []) {
+      await assertCanonicalInstanceScope(instance, loadedProject);
+    }
+
     let tenantIdentifier = getProjectTenantIdentifier(loadedProject);
     let resourceTenant = await resolveProjectResourceTenant(loadedProject);
 
@@ -447,6 +561,9 @@ class subspaceScopeServiceImpl {
 
   async ensureForInstance(instance: ScopeInstance): Promise<SubspaceInstanceScope> {
     let loadedInstance = await loadInstanceWithSubspaceContext(instance);
+    await assertCanonicalProjectScope(loadedInstance.project!);
+    await assertCanonicalInstanceScope(loadedInstance, loadedInstance.project!);
+
     let environmentIdentifier = getInstanceEnvironmentIdentifier(loadedInstance);
     let resourceGroup = await resolveInstanceResourceGroup(loadedInstance);
     let { tenant, tenantIdentifier, solution } = await this.ensureForProject(
