@@ -7,7 +7,6 @@ import { useParams } from 'react-router-dom';
 import { OpenExplorerBox } from '../../../components/openExplorer';
 import { CustomProviderEventsTable } from '../../../scenes/customProvider/events';
 import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
-import { UsageScene } from '../../../scenes/usage/usage';
 
 export let CustomProviderOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -79,7 +78,7 @@ export let CustomProviderOverviewPage = () => {
           )}
         />
 
-        <Spacer height={15} />
+        {/* <Spacer height={15} />
 
         <UsageScene
           title="Usage"
@@ -88,7 +87,7 @@ export let CustomProviderOverviewPage = () => {
           entityNames={{
             [customProvider.data.provider?.id ?? 'xxxx']: customProvider.data.provider?.name!
           }}
-        />
+        /> */}
 
         <Spacer height={15} />
 

@@ -3,9 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "dev": "vite --port 52071 --host",
-    "enterprise:dev": "vite --port 52071 --host",
     "check-types": "NODE_OPTIONS=--max-old-space-size=12288 tsc --noEmit -p tsconfig.app.json && NODE_OPTIONS=--max-old-space-size=12288 tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run"
   },

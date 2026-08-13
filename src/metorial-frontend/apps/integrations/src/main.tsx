@@ -1,1 +1,3 @@
-import './render';
+import { renderIntegrationsApp } from './render';
+
+renderIntegrationsApp();

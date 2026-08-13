@@ -8,12 +8,11 @@ import {
   useProviderConfig,
   useSessions
 } from '@metorial/state';
-import { Attributes, Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Attributes, Badge, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
-import { UsageScene } from '../../../scenes/usage/usage';
 
 let SummaryValue = styled.div`
   display: flex;
@@ -106,17 +105,6 @@ export let ProviderConfigOverviewPage = () => {
             content: <RenderDate date={config.data.updatedAt} />
           }
         ]}
-      />
-
-      <Spacer height={15} />
-
-      <UsageScene
-        title="Usage"
-        description="See how this config is being used in your instance."
-        entities={[{ type: 'provider_auth_config', id: config.data.id }]}
-        entityNames={{
-          [config.data.id]: config.data.name ?? config.data.id
-        }}
       />
 
       <Spacer height={15} />
