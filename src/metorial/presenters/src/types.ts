@@ -1,3 +1,37 @@
+import type { SessionWarning, Prisma as SubspacePrisma } from '@metorial-subspace/db';
+import type {
+  CallbackInstanceReceiver,
+  callbackDeliveryService,
+  callbackEventService
+} from '@metorial-subspace/module-callback';
+import type { publisherService } from '@metorial-subspace/module-catalog';
+import type {
+  customProviderDeploymentService,
+  scmConnectionService,
+  scmConnectionSetupSessionService,
+  scmProviderService,
+  scmProviderSetupSessionService,
+  scmRepositoryService
+} from '@metorial-subspace/module-custom-provider';
+import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
+import type {
+  integrationInclude,
+  integrationInstanceGroupInclude,
+  integrationInstanceGroupProviderInclude,
+  integrationInstanceInclude,
+  integrationInstanceProviderInclude,
+  integrationProviderInclude,
+  integrationSetupSessionInclude,
+  magicMcpServerProviderInclude
+} from '@metorial-subspace/module-integration';
+import type {
+  providerInvocationService,
+  providerRunLogsService
+} from '@metorial-subspace/module-session';
+import type {
+  ProviderVariantEnrichment,
+  ProviderVersionEnrichment
+} from '@metorial-subspace/provider-utils';
 import type {
   SkillGroupItemResource,
   SkillGroupResource,
@@ -19,11 +53,11 @@ import {
   AccessTag,
   AccessTagEntity,
   AccessTagPolicy,
-  AuditLogStream,
-  AuditLogStreamEvent,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
+  AuditLogStream,
+  AuditLogStreamEvent,
   CliDevice,
   Consumer,
   ConsumerAccess,
@@ -111,18 +145,9 @@ import {
   UserType
 } from '@metorial/db';
 import type { AuditLog } from '@metorial/module-audit-log';
-import type {
-  AvailableProductAssistant,
-  ProductAssistantConversationItemWithMessage,
-  ProductAssistantConversationWithAssistant
-} from '@metorial/module-product-assistant';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
-  ConsumerAresApp,
-  ConsumerAresSsoConnection,
-  ConsumerAresSsoTenant,
-  ConsumerAresSsoTenantSetup,
   ConsumerProviderCatalogEntry,
   EnrichedConsumerSurface
 } from '@metorial/module-consumer';
@@ -133,44 +158,15 @@ import type {
 } from '@metorial/module-machine-access';
 import type { EnrichedProviderTemplate } from '@metorial/module-magic';
 import type { PolicyDocument, ProjectBrandOverride } from '@metorial/module-organization';
+import type {
+  AvailableProductAssistant,
+  ProductAssistantConversationItemWithMessage,
+  ProductAssistantConversationWithAssistant
+} from '@metorial/module-product-assistant';
 import {
   resourceActorPresentationInclude,
   type ResourceActorPresentationRecord
 } from '@metorial/module-resource-tenant';
-import type { Prisma as SubspacePrisma, SessionWarning } from '@metorial-subspace/db';
-import type {
-  CallbackInstanceReceiver,
-  callbackDeliveryService,
-  callbackEventService
-} from '@metorial-subspace/module-callback';
-import type { publisherService } from '@metorial-subspace/module-catalog';
-import type {
-  customProviderDeploymentService,
-  scmConnectionService,
-  scmConnectionSetupSessionService,
-  scmProviderService,
-  scmProviderSetupSessionService,
-  scmRepositoryService
-} from '@metorial-subspace/module-custom-provider';
-import type { EnclaveNetworkLogsResponse } from '@metorial-subspace/module-enclave';
-import type {
-  ProviderVariantEnrichment,
-  ProviderVersionEnrichment
-} from '@metorial-subspace/provider-utils';
-import type {
-  providerInvocationService,
-  providerRunLogsService
-} from '@metorial-subspace/module-session';
-import type {
-  integrationInclude,
-  integrationInstanceGroupInclude,
-  integrationInstanceGroupProviderInclude,
-  integrationInstanceInclude,
-  integrationInstanceProviderInclude,
-  integrationProviderInclude,
-  integrationSetupSessionInclude,
-  magicMcpServerProviderInclude
-} from '@metorial-subspace/module-integration';
 import { PresentableType } from '@metorial/presenter';
 
 type RawProvider = SubspacePrisma.ProviderGetPayload<{
@@ -2394,23 +2390,6 @@ export let portalType = PresentableType.create<{
 export let providerTemplateType = PresentableType.create<{
   providerTemplate: EnrichedProviderTemplate;
 }>()('provider.template');
-
-export let portalAuthAppType = PresentableType.create<{
-  app: ConsumerAresApp;
-  consumerSurface: ConsumerSurface;
-}>()('portal.auth.app');
-
-export let portalAuthSsoTenantType = PresentableType.create<{
-  ssoTenant: ConsumerAresSsoTenant;
-}>()('portal.auth.sso_tenant');
-
-export let portalAuthSsoConnectionType = PresentableType.create<{
-  ssoConnection: ConsumerAresSsoConnection;
-}>()('portal.auth.sso_connection');
-
-export let portalAuthSsoTenantSetupType = PresentableType.create<{
-  ssoTenantSetup: ConsumerAresSsoTenantSetup;
-}>()('portal.auth.sso_tenant_setup');
 
 // export let consumerAuthFactorType = PresentableType.create<{
 //   consumerAuthFactor: ConsumerSurfaceAuthFactor;

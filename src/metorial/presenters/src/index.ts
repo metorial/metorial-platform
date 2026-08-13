@@ -4,8 +4,8 @@ import {
   consumerMagicMcpServerPresenter,
   consumerMagicMcpSessionPresenter,
   consumerMagicMcpTokenPresenter,
-  dashboardAuditLogStreamPresenter,
   dashboardApiKeyPresenter,
+  dashboardAuditLogStreamPresenter,
   dashboardConsumerPresenter,
   dashboardConsumerProfilePresenter,
   dashboardCustomProviderDeploymentPresenter,
@@ -27,15 +27,15 @@ import {
   v1AccessPolicyVersionPresenter,
   v1AccessRolePresenter,
   v1AccessRoleVersionPresenter,
-  v1AuditLogPresenter,
-  v1AuditLogStreamEventPresenter,
-  v1AuditLogStreamPresenter,
   v1AgentInstancePresenter,
   v1AgentPresenter,
   v1ApiKeyPresenter,
   v1AssistantConversationPresenter,
   v1AssistantMessagePresenter,
   v1AssistantPresenter,
+  v1AuditLogPresenter,
+  v1AuditLogStreamEventPresenter,
+  v1AuditLogStreamPresenter,
   v1BootPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
@@ -126,10 +126,6 @@ import {
   v1OrganizationLayoutPresenter,
   v1OrganizationMemberPresenter,
   v1OrganizationPresenter,
-  v1PortalAuthAppPresenter,
-  v1PortalAuthSsoConnectionPresenter,
-  v1PortalAuthSsoTenantPresenter,
-  v1PortalAuthSsoTenantSetupPresenter,
   v1PortalOAuthAuthorizationPresenter,
   v1PortalOAuthClientPresenter,
   v1PortalPresenter,
@@ -201,9 +197,9 @@ import {
   v1SkillConfigurationPresenter,
   v1SkillExportPresenter,
   v1SkillForkSyncPresenter,
-  v1SkillImportPresenter,
   v1SkillGroupItemPresenter,
   v1SkillGroupPresenter,
+  v1SkillImportPresenter,
   v1SkillItemPresenter,
   v1SkillMarketplacePluginPresenter,
   v1SkillMarketplacePresenter,
@@ -241,15 +237,15 @@ import {
   accessPolicyVersionType,
   accessRoleType,
   accessRoleVersionType,
-  auditLogType,
-  auditLogStreamEventType,
-  auditLogStreamType,
   agentInstanceType,
   agentType,
   apiKeyType,
   assistantConversationType,
   assistantMessageType,
   assistantType,
+  auditLogStreamEventType,
+  auditLogStreamType,
+  auditLogType,
   authConfigSchemaType,
   authImportSchemaType,
   bootType,
@@ -344,10 +340,6 @@ import {
   organizationLayoutType,
   organizationMemberType,
   organizationType,
-  portalAuthAppType,
-  portalAuthSsoConnectionType,
-  portalAuthSsoTenantSetupType,
-  portalAuthSsoTenantType,
   portalOAuthAuthorizationType,
   portalOAuthClientType,
   portalType,
@@ -416,9 +408,9 @@ import {
   skillConfigurationType,
   skillExportType,
   skillForkSyncType,
-  skillImportType,
   skillGroupItemType,
   skillGroupType,
+  skillImportType,
   skillItemType,
   skillMarketplacePluginType,
   skillMarketplaceRepositoryType,
@@ -432,8 +424,8 @@ import {
   skillPluginRepositoryType,
   skillPluginSkillType,
   skillPluginType,
-  skillSyncType,
   skillSyncRepositoryChecksType,
+  skillSyncType,
   skillTemplateItemType,
   skillTemplateType,
   skillType,
@@ -580,11 +572,6 @@ export let organizationInvitePresenter = declarePresenter(organizationInviteType
 export let organizationMemberPresenter = declarePresenter(organizationMemberType, {
   mt_2025_01_01_dashboard: v1OrganizationMemberPresenter,
   mt_2026_01_01_magnetar: v1OrganizationMemberPresenter
-});
-
-export let portalAuthAppPresenter = declarePresenter(portalAuthAppType, {
-  mt_2025_01_01_dashboard: v1PortalAuthAppPresenter,
-  mt_2026_01_01_magnetar: v1PortalAuthAppPresenter
 });
 
 export let organizationPresenter = declarePresenter(organizationType, {
@@ -1030,21 +1017,6 @@ export let portalOAuthAuthorizationPresenter = declarePresenter(portalOAuthAutho
 export let portalPresenter = declarePresenter(portalType, {
   mt_2025_01_01_dashboard: v1PortalPresenter,
   mt_2026_01_01_magnetar: v1PortalPresenter
-});
-
-export let portalAuthSsoTenantPresenter = declarePresenter(portalAuthSsoTenantType, {
-  mt_2025_01_01_dashboard: v1PortalAuthSsoTenantPresenter,
-  mt_2026_01_01_magnetar: v1PortalAuthSsoTenantPresenter
-});
-
-export let portalAuthSsoConnectionPresenter = declarePresenter(portalAuthSsoConnectionType, {
-  mt_2025_01_01_dashboard: v1PortalAuthSsoConnectionPresenter,
-  mt_2026_01_01_magnetar: v1PortalAuthSsoConnectionPresenter
-});
-
-export let portalAuthSsoTenantSetupPresenter = declarePresenter(portalAuthSsoTenantSetupType, {
-  mt_2025_01_01_dashboard: v1PortalAuthSsoTenantSetupPresenter,
-  mt_2026_01_01_magnetar: v1PortalAuthSsoTenantSetupPresenter
 });
 
 export let providerTemplatePresenter = declarePresenter(providerTemplateType, {
