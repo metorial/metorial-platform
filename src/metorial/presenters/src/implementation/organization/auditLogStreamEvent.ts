@@ -54,7 +54,15 @@ export let v1AuditLogStreamEventPresenter = Presenter.create(auditLogStreamEvent
       object: v.literal('organization.audit_log_stream.event'),
       id: v.string(),
       audit_log_stream_id: v.string(),
-      type: v.enumOf(['created', 'started', 'error', 'error_paused', 'recovered', 'disabled']),
+      type: v.enumOf([
+        'created',
+        'started',
+        'error',
+        'error_paused',
+        'recovered',
+        'disabled',
+        'enabled'
+      ]),
       message: v.nullable(v.string()),
       error_details: v.nullable(
         v.object({

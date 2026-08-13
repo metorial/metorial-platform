@@ -48,6 +48,7 @@ enum AuditLogStreamEventType {
   error_paused
   recovered
   disabled
+  enabled
 }
 
 model AuditLogStreamEvent {

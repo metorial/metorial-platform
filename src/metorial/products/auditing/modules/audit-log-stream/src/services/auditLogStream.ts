@@ -150,6 +150,13 @@ class AuditLogStreamService {
         });
       }
       if (d.auditLogStream.status === 'inactive' && stream.status === 'active') {
+        await db.auditLogStreamEvent.create({
+          data: {
+            id: await ID.generateId('auditLogStreamEvent'),
+            type: 'enabled',
+            auditLogStreamOid: stream.oid
+          }
+        });
         await markAuditLogOrganizationDirty(stream.organizationOid, db);
       }
 

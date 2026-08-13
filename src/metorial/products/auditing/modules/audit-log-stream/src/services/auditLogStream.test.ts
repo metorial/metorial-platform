@@ -268,7 +268,7 @@ describe('auditLogStreamService', () => {
     expect(updateStream).not.toHaveBeenCalled();
   });
 
-  it('marks the organization dirty when reactivating a stream', async () => {
+  it('marks the organization dirty and records enabling when reactivating a stream', async () => {
     let inactiveStream = { ...auditLogStream, status: 'inactive' as const };
     updateStream.mockResolvedValueOnce({ ...inactiveStream, status: 'active' });
 
@@ -279,6 +279,13 @@ describe('auditLogStreamService', () => {
       input: { status: 'active' }
     });
 
+    expect(insertEvent).toHaveBeenCalledWith({
+      data: {
+        id: 'alse_1',
+        type: 'enabled',
+        auditLogStreamOid: inactiveStream.oid
+      }
+    });
     expect(dirtyTrackerUpsert).toHaveBeenCalledWith({
       where: { organizationOid: organization.oid },
       create: { organizationOid: organization.oid },
