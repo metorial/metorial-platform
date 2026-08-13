@@ -1968,7 +1968,6 @@
         "@metorial/mcp-utils": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-magic": "^1.0.0",
-        "@metorial/module-protect": "^1.0.0",
         "@metorial/rest": "^1.0.0",
         "@modelcontextprotocol/sdk": "^1.25.2",
         "hono": "^4.10.6",
@@ -2010,6 +2009,7 @@
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
+        "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-consumer": "^1.0.0",
         "@metorial/module-machine-access": "^1.0.0",
         "@metorial/module-magic": "^1.0.0",
@@ -2402,6 +2402,7 @@
         "@metorial-subspace/module-identity": "^1.0.0",
         "@metorial-subspace/module-integration": "^1.0.0",
         "@metorial-subspace/module-session": "^1.0.0",
+        "@metorial/audit-scope": "workspace:*",
         "@metorial/cargo-module-skill": "1.0.0",
         "@metorial/cargo-module-store": "1.0.0",
         "@metorial/config": "1.0.0",
@@ -2490,6 +2491,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/api-keys": "^1.0.0",
+        "@metorial/audit-scope": "workspace:*",
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
         "@metorial/cron": "^1.0.0",
@@ -2598,6 +2600,7 @@
         "@lowerdeck/timezone": "workspace:*",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
+        "@metorial/audit-scope": "workspace:*",
         "@metorial/cargo-module-file": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
@@ -2614,25 +2617,6 @@
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "@types/react": "19.2.14",
-        "typescript": "5.8.2",
-        "vitest": "^3.1.2",
-      },
-    },
-    "src/metorial/modules/protect": {
-      "name": "@metorial/module-protect",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/service": "workspace:2.0.0",
-        "@metorial/context": "1.0.0",
-        "@metorial/db": "1.0.0",
-        "@metorial/module-machine-access": "1.0.0",
-        "@metorial/module-organization": "1.0.0",
-        "@metorial/module-user": "1.0.0",
-        "@metorial/queue": "1.0.0",
-      },
-      "devDependencies": {
-        "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -2717,6 +2701,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/audit-scope": "workspace:*",
         "@metorial/cargo-module-file": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
@@ -2876,6 +2861,7 @@
       "dependencies": {
         "@lowerdeck/emitter": "workspace:2.0.0",
         "@metorial-subspace/db": "^1.0.0",
+        "@metorial/audit-scope": "workspace:*",
         "@metorial/context": "^1.0.0",
         "@metorial/db": "^1.0.0",
       },
@@ -3071,6 +3057,7 @@
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
+        "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-consumer": "^1.0.0",
         "@metorial/module-flags": "^1.0.0",
         "@metorial/module-machine-access": "^1.0.0",
@@ -3126,6 +3113,41 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/metorial/products/auditing/modules/audit-log": {
+      "name": "@metorial/module-audit-log",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/audit-models": "workspace:*",
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/auditing/modules/audit-log-stream": {
+      "name": "@metorial/module-audit-log-stream",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/encryption": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/audit-models": "workspace:*",
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial/products/auditing/modules/audit-tracker": {
       "name": "@metorial/module-audit-tracker",
       "version": "1.0.0",
@@ -3144,7 +3166,6 @@
         "@metorial/audit-scope": "workspace:*",
         "@metorial/cron": "1.0.0",
         "@metorial/db": "^1.0.0",
-        "@metorial/module-resource-tenant": "1.0.0",
         "@metorial/presenter": "^1.0.0",
         "@metorial/queue": "1.0.0",
         "@metorial/redis": "1.0.0",
@@ -3155,6 +3176,21 @@
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/products/auditing/packages/audit-listeners": {
+      "name": "@metorial/audit-listeners",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/audit-scope": "workspace:*",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/module-audit-tracker": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.8.3",
         "vitest": "^3.1.2",
       },
     },
@@ -3181,6 +3217,7 @@
       "dependencies": {
         "@lowerdeck/validation": "workspace:*",
         "@metorial/db": "^1.0.0",
+        "@metorial/module-organization": "workspace:*",
         "@metorial/presenter": "^1.0.0",
         "@metorial/presenters": "^1.0.0",
       },
@@ -3194,10 +3231,7 @@
       "name": "@metorial/audit-scope",
       "version": "1.0.0",
       "dependencies": {
-        "@lowerdeck/error": "workspace:2.0.0",
         "@metorial/context": "1.0.0",
-        "@metorial/db": "1.0.0",
-        "@metorial/module-resource-tenant": "1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -5997,6 +6031,8 @@
 
     "@metorial/ares": ["@metorial/ares@workspace:src/ares/service"],
 
+    "@metorial/audit-listeners": ["@metorial/audit-listeners@workspace:src/metorial/products/auditing/packages/audit-listeners"],
+
     "@metorial/audit-models": ["@metorial/audit-models@workspace:src/metorial/products/auditing/packages/audit-models"],
 
     "@metorial/audit-schema": ["@metorial/audit-schema@workspace:src/metorial/products/auditing/packages/audit-schema"],
@@ -6101,6 +6137,10 @@
 
     "@metorial/module-access": ["@metorial/module-access@workspace:src/metorial/modules/access"],
 
+    "@metorial/module-audit-log": ["@metorial/module-audit-log@workspace:src/metorial/products/auditing/modules/audit-log"],
+
+    "@metorial/module-audit-log-stream": ["@metorial/module-audit-log-stream@workspace:src/metorial/products/auditing/modules/audit-log-stream"],
+
     "@metorial/module-audit-tracker": ["@metorial/module-audit-tracker@workspace:src/metorial/products/auditing/modules/audit-tracker"],
 
     "@metorial/module-community": ["@metorial/module-community@workspace:src/metorial/modules/community"],
@@ -6122,8 +6162,6 @@
     "@metorial/module-organization": ["@metorial/module-organization@workspace:src/metorial/modules/organization"],
 
     "@metorial/module-product-assistant": ["@metorial/module-product-assistant@workspace:src/metorial/products/agents/modules/product-assistant"],
-
-    "@metorial/module-protect": ["@metorial/module-protect@workspace:src/metorial/modules/protect"],
 
     "@metorial/module-resource-tenant": ["@metorial/module-resource-tenant@workspace:src/metorial/modules/resource-tenant"],
 
@@ -10090,6 +10128,8 @@
     "@metorial/ares/framer-motion": ["framer-motion@12.43.0", "", { "dependencies": { "motion-dom": "^12.43.0", "motion-utils": "^12.39.0", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-1eaL3RvR/kAlbG7UYcpMptEyzPoENO0c6w7ZnB3/hh2vSAz/6uGAFn6fdoqTBguNstf3MsFhJHsD/0DHiclG+g=="],
 
     "@metorial/ares/vitest": ["vitest@4.0.17", "", { "dependencies": { "@vitest/expect": "4.0.17", "@vitest/mocker": "4.0.17", "@vitest/pretty-format": "4.0.17", "@vitest/runner": "4.0.17", "@vitest/snapshot": "4.0.17", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "es-module-lexer": "^1.7.0", "expect-type": "^1.2.2", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^3.10.0", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.0.17", "@vitest/browser-preview": "4.0.17", "@vitest/browser-webdriverio": "4.0.17", "@vitest/ui": "4.0.17", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-FQMeF0DJdWY0iOnbv466n/0BudNdKj1l5jYgl5JVTwjSsZSlqyXFt/9+1sEyhR6CLowbZpV7O1sCHrzBhucKKg=="],
+
+    "@metorial/audit-listeners/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/audit-models/mongoose": ["mongoose@8.24.1", "", { "dependencies": { "bson": "^6.10.4", "kareem": "2.6.3", "mongodb": "~6.20.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UpHBA0l5kHyKJQFjmBaFYQFo5sgz1DK0TRqDkOyBLYbqiIbKKhIvBpHWBXqeo0rgW4kGI1UhhAw+kTQZoj1BdA=="],
 
