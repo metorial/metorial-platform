@@ -9,8 +9,8 @@ import {
   Organization,
   withTransaction
 } from '@metorial/db';
-import { encryptAuditLogStreamProviderData } from '../providerData';
-import type { AuditLogStreamProvider } from '../providers';
+import { encryptAuditLogStreamProviderData } from '../lib/providerData';
+import { AuditLogStreamProvider, sanitizeAuditLogStreamProviderData } from '../providers';
 
 class AuditLogStreamService {
   async listAuditLogStreams(d: { organization: Organization }) {
@@ -35,7 +35,7 @@ class AuditLogStreamService {
   }) {
     return withTransaction(async db => {
       let streamId = await ID.generateId('auditLogStream');
-      let { encryptedProviderData } = await encryptAuditLogStreamProviderData({
+      let { encryptedProviderData, providerData } = await encryptAuditLogStreamProviderData({
         streamId,
         provider: d.input.provider,
         providerData: d.input.providerData
@@ -47,6 +47,10 @@ class AuditLogStreamService {
           status: 'active',
           accessStatus: 'ok',
           organizationOid: d.organization.oid,
+          providerDataRedacted: sanitizeAuditLogStreamProviderData(
+            d.input.provider,
+            providerData
+          ),
           encryptedProviderData
         }
       });
@@ -80,15 +84,19 @@ class AuditLogStreamService {
       );
     }
 
+    let providerDataRedacted: Record<string, string> | undefined;
     let encryptedProviderData: string | undefined;
     if (d.input.providerData !== undefined) {
-      encryptedProviderData = (
-        await encryptAuditLogStreamProviderData({
-          streamId: d.auditLogStream.id,
-          provider,
-          providerData: d.input.providerData
-        })
-      ).encryptedProviderData;
+      let encrypted = await encryptAuditLogStreamProviderData({
+        streamId: d.auditLogStream.id,
+        provider,
+        providerData: d.input.providerData
+      });
+      providerDataRedacted = sanitizeAuditLogStreamProviderData(
+        provider,
+        encrypted.providerData
+      );
+      encryptedProviderData = encrypted.encryptedProviderData;
     }
 
     return withTransaction(async db => {
@@ -97,6 +105,7 @@ class AuditLogStreamService {
         data: {
           provider: d.input.provider,
           status: d.input.status,
+          providerDataRedacted,
           encryptedProviderData
         }
       });

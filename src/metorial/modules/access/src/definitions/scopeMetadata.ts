@@ -37,6 +37,14 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Organization Sandboxes',
     description: 'These endpoints manage development sandboxes that belong to an organization.'
   },
+  'organization.audit_log': {
+    name: 'Organization Audit Logs',
+    description: 'These endpoints expose audit logs recorded for an organization.'
+  },
+  'organization.audit_log_stream': {
+    name: 'Organization Audit Log Streams',
+    description: 'These endpoints manage external audit log streams for an organization.'
+  },
   'organization.team': {
     name: 'Organization Teams',
     description: 'These endpoints manage team records and assignments.'

@@ -67,3 +67,21 @@ export let validateAuditLogStreamProviderData = <Provider extends AuditLogStream
 
   return validation.value as AuditLogStreamProviderData[Provider];
 };
+
+export let sanitizeAuditLogStreamProviderData = <Provider extends AuditLogStreamProvider>(
+  provider: Provider,
+  providerData: AuditLogStreamProviderData[Provider]
+): Record<string, string> => {
+  if (provider === 'datadog') {
+    let data = providerData as DatadogProviderData;
+    return { site: data.site };
+  }
+
+  let data = providerData as SplunkProviderData;
+  return {
+    endpoint: data.endpoint,
+    ...(data.index === undefined ? {} : { index: data.index }),
+    ...(data.source === undefined ? {} : { source: data.source }),
+    ...(data.sourcetype === undefined ? {} : { sourcetype: data.sourcetype })
+  };
+};

@@ -80,6 +80,7 @@ let auditLogStream = {
   consecutiveErrorCount: 0,
   isStarted: false,
   organizationOid: organization.oid,
+  providerDataRedacted: { site: datadogData.site },
   encryptedProviderData: `als_1:${JSON.stringify(datadogData)}`,
   lastEventId: null,
   createdAt,
@@ -98,6 +99,9 @@ describe('auditLogStreamService', () => {
       ...auditLogStream,
       ...(data.provider === undefined ? {} : { provider: data.provider }),
       ...(data.status === undefined ? {} : { status: data.status }),
+      ...(data.providerDataRedacted === undefined
+        ? {}
+        : { providerDataRedacted: data.providerDataRedacted }),
       ...(data.encryptedProviderData === undefined
         ? {}
         : { encryptedProviderData: data.encryptedProviderData })
@@ -139,6 +143,7 @@ describe('auditLogStreamService', () => {
         status: 'active',
         accessStatus: 'ok',
         organizationOid: organization.oid,
+        providerDataRedacted: { site: datadogData.site },
         encryptedProviderData: `als_1:${JSON.stringify(datadogData)}`
       }
     });
@@ -165,6 +170,7 @@ describe('auditLogStreamService', () => {
       data: {
         provider: undefined,
         status: 'inactive',
+        providerDataRedacted: undefined,
         encryptedProviderData: undefined
       }
     });
@@ -176,6 +182,35 @@ describe('auditLogStreamService', () => {
       }
     });
     expect(result.status).toBe('inactive');
+  });
+
+  it('persists sanitized provider data when replacing configuration', async () => {
+    let providerData = {
+      endpoint: 'https://splunk.example.com/services/collector',
+      token: 'splunk-secret',
+      index: 'audit'
+    };
+
+    await auditLogStreamService.updateAuditLogStream({
+      auditLogStream,
+      input: {
+        provider: 'splunk',
+        providerData
+      }
+    });
+
+    expect(updateStream).toHaveBeenCalledWith({
+      where: { oid: auditLogStream.oid },
+      data: {
+        provider: 'splunk',
+        status: undefined,
+        providerDataRedacted: {
+          endpoint: providerData.endpoint,
+          index: providerData.index
+        },
+        encryptedProviderData: `als_1:${JSON.stringify(providerData)}`
+      }
+    });
   });
 
   it('requires provider data when changing a resolved stream provider', async () => {

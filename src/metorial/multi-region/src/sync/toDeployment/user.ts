@@ -1,4 +1,3 @@
-import { federationDB } from '@metorial-enterprise/federation-data';
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { User } from '../../db';
@@ -27,11 +26,6 @@ export let syncUserToDeploymentQueueProcessor = syncUserToDeploymentQueue.proces
     };
 
     await db.user.updateMany({
-      where: { id: data.user.id },
-      data: inner
-    });
-
-    await federationDB.enterpriseUser.updateMany({
       where: { id: data.user.id },
       data: inner
     });

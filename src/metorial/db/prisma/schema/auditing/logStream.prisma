@@ -29,6 +29,7 @@ model AuditLogStream {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  providerDataRedacted  Json
   encryptedProviderData String
   lastEventId           String?
 

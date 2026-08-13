@@ -4,6 +4,7 @@ import {
   consumerMagicMcpServerPresenter,
   consumerMagicMcpSessionPresenter,
   consumerMagicMcpTokenPresenter,
+  dashboardAuditLogStreamPresenter,
   dashboardApiKeyPresenter,
   dashboardConsumerPresenter,
   dashboardConsumerProfilePresenter,
@@ -27,6 +28,8 @@ import {
   v1AccessRolePresenter,
   v1AccessRoleVersionPresenter,
   v1AuditLogPresenter,
+  v1AuditLogStreamEventPresenter,
+  v1AuditLogStreamPresenter,
   v1AgentInstancePresenter,
   v1AgentPresenter,
   v1ApiKeyPresenter,
@@ -239,6 +242,8 @@ import {
   accessRoleType,
   accessRoleVersionType,
   auditLogType,
+  auditLogStreamEventType,
+  auditLogStreamType,
   agentInstanceType,
   agentType,
   apiKeyType,
@@ -605,6 +610,16 @@ export let projectPresenter = declarePresenter(projectType, {
 export let auditLogPresenter = declarePresenter(auditLogType, {
   mt_2025_01_01_dashboard: v1AuditLogPresenter,
   mt_2026_01_01_magnetar: v1AuditLogPresenter
+});
+
+export let auditLogStreamPresenter = declarePresenter(auditLogStreamType, {
+  mt_2025_01_01_dashboard: dashboardAuditLogStreamPresenter,
+  mt_2026_01_01_magnetar: v1AuditLogStreamPresenter
+});
+
+export let auditLogStreamEventPresenter = declarePresenter(auditLogStreamEventType, {
+  mt_2025_01_01_dashboard: v1AuditLogStreamEventPresenter,
+  mt_2026_01_01_magnetar: v1AuditLogStreamEventPresenter
 });
 
 export let projectBrandPresenter = declarePresenter(projectBrandType, {

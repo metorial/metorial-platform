@@ -27,6 +27,13 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  resolveMetorialFacing: async () => ({
+    tenant: { oid: BigInt(1) },
+    environment: { oid: BigInt(2) }
+  })
+}));
+
 describe('getProtoGuardConfigForEvaluation', () => {
   beforeEach(() => {
     vi.resetModules();

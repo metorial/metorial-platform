@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { validateAuditLogStreamProviderData } from './providers';
+import {
+  sanitizeAuditLogStreamProviderData,
+  validateAuditLogStreamProviderData
+} from './providers';
 
 describe('audit log stream providers', () => {
   it('validates Datadog configuration', () => {
@@ -9,6 +12,9 @@ describe('audit log stream providers', () => {
     });
 
     expect(data).toEqual({ apiKey: 'dd-secret', site: 'datadoghq.eu' });
+    expect(sanitizeAuditLogStreamProviderData('datadog', data)).toEqual({
+      site: 'datadoghq.eu'
+    });
   });
 
   it('validates Splunk configuration', () => {
@@ -23,6 +29,12 @@ describe('audit log stream providers', () => {
     expect(data).toEqual({
       endpoint: 'https://splunk.example.com/services/collector',
       token: 'splunk-secret',
+      index: 'audit',
+      source: 'metorial',
+      sourcetype: '_json'
+    });
+    expect(sanitizeAuditLogStreamProviderData('splunk', data)).toEqual({
+      endpoint: 'https://splunk.example.com/services/collector',
       index: 'audit',
       source: 'metorial',
       sourcetype: '_json'

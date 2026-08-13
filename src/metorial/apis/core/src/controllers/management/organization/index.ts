@@ -1,4 +1,6 @@
 export * from './auditLog';
+export * from './auditLogStream';
+export * from './auditLogStreamEvent';
 export * from './instance';
 export * from './organization';
 export * from './organizationInvite';

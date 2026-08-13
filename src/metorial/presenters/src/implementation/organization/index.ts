@@ -1,5 +1,7 @@
 export * from './instance';
 export * from './auditLog';
+export * from './auditLogStream';
+export * from './auditLogStreamEvent';
 export * from './organization';
 export * from './organizationActor';
 export * from './organizationConfig';

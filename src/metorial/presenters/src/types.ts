@@ -19,6 +19,8 @@ import {
   AccessTag,
   AccessTagEntity,
   AccessTagPolicy,
+  AuditLogStream,
+  AuditLogStreamEvent,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -1077,6 +1079,18 @@ export let projectType = PresentableType.create<{
 export let auditLogType = PresentableType.create<{
   auditLog: AuditLog;
 }>()('auditLog');
+
+export let auditLogStreamType = PresentableType.create<{
+  auditLogStream: AuditLogStream & {
+    organization: Organization;
+  };
+}>()('auditLogStream');
+
+export let auditLogStreamEventType = PresentableType.create<{
+  auditLogStreamEvent: AuditLogStreamEvent & {
+    auditLogStream: AuditLogStream;
+  };
+}>()('auditLogStreamEvent');
 
 export let organizationConfigType = PresentableType.create<{
   config: OrganizationConfig & {

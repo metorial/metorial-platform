@@ -19,7 +19,7 @@ export let auditLogManagementController = Controller.create(
         name: 'List organization audit logs',
         description: 'List audit logs recorded for the organization'
       })
-      .use(checkAccess({ possibleScopes: ['organization:read'] }))
+      .use(checkAccess({ possibleScopes: ['organization.audit_log:read'] }))
       .outputList(auditLogPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -36,7 +36,7 @@ export let auditLogManagementController = Controller.create(
         name: 'Get organization audit log',
         description: 'Get a specific audit log recorded for the organization'
       })
-      .use(checkAccess({ possibleScopes: ['organization:read'] }))
+      .use(checkAccess({ possibleScopes: ['organization.audit_log:read'] }))
       .output(auditLogPresenter)
       .do(async ctx => {
         let auditLog = await auditLogService.getAuditLog({
