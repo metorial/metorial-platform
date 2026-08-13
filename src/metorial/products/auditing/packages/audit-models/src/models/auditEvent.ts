@@ -17,7 +17,6 @@ export interface AuditEvent {
   _id: string;
 
   organizationOid: string;
-  projectOid?: string;
   instanceOid?: string;
   organizationActorOid?: string;
   actor?: AuditEventActor;
@@ -32,7 +31,6 @@ export interface AuditEvent {
 export type AuditEventInput = {
   id: string;
   organizationOid: bigint | string | number;
-  projectOid?: bigint | string | number;
   instanceOid?: bigint | string | number;
   organizationActorOid?: bigint | string | number;
   actor?: AuditActor;
@@ -46,8 +44,7 @@ export type AuditEventInput = {
 
 export let AuditEventSchema = new mongoose.Schema<AuditEvent>({
   _id: { type: String, required: true },
-  organizationOid: { type: String, index: true },
-  projectOid: { type: String, index: true, required: false },
+  organizationOid: { type: String, index: true, required: true },
   instanceOid: { type: String, index: true, required: false },
   organizationActorOid: { type: String, index: true, required: false },
   actor: {
@@ -67,7 +64,6 @@ export let AuditEventSchema = new mongoose.Schema<AuditEvent>({
 });
 
 AuditEventSchema.index({ organizationOid: 1, recordedAt: -1 });
-AuditEventSchema.index({ projectOid: 1, recordedAt: -1 });
 AuditEventSchema.index({ instanceOid: 1, recordedAt: -1 });
 AuditEventSchema.index({ organizationActorOid: 1, recordedAt: -1 });
 AuditEventSchema.index({ 'actor.type': 1, 'actor.id': 1, recordedAt: -1 });
@@ -102,7 +98,6 @@ export let ingestAuditEvent = async (event: AuditEventInput) => {
   let doc: AuditEvent = {
     _id: event.id,
     organizationOid: toOidString(event.organizationOid),
-    projectOid: toOptionalOidString(event.projectOid),
     instanceOid: toOptionalOidString(event.instanceOid),
     organizationActorOid: toOptionalOidString(event.organizationActorOid),
     actor: event.actor
@@ -129,4 +124,14 @@ export let ingestAuditEvent = async (event: AuditEventInput) => {
   };
 
   await AuditEventModel.updateOne({ _id: doc._id }, { $setOnInsert: doc }, { upsert: true });
+};
+
+export let getAuditEventsByIds = async (eventIds: string[]): Promise<AuditEvent[]> => {
+  if (!eventIds.length || !isAuditDbEnabled()) return [];
+
+  await dbConnect();
+
+  return await AuditEventModel.find({ _id: { $in: eventIds } })
+    .lean()
+    .exec();
 };

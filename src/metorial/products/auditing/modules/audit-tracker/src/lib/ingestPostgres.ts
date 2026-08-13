@@ -9,7 +9,6 @@ let toOptionalOid = (value?: bigint | string | number) =>
 export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
   await withTransaction(async db => {
     let organizationOid = toOid(event.organizationOid);
-    let projectOid = toOptionalOid(event.projectOid);
     let instanceOid = toOptionalOid(event.instanceOid);
     let organizationActorOid = toOptionalOid(event.organizationActorOid);
 
@@ -22,7 +21,6 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
           ip: event.context.ip,
           ua: event.context.ua ?? null,
           organizationOid,
-          projectOid,
           instanceOid,
           organizationActorOid,
           actorType: event.actor?.type ?? null,
@@ -37,7 +35,6 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
               ip: event.context.ip,
               ua: event.context.ua ?? null,
               organizationOid,
-              projectOid,
               instanceOid,
               organizationActorOid,
               actorType: event.actor?.type ?? null,

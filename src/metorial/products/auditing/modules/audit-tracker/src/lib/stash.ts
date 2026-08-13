@@ -27,7 +27,6 @@ return values
 export interface StashedAuditEvent {
   id: string;
   organizationOid: bigint;
-  projectOid?: bigint;
   instanceOid?: bigint;
   organizationActorOid?: bigint;
   actor?: AuditActor;
@@ -35,7 +34,7 @@ export interface StashedAuditEvent {
   resource: string;
   action: string;
   payload: unknown;
-  previousAttributes?: unknown;
+  previousPayload?: unknown;
   recordedAt: Date;
 }
 

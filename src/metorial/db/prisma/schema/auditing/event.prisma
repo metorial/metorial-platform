@@ -8,11 +8,8 @@ model Event {
   ua String?
   ip String?
 
-  organizationOid BigInt?
-  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: SetNull)
-
-  projectOid BigInt?
-  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: SetNull)
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
@@ -31,7 +28,6 @@ model Event {
   @@index([actorType, actorId, recordedAt])
   @@index([resource, action, recordedAt])
   @@index([organizationOid, recordedAt])
-  @@index([projectOid, recordedAt])
   @@index([instanceOid, recordedAt])
   @@index([organizationActorOid, recordedAt])
 }

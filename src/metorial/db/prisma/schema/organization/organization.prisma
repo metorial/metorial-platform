@@ -101,6 +101,7 @@ model Organization {
   auditLogs                              AuditLog[]
   events                                 Event[]
   auditLogDirtyTrackers                  AuditLogDirtyTracker[]
+  auditLogStreams                        AuditLogStream[]
 
   @@index([authVersion])
   @@index([previousSlugs])

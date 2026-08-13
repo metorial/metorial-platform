@@ -21,7 +21,8 @@ class AuditTrackerServiceImpl {
     action: Action,
     event: {
       payload: ResourceSetItemPayload<AuditResource, Resource, Action>;
-      previousAttributes?: Partial<ResourceSetItemPayload<AuditResource, Resource, Action>>;
+      previousPayload?: ResourceSetItemPayload<AuditResource, Resource, Action>;
+      recordedAt?: Date;
     }
   ) {
     let resourceDef = auditResources[resource];
@@ -45,12 +46,23 @@ class AuditTrackerServiceImpl {
       throw new Error(`Invalid audit event payload: ${details}`);
     }
 
+    let previousPayload: typeof validatedPayload.value | undefined;
+    if (event.previousPayload !== undefined) {
+      let validatedPreviousPayload = validationType.validate(event.previousPayload);
+      if (!validatedPreviousPayload.success) {
+        let details = validatedPreviousPayload.errors
+          .map(error => `${error.path?.join('.') || 'previousPayload'}: ${error.message}`)
+          .join(', ');
+        throw new Error(`Invalid previous audit event payload: ${details}`);
+      }
+      previousPayload = validatedPreviousPayload.value;
+    }
+
     let auditScope = 'auditScope' in scope ? scope.auditScope : scope;
 
     await stashAuditEvent({
       id: await ID.generateId('auditEvent'),
       organizationOid: auditScope.organizationOid,
-      projectOid: auditScope.projectOid,
       instanceOid: auditScope.instanceOid,
       organizationActorOid: auditScope.organizationActorOid,
       actor: auditScope.actor,
@@ -58,8 +70,8 @@ class AuditTrackerServiceImpl {
       resource: String(resource),
       action: String(action),
       payload: validatedPayload.value,
-      previousAttributes: event.previousAttributes,
-      recordedAt: new Date()
+      previousPayload,
+      recordedAt: event.recordedAt ?? new Date()
     });
   }
 }

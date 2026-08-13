@@ -10,17 +10,16 @@ vi.mock('@lowerdeck/sentry', () => ({
   }))
 }));
 
-vi.mock('../env', () => ({
-  env: {
-    db: {
-      USAGE_MONGO_URL: 'mongodb://localhost:27017/test'
-    }
-  }
+let { mockUpdateOne, mockFind, mockDbConnect, auditDbState } = vi.hoisted(() => ({
+  mockUpdateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+  mockFind: vi.fn(),
+  mockDbConnect: vi.fn().mockResolvedValue({}),
+  auditDbState: { enabled: true }
 }));
 
-let { mockUpdateOne, mockConnect } = vi.hoisted(() => ({
-  mockUpdateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
-  mockConnect: vi.fn().mockResolvedValue({})
+vi.mock('../connection', () => ({
+  dbConnect: mockDbConnect,
+  isAuditDbEnabled: () => auditDbState.enabled
 }));
 
 vi.mock('mongoose', () => {
@@ -34,19 +33,25 @@ vi.mock('mongoose', () => {
     default: {
       Schema: mockSchema,
       model: vi.fn(() => ({
-        updateOne: mockUpdateOne
-      })),
-      connect: mockConnect
+        updateOne: mockUpdateOne,
+        find: mockFind
+      }))
     }
   };
 });
 
-import { AuditEventSchema, ingestAuditEvent } from './auditEvent';
+import { AuditEventSchema, getAuditEventsByIds, ingestAuditEvent } from './auditEvent';
 
 describe('audit models', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    auditDbState.enabled = true;
     mockUpdateOne.mockResolvedValue({ acknowledged: true });
+    mockFind.mockReturnValue({
+      lean: vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue([])
+      })
+    });
   });
 
   it('defines an AuditEvent schema', () => {
@@ -57,7 +62,6 @@ describe('audit models', () => {
     await ingestAuditEvent({
       id: 'event-1',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       organizationActorOid: 4n,
       actor: {
@@ -78,7 +82,6 @@ describe('audit models', () => {
         $setOnInsert: {
           _id: 'event-1',
           organizationOid: '1',
-          projectOid: '2',
           instanceOid: '3',
           organizationActorOid: '4',
           actor: {
@@ -102,7 +105,6 @@ describe('audit models', () => {
     await ingestAuditEvent({
       id: 'event-2',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       actor: {
         type: 'fine_grained_token',
@@ -134,5 +136,33 @@ describe('audit models', () => {
       },
       { upsert: true }
     );
+  });
+
+  it('batch-loads audit events by id', async () => {
+    let events = [{ _id: 'event-1' }, { _id: 'event-2' }];
+    let exec = vi.fn().mockResolvedValue(events);
+    let lean = vi.fn().mockReturnValue({ exec });
+    mockFind.mockReturnValue({ lean });
+
+    await expect(getAuditEventsByIds(['event-1', 'event-2'])).resolves.toEqual(events);
+    expect(mockFind).toHaveBeenCalledWith({
+      _id: { $in: ['event-1', 'event-2'] }
+    });
+    expect(lean).toHaveBeenCalled();
+    expect(exec).toHaveBeenCalled();
+  });
+
+  it('does not connect or query when no event ids are provided', async () => {
+    await expect(getAuditEventsByIds([])).resolves.toEqual([]);
+    expect(mockDbConnect).not.toHaveBeenCalled();
+    expect(mockFind).not.toHaveBeenCalled();
+  });
+
+  it('does not connect or query when the audit database is disabled', async () => {
+    auditDbState.enabled = false;
+
+    await expect(getAuditEventsByIds(['event-1'])).resolves.toEqual([]);
+    expect(mockDbConnect).not.toHaveBeenCalled();
+    expect(mockFind).not.toHaveBeenCalled();
   });
 });

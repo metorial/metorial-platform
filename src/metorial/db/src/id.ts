@@ -273,5 +273,7 @@ export let ID = createIdGenerator({
   productAssistantSubspaceMcpToolCache: idType.sorted('pastc_'),
 
   auditEvent: idType.sorted('evt_'),
-  auditLog: idType.sorted('aud_')
+  auditLog: idType.sorted('aud_'),
+  auditLogStream: idType.sorted('als_'),
+  auditLogStreamEvent: idType.sorted('alse_')
 });

@@ -37,7 +37,6 @@ describe('stashAuditEvent', () => {
     let event = {
       id: 'event-1',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       organizationActorOid: 4n,
       actor: {
@@ -50,6 +49,10 @@ describe('stashAuditEvent', () => {
       payload: {
         oid: 5n,
         createdAt: new Date('2026-08-12T10:00:00.000Z')
+      },
+      previousPayload: {
+        oid: 4n,
+        createdAt: new Date('2026-08-11T10:00:00.000Z')
       },
       recordedAt: new Date('2026-08-12T10:01:00.000Z')
     };
@@ -70,7 +73,6 @@ describe('stashAuditEvent', () => {
       stashAuditEvent({
         id: 'event-1',
         organizationOid: 1n,
-        projectOid: 2n,
         instanceOid: 3n,
         organizationActorOid: 4n,
         actor: {
@@ -90,7 +92,6 @@ describe('stashAuditEvent', () => {
     let event = {
       id: 'event-1',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       organizationActorOid: 4n
     };

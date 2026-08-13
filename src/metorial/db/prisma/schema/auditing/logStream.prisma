@@ -1,0 +1,61 @@
+enum AuditLogStreamStatus {
+  active
+  inactive
+}
+
+enum AuditLogStreamProvider {
+  datadog
+  splunk
+}
+
+enum AuditLogStreamAccessStatus {
+  ok
+  error
+}
+
+model AuditLogStream {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  provider AuditLogStreamProvider
+  status   AuditLogStreamStatus
+  accessStatus AuditLogStreamAccessStatus
+
+  isPausedDueToError Boolean @default(false)
+  errorMessage String?
+  consecutiveErrorCount Int @default(0)
+  isStarted Boolean @default(false)
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  encryptedProviderData String
+  lastEventId           String?
+
+  events AuditLogStreamEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum AuditLogStreamEventType {
+  created
+  started
+  error
+  error_paused
+  recovered
+  disabled
+}
+
+model AuditLogStreamEvent {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  type AuditLogStreamEventType
+  message String?
+
+  auditLogStreamOid BigInt
+  auditLogStream    AuditLogStream @relation(fields: [auditLogStreamOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

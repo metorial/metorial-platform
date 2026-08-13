@@ -49,11 +49,10 @@ describe('presentStashedAuditEvent', () => {
     });
   });
 
-  it('presents payload and previousAttributes with magnetar before storage', async () => {
+  it('presents both payloads and stores only changed previous attributes', async () => {
     let event = {
       id: 'evt_1',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       organizationActorOid: 4n,
       actor: {
@@ -64,7 +63,7 @@ describe('presentStashedAuditEvent', () => {
       resource: 'organization',
       action: 'create',
       payload: { organization: { id: 'org_1', name: 'Acme' } },
-      previousAttributes: { organization: { id: 'org_1', name: 'Old' } },
+      previousPayload: { organization: { id: 'org_1', name: 'Old' } },
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     };
 
@@ -77,10 +76,9 @@ describe('presentStashedAuditEvent', () => {
       organization: { id: 'org_1', name: 'Acme' }
     });
     expect(presented.previousAttributes).toEqual({
-      object: 'organization',
-      presented: true,
-      organization: { id: 'org_1', name: 'Old' }
+      organization: { name: 'Old' }
     });
+    expect(presented).not.toHaveProperty('previousPayload');
   });
 
   it('skips presentation for action-specific payloads', async () => {
@@ -94,10 +92,31 @@ describe('presentStashedAuditEvent', () => {
     let presented = await presentStashedAuditEvent(event as any);
 
     expect(present).not.toHaveBeenCalled();
-    expect(presented).toBe(event);
+    expect(presented).toEqual({
+      id: 'evt_1',
+      resource: 'organization',
+      action: 'update',
+      payload: { name: 'Updated' },
+      previousAttributes: undefined
+    });
   });
 
-  it('returns the original event when no presenter is configured', async () => {
+  it('diffs validated raw payloads for action-specific resources', async () => {
+    let presented = await presentStashedAuditEvent({
+      id: 'evt_1',
+      resource: 'organization',
+      action: 'update',
+      payload: { name: 'Updated', enabled: true },
+      previousPayload: { name: 'Previous', enabled: true }
+    } as any);
+
+    expect(present).not.toHaveBeenCalled();
+    expect(presented.previousAttributes).toEqual({
+      name: 'Previous'
+    });
+  });
+
+  it('keeps raw payloads when no presenter is configured', async () => {
     let event = {
       id: 'evt_1',
       resource: 'widget',
@@ -108,6 +127,12 @@ describe('presentStashedAuditEvent', () => {
     let presented = await presentStashedAuditEvent(event as any);
 
     expect(present).not.toHaveBeenCalled();
-    expect(presented).toBe(event);
+    expect(presented).toEqual({
+      id: 'evt_1',
+      resource: 'widget',
+      action: 'create',
+      payload: { oid: 1n },
+      previousAttributes: undefined
+    });
   });
 });

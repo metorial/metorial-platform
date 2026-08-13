@@ -46,8 +46,6 @@ model Project {
   accessPolicyProjects AccessPolicyProject[]
   brand                ProjectBrand?
   teams                TeamProject[]
-  auditLogs            AuditLog[]
-  events               Event[]
 
   @@index([previousSlugs])
 }

@@ -40,7 +40,6 @@ describe('ingestAuditEventToPostgres', () => {
     await ingestAuditEventToPostgres({
       id: 'evt_test',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       organizationActorOid: 4n,
       actor: {
@@ -51,7 +50,7 @@ describe('ingestAuditEventToPostgres', () => {
       resource: 'organization',
       action: 'create',
       payload: { oid: 5n, name: 'Acme' },
-      previousAttributes: { name: 'Old' },
+      previousPayload: { name: 'Old' },
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
 
@@ -64,7 +63,6 @@ describe('ingestAuditEventToPostgres', () => {
         ip: '127.0.0.1',
         ua: 'test',
         organizationOid: 1n,
-        projectOid: 2n,
         instanceOid: 3n,
         organizationActorOid: 4n,
         actorType: 'org_actor',
@@ -79,7 +77,6 @@ describe('ingestAuditEventToPostgres', () => {
             ip: '127.0.0.1',
             ua: 'test',
             organizationOid: 1n,
-            projectOid: 2n,
             instanceOid: 3n,
             organizationActorOid: 4n,
             actorType: 'org_actor',
@@ -100,7 +97,6 @@ describe('ingestAuditEventToPostgres', () => {
     await ingestAuditEventToPostgres({
       id: 'evt_fine_grained',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       actor: {
         type: 'fine_grained_token',
@@ -134,7 +130,6 @@ describe('ingestAuditEventToPostgres', () => {
     await ingestAuditEventToPostgres({
       id: 'evt_test',
       organizationOid: 1n,
-      projectOid: 2n,
       instanceOid: 3n,
       organizationActorOid: 4n,
       context: { ip: '127.0.0.1' },
@@ -154,7 +149,6 @@ describe('ingestAuditEventToPostgres', () => {
       ingestAuditEventToPostgres({
         id: 'evt_test',
         organizationOid: 1n,
-        projectOid: 2n,
         instanceOid: 3n,
         organizationActorOid: 4n,
         context: { ip: '127.0.0.1' },
