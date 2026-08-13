@@ -9,6 +9,10 @@ vi.mock('@metorial-subspace/db', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  resolveMetorialFacing: vi.fn()
+}));
+
 import { db } from '@metorial-subspace/db';
 import { sessionProviderNameTemplateService } from './sessionProviderNameTemplate';
 
