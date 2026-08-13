@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
   deleteStream,
+  dirtyTrackerUpsert,
   encrypt,
   findEvents,
   findStreams,
@@ -11,6 +12,7 @@ let {
   updateStream
 } = vi.hoisted(() => ({
   deleteStream: vi.fn(),
+  dirtyTrackerUpsert: vi.fn(),
   encrypt: vi.fn(),
   findEvents: vi.fn(),
   findStreams: vi.fn(),
@@ -27,6 +29,9 @@ let transactionDb = {
   },
   auditLogStreamEvent: {
     create: insertEvent
+  },
+  auditLogDirtyTracker: {
+    upsert: dirtyTrackerUpsert
   }
 };
 
@@ -83,6 +88,7 @@ let auditLogStream = {
   providerDataRedacted: { site: datadogData.site },
   encryptedProviderData: `als_1:${JSON.stringify(datadogData)}`,
   lastEventId: null,
+  lastAuditLogOid: null,
   createdAt,
   updatedAt
 };
@@ -104,9 +110,16 @@ describe('auditLogStreamService', () => {
         : { providerDataRedacted: data.providerDataRedacted }),
       ...(data.encryptedProviderData === undefined
         ? {}
-        : { encryptedProviderData: data.encryptedProviderData })
+        : { encryptedProviderData: data.encryptedProviderData }),
+      ...(data.isPausedDueToError === undefined
+        ? {}
+        : { isPausedDueToError: data.isPausedDueToError }),
+      ...(data.consecutiveErrorCount === undefined
+        ? {}
+        : { consecutiveErrorCount: data.consecutiveErrorCount })
     }));
     insertEvent.mockResolvedValue({});
+    dirtyTrackerUpsert.mockResolvedValue({});
     deleteStream.mockResolvedValue(auditLogStream);
     generateId.mockImplementation(async type =>
       type === 'auditLogStream' ? 'als_1' : 'alse_1'
@@ -153,6 +166,11 @@ describe('auditLogStreamService', () => {
         type: 'created',
         auditLogStreamOid: auditLogStream.oid
       }
+    });
+    expect(dirtyTrackerUpsert).toHaveBeenCalledWith({
+      where: { organizationOid: organization.oid },
+      create: { organizationOid: organization.oid },
+      update: { revision: { increment: 1 } }
     });
     expect(result).toHaveProperty('encryptedProviderData');
   });
@@ -218,6 +236,62 @@ describe('auditLogStreamService', () => {
       auditLogStreamService.updateAuditLogStream({
         auditLogStream,
         input: { provider: 'splunk' }
+      })
+    ).rejects.toBeDefined();
+
+    expect(updateStream).not.toHaveBeenCalled();
+  });
+
+  it('marks the organization dirty when reactivating a stream', async () => {
+    let inactiveStream = { ...auditLogStream, status: 'inactive' as const };
+    updateStream.mockResolvedValueOnce({ ...inactiveStream, status: 'active' });
+
+    await auditLogStreamService.updateAuditLogStream({
+      auditLogStream: inactiveStream,
+      input: { status: 'active' }
+    });
+
+    expect(dirtyTrackerUpsert).toHaveBeenCalledWith({
+      where: { organizationOid: organization.oid },
+      create: { organizationOid: organization.oid },
+      update: { revision: { increment: 1 } }
+    });
+  });
+
+  it('resumes an error-paused stream and marks it dirty', async () => {
+    let pausedStream = {
+      ...auditLogStream,
+      accessStatus: 'error' as const,
+      errorMessage: 'failed',
+      isPausedDueToError: true,
+      consecutiveErrorCount: 100
+    };
+    updateStream.mockResolvedValueOnce({
+      ...pausedStream,
+      isPausedDueToError: false,
+      consecutiveErrorCount: 0
+    });
+
+    let result = await auditLogStreamService.resumeAuditLogStream({
+      auditLogStream: pausedStream
+    });
+
+    expect(updateStream).toHaveBeenCalledWith({
+      where: { oid: pausedStream.oid },
+      data: {
+        isPausedDueToError: false,
+        consecutiveErrorCount: 0
+      }
+    });
+    expect(result.isPausedDueToError).toBe(false);
+    expect(result.accessStatus).toBe('error');
+    expect(dirtyTrackerUpsert).toHaveBeenCalled();
+  });
+
+  it('rejects resuming a stream that is not error-paused', async () => {
+    await expect(
+      auditLogStreamService.resumeAuditLogStream({
+        auditLogStream
       })
     ).rejects.toBeDefined();
 

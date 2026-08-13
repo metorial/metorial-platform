@@ -275,5 +275,7 @@ export let ID = createIdGenerator({
   auditEvent: idType.sorted('evt_'),
   auditLog: idType.sorted('aud_'),
   auditLogStream: idType.sorted('als_'),
-  auditLogStreamEvent: idType.sorted('alse_')
+  auditLogStreamEvent: idType.sorted('alse_'),
+  auditLogStreamRun: idType.sorted('alsr_'),
+  auditLogStreamBatch: idType.sorted('alsb_')
 });

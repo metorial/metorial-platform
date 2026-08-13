@@ -2,5 +2,7 @@ model AuditLogDirtyTracker {
   organizationOid BigInt       @id
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
+  revision  Int      @default(1)
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

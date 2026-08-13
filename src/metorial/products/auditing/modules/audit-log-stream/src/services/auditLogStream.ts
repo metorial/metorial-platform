@@ -10,6 +10,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { AuditLogStreamProvider, sanitizeAuditLogStreamProviderData } from '../destinations';
+import { markAuditLogOrganizationDirty } from '../lib/dirty';
 import { encryptAuditLogStreamProviderData } from '../lib/providerData';
 
 class AuditLogStreamService {
@@ -62,6 +63,7 @@ class AuditLogStreamService {
           auditLogStreamOid: stream.oid
         }
       });
+      await markAuditLogOrganizationDirty(d.organization.oid, db);
 
       return stream;
     });
@@ -119,6 +121,32 @@ class AuditLogStreamService {
           }
         });
       }
+      if (d.auditLogStream.status === 'inactive' && stream.status === 'active') {
+        await markAuditLogOrganizationDirty(stream.organizationOid, db);
+      }
+
+      return stream;
+    });
+  }
+
+  async resumeAuditLogStream(d: { auditLogStream: AuditLogStream }) {
+    if (!d.auditLogStream.isPausedDueToError) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Audit log stream is not paused due to errors'
+        })
+      );
+    }
+
+    return withTransaction(async db => {
+      let stream = await db.auditLogStream.update({
+        where: { oid: d.auditLogStream.oid },
+        data: {
+          isPausedDueToError: false,
+          consecutiveErrorCount: 0
+        }
+      });
+      await markAuditLogOrganizationDirty(stream.organizationOid, db);
 
       return stream;
     });

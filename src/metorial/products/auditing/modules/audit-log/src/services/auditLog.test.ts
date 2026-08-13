@@ -197,6 +197,30 @@ describe('auditLogService', () => {
     expect(result.items[0]).not.toHaveProperty('organizationActorOid');
   });
 
+  it('reads an oldest-first bounded batch for stream delivery', async () => {
+    let dayStart = new Date('2026-08-13T00:00:00.000Z');
+
+    let result = await auditLogService.listAuditLogsForStream({
+      organizationOid: 2n,
+      recordedAtGte: dayStart,
+      afterOid: 10n,
+      limit: 100
+    });
+
+    expect(findAuditLogs).toHaveBeenCalledWith({
+      where: {
+        organizationOid: 2n,
+        recordedAt: { gte: dayStart },
+        oid: { gt: 10n }
+      },
+      include: expect.any(Object),
+      orderBy: { oid: 'asc' },
+      take: 100
+    });
+    expect(result.lastAuditLogOid).toBe(1n);
+    expect(result.items[0]?.id).toBe('aud_1');
+  });
+
   it('enriches consumer profile actors with their public records', async () => {
     findAuditLogs.mockResolvedValue([
       {

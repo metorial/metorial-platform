@@ -69,7 +69,7 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
         v.object({
           type: v.string(),
           id: v.nullable(v.string()),
-          metadata: v.nullable(v.typedAny<{}>('audit_log_actor_metadata')),
+          metadata: v.nullable(v.record(v.any())),
           record: v.nullable(v.any())
         })
       ),
@@ -77,8 +77,8 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
         ip: v.nullable(v.string()),
         ua: v.nullable(v.string())
       }),
-      payload: v.nullable(v.typedAny<{}>('audit_log_payload')),
-      previous_attributes: v.nullable(v.typedAny<{}>('audit_log_previous_attributes')),
+      payload: v.nullable(v.record(v.any())),
+      previous_attributes: v.nullable(v.record(v.any())),
       recorded_at: v.date()
     })
   )

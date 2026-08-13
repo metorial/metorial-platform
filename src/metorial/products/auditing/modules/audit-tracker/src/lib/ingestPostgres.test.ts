@@ -16,13 +16,13 @@ import { ingestAuditEventToPostgres } from './ingestPostgres';
 
 describe('ingestAuditEventToPostgres', () => {
   let eventCreate = vi.fn();
-  let dirtyTrackerCreateMany = vi.fn();
+  let dirtyTrackerUpsert = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     generateId.mockResolvedValue('aud_test');
     eventCreate.mockResolvedValue({});
-    dirtyTrackerCreateMany.mockResolvedValue({});
+    dirtyTrackerUpsert.mockResolvedValue({});
 
     withTransaction.mockImplementation(async (fn: any) =>
       fn({
@@ -30,7 +30,7 @@ describe('ingestAuditEventToPostgres', () => {
           create: eventCreate
         },
         auditLogDirtyTracker: {
-          createMany: dirtyTrackerCreateMany
+          upsert: dirtyTrackerUpsert
         }
       })
     );
@@ -87,9 +87,10 @@ describe('ingestAuditEventToPostgres', () => {
         }
       }
     });
-    expect(dirtyTrackerCreateMany).toHaveBeenCalledWith({
-      data: { organizationOid: 1n },
-      skipDuplicates: true
+    expect(dirtyTrackerUpsert).toHaveBeenCalledWith({
+      where: { organizationOid: 1n },
+      create: { organizationOid: 1n },
+      update: { revision: { increment: 1 } }
     });
   });
 
@@ -139,7 +140,7 @@ describe('ingestAuditEventToPostgres', () => {
       recordedAt: new Date('2026-08-12T10:00:00.000Z')
     });
 
-    expect(dirtyTrackerCreateMany).not.toHaveBeenCalled();
+    expect(dirtyTrackerUpsert).not.toHaveBeenCalled();
   });
 
   it('propagates non-duplicate database errors', async () => {

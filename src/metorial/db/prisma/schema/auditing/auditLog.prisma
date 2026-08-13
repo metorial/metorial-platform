@@ -30,6 +30,7 @@ model AuditLog {
   @@index([resource, action, recordedAt])
   @@index([eventOid])
   @@index([organizationOid, recordedAt])
+  @@index([organizationOid, oid])
   @@index([instanceOid, recordedAt])
   @@index([organizationActorOid, recordedAt])
 }

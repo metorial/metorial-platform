@@ -51,7 +51,7 @@ class AuditLogService {
     return organization;
   }
 
-  private async hydrateAuditLogs(auditLogs: AuditLogWithRelations[], organizationOid: bigint) {
+  async hydrateAuditLogs(auditLogs: AuditLogWithRelations[], organizationOid: bigint) {
     let eventIds = auditLogs.flatMap(auditLog => (auditLog.event ? [auditLog.event.id] : []));
     let consumerProfileIds = [
       ...new Set(
@@ -184,6 +184,29 @@ class AuditLogService {
         ),
       { defaultOrder: 'desc' }
     ).mapAll(auditLogs => this.hydrateAuditLogs(auditLogs, organization.oid));
+  }
+
+  async listAuditLogsForStream(d: {
+    organizationOid: bigint;
+    recordedAtGte: Date;
+    afterOid?: bigint | null;
+    limit: number;
+  }) {
+    let auditLogs = await db.auditLog.findMany({
+      where: {
+        organizationOid: d.organizationOid,
+        recordedAt: { gte: d.recordedAtGte },
+        oid: d.afterOid == null ? undefined : { gt: d.afterOid }
+      },
+      include: auditLogInclude,
+      orderBy: { oid: 'asc' },
+      take: Math.min(d.limit, 100)
+    });
+
+    return {
+      items: await this.hydrateAuditLogs(auditLogs, d.organizationOid),
+      lastAuditLogOid: auditLogs.at(-1)?.oid ?? null
+    };
   }
 
   async getAuditLog(d: { organizationId: string; auditLogId: string }) {

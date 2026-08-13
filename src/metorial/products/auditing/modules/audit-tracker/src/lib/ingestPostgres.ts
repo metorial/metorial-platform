@@ -46,9 +46,10 @@ export let ingestAuditEventToPostgres = async (event: StashedAuditEvent) => {
         }
       });
 
-      await db.auditLogDirtyTracker.createMany({
-        data: { organizationOid },
-        skipDuplicates: true
+      await db.auditLogDirtyTracker.upsert({
+        where: { organizationOid },
+        create: { organizationOid },
+        update: { revision: { increment: 1 } }
       });
     } catch (error: any) {
       // Ignore duplicate key errors, as they indicate the event has already been ingested

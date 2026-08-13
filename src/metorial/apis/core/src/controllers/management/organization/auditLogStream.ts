@@ -155,6 +155,32 @@ export let auditLogStreamManagementController = Controller.create(
         });
       }),
 
+    resume: auditLogStreamManagementGroup
+      .post(
+        organizationManagementPath(
+          'audit-log-streams/:auditLogStreamId/resume',
+          'audit_log_streams.resume'
+        ),
+        {
+          name: 'Resume organization audit log stream',
+          description: 'Resume an audit log stream paused after repeated delivery errors'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:write'] }))
+      .output(auditLogStreamPresenter)
+      .do(async ctx => {
+        let auditLogStream = await auditLogStreamService.resumeAuditLogStream({
+          auditLogStream: ctx.auditLogStream
+        });
+
+        return auditLogStreamPresenter.present({
+          auditLogStream: {
+            ...auditLogStream,
+            organization: ctx.organization
+          }
+        });
+      }),
+
     delete: auditLogStreamManagementGroup
       .delete(
         organizationManagementPath(
