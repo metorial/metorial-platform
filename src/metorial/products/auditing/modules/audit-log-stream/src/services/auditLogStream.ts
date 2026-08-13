@@ -9,8 +9,8 @@ import {
   Organization,
   withTransaction
 } from '@metorial/db';
+import { AuditLogStreamProvider, sanitizeAuditLogStreamProviderData } from '../destinations';
 import { encryptAuditLogStreamProviderData } from '../lib/providerData';
-import { AuditLogStreamProvider, sanitizeAuditLogStreamProviderData } from '../providers';
 
 class AuditLogStreamService {
   async listAuditLogStreams(d: { organization: Organization }) {

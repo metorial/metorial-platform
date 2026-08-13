@@ -1,11 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  auditLogStreamDestinations,
+  deliverAuditLogStreamEvents,
   sanitizeAuditLogStreamProviderData,
   validateAuditLogStreamProviderData
-} from './providers';
+} from '.';
 
-describe('audit log stream providers', () => {
-  it('validates Datadog configuration', () => {
+describe('audit log stream destinations', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('registers every supported destination', () => {
+    expect(Object.keys(auditLogStreamDestinations)).toEqual(['datadog', 'splunk']);
+  });
+
+  it('validates and sanitizes Datadog configuration', () => {
     let data = validateAuditLogStreamProviderData('datadog', {
       apiKey: 'dd-secret',
       site: 'datadoghq.eu'
@@ -17,7 +27,7 @@ describe('audit log stream providers', () => {
     });
   });
 
-  it('validates Splunk configuration', () => {
+  it('validates and sanitizes Splunk configuration', () => {
     let data = validateAuditLogStreamProviderData('splunk', {
       endpoint: 'https://splunk.example.com/services/collector',
       token: 'splunk-secret',
@@ -41,10 +51,11 @@ describe('audit log stream providers', () => {
     });
   });
 
-  it('rejects malformed provider configuration', () => {
+  it('rejects malformed destination configuration', () => {
     expect(() =>
       validateAuditLogStreamProviderData('datadog', {
-        site: 'datadoghq.com'
+        apiKey: 'secret',
+        site: 'datadoghq.com@attacker.example'
       })
     ).toThrow();
     expect(() =>
@@ -53,5 +64,26 @@ describe('audit log stream providers', () => {
         token: 'secret'
       })
     ).toThrow();
+  });
+
+  it('dispatches delivery with provider-specific configuration', async () => {
+    let deliver = vi.spyOn(auditLogStreamDestinations.datadog, 'deliver').mockResolvedValue();
+
+    await deliverAuditLogStreamEvents({
+      provider: 'datadog',
+      providerData: {
+        apiKey: 'dd-secret',
+        site: 'datadoghq.eu'
+      },
+      events: []
+    });
+
+    expect(deliver).toHaveBeenCalledWith({
+      providerData: {
+        apiKey: 'dd-secret',
+        site: 'datadoghq.eu'
+      },
+      events: []
+    });
   });
 });

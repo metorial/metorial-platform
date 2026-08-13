@@ -16,7 +16,8 @@
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@metorial/audit-models": "workspace:*",
-    "@metorial/db": "^1.0.0"
+    "@metorial/db": "^1.0.0",
+    "@metorial/module-audit-log": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

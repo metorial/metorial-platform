@@ -1,7 +1,7 @@
 import { Encryption } from '@lowerdeck/encryption';
+import type { AuditLogStreamProvider, AuditLogStreamProviderData } from '../destinations';
+import { validateAuditLogStreamProviderData } from '../destinations';
 import { env } from '../env';
-import type { AuditLogStreamProvider, AuditLogStreamProviderData } from '../providers';
-import { validateAuditLogStreamProviderData } from '../providers';
 
 let encryption = new Encryption(env.secrets.ENCRYPTION_SECRET);
 
