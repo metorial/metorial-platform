@@ -33,6 +33,7 @@ model OrganizationActor {
   updatedAt DateTime @default(now()) @updatedAt
 
   member                     OrganizationMember?
+  consumerProfile            ConsumerProfile?
   createdInvites             OrganizationInvite[]
   machineAccess              MachineAccess[]
   secretEvents               SecretEvent[]
@@ -43,7 +44,6 @@ model OrganizationActor {
   projectBrandUpdates        ProjectBrandUpdate[]
   consumers                  Consumer[]
   instanceConsumers          InstanceConsumer[]
-  consumerProfiles           ConsumerProfile[]
   consumerInvites            ConsumerInvite[]
   createdSkills              Skill[]
   sandboxes                  Sandbox[]
