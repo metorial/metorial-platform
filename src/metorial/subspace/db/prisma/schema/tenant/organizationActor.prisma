@@ -4,6 +4,7 @@ enum OrganizationActorType {
   system
   oauth_application
   agent
+  consumer_profile
 }
 
 model OrganizationActor {

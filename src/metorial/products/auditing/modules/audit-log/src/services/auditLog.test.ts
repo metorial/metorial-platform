@@ -73,6 +73,15 @@ let baseAuditLog = {
       id: 'mem_1',
       status: 'active',
       role: 'admin'
+    },
+    consumerProfile: {
+      id: 'cop_1',
+      status: 'active',
+      name: 'Alex Consumer',
+      email: 'alex.consumer@example.com',
+      instance: {
+        id: 'ins_1'
+      }
     }
   },
   recordedAt
@@ -119,7 +128,20 @@ describe('auditLogService', () => {
           instance: true,
           organizationActor: {
             include: {
-              member: true
+              member: true,
+              consumerProfile: {
+                select: {
+                  id: true,
+                  status: true,
+                  name: true,
+                  email: true,
+                  instance: {
+                    select: {
+                      id: true
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -151,6 +173,13 @@ describe('auditLogService', () => {
               id: 'mem_1',
               status: 'active',
               role: 'admin'
+            },
+            consumerProfile: {
+              id: 'cop_1',
+              status: 'active',
+              name: 'Alex Consumer',
+              email: 'alex.consumer@example.com',
+              instanceId: 'ins_1'
             }
           }
         },

@@ -13,17 +13,16 @@ import {
   reconcileConsumerActorQueueProcessor,
   syncIdentityConsumerQueueProcessor
 } from './queues/syncIdentityConsumer';
-import { reconcileConsumerProfileOrganizationActorsQueueProcessor } from './queues/reconcileConsumerProfileOrganizationActors';
-import {
-  syncUserConsumerQueueProcessor,
-  syncUserConsumersQueueProcessor
-} from './queues/syncUserConsumer';
 import {
   createOrgMemberConsumerForInstanceQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,
   syncOrgMemberQueue,
   syncOrgMemberQueueProcessor
 } from './queues/syncOrgMember';
+import {
+  syncUserConsumerQueueProcessor,
+  syncUserConsumersQueueProcessor
+} from './queues/syncUserConsumer';
 
 export * from './env';
 export * from './lib/consumerEmail';
@@ -52,7 +51,6 @@ export let consumerQueueProcessor = combineQueueProcessors([
   materializeMagicMcpSessionOwnershipQueueProcessor,
   reconcileUserConsumersQueueProcessor,
   reconcileUserConsumerQueueProcessor,
-  reconcileConsumerProfileOrganizationActorsQueueProcessor,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

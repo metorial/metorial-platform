@@ -2,33 +2,6 @@ import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { auditLogType } from '../../types';
 
-let actorRecordSchema = v.union([
-  v.object({
-    object: v.literal('organization_actor'),
-    id: v.string(),
-    type: v.enumOf(['member', 'machine_access', 'system', 'oauth_application', 'agent']),
-    name: v.string(),
-    email: v.nullable(v.string()),
-    image_url: v.string(),
-    member: v.nullable(
-      v.object({
-        id: v.string(),
-        status: v.enumOf(['active', 'deleted']),
-        role: v.enumOf(['member', 'admin'])
-      })
-    )
-  }),
-  v.object({
-    object: v.literal('consumer_profile'),
-    id: v.string(),
-    status: v.enumOf(['active', 'deleted']),
-    name: v.string(),
-    email: v.string(),
-    instance_id: v.string(),
-    organization_actor_id: v.nullable(v.string())
-  })
-]);
-
 export let v1AuditLogPresenter = Presenter.create(auditLogType)
   .presenter(async ({ auditLog }) => ({
     object: 'organization.audit_log',
@@ -53,7 +26,16 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
                   name: auditLog.actor.record.name,
                   email: auditLog.actor.record.email,
                   image_url: auditLog.actor.record.imageUrl,
-                  member: auditLog.actor.record.member ?? null
+                  member: auditLog.actor.record.member ?? null,
+                  consumer_profile: auditLog.actor.record.consumerProfile
+                    ? {
+                        id: auditLog.actor.record.consumerProfile.id,
+                        status: auditLog.actor.record.consumerProfile.status,
+                        name: auditLog.actor.record.consumerProfile.name,
+                        email: auditLog.actor.record.consumerProfile.email,
+                        instance_id: auditLog.actor.record.consumerProfile.instanceId
+                      }
+                    : null
                 }
               : {
                   object: auditLog.actor.record.object,
@@ -66,7 +48,8 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
                 }
             : null
         }
-      : null,
+      : (null as any),
+
     context: auditLog.context,
     payload: auditLog.payload ?? null,
     previous_attributes: auditLog.previousAttributes ?? null,
@@ -87,7 +70,7 @@ export let v1AuditLogPresenter = Presenter.create(auditLogType)
           type: v.string(),
           id: v.nullable(v.string()),
           metadata: v.nullable(v.typedAny<{}>('audit_log_actor_metadata')),
-          record: v.nullable(actorRecordSchema)
+          record: v.nullable(v.any())
         })
       ),
       context: v.object({

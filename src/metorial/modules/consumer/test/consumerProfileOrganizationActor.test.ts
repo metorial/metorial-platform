@@ -182,7 +182,15 @@ describe('consumer profile organization actors', () => {
         email: 'consumer@example.com'
       },
       organization,
-      performedBy: { type: 'actor', actor: systemActor }
+      auditScope: expect.objectContaining({
+        organizationOid: organization.oid,
+        organizationActorOid: systemActor.oid,
+        instanceOid: instanceConsumer.instanceOid,
+        actor: {
+          type: 'org_actor',
+          id: systemActor.id
+        }
+      })
     });
     expect(mocks.db.consumerOrganizationActor.upsert).toHaveBeenCalledWith({
       where: {

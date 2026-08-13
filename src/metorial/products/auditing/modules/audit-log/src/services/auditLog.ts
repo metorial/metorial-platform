@@ -10,7 +10,20 @@ let auditLogInclude = {
   instance: true,
   organizationActor: {
     include: {
-      member: true
+      member: true,
+      consumerProfile: {
+        select: {
+          id: true,
+          status: true,
+          name: true,
+          email: true,
+          instance: {
+            select: {
+              id: true
+            }
+          }
+        }
+      }
     }
   }
 } satisfies Prisma.AuditLogInclude;
@@ -99,6 +112,15 @@ class AuditLogService {
                       status: auditLog.organizationActor.member.status,
                       role: auditLog.organizationActor.member.role
                     }
+                  : undefined,
+                consumerProfile: auditLog.organizationActor.consumerProfile
+                  ? {
+                      id: auditLog.organizationActor.consumerProfile.id,
+                      status: auditLog.organizationActor.consumerProfile.status,
+                      name: auditLog.organizationActor.consumerProfile.name,
+                      email: auditLog.organizationActor.consumerProfile.email,
+                      instanceId: auditLog.organizationActor.consumerProfile.instance.id
+                    }
                   : undefined
               }
             : auditLog.actorType == 'consumer_profile' && auditLog.actorId
@@ -112,7 +134,7 @@ class AuditLogService {
                         name: consumerProfile.name,
                         email: consumerProfile.email,
                         instanceId: consumerProfile.instance.id,
-                        organizationActorId: consumerProfile.organizationActor?.id
+                        organizationActorId: consumerProfile.organizationActor?.id ?? null
                       }
                     : undefined;
                 })()

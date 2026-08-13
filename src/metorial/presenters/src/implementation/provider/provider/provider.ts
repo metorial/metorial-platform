@@ -8,47 +8,6 @@ import { v1PublisherPresenter } from './publisher';
 
 export let v1ProviderPresenter = Presenter.create(providerType)
   .presenter(async ({ provider, tenant }, opts) => {
-    let rawProvider = 'defaultVariant' in provider ? provider : null;
-    let currentVersion = rawProvider
-      ? rawProvider.defaultVariant?.currentVersion
-        ? {
-            ...rawProvider.defaultVariant.currentVersion,
-            provider: rawProvider
-          }
-        : null
-      : provider.currentVersion;
-    let oauth = rawProvider
-      ? rawProvider.type.attributes.auth.status === 'enabled' &&
-        rawProvider.type.attributes.auth.oauth.status === 'enabled'
-        ? {
-            status: 'enabled' as 'enabled' | 'disabled',
-            callback_url: tenant
-              ? ((await getOAuthCallbackUrl(rawProvider.type, rawProvider, tenant)) as
-                  | string
-                  | null)
-              : null,
-            auto_registration: {
-              status:
-                rawProvider.type.attributes.auth.oauth.oauthAutoRegistration?.status ==
-                'supported'
-                  ? ('supported' as 'supported' | 'unsupported')
-                  : ('unsupported' as 'supported' | 'unsupported')
-            }
-          }
-        : null
-      : provider.oauth
-        ? {
-            status: provider.oauth.status as 'enabled' | 'disabled',
-            callback_url: provider.oauth.callbackUrl as string | null,
-            auto_registration: {
-              status:
-                provider.oauth.autoRegistration?.status == 'supported'
-                  ? ('supported' as 'supported' | 'unsupported')
-                  : ('unsupported' as 'supported' | 'unsupported')
-            }
-          }
-        : null;
-
     return {
       object: 'provider' as const,
       id: provider.id,
@@ -59,15 +18,43 @@ export let v1ProviderPresenter = Presenter.create(providerType)
         .present({ publisher: provider.publisher }, opts)
         .run(),
 
-      current_version: currentVersion
-        ? await v1ProviderVersionPresenter.present({ version: currentVersion }, opts).run()
+      current_version: provider.defaultVariant?.currentVersion
+        ? await v1ProviderVersionPresenter
+            .present(
+              {
+                version: {
+                  ...provider.defaultVariant?.currentVersion,
+                  provider
+                }
+              },
+              opts
+            )
+            .run()
         : null,
 
-      oauth,
+      oauth:
+        provider.type.attributes.auth.status === 'enabled' &&
+        provider.type.attributes.auth.oauth.status === 'enabled'
+          ? {
+              status: 'enabled' as 'enabled' | 'disabled',
+              callback_url: tenant
+                ? ((await getOAuthCallbackUrl(provider.type, provider, tenant)) as
+                    | string
+                    | null)
+                : null,
+              auto_registration: {
+                status:
+                  provider.type.attributes.auth.oauth.oauthAutoRegistration?.status ==
+                  'supported'
+                    ? ('supported' as 'supported' | 'unsupported')
+                    : ('unsupported' as 'supported' | 'unsupported')
+              }
+            }
+          : null,
 
       name: provider.name,
       description: provider.description,
-      slug: rawProvider ? (rawProvider.prettySlug ?? rawProvider.slug) : provider.slug,
+      slug: provider.slug,
 
       metadata: provider.metadata,
 

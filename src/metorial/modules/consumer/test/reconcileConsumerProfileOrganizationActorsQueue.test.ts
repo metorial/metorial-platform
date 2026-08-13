@@ -50,7 +50,6 @@ vi.mock('../src/services', () => ({
 describe('reconcile consumer profile organization actors queue', () => {
   beforeAll(async () => {
     vi.useFakeTimers();
-    await import('../src/queues/reconcileConsumerProfileOrganizationActors');
   });
 
   afterAll(() => {

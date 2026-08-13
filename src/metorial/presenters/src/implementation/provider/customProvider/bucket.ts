@@ -5,9 +5,6 @@ import { v1ScmRepoPresenter } from '../../scm';
 
 export let v1BucketPresenter = Presenter.create(bucketType)
   .presenter(async ({ bucket }, opts) => {
-    let rawBucket = 'scmRepo' in bucket ? bucket : null;
-    let scmRepo = rawBucket ? rawBucket.scmRepo : bucket.scmRepoLink?.repository;
-
     return {
       object: 'bucket' as const,
 
@@ -16,12 +13,14 @@ export let v1BucketPresenter = Presenter.create(bucketType)
       is_immutable: bucket.isImmutable,
       is_read_only: bucket.isReadOnly,
 
-      scm_repo_link: scmRepo
+      scm_repo_link: bucket.scmRepo
         ? {
             object: 'bucket.scm_repo' as const,
             is_linked: true as const,
-            path: rawBucket ? rawBucket.scmRepoPath : bucket.scmRepoLink!.path,
-            repository: await v1ScmRepoPresenter.present({ scmRepo }, opts).run()
+            path: bucket.scmRepoPath ?? null,
+            repository: await v1ScmRepoPresenter
+              .present({ scmRepo: bucket.scmRepo }, opts)
+              .run()
           }
         : null,
 

@@ -2,6 +2,7 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import {
   getEffectiveConsumerGroups,
   normalizeStringList,
@@ -157,7 +158,12 @@ class ConsumerProfileServiceImpl {
             email: d.email
           },
           organization: d.organization,
-          performedBy: { type: 'actor', actor: systemActor }
+          auditScope: createOrganizationActorAuditScope({
+            organization: d.organization,
+            organizationActor: systemActor,
+            instance: { oid: d.instanceConsumer.instanceOid },
+            context: { ip: '0.0.0.0', ua: 'Metorial System' }
+          })
         });
 
         await db.consumerOrganizationActor.upsert({

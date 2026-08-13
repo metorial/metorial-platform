@@ -4,8 +4,6 @@ import { providerVersionType } from '../../../types';
 
 export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
   .presenter(async ({ version }) => {
-    let rawVersion = 'provider' in version ? version : null;
-
     return {
       object: 'provider.version' as const,
 
@@ -18,10 +16,8 @@ export let v1ProviderVersionPresenter = Presenter.create(providerVersionType)
       description: version.description,
       metadata: version.metadata,
 
-      specification_id: rawVersion
-        ? (rawVersion.specification?.id ?? null)
-        : version.specificationId,
-      provider_id: rawVersion ? rawVersion.provider.id : version.providerId,
+      specification_id: version.specification?.id ?? null,
+      provider_id: version.provider.id,
 
       created_at: version.createdAt,
       updated_at: version.updatedAt
