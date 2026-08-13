@@ -791,15 +791,15 @@ class ConsumerProfileServiceImpl {
                 name: d.name,
                 inviteStatus: shouldActivate ? existingProfile.inviteStatus : nextInviteStatus,
                 consumerOid: instanceConsumer.consumerOid,
-                organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
-                organizationActorOid:
-                  d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                organizationMemberOid: d.member?.oid,
+                organizationActorOid: d.member?.actorOid,
                 deletedAt: null,
                 ssoGroupIds,
                 ssoRoles
               },
               include
             });
+
             return {
               lifecycleAction: 'updated' as const,
               instanceConsumer,
@@ -849,9 +849,8 @@ class ConsumerProfileServiceImpl {
                 instanceOid: d.surface.instanceOid,
                 surfaceOid: d.surface.oid,
                 consumerOid: instanceConsumer.consumerOid,
-                organizationMemberOid: d.member?.oid ?? instanceConsumer.organizationMemberOid,
-                organizationActorOid:
-                  d.member?.actorOid ?? instanceConsumer.organizationActorOid,
+                organizationMemberOid: d.member?.oid,
+                organizationActorOid: d.member?.actorOid,
                 accessTagOid: accessTag.oid,
                 personalConsumerGroupOid: personalConsumerGroup.oid
               },

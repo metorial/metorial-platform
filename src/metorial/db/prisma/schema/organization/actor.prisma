@@ -48,6 +48,8 @@ model OrganizationActor {
   sandboxes           Sandbox[]
   environments        Environment[]
   resourceActors      ResourceActor[]
+  auditLogs           AuditLog[]
+  events              Event[]
 
   @@unique([isSystem, organizationOid])
 }

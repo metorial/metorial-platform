@@ -8,14 +8,17 @@ model Event {
   ua String?
   ip String?
 
-  resourceTenantOid BigInt
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  organizationOid BigInt?
+  organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: SetNull)
 
-  resourceGroupOid BigInt
-  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: SetNull)
 
-  resourceActorOid BigInt?
-  resourceActor    ResourceActor? @relation(fields: [resourceActorOid], references: [oid], onDelete: SetNull)
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: SetNull)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
 
   actorType     String?
   actorId       String?
@@ -25,9 +28,6 @@ model Event {
 
   auditLogs AuditLog[]
 
-  @@index([resourceTenantOid, recordedAt])
-  @@index([resourceGroupOid, recordedAt])
-  @@index([resourceActorOid, recordedAt])
   @@index([actorType, actorId, recordedAt])
   @@index([resource, action, recordedAt])
 }

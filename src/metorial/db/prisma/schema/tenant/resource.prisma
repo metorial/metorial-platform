@@ -46,8 +46,6 @@ model ResourceTenant {
   productAssistantModelRuns              ProductAssistantModelRun[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
   auditLogDirtyTrackers                  AuditLogDirtyTracker[]
-  events                                 Event[]
-  auditLogs                              AuditLog[]
 }
 
 enum ResourceGroupType {
@@ -97,8 +95,6 @@ model ResourceGroup {
 
   productAssistantConversations          ProductAssistantConversation[]
   productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
-  events                                 Event[]
-  auditLogs                              AuditLog[]
 
   @@unique([resourceTenantOid, identifier])
   @@index([resourceTenantOid])
@@ -158,8 +154,6 @@ model ResourceActor {
   createdProductAssistantConversations     ProductAssistantConversation[]            @relation("ProductAssistantConversationCreator")
   productAssistantRequests                 ProductAssistantRequest[]
   productAssistantConversationParticipants ProductAssistantConversationParticipant[]
-  events                                   Event[]
-  auditLogs                                AuditLog[]
 
   @@unique([resourceTenantOid, identifier])
   @@unique([resourceTenantOid, consumerProfileOid])
