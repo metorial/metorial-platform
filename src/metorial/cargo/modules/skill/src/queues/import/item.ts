@@ -94,10 +94,7 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     if (!item.skillImport.codeBucketId) throw new Error('Import codebucket is missing');
 
     let actor = item.skillImport.creatorResourceActor ?? undefined;
-    let consumerActor =
-      actor?.consumerProfileOid != null
-        ? { ...actor, consumerProfileOid: actor.consumerProfileOid }
-        : undefined;
+    let consumerProfileOid = actor?.consumerProfileOid ?? undefined;
     createdSkill = await materializeImportedSkill({
       resourceTenant: item.skillImport.resourceTenant!,
       resourceGroup: item.skillImport.resourceGroup,
@@ -108,16 +105,10 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         item.skillImport.repositoryName ??
         item.skillImport.sourceFileName?.replace(/\.(zip|md|markdown)$/i, ''),
       actor,
-      authorization: consumerActor
-        ? {
-            type: 'restricted',
-            resourceActor: consumerActor,
-            accessTags: []
-          }
-        : {
-            type: 'privileged',
-            resourceActor: actor
-          },
+      authorization: {
+        type: 'privileged',
+        resourceActor: actor
+      },
       onSkillCreated: async skill => {
         createdSkill = skill;
         let linked = await db.skillImportItem.updateMany({
@@ -138,10 +129,10 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
       }
     });
 
-    if (consumerActor) {
+    if (consumerProfileOid != null) {
       await consumerSkillService.grantImportedSkillAccess({
         skill: createdSkill,
-        consumerProfileOid: consumerActor.consumerProfileOid
+        consumerProfileOid
       });
     }
 

@@ -13,6 +13,7 @@ import {
   reconcileConsumerActorQueueProcessor,
   syncIdentityConsumerQueueProcessor
 } from './queues/syncIdentityConsumer';
+import { reconcileConsumerProfileOrganizationActorsQueueProcessor } from './queues/reconcileConsumerProfileOrganizationActors';
 import {
   syncUserConsumerQueueProcessor,
   syncUserConsumersQueueProcessor
@@ -51,6 +52,7 @@ export let consumerQueueProcessor = combineQueueProcessors([
   materializeMagicMcpSessionOwnershipQueueProcessor,
   reconcileUserConsumersQueueProcessor,
   reconcileUserConsumerQueueProcessor,
+  reconcileConsumerProfileOrganizationActorsQueueProcessor,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,
