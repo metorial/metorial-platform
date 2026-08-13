@@ -99,12 +99,14 @@ class ConsumerProfileServiceImpl {
     member?: OrganizationMember;
     name: string;
     email: string;
-  }) {
+  }): Promise<{
+    organizationMemberOid: bigint | null;
+    organizationActorOid: bigint;
+  }> {
     return withTransaction(
       async db => {
         if (d.surface.type === 'organization_members') {
           let organizationMemberOid =
-            d.consumerProfile?.organizationMemberOid ??
             d.member?.oid ??
             d.consumerProfile?.organizationMemberOid ??
             d.instanceConsumer.organizationMemberOid;
@@ -123,9 +125,13 @@ class ConsumerProfileServiceImpl {
               })
             : null;
 
+          if (!member) {
+            throw new ServiceError(notFoundError('organization_member'));
+          }
+
           return {
-            organizationMemberOid: member?.oid ?? null,
-            organizationActorOid: member?.actorOid ?? null
+            organizationMemberOid: member.oid,
+            organizationActorOid: member.actorOid
           };
         }
 

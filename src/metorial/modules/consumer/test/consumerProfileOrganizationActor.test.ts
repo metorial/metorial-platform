@@ -309,7 +309,7 @@ describe('consumer profile organization actors', () => {
     expect(mocks.createOrganizationActor).not.toHaveBeenCalled();
   });
 
-  it('clears unresolved organization member profiles for a later retry', async () => {
+  it('rejects organization member profiles without an organization member', async () => {
     let memberSurface = { ...portalSurface, type: 'organization_members' };
     let consumerProfile = profile({
       surface: memberSurface,
@@ -318,17 +318,13 @@ describe('consumer profile organization actors', () => {
     mocks.db.consumerProfile.findUnique.mockResolvedValue(consumerProfile);
     mocks.db.consumer.findUnique.mockResolvedValue({ organizationMemberOid: null });
 
-    await consumerProfileService.reconcileConsumerProfileOrganizationActor({
-      consumerProfile
-    });
+    await expect(
+      consumerProfileService.reconcileConsumerProfileOrganizationActor({
+        consumerProfile
+      })
+    ).rejects.toThrow();
 
-    expect(mocks.db.consumerProfile.update).toHaveBeenCalledWith({
-      where: { oid: 7n },
-      data: {
-        organizationMemberOid: null,
-        organizationActorOid: null
-      }
-    });
+    expect(mocks.db.consumerProfile.update).not.toHaveBeenCalled();
   });
 
   it('gives a newly created portal profile its own actor', async () => {
