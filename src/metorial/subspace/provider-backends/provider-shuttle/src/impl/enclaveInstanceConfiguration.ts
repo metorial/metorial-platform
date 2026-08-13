@@ -31,7 +31,9 @@ export class ProviderEnclaveInstanceConfiguration extends IProviderEnclaveInstan
           ...getId('serverInstanceConfiguration'),
           id: configuration.id,
           tenantOid: data.providerDeployment.tenantOid,
-          environmentOid: data.providerDeployment.environmentOid
+          projectOid: data.providerDeployment.projectOid,
+          environmentOid: data.providerDeployment.environmentOid,
+          instanceOid: data.providerDeployment.instanceOid
         }
       }));
 

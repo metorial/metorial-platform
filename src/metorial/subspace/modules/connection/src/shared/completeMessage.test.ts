@@ -140,8 +140,10 @@ describe('completeMessage', () => {
       connectionOid: 22n,
       sessionOid: 21n,
       tenantOid: 23n,
+      projectOid: 26n,
       solutionOid: 24n,
       environmentOid: 25n,
+      instanceOid: 27n,
       errorOid: null,
       toolCall: null
     };
@@ -198,7 +200,14 @@ describe('completeMessage', () => {
       }
     });
     expect(mocks.db.sessionEvent.updateMany).toHaveBeenCalled();
-    expect(mocks.db.sessionEvent.createMany).toHaveBeenCalled();
+    expect(mocks.db.sessionEvent.createMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantOid: 23n,
+        projectOid: 26n,
+        environmentOid: 25n,
+        instanceOid: 27n
+      })
+    });
     expect(mocks.finalizeMessageQueue.add).toHaveBeenCalledWith({ messageId: 'msg_transition' });
   });
 

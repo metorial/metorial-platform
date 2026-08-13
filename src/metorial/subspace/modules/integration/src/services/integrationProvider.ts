@@ -340,8 +340,10 @@ class integrationProviderServiceImpl {
       integrationOid: d.context.integration.oid,
       providerOid: d.provider.oid,
       tenantOid: d.context.tenant.oid,
+      projectOid: d.context.tenant.projectOid,
       solutionOid: d.context.solution.oid,
-      environmentOid: d.context.environment.oid
+      environmentOid: d.context.environment.oid,
+      instanceOid: d.context.environment.instanceOid
     };
   }
 

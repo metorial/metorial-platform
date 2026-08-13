@@ -34,6 +34,7 @@ export let getOAuthCallbackUrl = async (
         create: {
           ...getId('tenantOAuthCallbackUrl'),
           tenantOid: tenant.oid,
+          projectOid: tenant.projectOid,
           providerOid: provider.oid,
           providerTypeOid: providerType.oid,
           slug

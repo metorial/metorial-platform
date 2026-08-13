@@ -25,8 +25,10 @@ export let sessionProviderCreatedQueueProcessor = sessionProviderCreatedQueue.pr
       create: {
         ...getId('providerUse'),
         tenantOid: sessionProvider.tenantOid,
+        projectOid: sessionProvider.projectOid,
         solutionOid: sessionProvider.solutionOid,
         environmentOid: sessionProvider.environmentOid,
+        instanceOid: sessionProvider.instanceOid,
         providerOid: sessionProvider.providerOid,
         sessions: 1,
         firstSessionAt: new Date(),

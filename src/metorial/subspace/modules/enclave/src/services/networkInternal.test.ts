@@ -32,12 +32,14 @@ import { networkInternalService } from './networkInternal';
 
 let tenant = {
   oid: BigInt(10),
-  id: 'ktn_test_tenant'
+  id: 'ktn_test_tenant',
+  projectOid: BigInt(11)
 } as any;
 
 let environment = {
   oid: BigInt(20),
-  id: 'ken_test_environment'
+  id: 'ken_test_environment',
+  instanceOid: BigInt(21)
 } as any;
 
 describe('networkInternalService.ensureNetworkForEnvironment', () => {
@@ -88,9 +90,32 @@ describe('networkInternalService.ensureNetworkForEnvironment', () => {
       create: expect.objectContaining({
         name: 'Metorial Magic Network',
         tenantOid: tenant.oid,
-        environmentOid: environment.oid
+        projectOid: tenant.projectOid,
+        environmentOid: environment.oid,
+        instanceOid: environment.instanceOid
       })
     });
     expect(result).toMatchObject({ name: 'Metorial Magic Network' });
+  });
+
+  it('writes null mirrored oids for an unlinked tenant and environment', async () => {
+    mockDb.network.findFirst.mockResolvedValueOnce(null);
+    mockDb.network.upsert.mockResolvedValueOnce({ oid: BigInt(40), id: 'net_new' });
+
+    await networkInternalService.ensureNetworkForEnvironment({
+      tenant: { oid: BigInt(10), id: 'ktn_test_tenant', projectOid: null } as any,
+      environment: { oid: BigInt(20), id: 'ken_test_environment', instanceOid: null } as any
+    });
+
+    expect(mockDb.network.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tenantOid: BigInt(10),
+          projectOid: null,
+          environmentOid: BigInt(20),
+          instanceOid: null
+        })
+      })
+    );
   });
 });

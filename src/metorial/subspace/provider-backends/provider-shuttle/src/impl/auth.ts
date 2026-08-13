@@ -58,7 +58,8 @@ export class ProviderAuth extends IProviderAuth {
         oid: snowflake.nextId(),
         id: creds.id,
         shuttleServerOid: shuttleServer.oid,
-        tenantOid: data.tenant.oid
+        tenantOid: data.tenant.oid,
+        projectOid: data.tenant.projectOid
       }
     });
 
@@ -148,7 +149,8 @@ export class ProviderAuth extends IProviderAuth {
         oid: snowflake.nextId(),
         id: oauthSetup.id,
         shuttleServerOid: shuttleServer.oid,
-        tenantOid: data.tenant.oid
+        tenantOid: data.tenant.oid,
+        projectOid: data.tenant.projectOid
       }
     });
 
@@ -210,7 +212,8 @@ export class ProviderAuth extends IProviderAuth {
         oid: snowflake.nextId(),
         id: config.id,
         shuttleServerOid: shuttleServer.oid,
-        tenantOid: data.tenant.oid
+        tenantOid: data.tenant.oid,
+        projectOid: data.tenant.projectOid
       }
     });
 
@@ -265,7 +268,8 @@ export class ProviderAuth extends IProviderAuth {
             oid: snowflake.nextId(),
             id: record.authConfig.id,
             shuttleServerOid: setup.shuttleServerOid,
-            tenantOid: data.tenant.oid
+            tenantOid: data.tenant.oid,
+            projectOid: data.tenant.projectOid
           },
           update: {}
         })

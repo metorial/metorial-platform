@@ -55,8 +55,10 @@ export let providerAuthConfigCreatedQueueProcessor = providerAuthConfigCreatedQu
       create: {
         ...getId('providerUse'),
         tenantOid: providerAuthConfig.tenantOid,
+        projectOid: providerAuthConfig.projectOid,
         solutionOid: providerAuthConfig.solutionOid,
         environmentOid: providerAuthConfig.environmentOid,
+        instanceOid: providerAuthConfig.instanceOid,
         providerOid: providerAuthConfig.providerOid,
         authConfigs: 1,
         firstAuthConfigAt: new Date(),

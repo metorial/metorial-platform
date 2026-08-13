@@ -36,7 +36,18 @@ import { upsertParticipant } from './upsertParticipant';
 
 let session = {
   tenantOid: 10n,
+  projectOid: 11n,
   environmentOid: 20n,
+  instanceOid: 21n,
+  identityActorOid: 100n,
+  identityOid: 200n
+} as any;
+
+let unlinkedSession = {
+  tenantOid: 10n,
+  projectOid: null,
+  environmentOid: 20n,
+  instanceOid: null,
   identityActorOid: 100n,
   identityOid: 200n
 } as any;
@@ -100,5 +111,57 @@ describe('upsertParticipant', () => {
         update: {}
       })
     );
+  });
+
+  it('double-writes the mirrored project and instance oids on create', async () => {
+    await upsertParticipant({
+      session,
+      from: {
+        type: 'provider',
+        provider
+      }
+    });
+
+    let { create } = upsertMock.mock.calls[0]![0];
+
+    expect(create.tenantOid).toBe(10n);
+    expect(create.projectOid).toBe(11n);
+    expect(create.environmentOid).toBe(20n);
+    expect(create.instanceOid).toBe(21n);
+  });
+
+  it('keeps the legacy composite unique key free of mirrored oids', async () => {
+    await upsertParticipant({
+      session,
+      from: {
+        type: 'provider',
+        provider
+      }
+    });
+
+    expect(upsertMock.mock.calls[0]![0].where).toEqual({
+      tenantOid_type_hash: {
+        tenantOid: 10n,
+        type: 'provider',
+        hash: 'provider:pro_test'
+      }
+    });
+  });
+
+  it('writes null mirrored oids for an unlinked tenant and environment', async () => {
+    await upsertParticipant({
+      session: unlinkedSession,
+      from: {
+        type: 'provider',
+        provider
+      }
+    });
+
+    let { create } = upsertMock.mock.calls[0]![0];
+
+    expect(create.projectOid).toBeNull();
+    expect(create.instanceOid).toBeNull();
+    expect(create.tenantOid).toBe(10n);
+    expect(create.environmentOid).toBe(20n);
   });
 });

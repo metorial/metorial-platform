@@ -80,11 +80,13 @@ import { enclaveInternalService } from './enclaveInternal';
 
 let tenant = {
   oid: BigInt(10),
-  id: 'ktn_test_tenant'
+  id: 'ktn_test_tenant',
+  projectOid: BigInt(11)
 } as any;
 
 let environment = {
-  oid: BigInt(20)
+  oid: BigInt(20),
+  instanceOid: BigInt(21)
 } as any;
 
 let provider = {
@@ -170,7 +172,8 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
         name: `Metorial Platform`,
         type: 'metorial',
         systemIdentifier: `system:${tenant.id}`,
-        tenantOid: tenant.oid
+        tenantOid: tenant.oid,
+        projectOid: tenant.projectOid
       })
     });
 
@@ -181,7 +184,9 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
         description: '',
         providerDeploymentOid: providerDeployment.oid,
         tenantOid: tenant.oid,
+        projectOid: tenant.projectOid,
         environmentOid: environment.oid,
+        instanceOid: environment.instanceOid,
         networkOid: BigInt(55),
         enclaveEnvironmentOid: BigInt(50),
         needsEnclaveReconciliation: true
@@ -223,6 +228,42 @@ describe('enclaveInternalService.ensureEnclaveForProviderDeployment', () => {
       data: expect.objectContaining({
         enclaveEnvironmentOid: BigInt(70),
         networkOid: BigInt(55)
+      })
+    });
+  });
+
+  it('writes null mirrored oids for an unlinked tenant and environment', async () => {
+    mockDb.enclave.findFirst.mockResolvedValueOnce(null);
+    mockDb.enclaveEnvironment.findFirst.mockResolvedValueOnce(null);
+    mockDb.network.findFirst.mockResolvedValueOnce(null);
+    mockDb.network.upsert.mockResolvedValueOnce({ oid: BigInt(55), id: 'net_test_id' });
+    mockDb.enclaveEnvironment.upsert.mockResolvedValueOnce({
+      oid: BigInt(50),
+      id: 'een_test_id'
+    });
+    mockDb.enclave.create.mockResolvedValueOnce({ oid: BigInt(60), id: 'enc_test_id' });
+
+    await enclaveInternalService.ensureEnclaveForProviderDeployment({
+      tenant: { oid: BigInt(10), id: 'ktn_test_tenant', projectOid: null } as any,
+      environment: { oid: BigInt(20), instanceOid: null } as any,
+      provider,
+      providerDeployment
+    });
+
+    expect(mockDb.enclaveEnvironment.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tenantOid: BigInt(10),
+          projectOid: null
+        })
+      })
+    );
+    expect(mockDb.enclave.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantOid: BigInt(10),
+        projectOid: null,
+        environmentOid: BigInt(20),
+        instanceOid: null
       })
     });
   });

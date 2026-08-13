@@ -118,7 +118,8 @@ class publisherInternalServiceImpl {
 
           source: d.input.source,
 
-          tenantOid: d.owner.type === 'tenant' ? d.owner.tenant.oid : null
+          tenantOid: d.owner.type === 'tenant' ? d.owner.tenant.oid : null,
+          projectOid: d.owner.type === 'tenant' ? d.owner.tenant.projectOid : null
         },
         update: {
           name: d.input.name,

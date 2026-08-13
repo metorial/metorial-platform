@@ -170,8 +170,10 @@ class ProviderListingGroupService {
       data: {
         ...getId('providerGroup'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         name: d.input.name,
         description: d.input.description,
         slug: slugify(`${d.input.name}-${generateCode(6)}`)

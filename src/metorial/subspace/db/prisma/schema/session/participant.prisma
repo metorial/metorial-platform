@@ -33,8 +33,14 @@ model SessionParticipant {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   providerOid BigInt?
   provider    Provider? @relation(fields: [providerOid], references: [oid])
@@ -59,4 +65,6 @@ model SessionParticipant {
   @@index([type])
   @@index([identityActorOid])
   @@index([identityOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

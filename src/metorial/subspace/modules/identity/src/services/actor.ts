@@ -289,8 +289,10 @@ class identityActorServiceImpl {
           privateMetadata: d.input.privateMetadata,
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
-          environmentOid: d.environment.oid
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         }
       });
 
@@ -319,8 +321,10 @@ class identityActorServiceImpl {
             ),
 
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
-            environmentOid: d.environment.oid
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           }
         });
         await addAfterTransactionHook(async () =>

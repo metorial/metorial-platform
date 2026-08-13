@@ -53,7 +53,9 @@ export let createProtoGuardRunForMessage = async (d: { messageId: string }) => {
           connectionOid: message.connectionOid,
           providerRunOid: message.providerRunOid,
           tenantOid: message.tenantOid,
+          projectOid: message.projectOid,
           environmentOid: message.environmentOid,
+          instanceOid: message.instanceOid,
           solutionOid: message.solutionOid
         }
       });
@@ -74,7 +76,9 @@ export let createProtoGuardRunForMessage = async (d: { messageId: string }) => {
           connectionOid: message.connectionOid,
           providerRunOid: message.providerRunOid,
           tenantOid: message.tenantOid,
+          projectOid: message.projectOid,
           environmentOid: message.environmentOid,
+          instanceOid: message.instanceOid,
           solutionOid: message.solutionOid
         }
       });
@@ -139,7 +143,9 @@ export let createProtoGuardRunForMessage = async (d: { messageId: string }) => {
           connectionOid: message.connectionOid,
           providerRunOid: message.providerRunOid,
           tenantOid: message.tenantOid,
+          projectOid: message.projectOid,
           environmentOid: message.environmentOid,
+          instanceOid: message.instanceOid,
           solutionOid: message.solutionOid
         },
         include: runInclude

@@ -73,8 +73,10 @@ export let createSessionRecord = async (d: {
         privateMetadata: d.input.privateMetadata,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         identityActorOid: d.identityActorOid ?? templateIdentity?.identityActorOid ?? null,
         identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
         ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
@@ -84,8 +86,10 @@ export let createSessionRecord = async (d: {
             ...getId('sessionEvent'),
             type: 'session_created',
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
-            environmentOid: d.environment.oid
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           }
         }
       },

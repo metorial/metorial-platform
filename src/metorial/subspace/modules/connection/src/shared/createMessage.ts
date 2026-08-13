@@ -102,11 +102,13 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
       sessionOid: data.session.oid,
       connectionOid: data.connection?.oid,
       tenantOid: data.session.tenantOid,
+      projectOid: data.session.projectOid,
       solutionOid: data.session.solutionOid,
       sessionProviderOid: data.provider?.oid,
       bucketOid: sessionMessageBucketRecord.oid,
       parentMessageOid: data.parentMessage?.oid,
       environmentOid: data.session.environmentOid,
+      instanceOid: data.session.instanceOid,
       senderParticipantOid: data.senderParticipant.oid,
       responderParticipantOid: data.responderParticipant?.oid,
 
@@ -127,8 +129,10 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
               operation: data.operation,
               sessionOid: data.session.oid,
               tenantOid: data.session.tenantOid,
+              projectOid: data.session.projectOid,
               solutionOid: data.session.solutionOid,
-              environmentOid: data.session.environmentOid
+              environmentOid: data.session.environmentOid,
+              instanceOid: data.session.instanceOid
             }
           }
         : undefined
@@ -144,8 +148,10 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
       providerRunOid: message.providerRunOid,
       messageOid: message.oid,
       tenantOid: message.tenantOid,
+      projectOid: message.projectOid,
       solutionOid: message.solutionOid,
-      environmentOid: message.environmentOid
+      environmentOid: message.environmentOid,
+      instanceOid: message.instanceOid
     }
   });
 
@@ -159,8 +165,10 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
         providerRunOid: message.providerRunOid,
         messageOid: message.oid,
         tenantOid: message.tenantOid,
+        projectOid: message.projectOid,
         solutionOid: message.solutionOid,
-        environmentOid: message.environmentOid
+        environmentOid: message.environmentOid,
+        instanceOid: message.instanceOid
       }
     });
   }

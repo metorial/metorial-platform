@@ -25,12 +25,14 @@ class tenantServiceImpl {
       allowAuthConfigImport?: boolean;
       collectOperationDescriptionForToolCalls?: boolean;
       useIntegrationNamesForSessionProviderNameTemplates?: boolean;
+      projectOid?: bigint;
       environments: {
         name: string;
         identifier: string;
         type: EnvironmentType;
         resourceGroupId: string;
         resourceGroupIdentifier: string;
+        instanceOid?: bigint;
       }[];
     };
   }) {
@@ -59,10 +61,12 @@ class tenantServiceImpl {
           collectOperationDescriptionForToolCalls:
             d.input.collectOperationDescriptionForToolCalls,
           useIntegrationNamesForSessionProviderNameTemplates:
-            d.input.useIntegrationNamesForSessionProviderNameTemplates
+            d.input.useIntegrationNamesForSessionProviderNameTemplates,
+          projectOid: d.input.projectOid
         },
         create: {
           ...getId('tenant'),
+          projectOid: d.input.projectOid,
           name: d.input.name,
           identifier: d.input.identifier,
           resourceTenantId: d.input.resourceTenantId,
@@ -116,7 +120,8 @@ class tenantServiceImpl {
           identifier: env.identifier,
           type: env.type,
           resourceGroupId: env.resourceGroupId,
-          resourceGroupIdentifier: env.resourceGroupIdentifier
+          resourceGroupIdentifier: env.resourceGroupIdentifier,
+          instanceOid: env.instanceOid
         }))
       });
 
@@ -129,7 +134,8 @@ class tenantServiceImpl {
           data: {
             name: environment.name,
             resourceGroupId: environment.resourceGroupId,
-            resourceGroupIdentifier: environment.resourceGroupIdentifier
+            resourceGroupIdentifier: environment.resourceGroupIdentifier,
+            instanceOid: environment.instanceOid
           }
         });
       }

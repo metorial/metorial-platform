@@ -231,8 +231,10 @@ class customProviderVersionServiceImpl {
         data: {
           ...getId('upcomingCustomProvider'),
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           actorOid: d.actor.oid,
 
           message: d.input.message,

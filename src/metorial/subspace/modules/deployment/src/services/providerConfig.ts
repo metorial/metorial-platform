@@ -519,9 +519,11 @@ class providerConfigServiceImpl {
         isForVault: !!d.input.isForVault,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         providerOid: d.provider.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
 
         deploymentOid: d.providerDeployment?.oid
       };

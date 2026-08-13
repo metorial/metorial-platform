@@ -53,8 +53,10 @@ export let sessionTemplateProviderCreatedQueueProcessor =
       create: {
         ...getId('providerUse'),
         tenantOid: sessionTemplateProvider.tenantOid,
+        projectOid: sessionTemplateProvider.projectOid,
         solutionOid: sessionTemplateProvider.solutionOid,
         environmentOid: sessionTemplateProvider.environmentOid,
+        instanceOid: sessionTemplateProvider.instanceOid,
         providerOid: sessionTemplateProvider.providerOid,
         sessionTemplates: 1,
         firstSessionTemplateAt: new Date(),

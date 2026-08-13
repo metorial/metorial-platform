@@ -5,11 +5,17 @@ model ProviderUse {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   providerOid BigInt
   provider    Provider @relation(fields: [providerOid], references: [oid])
@@ -41,4 +47,6 @@ model ProviderUse {
   updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([tenantOid, solutionOid, environmentOid, providerOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

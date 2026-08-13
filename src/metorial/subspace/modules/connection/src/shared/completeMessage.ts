@@ -185,8 +185,10 @@ export let completeMessage = async (
         providerRunOid: message.providerRunOid,
         messageOid: message.oid,
         tenantOid: message.tenantOid,
+        projectOid: message.projectOid,
         solutionOid: message.solutionOid,
-        environmentOid: message.environmentOid
+        environmentOid: message.environmentOid,
+        instanceOid: message.instanceOid
       }
     });
 

@@ -454,8 +454,10 @@ class providerSetupSessionServiceImpl {
           redirectUrl: d.input.redirectUrl,
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           providerOid: d.provider?.oid,
           deploymentOid: d.providerDeployment?.oid ?? d.providerConfig?.deploymentOid,
           identityOid: d.identity?.oid ?? null,

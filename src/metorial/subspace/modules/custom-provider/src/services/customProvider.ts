@@ -410,6 +410,7 @@ class customProviderServiceImpl {
           },
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid
         },
         include
@@ -429,8 +430,10 @@ class customProviderServiceImpl {
         data: {
           ...getId('upcomingCustomProvider'),
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           actorOid: d.actor.oid,
 
           message: 'Initial commit',
@@ -506,6 +509,7 @@ class customProviderServiceImpl {
             id: originClone.id,
 
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
 
             isReadOnly: false,

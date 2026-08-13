@@ -37,7 +37,8 @@ class enclaveInternalServiceImpl {
             name: `Metorial Platform`,
             type: 'metorial',
             systemIdentifier,
-            tenantOid: d.tenant.oid
+            tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid
           }
         });
       },
@@ -79,7 +80,9 @@ class enclaveInternalServiceImpl {
             providerDeploymentOid: d.providerDeployment.oid,
             networkOid: network.oid,
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
             compiledNetworkRules: Prisma.JsonNull,
             needsEnclaveReconciliation: true
           }

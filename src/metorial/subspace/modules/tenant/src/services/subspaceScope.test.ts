@@ -164,6 +164,50 @@ describe('Subspace canonical scope reconciliation', () => {
     );
   });
 
+  it('stores the project reference on the tenant and the instance reference on its environments', async () => {
+    let instance = {
+      oid: 3n,
+      id: 'ins_3',
+      name: 'Production',
+      type: 'production',
+      organizationOid: 1n,
+      projectOid: 2n,
+      resourceGroupOid: 200n,
+      internalTenantIdentifier: 'mte-pro-2',
+      internalEnvironmentIdentifier: 'mte-ins-3',
+      subspaceTenantId: 'ktn_canonical',
+      subspaceEnvironmentId: 'ken_canonical'
+    } as any;
+    let project = makeProject({
+      internalTenantIdentifier: 'mte-pro-2',
+      subspaceTenantId: 'ktn_canonical',
+      instances: [instance]
+    });
+    instance.project = project;
+    instance.organization = { oid: 1n, id: 'org_1', subspaceTenantIds: ['ktn_canonical'] };
+    mocks.tenantFind.mockResolvedValue({ oid: 20n, identifier: 'mte-pro-2' });
+    mocks.environmentFind.mockResolvedValue({
+      identifier: 'mte-ins-3',
+      tenantOid: 20n
+    });
+
+    await subspaceScopeService.ensureForInstance(instance);
+
+    expect(mocks.tenantUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          projectOid: 2n,
+          environments: [expect.objectContaining({ instanceOid: 3n })]
+        })
+      })
+    );
+    expect(mocks.environmentUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ instanceOid: 3n })
+      })
+    );
+  });
+
   it('fails before reconciliation when a canonical-looking project link is wrong', async () => {
     let project = makeProject({
       internalTenantIdentifier: 'mte-pro-999',

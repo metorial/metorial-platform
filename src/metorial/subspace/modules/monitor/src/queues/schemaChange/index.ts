@@ -91,7 +91,14 @@ let updateMonitorAlertWindow = async (d: {
 let createSchemaChangeAlert = async (d: {
   monitor: Pick<
     Monitor,
-    'oid' | 'firstAlertAt' | 'lastAlertAt' | 'tenantOid' | 'environmentOid' | 'solutionOid'
+    | 'oid'
+    | 'firstAlertAt'
+    | 'lastAlertAt'
+    | 'tenantOid'
+    | 'projectOid'
+    | 'environmentOid'
+    | 'instanceOid'
+    | 'solutionOid'
   >;
   notification: Pick<ProviderSpecificationChangeNotification, 'oid' | 'createdAt'>;
   status: MonitorAlertStatus;
@@ -105,7 +112,9 @@ let createSchemaChangeAlert = async (d: {
         monitorOid: d.monitor.oid,
         specificationChangeNotificationOid: d.notification.oid,
         tenantOid: d.monitor.tenantOid,
+        projectOid: d.monitor.projectOid,
         environmentOid: d.monitor.environmentOid,
+        instanceOid: d.monitor.instanceOid,
         solutionOid: d.monitor.solutionOid,
         createdAt: d.notification.createdAt
       },

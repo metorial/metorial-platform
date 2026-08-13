@@ -29,6 +29,9 @@ let shouldUpdateActorLink = (d: {
   d.currentResourceActorId != d.resourceActorId ||
   d.currentResourceActorIdentifier != d.resourceActorIdentifier;
 
+let shouldUpdateOidReference = (d: { current: bigint | null; expected: bigint }) =>
+  d.current !== d.expected;
+
 class ReconcileResourceLinksServiceImpl {
   async reconcileProjectLinks(d: { projectOid: bigint }) {
     let project = await metorialDb.project.findUnique({
@@ -36,6 +39,7 @@ class ReconcileResourceLinksServiceImpl {
         oid: d.projectOid
       },
       select: {
+        oid: true,
         subspaceTenantId: true,
         resourceTenant: {
           select: {
@@ -45,6 +49,7 @@ class ReconcileResourceLinksServiceImpl {
         },
         instances: {
           select: {
+            oid: true,
             subspaceEnvironmentId: true,
             resourceGroup: {
               select: {
@@ -57,7 +62,7 @@ class ReconcileResourceLinksServiceImpl {
       }
     });
 
-    if (!project?.subspaceTenantId || !project.resourceTenant) {
+    if (!project?.subspaceTenantId) {
       return {
         linkedTenants: 0,
         linkedEnvironments: 0
@@ -73,34 +78,54 @@ class ReconcileResourceLinksServiceImpl {
       },
       select: {
         resourceTenantId: true,
-        resourceTenantIdentifier: true
+        resourceTenantIdentifier: true,
+        projectOid: true
       }
     });
 
-    if (
-      subspaceTenant &&
-      shouldUpdateTenantLink({
-        currentResourceTenantId: subspaceTenant.resourceTenantId,
-        currentResourceTenantIdentifier: subspaceTenant.resourceTenantIdentifier,
-        resourceTenantId: project.resourceTenant.id,
-        resourceTenantIdentifier: project.resourceTenant.identifier
-      })
-    ) {
-      linkedTenants = (
-        await subspaceDb.tenant.updateMany({
-          where: {
-            id: project.subspaceTenantId
-          },
-          data: {
-            resourceTenantId: project.resourceTenant.id,
-            resourceTenantIdentifier: project.resourceTenant.identifier
-          }
+    if (subspaceTenant) {
+      let tenantUpdate: {
+        resourceTenantId?: string;
+        resourceTenantIdentifier?: string;
+        projectOid?: bigint;
+      } = {};
+
+      if (
+        project.resourceTenant &&
+        shouldUpdateTenantLink({
+          currentResourceTenantId: subspaceTenant.resourceTenantId,
+          currentResourceTenantIdentifier: subspaceTenant.resourceTenantIdentifier,
+          resourceTenantId: project.resourceTenant.id,
+          resourceTenantIdentifier: project.resourceTenant.identifier
         })
-      ).count;
+      ) {
+        tenantUpdate.resourceTenantId = project.resourceTenant.id;
+        tenantUpdate.resourceTenantIdentifier = project.resourceTenant.identifier;
+      }
+
+      if (
+        shouldUpdateOidReference({
+          current: subspaceTenant.projectOid,
+          expected: project.oid
+        })
+      ) {
+        tenantUpdate.projectOid = project.oid;
+      }
+
+      if (Object.keys(tenantUpdate).length > 0) {
+        linkedTenants = (
+          await subspaceDb.tenant.updateMany({
+            where: {
+              id: project.subspaceTenantId
+            },
+            data: tenantUpdate
+          })
+        ).count;
+      }
     }
 
     for (let instance of project.instances) {
-      if (!instance.subspaceEnvironmentId || !instance.resourceGroup) continue;
+      if (!instance.subspaceEnvironmentId) continue;
 
       let subspaceEnvironment = await subspaceDb.environment.findUnique({
         where: {
@@ -108,31 +133,49 @@ class ReconcileResourceLinksServiceImpl {
         },
         select: {
           resourceGroupId: true,
-          resourceGroupIdentifier: true
+          resourceGroupIdentifier: true,
+          instanceOid: true
         }
       });
 
+      if (!subspaceEnvironment) continue;
+
+      let environmentUpdate: {
+        resourceGroupId?: string;
+        resourceGroupIdentifier?: string;
+        instanceOid?: bigint;
+      } = {};
+
       if (
-        !subspaceEnvironment ||
-        !shouldUpdateEnvironmentLink({
+        instance.resourceGroup &&
+        shouldUpdateEnvironmentLink({
           currentResourceGroupId: subspaceEnvironment.resourceGroupId,
           currentResourceGroupIdentifier: subspaceEnvironment.resourceGroupIdentifier,
           resourceGroupId: instance.resourceGroup.id,
           resourceGroupIdentifier: instance.resourceGroup.identifier
         })
       ) {
-        continue;
+        environmentUpdate.resourceGroupId = instance.resourceGroup.id;
+        environmentUpdate.resourceGroupIdentifier = instance.resourceGroup.identifier;
       }
+
+      if (
+        shouldUpdateOidReference({
+          current: subspaceEnvironment.instanceOid,
+          expected: instance.oid
+        })
+      ) {
+        environmentUpdate.instanceOid = instance.oid;
+      }
+
+      if (Object.keys(environmentUpdate).length === 0) continue;
 
       linkedEnvironments += (
         await subspaceDb.environment.updateMany({
           where: {
             id: instance.subspaceEnvironmentId
           },
-          data: {
-            resourceGroupId: instance.resourceGroup.id,
-            resourceGroupIdentifier: instance.resourceGroup.identifier
-          }
+          data: environmentUpdate
         })
       ).count;
     }

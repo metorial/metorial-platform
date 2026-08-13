@@ -20,7 +20,9 @@ type SyncedProviderOAuthSetup = {
   authCredentialsOid: bigint;
   providerOid: bigint;
   tenantOid: bigint;
+  projectOid: bigint | null;
   environmentOid: bigint;
+  instanceOid: bigint | null;
   solutionOid: number;
 };
 
@@ -142,7 +144,9 @@ let ensureProviderAuthConfigEvent = async (d: {
         oauthSetupOid: d.providerOAuthSetup.oid,
         providerOid: d.providerOAuthSetup.providerOid,
         tenantOid: d.providerOAuthSetup.tenantOid,
+        projectOid: d.providerOAuthSetup.projectOid,
         environmentOid: d.providerOAuthSetup.environmentOid,
+        instanceOid: d.providerOAuthSetup.instanceOid,
         solutionOid: d.providerOAuthSetup.solutionOid
       }
     });
@@ -185,7 +189,9 @@ let createErrorForEvent = async (d: {
       oauthSetupOid: d.providerOAuthSetup.oid,
       providerOid: d.providerOAuthSetup.providerOid,
       tenantOid: d.providerOAuthSetup.tenantOid,
+      projectOid: d.providerOAuthSetup.projectOid,
       environmentOid: d.providerOAuthSetup.environmentOid,
+      instanceOid: d.providerOAuthSetup.instanceOid,
       solutionOid: d.providerOAuthSetup.solutionOid
     }
   });
@@ -216,7 +222,9 @@ let createErrorForEvent = async (d: {
       hash,
       providerOid: error.providerOid,
       tenantOid: error.tenantOid,
+      projectOid: error.projectOid,
       environmentOid: error.environmentOid,
+      instanceOid: error.instanceOid,
       firstOccurrenceOid: error.oid
     },
     update: {}
@@ -319,7 +327,9 @@ export let syncOAuthSetupQueueProcessor = syncOAuthSetupQueue.process(async data
       authCredentialsOid: true,
       providerOid: true,
       tenantOid: true,
+      projectOid: true,
       environmentOid: true,
+      instanceOid: true,
       solutionOid: true
     }
   });

@@ -5,7 +5,9 @@ export type BufferedIngressNetworkLogResult = 'allowed' | 'denied';
 
 export type BufferedIngressNetworkLogDimensions = {
   tenantOid: bigint;
+  projectOid: bigint | null;
   environmentOid: bigint;
+  instanceOid: bigint | null;
   solutionOid: number;
   enclaveOid: bigint;
   sessionId: string | null;
@@ -24,10 +26,12 @@ export type BufferedIngressNetworkLogEntry = BufferedIngressNetworkLogDimensions
 
 type SerializedIngressNetworkLogDimensions = Omit<
   BufferedIngressNetworkLogDimensions,
-  'tenantOid' | 'environmentOid' | 'enclaveOid'
+  'tenantOid' | 'projectOid' | 'environmentOid' | 'instanceOid' | 'enclaveOid'
 > & {
   tenantOid: string;
+  projectOid: string | null;
   environmentOid: string;
+  instanceOid: string | null;
   enclaveOid: string;
 };
 
@@ -64,7 +68,9 @@ let serializeDimensions = (
   dimensions: BufferedIngressNetworkLogDimensions
 ): SerializedIngressNetworkLogDimensions => ({
   tenantOid: dimensions.tenantOid.toString(),
+  projectOid: dimensions.projectOid?.toString() ?? null,
   environmentOid: dimensions.environmentOid.toString(),
+  instanceOid: dimensions.instanceOid?.toString() ?? null,
   solutionOid: dimensions.solutionOid,
   enclaveOid: dimensions.enclaveOid.toString(),
   sessionId: dimensions.sessionId,
@@ -80,7 +86,10 @@ let deserializeDimensions = (
 ): BufferedIngressNetworkLogDimensions => ({
   ...dimensions,
   tenantOid: BigInt(dimensions.tenantOid),
+  // Snapshots written before the mirrored oids existed have neither field
+  projectOid: dimensions.projectOid != null ? BigInt(dimensions.projectOid) : null,
   environmentOid: BigInt(dimensions.environmentOid),
+  instanceOid: dimensions.instanceOid != null ? BigInt(dimensions.instanceOid) : null,
   enclaveOid: BigInt(dimensions.enclaveOid)
 });
 
@@ -106,7 +115,9 @@ let mergeIntoBuffer = (entry: BufferedIngressNetworkLogEntry) => {
 
 export let recordIngressNetworkLog = (d: {
   tenantOid: bigint;
+  projectOid: bigint | null;
   environmentOid: bigint;
+  instanceOid: bigint | null;
   solutionOid: number;
   enclaveOid: bigint;
   sessionId?: string | null;
@@ -119,7 +130,9 @@ export let recordIngressNetworkLog = (d: {
   let seenAt = d.at ?? new Date();
   let dimensions: BufferedIngressNetworkLogDimensions = {
     tenantOid: d.tenantOid,
+    projectOid: d.projectOid,
     environmentOid: d.environmentOid,
+    instanceOid: d.instanceOid,
     solutionOid: d.solutionOid,
     enclaveOid: d.enclaveOid,
     sessionId: d.sessionId ?? null,

@@ -367,7 +367,9 @@ class networkPolicyServiceImpl {
           name: d.input.name.trim(),
           description: d.input.description?.trim() || undefined,
           tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          projectOid: d.tenant.projectOid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         }
       });
 

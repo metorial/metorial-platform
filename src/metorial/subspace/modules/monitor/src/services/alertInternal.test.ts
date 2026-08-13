@@ -52,7 +52,9 @@ let protoGuardAlert = {
   oid: BigInt(10),
   id: 'protoguard_alert_1',
   tenantOid: BigInt(1),
+  projectOid: BigInt(11),
   environmentOid: BigInt(2),
+  instanceOid: BigInt(22),
   solutionOid: BigInt(3),
   createdAt,
   tenant: { oid: BigInt(1), id: 'tenant_1' },
@@ -133,5 +135,43 @@ describe('alertInternalService', () => {
     expect(alerts).toEqual([existing]);
     expect(monitorAlertCreate).not.toHaveBeenCalled();
     expect(monitorUpdateMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('copies the mirrored references from the protoguard alert onto the monitor alert', async () => {
+    let { alertInternalService } = await import('./alertInternal');
+
+    await alertInternalService.createFromProtoGuardAlert({
+      protoGuardAlertId: protoGuardAlert.id
+    });
+
+    expect(monitorAlertCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantOid: protoGuardAlert.tenantOid,
+        projectOid: protoGuardAlert.projectOid,
+        environmentOid: protoGuardAlert.environmentOid,
+        instanceOid: protoGuardAlert.instanceOid
+      })
+    });
+  });
+
+  it('does not fabricate mirrored references for an unlinked protoguard alert', async () => {
+    protoGuardAlertFindUniqueOrThrow.mockResolvedValue({
+      ...protoGuardAlert,
+      projectOid: null,
+      instanceOid: null
+    });
+
+    let { alertInternalService } = await import('./alertInternal');
+
+    await alertInternalService.createFromProtoGuardAlert({
+      protoGuardAlertId: protoGuardAlert.id
+    });
+
+    let data = monitorAlertCreate.mock.calls[0][0].data;
+
+    expect(data.tenantOid).toBe(BigInt(1));
+    expect(data.projectOid).toBeNull();
+    expect(data.environmentOid).toBe(BigInt(2));
+    expect(data.instanceOid).toBeNull();
   });
 });

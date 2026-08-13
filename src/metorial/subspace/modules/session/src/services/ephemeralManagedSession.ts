@@ -215,8 +215,10 @@ class ephemeralManagedSessionServiceImpl {
           ...getId('ephemeralManagedSession'),
           status: 'active',
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           sessionTemplateOid: d.sessionTemplate.oid,
           actorOid: d.sessionTemplate.identityActorOid ?? null,
           identityOid: d.sessionTemplate.identityOid ?? null,
@@ -313,8 +315,10 @@ class ephemeralManagedSessionServiceImpl {
           ...getId('ephemeralManagedSession'),
           ...data,
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
-          environmentOid: d.environment.oid
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         },
         include
       });

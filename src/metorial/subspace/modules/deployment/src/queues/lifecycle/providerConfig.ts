@@ -29,8 +29,10 @@ export let providerConfigCreatedQueueProcessor = providerConfigCreatedQueue.proc
       create: {
         ...getId('providerUse'),
         tenantOid: providerConfig.tenantOid,
+        projectOid: providerConfig.projectOid,
         solutionOid: providerConfig.solutionOid,
         environmentOid: providerConfig.environmentOid,
+        instanceOid: providerConfig.instanceOid,
         providerOid: providerConfig.providerOid,
         configs: 1,
         firstConfigAt: new Date(),

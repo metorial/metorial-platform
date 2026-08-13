@@ -304,8 +304,10 @@ class integrationInstanceServiceImpl {
       privateMetadata: d.input.privateMetadata,
       integrationOid: d.integration.oid,
       tenantOid: d.tenant.oid,
+      projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid,
-      environmentOid: d.environment.oid
+      environmentOid: d.environment.oid,
+      instanceOid: d.environment.instanceOid
     };
   }
 

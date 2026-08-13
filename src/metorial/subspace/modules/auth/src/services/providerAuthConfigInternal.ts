@@ -428,8 +428,10 @@ class providerAuthConfigInternalServiceImpl {
           isDefault: !!d.input.isDefault,
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           providerOid: d.provider.oid,
           authMethodOid: d.authMethod.oid,
           deploymentOid: d.providerDeployment?.oid,
@@ -472,8 +474,10 @@ class providerAuthConfigInternalServiceImpl {
             ...getId('providerAuthImport'),
 
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
             authConfigOid: providerAuthConfig.oid,
             authConfigUpdateOid: update.oid,
             deploymentOid: d.providerDeployment?.oid,

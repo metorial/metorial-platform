@@ -667,8 +667,10 @@ class providerAuthConfigServiceImpl {
             ...getId('providerAuthImport'),
 
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
 
             authConfigOid: config.oid,
             authConfigUpdateOid: update.oid,

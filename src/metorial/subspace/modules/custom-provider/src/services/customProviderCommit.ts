@@ -173,6 +173,7 @@ class customProviderCommitServiceImpl {
         scmRepoPushOid: d._internal?.scmPush?.oid,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: solution.oid,
         creatorActorOid: d.actor.oid
       };

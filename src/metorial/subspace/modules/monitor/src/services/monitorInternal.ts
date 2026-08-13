@@ -58,7 +58,9 @@ class monitorInternalServiceImpl {
         owner: 'tenant',
         protoGuardFilterOid: d.filter.oid,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         solutionOid: solution.oid,
         firstAlertAt: d.timestamp,
         lastAlertAt: d.timestamp
@@ -87,7 +89,9 @@ class monitorInternalServiceImpl {
         owner: 'tenant',
         providerOid: d.provider.oid,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         solutionOid: solution.oid,
         firstAlertAt: d.timestamp,
         lastAlertAt: d.timestamp

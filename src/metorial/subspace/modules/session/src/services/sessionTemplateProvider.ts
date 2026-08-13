@@ -426,8 +426,10 @@ class sessionTemplateProviderServiceImpl {
             authConfigOid: currentVersion.authConfigOid,
             integrationInstanceProviderOid: provider.oid,
             tenantOid: provider.tenantOid,
+            projectOid: provider.projectOid,
             solutionOid: provider.solutionOid,
-            environmentOid: provider.environmentOid
+            environmentOid: provider.environmentOid,
+            instanceOid: provider.instanceOid
           };
 
           let createdBefore = existingByProviderOid.has(provider.oid.toString());
@@ -571,8 +573,10 @@ class sessionTemplateProviderServiceImpl {
             integrationInstanceProviderOid: bigint;
             integrationInstanceGroupProviderOid: bigint;
             tenantOid: bigint;
+            projectOid: bigint | null;
             solutionOid: number;
             environmentOid: bigint;
+            instanceOid: bigint | null;
           };
         }) => {
           if (d.existing) {
@@ -633,8 +637,10 @@ class sessionTemplateProviderServiceImpl {
             integrationInstanceProviderOid: provider.integrationInstanceProviderOid,
             integrationInstanceGroupProviderOid: provider.oid,
             tenantOid: provider.tenantOid,
+            projectOid: provider.projectOid,
             solutionOid: provider.solutionOid,
-            environmentOid: provider.environmentOid
+            environmentOid: provider.environmentOid,
+            instanceOid: provider.instanceOid
           };
 
           let existing =

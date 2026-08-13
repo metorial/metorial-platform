@@ -22,6 +22,9 @@ model Tenant {
   resourceTenantId         String?
   resourceTenantIdentifier String?
 
+  // No relation: Project.tenantOid already points here, so an FK would cycle
+  projectOid BigInt?
+
   onlyAllowTrustedProviders Boolean @default(false)
   isWhitelabel              Boolean @default(false)
 
@@ -57,6 +60,9 @@ model Tenant {
   slateOAuthSetups                         SlateOAuthSetup[]
   slateAuthConfigs                         SlateAuthConfig[]
   providerAuthConfigs                      ProviderAuthConfig[]
+  providerAuthConfigEvents                 ProviderAuthConfigEvent[]
+  providerAuthConfigErrors                 ProviderAuthConfigError[]
+  providerAuthConfigErrorGlobals           ProviderAuthConfigErrorGlobal[]
   providerSpecificationChangeNotifications ProviderSpecificationChangeNotification[]
   providerAuthExports                      ProviderAuthExport[]
   providerAuthImports                      ProviderAuthImport[]
@@ -120,6 +126,7 @@ model Tenant {
   tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
   enclaveEnvironments                      EnclaveEnvironment[]
   enclaves                                 Enclave[]
+  enclaveIngressNetworkLogs                EnclaveIngressNetworkLog[]
   networks                                 Network[]
   firewalls                                Firewall[]
   networkPolicies                          NetworkPolicy[]
@@ -150,12 +157,21 @@ model Environment {
   resourceGroupId         String?
   resourceGroupIdentifier String?
 
+  // No relation: Instance.environmentOid already points here, so an FK would cycle
+  instanceOid BigInt?
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
 
   createdAt DateTime @default(now())
 
   providerAuthConfigs                      ProviderAuthConfig[]
+  providerAuthConfigEvents                 ProviderAuthConfigEvent[]
+  providerAuthConfigErrors                 ProviderAuthConfigError[]
+  providerAuthConfigErrorGlobals           ProviderAuthConfigErrorGlobal[]
   providerAuthCredentials                  ProviderAuthCredentials[]
   providerAuthExports                      ProviderAuthExport[]
   providerAuthImports                      ProviderAuthImport[]
@@ -208,6 +224,7 @@ model Environment {
   skillEntities                            SkillEntity[]
   skillTemplates                           SkillTemplate[]
   enclaves                                 Enclave[]
+  enclaveIngressNetworkLogs                EnclaveIngressNetworkLog[]
   slateInstanceConfigurations              SlateInstanceConfiguration[]
   serverInstanceConfigurations             ServerInstanceConfiguration[]
   networks                                 Network[]
@@ -219,6 +236,8 @@ model Environment {
   monitors                                 Monitor[]
   monitorAlerts                            MonitorAlert[]
   instances                                Instance[]
+
+  @@index([projectOid])
 }
 
 enum TenantActorType {
@@ -247,6 +266,9 @@ model TenantActor {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   createdAt DateTime @default(now())
 
   customProviderVersions    CustomProviderVersion[]
@@ -259,5 +281,6 @@ model TenantActor {
   @@unique([tenantOid, identifier])
   @@unique([tenantOid, organizationActorOid])
   @@index([organizationActorOid])
+  @@index([projectOid])
   @@map("Actor")
 }

@@ -366,7 +366,9 @@ class firewallBindingServiceImpl {
             providerOid: data.providerOid,
             networkOid: data.networkOid,
             tenantOid: d.tenant.oid,
-            environmentOid: d.environment.oid
+            projectOid: d.tenant.projectOid,
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           },
           include: bindingInclude
         });

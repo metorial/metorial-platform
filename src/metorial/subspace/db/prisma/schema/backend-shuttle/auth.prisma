@@ -8,9 +8,14 @@ model ShuttleOAuthCredentials {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   createdAt DateTime @default(now())
 
   providerAuthCredentials ProviderAuthCredentials[]
+
+  @@index([projectOid])
 }
 
 model ShuttleOAuthSetup {
@@ -23,9 +28,14 @@ model ShuttleOAuthSetup {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   createdAt DateTime @default(now())
 
   providerOAuthSetups ProviderOAuthSetup[]
+
+  @@index([projectOid])
 }
 
 model ShuttleAuthConfig {
@@ -38,10 +48,15 @@ model ShuttleAuthConfig {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   providerAuthConfigUpdateOid BigInt?
   providerAuthConfigUpdate    ProviderAuthConfigUpdate? @relation(fields: [providerAuthConfigUpdateOid], references: [oid])
 
   providerAuthConfigVersion ProviderAuthConfigVersion?
 
   createdAt DateTime @default(now())
+
+  @@index([projectOid])
 }

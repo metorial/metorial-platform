@@ -22,8 +22,14 @@ model IntegrationInstanceGroup {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -52,6 +58,8 @@ model IntegrationInstanceGroup {
   @@index([status, archivedAt])
   @@index([identityActorOid])
   @@index([identityOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum IntegrationInstanceGroupSourceStatus {
@@ -77,8 +85,14 @@ model IntegrationInstanceGroupSource {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -93,6 +107,8 @@ model IntegrationInstanceGroupSource {
   @@index([integrationInstanceGroupOid, status])
   @@index([integrationInstanceOid, status])
   @@index([status, archivedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum IntegrationInstanceGroupProviderStatus {
@@ -140,8 +156,14 @@ model IntegrationInstanceGroupProvider {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -160,4 +182,6 @@ model IntegrationInstanceGroupProvider {
   @@index([integrationInstanceProviderOid, status])
   @@index([integrationProviderOid, status])
   @@index([status, archivedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

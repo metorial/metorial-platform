@@ -55,8 +55,8 @@ vi.mock('@lowerdeck/lock', () => ({
 import { networkPolicyDeletedQueue } from '../queues/lifecycle/networkPolicy';
 import { networkPolicyService } from './networkPolicy';
 
-let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
-let environment = { oid: BigInt(20), id: 'ken_test' } as any;
+let tenant = { oid: BigInt(10), id: 'ktn_test', projectOid: BigInt(11) } as any;
+let environment = { oid: BigInt(20), id: 'ken_test', instanceOid: BigInt(21) } as any;
 
 describe('networkPolicyService', () => {
   beforeEach(() => {
@@ -94,6 +94,15 @@ describe('networkPolicyService', () => {
       }
     });
 
+    expect(mockDb.networkPolicy.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: 'Ingress policy',
+        tenantOid: tenant.oid,
+        projectOid: tenant.projectOid,
+        environmentOid: environment.oid,
+        instanceOid: environment.instanceOid
+      })
+    });
     expect(mockDb.networkPolicyVersion.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         version: 1,

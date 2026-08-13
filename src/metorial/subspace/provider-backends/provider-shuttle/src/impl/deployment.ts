@@ -50,7 +50,8 @@ export class ProviderDeployment extends IProviderDeployment {
           id: res.id,
 
           shuttleServerOid: shuttleServer.oid,
-          tenantOid: data.tenant.oid
+          tenantOid: data.tenant.oid,
+          projectOid: data.tenant.projectOid
         }
       });
 

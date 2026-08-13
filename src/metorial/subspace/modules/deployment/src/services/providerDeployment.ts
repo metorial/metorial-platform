@@ -411,8 +411,10 @@ class providerDeploymentServiceImpl {
             oid: snowflake.nextId(),
             id: `${ID.idPrefixes.environmentProvider}_1${d.tenant.oid.toString(36).padStart(16, '0')}${d.environment.oid.toString(36).padStart(16, '0')}${d.provider.oid.toString(36).padStart(16, '0')}`,
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
             providerOid: d.provider.oid
           },
           update: {}
@@ -446,8 +448,10 @@ class providerDeploymentServiceImpl {
           toolFilter: normalizeToolFilters(d.input.toolFilters),
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           providerOid: d.provider.oid,
           providerVariantOid: d.provider.defaultVariant.oid
         },

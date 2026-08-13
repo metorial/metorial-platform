@@ -54,8 +54,8 @@ vi.mock('../queues/lifecycle/firewallBinding', () => ({
 
 import { firewallBindingService } from './firewallBinding';
 
-let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
-let environment = { oid: BigInt(20), id: 'ken_test' } as any;
+let tenant = { oid: BigInt(10), id: 'ktn_test', projectOid: BigInt(11) } as any;
+let environment = { oid: BigInt(20), id: 'ken_test', instanceOid: BigInt(21) } as any;
 
 let bindingIncludeResult = {
   id: 'fwb_test',
@@ -94,6 +94,18 @@ describe('firewallBindingService', () => {
 
     expect(binding).toEqual(bindingIncludeResult);
     expect(mockDb.firewallBinding.create).toHaveBeenCalledTimes(1);
+    expect(mockDb.firewallBinding.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          firewallOid: BigInt(200),
+          enclaveOid: BigInt(300),
+          tenantOid: tenant.oid,
+          projectOid: tenant.projectOid,
+          environmentOid: environment.oid,
+          instanceOid: environment.instanceOid
+        })
+      })
+    );
     expect(mockFirewallBindingCreatedQueue.add).toHaveBeenCalledWith({
       firewallBindingId: 'fwb_test'
     });

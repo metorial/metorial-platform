@@ -59,6 +59,7 @@ export class ProviderDeployment extends IProviderDeployment {
 
           slateOid: slate.oid,
           tenantOid: data.tenant.oid,
+          projectOid: data.tenant.projectOid,
           lockedSlateVersionOid: lockedVersion?.slateVersion?.oid
         }
       });

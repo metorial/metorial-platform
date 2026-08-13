@@ -8,8 +8,14 @@ model Network {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -19,6 +25,8 @@ model Network {
   firewallBindings FirewallBinding[]
 
   @@unique([tenantOid, environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum FirewallStatus {
@@ -43,8 +51,14 @@ model Firewall {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
@@ -55,6 +69,8 @@ model Firewall {
 
   @@unique([tenantOid, environmentOid, slug])
   @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum FirewallBindingTargetType {
@@ -84,14 +100,22 @@ model FirewallBinding {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
 
   @@unique([firewallOid, enclaveOid])
   @@unique([firewallOid, providerOid])
   @@unique([firewallOid, networkOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum NetworkPolicyStatus {
@@ -117,8 +141,14 @@ model NetworkPolicy {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
@@ -128,6 +158,8 @@ model NetworkPolicy {
   firewallLinks FirewallNetworkPolicy[]
 
   @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model NetworkPolicyVersion {
@@ -187,9 +219,19 @@ model EnclaveIngressNetworkLog {
   result EnclaveIngressNetworkLogResult
   count  Int                            @default(1)
 
-  tenantOid      BigInt
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
   environmentOid BigInt
-  solutionOid    Int
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
 
   firstSeenAt DateTime
   lastSeenAt  DateTime
@@ -199,4 +241,7 @@ model EnclaveIngressNetworkLog {
   @@index([enclaveOid, bucketStart])
   @@index([sourceIp])
   @@index([result])
+  @@index([environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

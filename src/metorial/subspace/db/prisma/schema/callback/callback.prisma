@@ -11,6 +11,9 @@ model CallbackDestination {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
@@ -33,6 +36,7 @@ model CallbackDestination {
   callbackDestinationLinks CallbackDestinationLink[]
 
   @@index([tenantOid, solutionOid, status])
+  @@index([projectOid])
 }
 
 enum CallbackStatus {
@@ -52,18 +56,24 @@ model Callback {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
 
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
   providerDeploymentOid BigInt
   providerDeployment    ProviderDeployment @relation(fields: [providerDeploymentOid], references: [oid], onDelete: Cascade)
 
-  status CallbackStatus
-  mode   CallbackMode
-  isCallbacksV2 Boolean @default(false)
+  status        CallbackStatus
+  mode          CallbackMode
+  isCallbacksV2 Boolean        @default(false)
 
   name                        String
   description                 String?
@@ -81,6 +91,8 @@ model Callback {
 
   @@index([tenantOid, environmentOid, solutionOid, status])
   @@index([providerDeploymentOid, status])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model CallbackProviderTrigger {
@@ -137,8 +149,8 @@ model CallbackInstance {
   providerDeploymentConfigPairOid BigInt
   providerDeploymentConfigPair    ProviderDeploymentConfigPair @relation(fields: [providerDeploymentConfigPairOid], references: [oid], onDelete: Cascade)
 
-  status             CallbackInstanceStatus
-  registrationStatus CallbackInstanceRegistrationStatus
+  status                 CallbackInstanceStatus
+  registrationStatus     CallbackInstanceRegistrationStatus
   slateTriggerReceiverId String?
   lastSyncErrorCode      String?
   lastSyncErrorMessage   String?

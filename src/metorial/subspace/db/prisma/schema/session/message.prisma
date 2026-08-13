@@ -84,8 +84,14 @@ model SessionMessage {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
@@ -106,6 +112,8 @@ model SessionMessage {
   @@index([type])
   @@index([source])
   @@index([methodOrToolKey, createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model SessionMessageStorageBucket {
@@ -144,8 +152,14 @@ model ToolCall {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
@@ -155,6 +169,8 @@ model ToolCall {
   attachments ToolCallAttachment[]
 
   @@index([createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model ToolCallAttachment {

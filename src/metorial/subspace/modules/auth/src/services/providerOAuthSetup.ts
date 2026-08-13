@@ -291,8 +291,10 @@ class providerOAuthSetupServiceImpl {
           backendUrl: backendProviderOAuthSetup.url,
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           providerOid: d.provider.oid,
           deploymentOid: d.providerDeployment?.oid,
           authCredentialsOid: credentials.oid,

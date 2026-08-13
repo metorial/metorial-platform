@@ -57,4 +57,47 @@ describe('monitorInternalService', () => {
       })
     );
   });
+
+  it('mirrors the tenant project and the environment instance onto new monitors', async () => {
+    let { monitorInternalService } = await import('./monitorInternal');
+
+    await monitorInternalService.upsertProtoGuardFilterMonitor({
+      tenant: { oid: BigInt(1), id: 'tenant_1', projectOid: BigInt(11) },
+      environment: { oid: BigInt(2), id: 'environment_1', instanceOid: BigInt(22) },
+      filter: {
+        oid: BigInt(4),
+        key: 'instruction_override',
+        name: 'Instruction override',
+        description: 'Detects instruction override attempts.'
+      }
+    } as any);
+
+    expect(monitorUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tenantOid: BigInt(1),
+          projectOid: BigInt(11),
+          environmentOid: BigInt(2),
+          instanceOid: BigInt(22)
+        })
+      })
+    );
+  });
+
+  it('leaves the mirrored references null for an unlinked tenant and environment', async () => {
+    let { monitorInternalService } = await import('./monitorInternal');
+
+    await monitorInternalService.upsertProviderSpecChangeMonitor({
+      tenant: { oid: BigInt(1), id: 'tenant_1', projectOid: null },
+      environment: { oid: BigInt(2), id: 'environment_1', instanceOid: null },
+      provider: { oid: BigInt(5), id: 'provider_1', name: 'Provider' }
+    } as any);
+
+    let create = monitorUpsert.mock.calls[0][0].create;
+
+    expect(create.tenantOid).toBe(BigInt(1));
+    expect(create.projectOid).toBeNull();
+    expect(create.environmentOid).toBe(BigInt(2));
+    expect(create.instanceOid).toBeNull();
+  });
 });

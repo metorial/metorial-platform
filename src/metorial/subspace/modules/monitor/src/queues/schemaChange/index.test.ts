@@ -71,7 +71,9 @@ let baseMonitor = {
   target: 'schema_change',
   providerOid: BigInt(2),
   tenantOid: BigInt(3),
+  projectOid: BigInt(30),
   environmentOid: BigInt(4),
+  instanceOid: BigInt(40),
   solutionOid: 5,
   firstAlertAt: null,
   lastAlertAt: null
@@ -234,5 +236,54 @@ describe('schema change alert queues', () => {
       }
     });
     expect(monitorAlertEventCreate).not.toHaveBeenCalled();
+  });
+
+  it('copies the mirrored references from the monitor row onto backfilled alerts', async () => {
+    await import('./index');
+
+    monitorFindUnique.mockResolvedValue(baseMonitor);
+    notificationFindUnique.mockResolvedValue(baseNotification);
+    monitorAlertCreateMany.mockResolvedValue({ count: 1 });
+
+    await queues['sub/mon/schema/alert/single'].processor({
+      monitorId: 'monitor_1',
+      notificationId: 'notification_1',
+      status: 'ignored'
+    });
+
+    expect(monitorAlertCreateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantOid: baseMonitor.tenantOid,
+        projectOid: baseMonitor.projectOid,
+        environmentOid: baseMonitor.environmentOid,
+        instanceOid: baseMonitor.instanceOid
+      }),
+      skipDuplicates: true
+    });
+  });
+
+  it('does not fabricate mirrored references for an unlinked monitor', async () => {
+    await import('./index');
+
+    monitorFindUnique.mockResolvedValue({
+      ...baseMonitor,
+      projectOid: null,
+      instanceOid: null
+    });
+    notificationFindUnique.mockResolvedValue(baseNotification);
+    monitorAlertCreateMany.mockResolvedValue({ count: 1 });
+
+    await queues['sub/mon/schema/alert/single'].processor({
+      monitorId: 'monitor_1',
+      notificationId: 'notification_1',
+      status: 'ignored'
+    });
+
+    let data = monitorAlertCreateMany.mock.calls[0][0].data;
+
+    expect(data.tenantOid).toBe(baseMonitor.tenantOid);
+    expect(data.projectOid).toBeNull();
+    expect(data.environmentOid).toBe(baseMonitor.environmentOid);
+    expect(data.instanceOid).toBeNull();
   });
 });

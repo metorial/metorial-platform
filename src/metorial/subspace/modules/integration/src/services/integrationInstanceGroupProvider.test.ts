@@ -1,13 +1,35 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+let { db, tx } = vi.hoisted(() => ({
+  db: {
+    integrationInstanceProvider: { findMany: vi.fn() },
+    integrationInstanceGroupSource: { findMany: vi.fn() },
+    integrationInstanceGroupProvider: { findMany: vi.fn() },
+    integrationInstanceGroup: { findUnique: vi.fn() }
+  },
+  tx: {
+    integrationInstanceGroupSource: { upsert: vi.fn() },
+    integrationInstanceGroupProvider: { upsert: vi.fn(), findMany: vi.fn() },
+    integrationInstanceGroup: { update: vi.fn() }
+  }
+}));
+
+vi.mock('@lowerdeck/service', () => ({
+  Service: {
+    create: vi.fn((_name, factory) => ({
+      build: () => factory()
+    }))
+  }
+}));
 
 vi.mock('@metorial-subspace/db', () => ({
   addAfterTransactionHook: vi.fn(),
-  db: {},
+  db,
   getId: (kind: string) => ({ id: `${kind}_new`, oid: 1n }),
   Prisma: {
     JsonNull: 'JSON_NULL'
   },
-  withTransaction: async (cb: (db: any) => Promise<any>) => await cb({})
+  withTransaction: async (cb: (db: any) => Promise<any>) => await cb(tx)
 }));
 
 vi.mock('@metorial-subspace/list-utils', () => ({
@@ -35,7 +57,9 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
-  checkTenant: vi.fn()
+  checkTenant: vi.fn(),
+  getMetorialSolution: vi.fn(async () => ({ oid: 2 })),
+  resolveMetorialFacing: vi.fn()
 }));
 
 vi.mock('../queues/lifecycle/integrationInstanceGroupProvider', () => ({
@@ -47,7 +71,10 @@ vi.mock('./integrationInstanceGroup', () => ({
   integrationInstanceGroupProviderInclude: {}
 }));
 
-import { resolveIntegrationInstanceGroupProviderToolFilterInput } from './integrationInstanceGroupProvider';
+import {
+  integrationInstanceGroupProviderService,
+  resolveIntegrationInstanceGroupProviderToolFilterInput
+} from './integrationInstanceGroupProvider';
 
 let existingFilter: PrismaJson.ToolFilter = {
   type: 'v1.filter',
@@ -101,5 +128,116 @@ describe('resolveIntegrationInstanceGroupProviderToolFilterInput', () => {
       },
       isOverrideToolFilter: true
     });
+  });
+});
+
+let sourceProvider = {
+  oid: 70n,
+  id: 'iip_1',
+  name: 'Provider',
+  description: null,
+  metadata: null,
+  privateMetadata: null,
+  integrationOid: 10n,
+  integrationInstanceOid: 20n,
+  integrationProviderOid: 30n,
+  currentVersion: { configOid: 40n }
+};
+
+let integrationInstanceGroup = { oid: 50n, id: 'iig_1', isMagicMcpBacking: false } as any;
+
+let runSetProviders = async (d: { tenant: any; environment: any }) =>
+  await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvidersInternal({
+    tenant: d.tenant,
+    environment: d.environment,
+    integrationInstanceGroup,
+    input: [{ integrationInstanceProviderId: sourceProvider.id }]
+  });
+
+describe('integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvidersInternal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    db.integrationInstanceProvider.findMany.mockResolvedValue([sourceProvider]);
+    db.integrationInstanceGroupSource.findMany.mockResolvedValue([]);
+    db.integrationInstanceGroupProvider.findMany.mockResolvedValue([]);
+    tx.integrationInstanceGroupSource.upsert.mockResolvedValue({ oid: 60n });
+    tx.integrationInstanceGroupProvider.upsert.mockResolvedValue({ oid: 80n });
+    tx.integrationInstanceGroupProvider.findMany.mockResolvedValue([
+      { oid: 80n, id: 'iigp_1' }
+    ]);
+  });
+
+  it('mirrors the project and instance onto both the source and the group provider', async () => {
+    await runSetProviders({
+      tenant: { oid: 1n, projectOid: 11n },
+      environment: { oid: 3n, instanceOid: 33n }
+    });
+
+    expect(tx.integrationInstanceGroupSource.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tenantOid: 1n,
+          projectOid: 11n,
+          solutionOid: 2,
+          environmentOid: 3n,
+          instanceOid: 33n
+        })
+      })
+    );
+    expect(tx.integrationInstanceGroupProvider.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tenantOid: 1n,
+          projectOid: 11n,
+          solutionOid: 2,
+          environmentOid: 3n,
+          instanceOid: 33n
+        })
+      })
+    );
+  });
+
+  it('writes null mirrors for an unlinked tenant and environment', async () => {
+    await runSetProviders({
+      tenant: { oid: 1n, projectOid: null },
+      environment: { oid: 3n, instanceOid: null }
+    });
+
+    expect(tx.integrationInstanceGroupSource.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tenantOid: 1n,
+          projectOid: null,
+          environmentOid: 3n,
+          instanceOid: null
+        })
+      })
+    );
+    expect(tx.integrationInstanceGroupProvider.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tenantOid: 1n,
+          projectOid: null,
+          environmentOid: 3n,
+          instanceOid: null
+        })
+      })
+    );
+  });
+
+  it('leaves the update branch of both upserts free of the mirrored references', async () => {
+    await runSetProviders({
+      tenant: { oid: 1n, projectOid: 11n },
+      environment: { oid: 3n, instanceOid: 33n }
+    });
+
+    let sourceUpdate = tx.integrationInstanceGroupSource.upsert.mock.calls[0]![0].update;
+    let providerUpdate = tx.integrationInstanceGroupProvider.upsert.mock.calls[0]![0].update;
+
+    expect(sourceUpdate).not.toHaveProperty('projectOid');
+    expect(sourceUpdate).not.toHaveProperty('instanceOid');
+    expect(providerUpdate).not.toHaveProperty('projectOid');
+    expect(providerUpdate).not.toHaveProperty('instanceOid');
   });
 });

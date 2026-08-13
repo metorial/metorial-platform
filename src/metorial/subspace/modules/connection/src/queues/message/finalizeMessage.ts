@@ -66,6 +66,7 @@ export let finalizeMessageQueueProcessor = finalizeMessageQueue.process(async da
 
         sessionOid: message.sessionOid,
         tenantOid: message.session.tenantOid,
+        projectOid: message.session.projectOid,
         solutionOid: message.session.solutionOid,
 
         clientMessageIncrement: initialClientProductive + incrementClientProductive,

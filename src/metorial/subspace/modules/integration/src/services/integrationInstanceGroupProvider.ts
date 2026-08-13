@@ -420,8 +420,10 @@ class integrationInstanceGroupProviderServiceImpl {
             integrationInstanceGroupOid: d.integrationInstanceGroup.oid,
             integrationInstanceOid: sourceProvider.integrationInstanceOid,
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
-            environmentOid: d.environment.oid
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           },
           update: {
             status: 'active',
@@ -466,8 +468,10 @@ class integrationInstanceGroupProviderServiceImpl {
             toolFilter: toolFilter ?? Prisma.JsonNull,
             isOverrideToolFilter,
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
-            environmentOid: d.environment.oid
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           },
           update: {
             status: 'active',

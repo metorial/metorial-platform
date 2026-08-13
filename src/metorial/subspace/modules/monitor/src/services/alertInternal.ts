@@ -95,7 +95,9 @@ class alertInternalServiceImpl {
             monitorOid: monitor.oid,
             protoGuardAlertOid: protoGuardAlert.oid,
             tenantOid: protoGuardAlert.tenantOid,
+            projectOid: protoGuardAlert.projectOid,
             environmentOid: protoGuardAlert.environmentOid,
+            instanceOid: protoGuardAlert.instanceOid,
             solutionOid: protoGuardAlert.solutionOid,
             createdAt: protoGuardAlert.createdAt
           }

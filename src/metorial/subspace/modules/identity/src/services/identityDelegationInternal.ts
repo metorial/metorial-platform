@@ -181,8 +181,10 @@ class identityDelegationInternalServiceImpl {
           wasCoveredByPreviousDelegationAndAutoApproved: false,
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
 
           permissions: d.input.permissions,
           deniedReason: autoDeniedReason,
@@ -270,8 +272,10 @@ class identityDelegationInternalServiceImpl {
             ...getId('identityDelegationRequest'),
 
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
 
             delegationOid: delegation.oid,
             requesterOid: d._internal.requester.oid,

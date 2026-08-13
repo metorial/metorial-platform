@@ -214,8 +214,10 @@ class providerAuthExportServiceImpl {
         metadata: d.input.metadata,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         authConfigOid: d.authConfig.oid,
 
         expiresAt: data.expiresAt

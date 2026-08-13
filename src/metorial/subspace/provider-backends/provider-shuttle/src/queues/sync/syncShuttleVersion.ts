@@ -132,6 +132,7 @@ export let syncShuttleVersionQueueProcessor = syncShuttleVersionQueue.process(as
           identifier: deployment.id,
           serverOid: shuttleServerRecord.oid,
           tenantOid: tenant.oid,
+          projectOid: tenant.projectOid,
           shuttleTenantId: server.tenantId!
         },
         update: {}
@@ -146,6 +147,7 @@ export let syncShuttleVersionQueueProcessor = syncShuttleVersionQueue.process(as
           serverVersionOid: shuttleServerVersionRecord.oid,
           serverOid: shuttleServerRecord.oid,
           tenantOid: tenant.oid,
+          projectOid: tenant.projectOid,
           customServerOid: shuttleCustomServerRecord.oid
         },
         update: {}

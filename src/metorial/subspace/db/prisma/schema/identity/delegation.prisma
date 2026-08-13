@@ -54,8 +54,14 @@ model IdentityDelegation {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -72,6 +78,8 @@ model IdentityDelegation {
   @@index([createdAt])
   @@index([status])
   @@index([expiresAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum IdentityDelegationCredentialOverrideStatus {

@@ -269,6 +269,7 @@ class callbackDestinationServiceImpl {
       data: {
         ...getId('callbackDestination'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: solution.oid,
         status: CallbackDestinationStatus.active,
         name: d.input.name,

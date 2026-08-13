@@ -26,6 +26,9 @@ model CustomProvider {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
@@ -61,4 +64,5 @@ model CustomProvider {
   @@index([updatedAt])
   @@index([status])
   @@index([type])
+  @@index([projectOid])
 }

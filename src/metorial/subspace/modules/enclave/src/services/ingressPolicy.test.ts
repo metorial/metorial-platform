@@ -35,8 +35,8 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 
 import { enclaveIngressPolicyService } from './ingressPolicy';
 
-let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
-let environment = { oid: BigInt(20), id: 'ken_test' } as any;
+let tenant = { oid: BigInt(10), id: 'ktn_test', projectOid: BigInt(11) } as any;
+let environment = { oid: BigInt(20), id: 'ken_test', instanceOid: BigInt(21) } as any;
 let solution = { oid: 30, id: 'ksn_test' } as any;
 let enclave = {
   oid: BigInt(40),
@@ -111,7 +111,9 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => 
     });
     expect(mockRecordIngressNetworkLog).toHaveBeenCalledWith({
       tenantOid: tenant.oid,
+      projectOid: tenant.projectOid,
       environmentOid: environment.oid,
+      instanceOid: environment.instanceOid,
       solutionOid: solution.oid,
       enclaveOid: enclave.oid,
       sessionId: 'ses_test',
@@ -120,6 +122,36 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => 
       port: 443,
       result: 'denied'
     });
+  });
+
+  it('records null mirrored oids for an unlinked tenant and environment', async () => {
+    mockDb.session.findMany.mockResolvedValueOnce([
+      {
+        id: 'ses_test',
+        providers: [{ deployment: { enclave } }]
+      }
+    ]);
+    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
+      ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
+      egress: { direction: 'egress', entries: [] }
+    });
+
+    await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
+      tenant: { oid: BigInt(10), id: 'ktn_test', projectOid: null } as any,
+      environment: { oid: BigInt(20), id: 'ken_test', instanceOid: null } as any,
+      sessionIds: ['ses_test'],
+      sourceIp: '203.0.113.10',
+      recordLog: true
+    });
+
+    expect(mockRecordIngressNetworkLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantOid: BigInt(10),
+        projectOid: null,
+        environmentOid: BigInt(20),
+        instanceOid: null
+      })
+    );
   });
 
   it('allows sessions without linked enclaves', async () => {

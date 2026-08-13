@@ -133,6 +133,7 @@ class protoGuardConfigServiceImpl {
       create: {
         ...getId('protoGuardTenantFilterSetting'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         filterOid: filter.oid,
         enabled: d.enabled
       }
@@ -168,6 +169,7 @@ class protoGuardConfigServiceImpl {
       create: {
         ...getId('protoGuardTenantFilterSetting'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         filterOid: filter.oid,
         enabled: filter.defaultEnabled,
         alertConfidenceThreshold: d.threshold
@@ -203,6 +205,7 @@ class protoGuardConfigServiceImpl {
       create: {
         ...getId('protoGuardTenantSetting'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         alertFilterCountThreshold: d.threshold
       }
     });

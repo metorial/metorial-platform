@@ -15,8 +15,14 @@ model SkillEntity {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -25,6 +31,9 @@ model SkillEntity {
   updatedAt DateTime @default(now()) @updatedAt
 
   skills Skill[]
+
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum SkillStatus {
@@ -70,8 +79,14 @@ model Skill {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -88,6 +103,9 @@ model Skill {
   skillProviders     SkillProvider[]
   skillItems         SkillItem[]
   skillProviderLinks SkillProviderLink[]
+
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum SkillIntegrationStatus {

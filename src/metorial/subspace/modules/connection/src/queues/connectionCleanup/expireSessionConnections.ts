@@ -72,8 +72,10 @@ let expireSessionConnectionQueueProcessor = expireSessionConnectionQueue.process
         sessionOid: connection.sessionOid,
         connectionOid: connection.oid,
         tenantOid: connection.tenantOid,
+        projectOid: connection.projectOid,
         solutionOid: connection.solutionOid,
-        environmentOid: connection.environmentOid
+        environmentOid: connection.environmentOid,
+        instanceOid: connection.instanceOid
       }
     });
   }

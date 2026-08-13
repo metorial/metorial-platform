@@ -1,10 +1,12 @@
 import { combineQueueProcessors } from '@lowerdeck/queue';
 import { metorialResourceQueues } from './queues/metorialResource';
+import { mirrorReferenceQueues } from './queues/mirrorReference';
 import { resourceLinkQueues } from './queues/resourceLink';
 import { retentionQueues } from './queues/retention';
 
 export let tenantQueueProcessors = combineQueueProcessors([
   retentionQueues,
   resourceLinkQueues,
+  mirrorReferenceQueues,
   metorialResourceQueues
 ]);

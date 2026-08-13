@@ -388,8 +388,10 @@ class callbackServiceImpl {
       data: {
         ...getId('callback'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         providerDeploymentOid: providerDeployment.oid,
         status: 'active',
         mode: 'manual',

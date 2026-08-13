@@ -474,6 +474,7 @@ class subspaceScopeServiceImpl {
         onlyAllowTrustedProviders: loadedProject.onlyAllowTrustedProviders,
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
+        projectOid: loadedProject.oid,
         environments: await Promise.all(
           (loadedProject.instances ?? []).map(async instance => {
             let resourceGroup = await resolveInstanceResourceGroup(instance);
@@ -482,7 +483,8 @@ class subspaceScopeServiceImpl {
               name: instance.name,
               type: instance.type,
               resourceGroupId: resourceGroup.id,
-              resourceGroupIdentifier: resourceGroup.identifier
+              resourceGroupIdentifier: resourceGroup.identifier,
+              instanceOid: instance.oid
             };
           })
         )
@@ -520,7 +522,8 @@ class subspaceScopeServiceImpl {
         name: loadedInstance.name,
         type: loadedInstance.type,
         resourceGroupId: resourceGroup.id,
-        resourceGroupIdentifier: resourceGroup.identifier
+        resourceGroupIdentifier: resourceGroup.identifier,
+        instanceOid: loadedInstance.oid
       }
     });
 

@@ -120,8 +120,10 @@ export let processProviderPushQueueProcessor = processProviderPushQueue.process(
       data: {
         ...getId('upcomingCustomProvider'),
         tenantOid: provider.tenant.oid,
+        projectOid: provider.tenant.projectOid,
         solutionOid: provider.solution.oid,
         environmentOid: env.environment.oid,
+        instanceOid: env.environment.instanceOid,
         actorOid: actor.oid,
 
         message: `Git push: ${push.commitMessage} (${push.sha.substring(0, 7)})`,

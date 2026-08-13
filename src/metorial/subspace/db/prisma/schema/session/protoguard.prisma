@@ -54,8 +54,13 @@ model ProtoGuardTenantSetting {
   tenantOid BigInt @unique
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([projectOid])
 }
 
 model ProtoGuardTenantFilterSetting {
@@ -68,6 +73,9 @@ model ProtoGuardTenantFilterSetting {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   filterOid BigInt
   filter    ProtoGuardFilter @relation(fields: [filterOid], references: [oid], onDelete: Cascade)
 
@@ -76,6 +84,7 @@ model ProtoGuardTenantFilterSetting {
 
   @@unique([tenantOid, filterOid])
   @@index([tenantOid, enabled])
+  @@index([projectOid])
 }
 
 enum ProtoGuardRunStatus {
@@ -113,8 +122,14 @@ model ProtoGuardRun {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
@@ -129,6 +144,8 @@ model ProtoGuardRun {
   @@index([sessionOid, createdAt])
   @@index([status])
   @@index([confidence])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model ProtoGuardAlert {
@@ -157,8 +174,14 @@ model ProtoGuardAlert {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
@@ -172,6 +195,8 @@ model ProtoGuardAlert {
   @@index([tenantOid, createdAt])
   @@index([sessionOid, createdAt])
   @@index([messageOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model ProtoGuardAlertInstance {

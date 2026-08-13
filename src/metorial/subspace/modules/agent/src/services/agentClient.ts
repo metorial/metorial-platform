@@ -153,8 +153,10 @@ class agentClientServiceImpl {
           lastConnectedAt: new Date(),
 
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
-          environmentOid: d.environment.oid
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         },
         update: {
           name: d.input.name.trim(),
@@ -162,8 +164,10 @@ class agentClientServiceImpl {
           privateMetadata: d.input.privateMetadata,
           lastConnectedAt: new Date(),
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
-          environmentOid: d.environment.oid
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         }
       });
 

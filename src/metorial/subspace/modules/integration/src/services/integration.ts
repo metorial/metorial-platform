@@ -184,8 +184,10 @@ class integrationServiceImpl {
         d.input.useIntegrationNameForSessionProviderNameTemplatesOverride ?? null,
       currentVersionIndex: 0,
       tenantOid: d.tenant.oid,
+      projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid,
-      environmentOid: d.environment.oid
+      environmentOid: d.environment.oid,
+      instanceOid: d.environment.instanceOid
     };
   }
 

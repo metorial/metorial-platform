@@ -181,8 +181,10 @@ class identityInternalServiceImpl {
               description: d.actor!.description,
               metadata: d.actor!.metadata,
               tenantOid: d.tenant.oid,
+              projectOid: d.tenant.projectOid,
               solutionOid: solution.oid,
-              environmentOid: d.environment.oid
+              environmentOid: d.environment.oid,
+              instanceOid: d.environment.instanceOid
             }
           });
 

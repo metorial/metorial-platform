@@ -84,8 +84,8 @@ let { firewallNetworkPolicyLinksUpdatedQueue } = await import(
   '../queues/lifecycle/firewallNetworkPolicy'
 );
 
-let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
-let environment = { oid: BigInt(20), id: 'ken_test' } as any;
+let tenant = { oid: BigInt(10), id: 'ktn_test', projectOid: BigInt(11) } as any;
+let environment = { oid: BigInt(20), id: 'ken_test', instanceOid: BigInt(21) } as any;
 
 describe('firewallService', () => {
   beforeEach(() => {
@@ -133,7 +133,27 @@ describe('firewallService', () => {
       }
     });
 
+    expect(mockDb.firewall.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: 'Production API',
+        networkOid: BigInt(100),
+        tenantOid: tenant.oid,
+        projectOid: tenant.projectOid,
+        environmentOid: environment.oid,
+        instanceOid: environment.instanceOid
+      })
+    });
     expect(mockDb.firewallBinding.create).toHaveBeenCalledTimes(2);
+    expect(mockDb.firewallBinding.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tenantOid: tenant.oid,
+          projectOid: tenant.projectOid,
+          environmentOid: environment.oid,
+          instanceOid: environment.instanceOid
+        })
+      })
+    );
   });
 
   it('replaces network policy links when update includes networkPolicyIds', async () => {

@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { metorialDb } from '../../lib/metorialDb';
 import { env } from '../../env';
+import { metorialDb } from '../../lib/metorialDb';
 import { reconcileResourceLinksService } from '../../services/reconcileResourceLinks';
 
 let BATCH_SIZE = 500;
@@ -54,7 +54,6 @@ export let reconcileResourceLinksProjectSearchQueueProcessor =
       where: {
         status: 'active',
         subspaceTenantId: { not: null },
-        resourceTenantOid: { not: null },
         oid: data.cursor ? { gt: BigInt(data.cursor) } : undefined
       },
       orderBy: {

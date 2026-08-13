@@ -268,7 +268,9 @@ export class SenderManager {
                         sessionOid: lockedCurrentSession.oid,
                         participantOid: lockedConnection.participantOid,
                         tenantOid: lockedCurrentSession.tenantOid,
+                        projectOid: lockedCurrentSession.projectOid,
                         environmentOid: lockedCurrentSession.environmentOid,
+                        instanceOid: lockedCurrentSession.instanceOid,
                         solutionOid: lockedCurrentSession.solutionOid,
                         mcpData: lockedConnection.mcpData,
                         mcpTransport: lockedConnection.mcpTransport,
@@ -457,8 +459,10 @@ export class SenderManager {
               sessionOid: session.oid,
               connectionOid: connection.oid,
               tenantOid: session.tenantOid,
+              projectOid: session.projectOid,
               solutionOid: session.solutionOid,
-              environmentOid: session.environmentOid
+              environmentOid: session.environmentOid,
+              instanceOid: session.instanceOid
             }
           });
         })().catch(() => {});
@@ -1569,8 +1573,10 @@ export class SenderManager {
 
           sessionOid: this.session.oid,
           tenantOid: this.session.tenantOid,
+          projectOid: this.session.projectOid,
           solutionOid: this.session.solutionOid,
           environmentOid: this.session.environmentOid,
+          instanceOid: this.session.instanceOid,
 
           mcpData: {},
 
@@ -1622,8 +1628,10 @@ export class SenderManager {
         sessionOid: this.session.oid,
         connectionOid: this.connection.oid,
         tenantOid: this.session.tenantOid,
+        projectOid: this.session.projectOid,
         solutionOid: this.session.solutionOid,
-        environmentOid: this.session.environmentOid
+        environmentOid: this.session.environmentOid,
+        instanceOid: this.session.instanceOid
       }
     });
   }
@@ -1711,8 +1719,10 @@ export class SenderManager {
           isEphemeral: this.session.isEphemeral,
           status: 'active',
           tenantOid: this.tenant.oid,
+          projectOid: this.tenant.projectOid,
           solutionOid: this.solution.oid,
           environmentOid: this.session.environmentOid,
+          instanceOid: this.session.instanceOid,
           privateMetadata: this.connectionPrivateMetadata,
           token: await ID.generateId('sessionConnection_token')
         },
@@ -1745,8 +1755,10 @@ export class SenderManager {
           sessionOid: this.session.oid,
           connectionOid: connection.oid,
           tenantOid: this.session.tenantOid,
+          projectOid: this.session.projectOid,
           solutionOid: this.session.solutionOid,
-          environmentOid: this.session.environmentOid
+          environmentOid: this.session.environmentOid,
+          instanceOid: this.session.instanceOid
         },
         {
           ...getId('sessionEvent'),
@@ -1754,8 +1766,10 @@ export class SenderManager {
           sessionOid: this.session.oid,
           connectionOid: connection.oid,
           tenantOid: this.session.tenantOid,
+          projectOid: this.session.projectOid,
           solutionOid: this.session.solutionOid,
-          environmentOid: this.session.environmentOid
+          environmentOid: this.session.environmentOid,
+          instanceOid: this.session.instanceOid
         }
       ]
     });
@@ -1772,8 +1786,10 @@ export class SenderManager {
             type: 'session_started',
             sessionOid: this.session.oid,
             tenantOid: this.session.tenantOid,
+            projectOid: this.session.projectOid,
             solutionOid: this.session.solutionOid,
-            environmentOid: this.session.environmentOid
+            environmentOid: this.session.environmentOid,
+            instanceOid: this.session.instanceOid
           }
         });
       }

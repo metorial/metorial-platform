@@ -168,6 +168,7 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           isEphemeral: false,
           isDefault: false,
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid,
           providerOid: provider.oid
         }
@@ -179,6 +180,7 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           managedCredentialsOid: d.managedCredentials.oid,
           providerAuthCredentialsOid: backingCredentials.oid,
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           solutionOid: solution.oid
         }
       });

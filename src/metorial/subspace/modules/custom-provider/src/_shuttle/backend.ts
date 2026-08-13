@@ -70,6 +70,7 @@ export let backend = {
         id: server.id,
         identifier: server.id,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         shuttleTenantId: shuttleTenant.id,
         serverOid: shuttleServer.oid
       }
@@ -81,6 +82,7 @@ export let backend = {
         id: deployment.id,
         identifier: deployment.id,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         serverOid: shuttleServer.oid,
         customServerOid: shuttleCustomServer.oid
       }
@@ -132,6 +134,7 @@ export let backend = {
         id: deployment.id,
         identifier: deployment.id,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         serverOid: shuttleServer.oid,
         customServerOid: shuttleCustomServer.oid
       }

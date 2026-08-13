@@ -183,7 +183,9 @@ export let providerDeploymentConfigPairSetSpecificationQueueProcessor =
               ...getId('providerSpecificationChangeNotification'),
 
               tenantOid: providerDeployment.tenantOid,
+              projectOid: providerDeployment.projectOid,
               environmentOid: providerDeployment.environmentOid,
+              instanceOid: providerDeployment.instanceOid,
               solutionOid: providerDeployment.solutionOid,
 
               target: 'deployment_config_pair',

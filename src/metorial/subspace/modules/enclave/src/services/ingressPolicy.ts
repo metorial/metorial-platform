@@ -210,7 +210,9 @@ class enclaveIngressPolicyServiceImpl {
       for (let record of logRecords) {
         recordIngressNetworkLog({
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           solutionOid: solution.oid,
           enclaveOid: record.enclave.oid,
           sessionId: record.sessionId,

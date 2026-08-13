@@ -321,10 +321,12 @@ class providerConfigVaultServiceImpl {
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           configOid: config.oid,
           providerOid: d.provider.oid,
           solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           deploymentOid: d.providerDeployment?.oid
         },
         include

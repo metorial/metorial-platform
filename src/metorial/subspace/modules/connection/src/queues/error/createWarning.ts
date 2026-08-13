@@ -36,7 +36,9 @@ export let createWarningQueueProcessor = createWarningQueue.process(async data =
       sessionOid: warning.sessionOid,
       warningOid: warning.oid,
       tenantOid: warning.tenantOid,
+      projectOid: warning.projectOid,
       environmentOid: warning.environmentOid,
+      instanceOid: warning.instanceOid,
       solutionOid: warning.solutionOid
     }
   });

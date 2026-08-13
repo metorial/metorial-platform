@@ -220,8 +220,10 @@ class SkillResourceServiceImpl {
             description: record.description,
             image: (record.image ?? undefined) as any,
             tenantOid: tenant.oid,
+            projectOid: tenant.projectOid,
             solutionOid: solution.oid,
-            environmentOid: environment.oid
+            environmentOid: environment.oid,
+            instanceOid: environment.instanceOid
           }
         }));
 
@@ -244,8 +246,10 @@ class SkillResourceServiceImpl {
           storeId: record.storeId,
           skillEntityOid: skillEntity.oid,
           tenantOid: tenant.oid,
+          projectOid: tenant.projectOid,
           solutionOid: solution.oid,
           environmentOid: environment.oid,
+          instanceOid: environment.instanceOid,
           duplicatedFromSkillOid: parentSkill?.oid,
           parentTemplateOid: parentTemplate?.oid
         },
@@ -303,8 +307,10 @@ class SkillResourceServiceImpl {
         storeTemplateId: record.storeTemplateId,
         systemIdentifier: record.systemIdentifier,
         tenantOid: record.owner === 'tenant' ? tenant.oid : null,
+        projectOid: record.owner === 'tenant' ? tenant.projectOid : null,
         solutionOid: record.owner === 'tenant' ? solution.oid : null,
-        environmentOid: record.owner === 'tenant' ? environment.oid : null
+        environmentOid: record.owner === 'tenant' ? environment.oid : null,
+        instanceOid: record.owner === 'tenant' ? environment.instanceOid : null
       },
       update: {
         status: record.status,

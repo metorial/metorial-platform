@@ -197,8 +197,10 @@ class sessionProviderInputServiceImpl {
             isEphemeral: d.session.isEphemeral,
 
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
 
             sessionOid: d.session.oid,
             providerOid: ps.provider.oid,
@@ -263,8 +265,10 @@ class sessionProviderInputServiceImpl {
             status: 'active' as const,
 
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
 
             sessionTemplateOid: d.template.oid,
             providerOid: ps.provider.oid,

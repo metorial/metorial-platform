@@ -31,8 +31,14 @@ model ProviderRun {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  metorialInstanceOid BigInt?
+  metorialInstance    Instance? @relation(fields: [metorialInstanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
@@ -56,6 +62,8 @@ model ProviderRun {
   @@index([updatedAt])
   @@index([status])
   @@index([lastPingAt])
+  @@index([projectOid])
+  @@index([metorialInstanceOid])
 }
 
 model SessionProviderInstance {
