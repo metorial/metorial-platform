@@ -6,6 +6,7 @@ import { auditLogStreamService } from '@metorial/module-audit-log-stream';
 import { auditLogStreamPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import {
   organizationGroup,
   organizationManagementPath
@@ -50,6 +51,7 @@ export let auditLogStreamManagementController = Controller.create(
         description: 'List all audit log streams configured for the organization'
       })
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:read'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .outputList(auditLogStreamPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -80,6 +82,7 @@ export let auditLogStreamManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:read'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .output(auditLogStreamPresenter)
       .do(async ctx =>
         auditLogStreamPresenter.present({ auditLogStream: ctx.auditLogStream })
@@ -91,6 +94,7 @@ export let auditLogStreamManagementController = Controller.create(
         description: 'Create an audit log stream for the organization'
       })
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:write'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .body(
         'default',
         v.object({
@@ -102,6 +106,7 @@ export let auditLogStreamManagementController = Controller.create(
       .do(async ctx => {
         let auditLogStream = await auditLogStreamService.createAuditLogStream({
           organization: ctx.organization,
+          auditScope: ctx.auditScope,
           input: {
             provider: ctx.body.provider,
             providerData: ctx.body.provider_data
@@ -128,6 +133,7 @@ export let auditLogStreamManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:write'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .body(
         'default',
         v.object({
@@ -139,7 +145,9 @@ export let auditLogStreamManagementController = Controller.create(
       .output(auditLogStreamPresenter)
       .do(async ctx => {
         let auditLogStream = await auditLogStreamService.updateAuditLogStream({
+          organization: ctx.organization,
           auditLogStream: ctx.auditLogStream,
+          auditScope: ctx.auditScope,
           input: {
             provider: ctx.body.provider,
             providerData: ctx.body.provider_data,
@@ -167,10 +175,13 @@ export let auditLogStreamManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:write'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .output(auditLogStreamPresenter)
       .do(async ctx => {
         let auditLogStream = await auditLogStreamService.resumeAuditLogStream({
-          auditLogStream: ctx.auditLogStream
+          organization: ctx.organization,
+          auditLogStream: ctx.auditLogStream,
+          auditScope: ctx.auditScope
         });
 
         return auditLogStreamPresenter.present({
@@ -193,10 +204,13 @@ export let auditLogStreamManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:write'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .output(auditLogStreamPresenter)
       .do(async ctx => {
         let auditLogStream = await auditLogStreamService.deleteAuditLogStream({
-          auditLogStream: ctx.auditLogStream
+          organization: ctx.organization,
+          auditLogStream: ctx.auditLogStream,
+          auditScope: ctx.auditScope
         });
 
         return auditLogStreamPresenter.present({

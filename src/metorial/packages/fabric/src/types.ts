@@ -8,6 +8,7 @@ import {
   AccessPolicyRole,
   AccessRole,
   ApiKey,
+  AuditLogStream,
   ConsumerAuthTenant,
   Consumer,
   ConsumerGroup,
@@ -379,6 +380,17 @@ export interface FabricEvents {
   'organization.updated:after': { organization: Organization; previousOrganization: Organization; input: OrganizationUpdateInput; auditScope: AuditScope };
   'organization.deleted:before': { organization: Organization; auditScope: AuditScope };
   'organization.deleted:after': { organization: Organization; auditScope: AuditScope };
+
+  'organization.audit_log_stream.created:before': { organization: Organization; auditScope: AuditScope; input: { provider: AuditLogStream['provider'] } };
+  'organization.audit_log_stream.created:after': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream; input: { provider: AuditLogStream['provider'] } };
+  'organization.audit_log_stream.updated:before': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream; input: { provider?: AuditLogStream['provider']; status?: AuditLogStream['status'] } };
+  'organization.audit_log_stream.updated:after': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream; previousAuditLogStream: AuditLogStream; input: { provider?: AuditLogStream['provider']; status?: AuditLogStream['status'] } };
+  'organization.audit_log_stream.deleted:before': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream };
+  'organization.audit_log_stream.deleted:after': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream };
+  'organization.audit_log_stream.paused:before': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream };
+  'organization.audit_log_stream.paused:after': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream; previousAuditLogStream: AuditLogStream };
+  'organization.audit_log_stream.resumed:before': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream };
+  'organization.audit_log_stream.resumed:after': { organization: Organization; auditScope: AuditScope; auditLogStream: AuditLogStream; previousAuditLogStream: AuditLogStream };
 
   'organization.actor.created:before': { organization: Organization; input: { type: OrganizationActor['type'] | 'primary_system'; name: string; email?: string; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
   'organization.actor.created:after': { organization: Organization; actor: AuditOrganizationActor; auditScope: AuditScope };

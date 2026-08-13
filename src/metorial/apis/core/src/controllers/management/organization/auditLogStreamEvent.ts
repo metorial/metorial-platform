@@ -5,6 +5,7 @@ import { auditLogStreamEventService } from '@metorial/module-audit-log-stream';
 import { auditLogStreamEventPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { hasFlags } from '../../../middleware/hasFlags';
 import { organizationManagementPath } from '../../../middleware/organizationGroup';
 import { auditLogStreamManagementGroup } from './auditLogStream';
 
@@ -53,6 +54,7 @@ export let auditLogStreamEventManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:read'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .outputList(auditLogStreamEventPresenter)
       .query('default', Paginator.validate())
       .do(async ctx => {
@@ -83,6 +85,7 @@ export let auditLogStreamEventManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.audit_log_stream:read'] }))
+      .use(hasFlags(['paid-audit-log-streams']))
       .output(auditLogStreamEventPresenter)
       .do(async ctx =>
         auditLogStreamEventPresenter.present({

@@ -1228,6 +1228,10 @@ let OrganizationPaths = Object.assign(
       OrganizationPaths.settings(organization, 'billing', ...subPages),
     supportAccess: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'support-access', ...subPages),
+    auditLogs: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'audit-logs', ...subPages),
+    auditLogStreams: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'audit-log-streams', ...subPages),
     members: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'members', ...subPages),
     invites: (organization: EntityParam, ...subPages: SubPages) =>
