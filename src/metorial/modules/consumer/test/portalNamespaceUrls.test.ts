@@ -198,6 +198,62 @@ describe('portalService.getPrimaryPortalUrls', () => {
     expect(urls.get(other.oid)).toBe('https://portals.metorial.test/globex');
   });
 
+  describe('getPortalUrlForOrigin', () => {
+    let namespaces = [
+      namespaceProperty({
+        value: 'acme',
+        compartment: 'portals.metorial.com',
+        purposes: ['metorial_portal']
+      }),
+      namespaceProperty({
+        value: 'acme-portal',
+        compartment: 'portals.metorial.com',
+        purposes: ['metorial_portal_single']
+      })
+    ];
+
+    it('keeps the request on the host it came from', async () => {
+      mockNamespaces(namespaces);
+
+      expect(
+        await portalService.getPortalUrlForOrigin({
+          portal,
+          origin: 'https://acme-portal.portals.metorial.com'
+        })
+      ).toBe('https://acme-portal.portals.metorial.com');
+    });
+
+    it('falls back to the primary URL for an unknown origin', async () => {
+      mockNamespaces(namespaces);
+
+      expect(
+        await portalService.getPortalUrlForOrigin({
+          portal,
+          origin: 'https://somewhere.else.com'
+        })
+      ).toBe('https://acme.portals.metorial.com/p/acme');
+    });
+
+    it('falls back to the primary URL when there is no origin', async () => {
+      mockNamespaces(namespaces);
+
+      expect(await portalService.getPortalUrlForOrigin({ portal })).toBe(
+        'https://acme.portals.metorial.com/p/acme'
+      );
+    });
+
+    it('falls back to the configured host when the portal has no namespace', async () => {
+      mockNamespaces([]);
+
+      expect(
+        await portalService.getPortalUrlForOrigin({
+          portal,
+          origin: 'https://acme.portals.metorial.com'
+        })
+      ).toBe('https://portals.metorial.test/acme');
+    });
+  });
+
   describe('in development', () => {
     beforeEach(() => {
       config.env = 'development';
