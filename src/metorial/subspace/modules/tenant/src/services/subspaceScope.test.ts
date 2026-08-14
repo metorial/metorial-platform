@@ -18,7 +18,8 @@ let mocks = vi.hoisted(() => ({
   solutionUpsert: vi.fn(),
   findActorForOrganizationActor: vi.fn(),
   upsertActor: vi.fn(),
-  generateId: vi.fn()
+  generateId: vi.fn(),
+  enqueueLegacyScopeRepair: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -92,6 +93,10 @@ vi.mock('./actor', () => ({
     findActorForOrganizationActor: mocks.findActorForOrganizationActor,
     upsertActor: mocks.upsertActor
   }
+}));
+
+vi.mock('../queues/legacyScope/queues', () => ({
+  enqueueLegacyScopeRepair: mocks.enqueueLegacyScopeRepair
 }));
 
 import { subspaceScopeService } from './subspaceScope';
@@ -220,6 +225,20 @@ describe('Subspace canonical scope reconciliation', () => {
     );
     expect(mocks.tenantUpsert).not.toHaveBeenCalled();
     expect(mocks.projectUpdate).not.toHaveBeenCalled();
+  });
+
+  it('schedules a legacy scope repair when a canonical tenant link does not resolve', async () => {
+    let project = makeProject({
+      internalTenantIdentifier: 'mte-pro-2',
+      subspaceTenantId: 'ktn_legacy'
+    });
+    mocks.tenantFind.mockResolvedValue({ identifier: 'mte-ins_0mlzkn8h5vDpg9CRUBSlP0' });
+
+    await expect(subspaceScopeService.ensureForProject(project)).rejects.toThrow(
+      'canonical tenant link does not resolve to mte-pro-2'
+    );
+    expect(mocks.enqueueLegacyScopeRepair).toHaveBeenCalledWith({ projectOid: 2n });
+    expect(mocks.tenantUpsert).not.toHaveBeenCalled();
   });
 
   it('replaces legacy project and instance links with new canonical scope links', async () => {

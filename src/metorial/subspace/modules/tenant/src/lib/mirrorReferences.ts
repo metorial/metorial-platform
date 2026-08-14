@@ -1,16 +1,11 @@
 import { db as subspaceDb } from '@metorial-subspace/db';
+import {
+  getModelsByScalarFields,
+  type RuntimeField,
+  type ScopedClient
+} from './tenantScopedReferences';
 
-type RuntimeField = {
-  name: string;
-  kind: string;
-  type: string;
-  isList?: boolean;
-};
-
-export type MirrorClient = {
-  _runtimeDataModel?: { models?: Record<string, { fields?: RuntimeField[] }> };
-  [key: string]: any;
-};
+export type MirrorClient = ScopedClient;
 
 export type MirrorReference = {
   model: string;
@@ -30,28 +25,6 @@ let MIRROR_TARGETS = {
   tenantOid: 'Project',
   environmentOid: 'Instance'
 } as const;
-
-let getModelsByScalarFields = (client: MirrorClient) => {
-  let byModel = new Map<string, { delegate: string; scalars: Set<string> }>();
-
-  for (let key of Object.keys(client)) {
-    if (key.startsWith('$') || key.startsWith('_') || key === 'constructor') continue;
-
-    let fields = client[key]?.fields;
-    if (!fields || typeof fields !== 'object') continue;
-
-    let refs = Object.values(fields) as { modelName?: string; name?: string }[];
-    let model = refs.find(ref => ref.modelName)?.modelName;
-    if (!model) continue;
-
-    byModel.set(model, {
-      delegate: key,
-      scalars: new Set(refs.map(ref => ref.name).filter((name): name is string => !!name))
-    });
-  }
-
-  return byModel;
-};
 
 let resolveMirrorField = (d: {
   model: string;

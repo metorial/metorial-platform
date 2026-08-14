@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import { db, type Tenant } from '@metorial-subspace/db';
 import type {
   Consumer as MetorialConsumer,
   ConsumerProfile as MetorialConsumerProfile,
@@ -9,7 +10,6 @@ import type {
   OrganizationMember as MetorialOrganizationMember,
   Project as MetorialProject
 } from '@metorial/db';
-import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from '../lib/metorialDb';
 import {
   assertMirrorIdentity,
@@ -19,6 +19,7 @@ import {
   upsertProjectMirror
 } from '../lib/mirrorRecords';
 import { getOrganizationActorInternalActorIdentifier } from '../lib/scopeIds';
+import { deferToLegacyScopeReconciler } from '../queues/legacyScope/queues';
 import { backfillMirrorReferencesService } from './backfillMirrorReferences';
 import { subspaceScopeService } from './subspaceScope';
 import { tenantService } from './tenant';
@@ -337,6 +338,10 @@ class metorialResourceServiceImpl {
 
     await this.syncOrganization(organization);
     for (let project of organization.projects) {
+      // Provisioning a project whose scope is still legacy is what produced duplicate canonical
+      // environments, so the promotion runs instead and syncs the project itself afterwards.
+      if (await deferToLegacyScopeReconciler({ projectOid: project.oid })) continue;
+
       await this.syncProject(project);
       for (let instance of project.instances) {
         await this.syncInstance(instance);

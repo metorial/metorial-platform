@@ -2,6 +2,7 @@ export * from './actor';
 export * from './brand';
 export * from './environment';
 export * from './metorialResource';
+export * from './reconcileLegacyScope';
 export * from './resourceCount';
 export * from './solution';
 export * from './subspaceScope';

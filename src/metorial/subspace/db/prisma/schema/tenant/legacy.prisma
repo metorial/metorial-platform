@@ -41,6 +41,8 @@ model Tenant {
 
   collectOperationDescriptionForToolCalls Boolean @default(true)
 
+  retiredAt DateTime?
+
   providers                                Provider[]
   providerListingGroups                    ProviderListingGroup[]
   providerListings                         ProviderListing[]
@@ -138,6 +140,8 @@ model Tenant {
   monitors                                 Monitor[]
   monitorAlerts                            MonitorAlert[]
   projects                                 Project[]
+
+  @@index([retiredAt])
 }
 
 enum EnvironmentType {

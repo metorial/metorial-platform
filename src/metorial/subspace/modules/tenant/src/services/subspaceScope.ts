@@ -1,6 +1,13 @@
 import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import { Service } from '@lowerdeck/service';
 import {
+  db as subspaceDb,
+  type Environment,
+  type Solution,
+  type Tenant,
+  type TenantActor
+} from '@metorial-subspace/db';
+import {
   ID,
   type Instance,
   type Organization,
@@ -8,20 +15,18 @@ import {
   type Prisma,
   type Project
 } from '@metorial/db';
-import {
-  db as subspaceDb,
-  type Environment,
-  type Solution,
-  type Tenant,
-  type TenantActor
-} from '@metorial-subspace/db';
 import { env } from '../env';
+import {
+  isCanonicalEnvironmentIdentifier,
+  isCanonicalProjectIdentifier
+} from '../lib/legacyScope';
 import { metorialDb } from '../lib/metorialDb';
 import {
   getInstanceInternalEnvironmentIdentifier,
   getOrganizationActorInternalActorIdentifier,
   getProjectInternalTenantIdentifier
 } from '../lib/scopeIds';
+import { enqueueLegacyScopeRepair } from '../queues/legacyScope/queues';
 import { actorService } from './actor';
 import { environmentService } from './environment';
 import { solutionService } from './solution';
@@ -61,11 +66,10 @@ let hasUpdates = (update: Record<string, unknown>) =>
 let solutionProm = new ProgrammablePromise<Solution>();
 let solutionBootStarted = false;
 
-let isCanonicalProjectIdentifier = (identifier: string | null | undefined) =>
-  identifier?.startsWith('mte-pro-') ?? false;
-
-let isCanonicalEnvironmentIdentifier = (identifier: string | null | undefined) =>
-  identifier?.startsWith('mte-ins-') ?? false;
+let failCanonicalScope = async (d: { projectOid: bigint; message: string }) => {
+  await enqueueLegacyScopeRepair({ projectOid: d.projectOid });
+  throw new Error(d.message);
+};
 
 let ensureSolutionBoot = () => {
   if (solutionBootStarted) return;
@@ -176,9 +180,10 @@ let assertCanonicalProjectScope = async (project: LoadedProject) => {
 
   let expectedIdentifier = getProjectTenantIdentifier(project);
   if (!project.subspaceTenantId) {
-    throw new Error(
-      `Project ${project.id} has canonical tenant identifier but no subspace tenant id`
-    );
+    return await failCanonicalScope({
+      projectOid: project.oid,
+      message: `Project ${project.id} has canonical tenant identifier but no subspace tenant id`
+    });
   }
 
   let tenant = await subspaceDb.tenant.findUnique({
@@ -186,9 +191,10 @@ let assertCanonicalProjectScope = async (project: LoadedProject) => {
     select: { identifier: true }
   });
   if (tenant?.identifier !== expectedIdentifier) {
-    throw new Error(
-      `Project ${project.id} canonical tenant link does not resolve to ${expectedIdentifier}`
-    );
+    return await failCanonicalScope({
+      projectOid: project.oid,
+      message: `Project ${project.id} canonical tenant link does not resolve to ${expectedIdentifier}`
+    });
   }
 };
 
@@ -204,14 +210,16 @@ let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedPro
 
   if (hasCanonicalTenant) {
     if (instance.internalTenantIdentifier !== expectedTenantIdentifier) {
-      throw new Error(
-        `Instance ${instance.id} canonical tenant identifier does not match project ${project.id}`
-      );
+      return await failCanonicalScope({
+        projectOid: project.oid,
+        message: `Instance ${instance.id} canonical tenant identifier does not match project ${project.id}`
+      });
     }
     if (!instance.subspaceTenantId) {
-      throw new Error(
-        `Instance ${instance.id} has canonical tenant identifier but no subspace tenant id`
-      );
+      return await failCanonicalScope({
+        projectOid: project.oid,
+        message: `Instance ${instance.id} has canonical tenant identifier but no subspace tenant id`
+      });
     }
 
     let tenant = await subspaceDb.tenant.findUnique({
@@ -219,16 +227,18 @@ let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedPro
       select: { oid: true, identifier: true }
     });
     if (tenant?.identifier !== expectedTenantIdentifier) {
-      throw new Error(
-        `Instance ${instance.id} canonical tenant link does not resolve to ${expectedTenantIdentifier}`
-      );
+      return await failCanonicalScope({
+        projectOid: project.oid,
+        message: `Instance ${instance.id} canonical tenant link does not resolve to ${expectedTenantIdentifier}`
+      });
     }
 
     if (hasCanonicalEnvironment) {
       if (!instance.subspaceEnvironmentId) {
-        throw new Error(
-          `Instance ${instance.id} has canonical environment identifier but no subspace environment id`
-        );
+        return await failCanonicalScope({
+          projectOid: project.oid,
+          message: `Instance ${instance.id} has canonical environment identifier but no subspace environment id`
+        });
       }
 
       let environment = await subspaceDb.environment.findUnique({
@@ -239,15 +249,17 @@ let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedPro
         environment?.identifier !== expectedEnvironmentIdentifier ||
         environment.tenantOid !== tenant.oid
       ) {
-        throw new Error(
-          `Instance ${instance.id} canonical environment link does not resolve beneath its canonical tenant`
-        );
+        return await failCanonicalScope({
+          projectOid: project.oid,
+          message: `Instance ${instance.id} canonical environment link does not resolve beneath its canonical tenant`
+        });
       }
     }
   } else if (hasCanonicalEnvironment) {
-    throw new Error(
-      `Instance ${instance.id} has a canonical environment linked to a legacy tenant`
-    );
+    return await failCanonicalScope({
+      projectOid: project.oid,
+      message: `Instance ${instance.id} has a canonical environment linked to a legacy tenant`
+    });
   }
 };
 

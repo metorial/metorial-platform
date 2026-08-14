@@ -7,7 +7,8 @@ let mocks = vi.hoisted(() => ({
   environmentFind: vi.fn(),
   environmentUpdateMany: vi.fn(),
   ensureProjectMirror: vi.fn(),
-  ensureInstanceMirror: vi.fn()
+  ensureInstanceMirror: vi.fn(),
+  deferToLegacyScopeReconciler: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -46,6 +47,10 @@ vi.mock('../lib/metorialDb', () => ({
 vi.mock('../lib/mirrorRecords', () => ({
   ensureProjectMirror: mocks.ensureProjectMirror,
   ensureInstanceMirror: mocks.ensureInstanceMirror
+}));
+
+vi.mock('../queues/legacyScope/queues', () => ({
+  deferToLegacyScopeReconciler: mocks.deferToLegacyScopeReconciler
 }));
 
 import { reconcileResourceLinksService } from './reconcileResourceLinks';
@@ -91,6 +96,20 @@ describe('Resource link reconciliation', () => {
     mocks.environmentUpdateMany.mockResolvedValue({ count: 1 });
     mocks.ensureProjectMirror.mockResolvedValue(2n);
     mocks.ensureInstanceMirror.mockResolvedValue(3n);
+    mocks.deferToLegacyScopeReconciler.mockResolvedValue(false);
+  });
+
+  it('hands a project with a legacy scope to the legacy reconciler', async () => {
+    mocks.deferToLegacyScopeReconciler.mockResolvedValue(true);
+
+    let result = await reconcileResourceLinksService.reconcileProjectLinks({
+      projectOid: 2n
+    });
+
+    expect(result).toEqual({ linkedTenants: 0, linkedEnvironments: 0, deferred: true });
+    expect(mocks.metorialProjectFind).not.toHaveBeenCalled();
+    expect(mocks.tenantUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.environmentUpdateMany).not.toHaveBeenCalled();
   });
 
   it('backfills the project and instance references when they are missing', async () => {
@@ -119,7 +138,7 @@ describe('Resource link reconciliation', () => {
       where: { id: 'ken_1' },
       data: { instanceOid: 3n }
     });
-    expect(result).toEqual({ linkedTenants: 1, linkedEnvironments: 1 });
+    expect(result).toEqual({ linkedTenants: 1, linkedEnvironments: 1, deferred: false });
   });
 
   it('writes nothing when every reference is already correct', async () => {
@@ -133,7 +152,7 @@ describe('Resource link reconciliation', () => {
 
     expect(mocks.tenantUpdateMany).not.toHaveBeenCalled();
     expect(mocks.environmentUpdateMany).not.toHaveBeenCalled();
-    expect(result).toEqual({ linkedTenants: 0, linkedEnvironments: 0 });
+    expect(result).toEqual({ linkedTenants: 0, linkedEnvironments: 0, deferred: false });
   });
 
   it('still repairs the mirrors of references that are already linked', async () => {
@@ -160,7 +179,7 @@ describe('Resource link reconciliation', () => {
 
     expect(mocks.tenantUpdateMany).not.toHaveBeenCalled();
     expect(mocks.environmentUpdateMany).not.toHaveBeenCalled();
-    expect(result).toEqual({ linkedTenants: 0, linkedEnvironments: 0 });
+    expect(result).toEqual({ linkedTenants: 0, linkedEnvironments: 0, deferred: false });
   });
 
   it('repoints a reference that drifted to the wrong oid', async () => {

@@ -19,7 +19,9 @@ let mocks = vi.hoisted(() => ({
   consumerProfileFindMany: vi.fn(),
   consumerProfileUpsert: vi.fn(),
   metorialOrganizationFind: vi.fn(),
+  metorialOrganizationUpdate: vi.fn(),
   metorialProjectFind: vi.fn(),
+  metorialProjectFindMany: vi.fn(),
   tenantFindUnique: vi.fn(),
   tenantActorFindMany: vi.fn(),
   metorialActorFind: vi.fn(),
@@ -33,7 +35,8 @@ let mocks = vi.hoisted(() => ({
   ensureForOrganizationActor: vi.fn(),
   ensureNetworksForTenant: vi.fn(),
   backfillTenantReferences: vi.fn(),
-  backfillEnvironmentReferences: vi.fn()
+  backfillEnvironmentReferences: vi.fn(),
+  deferToLegacyScopeReconciler: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -90,8 +93,14 @@ vi.mock('@metorial-subspace/db', () => ({
 
 vi.mock('../lib/metorialDb', () => ({
   metorialDb: {
-    organization: { findUniqueOrThrow: mocks.metorialOrganizationFind },
-    project: { findUniqueOrThrow: mocks.metorialProjectFind },
+    organization: {
+      findUniqueOrThrow: mocks.metorialOrganizationFind,
+      update: mocks.metorialOrganizationUpdate
+    },
+    project: {
+      findUniqueOrThrow: mocks.metorialProjectFind,
+      findMany: mocks.metorialProjectFindMany
+    },
     instance: { findUniqueOrThrow: mocks.metorialInstanceFind },
     organizationActor: {
       findUniqueOrThrow: mocks.metorialActorFind,
@@ -115,6 +124,10 @@ vi.mock('./tenant', () => ({
   tenantService: {
     ensureNetworksForTenant: mocks.ensureNetworksForTenant
   }
+}));
+
+vi.mock('../queues/legacyScope/queues', () => ({
+  deferToLegacyScopeReconciler: mocks.deferToLegacyScopeReconciler
 }));
 
 vi.mock('./backfillMirrorReferences', () => ({
@@ -157,6 +170,37 @@ describe('Metorial resource synchronization', () => {
     mocks.tenantFindUnique.mockResolvedValue(null);
     mocks.tenantActorFindMany.mockResolvedValue([]);
     mocks.ensureForOrganizationActor.mockResolvedValue({ oid: 40n, id: 'act_40' });
+    mocks.deferToLegacyScopeReconciler.mockResolvedValue(false);
+    mocks.metorialProjectFindMany.mockResolvedValue([]);
+  });
+
+  describe('reconcileOrganization', () => {
+    let project = { oid: 2n, id: 'pro_1', organizationOid: 1n, instances: [] };
+
+    beforeEach(() => {
+      mocks.metorialOrganizationFind.mockResolvedValue({
+        ...organization,
+        projects: [project]
+      });
+      mocks.organizationUpsert.mockResolvedValue({ oid: 1n, id: 'org_1' });
+      mocks.ensureForProject.mockResolvedValue({ tenant: { oid: 20n, id: 'ktn_1' } });
+      mocks.projectUpsert.mockResolvedValue({ oid: 2n, id: 'pro_1' });
+    });
+
+    it('leaves a project with a legacy scope to the legacy reconciler', async () => {
+      mocks.deferToLegacyScopeReconciler.mockResolvedValue(true);
+
+      await metorialResourceService.reconcileOrganization('org_1');
+
+      expect(mocks.deferToLegacyScopeReconciler).toHaveBeenCalledWith({ projectOid: 2n });
+      expect(mocks.ensureForProject).not.toHaveBeenCalled();
+    });
+
+    it('syncs a project whose scope is already canonical', async () => {
+      await metorialResourceService.reconcileOrganization('org_1');
+
+      expect(mocks.ensureForProject).toHaveBeenCalledWith(project);
+    });
   });
 
   it('creates the organization mirror with the exact Metorial oid and id', async () => {
@@ -339,7 +383,11 @@ describe('Metorial resource synchronization', () => {
     mocks.metorialOrganizationFind.mockResolvedValue(organization);
     mocks.organizationUpsert.mockResolvedValue(organization);
     mocks.organizationActorUpsert.mockResolvedValue(actor);
-    mocks.projectFindMany.mockResolvedValue([{ tenantOid: 20n }, { tenantOid: 20n }, { tenantOid: 21n }]);
+    mocks.projectFindMany.mockResolvedValue([
+      { tenantOid: 20n },
+      { tenantOid: 20n },
+      { tenantOid: 21n }
+    ]);
     mocks.tenantFindUnique.mockImplementation(async ({ where }: { where: { oid: bigint } }) =>
       where.oid === 20n ? tenantA : tenantB
     );

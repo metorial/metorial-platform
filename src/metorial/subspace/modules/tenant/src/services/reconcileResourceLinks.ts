@@ -1,7 +1,8 @@
-import { db as subspaceDb } from '@metorial-subspace/db';
 import { Service } from '@lowerdeck/service';
+import { db as subspaceDb } from '@metorial-subspace/db';
 import { metorialDb } from '../lib/metorialDb';
 import { ensureInstanceMirror, ensureProjectMirror } from '../lib/mirrorRecords';
+import { deferToLegacyScopeReconciler } from '../queues/legacyScope/queues';
 
 let shouldUpdateTenantLink = (d: {
   currentResourceTenantId: string | null;
@@ -35,6 +36,10 @@ let shouldUpdateOidReference = (d: { current: bigint | null; expected: bigint })
 
 class ReconcileResourceLinksServiceImpl {
   async reconcileProjectLinks(d: { projectOid: bigint }) {
+    if (await deferToLegacyScopeReconciler({ projectOid: d.projectOid })) {
+      return { linkedTenants: 0, linkedEnvironments: 0, deferred: true };
+    }
+
     let project = await metorialDb.project.findUnique({
       where: {
         oid: d.projectOid
@@ -66,7 +71,8 @@ class ReconcileResourceLinksServiceImpl {
     if (!project?.subspaceTenantId) {
       return {
         linkedTenants: 0,
-        linkedEnvironments: 0
+        linkedEnvironments: 0,
+        deferred: false
       };
     }
 
@@ -199,7 +205,8 @@ class ReconcileResourceLinksServiceImpl {
 
     return {
       linkedTenants,
-      linkedEnvironments
+      linkedEnvironments,
+      deferred: false
     };
   }
 
