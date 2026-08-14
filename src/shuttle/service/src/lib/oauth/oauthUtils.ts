@@ -14,7 +14,9 @@ import { db } from '../../db';
 import { getId } from '../../id';
 import { getAxiosSsrfFilter } from '../http/axiosSsrf';
 import { assertUrlAllowedByEgressPolicy } from '../network/egressPolicy';
+import { buildClientRegistrationMetadata } from './clientRegistrationMetadata';
 import { normalizeAuthorizationUrl } from './normalizeAuthorizationUrl';
+import { isTransientRegistrationError } from './registrationRetry';
 import {
   type OAuthConfiguration,
   type RegistrationResponse,
@@ -352,7 +354,8 @@ export class OAuthUtils {
   static async registerClient({
     tenant,
     config,
-    owner
+    owner,
+    captureErrors = true
   }: {
     tenant: Tenant;
     config: OAuthConfiguration;
@@ -360,6 +363,7 @@ export class OAuthUtils {
       connection?: RemoteOAuthConnection;
       config?: RemoteOAuthConfig;
     };
+    captureErrors?: boolean;
   }) {
     if (!config.registration_endpoint) return null;
 
@@ -371,9 +375,7 @@ export class OAuthUtils {
         {
           client_name: clientName,
           redirect_uris: [oauthCallbackUrl],
-          grant_types: config.grant_types_supported,
-          response_types: config.response_types_supported,
-          token_endpoint_auth_method: 'client_secret_basic'
+          ...buildClientRegistrationMetadata(config)
         },
         {
           headers: {
@@ -433,6 +435,8 @@ export class OAuthUtils {
         registration: reg
       };
     } catch (error: any) {
+      let status = typeof error?.response?.status == 'number' ? error.response.status : null;
+
       let err = await db.remoteOAuthRegistrationError.create({
         data: {
           ...getId('remoteOAuthRegistrationError'),
@@ -446,16 +450,21 @@ export class OAuthUtils {
         }
       });
 
-      Sentry.captureException(error, {
-        extra: {
-          registrationEndpoint: config.registration_endpoint,
-          tenantId: tenant.id
-        }
-      });
+      if (captureErrors) {
+        Sentry.captureException(error, {
+          extra: {
+            registrationEndpoint: config.registration_endpoint,
+            tenantId: tenant.id,
+            status
+          }
+        });
+      }
 
       return {
         ok: false as const,
-        error: err
+        error: err,
+        status,
+        isTransient: isTransientRegistrationError({ status })
       };
     }
   }

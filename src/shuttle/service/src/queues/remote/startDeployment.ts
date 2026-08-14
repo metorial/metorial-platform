@@ -19,7 +19,9 @@ import { remoteOAuthDiscoveryService } from '../../services';
 import { deployServerFailedQueue } from '../deployment/failed';
 import { deployServerSucceededQueue } from '../deployment/succeeded';
 import { discoverRemoteOAuthConfigQueue } from '../discovery/remoteOAuthConfig';
+import { retryFailedRegistrationsSearchQueue } from '../discovery/retryRemoteOAuthConnections';
 import { serverVersionCreatedQueue } from '../lifecycle/serverVersion';
+import { rotateStaleCredentialsSearchQueue } from '../oauth/rotateRemoteCredentials';
 
 export let deployRemoteServerStartQueue = createQueue<{
   serverDeploymentId: string;
@@ -156,6 +158,35 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
             },
             data: { configOid: oauthConfig.oid }
           });
+
+          // Connections that never got a client registered are moved to the new
+          // config as well, and get a fresh retry budget because the newly
+          // discovered config may be what makes registration work.
+          let repointed = await db.remoteOAuthConnection.updateMany({
+            where: {
+              serverOid: server.oid,
+              status: { not: 'inactive' },
+              discoveryStatus: 'failed',
+              registrationOid: null,
+              secretOid: null,
+              configOid: { not: oauthConfig.oid }
+            },
+            data: {
+              configOid: oauthConfig.oid,
+              registrationAttemptCount: 0,
+              lastRegistrationAttemptAt: null
+            }
+          });
+
+          if (repointed.count > 0) {
+            deployingStep.log(
+              `Retrying client registration for ${repointed.count} connection(s) that previously failed.`
+            );
+          }
+
+          await retryFailedRegistrationsSearchQueue.add({ serverId: server.id });
+
+          await rotateStaleCredentialsSearchQueue.add({ serverId: server.id });
 
           deployingStep.log(encode(oauthConfig.config));
         }

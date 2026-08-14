@@ -6,10 +6,10 @@ import { subMinutes } from 'date-fns';
 import type {
   RemoteOAuthConfig,
   RemoteOAuthConnection,
+  RemoteOAuthConnectionProfile,
   RemoteOAuthConnectionSetup,
   ServerOAuthSetup,
-  Tenant,
-  RemoteOAuthConnectionProfile
+  Tenant
 } from '../../../../prisma/generated/client';
 import { oauthCallbackUrl } from '../../../config';
 import { db } from '../../../db';
