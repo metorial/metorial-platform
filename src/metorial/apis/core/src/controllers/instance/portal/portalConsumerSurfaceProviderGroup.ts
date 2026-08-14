@@ -9,7 +9,7 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { consumerSurfaceProviderGroupPresenter } from '../../../presenters';
+import { consumerSurfaceProviderGroupPresenter } from '@metorial/presenters';
 import { portalGroup } from './portal';
 
 let consumerSurfaceProviderGroupGroup = portalGroup.use(async ctx => {

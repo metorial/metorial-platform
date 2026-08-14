@@ -15,7 +15,6 @@ import {
   type CustomProvider,
   type CustomProviderVersionStatus,
   type Environment,
-  type Solution,
   type Tenant,
   type TenantActor
 } from '@metorial-subspace/db';
@@ -30,7 +29,16 @@ import {
   type DateFilter
 } from '@metorial-subspace/list-utils';
 import { providerVersionInternalService } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  type MetorialFacingWithActor,
+  resolveMetorialFacing,
+  resolveMetorialFacingWithActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import type { ProviderVersionEnrichment } from '@metorial-subspace/provider-utils';
 import { prepareVersion } from '../internal/createVersion';
 import {
@@ -70,6 +78,37 @@ let include = {
   creatorActor: true
 };
 
+export type CreateCustomProviderVersionParams = {
+  actor: TenantActor;
+  tenant: Tenant;
+  environment: Environment;
+
+  customProvider: CustomProvider;
+  input: {
+    message?: string;
+    from?: CustomProviderFromUpdate;
+    config?: CustomProviderConfig;
+  };
+};
+
+type ListCustomProviderVersionsParams = {
+  status?: CustomProviderVersionStatus[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerVersionIds?: string[];
+  customProviderIds?: string[];
+  customProviderDeploymentIds?: string[];
+  customProviderEnvironmentIds?: string[];
+};
+
+type GetCustomProviderVersionByIdParams = {
+  customProviderVersionId: string;
+};
+
 class customProviderVersionServiceImpl {
   async enrichCustomProviders<
     T extends CustomProviderVersion & {
@@ -101,19 +140,31 @@ class customProviderVersionServiceImpl {
     });
   }
 
-  async createCustomProviderVersion(d: {
-    actor: TenantActor;
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createCustomProviderVersion(
+    d: MetorialFacingWithActor<CreateCustomProviderVersionParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithActor(d);
 
-    customProvider: CustomProvider;
-    input: {
-      message?: string;
-      from?: CustomProviderFromUpdate;
-      config?: CustomProviderConfig;
-    };
-  }) {
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.custom_provider.version.created:before', eventBase);
+
+    let customProviderVersion = await this.createCustomProviderVersionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment,
+      actor: scope.actor
+    });
+
+    await Fabric.fire('provider.custom_provider.version.created:after', {
+      ...eventBase,
+      customProviderVersion
+    });
+
+    return customProviderVersion;
+  }
+
+  async createCustomProviderVersionInternal(d: CreateCustomProviderVersionParams) {
     checkTenant(d, d.customProvider);
     checkDeletedRelation(d.customProvider);
 
@@ -149,6 +200,9 @@ class customProviderVersionServiceImpl {
       );
     }
 
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
     let customProvider = await withTransaction(async db => {
       let updatedProvider = await db.customProvider.update({
         where: { oid: d.customProvider.oid },
@@ -166,7 +220,7 @@ class customProviderVersionServiceImpl {
       let versionPrep = await prepareVersion({
         actor: d.actor,
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         customProvider: d.customProvider,
         trigger: 'manual',
@@ -177,8 +231,10 @@ class customProviderVersionServiceImpl {
         data: {
           ...getId('upcomingCustomProvider'),
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           actorOid: d.actor.oid,
 
           message: d.input.message,
@@ -210,32 +266,31 @@ class customProviderVersionServiceImpl {
     return enriched!;
   }
 
-  async listCustomProviderVersions(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listCustomProviderVersions(d: MetorialFacing<ListCustomProviderVersionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: CustomProviderVersionStatus[];
+    return this.listCustomProviderVersionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-
-    ids?: string[];
-    providerIds?: string[];
-    providerVersionIds?: string[];
-    customProviderIds?: string[];
-    customProviderDeploymentIds?: string[];
-    customProviderEnvironmentIds?: string[];
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+  async listCustomProviderVersionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCustomProviderVersionsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let providerVersions = await resolveProviderVersions(ts, d.providerVersionIds);
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
     let customProviderDeployments = await resolveCustomProviderDeployments(
-      d,
+      ts,
       d.customProviderDeploymentIds
     );
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
-      d,
+      ts,
       d.customProviderEnvironmentIds
     );
 
@@ -245,7 +300,7 @@ class customProviderVersionServiceImpl {
           ...opts,
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
 
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
@@ -278,17 +333,27 @@ class customProviderVersionServiceImpl {
     );
   }
 
-  async getCustomProviderVersionById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    customProviderVersionId: string;
-  }) {
+  async getCustomProviderVersionById(d: MetorialFacing<GetCustomProviderVersionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCustomProviderVersionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCustomProviderVersionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCustomProviderVersionByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let customProviderVersion = await db.customProviderVersion.findFirst({
       where: {
         id: d.customProviderVersionId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       include
     });

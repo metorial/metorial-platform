@@ -6,7 +6,7 @@ import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { consumerSurfacePresenter } from '../../../presenters';
+import { consumerSurfacePresenter } from '@metorial/presenters';
 
 export let consumerSurfaceGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.consumerSurfaceId) {

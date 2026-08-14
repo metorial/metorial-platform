@@ -34,7 +34,7 @@ export let reconcileEnclaveInstanceConfiguration = async (enclaveId: string) => 
     return;
   }
 
-  let compiledNetworkRules = await enclaveService.getCompiledNetworkRules({
+  let compiledNetworkRules = await enclaveService.getCompiledNetworkRulesInternal({
     tenant: enclave.tenant,
     environment: enclave.environment,
     enclave

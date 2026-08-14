@@ -1,6 +1,5 @@
 export * from './access';
 export * from './access-requests';
-export * from './auth';
 export * from './consumer-groups';
 export * from './consumer-invites';
 export * from './consumer-profiles';

@@ -2,7 +2,10 @@ import { badRequestError, paymentRequiredError, ServiceError } from '@lowerdeck/
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { flagService } from '@metorial/module-flags';
-import { subspaceCustomProviderVersionService } from '@metorial/module-subspace';
+import {
+  customProviderService,
+  customProviderVersionService
+} from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -12,7 +15,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderEnvPresenter,
   subspaceCustomProviderVersionPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import {
   customProviderConfigValidator,
   customProviderFromValidator,
@@ -29,10 +32,9 @@ let customProviderVersionGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let customProviderVersion = await subspaceCustomProviderVersionService.get({
+  let customProviderVersion = await customProviderVersionService.getCustomProviderVersionById({
     instance: ctx.instance,
-    customProviderVersionId: ctx.params.customProviderVersionId,
-    includeEnv: false
+    customProviderVersionId: ctx.params.customProviderVersionId
   });
 
   return { customProviderVersion };
@@ -105,7 +107,7 @@ export let customProviderVersionController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCustomProviderVersionService.list({
+        let paginator = await customProviderVersionService.listCustomProviderVersions({
           instance: ctx.instance,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -167,14 +169,8 @@ export let customProviderVersionController = Controller.create(
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderEnvPresenter)
       .do(async ctx => {
-        let customProviderVersion = await subspaceCustomProviderVersionService.get({
-          instance: ctx.instance,
-          customProviderVersionId: ctx.params.customProviderVersionId,
-          includeEnv: true
-        });
-
         return subspaceCustomProviderEnvPresenter.present({
-          customProviderFrom: customProviderVersion.from
+          customProviderFrom: ctx.customProviderVersion.payload?.from
         });
       }),
 
@@ -209,13 +205,20 @@ export let customProviderVersionController = Controller.create(
           }
         }
 
-        let customProviderVersion = await subspaceCustomProviderVersionService.create({
+        let customProvider = await customProviderService.getCustomProviderById({
           instance: ctx.instance,
-          organizationActor: ctx.actor!,
-          customProviderId: ctx.body.custom_provider_id,
-          from: mapCustomProviderFrom(ctx.body.from),
-          config: ctx.body.config
+          customProviderId: ctx.body.custom_provider_id
         });
+        let customProviderVersion =
+          await customProviderVersionService.createCustomProviderVersion({
+            instance: ctx.instance,
+            organizationActor: ctx.actor!,
+            customProvider,
+            input: {
+              from: mapCustomProviderFrom(ctx.body.from),
+              config: ctx.body.config
+            }
+          });
 
         return subspaceCustomProviderVersionPresenter.present({
           customProviderVersion

@@ -1,8 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter, resolveCustomProviders } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { ensureScmRepoForOrigin } from '../internal/linkRepo';
 import {
   getTenantForOrigin,
@@ -13,19 +18,68 @@ import {
   type ScmRepositoryPreview
 } from '../origin';
 
+type ListScmRepositoriesParams = {
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+
+  ids?: string[];
+  customProviderIds?: string[];
+};
+
+type GetScmRepositoryByIdParams = {
+  scmRepositoryId: string;
+};
+
+type CreateScmRepositoryParams = {
+  input: {
+    scmConnectionId: string;
+    externalAccountId: string;
+    name: string;
+    description?: string;
+    isPrivate: boolean;
+  };
+};
+
+type LinkScmRepositoryParams = {
+  input: {
+    scmConnectionId: string;
+    externalId: string;
+  };
+};
+
+type ListScmAccountPreviewsParams = {
+  input: {
+    scmConnectionId: string;
+  };
+};
+
+type ListScmRepositoryPreviewsParams = {
+  input: {
+    scmConnectionId: string;
+    externalAccountId?: string;
+    cursor?: string;
+    limit?: number;
+  };
+};
+
 class scmRepositoryServiceImpl {
-  async listScmRepositories(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listScmRepositories(d: MetorialFacing<ListScmRepositoriesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
+    return this.listScmRepositoriesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    customProviderIds?: string[];
-  }) {
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+  async listScmRepositoriesInternal(
+    d: { tenant: Tenant; environment: Environment } & ListScmRepositoriesParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -34,7 +88,7 @@ class scmRepositoryServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
@@ -50,18 +104,26 @@ class scmRepositoryServiceImpl {
     );
   }
 
-  async getScmRepositoryById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async getScmRepositoryById(d: MetorialFacing<GetScmRepositoryByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    scmRepositoryId: string;
-  }) {
+    return this.getScmRepositoryByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getScmRepositoryByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetScmRepositoryByIdParams
+  ) {
+    let solution = await getMetorialSolution();
     let scmRepo = await db.scmRepo.findFirst({
       where: {
         id: d.scmRepositoryId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       }
     });
     if (!scmRepo) throw new ServiceError(notFoundError('scm.repository', d.scmRepositoryId));
@@ -69,19 +131,21 @@ class scmRepositoryServiceImpl {
     return scmRepo;
   }
 
-  async createScmRepository(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createScmRepository(d: MetorialFacing<CreateScmRepositoryParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    input: {
-      scmConnectionId: string;
-      externalAccountId: string;
-      name: string;
-      description?: string;
-      isPrivate: boolean;
-    };
-  }) {
+    return this.createScmRepositoryInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async createScmRepositoryInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateScmRepositoryParams
+  ) {
+    let solution = await getMetorialSolution();
     let tenant = await getTenantForOrigin(d.tenant);
     let originRes = await origin.scmRepository.create({
       tenantId: tenant.id,
@@ -95,20 +159,25 @@ class scmRepositoryServiceImpl {
     return await ensureScmRepoForOrigin({
       originRepo: originRes,
       tenant: d.tenant,
-      solution: d.solution
+      solution
     });
   }
 
-  async linkScmRepository(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async linkScmRepository(d: MetorialFacing<LinkScmRepositoryParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    input: {
-      scmConnectionId: string;
-      externalId: string;
-    };
-  }) {
+    return this.linkScmRepositoryInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async linkScmRepositoryInternal(
+    d: { tenant: Tenant; environment: Environment } & LinkScmRepositoryParams
+  ) {
+    let solution = await getMetorialSolution();
     let tenant = await getTenantForOrigin(d.tenant);
     let originRes = await origin.scmRepository.link({
       tenantId: tenant.id,
@@ -119,16 +188,23 @@ class scmRepositoryServiceImpl {
     return await ensureScmRepoForOrigin({
       originRepo: originRes,
       tenant: d.tenant,
-      solution: d.solution
+      solution
     });
   }
 
-  async listScmAccountPreviews(d: {
-    tenant: Tenant;
-    input: {
-      scmConnectionId: string;
-    };
-  }): Promise<{ accounts: ScmAccountPreview[] }> {
+  async listScmAccountPreviews(d: MetorialFacing<ListScmAccountPreviewsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listScmAccountPreviewsInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async listScmAccountPreviewsInternal(
+    d: { tenant: Tenant } & ListScmAccountPreviewsParams
+  ): Promise<{ accounts: ScmAccountPreview[] }> {
     let tenant = await getTenantForOrigin(d.tenant);
     let result = await origin.scmRepository.listAccountPreviews({
       tenantId: tenant.id,
@@ -140,15 +216,19 @@ class scmRepositoryServiceImpl {
     };
   }
 
-  async listScmRepositoryPreviews(d: {
-    tenant: Tenant;
-    input: {
-      scmConnectionId: string;
-      externalAccountId?: string;
-      cursor?: string;
-      limit?: number;
-    };
-  }): Promise<{ repositories: ScmRepositoryPreview[]; nextCursor: string | null }> {
+  async listScmRepositoryPreviews(d: MetorialFacing<ListScmRepositoryPreviewsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listScmRepositoryPreviewsInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async listScmRepositoryPreviewsInternal(
+    d: { tenant: Tenant } & ListScmRepositoryPreviewsParams
+  ): Promise<{ repositories: ScmRepositoryPreview[]; nextCursor: string | null }> {
     let tenant = await getTenantForOrigin(d.tenant);
     let result = await origin.scmRepository.listRepositoryPreviews({
       tenantId: tenant.id,

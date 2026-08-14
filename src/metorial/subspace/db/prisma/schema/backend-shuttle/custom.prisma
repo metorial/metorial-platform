@@ -9,6 +9,9 @@ model ShuttleCustomServer {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   serverOid BigInt
   server    ShuttleServer @relation(fields: [serverOid], references: [oid])
 
@@ -19,6 +22,8 @@ model ShuttleCustomServer {
   customProviderVersions         CustomProviderVersion[]
   customProvider                 CustomProvider?
   shuttleCustomServerDeployments ShuttleCustomServerDeployment[]
+
+  @@index([projectOid])
 }
 
 model ShuttleCustomServerDeployment {
@@ -29,6 +34,9 @@ model ShuttleCustomServerDeployment {
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
 
   serverOid BigInt
   server    ShuttleServer @relation(fields: [serverOid], references: [oid])
@@ -44,4 +52,6 @@ model ShuttleCustomServerDeployment {
 
   customProviderDeployment CustomProviderDeployment?
   customProviderVersion    CustomProviderVersion?
+
+  @@index([projectOid])
 }

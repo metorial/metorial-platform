@@ -16,13 +16,13 @@ import {
   type ProviderType,
   type ProviderVariant,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { identityCredentialService } from '@metorial-subspace/module-identity';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
@@ -33,7 +33,6 @@ import { providerOAuthSetupService } from './providerOAuthSetup';
 class providerSetupSessionInternalServiceImpl {
   async initializeProviderSetupSessionProvider(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
     providerDeployment?: ProviderDeployment & {
@@ -62,6 +61,7 @@ class providerSetupSessionInternalServiceImpl {
       ua: string | undefined;
     };
   }) {
+    let solution = await getMetorialSolution();
     return withTransaction(
       async db => {
         if (!d.provider.defaultVariant) {
@@ -109,7 +109,6 @@ class providerSetupSessionInternalServiceImpl {
           let { authMethod } = await providerAuthConfigInternalService.getVersionAndAuthMethod(
             {
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               provider: d.provider,
               providerDeployment: d.providerDeployment,
@@ -129,7 +128,7 @@ class providerSetupSessionInternalServiceImpl {
               where: {
                 providerOid: d.provider.oid,
                 tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
+                solutionOid: solution.oid,
                 environmentOid: d.environment.oid,
                 isDefault: true,
                 status: 'active'
@@ -157,9 +156,8 @@ class providerSetupSessionInternalServiceImpl {
             inner.authCredentialsOid = credentials?.oid;
 
             if (d.input.authConfigInput) {
-              let authConfigInner = await this.createProviderAuthConfig({
+              let authConfigInner = await this.createProviderAuthConfigInternal({
                 tenant: d.tenant,
-                solution: d.solution,
                 environment: d.environment,
                 provider: d.provider,
                 providerDeployment: d.providerDeployment,
@@ -192,7 +190,6 @@ class providerSetupSessionInternalServiceImpl {
         ) {
           let configSchema = await this.getProviderConfigSchemaType({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             provider: d.provider,
             deployment: d.providerDeployment
@@ -206,7 +203,6 @@ class providerSetupSessionInternalServiceImpl {
         if (concreteType !== 'auth_only' && configInput) {
           let configInner = await this.createProviderConfig({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             provider: d.provider,
             providerDeployment: d.providerDeployment,
@@ -233,9 +229,8 @@ class providerSetupSessionInternalServiceImpl {
     );
   }
 
-  async createProviderAuthConfig(d: {
+  async createProviderAuthConfigInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
     providerDeployment?: ProviderDeployment & {
@@ -277,9 +272,8 @@ class providerSetupSessionInternalServiceImpl {
         );
       }
 
-      let setup = await providerOAuthSetupService.createProviderOAuthSetup({
+      let setup = await providerOAuthSetupService.createProviderOAuthSetupInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         provider: d.provider,
         providerDeployment: d.providerDeployment,
@@ -303,9 +297,8 @@ class providerSetupSessionInternalServiceImpl {
         authCredentialsOid: setup.authCredentialsOid
       };
     } else {
-      let config = await providerAuthConfigService.createProviderAuthConfig({
+      let config = await providerAuthConfigService.createProviderAuthConfigInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         provider: d.provider,
         providerDeployment: d.providerDeployment,
@@ -333,7 +326,6 @@ class providerSetupSessionInternalServiceImpl {
 
   async createProviderConfig(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
     providerDeployment?: ProviderDeployment & {
@@ -353,9 +345,8 @@ class providerSetupSessionInternalServiceImpl {
   }) {
     checkProviderMatch(d.provider, d.providerDeployment);
 
-    let config = await providerConfigService.createProviderConfig({
+    let config = await providerConfigService.createProviderConfigInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       provider: d.provider,
       providerDeployment: d.providerDeployment,
@@ -588,9 +579,6 @@ class providerSetupSessionInternalServiceImpl {
           let tenant = await db.tenant.findFirstOrThrow({
             where: { oid: completedSession.tenantOid }
           });
-          let solution = await db.solution.findFirstOrThrow({
-            where: { oid: completedSession.solutionOid }
-          });
           let environment = await db.environment.findFirstOrThrow({
             where: { oid: completedSession.environmentOid }
           });
@@ -610,17 +598,17 @@ class providerSetupSessionInternalServiceImpl {
               })
             : null;
 
-          let identityCredential = await identityCredentialService.createIdentityCredential({
-            tenant,
-            solution,
-            environment,
-            identity,
-            input: {
-              deploymentId: deployment?.id,
-              configId: config?.id,
-              authConfigId: authConfig?.id
-            }
-          });
+          let identityCredential =
+            await identityCredentialService.createIdentityCredentialInternal({
+              tenant,
+              environment,
+              identity,
+              input: {
+                deploymentId: deployment?.id,
+                configId: config?.id,
+                authConfigId: authConfig?.id
+              }
+            });
 
           result = await db.providerSetupSession.update({
             where: { oid: result.oid },
@@ -635,16 +623,14 @@ class providerSetupSessionInternalServiceImpl {
 
   private async getProviderConfigSchemaType(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
     deployment?: ProviderDeployment & {
       currentVersion: ProviderDeploymentVersion | null;
     };
   }) {
-    let schema = await providerConfigService.getProviderConfigSchema({
+    let schema = await providerConfigService.getProviderConfigSchemaInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       provider: d.provider,
       providerDeployment: d.deployment ?? undefined

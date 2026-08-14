@@ -4,12 +4,9 @@ import { Service } from '@lowerdeck/service';
 import type { ConsumerProfile, Instance } from '@metorial/db';
 import type { AnyAccessTagSelector } from '@metorial/module-access';
 import { magicMcpEndpointService } from '@metorial/module-magic';
-import {
-  subspaceAgentService,
-  subspaceIdentityCredentialService,
-  subspaceSessionConnectionService,
-  subspaceToolCallService
-} from '@metorial/module-subspace';
+import { agentService } from '@metorial-subspace/module-agent';
+import { identityCredentialService } from '@metorial-subspace/module-identity';
+import { sessionConnectionService, toolCallService } from '@metorial-subspace/module-session';
 import { consumerActivityScopeService } from './consumerActivityScope';
 
 type ActivityInput = {
@@ -18,10 +15,12 @@ type ActivityInput = {
   accessTags: AnyAccessTagSelector;
 };
 
-type SessionConnectionListInput = Parameters<typeof subspaceSessionConnectionService.list>[0];
-type ToolCallListInput = Parameters<typeof subspaceToolCallService.list>[0];
+type SessionConnectionListInput = Parameters<
+  typeof sessionConnectionService.listSessionConnections
+>[0];
+type ToolCallListInput = Parameters<typeof toolCallService.listToolCalls>[0];
 type IdentityCredentialListInput = Parameters<
-  typeof subspaceIdentityCredentialService.list
+  typeof identityCredentialService.listIdentityCredentials
 >[0];
 
 class ConsumerActivityServiceImpl {
@@ -37,7 +36,7 @@ class ConsumerActivityServiceImpl {
     let sessionIdsByAgent = new Map<string, Set<string>>();
     if (agentIds.length === 0) return sessionIdsByAgent;
 
-    let paginator = await subspaceSessionConnectionService.list({
+    let paginator = await sessionConnectionService.listSessionConnections({
       instance: d.instance,
       allowDeleted: false,
       actorIds: [scope.consumerActor.id],
@@ -51,11 +50,11 @@ class ConsumerActivityServiceImpl {
         after
       });
       for (let connection of list.items) {
-        let agentId = connection.participant?.agentId;
+        let agentId = connection.participant?.agentInstance?.agent.id;
         if (!agentId) continue;
 
         let sessionIds = sessionIdsByAgent.get(agentId) ?? new Set<string>();
-        sessionIds.add(connection.sessionId);
+        sessionIds.add(connection.session.id);
         sessionIdsByAgent.set(agentId, sessionIds);
       }
 
@@ -71,7 +70,7 @@ class ConsumerActivityServiceImpl {
     scope: Awaited<ReturnType<typeof consumerActivityScopeService.resolve>>,
     agentId: string
   ) {
-    let paginator = await subspaceAgentService.list({
+    let paginator = await agentService.listAgents({
       instance: d.instance,
       allowDeleted: false,
       ids: [agentId],
@@ -90,7 +89,7 @@ class ConsumerActivityServiceImpl {
     scope: Awaited<ReturnType<typeof consumerActivityScopeService.resolve>>,
     sessionId: string
   ) {
-    let paginator = await subspaceSessionConnectionService.list({
+    let paginator = await sessionConnectionService.listSessionConnections({
       instance: d.instance,
       allowDeleted: false,
       actorIds: [scope.consumerActor.id],
@@ -105,7 +104,7 @@ class ConsumerActivityServiceImpl {
     scope: Awaited<ReturnType<typeof consumerActivityScopeService.resolve>>,
     sessionConnectionId: string
   ) {
-    let paginator = await subspaceSessionConnectionService.list({
+    let paginator = await sessionConnectionService.listSessionConnections({
       instance: d.instance,
       allowDeleted: false,
       ids: [sessionConnectionId],
@@ -160,7 +159,7 @@ class ConsumerActivityServiceImpl {
     }
   ) {
     let scope = await this.resolve(d);
-    let paginator = await subspaceAgentService.list({
+    let paginator = await agentService.listAgents({
       instance: d.instance,
       allowDeleted: false,
       actorIds: [scope.consumerActor.id],
@@ -219,7 +218,7 @@ class ConsumerActivityServiceImpl {
     if (d.agentId) await this.getScopedAgent(d, scope, d.agentId);
     if (d.sessionId) await this.ensureScopedSession(d, scope, d.sessionId);
 
-    let paginator = await subspaceSessionConnectionService.list({
+    let paginator = await sessionConnectionService.listSessionConnections({
       instance: d.instance,
       allowDeleted: false,
       actorIds: [scope.consumerActor.id],
@@ -238,7 +237,7 @@ class ConsumerActivityServiceImpl {
       items: list.items.map(sessionConnection => ({
         sessionConnection,
         magicMcpSession:
-          magicSessionBySubspaceSessionId.get(sessionConnection.sessionId) ?? null
+          magicSessionBySubspaceSessionId.get(sessionConnection.session.id) ?? null
       }))
     };
   }
@@ -251,7 +250,7 @@ class ConsumerActivityServiceImpl {
       sessionConnection,
       magicMcpSession:
         scope.magicMcpSessions.find(
-          session => session.subspaceSessionId === sessionConnection.sessionId
+          session => session.subspaceSessionId === sessionConnection.session.id
         ) ?? null
     };
   }
@@ -282,14 +281,14 @@ class ConsumerActivityServiceImpl {
       connectionIds: d.sessionConnectionId ? [d.sessionConnectionId] : undefined,
       createdAt: d.createdAt
     };
-    let paginator = await subspaceToolCallService.list(toolCallQuery);
+    let paginator = await toolCallService.listToolCalls(toolCallQuery);
 
     return await paginator.run(d.pagination);
   }
 
   async getToolCall(d: ActivityInput & { toolCallId: string }) {
     let scope = await this.resolve(d);
-    let paginator = await subspaceToolCallService.list({
+    let paginator = await toolCallService.listToolCalls({
       instance: d.instance,
       allowDeleted: false,
       ids: [d.toolCallId],
@@ -310,7 +309,7 @@ class ConsumerActivityServiceImpl {
     }
   ) {
     let scope = await this.resolve(d);
-    let paginator = await subspaceIdentityCredentialService.list({
+    let paginator = await identityCredentialService.listIdentityCredentials({
       instance: d.instance,
       allowDeleted: false,
       actorIds: [scope.consumerActor.id],
@@ -323,7 +322,7 @@ class ConsumerActivityServiceImpl {
 
   async getIdentityCredential(d: ActivityInput & { identityCredentialId: string }) {
     let scope = await this.resolve(d);
-    let paginator = await subspaceIdentityCredentialService.list({
+    let paginator = await identityCredentialService.listIdentityCredentials({
       instance: d.instance,
       allowDeleted: false,
       ids: [d.identityCredentialId],

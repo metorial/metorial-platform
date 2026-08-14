@@ -118,13 +118,14 @@ export let integrationInstanceGroupCreatedQueueProcessor =
       return;
     }
 
-    await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup({
-      tenant: integrationInstanceGroup.tenant,
-      solution: integrationInstanceGroup.solution,
-      environment: integrationInstanceGroup.environment,
-      integrationInstanceGroup,
-      input: {}
-    });
+    await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroupInternal(
+      {
+        tenant: integrationInstanceGroup.tenant,
+        environment: integrationInstanceGroup.environment,
+        integrationInstanceGroup,
+        input: {}
+      }
+    );
 
     await enqueueSyncIntegrationInstanceGroupSessionTemplates({
       integrationInstanceGroupId: data.integrationInstanceGroupId

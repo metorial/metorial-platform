@@ -1,5 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import { db, getId, type Tenant } from '@metorial-subspace/db';
+import { type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
 
 export let DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD = 2;
 
@@ -59,8 +60,30 @@ export let getProtoGuardConfigForEvaluation = async (d: { tenantOid: bigint }) =
   return result;
 };
 
+export type ListProtoGuardFiltersParams = { tenant: Tenant };
+export type SetTenantFilterEnabledParams = {
+  tenant: Tenant;
+  filterId: string;
+  enabled: boolean;
+};
+export type SetTenantFilterAlertConfidenceThresholdParams = {
+  tenant: Tenant;
+  filterId: string;
+  threshold: number | null;
+};
+export type SetTenantAlertFilterCountThresholdParams = {
+  tenant: Tenant;
+  threshold: number | null;
+};
+
 class protoGuardConfigServiceImpl {
-  async listFilters(d: { tenant: Tenant }) {
+  async listFilters(d: MetorialFacing<ListProtoGuardFiltersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listFiltersInternal({ ...rest, tenant });
+  }
+
+  async listFiltersInternal(d: ListProtoGuardFiltersParams) {
     let [filters, tenantFilterSettings, tenantSetting] = await Promise.all([
       db.protoGuardFilter.findMany({ orderBy: { key: 'asc' } }),
       db.protoGuardTenantFilterSetting.findMany({ where: { tenantOid: d.tenant.oid } }),
@@ -88,7 +111,13 @@ class protoGuardConfigServiceImpl {
     };
   }
 
-  async setTenantFilterEnabled(d: { tenant: Tenant; filterId: string; enabled: boolean }) {
+  async setTenantFilterEnabled(d: MetorialFacing<SetTenantFilterEnabledParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.setTenantFilterEnabledInternal({ ...rest, tenant });
+  }
+
+  async setTenantFilterEnabledInternal(d: SetTenantFilterEnabledParams) {
     let filter = await db.protoGuardFilter.findFirstOrThrow({
       where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
     });
@@ -104,6 +133,7 @@ class protoGuardConfigServiceImpl {
       create: {
         ...getId('protoGuardTenantFilterSetting'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         filterOid: filter.oid,
         enabled: d.enabled
       }
@@ -113,11 +143,17 @@ class protoGuardConfigServiceImpl {
     return setting;
   }
 
-  async setTenantFilterAlertConfidenceThreshold(d: {
-    tenant: Tenant;
-    filterId: string;
-    threshold: number | null;
-  }) {
+  async setTenantFilterAlertConfidenceThreshold(
+    d: MetorialFacing<SetTenantFilterAlertConfidenceThresholdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.setTenantFilterAlertConfidenceThresholdInternal({ ...rest, tenant });
+  }
+
+  async setTenantFilterAlertConfidenceThresholdInternal(
+    d: SetTenantFilterAlertConfidenceThresholdParams
+  ) {
     let filter = await db.protoGuardFilter.findFirstOrThrow({
       where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
     });
@@ -133,6 +169,7 @@ class protoGuardConfigServiceImpl {
       create: {
         ...getId('protoGuardTenantFilterSetting'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         filterOid: filter.oid,
         enabled: filter.defaultEnabled,
         alertConfidenceThreshold: d.threshold
@@ -143,7 +180,17 @@ class protoGuardConfigServiceImpl {
     return setting;
   }
 
-  async setTenantAlertFilterCountThreshold(d: { tenant: Tenant; threshold: number | null }) {
+  async setTenantAlertFilterCountThreshold(
+    d: MetorialFacing<SetTenantAlertFilterCountThresholdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.setTenantAlertFilterCountThresholdInternal({ ...rest, tenant });
+  }
+
+  async setTenantAlertFilterCountThresholdInternal(
+    d: SetTenantAlertFilterCountThresholdParams
+  ) {
     if (d.threshold === null) {
       await db.protoGuardTenantSetting.deleteMany({
         where: { tenantOid: d.tenant.oid }
@@ -158,6 +205,7 @@ class protoGuardConfigServiceImpl {
       create: {
         ...getId('protoGuardTenantSetting'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         alertFilterCountThreshold: d.threshold
       }
     });

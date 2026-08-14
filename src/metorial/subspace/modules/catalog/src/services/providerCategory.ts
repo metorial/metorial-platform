@@ -2,27 +2,46 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import {
-  db,
-  type Environment,
-  getId,
-  type Solution,
-  type Tenant
-} from '@metorial-subspace/db';
+import { db, type Environment, getId, type Tenant } from '@metorial-subspace/db';
 import { resolveProviderListings, resolveProviders } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
+
+type ListProviderListingCategoriesParams = {
+  ids?: string[];
+  providerIds?: string[];
+  providerListingIds?: string[];
+};
+
+type GetProviderListingCategoryByIdParams = {
+  providerListingCategoryId: string;
+};
 
 class providerListingCategoryServiceImpl {
-  async listProviderListingCategories(d: {
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
+  async listProviderListingCategories(d: MetorialFacing<ListProviderListingCategoriesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
-    providerListingIds?: string[];
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let providerListings = await resolveProviderListings(d, d.providerListingIds);
+    return this.listProviderListingCategoriesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderListingCategoriesInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderListingCategoriesParams
+  ) {
+    let solution = await getMetorialSolution();
+
+    let providers = await resolveProviders({ ...d, solution }, d.providerIds);
+    let providerListings = await resolveProviderListings({ ...d, solution }, d.providerListingIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -44,12 +63,23 @@ class providerListingCategoryServiceImpl {
     );
   }
 
-  async getProviderListingCategoryById(d: {
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
-    providerListingCategoryId: string;
-  }) {
+  async getProviderListingCategoryById(d: MetorialFacing<GetProviderListingCategoryByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderListingCategoryByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderListingCategoryByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderListingCategoryByIdParams
+  ) {
     let providerListingCategory = await db.providerListingCategory.findFirst({
       where: {
         OR: [{ id: d.providerListingCategoryId }, { slug: d.providerListingCategoryId }]

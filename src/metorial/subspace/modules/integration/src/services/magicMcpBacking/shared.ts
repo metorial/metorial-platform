@@ -205,9 +205,8 @@ export let resolveActorOid = async (d: {
   identityId?: string | null;
 }) => {
   if (!d.identityActorId && d.identityId) {
-    let identity = await identityService.getIdentityById({
+    let identity = await identityService.getIdentityByIdInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       identityId: d.identityId
     });
@@ -217,9 +216,8 @@ export let resolveActorOid = async (d: {
 
   if (!d.identityActorId) return null;
 
-  let actor = await identityActorService.getIdentityActorById({
+  let actor = await identityActorService.getIdentityActorByIdInternal({
     tenant: d.tenant,
-    solution: d.solution,
     environment: d.environment,
     identityActorId: d.identityActorId
   });

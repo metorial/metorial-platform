@@ -23,8 +23,14 @@ model UpcomingCustomProvider {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
@@ -39,4 +45,7 @@ model UpcomingCustomProvider {
   payload Json
 
   createdAt DateTime @default(now())
+
+  @@index([projectOid])
+  @@index([instanceOid])
 }

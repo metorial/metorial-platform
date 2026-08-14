@@ -24,6 +24,9 @@ model CustomProviderDeployment {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
@@ -67,4 +70,5 @@ model CustomProviderDeployment {
   @@index([status])
   @@index([trigger])
   @@index([shuttleCustomServerOid])
+  @@index([projectOid])
 }

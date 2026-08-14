@@ -84,8 +84,8 @@ let { firewallNetworkPolicyLinksUpdatedQueue } = await import(
   '../queues/lifecycle/firewallNetworkPolicy'
 );
 
-let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
-let environment = { oid: BigInt(20), id: 'ken_test' } as any;
+let tenant = { oid: BigInt(10), id: 'ktn_test', projectOid: BigInt(11) } as any;
+let environment = { oid: BigInt(20), id: 'ken_test', instanceOid: BigInt(21) } as any;
 
 describe('firewallService', () => {
   beforeEach(() => {
@@ -120,7 +120,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.createFirewall({
+    await firewallService.createFirewallInternal({
       tenant,
       environment,
       input: {
@@ -133,7 +133,27 @@ describe('firewallService', () => {
       }
     });
 
+    expect(mockDb.firewall.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: 'Production API',
+        networkOid: BigInt(100),
+        tenantOid: tenant.oid,
+        projectOid: tenant.projectOid,
+        environmentOid: environment.oid,
+        instanceOid: environment.instanceOid
+      })
+    });
     expect(mockDb.firewallBinding.create).toHaveBeenCalledTimes(2);
+    expect(mockDb.firewallBinding.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tenantOid: tenant.oid,
+          projectOid: tenant.projectOid,
+          environmentOid: environment.oid,
+          instanceOid: environment.instanceOid
+        })
+      })
+    );
   });
 
   it('replaces network policy links when update includes networkPolicyIds', async () => {
@@ -149,7 +169,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.updateFirewall({
+    await firewallService.updateFirewallInternal({
       tenant,
       environment,
       firewall: {
@@ -182,7 +202,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.updateFirewall({
+    await firewallService.updateFirewallInternal({
       tenant,
       environment,
       firewall: {
@@ -217,7 +237,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.addFirewallNetworkPolicy({
+    await firewallService.addFirewallNetworkPolicyInternal({
       tenant,
       environment,
       firewall: {
@@ -253,7 +273,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.removeFirewallNetworkPolicy({
+    await firewallService.removeFirewallNetworkPolicyInternal({
       tenant,
       environment,
       firewall: {
@@ -283,7 +303,7 @@ describe('firewallService', () => {
       network: { id: 'net_test' }
     });
 
-    await firewallService.archiveFirewall({
+    await firewallService.archiveFirewallInternal({
       tenant,
       environment,
       firewall: {

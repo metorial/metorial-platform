@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { subspaceResourceCountService } from '@metorial/module-subspace';
+import { resourceCountService } from '@metorial-subspace/module-tenant';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup } from '../../middleware/instanceGroup';
@@ -7,8 +7,8 @@ import { isDashboardGroup } from '../../middleware/isDashboard';
 import {
   resourceCountResourceValidator,
   type ResourceCountResource
-} from '../../presenters/implementation/resourceCounts';
-import { resourceCountsPresenter } from '../../presenters';
+} from '@metorial/presenters/src/implementation/resourceCounts';
+import { resourceCountsPresenter } from '@metorial/presenters';
 
 let normalizeResources = (resource: ResourceCountResource | ResourceCountResource[]) => {
   let resources = Array.isArray(resource) ? resource : [resource];
@@ -51,7 +51,7 @@ export let dashboardResourceCountsController = Controller.create(
         let countByResource = new Map<ResourceCountResource, number>();
 
         if (resources.length > 0) {
-          let subspaceCounts = await subspaceResourceCountService.get({
+          let subspaceCounts = await resourceCountService.getResourceCounts({
             instance: ctx.instance,
             resource: resources
           });

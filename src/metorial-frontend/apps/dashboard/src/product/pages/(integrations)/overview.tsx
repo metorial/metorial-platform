@@ -8,12 +8,11 @@ import {
   useLastUsedEnclaves,
   useResourceCounts
 } from '@metorial/state';
-import { Badge, Button, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Badge, Button, RenderDate, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { HomeProvidersTable } from '../../scenes/providers/homeTable';
-import { UsageScene } from '../../scenes/usage/usage';
 
 let PageStack = styled.div`
   display: flex;
@@ -290,14 +289,8 @@ export let IntegrationsOverviewPage = () => {
   return (
     <ContentLayout>
       <PageHeader
-        title="Integrations"
+        title="Integrations and MCP"
         description="Everything your apps and agents connect to, with the activity and configuration behind it."
-      />
-
-      <PageHeader
-        title="Integration Providers"
-        description="Providers you have used recently or ones that are popular on Metorial."
-        size="5"
         actions={
           <Link to={Paths.instance.providers(...params)}>
             <Button size="2" as="span" variant="outline">

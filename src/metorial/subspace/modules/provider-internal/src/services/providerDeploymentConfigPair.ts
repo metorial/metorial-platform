@@ -86,7 +86,9 @@ class providerDeploymentConfigPairInternalServiceImpl {
             providerAuthConfigVersionOid: d.authConfig?.currentVersion?.oid,
 
             tenantOid: d.deployment.tenantOid,
-            environmentOid: d.deployment.environmentOid
+            projectOid: d.deployment.projectOid,
+            environmentOid: d.deployment.environmentOid,
+            instanceOid: d.deployment.instanceOid
           },
           update: {}
         });

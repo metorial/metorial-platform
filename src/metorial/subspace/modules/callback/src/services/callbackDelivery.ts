@@ -1,6 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getTenantForSignal, signal } from '../signal';
 
 let emptyList = {
@@ -12,18 +17,55 @@ let emptyList = {
   }
 };
 
+export type ListCallbackDeliveriesParams = {
+  callbackId: string;
+  input: {
+    status?: ('pending' | 'delivered' | 'failed' | 'retrying')[];
+    destinationIds?: string[];
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+  };
+};
+
+export type GetCallbackDeliveryParams = {
+  callbackId: string;
+  eventDeliveryIntentId: string;
+};
+
+export type ListCallbackDeliveryAttemptsParams = {
+  callbackId: string;
+  input: {
+    status?: ('failed' | 'succeeded')[];
+    destinationIds?: string[];
+    limit?: number;
+    after?: string;
+    before?: string;
+    cursor?: string;
+    order?: 'asc' | 'desc';
+  };
+};
+
+export type GetCallbackDeliveryAttemptParams = {
+  callbackId: string;
+  eventDeliveryAttemptId: string;
+};
+
 class callbackDeliveryServiceImpl {
   private async resolveContext(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     callbackId: string;
   }) {
+    let solution = await getMetorialSolution();
+
     let callback = await db.callback.findFirst({
       where: {
         id: d.callbackId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: { notIn: ['deleted'] }
       },
@@ -49,21 +91,21 @@ class callbackDeliveryServiceImpl {
     };
   }
 
-  async listCallbackDeliveries(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    input: {
-      status?: ('pending' | 'delivered' | 'failed' | 'retrying')[];
-      destinationIds?: string[];
-      limit?: number;
-      after?: string;
-      before?: string;
-      cursor?: string;
-      order?: 'asc' | 'desc';
-    };
-  }) {
+  async listCallbackDeliveries(d: MetorialFacing<ListCallbackDeliveriesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listCallbackDeliveriesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listCallbackDeliveriesInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCallbackDeliveriesParams
+  ) {
+    let solution = await getMetorialSolution();
     let context = await this.resolveContext(d);
     if (!context.callback.isCallbacksV2) return emptyList;
 
@@ -72,7 +114,7 @@ class callbackDeliveryServiceImpl {
           await db.callbackDestination.findMany({
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               id: { in: d.input.destinationIds }
             },
             select: { id: true, signalEventDestinationId: true }
@@ -96,13 +138,20 @@ class callbackDeliveryServiceImpl {
     });
   }
 
-  async getCallbackDelivery(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    eventDeliveryIntentId: string;
-  }) {
+  async getCallbackDelivery(d: MetorialFacing<GetCallbackDeliveryParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCallbackDeliveryInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCallbackDeliveryInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCallbackDeliveryParams
+  ) {
     let context = await this.resolveContext(d);
     if (!context.callback.isCallbacksV2) {
       throw new ServiceError(notFoundError('callback.delivery', d.eventDeliveryIntentId));
@@ -116,21 +165,21 @@ class callbackDeliveryServiceImpl {
     });
   }
 
-  async listCallbackDeliveryAttempts(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    input: {
-      status?: ('failed' | 'succeeded')[];
-      destinationIds?: string[];
-      limit?: number;
-      after?: string;
-      before?: string;
-      cursor?: string;
-      order?: 'asc' | 'desc';
-    };
-  }) {
+  async listCallbackDeliveryAttempts(d: MetorialFacing<ListCallbackDeliveryAttemptsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listCallbackDeliveryAttemptsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listCallbackDeliveryAttemptsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCallbackDeliveryAttemptsParams
+  ) {
+    let solution = await getMetorialSolution();
     let context = await this.resolveContext(d);
     if (!context.callback.isCallbacksV2) return emptyList;
 
@@ -139,7 +188,7 @@ class callbackDeliveryServiceImpl {
           await db.callbackDestination.findMany({
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               id: { in: d.input.destinationIds }
             },
             select: { id: true, signalEventDestinationId: true }
@@ -161,13 +210,20 @@ class callbackDeliveryServiceImpl {
     });
   }
 
-  async getCallbackDeliveryAttempt(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    callbackId: string;
-    eventDeliveryAttemptId: string;
-  }) {
+  async getCallbackDeliveryAttempt(d: MetorialFacing<GetCallbackDeliveryAttemptParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCallbackDeliveryAttemptInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCallbackDeliveryAttemptInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCallbackDeliveryAttemptParams
+  ) {
     let context = await this.resolveContext(d);
     if (!context.callback.isCallbacksV2) {
       throw new ServiceError(

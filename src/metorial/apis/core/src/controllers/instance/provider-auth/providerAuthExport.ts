@@ -1,14 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderAuthExportService } from '@metorial/module-subspace';
+import {
+  providerAuthConfigService,
+  providerAuthExportService
+} from '@metorial-subspace/module-auth';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerAuthExportPresenter } from '../../../presenters';
+import { providerAuthExportPresenter } from '@metorial/presenters';
 
 let providerAuthExportGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthExportId) {
@@ -20,7 +23,7 @@ let providerAuthExportGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authExport = await subspaceProviderAuthExportService.get({
+  let authExport = await providerAuthExportService.getProviderAuthExportById({
     instance: ctx.instance,
     providerAuthExportId: ctx.params.providerAuthExportId
   });
@@ -72,7 +75,7 @@ export let providerAuthExportController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderAuthExportService.list({
+        let paginator = await providerAuthExportService.listProviderAuthExports({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -142,18 +145,25 @@ export let providerAuthExportController = Controller.create(
       )
       .output(providerAuthExportPresenter)
       .do(async ctx => {
-        let authExport = await subspaceProviderAuthExportService.create({
+        let authConfig = await providerAuthConfigService.getProviderAuthConfigById({
           instance: ctx.instance,
-          providerAuthConfigId: ctx.body.provider_auth_config_id,
-          note: ctx.body.note,
-          ip: ctx.context.ip,
-          ua: ctx.context.ua ?? 'unknown',
-          metadata: ctx.body.metadata
+          providerAuthConfigId: ctx.body.provider_auth_config_id
         });
+        let { authExport, decryptedConfigData } =
+          await providerAuthExportService.createProviderAuthExport({
+            instance: ctx.instance,
+            authConfig,
+            input: {
+              note: ctx.body.note,
+              ip: ctx.context.ip,
+              ua: ctx.context.ua ?? 'unknown',
+              metadata: ctx.body.metadata
+            }
+          });
 
         return providerAuthExportPresenter.present({
           authExport,
-          value: authExport.value
+          value: decryptedConfigData
         });
       })
   }

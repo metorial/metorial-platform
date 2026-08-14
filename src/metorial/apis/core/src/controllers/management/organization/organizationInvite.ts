@@ -7,7 +7,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { organizationInvitePresenter } from '../../../presenters';
+import { organizationInvitePresenter } from '@metorial/presenters';
 
 export let organizationInviteManagementController = Controller.create(
   {
@@ -77,8 +77,7 @@ export let organizationInviteManagementController = Controller.create(
         let invite = await organizationInviteService.createOrganizationInvite({
           organization: ctx.organization,
           input: ctx.body,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationInvitePresenter.present({ organizationInvite: invite });
@@ -95,8 +94,7 @@ export let organizationInviteManagementController = Controller.create(
       .do(async ctx => {
         let invite = await organizationInviteService.ensureOrganizationInviteLink({
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationInvitePresenter.present({ organizationInvite: invite });
@@ -118,8 +116,7 @@ export let organizationInviteManagementController = Controller.create(
         invite = await organizationInviteService.deleteOrganizationInvite({
           invite,
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationInvitePresenter.present({ organizationInvite: invite });
@@ -150,8 +147,7 @@ export let organizationInviteManagementController = Controller.create(
           input: {
             role: ctx.body.role
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationInvitePresenter.present({ organizationInvite: invite });

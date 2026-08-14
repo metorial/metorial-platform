@@ -6,7 +6,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { projectRetentionPresenter } from '../../presenters';
+import { projectRetentionPresenter } from '@metorial/presenters';
 
 let logRetentionInDaysValidator = v.optional(
   v.number({ modifiers: [v.positive(), v.integer(), v.minValue(1), v.maxValue(365)] })
@@ -104,8 +104,7 @@ export let dashboardProjectConfigurationController = Controller.create(
         project = await projectRetentionService.updateProjectRetention({
           project,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             logRetentionInDays: ctx.body.log_retention_in_days,
             enforceSessionExpiry: ctx.body.enforce_session_expiry

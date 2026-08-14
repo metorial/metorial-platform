@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { oauthAuthorizationPresenter } from '../../../presenters';
+import { oauthAuthorizationPresenter } from '@metorial/presenters';
 
 let oauthAuthorizationManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.oauthAuthorizationId) {
@@ -111,8 +111,7 @@ export let oauthAuthorizationManagementController = Controller.create(
       .do(async ctx => {
         let oauthAuthorization = await oauthAuthorizationService.revokeOAuthAuthorization({
           oauthAuthorization: ctx.oauthAuthorization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return oauthAuthorizationPresenter.present({ oauthAuthorization });

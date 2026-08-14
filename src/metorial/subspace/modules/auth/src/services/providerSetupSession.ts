@@ -6,8 +6,8 @@ import {
   type Brand,
   db,
   type Environment,
+  generateRegionalClientSecret,
   getId,
-  ID,
   type Identity,
   type Provider,
   type ProviderAuthCredentials,
@@ -22,7 +22,6 @@ import {
   type ProviderType,
   type ProviderVariant,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -40,7 +39,16 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  checkTenant,
+  metorialDb,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  resolveMetorialFacingWithOptionalActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
 import {
   providerSetupSessionCreatedQueue,
@@ -86,33 +94,104 @@ let normalizeProviderSetupSessionConfiguration = (
   };
 };
 
+export type CreateProviderSetupSessionParams = {
+  tenant: Tenant;
+  environment: Environment;
+  provider?: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
+  providerDeployment?: ProviderDeployment & {
+    provider: Provider;
+    providerVariant: ProviderVariant;
+    currentVersion:
+      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
+      | null;
+  };
+  providerConfig?: ProviderConfig;
+  identity?: Identity;
+  credentials?: ProviderAuthCredentials;
+  brand?: Brand;
+  input: {
+    name?: string;
+    authMethodId?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+
+    expiresAt?: Date;
+    redirectUrl?: string;
+    type: ProviderSetupSessionType | 'auto';
+    uiMode: ProviderSetupSessionUiMode;
+    configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
+
+    authConfigInput?: Record<string, any>;
+    configInput?: Record<string, any>;
+  };
+  import: {
+    ip: string;
+    ua: string;
+    note?: string | undefined;
+  };
+  internal?: {
+    integrationSetupSessionProviderOid?: bigint;
+  };
+};
+
+export type UpdateProviderSetupSessionParams = {
+  tenant: Tenant;
+  environment: Environment;
+  providerSetupSession: ProviderSetupSession;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    identity?: Identity;
+  };
+};
+
+type ListProviderSetupSessionsParams = {
+  status?: ProviderSetupSessionStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerAuthMethodIds?: string[];
+  providerDeploymentIds?: string[];
+  providerAuthConfigIds?: string[];
+  providerAuthCredentialsIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderSetupSessionByIdParams = {
+  providerSetupSessionId: string;
+  allowDeleted?: boolean;
+};
+
 class providerSetupSessionServiceImpl {
-  async listProviderSetupSessions(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listProviderSetupSessions(d: MetorialFacing<ListProviderSetupSessionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: ProviderSetupSessionStatus[];
-    allowDeleted?: boolean;
+    return this.listProviderSetupSessionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    providerIds?: string[];
-    providerAuthMethodIds?: string[];
-    providerDeploymentIds?: string[];
-    providerAuthConfigIds?: string[];
-    providerAuthCredentialsIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+  async listProviderSetupSessionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderSetupSessionsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
     let authCredentials = await resolveProviderAuthCredentials(
-      d,
+      ts,
       d.providerAuthCredentialsIds
     );
-    let authMethods = await resolveProviderAuthMethods(d, d.providerAuthMethodIds);
+    let authMethods = await resolveProviderAuthMethods(ts, d.providerAuthMethodIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -121,7 +200,7 @@ class providerSetupSessionServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               integrationSetupSessionProviderOid: null,
 
@@ -145,18 +224,26 @@ class providerSetupSessionServiceImpl {
     );
   }
 
-  async getProviderSetupSessionById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerSetupSessionId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderSetupSessionById(d: MetorialFacing<GetProviderSetupSessionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderSetupSessionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderSetupSessionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderSetupSessionByIdParams
+  ) {
+    let solution = await getMetorialSolution();
     let providerSetupSession = await db.providerSetupSession.findFirst({
       where: {
         id: d.providerSetupSessionId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         integrationSetupSessionProviderOid: null,
         ...normalizeStatusForGet(d).onlyParent
@@ -171,47 +258,81 @@ class providerSetupSessionServiceImpl {
     return providerSetupSession;
   }
 
-  async createProviderSetupSession(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    provider?: Provider & { defaultVariant: ProviderVariant | null; type: ProviderType };
-    providerDeployment?: ProviderDeployment & {
-      provider: Provider;
-      providerVariant: ProviderVariant;
-      currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
-    };
-    providerConfig?: ProviderConfig;
-    identity?: Identity;
-    credentials?: ProviderAuthCredentials;
-    brand?: Brand;
-    input: {
-      name?: string;
-      authMethodId?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
+  async createProviderSetupSession(
+    d: MetorialFacing<CreateProviderSetupSessionParams> & {
+      consumerId?: string;
+    }
+  ) {
+    let { instance, organizationActor, consumerId, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
 
-      expiresAt?: Date;
-      redirectUrl?: string;
-      type: ProviderSetupSessionType | 'auto';
-      uiMode: ProviderSetupSessionUiMode;
-      configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
+    let identity = rest.identity;
+    let privateMetadata = rest.input.privateMetadata;
 
-      authConfigInput?: Record<string, any>;
-      configInput?: Record<string, any>;
-    };
-    import: {
-      ip: string;
-      ua: string;
-      note?: string | undefined;
-    };
-    internal?: {
-      integrationSetupSessionProviderOid?: bigint;
-    };
-  }) {
+    if (consumerId) {
+      let instanceConsumer = await metorialDb.instanceConsumer.findFirst({
+        where: {
+          id: consumerId,
+          instanceOid: instance.oid
+        }
+      });
+      if (!instanceConsumer) throw new ServiceError(notFoundError('consumer'));
+
+      let actor = await metorialDb.consumerActor.findFirst({
+        where: {
+          instanceOid: instance.oid,
+          instanceConsumerOid: instanceConsumer.oid,
+          isDefault: true
+        }
+      });
+      if (!actor || !actor.defaultIdentityId) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Consumer cannot be used for provider setup session.'
+          })
+        );
+      }
+
+      let consumerIdentity = await db.identity.findFirst({
+        where: {
+          id: actor.defaultIdentityId,
+          tenantOid: scope.tenant.oid,
+          environmentOid: scope.environment.oid
+        }
+      });
+      if (!consumerIdentity) {
+        throw new ServiceError(notFoundError('identity', actor.defaultIdentityId));
+      }
+      identity = consumerIdentity;
+
+      privateMetadata = {
+        $owner: 'consumer',
+        ...privateMetadata,
+        consumerId
+      };
+    }
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.setup_session.created:before', eventBase);
+
+    let setupSession = await this.createProviderSetupSessionInternal({
+      ...rest,
+      identity,
+      input: {
+        ...rest.input,
+        privateMetadata
+      },
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.setup_session.created:after', { ...eventBase, setupSession });
+
+    return setupSession;
+  }
+
+  async createProviderSetupSessionInternal(d: CreateProviderSetupSessionParams) {
+    let solution = await getMetorialSolution();
     let normalizedConfiguration = normalizeProviderSetupSessionConfiguration(
       d.input.configuration
     );
@@ -275,7 +396,6 @@ class providerSetupSessionServiceImpl {
         let initialized =
           await providerSetupSessionInternalService.initializeProviderSetupSessionProvider({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             provider: d.provider,
             providerDeployment: d.providerDeployment,
@@ -315,7 +435,9 @@ class providerSetupSessionServiceImpl {
           ...getId('providerSetupSession'),
           ...inner,
 
-          clientSecret: await ID.generateId('providerSetupSession_clientSecret'),
+          clientSecret: await generateRegionalClientSecret(
+            'providerSetupSession_clientSecret'
+          ),
 
           typeSelected: d.input.type,
           typeConcrete: concreteType,
@@ -332,8 +454,10 @@ class providerSetupSessionServiceImpl {
           redirectUrl: d.input.redirectUrl,
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           providerOid: d.provider?.oid,
           deploymentOid: d.providerDeployment?.oid ?? d.providerConfig?.deploymentOid,
           identityOid: d.identity?.oid ?? null,
@@ -387,18 +511,26 @@ class providerSetupSessionServiceImpl {
     });
   }
 
-  async updateProviderSetupSession(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerSetupSession: ProviderSetupSession;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      identity?: Identity;
-    };
-  }) {
+  async updateProviderSetupSession(d: MetorialFacing<UpdateProviderSetupSessionParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.setup_session.updated:before', eventBase);
+
+    let setupSession = await this.updateProviderSetupSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.setup_session.updated:after', { ...eventBase, setupSession });
+
+    return setupSession;
+  }
+
+  async updateProviderSetupSessionInternal(d: UpdateProviderSetupSessionParams) {
+    let solution = await getMetorialSolution();
     checkDeletedEdit(d.providerSetupSession, 'update');
     checkTenant(d, d.input.identity);
     checkDeletedRelation(d.input.identity);
@@ -424,7 +556,7 @@ class providerSetupSessionServiceImpl {
         where: {
           oid: d.providerSetupSession.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid
+          solutionOid: solution.oid
         },
         data: {
           name: d.input.name ?? d.providerSetupSession.name,

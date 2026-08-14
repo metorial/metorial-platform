@@ -1,14 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionTemplateProviderService } from '@metorial/module-subspace';
+import {
+  sessionTemplateProviderService,
+  sessionTemplateService
+} from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { sessionTemplateProviderPresenter } from '../../../presenters';
-import { toolFiltersValidator } from './_shared';
+import { sessionTemplateProviderPresenter } from '@metorial/presenters';
+import { normalizeToolFilters, toolFiltersValidator } from './_shared';
 
 let sessionTemplateProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateProviderId) {
@@ -20,10 +23,11 @@ let sessionTemplateProviderGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let sessionTemplateProvider = await subspaceSessionTemplateProviderService.get({
-    instance: ctx.instance,
-    sessionTemplateProviderId: ctx.params.sessionTemplateProviderId
-  });
+  let sessionTemplateProvider =
+    await sessionTemplateProviderService.getSessionTemplateProviderById({
+      instance: ctx.instance,
+      sessionTemplateProviderId: ctx.params.sessionTemplateProviderId
+    });
 
   return { sessionTemplateProvider };
 });
@@ -76,7 +80,7 @@ export let sessionTemplateProviderController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSessionTemplateProviderService.list({
+        let paginator = await sessionTemplateProviderService.listSessionTemplateProviders({
           instance: ctx.instance,
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
@@ -135,17 +139,21 @@ export let sessionTemplateProviderController = Controller.create(
       )
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {
-        let input = {
+        let template = await sessionTemplateService.getSessionTemplateById({
           instance: ctx.instance,
-          sessionTemplateId: ctx.body.session_template_id,
-          providerDeploymentId: ctx.body.provider_deployment_id,
-          providerConfigId: ctx.body.provider_config_id,
-          providerConfigVaultId: ctx.body.provider_config_vault_id,
-          providerAuthConfigId: ctx.body.provider_auth_config_id,
-          toolFilters: ctx.body.tool_filters
-        } as Parameters<typeof subspaceSessionTemplateProviderService.create>[0];
-
-        let stp = await subspaceSessionTemplateProviderService.create(input);
+          sessionTemplateId: ctx.body.session_template_id
+        });
+        let stp = await sessionTemplateProviderService.createSessionTemplateProvider({
+          instance: ctx.instance,
+          template,
+          input: {
+            deploymentId: ctx.body.provider_deployment_id,
+            // The former RPC accepted provider_config_vault_id but never forwarded it.
+            configId: ctx.body.provider_config_id,
+            authConfigId: ctx.body.provider_auth_config_id,
+            toolFilters: normalizeToolFilters(ctx.body.tool_filters)
+          }
+        });
 
         return sessionTemplateProviderPresenter.present({ sessionTemplateProvider: stp });
       }),
@@ -170,10 +178,14 @@ export let sessionTemplateProviderController = Controller.create(
       )
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {
-        let stp = await subspaceSessionTemplateProviderService.update({
+        let stp = await sessionTemplateProviderService.updateSessionTemplateProvider({
           instance: ctx.instance,
-          sessionTemplateProviderId: ctx.sessionTemplateProvider.id,
-          toolFilters: ctx.body.tool_filters
+          sessionTemplateProvider: ctx.sessionTemplateProvider,
+          input: {
+            ...(ctx.body.tool_filters !== undefined
+              ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters) }
+              : {})
+          }
         });
 
         return sessionTemplateProviderPresenter.present({ sessionTemplateProvider: stp });
@@ -193,13 +205,14 @@ export let sessionTemplateProviderController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {
-        await subspaceSessionTemplateProviderService.delete({
-          instance: ctx.instance,
-          sessionTemplateProviderId: ctx.sessionTemplateProvider.id
-        });
+        let sessionTemplateProvider =
+          await sessionTemplateProviderService.archiveSessionTemplateProvider({
+            instance: ctx.instance,
+            sessionTemplateProvider: ctx.sessionTemplateProvider
+          });
 
         return sessionTemplateProviderPresenter.present({
-          sessionTemplateProvider: ctx.sessionTemplateProvider
+          sessionTemplateProvider
         });
       })
   }

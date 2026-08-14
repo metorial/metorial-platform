@@ -21,8 +21,14 @@ model SessionTemplate {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -65,6 +71,8 @@ model SessionTemplate {
   @@index([integrationInstanceGroupOid, status])
   @@index([defaultSessionTemplateForIntegrationInstanceOid, status], map: "stm_default_for_instance_status_idx")
   @@index([defaultSessionTemplateForIntegrationInstanceGroupOid, status], map: "stm_default_for_instance_group_status_idx")
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum SessionTemplateProviderStatus {
@@ -106,8 +114,14 @@ model SessionTemplateProvider {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -124,4 +138,6 @@ model SessionTemplateProvider {
   @@index([status])
   @@index([integrationInstanceProviderOid, status])
   @@index([integrationInstanceGroupProviderOid, status])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

@@ -55,13 +55,13 @@ vi.mock('@metorial-subspace/db', () => ({
 
 vi.mock('@metorial-subspace/module-auth', () => ({
   providerAuthConfigService: {
-    archiveProviderAuthConfig: providerAuthConfigArchiveMock
+    archiveProviderAuthConfigInternal: providerAuthConfigArchiveMock
   }
 }));
 
 vi.mock('@metorial-subspace/module-deployment', () => ({
   providerConfigService: {
-    archiveProviderConfig: providerConfigArchiveMock
+    archiveProviderConfigInternal: providerConfigArchiveMock
   }
 }));
 
@@ -172,7 +172,6 @@ describe('integration instance provider lifecycle queue', () => {
     expect(providerConfigArchiveMock).toHaveBeenCalledTimes(1);
     expect(providerConfigArchiveMock).toHaveBeenCalledWith({
       tenant: integrationInstanceProvider.tenant,
-      solution: integrationInstanceProvider.solution,
       environment: integrationInstanceProvider.environment,
       providerConfig: ownedConfig,
       _canArchiveOwned: true
@@ -184,7 +183,6 @@ describe('integration instance provider lifecycle queue', () => {
     expect(providerAuthConfigArchiveMock).toHaveBeenCalledTimes(1);
     expect(providerAuthConfigArchiveMock).toHaveBeenCalledWith({
       tenant: integrationInstanceProvider.tenant,
-      solution: integrationInstanceProvider.solution,
       environment: integrationInstanceProvider.environment,
       providerAuthConfig: ownedAuthConfig,
       _canArchiveOwned: true

@@ -6,7 +6,6 @@ import {
   type Environment,
   getId,
   type ProviderAuthConfig,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -19,7 +18,15 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  resolveMetorialFacingWithOptionalActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { getBackend } from '@metorial-subspace/provider';
 import { checkManagedCredentialsBlocked } from '../lib/checkManagedCredentialsBlocked';
 import { providerAuthConfigInclude } from './providerAuthConfig';
@@ -30,25 +37,57 @@ let include = {
   }
 };
 
+export type CreateProviderAuthExportParams = {
+  tenant: Tenant;
+  environment: Environment;
+  authConfig: ProviderAuthConfig;
+
+  input: {
+    ip: string | undefined;
+    ua: string | undefined;
+    note?: string | undefined;
+    metadata?: Record<string, any>;
+  };
+};
+
+type ListProviderAuthExportsParams = {
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerAuthCredentialsIds?: string[];
+  providerAuthConfigIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderAuthExportByIdParams = {
+  providerAuthExportId: string;
+  allowDeleted?: boolean;
+};
+
 class providerAuthExportServiceImpl {
-  async listProviderAuthExports(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    allowDeleted?: boolean;
+  async listProviderAuthExports(d: MetorialFacing<ListProviderAuthExportsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
-    providerAuthCredentialsIds?: string[];
-    providerAuthConfigIds?: string[];
+    return this.listProviderAuthExportsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+  async listProviderAuthExportsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderAuthExportsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
     let authCredentials = await resolveProviderAuthCredentials(
-      d,
+      ts,
       d.providerAuthCredentialsIds
     );
 
@@ -59,7 +98,7 @@ class providerAuthExportServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               ...normalizeStatusForList(d).onlyParent,
@@ -81,18 +120,27 @@ class providerAuthExportServiceImpl {
     );
   }
 
-  async getProviderAuthExportById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerAuthExportId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderAuthExportById(d: MetorialFacing<GetProviderAuthExportByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderAuthExportByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderAuthExportByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderAuthExportByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let providerAuthExport = await db.providerAuthExport.findFirst({
       where: {
         id: d.providerAuthExportId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).onlyParent
       },
@@ -104,19 +152,30 @@ class providerAuthExportServiceImpl {
     return providerAuthExport;
   }
 
-  async createProviderAuthExport(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    authConfig: ProviderAuthConfig;
+  async createProviderAuthExport(d: MetorialFacing<CreateProviderAuthExportParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
 
-    input: {
-      ip: string | undefined;
-      ua: string | undefined;
-      note?: string | undefined;
-      metadata?: Record<string, any>;
-    };
-  }) {
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.auth_export.created:before', eventBase);
+
+    let result = await this.createProviderAuthExportInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.auth_export.created:after', {
+      ...eventBase,
+      authExport: result.authExport
+    });
+
+    return result;
+  }
+
+  async createProviderAuthExportInternal(d: CreateProviderAuthExportParams) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.authConfig);
     checkDeletedRelation(d.authConfig);
     await checkManagedCredentialsBlocked(d.authConfig);
@@ -155,8 +214,10 @@ class providerAuthExportServiceImpl {
         metadata: d.input.metadata,
 
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        projectOid: d.tenant.projectOid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         authConfigOid: d.authConfig.oid,
 
         expiresAt: data.expiresAt

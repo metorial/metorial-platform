@@ -5,7 +5,6 @@ import {
   type Environment,
   Prisma,
   snowflake,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -13,7 +12,12 @@ import {
   ephemeralManagedSessionService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import {
   enqueueMagicMcpEndpointBackingReconcile,
   reconcileMagicMcpEndpointBacking
@@ -26,10 +30,7 @@ import {
   withMagicMcpBackingLock
 } from './shared';
 
-type UpsertMagicMcpEndpointBackingInput = {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
+type UpsertMagicMcpEndpointBackingParams = {
   input: MagicMcpBackingInputBase & {
     servers: {
       id: string;
@@ -41,14 +42,39 @@ type UpsertMagicMcpEndpointBackingInput = {
   };
 };
 
+type GetMagicMcpEndpointBackingByIdParams = {
+  magicMcpEndpointBackingId: string;
+};
+
+type ArchiveMagicMcpEndpointBackingParams = {
+  magicMcpEndpointBackingId: string;
+};
+
 let hasToolFiltersInput = (
-  input: UpsertMagicMcpEndpointBackingInput['input']['servers'][number] | undefined
+  input: UpsertMagicMcpEndpointBackingParams['input']['servers'][number] | undefined
 ) => !!input && Object.prototype.hasOwnProperty.call(input, 'toolFilters');
 
 class magicMcpEndpointBackingServiceImpl {
-  async upsertMagicMcpEndpointBacking(d: UpsertMagicMcpEndpointBackingInput) {
+  async upsertMagicMcpEndpointBacking(d: MetorialFacing<UpsertMagicMcpEndpointBackingParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.upsertMagicMcpEndpointBackingInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async upsertMagicMcpEndpointBackingInternal(
+    d: { tenant: Tenant; environment: Environment } & UpsertMagicMcpEndpointBackingParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let actorOid = await resolveActorOid({
-      ...d,
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
       identityActorId: d.input.identityActorId,
       identityId: d.input.identityId
     });
@@ -63,7 +89,7 @@ class magicMcpEndpointBackingServiceImpl {
               id: { in: d.input.servers.map(server => server.magicMcpServerBackingId) },
               integrationInstance: {
                 tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
+                solutionOid: solution.oid,
                 environmentOid: d.environment.oid
               }
             },
@@ -98,9 +124,8 @@ class magicMcpEndpointBackingServiceImpl {
           });
 
           let group =
-            await integrationInstanceGroupService.upsertMagicMcpIntegrationInstanceGroup({
+            await integrationInstanceGroupService.upsertMagicMcpIntegrationInstanceGroupInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integrationInstanceGroup: existing?.integrationGroup,
               input: {
@@ -117,9 +142,8 @@ class magicMcpEndpointBackingServiceImpl {
             });
 
           let sessionTemplate =
-            await sessionTemplateService.upsertInternalLinkedSessionTemplate({
+            await sessionTemplateService.upsertInternalLinkedSessionTemplateInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               sessionTemplate: existing?.sessionTemplate,
               input: {
@@ -132,9 +156,8 @@ class magicMcpEndpointBackingServiceImpl {
             });
 
           let ephemeralManagedSession =
-            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSession({
+            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               ephemeralManagedSession: existing?.ephemeralManagedSession,
               sessionTemplate,
@@ -205,14 +228,14 @@ class magicMcpEndpointBackingServiceImpl {
     if (shouldDeferReconcile) {
       await enqueueMagicMcpEndpointBackingReconcile({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpEndpointBackingId: d.input.id
       });
     } else {
       await reconcileMagicMcpEndpointBacking({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpEndpointBackingId: d.input.id
       });
@@ -228,18 +251,28 @@ class magicMcpEndpointBackingServiceImpl {
     };
   }
 
-  async getMagicMcpEndpointBackingById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpEndpointBackingId: string;
-  }) {
+  async getMagicMcpEndpointBackingById(d: MetorialFacing<GetMagicMcpEndpointBackingByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getMagicMcpEndpointBackingByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getMagicMcpEndpointBackingByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetMagicMcpEndpointBackingByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let backing = await db.magicMcpEndpointBacking.findFirst({
       where: {
         id: d.magicMcpEndpointBackingId,
         integrationGroup: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -254,43 +287,49 @@ class magicMcpEndpointBackingServiceImpl {
     return backing;
   }
 
-  async archiveMagicMcpEndpointBacking(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpEndpointBackingId: string;
-  }) {
-    let backing = await this.getMagicMcpEndpointBackingById(d);
+  async archiveMagicMcpEndpointBacking(
+    d: MetorialFacing<ArchiveMagicMcpEndpointBackingParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveMagicMcpEndpointBackingInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveMagicMcpEndpointBackingInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveMagicMcpEndpointBackingParams
+  ) {
+    let backing = await this.getMagicMcpEndpointBackingByIdInternal(d);
     checkTenant(d, backing.integrationGroup);
 
-    await integrationInstanceGroupService.archiveIntegrationInstanceGroup({
+    await integrationInstanceGroupService.archiveIntegrationInstanceGroupInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       integrationInstanceGroup: backing.integrationGroup,
       _canModifyMagicMcpBacking: true
     });
-    await sessionTemplateService.archiveSessionTemplate({
+    await sessionTemplateService.archiveSessionTemplateInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       sessionTemplate: backing.sessionTemplate,
       _allowLinked: true
     });
-    await ephemeralManagedSessionService.archiveEphemeralManagedSession({
+    await ephemeralManagedSessionService.archiveEphemeralManagedSessionInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       ephemeralManagedSession:
-        await ephemeralManagedSessionService.getEphemeralManagedSessionById({
+        await ephemeralManagedSessionService.getEphemeralManagedSessionByIdInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           ephemeralManagedSessionId: backing.ephemeralManagedSession.id
         })
     });
 
-    return await this.getMagicMcpEndpointBackingById(d);
+    return await this.getMagicMcpEndpointBackingByIdInternal(d);
   }
 }
 

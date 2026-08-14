@@ -1,12 +1,18 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCallbackInstanceService } from '@metorial/module-subspace';
+import { providerAuthConfigService } from '@metorial-subspace/module-auth';
+import {
+  callbackInstanceService,
+  enrichCallbackInstanceTriggers,
+  enrichSingleCallbackInstanceTriggers
+} from '@metorial-subspace/module-callback';
+import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackInstancePresenter } from '../../../presenters';
+import { callbackInstancePresenter } from '@metorial/presenters';
 import { callbackGroup } from './callback';
 
 export let callbackInstanceController = Controller.create(
@@ -51,9 +57,9 @@ export let callbackInstanceController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCallbackInstanceService.list({
+        let paginator = await callbackInstanceService.list({
           instance: ctx.instance,
-          callbackId: ctx.callback.id,
+          callbackIds: [ctx.callback.id],
           ids: normalizeArrayParam(ctx.query.id),
           status: normalizeArrayParam(ctx.query.status) as
             | ('attached' | 'detached')[]
@@ -65,9 +71,17 @@ export let callbackInstanceController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let receivers = await enrichCallbackInstanceTriggers(
+          ctx.instance,
+          ctx.callback,
+          list.items
+        );
 
         return Paginator.present(list, callbackInstance =>
-          callbackInstancePresenter.present({ callbackInstance })
+          callbackInstancePresenter.present({
+            callbackInstance,
+            receiver: receivers.get(callbackInstance.id)
+          })
         );
       }),
 
@@ -85,13 +99,18 @@ export let callbackInstanceController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .output(callbackInstancePresenter)
       .do(async ctx => {
-        let callbackInstance = await subspaceCallbackInstanceService.get({
+        let callbackInstance = await callbackInstanceService.get({
           instance: ctx.instance,
           callbackId: ctx.callback.id,
           callbackInstanceId: ctx.params.callbackInstanceId
         });
+        let receiver = await enrichSingleCallbackInstanceTriggers(
+          ctx.instance,
+          ctx.callback,
+          callbackInstance
+        );
 
-        return callbackInstancePresenter.present({ callbackInstance });
+        return callbackInstancePresenter.present({ callbackInstance, receiver });
       }),
 
     create: callbackGroup
@@ -117,14 +136,29 @@ export let callbackInstanceController = Controller.create(
       )
       .output(callbackInstancePresenter)
       .do(async ctx => {
-        let callbackInstance = await subspaceCallbackInstanceService.attach({
+        let config = await providerConfigService.getProviderConfigById({
           instance: ctx.instance,
-          callbackId: ctx.callback.id,
-          configId: ctx.body.provider_config_id,
-          authConfigId: ctx.body.provider_auth_config_id
+          providerConfigId: ctx.body.provider_config_id
         });
+        let authConfig = ctx.body.provider_auth_config_id
+          ? await providerAuthConfigService.getProviderAuthConfigById({
+              instance: ctx.instance,
+              providerAuthConfigId: ctx.body.provider_auth_config_id
+            })
+          : undefined;
+        let callbackInstance = await callbackInstanceService.attach({
+          instance: ctx.instance,
+          callback: ctx.callback,
+          config,
+          authConfig
+        });
+        let receiver = await enrichSingleCallbackInstanceTriggers(
+          ctx.instance,
+          ctx.callback,
+          callbackInstance
+        );
 
-        return callbackInstancePresenter.present({ callbackInstance });
+        return callbackInstancePresenter.present({ callbackInstance, receiver });
       }),
 
     delete: callbackGroup
@@ -141,13 +175,22 @@ export let callbackInstanceController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .output(callbackInstancePresenter)
       .do(async ctx => {
-        let callbackInstance = await subspaceCallbackInstanceService.detach({
+        let callbackInstance = await callbackInstanceService.get({
           instance: ctx.instance,
           callbackId: ctx.callback.id,
           callbackInstanceId: ctx.params.callbackInstanceId
         });
+        callbackInstance = await callbackInstanceService.detach({
+          instance: ctx.instance,
+          callbackInstance
+        });
+        let receiver = await enrichSingleCallbackInstanceTriggers(
+          ctx.instance,
+          ctx.callback,
+          callbackInstance
+        );
 
-        return callbackInstancePresenter.present({ callbackInstance });
+        return callbackInstancePresenter.present({ callbackInstance, receiver });
       })
   }
 );

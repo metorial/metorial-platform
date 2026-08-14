@@ -8,7 +8,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { portalPresenter } from '../../../presenters';
+import { portalPresenter } from '@metorial/presenters';
 
 let portalAllowedRedirectUrlFilterValidator = v.object({
   url: v.string()

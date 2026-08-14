@@ -29,6 +29,7 @@ vi.mock('@metorial/db', () => ({
     generateId: vi.fn()
   },
   addAfterTransactionHook: vi.fn(async callback => await callback()),
+  isInTransaction: vi.fn(() => false),
   withTransaction: vi.fn(callback =>
     callback({
       instance: {
@@ -80,16 +81,21 @@ vi.mock('date-fns', () => ({
   differenceInMinutes: vi.fn()
 }));
 
-vi.mock('../src/queues/syncSubspaceTenant', () => ({
-  syncSubspaceTenantQueue: {
-    add: vi.fn()
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganization: vi.fn(),
+    syncProject: vi.fn(),
+    syncInstance: vi.fn()
   }
 }));
 
-import { db, ID, withTransaction } from '@metorial/db';
+import { db, ID, isInTransaction, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
 import { instanceService } from '../src/services/instance';
+
+let auditScope = { organizationActorOid: 1 } as any;
 
 let withCompanionMocks = (mockDb: any) => ({
   ...mockDb,
@@ -118,6 +124,7 @@ let withCompanionMocks = (mockDb: any) => ({
 describe('InstanceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isInTransaction).mockReturnValue(false);
   });
 
   describe('createInstance', () => {
@@ -151,8 +158,7 @@ describe('InstanceService', () => {
       let result = await instanceService.createInstance({
         project: mockProject as any,
         organization: mockOrg as any,
-        performedBy: mockActor as any,
-        context: {} as any,
+        auditScope,
         input: {
           name: 'Test Instance',
           type: 'development'
@@ -171,6 +177,38 @@ describe('InstanceService', () => {
           instance: mockInstance
         })
       );
+      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith(mockInstance);
+    });
+
+    it('skips subspace sync when nested in another Metorial transaction', async () => {
+      let mockInstance = {
+        id: 'inst-nested',
+        oid: 9,
+        type: 'development'
+      };
+
+      vi.mocked(ID.generateId).mockResolvedValue('inst-nested');
+      vi.mocked(isInTransaction).mockReturnValue(true);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          instance: {
+            create: vi.fn().mockResolvedValue(mockInstance)
+          }
+        };
+        return callback(withCompanionMocks(mockDb) as any);
+      });
+
+      await instanceService.createInstance({
+        project: { id: 'proj-1', oid: 1 } as any,
+        organization: { id: 'org-1', oid: 1 } as any,
+        auditScope,
+        input: {
+          name: 'Nested Instance',
+          type: 'development'
+        }
+      });
+
+      expect(metorialResourceService.syncInstance).not.toHaveBeenCalled();
     });
 
     it('should create production instance', async () => {
@@ -193,8 +231,7 @@ describe('InstanceService', () => {
       let result = await instanceService.createInstance({
         project: { id: 'proj-1', oid: 1 } as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope,
         input: {
           name: 'Production Instance',
           type: 'production'
@@ -220,8 +257,7 @@ describe('InstanceService', () => {
       let result = await instanceService.createInstance({
         project: { id: 'proj-1', oid: 1 } as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope,
         input: {
           name: 'Test Instance',
           type: 'development'
@@ -257,8 +293,7 @@ describe('InstanceService', () => {
       await instanceService.createInstance({
         project: { id: 'proj-1', oid: 1 } as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 7 } as any,
-        context: {} as any,
+        auditScope: { organizationActorOid: 7 } as any,
         input: {
           name: 'Test Instance',
           type: 'development'
@@ -284,6 +319,38 @@ describe('InstanceService', () => {
       });
     });
 
+    it('should require an organization actor audit scope for companions', async () => {
+      vi.mocked(ID.generateId).mockResolvedValue('inst-1');
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        return callback(
+          withCompanionMocks({
+            instance: {
+              create: vi.fn().mockResolvedValue({
+                id: 'inst-1',
+                oid: 10,
+                name: 'Test Instance',
+                type: 'development'
+              })
+            }
+          }) as any
+        );
+      });
+
+      await expect(
+        instanceService.createInstance({
+          project: { id: 'proj-1', oid: 1 } as any,
+          organization: { id: 'org-1', oid: 1 } as any,
+          auditScope: {} as any,
+          input: {
+            name: 'Test Instance',
+            type: 'development'
+          }
+        })
+      ).rejects.toThrow(
+        'Creating instance companions requires an audit scope bound to an organization actor'
+      );
+    });
+
     it('should reject creating a second production instance', async () => {
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = withCompanionMocks({
@@ -299,8 +366,7 @@ describe('InstanceService', () => {
         instanceService.createInstance({
           project: { id: 'proj-1', oid: 1 } as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope,
           input: {
             name: 'Production Instance',
             type: 'production'
@@ -333,8 +399,7 @@ describe('InstanceService', () => {
         let result = await instanceService.createSandbox({
           project: { id: 'proj-1', oid: 1 } as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope,
           input: {
             name: 'Sandbox'
           }
@@ -343,8 +408,7 @@ describe('InstanceService', () => {
         expect(createInstanceSpy).toHaveBeenCalledWith({
           project: { id: 'proj-1', oid: 1 },
           organization: { id: 'org-1', oid: 1 },
-          performedBy: { id: 'actor-1', oid: 1 },
-          context: {},
+          auditScope,
           input: {
             name: 'Sandbox',
             type: 'development'
@@ -383,8 +447,7 @@ describe('InstanceService', () => {
       let result = await instanceService.updateInstance({
         instance: mockInstance as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope,
         input: {
           name: 'New Name'
         }
@@ -399,6 +462,7 @@ describe('InstanceService', () => {
         'organization.project.instance.updated:after',
         expect.any(Object)
       );
+      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith(updatedInstance);
     });
 
     it('should throw forbidden error for deleted instance', async () => {
@@ -413,8 +477,7 @@ describe('InstanceService', () => {
         instanceService.updateInstance({
           instance: mockInstance as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope,
           input: {
             name: 'New Name'
           }
@@ -443,8 +506,7 @@ describe('InstanceService', () => {
       await instanceService.updateInstance({
         instance: mockInstance as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope,
         input: {}
       });
 
@@ -477,8 +539,7 @@ describe('InstanceService', () => {
         instanceService.updateInstance({
           instance: mockInstance as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope,
           input: {
             slug: 'new-slug'
           }
@@ -526,8 +587,7 @@ describe('InstanceService', () => {
       let result = await instanceService.updateInstance({
         instance: mockInstance as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope,
         input: {
           slug: 'new-slug'
         }
@@ -565,16 +625,14 @@ describe('InstanceService', () => {
         instanceService.deleteInstance({
           instance: mockInstance as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any
+          auditScope
         })
       ).rejects.toThrow(ServiceError);
       await expect(
         instanceService.deleteInstance({
           instance: mockInstance as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any
+          auditScope
         })
       ).rejects.toThrow('Instance deletion is not supported yet');
     });
@@ -591,8 +649,7 @@ describe('InstanceService', () => {
         instanceService.deleteInstance({
           instance: mockInstance as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any
+          auditScope
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -955,8 +1012,7 @@ describe('InstanceService', () => {
         instanceService.createInstance({
           project: { id: 'proj-1', oid: 1 } as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope,
           input: {
             name: 'Test',
             type: 'development'
@@ -994,8 +1050,7 @@ describe('InstanceService', () => {
       let result = await instanceService.createInstance({
         project: { id: 'proj-1', oid: 1 } as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope,
         input: {
           name: '',
           type: 'development'

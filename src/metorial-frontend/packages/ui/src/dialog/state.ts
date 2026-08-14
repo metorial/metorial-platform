@@ -61,8 +61,25 @@ if (typeof document !== 'undefined') {
   );
 }
 
+// Selects and menus portal out of whatever overlay they were opened from, so interactions with
+// them -- and the pointer gesture that closes them -- look like outside interactions.
+let nestedOverlaySelector = '[data-metorial-select-content], [data-metorial-menu-content]';
+
+// Radix keeps closing content mounted for the duration of its exit animation, so only content
+// that is still open counts as a reason to keep the parent overlay around.
+let openNestedOverlaySelector =
+  '[data-metorial-select-content][data-state="open"], [data-metorial-menu-content][data-state="open"]';
+
 export let markSelectPointerDismiss = () => {
   preventDialogDismissForPointerGesture = true;
+};
+
+export let markOverlayPointerDismiss = markSelectPointerDismiss;
+
+let isNestedOverlayInteraction = (event: OutsideInteractionEvent) => {
+  // Radix wraps outside events, so the actual interaction target is on the original event.
+  let target = event.detail?.originalEvent?.target ?? event.target;
+  return target instanceof Element && target.closest(nestedOverlaySelector) != null;
 };
 
 export let preventDialogDismissForSelectInteraction = (event: OutsideInteractionEvent) => {
@@ -71,10 +88,19 @@ export let preventDialogDismissForSelectInteraction = (event: OutsideInteraction
     return;
   }
 
-  // Radix wraps outside events, so the actual interaction target is on the original event.
-  let target = event.detail?.originalEvent?.target ?? event.target;
-  let isSelectInteraction =
-    target instanceof Element && target.closest('[data-metorial-select-content]') != null;
+  if (isNestedOverlayInteraction(event)) event.preventDefault();
+};
 
-  if (isSelectInteraction) event.preventDefault();
+// Popovers sit lower in the layer stack than the menus and selects opened from inside them, so
+// they additionally have to ignore the gesture that dismisses the nested overlay -- otherwise a
+// single click closes both.
+export let preventPopoverDismissForNestedOverlay = (event: OutsideInteractionEvent) => {
+  if (preventDialogDismissForPointerGesture || isNestedOverlayInteraction(event)) {
+    event.preventDefault();
+    return;
+  }
+
+  if (typeof document !== 'undefined' && document.querySelector(openNestedOverlaySelector)) {
+    event.preventDefault();
+  }
 };

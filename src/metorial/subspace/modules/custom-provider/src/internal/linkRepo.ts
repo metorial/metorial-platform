@@ -75,7 +75,9 @@ export let linkRepo = async (d: {
       data: {
         oid: snowflake.nextId(),
         id: bucket.id,
-        ...codeBucketFilter
+        ...codeBucketFilter,
+        // Kept out of codeBucketFilter because that object is also used as a read filter
+        projectOid: d.tenant.projectOid
       }
     });
   }
@@ -114,6 +116,7 @@ export let ensureScmRepoForOrigin = async (d: {
       id: d.originRepo.id,
       ...inner,
       tenantOid: d.tenant.oid,
+      projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid
     },
     update: inner

@@ -17,7 +17,6 @@ import {
   type ProviderVariant,
   type ProviderVersion,
   snowflake,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -45,8 +44,17 @@ import {
 } from '@metorial-subspace/module-provider-internal';
 import { enclaveInternalService } from '@metorial-subspace/module-enclave';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveConsumerActorIds,
+  resolveMetorialFacing,
+  resolveMetorialFacingWithOptionalActor,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
+import { Fabric } from '@metorial/fabric';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import {
@@ -73,34 +81,179 @@ let defaultLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
+export type CreateProviderDeploymentParams = {
+  tenant: Tenant;
+  environment: Environment;
+  provider: Provider & { defaultVariant: ProviderVariant | null };
+  lockedVersion?: ProviderVersion;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    toolFilters?: PrismaJson.ToolFilter | null;
+    isEphemeral?: boolean;
+    isDefault?: boolean;
+
+    config:
+      | {
+          type: 'none';
+        }
+      | {
+          type: 'vault';
+          vault: ProviderConfigVault;
+        }
+      | {
+          type: 'inline';
+          data: Record<string, any>;
+        }
+      | {
+          type: 'config';
+          config: ProviderConfig;
+        };
+  };
+};
+
+export type UpdateProviderDeploymentParams = {
+  tenant: Tenant;
+  environment: Environment;
+  providerDeployment: ProviderDeployment & {
+    providerVariant: ProviderVariant;
+    provider: Provider;
+    currentVersion: ProviderDeploymentVersion | null;
+  };
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    toolFilters?: PrismaJson.ToolFilter | null;
+    lockedVersion?: ProviderVersion | null;
+  };
+};
+
+export type ArchiveProviderDeploymentParams = {
+  tenant: Tenant;
+  environment: Environment;
+  providerDeployment: ProviderDeployment;
+};
+
+type ListProviderDeploymentsParams = {
+  search?: string;
+
+  status?: ProviderDeploymentStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerVersionIds?: string[];
+  actorIds?: string[];
+  consumerIds?: string[];
+  identityIds?: string[];
+  identityCredentialIds?: string[];
+
+  capabilities?: ProviderCapabilityFilter;
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderDeploymentByIdParams = {
+  providerDeploymentId: string;
+  allowDeleted?: boolean;
+};
+
+type GetManyProviderDeploymentsByIdsParams = {
+  ids: string[];
+  allowDeleted?: boolean;
+};
+
+type EnsureDefaultProviderDeploymentParams = {
+  provider: Provider & { defaultVariant: ProviderVariant | null };
+};
+
 class providerDeploymentServiceImpl {
-  async listProviderDeployments(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createProviderDeployment(d: MetorialFacing<CreateProviderDeploymentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
 
-    search?: string;
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.deployment.created:before', eventBase);
 
-    status?: ProviderDeploymentStatus[];
-    allowDeleted?: boolean;
+    let deployment = await this.createProviderDeploymentInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
 
-    ids?: string[];
-    providerIds?: string[];
-    providerVersionIds?: string[];
-    actorIds?: string[];
-    identityIds?: string[];
-    identityCredentialIds?: string[];
+    await Fabric.fire('provider.deployment.created:after', { ...eventBase, deployment });
 
-    capabilities?: ProviderCapabilityFilter;
+    return deployment;
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let versions = await resolveProviderVersions(d, d.providerVersionIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let identityCredentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
+  async updateProviderDeployment(d: MetorialFacing<UpdateProviderDeploymentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.deployment.updated:before', eventBase);
+
+    let deployment = await this.updateProviderDeploymentInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.deployment.updated:after', { ...eventBase, deployment });
+
+    return deployment;
+  }
+
+  async archiveProviderDeployment(d: MetorialFacing<ArchiveProviderDeploymentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.deployment.deleted:before', eventBase);
+
+    let deployment = await this.archiveProviderDeploymentInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.deployment.deleted:after', { ...eventBase, deployment });
+
+    return deployment;
+  }
+
+  async listProviderDeployments(d: MetorialFacing<ListProviderDeploymentsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listProviderDeploymentsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderDeploymentsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderDeploymentsParams
+  ) {
+    let actorIds = d.actorIds;
+    if (d.consumerIds) {
+      let consumerActorIds = await resolveConsumerActorIds(d.consumerIds);
+      actorIds = [...new Set([...(actorIds ?? []), ...consumerActorIds])];
+    }
+
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let versions = await resolveProviderVersions(ts, d.providerVersionIds);
+    let actors = await resolveIdentityActors(ts, actorIds);
+    let identities = await resolveIdentities(ts, d.identityIds);
+    let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
@@ -120,7 +273,7 @@ class providerDeploymentServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               isEphemeral: false,
 
@@ -151,20 +304,29 @@ class providerDeploymentServiceImpl {
     );
   }
 
-  async getProviderDeploymentById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerDeploymentId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getProviderDeploymentById(d: MetorialFacing<GetProviderDeploymentByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderDeploymentByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderDeploymentByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderDeploymentByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let providerDeployment = await withTransaction(
       async db =>
         await db.providerDeployment.findFirst({
           where: {
             id: d.providerDeploymentId,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
 
             ...normalizeStatusForGet(d).noParent
@@ -179,18 +341,29 @@ class providerDeploymentServiceImpl {
     return providerDeployment;
   }
 
-  async getManyProviderDeploymentsByIds(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    ids: string[];
-    allowDeleted?: boolean;
-  }) {
+  async getManyProviderDeploymentsByIds(
+    d: MetorialFacing<GetManyProviderDeploymentsByIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProviderDeploymentsByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProviderDeploymentsByIdsInternal(
+    d: { tenant: Tenant; environment: Environment } & GetManyProviderDeploymentsByIdsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await db.providerDeployment.findMany({
       where: {
         id: { in: d.ids },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -198,39 +371,7 @@ class providerDeploymentServiceImpl {
     });
   }
 
-  async createProviderDeployment(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-    lockedVersion?: ProviderVersion;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      toolFilters?: PrismaJson.ToolFilter | null;
-      isEphemeral?: boolean;
-      isDefault?: boolean;
-
-      config:
-        | {
-            type: 'none';
-          }
-        | {
-            type: 'vault';
-            vault: ProviderConfigVault;
-          }
-        | {
-            type: 'inline';
-            data: Record<string, any>;
-          }
-        | {
-            type: 'config';
-            config: ProviderConfig;
-          };
-    };
-  }) {
+  async createProviderDeploymentInternal(d: CreateProviderDeploymentParams) {
     checkDeletedRelation(d.provider, { allowEphemeral: d.input.isEphemeral });
 
     if (d.input.config.type === 'vault') {
@@ -244,6 +385,9 @@ class providerDeploymentServiceImpl {
       checkDeletedRelation(d.input.config.config, { allowEphemeral: d.input.isEphemeral });
       checkProviderMatch(d.provider, d.input.config.config);
     }
+
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       if (!d.provider.defaultVariant) {
@@ -267,8 +411,10 @@ class providerDeploymentServiceImpl {
             oid: snowflake.nextId(),
             id: `${ID.idPrefixes.environmentProvider}_1${d.tenant.oid.toString(36).padStart(16, '0')}${d.environment.oid.toString(36).padStart(16, '0')}${d.provider.oid.toString(36).padStart(16, '0')}`,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            projectOid: d.tenant.projectOid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
             providerOid: d.provider.oid
           },
           update: {}
@@ -302,8 +448,10 @@ class providerDeploymentServiceImpl {
           toolFilter: normalizeToolFilters(d.input.toolFilters),
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           providerOid: d.provider.oid,
           providerVariantOid: d.provider.defaultVariant.oid
         },
@@ -359,11 +507,10 @@ class providerDeploymentServiceImpl {
           data: { defaultConfigOid: d.input.config.config.oid }
         });
       } else if (d.input.config.type !== 'none') {
-        await providerConfigService.createProviderConfig({
+        await providerConfigService.createProviderConfigInternal({
           tenant: d.tenant,
           providerDeployment,
           provider: d.provider,
-          solution: d.solution,
           environment: d.environment,
           input: {
             name: `Default Config for ${d.input.name}`,
@@ -379,7 +526,7 @@ class providerDeploymentServiceImpl {
         await db.providerDeployment.updateMany({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             providerOid: d.provider.oid,
             oid: { not: providerDeployment.oid },
@@ -391,7 +538,6 @@ class providerDeploymentServiceImpl {
 
       await enclaveInternalService.ensureEnclaveForProviderDeployment({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         provider: d.provider,
         providerDeployment
@@ -408,12 +554,22 @@ class providerDeploymentServiceImpl {
     });
   }
 
-  async ensureDefaultProviderDeployment(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    provider: Provider & { defaultVariant: ProviderVariant | null };
-  }) {
+  async ensureDefaultProviderDeployment(
+    d: MetorialFacing<EnsureDefaultProviderDeploymentParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.ensureDefaultProviderDeploymentInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async ensureDefaultProviderDeploymentInternal(
+    d: { tenant: Tenant; environment: Environment } & EnsureDefaultProviderDeploymentParams
+  ) {
     let currentDefault = await this.getDefaultProviderDeployment(d);
     if (currentDefault) return currentDefault;
 
@@ -421,9 +577,8 @@ class providerDeploymentServiceImpl {
       let currentDefault = await this.getDefaultProviderDeployment(d);
       if (currentDefault) return currentDefault;
 
-      return await this.createProviderDeployment({
+      return await this.createProviderDeploymentInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         provider: d.provider,
         input: {
@@ -436,25 +591,11 @@ class providerDeploymentServiceImpl {
     });
   }
 
-  async updateProviderDeployment(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerDeployment: ProviderDeployment & {
-      providerVariant: ProviderVariant;
-      provider: Provider;
-      currentVersion: ProviderDeploymentVersion | null;
-    };
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      toolFilters?: PrismaJson.ToolFilter | null;
-      lockedVersion?: ProviderVersion | null;
-    };
-  }) {
+  async updateProviderDeploymentInternal(d: UpdateProviderDeploymentParams) {
     checkDeletedEdit(d.providerDeployment, 'update');
+
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     return withTransaction(async db => {
       let currentVersionOid = d.providerDeployment.currentVersionOid;
@@ -480,7 +621,7 @@ class providerDeploymentServiceImpl {
         where: {
           oid: d.providerDeployment.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -506,25 +647,24 @@ class providerDeploymentServiceImpl {
     });
   }
 
-  async archiveProviderDeployment(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerDeployment: ProviderDeployment;
-  }) {
+  async archiveProviderDeploymentInternal(d: ArchiveProviderDeploymentParams) {
     checkTenant(d, d.providerDeployment);
     checkDeletedEdit(d.providerDeployment, 'archive');
+
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
     await this.assertNoActiveIntegrationProviderLink(d);
     await assertNoActiveIntegrationInstanceProviderDeploymentLink({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       deploymentOid: d.providerDeployment.oid,
       resourceId: d.providerDeployment.id
     });
     await assertNoActiveIdentityCredentialDeploymentLink({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       deploymentOid: d.providerDeployment.oid,
       resourceId: d.providerDeployment.id
@@ -536,7 +676,7 @@ class providerDeploymentServiceImpl {
         where: {
           oid: d.providerDeployment.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -561,16 +701,17 @@ class providerDeploymentServiceImpl {
 
   private async getDefaultProviderDeployment(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider;
   }) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     return await withTransaction(
       db =>
         db.providerDeployment.findFirst({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             providerOid: d.provider.oid,
             isDefault: true
@@ -583,14 +724,15 @@ class providerDeploymentServiceImpl {
 
   private async assertNoActiveIntegrationProviderLink(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     providerDeployment: ProviderDeployment;
   }) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
     let integrationProvider = await db.integrationProvider.findFirst({
       where: {
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active',
         integration: {

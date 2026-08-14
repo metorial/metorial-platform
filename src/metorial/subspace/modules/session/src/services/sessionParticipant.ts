@@ -6,7 +6,6 @@ import {
   type Environment,
   type SessionParticipantConnectionType,
   type SessionParticipantType,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -19,6 +18,13 @@ import {
   resolveSessionMessages,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
+import { enrichSessionParticipantsWithConsumer } from '../lib/enrichSessionParticipants';
+import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 
 let include = {
   provider: true,
@@ -38,32 +44,67 @@ let include = {
 };
 export let sessionParticipantInclude = include;
 
+export type ListSessionParticipantsParams = {
+  types?: SessionParticipantType[];
+  connectionTypes?: SessionParticipantConnectionType[];
+
+  ids?: string[];
+  agentIds?: string[];
+  actorIds?: string[];
+  identityIds?: string[];
+  agentInstanceIds?: string[];
+  sessionIds?: string[];
+  accessTagSessionIds?: string[];
+  sessionConnectionIds?: string[];
+  sessionMessageIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetSessionParticipantByIdParams = {
+  sessionParticipantId: string;
+};
+
 class sessionParticipantServiceImpl {
-  async listSessionParticipants(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listSessionParticipants(d: MetorialFacing<ListSessionParticipantsParams>) {
+    let { instance, organizationActor, accessTagSessionIds, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    types?: SessionParticipantType[];
-    connectionTypes?: SessionParticipantConnectionType[];
+    let sessionIds = narrowSessionIdFilter({
+      allowedSessionIds: accessTagSessionIds,
+      requestedSessionIds: rest.sessionIds
+    });
 
-    ids?: string[];
-    agentIds?: string[];
-    actorIds?: string[];
-    identityIds?: string[];
-    agentInstanceIds?: string[];
-    sessionIds?: string[];
-    sessionConnectionIds?: string[];
-    sessionMessageIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let agents = await resolveAgents(d, d.agentIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let sessions = await resolveSessions(d, d.sessionIds);
-    let connections = await resolveSessionConnections(d, d.sessionConnectionIds);
-    let messages = await resolveSessionMessages(d, d.sessionMessageIds);
+    let paginator = await this.listSessionParticipantsInternal({
+      ...rest,
+      sessionIds,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    return paginator.mapAll(participants =>
+      enrichSessionParticipantsWithConsumer({
+        instanceOid: instance.oid,
+        participants
+      })
+    );
+  }
+
+  async listSessionParticipantsInternal(
+    d: { tenant: Tenant; environment: Environment } & Omit<
+      ListSessionParticipantsParams,
+      'accessTagSessionIds'
+    >
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let agents = await resolveAgents(ts, d.agentIds);
+    let actors = await resolveIdentityActors(ts, d.actorIds);
+    let identities = await resolveIdentities(ts, d.identityIds);
+    let sessions = await resolveSessions(ts, d.sessionIds);
+    let connections = await resolveSessionConnections(ts, d.sessionConnectionIds);
+    let messages = await resolveSessionMessages(ts, d.sessionMessageIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -110,12 +151,26 @@ class sessionParticipantServiceImpl {
     );
   }
 
-  async getSessionParticipantById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionParticipantId: string;
-  }) {
+  async getSessionParticipantById(d: MetorialFacing<GetSessionParticipantByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let participant = await this.getSessionParticipantByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    let [enriched] = await enrichSessionParticipantsWithConsumer({
+      instanceOid: instance.oid,
+      participants: [participant]
+    });
+    return enriched!;
+  }
+
+  async getSessionParticipantByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetSessionParticipantByIdParams
+  ) {
     let sessionParticipant = await db.sessionParticipant.findFirst({
       where: {
         id: d.sessionParticipantId,

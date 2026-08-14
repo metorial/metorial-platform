@@ -12,6 +12,15 @@ export let consumerCreatedQueue = createQueue<{ instanceConsumerId: string }>({
 export let consumerCreatedQueueProcessor = consumerCreatedQueue.process(async data => {
   await syncPendingStatusForInstanceConsumer(data.instanceConsumerId);
 
+  let instanceConsumer = await db.instanceConsumer.findUniqueOrThrow({
+    where: { id: data.instanceConsumerId },
+    include: { consumer: true }
+  });
+  await Fabric.fire('consumer.created:after', {
+    consumer: instanceConsumer.consumer,
+    instanceConsumer
+  });
+
   await syncIdentityConsumerQueue.add({
     identityConsumerId: data.instanceConsumerId
   });

@@ -1,3 +1,11 @@
+
+let testAuditScope = {
+  organizationOid: 1n,
+  organizationActorOid: 1n,
+  actor: { type: 'org_actor' as const, id: 'actor-1' },
+  context: { ip: '127.0.0.1', ua: 'test' }
+};
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/db', () => ({
@@ -78,8 +86,7 @@ describe('AccessPolicyAssignmentService', () => {
         member: member as any,
         accessPolicy: accessPolicy as any,
         allowDefault: true,
-        performedBy: { oid: 4 } as any,
-        context: {} as any
+        auditScope: testAuditScope as any
       });
 
       expect(update).toHaveBeenCalledWith({
@@ -119,8 +126,7 @@ describe('AccessPolicyAssignmentService', () => {
         member: member as any,
         accessPolicy: accessPolicy as any,
         allowDefault: true,
-        performedBy: { oid: 4 } as any,
-        context: {} as any
+        auditScope: testAuditScope as any
       });
 
       expect(deleteMany).toHaveBeenCalledWith({

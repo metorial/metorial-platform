@@ -85,6 +85,14 @@ let { Fabric } = await import('@metorial/fabric');
 let { organizationActorService } = await import('../src/services/organizationActor');
 let { organizationMemberService } = await import('../src/services/organizationMember');
 
+let testAuditScope = {
+  organizationOid: 1n,
+  organizationActorOid: 1n,
+  actor: { type: 'org_actor' as const, id: 'actor-1' },
+  context: { ip: '127.0.0.1', ua: 'test' }
+};
+
+
 describe('OrganizationMemberService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -142,8 +150,7 @@ describe('OrganizationMemberService', () => {
         input: {
           role: 'member'
         },
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result).toEqual(mockMember);
@@ -155,7 +162,7 @@ describe('OrganizationMemberService', () => {
           actor: mockActor,
           user: mockUser,
           organization: mockOrg,
-          performedBy: mockActor
+          auditScope: testAuditScope
         })
       );
       expect(Fabric.fire).toHaveBeenCalledWith(
@@ -163,7 +170,7 @@ describe('OrganizationMemberService', () => {
         expect.objectContaining({
           actor: mockActor,
           member: mockMember,
-          performedBy: mockActor
+          auditScope: testAuditScope
         })
       );
     });
@@ -205,8 +212,7 @@ describe('OrganizationMemberService', () => {
         input: {
           role: 'admin'
         },
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result.role).toBe('admin');
@@ -265,8 +271,7 @@ describe('OrganizationMemberService', () => {
         input: {
           role: 'member'
         },
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(create).toHaveBeenCalledWith(
@@ -305,8 +310,7 @@ describe('OrganizationMemberService', () => {
         user: mockUser as any,
         organization: mockOrg as any,
         input: { role: 'member' },
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result).toEqual(existingMember);
@@ -352,15 +356,14 @@ describe('OrganizationMemberService', () => {
         user: mockUser as any,
         organization: mockOrg as any,
         input: { role: 'member' },
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(result.status).toBe('active');
       expect(organizationActorService.createOrganizationActor).not.toHaveBeenCalled();
     });
 
-    it('should handle performedBy actor', async () => {
+    it('should propagate auditScope to fabric events', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let mockUser = {
         id: 'user-1',
@@ -391,20 +394,19 @@ describe('OrganizationMemberService', () => {
         user: mockUser as any,
         organization: mockOrg as any,
         input: { role: 'member' },
-        context: {} as any,
-        performedBy: { type: 'actor', actor: mockPerformedByActor as any }
+        auditScope: testAuditScope as any
       });
 
       expect(Fabric.fire).toHaveBeenCalledWith(
         'organization.member.created:before',
         expect.objectContaining({
-          performedBy: mockPerformedByActor
+          auditScope: testAuditScope
         })
       );
       expect(Fabric.fire).toHaveBeenCalledWith(
         'organization.member.created:after',
         expect.objectContaining({
-          performedBy: mockPerformedByActor
+          auditScope: testAuditScope
         })
       );
     });
@@ -433,8 +435,7 @@ describe('OrganizationMemberService', () => {
         user: mockUser as any,
         organization: mockOrg as any,
         input: { role: 'member' },
-        context: {} as any,
-        performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
       });
 
       expect(organizationActorService.createOrganizationActor).toHaveBeenCalledWith(
@@ -480,8 +481,7 @@ describe('OrganizationMemberService', () => {
         organization: mockOrg as any,
         member: mockMember as any,
         input: { role: 'admin' },
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.role).toBe('admin');
@@ -493,7 +493,7 @@ describe('OrganizationMemberService', () => {
         'organization.member.updated:after',
         expect.objectContaining({
           member: updatedMember,
-          performedBy: mockPerformedBy
+          auditScope: testAuditScope
         })
       );
     });
@@ -512,8 +512,7 @@ describe('OrganizationMemberService', () => {
           organization: mockOrg as any,
           member: mockMember as any,
           input: { role: 'admin' },
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -523,19 +522,20 @@ describe('OrganizationMemberService', () => {
       let mockMember = {
         id: 'member-1',
         oid: 1,
-        actorOid: 7,
+        actorOid: 7n,
         status: 'active',
         role: 'admin'
       };
-      let mockPerformedBy = { id: 'actor-7', oid: 7 };
 
       await expect(
         organizationMemberService.updateOrganizationMember({
           organization: mockOrg as any,
           member: mockMember as any,
           input: { role: 'member' },
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+          auditScope: {
+            ...testAuditScope,
+            organizationActorOid: 7n
+          } as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -569,8 +569,7 @@ describe('OrganizationMemberService', () => {
         organization: mockOrg as any,
         member: mockMember as any,
         input: {},
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result).toEqual(updatedMember);
@@ -607,8 +606,7 @@ describe('OrganizationMemberService', () => {
         organization: mockOrg as any,
         member: mockMember as any,
         input: { role: 'member' },
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.role).toBe('member');
@@ -646,8 +644,7 @@ describe('OrganizationMemberService', () => {
         organization: mockOrg as any,
         member: mockMember as any,
         input: { role: 'admin' },
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.userOid).toBe(1);
@@ -685,8 +682,7 @@ describe('OrganizationMemberService', () => {
         organization: mockOrg as any,
         member: mockMember as any,
         input: {},
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(update).toHaveBeenCalledWith(
@@ -730,8 +726,7 @@ describe('OrganizationMemberService', () => {
       let result = await organizationMemberService.deleteOrganizationMember({
         organization: mockOrg as any,
         member: mockMember as any,
-        context: {} as any,
-        performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.status).toBe('deleted');
@@ -744,7 +739,7 @@ describe('OrganizationMemberService', () => {
         'organization.member.deleted:after',
         expect.objectContaining({
           member: deletedMember,
-          performedBy: mockPerformedBy
+          auditScope: testAuditScope
         })
       );
     });
@@ -762,8 +757,7 @@ describe('OrganizationMemberService', () => {
         organizationMemberService.deleteOrganizationMember({
           organization: mockOrg as any,
           member: mockMember as any,
-          context: {} as any,
-          performedBy: mockPerformedBy as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -797,8 +791,7 @@ describe('OrganizationMemberService', () => {
       let result = await organizationMemberService.deleteOrganizationMember({
         organization: mockOrg as any,
         member: mockMember as any,
-        context: {} as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.deletedAt).toEqual(now);
@@ -834,8 +827,7 @@ describe('OrganizationMemberService', () => {
       let result = await organizationMemberService.deleteOrganizationMember({
         organization: mockOrg as any,
         member: mockMember as any,
-        context: {} as any,
-        performedBy: { id: 'actor-2', oid: 2 } as any
+        auditScope: testAuditScope as any
       });
 
       expect(result.actor).toEqual(mockActor);
@@ -1020,8 +1012,7 @@ describe('OrganizationMemberService', () => {
           user: { id: 'user-1', oid: 1 } as any,
           organization: { id: 'org-1', oid: 1 } as any,
           input: { role: 'member' },
-          context: {} as any,
-          performedBy: { type: 'user', user: { id: 'user-1', oid: 1 } as any }
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -1034,8 +1025,7 @@ describe('OrganizationMemberService', () => {
           organization: { id: 'org-1', oid: 1 } as any,
           member: { id: 'member-1', oid: 1, status: 'active' } as any,
           input: { role: 'admin' },
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -1047,8 +1037,7 @@ describe('OrganizationMemberService', () => {
         organizationMemberService.deleteOrganizationMember({
           organization: { id: 'org-1', oid: 1 } as any,
           member: { id: 'member-1', oid: 1, status: 'active' } as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -1084,8 +1073,7 @@ describe('OrganizationMemberService', () => {
           user: { id: 'user-1', oid: 1, name: 'Test', email: 'test@example.com' } as any,
           organization: { id: 'org-1', oid: 1 } as any,
           input: { role: 'member' },
-          context: {} as any,
-          performedBy: { type: 'user', user: { id: 'user-1', oid: 1 } as any }
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Actor creation failed');
     });
@@ -1187,8 +1175,7 @@ describe('OrganizationMemberService', () => {
           user: mockUser as any,
           organization: mockOrg as any,
           input: { role: 'member' },
-          context: {} as any,
-          performedBy: { type: 'user', user: mockUser as any }
+        auditScope: testAuditScope as any
         })
       ).resolves.toBe(concurrentlyCreatedMember);
       expect(withTransaction).toHaveBeenCalledTimes(2);
@@ -1224,8 +1211,7 @@ describe('OrganizationMemberService', () => {
           organization: { id: 'org-1', oid: 1 } as any,
           member: mockMember as any,
           input: { role: 'admin' },
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).resolves.toBeDefined();
     });
@@ -1242,8 +1228,7 @@ describe('OrganizationMemberService', () => {
           organization: { id: 'org-1', oid: 1 } as any,
           member: mockMember as any,
           input: { role: 'admin' },
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -1259,8 +1244,7 @@ describe('OrganizationMemberService', () => {
         organizationMemberService.deleteOrganizationMember({
           organization: { id: 'org-1', oid: 1 } as any,
           member: mockMember as any,
-          context: {} as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any
+        auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });

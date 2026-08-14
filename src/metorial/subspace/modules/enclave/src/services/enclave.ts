@@ -7,7 +7,6 @@ import {
   type Enclave,
   type Environment,
   type ProviderDeploymentStatus,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -20,7 +19,12 @@ import {
   resolveProviderDeployments,
   resolveProviders
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
 import {
   type CompiledNetworkAllowList,
@@ -68,25 +72,63 @@ let include = {
   }
 };
 
+type ListEnclavesParams = {
+  ids?: string[];
+  slugs?: string[];
+  networkIds?: string[];
+  enclaveEnvironmentIds?: string[];
+  providerDeploymentIds?: string[];
+  providerIds?: string[];
+  firewallIds?: string[];
+  createdAt?: DateFilter;
+};
+
+type GetEnclaveByIdParams = {
+  enclaveId: string;
+};
+
+type GetCompiledNetworkRulesParams = {
+  enclave: Enclave;
+};
+
+type UseEnclaveParams = {
+  enclave: Enclave;
+};
+
+type UpdateEnclaveParams = {
+  enclave: Enclave;
+  input: {
+    name?: string;
+    description?: string;
+  };
+};
+
+type GetLastUsedEnclavesParams = {
+  limit?: number;
+};
+
 class enclaveServiceImpl {
-  async listEnclaves(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    ids?: string[];
-    slugs?: string[];
-    networkIds?: string[];
-    enclaveEnvironmentIds?: string[];
-    providerDeploymentIds?: string[];
-    providerIds?: string[];
-    firewallIds?: string[];
-    createdAt?: DateFilter;
-  }) {
-    let networks = await resolveNetworks(d, d.networkIds);
-    let enclaveEnvironments = await resolveEnclaveEnvironments(d, d.enclaveEnvironmentIds);
-    let providerDeployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let firewalls = await resolveFirewalls(d, d.firewallIds);
+  async listEnclaves(d: MetorialFacing<ListEnclavesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listEnclavesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listEnclavesInternal(
+    d: { tenant: Tenant; environment: Environment } & ListEnclavesParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let networks = await resolveNetworks(ts, d.networkIds);
+    let enclaveEnvironments = await resolveEnclaveEnvironments(ts, d.enclaveEnvironmentIds);
+    let providerDeployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let firewalls = await resolveFirewalls(ts, d.firewallIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -124,12 +166,20 @@ class enclaveServiceImpl {
     );
   }
 
-  async getEnclaveById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    enclaveId: string;
-  }) {
+  async getEnclaveById(d: MetorialFacing<GetEnclaveByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getEnclaveByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getEnclaveByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetEnclaveByIdParams
+  ) {
     let enclave = await db.enclave.findFirst({
       where: {
         id: d.enclaveId,
@@ -247,11 +297,20 @@ class enclaveServiceImpl {
     };
   }
 
-  async getCompiledNetworkRules(d: {
-    tenant: Tenant;
-    environment: Environment;
-    enclave: Enclave;
-  }) {
+  async getCompiledNetworkRules(d: MetorialFacing<GetCompiledNetworkRulesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCompiledNetworkRulesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCompiledNetworkRulesInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCompiledNetworkRulesParams
+  ) {
     if (d.enclave.compiledNetworkRules) {
       return d.enclave.compiledNetworkRules;
     }
@@ -259,7 +318,20 @@ class enclaveServiceImpl {
     return (await this.compileNetworkRules({ ...d })).compiledNetworkRules;
   }
 
-  async useEnclave(d: { tenant: Tenant; environment: Environment; enclave: Enclave }) {
+  async useEnclave(d: MetorialFacing<UseEnclaveParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.useEnclaveInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async useEnclaveInternal(
+    d: { tenant: Tenant; environment: Environment } & UseEnclaveParams
+  ) {
     if (!d.enclave.lastUsedAt || differenceInMinutes(new Date(), d.enclave.lastUsedAt) > 15) {
       await db.enclave.updateMany({
         where: { oid: d.enclave.oid },
@@ -267,19 +339,23 @@ class enclaveServiceImpl {
       });
     }
 
-    return await this.getCompiledNetworkRules(d);
+    return await this.getCompiledNetworkRulesInternal(d);
   }
 
-  async updateEnclave(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    enclave: Enclave;
-    input: {
-      name?: string;
-      description?: string;
-    };
-  }) {
+  async updateEnclave(d: MetorialFacing<UpdateEnclaveParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateEnclaveInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateEnclaveInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateEnclaveParams
+  ) {
     checkTenant(d, d.enclave);
 
     return withTransaction(async db => {
@@ -304,7 +380,20 @@ class enclaveServiceImpl {
     });
   }
 
-  async getLastUsedEnclaves(d: { tenant: Tenant; environment: Environment; limit?: number }) {
+  async getLastUsedEnclaves(d: MetorialFacing<GetLastUsedEnclavesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getLastUsedEnclavesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getLastUsedEnclavesInternal(
+    d: { tenant: Tenant; environment: Environment } & GetLastUsedEnclavesParams
+  ) {
     let limit = Math.min(Math.max(d.limit ?? 20, 1), 100);
 
     return db.enclave.findMany({

@@ -7,6 +7,8 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
@@ -857,8 +859,7 @@ class OAuthAuthorizationService {
         oauthInstallation: d.oauthAuthorization.oauthInstallation,
         oauthAuthorization: d.oauthAuthorization,
         organization: d.oauthAuthorization.oauthInstallation.organization,
-        appActor: d.oauthAuthorization.oauthInstallation.appActor,
-        context: d.context
+        appActor: d.oauthAuthorization.oauthInstallation.appActor
       });
 
       let tokenValues = createIssuedOAuthTokenValues(d);
@@ -884,8 +885,7 @@ class OAuthAuthorizationService {
           oauthAuthorization: oauthToken.oauthAuthorization,
           oauthToken,
           organization: oauthToken.oauthAuthorization.oauthInstallation.organization,
-          appActor: oauthToken.oauthAuthorization.oauthInstallation.appActor,
-          context: d.context
+          appActor: oauthToken.oauthAuthorization.oauthInstallation.appActor
         })
       );
 
@@ -929,8 +929,7 @@ class OAuthAuthorizationService {
         oauthAuthorization: d.oauthToken.oauthAuthorization,
         oauthToken: d.oauthToken,
         organization: d.oauthToken.oauthAuthorization.oauthInstallation.organization,
-        appActor: d.oauthToken.oauthAuthorization.oauthInstallation.appActor,
-        context: d.context
+        appActor: d.oauthToken.oauthAuthorization.oauthInstallation.appActor
       });
 
       let tokenValues = createIssuedOAuthTokenValues(d);
@@ -954,8 +953,7 @@ class OAuthAuthorizationService {
           oauthAuthorization: oauthToken.oauthAuthorization,
           oauthToken,
           organization: oauthToken.oauthAuthorization.oauthInstallation.organization,
-          appActor: oauthToken.oauthAuthorization.oauthInstallation.appActor,
-          context: d.context
+          appActor: oauthToken.oauthAuthorization.oauthInstallation.appActor
         })
       );
 
@@ -1234,23 +1232,28 @@ class OAuthAuthorizationService {
       oauthAuthorizationFlow
     };
 
+    let auditScope = createOrganizationActorAuditScope({
+      organization,
+      organizationActor: member.actor,
+      context: d.context ?? { ip: '0.0.0.0' }
+    });
+
     await Fabric.fire('machine_access.oauth_authorization_request.accepted:before', {
       oauthApplication: oauthAuthorizationRequest.oauthApplication,
       oauthAuthorizationRequest,
       organization,
       member,
-      performedBy: member.actor,
-      context: d.context
+      auditScope
     });
 
     addAfterTransactionHook(() =>
       Fabric.fire('machine_access.oauth_authorization_request.accepted:after', {
         oauthApplication: oauthAuthorizationRequest.oauthApplication,
         oauthAuthorizationRequest,
+        previousOAuthAuthorizationRequest: d.oauthAuthorizationRequest,
         organization,
         member,
-        performedBy: member.actor,
-        context: d.context
+        auditScope
       })
     );
 
@@ -1283,14 +1286,21 @@ class OAuthAuthorizationService {
       }
     })();
 
-    if (organizationMember) {
+    let auditScope = organizationMember
+      ? createOrganizationActorAuditScope({
+          organization: organizationMember.organization,
+          organizationActor: organizationMember.member.actor,
+          context: d.context ?? { ip: '0.0.0.0' }
+        })
+      : null;
+
+    if (organizationMember && auditScope) {
       await Fabric.fire('machine_access.oauth_authorization_request.denied:before', {
         oauthApplication: d.oauthAuthorizationRequest.oauthApplication,
         oauthAuthorizationRequest: d.oauthAuthorizationRequest,
         organization: organizationMember.organization,
         member: organizationMember.member,
-        performedBy: organizationMember.member.actor,
-        context: d.context
+        auditScope
       });
     }
 
@@ -1313,15 +1323,15 @@ class OAuthAuthorizationService {
       oauthAuthorizationFlow: null
     };
 
-    if (organizationMember) {
+    if (organizationMember && auditScope) {
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_authorization_request.denied:after', {
           oauthApplication: oauthAuthorizationRequest.oauthApplication,
           oauthAuthorizationRequest: oauthAuthorizationRequest,
+          previousOAuthAuthorizationRequest: d.oauthAuthorizationRequest,
           organization: organizationMember.organization,
           member: organizationMember.member,
-          performedBy: organizationMember.member.actor,
-          context: d.context
+          auditScope
         })
       );
     }
@@ -1331,8 +1341,7 @@ class OAuthAuthorizationService {
 
   async revokeOAuthAuthorization(d: {
     oauthAuthorization: OAuthAuthorization;
-    performedBy: OrganizationActor;
-    context?: Context;
+    auditScope: AuditScope;
   }) {
     return await withTransaction(async db => {
       let existingAuthorization = await db.oAuthAuthorization.findFirstOrThrow({
@@ -1356,8 +1365,7 @@ class OAuthAuthorizationService {
         oauthAuthorization: existingAuthorization,
         organization: existingAuthorization.oauthInstallation.organization,
         appActor: existingAuthorization.oauthInstallation.appActor,
-        performedBy: d.performedBy,
-        context: d.context
+        auditScope: d.auditScope
       });
 
       let oauthAuthorization = await db.oAuthAuthorization.update({
@@ -1376,10 +1384,10 @@ class OAuthAuthorizationService {
           oauthApplication: oauthAuthorization.oauthApplication,
           oauthInstallation: oauthAuthorization.oauthInstallation,
           oauthAuthorization,
+          previousOAuthAuthorization: existingAuthorization,
           organization: oauthAuthorization.oauthInstallation.organization,
           appActor: oauthAuthorization.oauthInstallation.appActor,
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         })
       );
 

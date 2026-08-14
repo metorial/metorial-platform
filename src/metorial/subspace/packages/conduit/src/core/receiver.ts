@@ -311,20 +311,22 @@ export class Receiver {
     };
     this.processingMessages.set(message.messageId, processingMessage);
 
-    let initialExtensionMs = this.config.timeoutExtensionMs;
-    let initialExtension: TimeoutExtension = {
-      messageId: message.messageId,
-      extensionMs: initialExtensionMs,
-      type: 'timeout_extension'
-    };
-    processingMessage.lastExtensionSentAt = now;
-    processingMessage.currentDeadline = now + initialExtensionMs;
-    this.sendExtension(message, initialExtension).catch(err => {
-      console.error(
-        `CONDUIT.receiver.processMessage.initial_extension_error receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic}:`,
-        err
-      );
-    });
+    if (this.config.timeoutExtensionMs > 0) {
+      let initialExtensionMs = this.config.timeoutExtensionMs;
+      let initialExtension: TimeoutExtension = {
+        messageId: message.messageId,
+        extensionMs: initialExtensionMs,
+        type: 'timeout_extension'
+      };
+      processingMessage.lastExtensionSentAt = now;
+      processingMessage.currentDeadline = now + initialExtensionMs;
+      this.sendExtension(message, initialExtension).catch(err => {
+        console.error(
+          `CONDUIT.receiver.processMessage.initial_extension_error receiverId=${this.receiverId} messageId=${message.messageId} topic=${message.topic}:`,
+          err
+        );
+      });
+    }
 
     let ceilingTimer: Timer | undefined;
     // Declared out here so the catch can register a still-running handler as an
@@ -455,6 +457,7 @@ export class Receiver {
       // Rate-limit extensions (at least 1 second between them).
       const timeSinceLastExtension = now - processing.lastExtensionSentAt;
       const shouldSendExtension =
+        this.config.timeoutExtensionMs > 0 &&
         !reachedCeiling &&
         remaining < threshold &&
         remaining > 0 &&

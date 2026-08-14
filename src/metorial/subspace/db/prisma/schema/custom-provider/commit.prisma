@@ -53,6 +53,9 @@ model CustomProviderCommit {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
@@ -66,4 +69,5 @@ model CustomProviderCommit {
   @@index([status])
   @@index([trigger])
   @@index([type])
+  @@index([projectOid])
 }

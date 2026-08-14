@@ -1,3 +1,4 @@
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createQueue, QueueRetryError } from '@metorial/queue';
@@ -56,23 +57,51 @@ export let syncUserUpdateMemberQueueProcessor = syncUserUpdateMemberQueue.proces
     });
     if (!member) throw new QueueRetryError();
 
+    let auditScope = createOrganizationActorAuditScope({
+      organization: member.organization,
+      organizationActor: member.actor,
+      context: { ip: '0.0.0.0', ua: 'Metorial System' }
+    });
+    let actorInput = {
+      name: user.name,
+      image: user.image as PrismaJson.EntityImage,
+      email: user.type === 'system' ? undefined : user.email
+    };
+
     await Fabric.fire('organization.member.updated:before', {
       member,
       organization: member.organization,
-      performedBy: member.actor
+      input: {},
+      auditScope
     });
 
     let updatedMember = await db.organizationMember.update({
       where: {
         id: data.memberId
       },
-      data: {}
+      data: {},
+      include: {
+        actor: {
+          include: {
+            organization: true,
+            teams: { include: { team: true } }
+          }
+        },
+        organization: true,
+        user: true,
+        policies: {
+          include: {
+            accessPolicy: true
+          }
+        }
+      }
     });
 
     await Fabric.fire('organization.actor.updated:before', {
       actor: member.actor,
       organization: member.organization,
-      performedBy: member.actor
+      input: actorInput,
+      auditScope
     });
 
     let updatedActor = await db.organizationActor.update({
@@ -81,19 +110,28 @@ export let syncUserUpdateMemberQueueProcessor = syncUserUpdateMemberQueue.proces
         name: user.name,
         image: user.image as any,
         email: user.type === 'system' ? undefined : user.email
+      },
+      include: {
+        organization: true,
+        member: true,
+        teams: { include: { team: true } }
       }
     });
 
     await Fabric.fire('organization.actor.updated:after', {
       actor: updatedActor,
+      previousActor: member.actor,
       organization: member.organization,
-      performedBy: member.actor
+      input: actorInput,
+      auditScope
     });
 
     await Fabric.fire('organization.member.updated:after', {
-      member,
+      member: updatedMember,
+      previousMember: member,
       organization: member.organization,
-      performedBy: member.actor
+      input: {},
+      auditScope
     });
   }
 );

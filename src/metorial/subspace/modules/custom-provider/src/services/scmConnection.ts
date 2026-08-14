@@ -2,6 +2,12 @@ import type { PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Tenant, TenantActor } from '@metorial-subspace/db';
 import {
+  type MetorialFacing,
+  type MetorialFacingWithActor,
+  resolveMetorialFacing,
+  resolveMetorialFacingWithActor
+} from '@metorial-subspace/module-tenant';
+import {
   getTenantForOrigin,
   normalizeScmConnection,
   origin,
@@ -9,19 +15,47 @@ import {
   type ScmConnection
 } from '../origin';
 
+type GetScmConnectionByIdParams = {
+  scmConnectionId: string;
+};
+
+type ListScmConnectionsParams = PaginatorInput;
+
 class scmConnectionServiceImpl {
-  async getScmConnectionById(d: {
-    scmConnectionId: string;
-    tenant: Tenant;
-  }): Promise<ScmConnection> {
-    let tenant = await getTenantForOrigin(d.tenant);
-    return normalizeScmConnection(await origin.scmInstallation.get({
-      tenantId: tenant.id,
-      scmInstallationId: d.scmConnectionId
-    }));
+  async getScmConnectionById(d: MetorialFacing<GetScmConnectionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getScmConnectionByIdInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
   }
 
-  async listScmConnections(
+  async getScmConnectionByIdInternal(
+    d: { tenant: Tenant } & GetScmConnectionByIdParams
+  ): Promise<ScmConnection> {
+    let tenant = await getTenantForOrigin(d.tenant);
+    return normalizeScmConnection(
+      await origin.scmInstallation.get({
+        tenantId: tenant.id,
+        scmInstallationId: d.scmConnectionId
+      })
+    );
+  }
+
+  async listScmConnections(d: MetorialFacingWithActor<ListScmConnectionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithActor(d);
+
+    return this.listScmConnectionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      actor: scope.actor
+    });
+  }
+
+  async listScmConnectionsInternal(
     d: { tenant: Tenant; actor: TenantActor } & PaginatorInput
   ): Promise<OriginList<ScmConnection>> {
     let tenant = await getTenantForOrigin(d.tenant);

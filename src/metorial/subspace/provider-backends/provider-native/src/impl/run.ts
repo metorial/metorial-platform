@@ -161,9 +161,9 @@ class ProviderRunConnection extends IProviderRunConnection {
   override async getConnectionDiagnostics(): Promise<ConnectionDiagnostics> {
     return {
       state: 'connected',
-      transport: 'native',
+      transport: 'metorial/native',
       protocolVersion: null,
-      serverInfo: { name: this.params.provider.identifier },
+      serverInfo: { name: this.params.provider.slug },
       lastError: null
     };
   }

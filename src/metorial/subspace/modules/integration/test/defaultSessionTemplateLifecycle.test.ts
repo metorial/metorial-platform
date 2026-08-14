@@ -96,13 +96,13 @@ vi.mock('../src/queues/lifecycle/integrationInstanceGroupProvider', () => ({
 
 vi.mock('../src/services/integrationInstance', () => ({
   integrationInstanceService: {
-    createSessionTemplateForIntegrationInstance: createInstanceTemplateMock
+    createSessionTemplateForIntegrationInstanceInternal: createInstanceTemplateMock
   }
 }));
 
 vi.mock('../src/services/integrationInstanceGroup', () => ({
   integrationInstanceGroupService: {
-    createSessionTemplateForIntegrationInstanceGroup: createGroupTemplateMock
+    createSessionTemplateForIntegrationInstanceGroupInternal: createGroupTemplateMock
   }
 }));
 
@@ -140,7 +140,6 @@ describe('default session template lifecycle', () => {
 
     expect(createInstanceTemplateMock).toHaveBeenCalledWith({
       tenant: integrationInstance.tenant,
-      solution: integrationInstance.solution,
       environment: integrationInstance.environment,
       integrationInstance,
       input: {}
@@ -170,7 +169,6 @@ describe('default session template lifecycle', () => {
 
     expect(createGroupTemplateMock).toHaveBeenCalledWith({
       tenant: integrationInstanceGroup.tenant,
-      solution: integrationInstanceGroup.solution,
       environment: integrationInstanceGroup.environment,
       integrationInstanceGroup,
       input: {}

@@ -18,8 +18,12 @@ export let createProviderRun = async ({
       connectionOid: connection.oid,
       sessionProviderOid: instance.sessionProvider.oid,
       tenantOid: session.tenantOid,
+      projectOid: session.projectOid,
       solutionOid: session.solutionOid,
-      environmentOid: session.environmentOid
+      environmentOid: session.environmentOid,
+      // instanceOid above is the SessionProviderInstance; the mirrored Metorial
+      // instance is stored on metorialInstanceOid
+      metorialInstanceOid: session.instanceOid
     }
   });
 

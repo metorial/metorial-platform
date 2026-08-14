@@ -66,7 +66,6 @@ class alertInternalServiceImpl {
       let monitor = await monitorInternalService.upsertProtoGuardFilterMonitor({
         tenant: protoGuardAlert.tenant,
         environment: protoGuardAlert.environment,
-        solution: protoGuardAlert.solution,
         filter: instance.filter,
         timestamp: protoGuardAlert.createdAt
       });
@@ -96,7 +95,9 @@ class alertInternalServiceImpl {
             monitorOid: monitor.oid,
             protoGuardAlertOid: protoGuardAlert.oid,
             tenantOid: protoGuardAlert.tenantOid,
+            projectOid: protoGuardAlert.projectOid,
             environmentOid: protoGuardAlert.environmentOid,
+            instanceOid: protoGuardAlert.instanceOid,
             solutionOid: protoGuardAlert.solutionOid,
             createdAt: protoGuardAlert.createdAt
           }

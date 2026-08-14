@@ -51,7 +51,9 @@ let persistIngressNetworkLog = async (entry: BufferedIngressNetworkLogEntry) => 
     data: {
       ...getId('enclaveIngressNetworkLog'),
       tenantOid: entry.tenantOid,
+      projectOid: entry.projectOid,
       environmentOid: entry.environmentOid,
+      instanceOid: entry.instanceOid,
       solutionOid: entry.solutionOid,
       enclaveOid: entry.enclaveOid,
       sessionId: entry.sessionId,

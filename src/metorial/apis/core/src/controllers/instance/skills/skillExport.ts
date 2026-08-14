@@ -14,7 +14,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillExportPresenter } from '../../../presenters';
+import { skillExportPresenter } from '@metorial/presenters';
 import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 import { getSkillPluginAccess } from './skillPlugin';
 

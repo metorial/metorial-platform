@@ -28,6 +28,19 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  getMetorialSolution: async () => ({ oid: 3 }),
+  resolveMetorialFacing: async () => ({
+    tenant: { oid: BigInt(1) },
+    environment: { oid: BigInt(2) }
+  }),
+  resolveMetorialFacingWithOptionalActor: async () => ({
+    tenant: { oid: BigInt(1) },
+    environment: { oid: BigInt(2) },
+    actor: { oid: BigInt(4), id: 'actor_1' }
+  })
+}));
+
 vi.mock('./_shared', () => ({
   normalizeDateFilter: (filter: unknown) => filter,
   resolveMonitorOids: vi.fn(async () => undefined),
@@ -52,10 +65,9 @@ describe('alertService', () => {
   it('scopes list queries by tenant, environment, and solution', async () => {
     let { alertService } = await import('./alert');
 
-    let paginator = await alertService.listAlerts({
+    let paginator = await alertService.listAlertsInternal({
       tenant: { oid: BigInt(1) },
-      environment: { oid: BigInt(2) },
-      solution: { oid: 3 }
+      environment: { oid: BigInt(2) }
     } as any);
 
     await paginator.run({});
@@ -69,5 +81,44 @@ describe('alertService', () => {
         })
       })
     );
+  });
+
+  it('passes the resolved actor through every Metorial-facing alert action', async () => {
+    let { alertService } = await import('./alert');
+    let getAlertByIdInternal = vi
+      .spyOn(alertService, 'getAlertByIdInternal')
+      .mockResolvedValue({ id: 'alert_1' } as any);
+    let markViewedInternal = vi
+      .spyOn(alertService, 'markViewedInternal')
+      .mockResolvedValue({ id: 'alert_1' } as any);
+    let resolveAlertInternal = vi
+      .spyOn(alertService, 'resolveAlertInternal')
+      .mockResolvedValue({ id: 'alert_1' } as any);
+    let unresolveAlertInternal = vi
+      .spyOn(alertService, 'unresolveAlertInternal')
+      .mockResolvedValue({ id: 'alert_1' } as any);
+
+    let input = {
+      instance: {} as any,
+      organizationActor: {} as any,
+      alertId: 'alert_1'
+    };
+
+    await alertService.getAlertById(input);
+    await alertService.markViewed(input);
+    await alertService.resolveAlert(input);
+    await alertService.unresolveAlert(input);
+
+    let expected = {
+      tenant: { oid: BigInt(1) },
+      environment: { oid: BigInt(2) },
+      actor: { oid: BigInt(4), id: 'actor_1' },
+      alertId: 'alert_1'
+    };
+
+    expect(getAlertByIdInternal).toHaveBeenCalledWith(expected);
+    expect(markViewedInternal).toHaveBeenCalledWith(expected);
+    expect(resolveAlertInternal).toHaveBeenCalledWith(expected);
+    expect(unresolveAlertInternal).toHaveBeenCalledWith(expected);
   });
 });

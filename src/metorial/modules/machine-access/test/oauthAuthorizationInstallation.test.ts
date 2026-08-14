@@ -78,6 +78,13 @@ import { oauthAuthorizationInstallationService } from '../src/services/oauthAuth
 
 let baseOrg = { oid: 1n, id: 'org_1' } as any;
 let baseActor = { oid: 2n, id: 'actor_1' } as any;
+let testAuditScope = {
+  organizationOid: baseOrg.oid,
+  organizationActorOid: baseActor.oid,
+  actor: { type: 'org_actor' as const, id: baseActor.id },
+  context: { ip: '0.0.0.0' }
+} as any;
+
 let baseInstallation = {
   oid: 10n,
   id: 'oauth_install_1',
@@ -151,7 +158,7 @@ describe('oauthAuthorizationInstallationService', () => {
       oauthInstallation: {
         oid: 10n
       } as any,
-      performedBy: baseActor
+      auditScope: testAuditScope
     });
 
     expect(mockDb.oAuthInstallation.update).toHaveBeenCalledWith(
@@ -177,7 +184,7 @@ describe('oauthAuthorizationInstallationService', () => {
         oauthInstallation: {
           oid: 10n
         } as any,
-        performedBy: baseActor
+        auditScope: testAuditScope
       })
     ).rejects.toThrow(ServiceError);
 

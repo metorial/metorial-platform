@@ -10,7 +10,6 @@ import {
   getId,
   type Integration,
   type IntegrationStatus,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -24,7 +23,14 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
 import { createIntegrationVersion } from '../lib/versions';
 import {
@@ -82,10 +88,77 @@ type IntegrationWriteInput = {
   useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
 };
 
+export type ListIntegrationsParams = {
+  search?: string;
+  includeMagicMcpBackings?: boolean;
+
+  status?: IntegrationStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  providerIds?: string[];
+  integrationProviderIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIntegrationByIdParams = {
+  integrationId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIntegrationParams = {
+  input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    canAttachCustomToolFilters?: boolean;
+    canAttachCustomProviderConfig?: boolean;
+    canOverrideToolFilters?: boolean;
+    useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
+  };
+};
+
+export type UpsertMagicMcpIntegrationParams = {
+  integration?: Integration | null;
+  input: {
+    slug: string;
+    name: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    canAttachCustomToolFilters?: boolean;
+    canAttachCustomProviderConfig?: boolean;
+    canOverrideToolFilters?: boolean;
+    useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
+  };
+};
+
+export type UpdateIntegrationParams = {
+  integration: Integration;
+  input: {
+    name?: string;
+    description?: string | null;
+    metadata?: Record<string, any> | null;
+    privateMetadata?: Record<string, any> | null;
+    canAttachCustomToolFilters?: boolean;
+    canAttachCustomProviderConfig?: boolean;
+    canOverrideToolFilters?: boolean;
+    useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
+  };
+};
+
+export type ArchiveIntegrationParams = {
+  integration: Integration;
+  _canModifyMagicMcpBacking?: boolean;
+};
+
 class integrationServiceImpl {
   private integrationCreateData(d: {
     tenant: Tenant;
-    solution: Solution;
+    solution: { oid: number };
     environment: Environment;
     id: ReturnType<typeof getId>;
     slug: string;
@@ -111,8 +184,10 @@ class integrationServiceImpl {
         d.input.useIntegrationNameForSessionProviderNameTemplatesOverride ?? null,
       currentVersionIndex: 0,
       tenantOid: d.tenant.oid,
+      projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid,
-      environmentOid: d.environment.oid
+      environmentOid: d.environment.oid,
+      instanceOid: d.environment.instanceOid
     };
   }
 
@@ -137,29 +212,28 @@ class integrationServiceImpl {
     };
   }
 
-  async listIntegrations(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIntegrations(d: MetorialFacing<ListIntegrationsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    search?: string;
-    includeMagicMcpBackings?: boolean;
+    return this.listIntegrationsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    status?: IntegrationStatus[];
-    allowDeleted?: boolean;
+  async listIntegrationsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListIntegrationsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
-    ids?: string[];
-    providerIds?: string[];
-    integrationProviderIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let providers = await resolveProviders(d, d.providerIds);
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,
@@ -176,7 +250,7 @@ class integrationServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               OR: d.includeMagicMcpBackings
                 ? undefined
@@ -203,18 +277,27 @@ class integrationServiceImpl {
     );
   }
 
-  async getIntegrationById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIntegrationById(d: MetorialFacing<GetIntegrationByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getIntegrationByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getIntegrationByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetIntegrationByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let integration = await db.integration.findFirst({
       where: {
         id: d.integrationId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -225,27 +308,35 @@ class integrationServiceImpl {
     return integration;
   }
 
-  async createIntegration(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: {
-      name: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      canAttachCustomToolFilters?: boolean;
-      canAttachCustomProviderConfig?: boolean;
-      canOverrideToolFilters?: boolean;
-      useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
-    };
-  }) {
+  async createIntegration(d: MetorialFacing<CreateIntegrationParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration.created:before', eventBase);
+
+    let integration = await this.createIntegrationInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.integration.created:after', { ...eventBase, integration });
+
+    return integration;
+  }
+
+  async createIntegrationInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateIntegrationParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return await withTransaction(async db => {
       let newId = getId('integration');
       let integration = await db.integration.create({
         data: this.integrationCreateData({
           tenant: d.tenant,
-          solution: d.solution,
+          solution,
           environment: d.environment,
           id: newId,
           slug: getSlug(d.input),
@@ -268,23 +359,11 @@ class integrationServiceImpl {
     });
   }
 
-  async upsertMagicMcpIntegration(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integration?: Integration | null;
-    input: {
-      slug: string;
-      name: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      canAttachCustomToolFilters?: boolean;
-      canAttachCustomProviderConfig?: boolean;
-      canOverrideToolFilters?: boolean;
-      useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
-    };
-  }) {
+  async upsertMagicMcpIntegrationInternal(
+    d: { tenant: Tenant; environment: Environment } & UpsertMagicMcpIntegrationParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return await withTransaction(async db => {
       if (d.integration) {
         checkTenant(d, d.integration);
@@ -293,7 +372,7 @@ class integrationServiceImpl {
           where: {
             oid: d.integration.oid,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid
           },
           data: this.integrationUpdateData({ ...d.input, isMagicMcpBacking: true }),
@@ -312,7 +391,7 @@ class integrationServiceImpl {
         where: { slug: d.input.slug },
         create: this.integrationCreateData({
           tenant: d.tenant,
-          solution: d.solution,
+          solution,
           environment: d.environment,
           id: newId,
           slug: d.input.slug,
@@ -341,22 +420,22 @@ class integrationServiceImpl {
     });
   }
 
-  async updateIntegration(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integration: Integration;
-    input: {
-      name?: string;
-      description?: string | null;
-      metadata?: Record<string, any> | null;
-      privateMetadata?: Record<string, any> | null;
-      canAttachCustomToolFilters?: boolean;
-      canAttachCustomProviderConfig?: boolean;
-      canOverrideToolFilters?: boolean;
-      useIntegrationNameForSessionProviderNameTemplatesOverride?: boolean | null;
-    };
-  }) {
+  async updateIntegration(d: MetorialFacing<UpdateIntegrationParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateIntegrationInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateIntegrationInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateIntegrationParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integration);
     checkDeletedEdit(d.integration, 'update');
 
@@ -371,7 +450,7 @@ class integrationServiceImpl {
         where: {
           oid: d.integration.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -399,13 +478,29 @@ class integrationServiceImpl {
     });
   }
 
-  async archiveIntegration(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integration: Integration;
-    _canModifyMagicMcpBacking?: boolean;
-  }) {
+  async archiveIntegration(d: MetorialFacing<ArchiveIntegrationParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.integration.deleted:before', eventBase);
+
+    let integration = await this.archiveIntegrationInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.integration.deleted:after', { ...eventBase, integration });
+
+    return integration;
+  }
+
+  async archiveIntegrationInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveIntegrationParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integration);
     checkDeletedEdit(d.integration, 'archive');
     if (d.integration.isMagicMcpBacking && !d._canModifyMagicMcpBacking) {
@@ -422,7 +517,7 @@ class integrationServiceImpl {
         where: {
           oid: d.integration.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -440,13 +535,14 @@ class integrationServiceImpl {
     });
   }
 
-  async deleteIntegration(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integration: Integration;
-  }) {
+  async deleteIntegration(d: MetorialFacing<ArchiveIntegrationParams>) {
     return await this.archiveIntegration(d);
+  }
+
+  async deleteIntegrationInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveIntegrationParams
+  ) {
+    return await this.archiveIntegrationInternal(d);
   }
 }
 

@@ -26,11 +26,22 @@ model ProviderAuthConfigEvent {
   oauthSetupOid BigInt?
   oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
 
-  providerOid    BigInt
-  provider       Provider @relation(fields: [providerOid], references: [oid])
-  tenantOid      BigInt
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
   environmentOid BigInt
-  solutionOid    Int
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -47,6 +58,10 @@ model ProviderAuthConfigEvent {
   @@index([oauthSetupOid])
   @@index([providerInvocationId])
   @@index([providerOid, createdAt])
+  @@index([tenantOid])
+  @@index([environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model ProviderAuthConfigErrorGlobal {
@@ -63,10 +78,20 @@ model ProviderAuthConfigErrorGlobal {
   firstOccurrenceOid BigInt?
   firstOccurrence    ProviderAuthConfigError? @relation(fields: [firstOccurrenceOid], references: [oid], name: "ProviderAuthConfigErrorGroupToOccurrence")
 
-  providerOid    BigInt
-  provider       Provider @relation(fields: [providerOid], references: [oid])
-  tenantOid      BigInt
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
   environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   createdAt DateTime @default(now())
 
@@ -77,6 +102,10 @@ model ProviderAuthConfigErrorGlobal {
   @@unique([type, hash, tenantOid])
   @@index([createdAt])
   @@index([type])
+  @@index([tenantOid])
+  @@index([environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model ProviderAuthConfigError {
@@ -112,11 +141,22 @@ model ProviderAuthConfigError {
   oauthSetupOid BigInt?
   oauthSetup    ProviderOAuthSetup? @relation(fields: [oauthSetupOid], references: [oid])
 
-  providerOid    BigInt
-  provider       Provider @relation(fields: [providerOid], references: [oid])
-  tenantOid      BigInt
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
   environmentOid BigInt
-  solutionOid    Int
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
 
   createdAt DateTime @default(now())
 
@@ -131,4 +171,8 @@ model ProviderAuthConfigError {
   @@index([authCredentialsOid])
   @@index([oauthSetupOid])
   @@index([providerInvocationId])
+  @@index([tenantOid])
+  @@index([environmentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

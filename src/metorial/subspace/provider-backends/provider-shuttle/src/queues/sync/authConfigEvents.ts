@@ -128,7 +128,9 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
           authConfigVersion.authConfig.authCredentialsOid,
         providerOid: authConfigVersion.authConfig.providerOid,
         tenantOid: authConfigVersion.authConfig.tenantOid,
+        projectOid: authConfigVersion.authConfig.projectOid,
         environmentOid: authConfigVersion.authConfig.environmentOid,
+        instanceOid: authConfigVersion.authConfig.instanceOid,
         solutionOid: authConfigVersion.authConfig.solutionOid
       }
     });
@@ -166,7 +168,9 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
         authConfigVersion.authConfig.authCredentialsOid,
       providerOid: authConfigVersion.authConfig.providerOid,
       tenantOid: authConfigVersion.authConfig.tenantOid,
+      projectOid: authConfigVersion.authConfig.projectOid,
       environmentOid: authConfigVersion.authConfig.environmentOid,
+      instanceOid: authConfigVersion.authConfig.instanceOid,
       solutionOid: authConfigVersion.authConfig.solutionOid
     }
   });
@@ -197,7 +201,9 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       hash,
       providerOid: error.providerOid,
       tenantOid: error.tenantOid,
+      projectOid: error.projectOid,
       environmentOid: error.environmentOid,
+      instanceOid: error.instanceOid,
       firstOccurrenceOid: error.oid
     },
     update: {}

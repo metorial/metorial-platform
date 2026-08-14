@@ -38,8 +38,14 @@ model Monitor {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
@@ -56,4 +62,6 @@ model Monitor {
   @@index([tenantOid, environmentOid, solutionOid])
   @@index([protoGuardFilterOid])
   @@index([providerOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

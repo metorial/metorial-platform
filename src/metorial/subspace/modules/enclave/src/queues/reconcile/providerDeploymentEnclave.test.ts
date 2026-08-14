@@ -140,7 +140,6 @@ describe('reconcileProviderDeploymentEnclave', () => {
 
     expect(ensureEnclaveForProviderDeployment).toHaveBeenCalledWith({
       tenant: baseDeployment.tenant,
-      solution: baseDeployment.solution,
       environment: baseDeployment.environment,
       provider: baseDeployment.provider,
       providerDeployment: baseDeployment

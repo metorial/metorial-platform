@@ -11,6 +11,12 @@ import {
   type TenantActor
 } from '@metorial-subspace/db';
 import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  resolveMetorialFacingWithOptionalActor
+} from '@metorial-subspace/module-tenant';
+import {
   normalizeDateFilter,
   resolveMonitorOids,
   resolveProtoGuardAlertOids,
@@ -130,12 +136,14 @@ let createViewedEventOnce = async (d: {
   );
 
 let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | null }) => {
+  let solution = await getMetorialSolution();
+
   let alert = await db.monitorAlert.findFirst({
     where: {
       id: d.alertId,
       tenantOid: d.tenant.oid,
       environmentOid: d.environment.oid,
-      solutionOid: d.solution.oid
+      solutionOid: solution.oid
     },
     include: monitorAlertInclude
   });
@@ -168,7 +176,7 @@ let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | nu
               oid: alert.oid,
               tenantOid: d.tenant.oid,
               environmentOid: d.environment.oid,
-              solutionOid: d.solution.oid
+              solutionOid: solution.oid
             },
             include: monitorAlertInclude
           });
@@ -181,28 +189,41 @@ let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | nu
   return alert;
 };
 
+export type ListAlertsParams = Scope & {
+  ids?: string[];
+  monitorIds?: string[];
+  statuses?: MonitorAlertStatus[];
+  targets?: MonitorTarget[];
+  owners?: MonitorOwner[];
+  protoGuardAlertIds?: string[];
+  protoGuardRunIds?: string[];
+  protoGuardFilterIds?: string[];
+  specificationChangeNotificationIds?: string[];
+  providerIds?: string[];
+  sessionIds?: string[];
+  sessionMessageIds?: string[];
+  sessionConnectionIds?: string[];
+  providerRunIds?: string[];
+  sources?: ('protoguard' | 'specification_change')[];
+  createdAt?: DateFilter;
+  resolvedAt?: DateFilter;
+};
+
+export type GetAlertByIdParams = Scope & {
+  alertId: string;
+  actor?: TenantActor | null;
+};
+
 class alertServiceImpl {
-  async listAlerts(
-    d: Scope & {
-      ids?: string[];
-      monitorIds?: string[];
-      statuses?: MonitorAlertStatus[];
-      targets?: MonitorTarget[];
-      owners?: MonitorOwner[];
-      protoGuardAlertIds?: string[];
-      protoGuardRunIds?: string[];
-      protoGuardFilterIds?: string[];
-      specificationChangeNotificationIds?: string[];
-      providerIds?: string[];
-      sessionIds?: string[];
-      sessionMessageIds?: string[];
-      sessionConnectionIds?: string[];
-      providerRunIds?: string[];
-      sources?: ('protoguard' | 'specification_change')[];
-      createdAt?: DateFilter;
-      resolvedAt?: DateFilter;
-    }
-  ) {
+  async listAlerts(d: MetorialFacing<ListAlertsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listAlertsInternal({ ...rest, tenant, environment });
+  }
+
+  async listAlertsInternal(d: ListAlertsParams) {
+    let solution = await getMetorialSolution();
+
     let [
       monitorOids,
       protoGuardAlertOids,
@@ -234,7 +255,7 @@ class alertServiceImpl {
           where: {
             tenantOid: d.tenant.oid,
             environmentOid: d.environment.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
               monitorOids ? { monitorOid: { in: monitorOids } } : undefined!,
@@ -303,11 +324,29 @@ class alertServiceImpl {
     );
   }
 
-  async getAlertById(d: Scope & { alertId: string; actor?: TenantActor | null }) {
+  async getAlertById(d: MetorialFacing<GetAlertByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.getAlertByIdInternal({ ...rest, tenant, environment, actor });
+  }
+
+  async getAlertByIdInternal(d: GetAlertByIdParams) {
     return await getAlertById(d);
   }
 
-  async markViewed(d: Scope & { alertId: string; actor?: TenantActor | null }) {
+  async markViewed(d: MetorialFacing<GetAlertByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.markViewedInternal({ ...rest, tenant, environment, actor });
+  }
+
+  async markViewedInternal(d: GetAlertByIdParams) {
     let alert = await getAlertById(d);
 
     let now = new Date();
@@ -331,7 +370,16 @@ class alertServiceImpl {
     return await getAlertById(d);
   }
 
-  async resolveAlert(d: Scope & { alertId: string; actor?: TenantActor | null }) {
+  async resolveAlert(d: MetorialFacing<GetAlertByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.resolveAlertInternal({ ...rest, tenant, environment, actor });
+  }
+
+  async resolveAlertInternal(d: GetAlertByIdParams) {
     let alert = await getAlertById(d);
     let now = new Date();
 
@@ -366,7 +414,16 @@ class alertServiceImpl {
     return await getAlertById(d);
   }
 
-  async unresolveAlert(d: Scope & { alertId: string; actor?: TenantActor | null }) {
+  async unresolveAlert(d: MetorialFacing<GetAlertByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment, actor } = await resolveMetorialFacingWithOptionalActor({
+      instance,
+      organizationActor
+    });
+    return this.unresolveAlertInternal({ ...rest, tenant, environment, actor });
+  }
+
+  async unresolveAlertInternal(d: GetAlertByIdParams) {
     let alert = await getAlertById(d);
     let now = new Date();
 

@@ -14,10 +14,7 @@ import {
 import { Button, Flex, LinkTabs } from '@metorial/ui';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import {
-  OpenExplorerButton,
-  type OpenExplorerMode
-} from '../../../components/openExplorer';
+import { OpenExplorerButton, type OpenExplorerMode } from '../../../components/openExplorer';
 import { createMagicMcpTokenModal } from '../../../scenes/magicMcp/tokensTable';
 import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
@@ -180,10 +177,6 @@ export let MagicMcpServerLayout = () => {
                 {
                   label: 'Tokens',
                   to: Paths.instance.magicMcp.server(...serverPathParams, 'tokens')
-                },
-                {
-                  label: 'Connections',
-                  to: Paths.instance.magicMcp.server(...serverPathParams, 'connections')
                 },
                 {
                   label: 'Settings',

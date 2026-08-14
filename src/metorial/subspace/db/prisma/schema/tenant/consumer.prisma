@@ -1,0 +1,108 @@
+model Consumer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  organizationMemberOid BigInt?
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
+  isOrganizationMember Boolean @default(false)
+  isPortalConsumer     Boolean @default(false)
+  isManuallyCreated    Boolean @default(false)
+  isPending            Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles          ConsumerProfile[]
+  instanceConsumers InstanceConsumer[]
+
+  @@unique([email, organizationOid])
+  @@index([organizationMemberOid])
+  @@index([organizationActorOid])
+}
+
+model InstanceConsumer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name  String
+  email String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  organizationMemberOid BigInt?
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
+  isPending Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([instanceOid, consumerOid])
+  @@index([organizationMemberOid])
+  @@index([organizationActorOid])
+}
+
+enum ConsumerProfileInviteStatus {
+  unset
+  invited
+  accepted
+}
+
+enum ConsumerProfileStatus {
+  active
+  deleted
+}
+
+model ConsumerProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ConsumerProfileStatus @default(active)
+
+  inviteStatus ConsumerProfileInviteStatus @default(unset)
+
+  name  String
+  email String
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  organizationMemberOid BigInt?
+  organizationMember    OrganizationMember? @relation(fields: [organizationMemberOid], references: [oid], onDelete: SetNull)
+
+  organizationActorOid BigInt?
+  organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([organizationOid])
+  @@index([instanceOid])
+  @@index([consumerOid])
+  @@index([organizationMemberOid])
+  @@index([organizationActorOid])
+}

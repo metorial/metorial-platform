@@ -52,8 +52,14 @@ model ProviderSetupSession {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -104,6 +110,8 @@ model ProviderSetupSession {
   @@index([typeSelected])
   @@index([identityOid])
   @@index([integrationSetupSessionProviderOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum ProviderSetupSessionEventType {
@@ -176,8 +184,14 @@ model IntegrationSetupSession {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -204,6 +218,8 @@ model IntegrationSetupSession {
   @@index([status])
   @@index([integrationOid])
   @@index([integrationInstanceOid])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model IntegrationSetupSessionProvider {

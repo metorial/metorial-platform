@@ -309,15 +309,15 @@ describe('resource tenant services', () => {
   it('reuses an owner scope when both linked records exist', async () => {
     mocks.user.findUnique.mockResolvedValue({
       resourceTenantOid: 1n,
-      resourceGroupOid: 2n
-    });
-    mocks.resourceTenant.findUnique.mockResolvedValue({
-      oid: 1n,
-      id: 'crg_tn_1'
-    });
-    mocks.resourceGroup.findFirst.mockResolvedValue({
-      oid: 2n,
-      id: 'crg_en_1'
+      resourceGroupOid: 2n,
+      resourceTenant: {
+        oid: 1n,
+        id: 'crg_tn_1'
+      },
+      resourceGroup: {
+        oid: 2n,
+        id: 'crg_en_1'
+      }
     });
 
     await expect(

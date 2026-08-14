@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceToolCallService } from '@metorial/module-subspace';
+import { sessionService, toolCallService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { toolCallPresenter } from '../../../presenters';
+import { toolCallPresenter } from '@metorial/presenters';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 
 let toolCallGroup = instanceGroup.use(async ctx => {
@@ -20,7 +20,7 @@ let toolCallGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let toolCall = await subspaceToolCallService.get({
+  let toolCall = await toolCallService.getToolCallById({
     instance: ctx.instance,
     toolCallId: ctx.params.toolCallId
   });
@@ -95,7 +95,7 @@ export let toolCallController = Controller.create(
           identityIds: normalizeArrayParam(ctx.query.identity_id)
         });
 
-        let paginator = await subspaceToolCallService.list({
+        let paginator = await toolCallService.listToolCalls({
           instance: ctx.instance,
           allowDeleted: false,
           actorIds,
@@ -155,12 +155,18 @@ export let toolCallController = Controller.create(
         })
       )
       .do(async ctx => {
-        let toolCall = await subspaceToolCallService.create({
+        let session = await sessionService.getSessionById({
           instance: ctx.instance,
-          sessionId: ctx.body.session_id,
-          toolId: ctx.body.tool_id,
-          input: ctx.body.input,
-          metadata: ctx.body.metadata
+          sessionId: ctx.body.session_id
+        });
+        let toolCall = await toolCallService.createToolCall({
+          instance: ctx.instance,
+          session,
+          input: {
+            toolId: ctx.body.tool_id,
+            input: ctx.body.input,
+            metadata: ctx.body.metadata
+          }
         });
 
         return toolCallPresenter.present({

@@ -129,8 +129,7 @@ let ItemFrame = styled('div')`
   position: relative;
   min-width: 0;
 
-  &:hover ${Item},
-  &:focus-within ${Item} {
+  &:hover ${Item}, &:focus-within ${Item} {
     background: ${theme.colors.gray400};
   }
 `;
@@ -325,7 +324,7 @@ let SidebarGroup = ({
                 <RiArrowDownSLine
                   size={14}
                   style={{
-                    transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)',
+                    transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
                     transition: 'transform 0.2s'
                   }}
                 />

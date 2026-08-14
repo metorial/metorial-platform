@@ -5,7 +5,7 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { db, type Instance } from '@metorial/db';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import { magicMcpServerProviderService } from '@metorial-subspace/module-integration';
 import { MagicMcpResolvedTarget } from './magicMcpTarget';
 
 let getInactiveLinkedResourceMessage = (resource: 'server' | 'endpoint' | 'group') => {
@@ -82,12 +82,12 @@ export let assertMagicMcpServerBackingProvidersActive = async (d: {
   instance: Instance;
   magicMcpServerBackingId: string;
 }) => {
-  let result = await subspaceMagicMcpBackingService.listServerProviders({
+  let paginator = await magicMcpServerProviderService.listMagicMcpServerProviders({
     instance: d.instance,
     magicMcpServerBackingIds: [d.magicMcpServerBackingId],
-    status: ['active'],
-    limit: 1
+    status: ['active']
   });
+  let result = await paginator.run({ limit: 1 });
 
   if (!result.items.length) {
     throw new ServiceError(

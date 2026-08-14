@@ -25,6 +25,8 @@
     "@metorial-subspace/module-catalog": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/provider": "^1.0.0",
+    "@metorial/db": "^1.0.0",
+    "@metorial/fabric": "^1.0.0",
     "ipaddr.js": "^2.2.0",
     "@lowerdeck/delay": "workspace:2.0.0"
   },

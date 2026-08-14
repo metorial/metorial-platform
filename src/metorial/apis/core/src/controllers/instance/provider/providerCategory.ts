@@ -1,12 +1,12 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderListingCategoryService } from '@metorial/module-subspace';
+import { providerListingCategoryService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerCategoryPresenter } from '../../../presenters';
+import { providerCategoryPresenter } from '@metorial/presenters';
 
 let providerCategoryGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerCategoryId) {
@@ -18,7 +18,7 @@ let providerCategoryGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let category = await subspaceProviderListingCategoryService.get({
+  let category = await providerListingCategoryService.getProviderListingCategoryById({
     instance: ctx.instance,
     providerListingCategoryId: ctx.params.providerCategoryId
   });
@@ -57,7 +57,7 @@ export let providerCategoryController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderListingCategoryService.list({
+        let paginator = await providerListingCategoryService.listProviderListingCategories({
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

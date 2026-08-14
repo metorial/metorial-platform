@@ -98,6 +98,10 @@ model Organization {
   configs                                OrganizationConfig[]
   layouts                                OrganizationLayout[]
   namespaceProperties                    NamespaceProperty[]
+  auditLogs                              AuditLog[]
+  events                                 Event[]
+  auditLogDirtyTrackers                  AuditLogDirtyTracker[]
+  auditLogStreams                        AuditLogStream[]
 
   @@index([authVersion])
   @@index([previousSlugs])

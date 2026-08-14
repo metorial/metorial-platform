@@ -1,3 +1,4 @@
+export * from './adminProviderTelemetry';
 export * from './adminProviderTelemetryErrorGroup';
 export * from './ephemeralManagedSession';
 export * from './providerInvocation';
@@ -11,6 +12,7 @@ export * from './sessionError';
 export * from './sessionErrorGroup';
 export * from './sessionEvent';
 export * from './sessionMessage';
+export * from './sessionMcpMessaging';
 export * from './sessionParticipant';
 export * from './sessionProvider';
 export * from './sessionProviderInput';

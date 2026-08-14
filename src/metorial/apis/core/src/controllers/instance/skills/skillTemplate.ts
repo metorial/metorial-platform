@@ -14,7 +14,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillTemplatePresenter } from '../../../presenters';
+import { skillTemplatePresenter } from '@metorial/presenters';
 
 export let skillTemplateGroup = instanceGroup
   .use(hasFlags(['skills-enabled']))

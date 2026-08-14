@@ -220,8 +220,10 @@ export let syncIntegrationInstanceGroupSessionTemplate = async (data: {
           integrationInstanceProviderOid: sourceProvider.oid,
           integrationInstanceGroupProviderOid: groupProvider.oid,
           tenantOid: sessionTemplate.tenantOid,
+          projectOid: sessionTemplate.projectOid,
           solutionOid: sessionTemplate.solutionOid,
-          environmentOid: sessionTemplate.environmentOid
+          environmentOid: sessionTemplate.environmentOid,
+          instanceOid: sessionTemplate.instanceOid
         };
 
         if (existing) {

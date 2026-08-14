@@ -4,8 +4,12 @@ import { apiMux } from '@lowerdeck/api-mux';
 import { authApi } from '@metorial/api-auth';
 import { startMcpServer } from '@metorial/api-connection';
 import { apiServer } from '@metorial/api-core';
+import { integrationsApi } from '@metorial/api-integrations';
 import { fileContentApi, fileUploadApi } from '@metorial/api-files';
 import { authenticate } from '@metorial/auth';
+
+let { initializeSnowflakeWorkerLease } = await import('@metorial-subspace/db');
+await initializeSnowflakeWorkerLease({ redisUrl: process.env.REDIS_URL });
 
 let apiPort = parseInt(process.env.API_PORT || '4310');
 let filesPort = parseInt(process.env.FILES_PORT || '4318');
@@ -38,6 +42,11 @@ let server = apiMux(
 Bun.serve({
   port: apiPort,
   fetch: server
+});
+
+Bun.serve({
+  port: integrationsApiPort,
+  fetch: integrationsApi.fetch
 });
 
 Bun.serve({

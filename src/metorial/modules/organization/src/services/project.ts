@@ -8,7 +8,7 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
@@ -21,8 +21,8 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { syncBrandQueue } from '../queues/syncBrand';
-import { syncSubspaceTenantQueue } from '../queues/syncSubspaceTenant';
 import { instanceService } from './instance';
 
 let getProjectSlug = createSlugGenerator(
@@ -99,14 +99,13 @@ class ProjectService {
 
   async createProject(d: {
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       magicMcpSessionDurationMinutes?: number;
     };
   }) {
-    return withTransaction(async db => {
+    let { project, instance } = await withTransaction(async db => {
       await Fabric.fire('organization.project.created:before', d);
 
       let project = await db.project.create({
@@ -123,11 +122,10 @@ class ProjectService {
         }
       });
 
-      await instanceService.createInstance({
+      let instance = await instanceService.createInstance({
         project,
         organization: d.organization,
-        performedBy: d.performedBy,
-        context: d.context,
+        auditScope: d.auditScope,
         input: {
           name: `Production`,
           type: 'production'
@@ -135,25 +133,25 @@ class ProjectService {
       });
 
       await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
-      await addAfterTransactionHook(() =>
-        syncSubspaceTenantQueue.add({ projectId: project.id })
-      );
 
       await Fabric.fire('organization.project.created:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         project,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
-      return project;
+      return { project, instance };
     });
+
+    await metorialResourceService.syncInstance(instance);
+    return project;
   }
 
   async updateProject(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       slug?: string;
@@ -163,7 +161,7 @@ class ProjectService {
   }) {
     await this.ensureProjectActive(d.project);
 
-    return withTransaction(async db => {
+    let project = await withTransaction(async db => {
       await Fabric.fire('organization.project.updated:before', d);
 
       if (d.input.slug && d.input.slug !== d.project.slug) {
@@ -195,25 +193,26 @@ class ProjectService {
       });
 
       await addAfterTransactionHook(() => syncBrandQueue.add({ projectId: project.id }));
-      await addAfterTransactionHook(() =>
-        syncSubspaceTenantQueue.add({ projectId: project.id })
-      );
 
       await Fabric.fire('organization.project.updated:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         project,
-        performedBy: d.performedBy
+        previousProject: d.project,
+        auditScope: d.auditScope
       });
 
       return project;
     });
+
+    await metorialResourceService.syncProject(project);
+    return project;
   }
 
   async deleteProject(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.ensureProjectActive(d.project);
 

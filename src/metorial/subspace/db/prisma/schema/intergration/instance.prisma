@@ -27,8 +27,14 @@ model IntegrationInstance {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -58,6 +64,8 @@ model IntegrationInstance {
   @@index([tenantOid, solutionOid, environmentOid, status, isHiddenDraft])
   @@index([integrationOid, status])
   @@index([status, isHiddenDraft, archivedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 enum IntegrationInstanceProviderStatus {
@@ -97,8 +105,14 @@ model IntegrationInstanceProvider {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -119,6 +133,8 @@ model IntegrationInstanceProvider {
   @@index([tenantOid, solutionOid, environmentOid, status])
   @@index([integrationInstanceOid, status])
   @@index([integrationProviderOid, status])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model IntegrationInstanceProviderVersion {

@@ -96,6 +96,7 @@ let getImmutableBucketForRepoVersion = async (d: {
 
           repoOid: provider.scmRepo.oid,
           tenantOid: provider.tenantOid,
+          projectOid: provider.projectOid,
           solutionOid: provider.solutionOid
         }
       });
@@ -138,6 +139,7 @@ let getImmutableBucketForRepoVersion = async (d: {
       id: immutableBucketOriginId,
 
       tenantOid: d.tenant.oid,
+      projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid,
 
       isSynced: false,
@@ -206,6 +208,7 @@ let getImmutableBucketForFiles = async (d: {
         id: originDraftBucket.id,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: d.solution.oid,
 
         isSynced: false,
@@ -258,6 +261,7 @@ let getImmutableBucketForFiles = async (d: {
       id: immutableBucketOrigin.id,
 
       tenantOid: d.tenant.oid,
+      projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid,
 
       isSynced: false,

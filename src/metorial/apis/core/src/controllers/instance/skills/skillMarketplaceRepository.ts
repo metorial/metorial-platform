@@ -12,7 +12,7 @@ import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
   bucketEditorTokenPresenter,
   skillMarketplaceRepositoryPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { getSkillMarketplaceAccess, skillMarketplaceGroup } from './skillMarketplace';
 
 let readScopes = ['instance.skill:read'] as const;

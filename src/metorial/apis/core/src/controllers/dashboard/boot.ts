@@ -4,7 +4,7 @@ import { organizationService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { userGroup } from '../../middleware/userGroup';
-import { bootPresenter } from '../../presenters';
+import { bootPresenter } from '@metorial/presenters';
 
 export let dashboardBootController = Controller.create(
   {

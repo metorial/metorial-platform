@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCallbackDestinationService } from '@metorial/module-subspace';
+import { callbackDestinationService } from '@metorial-subspace/module-callback';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { callbackDestinationPresenter } from '../../../presenters';
+import { callbackDestinationPresenter } from '@metorial/presenters';
 
 let callbackDestinationGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.callbackDestinationId) {
@@ -19,12 +19,18 @@ let callbackDestinationGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let callbackDestination = await subspaceCallbackDestinationService.get({
+  let callbackDestination = await callbackDestinationService.getCallbackDestinationById({
     instance: ctx.instance,
     callbackDestinationId: ctx.params.callbackDestinationId
   });
+  let enrichedCallbackDestination = await callbackDestinationService.enrichCallbackDestination(
+    {
+      instance: ctx.instance,
+      callbackDestination
+    }
+  );
 
-  return { callbackDestination };
+  return { callbackDestination: enrichedCallbackDestination };
 });
 
 export let callbackDestinationController = Controller.create(
@@ -57,7 +63,7 @@ export let callbackDestinationController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCallbackDestinationService.list({
+        let paginator = await callbackDestinationService.listCallbackDestinations({
           instance: ctx.instance,
           callbackIds: normalizeArrayParam(ctx.query.callback_id),
           createdAt: ctx.query.created_at,
@@ -65,9 +71,16 @@ export let callbackDestinationController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let callbackDestinations = await callbackDestinationService.enrichCallbackDestinations(
+          {
+            instance: ctx.instance,
+            callbackDestinations: list.items
+          }
+        );
 
-        return Paginator.present(list, callbackDestination =>
-          callbackDestinationPresenter.present({ callbackDestination })
+        return Paginator.present(
+          { ...list, items: callbackDestinations },
+          callbackDestination => callbackDestinationPresenter.present({ callbackDestination })
         );
       }),
 
@@ -123,12 +136,18 @@ export let callbackDestinationController = Controller.create(
       )
       .output(callbackDestinationPresenter)
       .do(async ctx => {
-        let callbackDestination = await subspaceCallbackDestinationService.create({
+        let callbackDestination = await callbackDestinationService.createCallbackDestination({
           instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          url: ctx.body.url
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            url: ctx.body.url
+          }
+        });
+        callbackDestination = await callbackDestinationService.enrichCallbackDestination({
+          instance: ctx.instance,
+          callbackDestination
         });
 
         return callbackDestinationPresenter.present({ callbackDestination });
@@ -178,13 +197,19 @@ export let callbackDestinationController = Controller.create(
       )
       .output(callbackDestinationPresenter)
       .do(async ctx => {
-        let callbackDestination = await subspaceCallbackDestinationService.update({
+        let callbackDestination = await callbackDestinationService.updateCallbackDestination({
           instance: ctx.instance,
-          callbackDestinationId: ctx.callbackDestination.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          url: ctx.body.url
+          callbackDestination: ctx.callbackDestination,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            url: ctx.body.url
+          }
+        });
+        callbackDestination = await callbackDestinationService.enrichCallbackDestination({
+          instance: ctx.instance,
+          callbackDestination
         });
 
         return callbackDestinationPresenter.present({ callbackDestination });
@@ -205,9 +230,13 @@ export let callbackDestinationController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .output(callbackDestinationPresenter)
       .do(async ctx => {
-        let callbackDestination = await subspaceCallbackDestinationService.archive({
+        let callbackDestination = await callbackDestinationService.archiveCallbackDestination({
           instance: ctx.instance,
-          callbackDestinationId: ctx.callbackDestination.id
+          callbackDestination: ctx.callbackDestination
+        });
+        callbackDestination = await callbackDestinationService.enrichCallbackDestination({
+          instance: ctx.instance,
+          callbackDestination
         });
 
         return callbackDestinationPresenter.present({ callbackDestination });

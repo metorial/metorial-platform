@@ -184,6 +184,11 @@ let coreScopesRaw = [
   'organization.sandbox:read' as const,
   'organization.sandbox:write' as const,
 
+  'organization.audit_log:read' as const,
+
+  'organization.audit_log_stream:read' as const,
+  'organization.audit_log_stream:write' as const,
+
   'organization.team:read' as const,
   'organization.team:write' as const,
 

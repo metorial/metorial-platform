@@ -1,3 +1,4 @@
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { db, getImageUrl } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { organizationActorService } from '../services/organizationActor';
@@ -34,7 +35,11 @@ export let syncBrandQueueProcessor = syncBrandQueue.process(async data => {
 
   await projectBrandService.upsertProjectBrand({
     project,
-    performedBy: actor,
+    auditScope: createOrganizationActorAuditScope({
+      organization: project.organization,
+      organizationActor: actor,
+      context: { ip: '0.0.0.0', ua: 'Metorial System' }
+    }),
     isAutoUpdate: true,
     input: {
       name: project.name,

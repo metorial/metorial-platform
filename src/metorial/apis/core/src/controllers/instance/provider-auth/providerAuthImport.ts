@@ -1,14 +1,19 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderAuthImportService } from '@metorial/module-subspace';
+import {
+  providerAuthConfigService,
+  providerAuthImportService
+} from '@metorial-subspace/module-auth';
+import { providerService } from '@metorial-subspace/module-catalog';
+import { providerDeploymentService } from '@metorial-subspace/module-deployment';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { authImportSchemaPresenter, providerAuthImportPresenter } from '../../../presenters';
+import { authImportSchemaPresenter, providerAuthImportPresenter } from '@metorial/presenters';
 
 let providerAuthImportGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthImportId) {
@@ -20,7 +25,7 @@ let providerAuthImportGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let authImport = await subspaceProviderAuthImportService.get({
+  let authImport = await providerAuthImportService.getProviderAuthImportById({
     instance: ctx.instance,
     providerAuthImportId: ctx.params.providerAuthImportId
   });
@@ -75,7 +80,7 @@ export let providerAuthImportController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceProviderAuthImportService.list({
+        let paginator = await providerAuthImportService.listProviderAuthImports({
           instance: ctx.instance,
           allowDeleted: false,
 
@@ -170,18 +175,38 @@ export let providerAuthImportController = Controller.create(
       )
       .output(providerAuthImportPresenter)
       .do(async ctx => {
-        let authImport = await subspaceProviderAuthImportService.create({
-          instance: ctx.instance,
-          providerId: ctx.body.provider_id,
-          providerDeploymentId: ctx.body.provider_deployment_id,
-          providerAuthConfigId: ctx.body.provider_auth_config_id,
-          providerAuthMethodId: ctx.body.provider_auth_method_id,
+        let provider = ctx.body.provider_id
+          ? await providerService.getProviderById({
+              instance: ctx.instance,
+              providerId: ctx.body.provider_id
+            })
+          : undefined;
+        let providerDeployment = ctx.body.provider_deployment_id
+          ? await providerDeploymentService.getProviderDeploymentById({
+              instance: ctx.instance,
+              providerDeploymentId: ctx.body.provider_deployment_id
+            })
+          : undefined;
+        let providerAuthConfig = ctx.body.provider_auth_config_id
+          ? await providerAuthConfigService.getProviderAuthConfigById({
+              instance: ctx.instance,
+              providerAuthConfigId: ctx.body.provider_auth_config_id
+            })
+          : undefined;
 
-          note: ctx.body.note,
-          config: ctx.body.value,
-          ip: ctx.context.ip,
-          ua: ctx.context.ua ?? '',
-          metadata: ctx.body.metadata
+        let authImport = await providerAuthImportService.createProviderAuthImport({
+          instance: ctx.instance,
+          provider,
+          providerDeployment,
+          providerAuthConfig,
+          input: {
+            authMethodId: ctx.body.provider_auth_method_id,
+            note: ctx.body.note,
+            config: ctx.body.value,
+            ip: ctx.context.ip,
+            ua: ctx.context.ua ?? '',
+            metadata: ctx.body.metadata
+          }
         });
 
         return providerAuthImportPresenter.present({
@@ -213,12 +238,33 @@ export let providerAuthImportController = Controller.create(
       )
       .output(authImportSchemaPresenter)
       .do(async ctx => {
-        let schema = await subspaceProviderAuthImportService.getSchema({
+        let provider = ctx.query.provider_id
+          ? await providerService.getProviderById({
+              instance: ctx.instance,
+              providerId: ctx.query.provider_id
+            })
+          : undefined;
+        let providerDeployment = ctx.query.provider_deployment_id
+          ? await providerDeploymentService.getProviderDeploymentById({
+              instance: ctx.instance,
+              providerDeploymentId: ctx.query.provider_deployment_id
+            })
+          : undefined;
+        let providerAuthConfig = ctx.query.provider_auth_config_id
+          ? await providerAuthConfigService.getProviderAuthConfigById({
+              instance: ctx.instance,
+              providerAuthConfigId: ctx.query.provider_auth_config_id
+            })
+          : undefined;
+
+        let schema = await providerAuthImportService.getProviderAuthImportSchema({
           instance: ctx.instance,
-          providerId: ctx.query.provider_id,
-          providerDeploymentId: ctx.query.provider_deployment_id,
-          providerAuthConfigId: ctx.query.provider_auth_config_id,
-          providerAuthMethodId: ctx.query.provider_auth_method_id
+          provider,
+          providerDeployment,
+          providerAuthConfig,
+          input: {
+            authMethodId: ctx.query.provider_auth_method_id
+          }
         });
 
         return authImportSchemaPresenter.present({

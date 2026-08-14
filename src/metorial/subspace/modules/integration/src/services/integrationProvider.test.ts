@@ -5,6 +5,7 @@ let {
   tx,
   providerDeploymentServiceMock,
   providerServiceMock,
+  providerAuthMethodServiceMock,
   providerAuthCredentialsServiceMock,
   createIntegrationProviderVersionMock,
   createIntegrationVersionMock,
@@ -27,13 +28,18 @@ let {
       integrationProvider: createModel()
     },
     providerDeploymentServiceMock: {
-      getProviderDeploymentById: vi.fn()
+      getProviderDeploymentByIdInternal: vi.fn()
     },
     providerServiceMock: {
-      getProviderById: vi.fn()
+      getProviderByIdInternal: vi.fn()
+    },
+    providerAuthMethodServiceMock: {
+      getProviderAuthMethodByIdInternal: vi.fn(),
+      listProviderAuthMethodsInternal: vi.fn()
     },
     providerAuthCredentialsServiceMock: {
-      listProviderAuthCredentials: vi.fn()
+      getProviderAuthCredentialsByIdInternal: vi.fn(),
+      listProviderAuthCredentialsInternal: vi.fn()
     },
     createIntegrationProviderVersionMock: vi.fn(),
     createIntegrationVersionMock: vi.fn(),
@@ -49,9 +55,7 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-catalog', () => ({
-  providerAuthMethodService: {
-    listProviderAuthMethods: vi.fn()
-  },
+  providerAuthMethodService: providerAuthMethodServiceMock,
   providerService: providerServiceMock
 }));
 
@@ -70,7 +74,8 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
-  checkTenant: vi.fn()
+  checkTenant: vi.fn(),
+  getMetorialSolution: vi.fn(async () => ({ oid: 2 }))
 }));
 
 vi.mock('../lib/versions', () => ({
@@ -136,7 +141,6 @@ let existingProvider = {
 
 let input = {
   tenant: { oid: 1n },
-  solution: { oid: 2 },
   environment: { oid: 3n },
   integration: {
     oid: 10n,
@@ -153,15 +157,20 @@ describe('integrationProviderService.ensureIntegrationProviderForDeployment', ()
   beforeEach(() => {
     vi.clearAllMocks();
 
-    providerDeploymentServiceMock.getProviderDeploymentById.mockResolvedValue(deployment);
-    providerServiceMock.getProviderById.mockResolvedValue(deployment.provider);
+    providerDeploymentServiceMock.getProviderDeploymentByIdInternal.mockResolvedValue(
+      deployment
+    );
+    providerServiceMock.getProviderByIdInternal.mockResolvedValue(deployment.provider);
+    providerAuthCredentialsServiceMock.listProviderAuthCredentialsInternal.mockResolvedValue({
+      run: vi.fn(async () => ({ items: [] }))
+    });
     tx.integrationProvider.findUnique.mockResolvedValue(existingProvider);
     tx.integrationProvider.upsert.mockResolvedValue(existingProvider);
     tx.integrationProvider.findUniqueOrThrow.mockResolvedValue(existingProvider);
   });
 
   it('preserves an existing provider tool filter when input omits toolFilters', async () => {
-    await integrationProviderService.ensureIntegrationProviderForDeployment(input);
+    await integrationProviderService.ensureIntegrationProviderForDeploymentInternal(input);
 
     expect(tx.integrationProvider.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -174,7 +183,7 @@ describe('integrationProviderService.ensureIntegrationProviderForDeployment', ()
   });
 
   it('treats explicit null toolFilters as an allow-all reset', async () => {
-    await integrationProviderService.ensureIntegrationProviderForDeployment({
+    await integrationProviderService.ensureIntegrationProviderForDeploymentInternal({
       ...input,
       input: {
         ...input.input,
@@ -204,9 +213,12 @@ describe('integrationProviderService.createIntegrationProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    providerDeploymentServiceMock.getProviderDeploymentById.mockResolvedValue(deployment);
-    providerServiceMock.getProviderById.mockResolvedValue(deployment.provider);
+    providerDeploymentServiceMock.getProviderDeploymentByIdInternal.mockResolvedValue(
+      deployment
+    );
+    providerServiceMock.getProviderByIdInternal.mockResolvedValue(deployment.provider);
     tx.integrationProvider.count.mockResolvedValue(0);
+    tx.integrationProvider.create.mockResolvedValue(existingProvider);
     tx.integrationProvider.findUniqueOrThrow.mockResolvedValue(existingProvider);
   });
 
@@ -221,7 +233,7 @@ describe('integrationProviderService.createIntegrationProvider', () => {
       status: 'active'
     });
 
-    await integrationProviderService.createIntegrationProvider({
+    await integrationProviderService.createIntegrationProviderInternal({
       ...input,
       input: {
         providerId: deployment.provider.id,
@@ -242,5 +254,42 @@ describe('integrationProviderService.createIntegrationProvider', () => {
         toolFilter: restrictiveToolFilter
       })
     );
+  });
+
+  it('resolves explicit auth credentials through the internal tenant scope', async () => {
+    providerAuthMethodServiceMock.getProviderAuthMethodByIdInternal.mockResolvedValue({
+      oid: 80n,
+      id: 'pam_1',
+      providerOid: deployment.provider.oid,
+      type: 'api_key'
+    });
+    providerAuthCredentialsServiceMock.getProviderAuthCredentialsByIdInternal.mockResolvedValue(
+      {
+        oid: 70n,
+        id: 'pac_1',
+        providerOid: deployment.provider.oid,
+        status: 'active'
+      }
+    );
+
+    await expect(
+      integrationProviderService.createIntegrationProviderInternal({
+        ...input,
+        input: {
+          providerId: deployment.provider.id,
+          providerDeploymentId: deployment.id,
+          providerAuthMethodId: 'pam_1',
+          providerAuthCredentialsId: 'pac_1'
+        }
+      })
+    ).resolves.toEqual(existingProvider);
+
+    expect(
+      providerAuthCredentialsServiceMock.getProviderAuthCredentialsByIdInternal
+    ).toHaveBeenCalledWith({
+      tenant: input.tenant,
+      environment: input.environment,
+      providerAuthCredentialsId: 'pac_1'
+    });
   });
 });

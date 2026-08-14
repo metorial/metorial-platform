@@ -1,12 +1,19 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceProviderToolService } from '@metorial/module-subspace';
+import {
+  providerToolService,
+  providerVersionService
+} from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
-import { providerToolPresenter } from '../../../presenters';
+import {
+  instanceGroup,
+  instanceLegacyPath,
+  instancePath
+} from '../../../middleware/instanceGroup';
+import { providerToolPresenter } from '@metorial/presenters';
 
 let providerToolGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerToolId) {
@@ -18,7 +25,7 @@ let providerToolGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let tool = await subspaceProviderToolService.get({
+  let tool = await providerToolService.getProviderToolById({
     instance: ctx.instance,
     providerToolId: ctx.params.providerToolId
   });
@@ -55,13 +62,17 @@ export let providerToolController = Controller.create(
         )
       )
       .do(async ctx => {
+        let providerVersion = await providerVersionService.getProviderVersionById({
+          instance: ctx.instance,
+          providerVersionId: ctx.query.provider_version_id
+        });
         let listInput = {
           instance: ctx.instance,
-          providerVersionId: ctx.query.provider_version_id,
+          providerVersion,
           providerAuthMethodIds: normalizeArrayParam(ctx.query.provider_auth_method_id)
         };
 
-        let paginator = await subspaceProviderToolService.list(listInput);
+        let paginator = await providerToolService.listProviderTools(listInput);
 
         let list = await paginator.run(ctx.query);
 

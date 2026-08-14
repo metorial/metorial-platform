@@ -11,7 +11,6 @@ import {
   type ProviderDeploymentVersion,
   type ProviderSetupSession,
   type ProviderVariant,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -19,6 +18,10 @@ import type { ProviderSetupSessionUncheckedUpdateInput } from '@metorial-subspac
 import { providerListingService, providerService } from '@metorial-subspace/module-catalog';
 import { providerConfigService } from '@metorial-subspace/module-deployment';
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
+import {
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
@@ -69,9 +72,11 @@ class providerSetupSessionUiServiceImpl {
         privateMetadata: d.config.privateMetadata,
         toolFilter: d.toolFilters ?? d.config.toolFilter,
         tenantOid: d.config.tenantOid,
+        projectOid: d.config.projectOid,
         providerOid: d.config.providerOid,
         solutionOid: d.config.solutionOid,
         environmentOid: d.config.environmentOid,
+        instanceOid: d.config.instanceOid,
         specificationOid: d.config.specificationOid,
         deploymentOid: d.config.deploymentOid,
         fromVaultOid: d.config.fromVaultOid,
@@ -129,9 +134,8 @@ class providerSetupSessionUiServiceImpl {
       };
     }
 
-    let schema = await providerConfigService.getProviderConfigSchema({
+    let schema = await providerConfigService.getProviderConfigSchemaInternal({
       tenant: fullSession.tenant,
-      solution: fullSession.solution,
       environment: fullSession.environment,
       provider: fullSession.provider,
       providerDeployment: fullSession.deployment ?? undefined
@@ -156,9 +160,26 @@ class providerSetupSessionUiServiceImpl {
     };
   }
 
-  async getConfigSchemaWithoutSession(d: {
+  async getConfigSchemaWithoutSession(
+    d: MetorialFacing<{
+      provider: Provider & { defaultVariant: ProviderVariant | null };
+      deployment?: ProviderDeployment & {
+        currentVersion: ProviderDeploymentVersion | null;
+      };
+    }>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getConfigSchemaWithoutSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getConfigSchemaWithoutSessionInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider & { defaultVariant: ProviderVariant | null };
     deployment?: ProviderDeployment & {
@@ -167,9 +188,8 @@ class providerSetupSessionUiServiceImpl {
   }) {
     checkProviderMatch(d.provider, d.deployment);
 
-    let schema = await providerConfigService.getProviderConfigSchema({
+    let schema = await providerConfigService.getProviderConfigSchemaInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
 
       provider: d.provider,
@@ -207,9 +227,8 @@ class providerSetupSessionUiServiceImpl {
 
     this.assertSelectedAuthMethod(fullSession);
 
-    let schema = await providerAuthConfigService.getProviderAuthConfigSchema({
+    let schema = await providerAuthConfigService.getProviderAuthConfigSchemaInternal({
       tenant: fullSession.tenant,
-      solution: fullSession.solution,
       environment: fullSession.environment,
 
       provider: fullSession.provider,
@@ -301,9 +320,8 @@ class providerSetupSessionUiServiceImpl {
         }
 
         let setAuthConfigInner =
-          await providerSetupSessionInternalService.createProviderAuthConfig({
+          await providerSetupSessionInternalService.createProviderAuthConfigInternal({
             tenant: currentSession.tenant,
-            solution: currentSession.solution,
             provider: currentSession.provider,
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
@@ -438,9 +456,8 @@ class providerSetupSessionUiServiceImpl {
 
         if (allowToolFilterConfirmation && currentSession.config) {
           let nextConfig = currentSession.config.isEphemeral
-            ? await providerConfigService.updateProviderConfig({
+            ? await providerConfigService.updateProviderConfigInternal({
                 tenant: currentSession.tenant,
-                solution: currentSession.solution,
                 environment: currentSession.environment,
                 providerConfig: currentSession.config,
                 input: {
@@ -459,7 +476,6 @@ class providerSetupSessionUiServiceImpl {
         } else {
           let setConfigInner = await providerSetupSessionInternalService.createProviderConfig({
             tenant: currentSession.tenant,
-            solution: currentSession.solution,
             provider: currentSession.provider,
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
@@ -521,9 +537,8 @@ class providerSetupSessionUiServiceImpl {
 
     let providerSearch = session.configuration?.providerSearch;
 
-    let paginator = await providerListingService.listProviderListings({
+    let paginator = await providerListingService.listProviderListingsInternal({
       tenant: session.tenant,
-      solution: session.solution,
       environment: session.environment,
       search: d.search,
       providerGroupIds: undefinedIfEmpty(
@@ -602,17 +617,15 @@ class providerSetupSessionUiServiceImpl {
           );
         }
 
-        let provider = await providerService.getProviderById({
+        let provider = await providerService.getProviderByIdInternal({
           providerId: d.providerId,
           tenant: session.tenant,
-          environment: session.environment,
-          solution: session.solution
+          environment: session.environment
         });
 
         let initialized =
           await providerSetupSessionInternalService.initializeProviderSetupSessionProvider({
             tenant: session.tenant,
-            solution: session.solution,
             environment: session.environment,
             provider,
             expiresAt: session.expiresAt,

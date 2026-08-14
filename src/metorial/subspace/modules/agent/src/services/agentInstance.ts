@@ -10,7 +10,6 @@ import {
   db,
   type Environment,
   getId,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -19,7 +18,11 @@ import {
   type DateFilter,
   normalizeDateFilter
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 let include = {
   agent: true,
@@ -27,21 +30,51 @@ let include = {
   agentClientRegistration: true
 };
 
+export type ListAgentInstancesParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  agent: Agent;
+
+  types?: AgentInstanceType[];
+  ids?: string[];
+  agentClientIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetAgentInstanceByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  agent: Agent;
+  agentInstanceId: string;
+};
+
+export type UpsertAgentInstanceParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  agent: Agent;
+  agentClient?: AgentClient | null;
+  agentClientRegistration?: AgentClientRegistration | null;
+
+  input: {
+    name: string;
+    version?: string;
+    description?: string;
+    type: AgentInstanceType;
+  };
+};
+
 class agentInstanceServiceImpl {
-  async listAgentInstances(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listAgentInstances(d: MetorialFacing<ListAgentInstancesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listAgentInstancesInternal({ ...rest, tenant, environment });
+  }
 
-    agent: Agent;
-
-    types?: AgentInstanceType[];
-    ids?: string[];
-    agentClientIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listAgentInstancesInternal(d: ListAgentInstancesParams) {
     checkTenant(d, d.agent);
 
     return Paginator.create(({ prisma }) =>
@@ -69,13 +102,13 @@ class agentInstanceServiceImpl {
     );
   }
 
-  async getAgentInstanceById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    agent: Agent;
-    agentInstanceId: string;
-  }) {
+  async getAgentInstanceById(d: MetorialFacing<GetAgentInstanceByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getAgentInstanceByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getAgentInstanceByIdInternal(d: GetAgentInstanceByIdParams) {
     checkTenant(d, d.agent);
 
     let agentInstance = await db.agentInstance.findFirst({
@@ -92,22 +125,13 @@ class agentInstanceServiceImpl {
     return agentInstance;
   }
 
-  async upsertAgentInstance(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async upsertAgentInstance(d: MetorialFacing<UpsertAgentInstanceParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.upsertAgentInstanceInternal({ ...rest, tenant, environment });
+  }
 
-    agent: Agent;
-    agentClient?: AgentClient | null;
-    agentClientRegistration?: AgentClientRegistration | null;
-
-    input: {
-      name: string;
-      version?: string;
-      description?: string;
-      type: AgentInstanceType;
-    };
-  }) {
+  async upsertAgentInstanceInternal(d: UpsertAgentInstanceParams) {
     checkTenant(d, d.agent);
     checkTenant(d, d.agentClient);
     checkDeletedRelation(d.agent);

@@ -12,7 +12,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { organizationMemberPresenter } from '../../../presenters';
+import { organizationMemberPresenter } from '@metorial/presenters';
 
 export let organizationMemberManagementController = Controller.create(
   {
@@ -82,8 +82,7 @@ export let organizationMemberManagementController = Controller.create(
         member = await organizationMemberService.deleteOrganizationMember({
           member,
           organization: ctx.organization,
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationMemberPresenter.present({ organizationMember: member });
@@ -114,8 +113,7 @@ export let organizationMemberManagementController = Controller.create(
           input: {
             role: ctx.body.role
           },
-          context: ctx.context,
-          performedBy: ctx.actor
+          auditScope: ctx.auditScope
         });
 
         return organizationMemberPresenter.present({ organizationMember: member });
@@ -151,8 +149,7 @@ export let organizationMemberManagementController = Controller.create(
           organization: ctx.organization,
           member,
           accessPolicy,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         member = await organizationMemberService.getOrganizationMemberById({
@@ -190,8 +187,7 @@ export let organizationMemberManagementController = Controller.create(
           organization: ctx.organization,
           member,
           accessPolicy,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         member = await organizationMemberService.getOrganizationMemberById({

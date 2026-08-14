@@ -18,6 +18,11 @@ import {
   checkToolScopesSatisfiedByAuthMethods,
   resolveGrantedScopes
 } from '@metorial-subspace/module-provider-internal';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
 type ListToolsContext = {
@@ -258,18 +263,38 @@ let resolveProviderAuthMethodsForToolFilter = async (
   throw new ServiceError(notFoundError('provider_auth_method', ids[0]));
 };
 
+type ListProviderToolsParams = {
+  providerVersion: ProviderVersion;
+
+  providerAuthConfig?: (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null }) | null;
+  providerAuthCredentials?: ProviderAuthCredentials | null;
+  providerAuthMethodIds?: string[];
+};
+
+type GetProviderToolByIdParams = {
+  providerToolId: string;
+};
+
 class providerToolServiceImpl {
-  async listProviderTools(d: {
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
+  async listProviderTools(d: MetorialFacing<ListProviderToolsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    providerVersion: ProviderVersion;
+    return this.listProviderToolsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    providerAuthConfig?: (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null }) | null;
-    providerAuthCredentials?: ProviderAuthCredentials | null;
-    providerAuthMethodIds?: string[];
-  }) {
+  async listProviderToolsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderToolsParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let version = d.providerVersion?.oid
       ? await db.providerVersion.findFirstOrThrow({
           where: { oid: d.providerVersion.oid }
@@ -277,7 +302,7 @@ class providerToolServiceImpl {
       : null;
 
     let ctx: ListToolsContext = {
-      solution: d.solution,
+      solution,
       tenant: d.tenant,
       environment: d.environment,
       providerVersion: d.providerVersion,
@@ -344,16 +369,30 @@ class providerToolServiceImpl {
     });
   }
 
-  async getProviderToolById(d: {
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
-    providerToolId: string;
-  }) {
+  async getProviderToolById(d: MetorialFacing<GetProviderToolByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderToolByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderToolByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderToolByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let providerTool = await db.providerTool.findFirst({
       where: {
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

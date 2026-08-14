@@ -1,6 +1,6 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { AuthInfo, Scope } from '@metorial/module-access';
-import { subspaceEnclaveService } from '@metorial/module-subspace';
+import { enclaveIngressPolicyService } from '@metorial-subspace/module-enclave';
 import { apiGroup } from './apiGroup';
 
 type FineGrainedSessionCtx = {
@@ -71,7 +71,7 @@ let filterIngressAllowedSessionIds = async (d: {
   if (!instance || d.sessionIds.length === 0) return d.sessionIds;
 
   let host = getRequestHost(d.ctx);
-  let check = await subspaceEnclaveService.checkIngressAccess({
+  let check = await enclaveIngressPolicyService.checkSessionIngressAccess({
     instance,
     sessionIds: d.sessionIds,
     sourceIp: d.ctx.context.ip,

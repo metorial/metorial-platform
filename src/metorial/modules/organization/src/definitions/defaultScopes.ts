@@ -8,6 +8,7 @@ let adminOnlyScopes: Scope[] = [
   'organization.invite:write',
   'organization.member:write',
   'organization.team:write',
+  'organization.audit_log_stream:write',
   'organization.api_key:write',
   'organization.api_key:reveal',
   'organization.access_role:write',

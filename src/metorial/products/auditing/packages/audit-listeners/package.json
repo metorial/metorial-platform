@@ -1,0 +1,28 @@
+{
+  "name": "@metorial/audit-listeners",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "files": [
+    "src/**",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@metorial/audit-scope": "workspace:*",
+    "@metorial/db": "^1.0.0",
+    "@metorial/fabric": "^1.0.0",
+    "@metorial/module-audit-tracker": "workspace:*"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}

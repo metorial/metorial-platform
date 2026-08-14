@@ -16,8 +16,15 @@ export let providerAuthCredentialsCreatedQueueProcessor =
     let providerAuthCredentials = await db.providerAuthCredentials.findUniqueOrThrow({
       where: { id: data.providerAuthCredentialsId }
     });
-    let { tenantOid, solutionOid, environmentOid, providerOid, origin } =
-      providerAuthCredentials;
+    let {
+      tenantOid,
+      projectOid,
+      solutionOid,
+      environmentOid,
+      instanceOid,
+      providerOid,
+      origin
+    } = providerAuthCredentials;
 
     // Legacy managed_public rows stay hidden from search results.
     if (origin !== 'managed_public') {
@@ -42,8 +49,10 @@ export let providerAuthCredentialsCreatedQueueProcessor =
       create: {
         ...getId('providerUse'),
         tenantOid: tenantOid!,
+        projectOid,
         solutionOid: solutionOid!,
         environmentOid: environmentOid!,
+        instanceOid,
         providerOid,
         credentials: 1,
         firstCredentialAt: new Date(),

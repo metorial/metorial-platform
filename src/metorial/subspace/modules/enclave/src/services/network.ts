@@ -1,13 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveEnclaves,
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
+import { getMetorialSolution, type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
 import { networkInternalService } from './networkInternal';
 
 let include = {
@@ -38,10 +39,34 @@ let include = {
   }
 };
 
+export type ListNetworksParams = {
+  ids?: string[];
+  firewallIds?: string[];
+  enclaveIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetNetworkByIdParams = {
+  networkId: string;
+};
+
+export type GetNetworkForEnvironmentParams = {};
+
 class networkServiceImpl {
-  async listNetworks(d: {
+  async listNetworks(d: MetorialFacing<ListNetworksParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listNetworksInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listNetworksInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     ids?: string[];
     firewallIds?: string[];
@@ -49,8 +74,10 @@ class networkServiceImpl {
     createdAt?: DateFilter;
     updatedAt?: DateFilter;
   }) {
-    let firewalls = await resolveFirewalls(d, d.firewallIds);
-    let enclaves = await resolveEnclaves(d, d.enclaveIds);
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let firewalls = await resolveFirewalls(ts, d.firewallIds);
+    let enclaves = await resolveEnclaves(ts, d.enclaveIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -80,7 +107,33 @@ class networkServiceImpl {
     );
   }
 
-  async getNetworkForEnvironment(d: { tenant: Tenant; environment: Environment }) {
+  async getNetwork(d: MetorialFacing<GetNetworkByIdParams>) {
+    return this.getNetworkById(d);
+  }
+
+  async getNetworkById(d: MetorialFacing<GetNetworkByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getNetworkForEnvironment(d: MetorialFacing<GetNetworkForEnvironmentParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkForEnvironmentInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getNetworkForEnvironmentInternal(d: { tenant: Tenant; environment: Environment }) {
     let network = await db.network.findFirst({
       where: {
         tenantOid: d.tenant.oid,
@@ -95,7 +148,11 @@ class networkServiceImpl {
     return network;
   }
 
-  async getNetworkById(d: { tenant: Tenant; environment: Environment; networkId: string }) {
+  async getNetworkByIdInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+    networkId: string;
+  }) {
     if (d.networkId === 'default') {
       return networkInternalService.ensureNetworkForEnvironment(d);
     }

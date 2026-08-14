@@ -37,8 +37,10 @@ export let providerDeploymentCreatedQueueProcessor = providerDeploymentCreatedQu
       create: {
         ...getId('providerUse'),
         tenantOid: providerDeployment.tenantOid,
+        projectOid: providerDeployment.projectOid,
         solutionOid: providerDeployment.solutionOid,
         environmentOid: providerDeployment.environmentOid,
+        instanceOid: providerDeployment.instanceOid,
         providerOid: providerDeployment.providerOid,
         deployments: 1,
         firstDeploymentAt: new Date(),

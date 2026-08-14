@@ -1,13 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { db, type Environment, type Provider, type Tenant } from '@metorial-subspace/db';
 import {
-  db,
-  type Environment,
-  type Provider,
-  type Solution,
-  type Tenant
-} from '@metorial-subspace/db';
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 
 let include = {
@@ -20,13 +19,36 @@ let include = {
 
 export let providerVariantInclude = include;
 
+type ListProviderVariantsParams = {
+  includeDeprecated?: boolean;
+};
+
+type GetProviderVariantByIdParams = {
+  providerVariantId: string;
+  provider?: Provider;
+  includeDeprecated?: boolean;
+};
+
 class providerVariantServiceImpl {
-  async listProviderVariants(d: {
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
-    includeDeprecated?: boolean;
-  }) {
+  async listProviderVariants(d: MetorialFacing<ListProviderVariantsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listProviderVariantsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listProviderVariantsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderVariantsParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -35,6 +57,7 @@ class providerVariantServiceImpl {
             where: {
               provider: getProviderTenantFilter({
                 ...d,
+                solution,
                 includeDeprecated: d.includeDeprecated
               })
             },
@@ -44,19 +67,31 @@ class providerVariantServiceImpl {
     );
   }
 
-  async getProviderVariantById(d: {
-    providerVariantId: string;
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
-    provider?: Provider;
-    includeDeprecated?: boolean;
-  }) {
+  async getProviderVariantById(d: MetorialFacing<GetProviderVariantByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderVariantByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderVariantByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderVariantByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let providerVariant = await db.providerVariant.findFirst({
       where: {
         providerOid: d.provider ? d.provider.oid : undefined,
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

@@ -1,5 +1,4 @@
 export { portalController } from './portal';
-export { portalAuthDashboardController } from './portalAuth';
 export { portalConsumerAccessController } from './portalConsumerAccess';
 export { portalConsumerAccessListingController } from './portalConsumerAccessListing';
 export { portalConsumerAccessRequestController } from './portalConsumerAccessRequest';

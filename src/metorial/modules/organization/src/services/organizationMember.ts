@@ -1,13 +1,12 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
   ID,
   Organization,
-  OrganizationActor,
   OrganizationMember,
   OrganizationMemberRole,
   User,
@@ -86,8 +85,7 @@ class OrganizationMemberService {
     input: {
       role: OrganizationMemberRole;
     };
-    context: Context;
-    performedBy: { type: 'user'; user: User } | { type: 'actor'; actor: OrganizationActor };
+    auditScope: AuditScope;
   }) {
     for (let attempt = 0; ; attempt++) {
       try {
@@ -100,12 +98,6 @@ class OrganizationMemberService {
             include
           });
           if (existingMember && existingMember.status == 'active') {
-            // throw new ServiceError(
-            //   conflictError({
-            //     message: 'User is already a member of the organization'
-            //   })
-            // );
-
             return existingMember;
           }
 
@@ -118,16 +110,15 @@ class OrganizationMemberService {
                 name: d.user.name,
                 image: d.user.image
               },
-              performedBy: { type: 'user', user: d.user },
-              organization: d.organization,
-              context: d.context
+              auditScope: d.auditScope,
+              organization: d.organization
             }));
 
           await Fabric.fire('organization.member.created:before', {
             actor,
             user: d.user,
             organization: d.organization,
-            performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
+            auditScope: d.auditScope
           });
 
           let member = existingMember
@@ -158,10 +149,11 @@ class OrganizationMemberService {
               });
 
           await Fabric.fire('organization.member.created:after', {
-            ...d,
+            organization: d.organization,
+            user: d.user,
             actor,
             member,
-            performedBy: d.performedBy.type == 'user' ? actor : d.performedBy.actor
+            auditScope: d.auditScope
           });
 
           await accessPolicyAssignmentService.syncMemberDefaultPolicies({
@@ -185,15 +177,14 @@ class OrganizationMemberService {
     input: {
       role?: OrganizationMemberRole;
     };
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     await this.ensureOrganizationMemberActive(d.member);
 
     if (
       d.member.role == 'admin' &&
       d.input.role == 'member' &&
-      d.member.actorOid == d.performedBy.oid
+      d.member.actorOid == d.auditScope.organizationActorOid
     ) {
       throw new ServiceError(
         forbiddenError({
@@ -210,10 +201,7 @@ class OrganizationMemberService {
         });
       }
 
-      await Fabric.fire('organization.member.updated:before', {
-        ...d,
-        performedBy: d.performedBy
-      });
+      await Fabric.fire('organization.member.updated:before', d);
 
       let member = await db.organizationMember.update({
         where: { oid: d.member.oid },
@@ -225,9 +213,11 @@ class OrganizationMemberService {
       });
 
       await Fabric.fire('organization.member.updated:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         member,
-        performedBy: d.performedBy
+        previousMember: d.member,
+        auditScope: d.auditScope
       });
 
       await accessPolicyAssignmentService.syncMemberDefaultPolicies({
@@ -244,8 +234,7 @@ class OrganizationMemberService {
   async deleteOrganizationMember(d: {
     organization: Organization;
     member: OrganizationMember;
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
     allowLastAdminRemoval?: boolean;
   }) {
     await this.ensureOrganizationMemberActive(d.member);
@@ -258,10 +247,7 @@ class OrganizationMemberService {
         });
       }
 
-      await Fabric.fire('organization.member.deleted:before', {
-        ...d,
-        performedBy: d.performedBy
-      });
+      await Fabric.fire('organization.member.deleted:before', d);
 
       let member = await db.organizationMember.update({
         where: { oid: d.member.oid },
@@ -273,9 +259,9 @@ class OrganizationMemberService {
       });
 
       await Fabric.fire('organization.member.deleted:after', {
-        ...d,
+        organization: d.organization,
         member,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
       return member;

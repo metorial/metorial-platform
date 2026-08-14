@@ -5,7 +5,7 @@ import { requireParam } from '../../../lib/requireParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { assistantPresenter } from '../../../presenters';
+import { assistantPresenter } from '@metorial/presenters';
 
 export let assistantHandlers = {
   listAssistants: instanceGroup

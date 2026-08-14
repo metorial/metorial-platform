@@ -1,6 +1,8 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
+import { skillConfigurationService } from '@metorial/cargo-module-skill';
 import { Context } from '@metorial/context';
 import {
   ConsumerSurface,
@@ -14,7 +16,6 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
-import { skillConfigurationService } from '@metorial/cargo-module-skill';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
 import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
@@ -25,7 +26,6 @@ import {
   consumerSurfaceDeletedQueue,
   consumerSurfaceUpdatedQueue
 } from '../../queues/lifecycle/consumerSurface';
-import { consumerAresService } from '../consumerAccess/ares';
 
 export let consumerSurfaceInclude = {
   consumerAuthTenant: true,
@@ -48,12 +48,6 @@ export type ConsumerSurfaceSkillConfigurationInput = {
 
 export type EnrichedConsumerSurface = ConsumerSurfaceWithPublishableApiKey & {
   skillConfiguration: SkillConfiguration;
-};
-
-export type AresAppConfig = {
-  slug: string;
-  defaultRedirectUrl: string;
-  redirectDomains: string[];
 };
 
 let internalCreateLock = createLock({
@@ -241,36 +235,6 @@ class ConsumerSurfaceServiceImpl {
     }
   }
 
-  private async updateConsumerAuthTenantAres(d: {
-    consumerSurface: ConsumerSurface;
-    aresApp: {
-      id: string;
-      slug?: string | null;
-      clientId: string;
-    };
-  }) {
-    if (!d.consumerSurface.consumerAuthTenantOid) {
-      throw new ServiceError(
-        preconditionFailedError({
-          message: 'Auth is not configured for this portal.'
-        })
-      );
-    }
-
-    return await withTransaction(async tx => {
-      return await tx.consumerAuthTenant.update({
-        where: {
-          oid: d.consumerSurface.consumerAuthTenantOid!
-        },
-        data: {
-          aresAppId: d.aresApp.id,
-          aresAppSlug: d.aresApp.slug ?? null,
-          aresClientId: d.aresApp.clientId
-        }
-      });
-    });
-  }
-
   private async deactivateConsumerSurfaceResources(d: {
     publishableApiKeyOid: bigint;
     consumerSurfaceOid?: bigint;
@@ -346,9 +310,13 @@ class ConsumerSurfaceServiceImpl {
       kind: 'system_internal',
       organization: d.organization,
       instance: d.instance,
-      context: d.context,
       type: 'instance_access_token_publishable',
-      performedBy: systemActor,
+      auditScope: createOrganizationActorAuditScope({
+        organization: d.organization,
+        organizationActor: systemActor,
+        instance: d.instance,
+        context: d.context
+      }),
       input: {
         name: `Publishable API Key for Consumer Surface ${d.input.name}`
       }
@@ -454,46 +422,6 @@ class ConsumerSurfaceServiceImpl {
     }
 
     return consumerSurface;
-  }
-
-  async configureConsumerSurfaceAres(d: {
-    consumerSurface: ConsumerSurface;
-    aresApp: AresAppConfig;
-  }) {
-    if (d.consumerSurface.status !== 'active') {
-      throw new ServiceError(
-        preconditionFailedError({
-          message: 'Cannot configure Ares for a non-active consumer surface.'
-        })
-      );
-    }
-
-    let app = await consumerAresService.upsertApp({
-      slug: d.aresApp.slug,
-      defaultRedirectUrl: d.aresApp.defaultRedirectUrl,
-      redirectDomains: d.aresApp.redirectDomains
-    });
-
-    return await withTransaction(async tx => {
-      let consumerAuthTenant = await this.updateConsumerAuthTenantAres({
-        consumerSurface: d.consumerSurface,
-        aresApp: {
-          id: app.id,
-          slug: app.slug ?? d.aresApp.slug,
-          clientId: app.clientId
-        }
-      });
-
-      return await tx.consumerSurface.update({
-        where: {
-          oid: d.consumerSurface.oid
-        },
-        data: {
-          consumerAuthTenantOid: consumerAuthTenant.oid
-        },
-        include: consumerSurfaceInclude
-      });
-    });
   }
 
   async updateConsumerSurface(d: {

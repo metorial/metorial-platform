@@ -270,5 +270,12 @@ export let ID = createIdGenerator({
   productAssistantRequest: idType.sorted('pasq_'),
   productAssistantModelRun: idType.sorted('pamrn_'),
   productAssistantSubspaceMcpConnection: idType.sorted('pasmc_'),
-  productAssistantSubspaceMcpToolCache: idType.sorted('pastc_')
+  productAssistantSubspaceMcpToolCache: idType.sorted('pastc_'),
+
+  auditEvent: idType.sorted('evt_'),
+  auditLog: idType.sorted('aud_'),
+  auditLogStream: idType.sorted('als_'),
+  auditLogStreamEvent: idType.sorted('alse_'),
+  auditLogStreamRun: idType.sorted('alsr_'),
+  auditLogStreamBatch: idType.sorted('alsb_')
 });

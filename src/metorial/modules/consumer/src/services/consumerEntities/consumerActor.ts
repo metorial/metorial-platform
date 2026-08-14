@@ -3,10 +3,7 @@ import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
 import { ConsumerActor, ConsumerProfile, db, Instance, withTransaction } from '@metorial/db';
 import { createLock } from '@metorial/lock';
-import {
-  subspaceIdentityActorService,
-  subspaceIdentityService
-} from '@metorial/module-subspace';
+import { identityActorService, identityService } from '@metorial-subspace/module-identity';
 
 let Sentry = getSentry();
 
@@ -21,10 +18,14 @@ let cleanupSubspaceResources = async (d: {
 }) => {
   if (d.identityId) {
     try {
-      await subspaceIdentityService.delete({
+      let identity = await identityService.getIdentityById({
         instance: d.instance,
         identityId: d.identityId,
-        allowDeleted: false,
+        allowDeleted: false
+      });
+      await identityService.archiveIdentity({
+        instance: d.instance,
+        identity,
         canEditConsumerActor: true
       });
     } catch (error) {
@@ -34,10 +35,14 @@ let cleanupSubspaceResources = async (d: {
 
   if (d.identityActorId) {
     try {
-      await subspaceIdentityActorService.delete({
+      let identityActor = await identityActorService.getIdentityActorById({
         instance: d.instance,
         identityActorId: d.identityActorId,
-        allowDeleted: false,
+        allowDeleted: false
+      });
+      await identityActorService.archiveIdentityActor({
+        instance: d.instance,
+        identityActor,
         canEditConsumerActor: true
       });
     } catch (error) {
@@ -98,12 +103,19 @@ class ConsumerActorServiceImpl {
     name: string;
     privateMetadata: Record<string, string>;
   }) {
-    let identity = await subspaceIdentityService.create({
+    let identityActor = await identityActorService.getIdentityActorById({
       instance: d.instance,
       identityActorId: d.actor.id,
-      name: `Default Identity for ${d.name}`,
-      inputs: [],
-      privateMetadata: d.privateMetadata
+      allowDeleted: false
+    });
+    let identity = await identityService.createIdentity({
+      instance: d.instance,
+      actor: identityActor,
+      input: {
+        name: `Default Identity for ${d.name}`,
+        inputs: [],
+        privateMetadata: d.privateMetadata
+      }
     });
 
     try {
@@ -210,21 +222,25 @@ class ConsumerActorServiceImpl {
         });
       }
 
-      let identityActor = await subspaceIdentityActorService.create({
+      let identityActor = await identityActorService.createIdentityActor({
         instance: profile.instance,
-        name: instanceConsumer.name,
-        type: 'person',
-        privateMetadata
+        input: {
+          name: instanceConsumer.name,
+          type: 'person',
+          privateMetadata
+        }
       });
 
       let identity;
       try {
-        identity = await subspaceIdentityService.create({
+        identity = await identityService.createIdentity({
           instance: profile.instance,
-          identityActorId: identityActor.id,
-          name: `Default Identity for ${instanceConsumer.name}`,
-          inputs: [],
-          privateMetadata
+          actor: identityActor,
+          input: {
+            name: `Default Identity for ${instanceConsumer.name}`,
+            inputs: [],
+            privateMetadata
+          }
         });
       } catch (error) {
         await cleanupSubspaceResources({
@@ -281,14 +297,19 @@ class ConsumerActorServiceImpl {
     );
 
     await Promise.all(
-      actors.map(actor =>
-        subspaceIdentityActorService.update({
+      actors.map(async actor => {
+        let identityActor = await identityActorService.getIdentityActorById({
           instance: d.instance,
           identityActorId: actor.id,
-          name: d.name,
+          allowDeleted: false
+        });
+        return identityActorService.updateIdentityActor({
+          instance: d.instance,
+          identityActor,
+          input: { name: d.name },
           canEditConsumerActor: true
-        })
-      )
+        });
+      })
     );
 
     return defaultActor;

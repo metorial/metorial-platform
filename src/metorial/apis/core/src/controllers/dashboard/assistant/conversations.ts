@@ -5,7 +5,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { assistantConversationPresenter } from '../../../presenters';
+import { assistantConversationPresenter } from '@metorial/presenters';
 import { assistantConversationGroup, getAssistantScope } from './context';
 
 export let assistantConversationHandlers = {

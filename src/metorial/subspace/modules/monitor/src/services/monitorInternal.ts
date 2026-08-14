@@ -8,6 +8,7 @@ import {
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 
 let scopeKey = (d: {
   owner: 'tenant' | 'system';
@@ -19,17 +20,28 @@ let scopeKey = (d: {
     ? 'system'
     : ['tenant', d.tenant?.id, d.environment?.id ?? 'any', d.solution?.id ?? 'any'].join(':');
 
+export type UpsertProtoGuardFilterMonitorParams = {
+  tenant: Tenant;
+  environment: Environment;
+  filter: ProtoGuardFilter;
+  timestamp?: Date;
+};
+
+export type UpsertProviderSpecChangeMonitorParams = {
+  tenant: Tenant;
+  environment: Environment;
+  provider: Provider;
+  timestamp?: Date;
+};
+
 class monitorInternalServiceImpl {
-  async upsertProtoGuardFilterMonitor(d: {
-    tenant: Tenant;
-    environment: Environment;
-    solution: Solution;
-    filter: ProtoGuardFilter;
-    timestamp?: Date;
-  }) {
-    let key = [scopeKey({ ...d, owner: 'tenant' }), 'protoguard_filter', d.filter.key].join(
-      ':'
-    );
+  async upsertProtoGuardFilterMonitor(d: UpsertProtoGuardFilterMonitorParams) {
+    let solution = await getMetorialSolution();
+    let key = [
+      scopeKey({ ...d, solution, owner: 'tenant' }),
+      'protoguard_filter',
+      d.filter.key
+    ].join(':');
 
     return await db.monitor.upsert({
       where: { key },
@@ -46,22 +58,21 @@ class monitorInternalServiceImpl {
         owner: 'tenant',
         protoGuardFilterOid: d.filter.oid,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         environmentOid: d.environment.oid,
-        solutionOid: d.solution.oid,
+        instanceOid: d.environment.instanceOid,
+        solutionOid: solution.oid,
         firstAlertAt: d.timestamp,
         lastAlertAt: d.timestamp
       }
     });
   }
 
-  async upsertProviderSpecChangeMonitor(d: {
-    tenant: Tenant;
-    environment: Environment;
-    solution: Solution;
-    provider: Provider;
-    timestamp?: Date;
-  }) {
-    let key = [scopeKey({ ...d, owner: 'tenant' }), 'schema_change', d.provider.id].join(':');
+  async upsertProviderSpecChangeMonitor(d: UpsertProviderSpecChangeMonitorParams) {
+    let solution = await getMetorialSolution();
+    let key = [scopeKey({ ...d, solution, owner: 'tenant' }), 'schema_change', d.provider.id].join(
+      ':'
+    );
 
     return await db.monitor.upsert({
       where: { key },
@@ -78,8 +89,10 @@ class monitorInternalServiceImpl {
         owner: 'tenant',
         providerOid: d.provider.oid,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         environmentOid: d.environment.oid,
-        solutionOid: d.solution.oid,
+        instanceOid: d.environment.instanceOid,
+        solutionOid: solution.oid,
         firstAlertAt: d.timestamp,
         lastAlertAt: d.timestamp
       }

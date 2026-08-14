@@ -22,6 +22,7 @@ export let providerRunStartQueueProcessor = providerRunStartQueue.process(async 
 
       providerRunOid: providerRun.oid,
       tenantOid: providerRun.tenantOid,
+      projectOid: providerRun.projectOid,
       solutionOid: providerRun.solutionOid
     }
   });
@@ -36,8 +37,12 @@ export let providerRunStartQueueProcessor = providerRunStartQueue.process(async 
       connectionOid: providerRun.connectionOid,
 
       tenantOid: providerRun.tenantOid,
+      projectOid: providerRun.projectOid,
       solutionOid: providerRun.solutionOid,
-      environmentOid: providerRun.environmentOid
+      environmentOid: providerRun.environmentOid,
+      // ProviderRun.instanceOid is a SessionProviderInstance; the mirrored
+      // Metorial instance lives on metorialInstanceOid
+      instanceOid: providerRun.metorialInstanceOid
     }
   });
 });

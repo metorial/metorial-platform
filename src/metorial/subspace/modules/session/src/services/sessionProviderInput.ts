@@ -8,10 +8,10 @@ import {
   type Session,
   type SessionTemplate,
   type SessionTemplateProvider,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
 import { sessionProviderCreatedQueue } from '../queues/lifecycle/sessionProvider';
 import {
@@ -51,17 +51,18 @@ let providerMismatchError = badRequestError({
 class sessionProviderInputServiceImpl {
   async createProviderSessionInput(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     providers: SessionProviderInput[];
 
     allowEphemeral?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     return withTransaction(
       async db => {
         let ts = {
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid
         };
@@ -134,9 +135,8 @@ class sessionProviderInputServiceImpl {
           );
         }
 
-        let inner = await providerCombinationService.getCombinations({
+        let inner = await providerCombinationService.getCombinationsInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
 
           providers: normalizedProviders
@@ -161,15 +161,15 @@ class sessionProviderInputServiceImpl {
 
   async createSessionProvidersForInput(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     providers: SessionProviderInput[];
     session: Session;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerSessions = await this.createProviderSessionInput({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       providers: d.providers
     });
@@ -197,8 +197,10 @@ class sessionProviderInputServiceImpl {
             isEphemeral: d.session.isEphemeral,
 
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            projectOid: d.tenant.projectOid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
 
             sessionOid: d.session.oid,
             providerOid: ps.provider.oid,
@@ -227,15 +229,15 @@ class sessionProviderInputServiceImpl {
 
   async createSessionTemplateProvidersForInput(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     providers: SessionProviderInput[];
     template: SessionTemplate;
   }) {
+    let solution = await getMetorialSolution();
+
     let providerSessions = await this.createProviderSessionInput({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       providers: d.providers
     });
@@ -263,8 +265,10 @@ class sessionProviderInputServiceImpl {
             status: 'active' as const,
 
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            projectOid: d.tenant.projectOid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
 
             sessionTemplateOid: d.template.oid,
             providerOid: ps.provider.oid,

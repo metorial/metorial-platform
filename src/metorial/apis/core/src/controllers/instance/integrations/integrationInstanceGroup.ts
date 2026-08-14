@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceIntegrationInstanceGroupService } from '@metorial/module-subspace';
+import { integrationInstanceGroupService } from '@metorial-subspace/module-integration';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -11,8 +11,8 @@ import {
   integrationInstanceGroupPresenter,
   providerSessionPresenter,
   sessionTemplatePresenter
-} from '../../../presenters';
-import { toolFiltersValidator } from '../sessions/_shared';
+} from '@metorial/presenters';
+import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
 let integrationInstanceGroupProviderInputValidator = v.object({
   integration_instance_provider_id: v.string(),
@@ -29,11 +29,12 @@ let integrationInstanceGroupGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let integrationInstanceGroup = await subspaceIntegrationInstanceGroupService.get({
-    instance: ctx.instance,
-    integrationInstanceGroupId: ctx.params.integrationInstanceGroupId,
-    allowDeleted: true
-  });
+  let integrationInstanceGroup =
+    await integrationInstanceGroupService.getIntegrationInstanceGroupById({
+      instance: ctx.instance,
+      integrationInstanceGroupId: ctx.params.integrationInstanceGroupId,
+      allowDeleted: true
+    });
 
   return { integrationInstanceGroup };
 });
@@ -80,7 +81,7 @@ export let integrationInstanceGroupController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceIntegrationInstanceGroupService.list({
+        let paginator = await integrationInstanceGroupService.listIntegrationInstanceGroups({
           instance: ctx.instance,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
@@ -150,13 +151,17 @@ export let integrationInstanceGroupController = Controller.create(
       .output(sessionTemplatePresenter)
       .do(async ctx => {
         let sessionTemplate =
-          await subspaceIntegrationInstanceGroupService.createSessionTemplate({
-            instance: ctx.instance,
-            integrationInstanceGroupId: ctx.integrationInstanceGroup.id,
-            name: ctx.body.name,
-            description: ctx.body.description,
-            metadata: ctx.body.metadata
-          });
+          await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup(
+            {
+              instance: ctx.instance,
+              integrationInstanceGroup: ctx.integrationInstanceGroup,
+              input: {
+                name: ctx.body.name,
+                description: ctx.body.description,
+                metadata: ctx.body.metadata
+              }
+            }
+          );
 
         return sessionTemplatePresenter.present({ sessionTemplate });
       }),
@@ -184,13 +189,16 @@ export let integrationInstanceGroupController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        let session = await subspaceIntegrationInstanceGroupService.createSession({
-          instance: ctx.instance,
-          integrationInstanceGroupId: ctx.integrationInstanceGroup.id,
-          name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
-        });
+        let session =
+          await integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
+            instance: ctx.instance,
+            integrationInstanceGroup: ctx.integrationInstanceGroup,
+            input: {
+              name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata
+            }
+          });
 
         return providerSessionPresenter.present({ session });
       }),
@@ -215,16 +223,22 @@ export let integrationInstanceGroupController = Controller.create(
       )
       .output(integrationInstanceGroupPresenter)
       .do(async ctx => {
-        let integrationInstanceGroup = await subspaceIntegrationInstanceGroupService.create({
-          instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providers: ctx.body.providers?.map(provider => ({
-            integrationInstanceProviderId: provider.integration_instance_provider_id,
-            toolFilters: provider.tool_filters
-          }))
-        });
+        let integrationInstanceGroup =
+          await integrationInstanceGroupService.createIntegrationInstanceGroup({
+            instance: ctx.instance,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata,
+              providers: ctx.body.providers?.map(provider => ({
+                integrationInstanceProviderId: provider.integration_instance_provider_id,
+                toolFilters:
+                  provider.tool_filters === undefined
+                    ? undefined
+                    : normalizeToolFilters(provider.tool_filters)
+              }))
+            }
+          });
 
         return integrationInstanceGroupPresenter.present({ integrationInstanceGroup });
       }),
@@ -252,18 +266,23 @@ export let integrationInstanceGroupController = Controller.create(
       )
       .output(integrationInstanceGroupPresenter)
       .do(async ctx => {
-        let integrationInstanceGroup = await subspaceIntegrationInstanceGroupService.update({
-          instance: ctx.instance,
-          integrationInstanceGroupId: ctx.integrationInstanceGroup.id,
-          allowDeleted: true,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providers: ctx.body.providers?.map(provider => ({
-            integrationInstanceProviderId: provider.integration_instance_provider_id,
-            toolFilters: provider.tool_filters
-          }))
-        });
+        let integrationInstanceGroup =
+          await integrationInstanceGroupService.updateIntegrationInstanceGroup({
+            instance: ctx.instance,
+            integrationInstanceGroup: ctx.integrationInstanceGroup,
+            input: {
+              name: ctx.body.name,
+              description: ctx.body.description,
+              metadata: ctx.body.metadata,
+              providers: ctx.body.providers?.map(provider => ({
+                integrationInstanceProviderId: provider.integration_instance_provider_id,
+                toolFilters:
+                  provider.tool_filters === undefined
+                    ? undefined
+                    : normalizeToolFilters(provider.tool_filters)
+              }))
+            }
+          });
 
         return integrationInstanceGroupPresenter.present({ integrationInstanceGroup });
       }),
@@ -282,11 +301,11 @@ export let integrationInstanceGroupController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(integrationInstanceGroupPresenter)
       .do(async ctx => {
-        let integrationInstanceGroup = await subspaceIntegrationInstanceGroupService.delete({
-          instance: ctx.instance,
-          integrationInstanceGroupId: ctx.integrationInstanceGroup.id,
-          allowDeleted: true
-        });
+        let integrationInstanceGroup =
+          await integrationInstanceGroupService.archiveIntegrationInstanceGroup({
+            instance: ctx.instance,
+            integrationInstanceGroup: ctx.integrationInstanceGroup
+          });
 
         return integrationInstanceGroupPresenter.present({ integrationInstanceGroup });
       })

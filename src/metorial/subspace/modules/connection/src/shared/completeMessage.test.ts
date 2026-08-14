@@ -102,7 +102,7 @@ describe('completeMessage', () => {
       {
         status: 'failed',
         failureReason: 'timeout',
-        responderParticipant: { oid: 99n },
+        responderParticipant: { oid: 99n } as any,
         completedAt: new Date(),
         output: {
           type: 'error',
@@ -140,8 +140,10 @@ describe('completeMessage', () => {
       connectionOid: 22n,
       sessionOid: 21n,
       tenantOid: 23n,
+      projectOid: 26n,
       solutionOid: 24n,
       environmentOid: 25n,
+      instanceOid: 27n,
       errorOid: null,
       toolCall: null
     };
@@ -172,9 +174,9 @@ describe('completeMessage', () => {
       {
         status: 'failed',
         failureReason: 'timeout',
-        responderParticipant: { oid: 99n },
+        responderParticipant: { oid: 99n } as any,
         completedAt: new Date(),
-        providerRun: { oid: 31n },
+        providerRun: { oid: 31n } as any,
         output: {
           type: 'error',
           data: { code: 'timeout', message: 'The conduit request timed out before the provider responded.' }
@@ -198,7 +200,14 @@ describe('completeMessage', () => {
       }
     });
     expect(mocks.db.sessionEvent.updateMany).toHaveBeenCalled();
-    expect(mocks.db.sessionEvent.createMany).toHaveBeenCalled();
+    expect(mocks.db.sessionEvent.createMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantOid: 23n,
+        projectOid: 26n,
+        environmentOid: 25n,
+        instanceOid: 27n
+      })
+    });
     expect(mocks.finalizeMessageQueue.add).toHaveBeenCalledWith({ messageId: 'msg_transition' });
   });
 
@@ -264,7 +273,7 @@ describe('completeMessage', () => {
       {
         status: 'failed',
         failureReason: 'timeout',
-        responderParticipant: { oid: 99n },
+        responderParticipant: { oid: 99n } as any,
         completedAt: new Date(),
         output: {
           type: 'error',

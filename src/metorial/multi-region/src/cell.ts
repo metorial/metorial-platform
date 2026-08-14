@@ -1,7 +1,10 @@
 import { ensureGlobalDatabaseReady, globalDB } from './db';
 import { env } from './env';
 
-export let deploymentIdentifier = env.service.METORIAL_REGION ?? 'default';
+export let deploymentIdentifier =
+  !env.service.METORIAL_REGION || env.service.METORIAL_REGION === 'dev'
+    ? 'default'
+    : env.service.METORIAL_REGION;
 
 let getSecureRandomInt = () => {
   let array = new Uint32Array(1);

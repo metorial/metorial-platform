@@ -1,9 +1,9 @@
 import { v } from '@lowerdeck/validation';
-import { subspaceScmRepositoryService } from '@metorial/module-subspace';
+import { scmRepositoryService } from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { scmAccountPreviewPresenter } from '../../../presenters';
+import { scmAccountPreviewPresenter } from '@metorial/presenters';
 
 export let scmAccountsController = Controller.create(
   {
@@ -25,13 +25,15 @@ export let scmAccountsController = Controller.create(
       )
       .output(scmAccountPreviewPresenter)
       .do(async ctx => {
-        let accountPreviews = await subspaceScmRepositoryService.listAccountPreviews({
+        let { accounts } = await scmRepositoryService.listScmAccountPreviews({
           instance: ctx.instance,
-          scmConnectionId: ctx.body.installation_id
+          input: {
+            scmConnectionId: ctx.body.installation_id
+          }
         });
 
         return scmAccountPreviewPresenter.present({
-          accountPreviews
+          accountPreviews: accounts
         });
       })
   }

@@ -9,7 +9,7 @@ import {
   organizationGroup,
   organizationManagementPath
 } from '../../../middleware/organizationGroup';
-import { oauthInstallationPresenter } from '../../../presenters';
+import { oauthInstallationPresenter } from '@metorial/presenters';
 
 let oauthInstallationManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.oauthInstallationId) {
@@ -110,8 +110,7 @@ export let oauthInstallationManagementController = Controller.create(
         let oauthInstallation =
           await oauthAuthorizationInstallationService.revokeOAuthInstallation({
             oauthInstallation: ctx.oauthInstallation,
-            performedBy: ctx.actor,
-            context: ctx.context
+            auditScope: ctx.auditScope
           });
 
         return oauthInstallationPresenter.present({ oauthInstallation });

@@ -119,7 +119,8 @@ services:
       - PORTAL_HOST_TEMPLATE=${PROTOCOL:-http}://${HOST}:4315
       - PORTALS_URL=${PROTOCOL:-http}://${HOST}:4315
       - PORTAL_API_PORT=4315
-      - INTEGRATIONS_API_URL=${HOST}:4316
+      - INTEGRATIONS_API_URL=${PROTOCOL:-http}://${HOST}:4316
+      - INTEGRATIONS_UI_URL=${PROTOCOL:-http}://${HOST}:52071
       - DENO_DEPLOY_TOKEN=placeholder
       - DENO_ORGANIZATION_ID=placeholder
       - SCM_GITHUB_CLIENT_ID=placeholder

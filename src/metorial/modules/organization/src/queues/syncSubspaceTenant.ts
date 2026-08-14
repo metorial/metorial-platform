@@ -1,13 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import {
-  ensureInternalProjectTenant,
-  ensureInternalScope,
-  type InternalService
-} from '@metorial/internal-clients';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import { combineQueueProcessors, createQueue, QueueRetryError } from '@metorial/queue';
-
-let internalTenantServices: InternalService[] = ['subspace'];
 
 export let SUBSPACE_TENANT_SYNC_BATCH_SIZE = 500;
 
@@ -30,18 +24,10 @@ export let syncSubspaceTenantQueueProcessor = syncSubspaceTenantQueue.process(as
     }
   });
 
-  for (let service of internalTenantServices) {
-    await ensureInternalProjectTenant({ service, project });
+  await subspaceScopeService.ensureForProject(project);
 
-    for (let instance of instances) {
-      await ensureInternalScope({
-        service,
-        owner: {
-          type: 'instance',
-          instance
-        }
-      });
-    }
+  for (let instance of instances) {
+    await subspaceScopeService.ensureForInstance(instance);
   }
 });
 

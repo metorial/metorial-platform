@@ -4,7 +4,7 @@ import { skillMergeRequestCommentService } from '@metorial/cargo-module-skill';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { skillMergeRequestCommentPresenter } from '../../../presenters';
+import { skillMergeRequestCommentPresenter } from '@metorial/presenters';
 import {
   getSkillMergeRequestAccess,
   skillMergeRequestGroup,

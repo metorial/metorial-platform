@@ -2,9 +2,9 @@ import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import { UnifiedApiKey } from '@metorial/api-keys';
 import { getConfig } from '@metorial/config';
-import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
   ApiKey,
@@ -14,7 +14,6 @@ import {
   Instance,
   MachineAccess,
   Organization,
-  OrganizationActor,
   User,
   withTransaction
 } from '@metorial/db';
@@ -63,19 +62,17 @@ class ApiKeyService {
         expiresAt?: Date;
         ipFilters?: string[];
       };
-      context: Context;
+      auditScope: AuditScope;
       kind?: ApiKeyKind;
     } & (
       | {
           type: 'organization_management_token';
           organization: Organization;
-          performedBy: OrganizationActor;
         }
       | {
           type: 'instance_access_token_secret' | 'instance_access_token_publishable';
           organization: Organization;
           instance: Instance;
-          performedBy: OrganizationActor;
         }
     )
   ) {
@@ -87,8 +84,7 @@ class ApiKeyService {
           ? {
               type: 'organization_management' as const,
               organization: d.organization,
-              performedBy: d.performedBy,
-              context: d.context,
+              auditScope: d.auditScope,
               input: {
                 name: `ORG TOKEN ${d.input.name}`
               }
@@ -99,8 +95,7 @@ class ApiKeyService {
                   ? 'instance_secret'
                   : 'instance_publishable',
               organization: d.organization,
-              performedBy: d.performedBy,
-              context: d.context,
+              auditScope: d.auditScope,
               instance: d.instance,
               input: {
                 name: `INSTANCE TOKEN ${d.input.name}`
@@ -174,7 +169,7 @@ class ApiKeyService {
       await sendApiKeyCreatedEmailQueue.add({
         apiKeyId: res.apiKey.id,
         organizationId: d.organization.id,
-        performedByActorId: d.performedBy.id
+        performedByActorId: d.auditScope.actor.id
       });
 
       await Fabric.fire('machine_access.api_key.created:after', {
@@ -195,8 +190,7 @@ class ApiKeyService {
       expiresAt?: Date;
       ipFilters?: string[];
     };
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     await this.ensureApiKeyActive(d.apiKey);
     let ipFilters =
@@ -205,7 +199,7 @@ class ApiKeyService {
         : assertValidApiKeyIpFilters(d.input.ipFilters);
 
     let organization = await db.organization.findUniqueOrThrow({
-      where: { oid: d.performedBy.organizationOid }
+      where: { oid: d.auditScope.organizationOid }
     });
 
     let res = await withTransaction(async db => {
@@ -244,8 +238,7 @@ class ApiKeyService {
             organization_management_token: `ORG TOKEN ${d.input.name}`
           }[d.apiKey.type]
         },
-        performedBy: d.performedBy,
-        context: d.context
+        auditScope: d.auditScope
       });
 
       return apiKey;
@@ -254,6 +247,7 @@ class ApiKeyService {
     await Fabric.fire('machine_access.api_key.updated:after', {
       ...d,
       apiKey: res,
+      previousApiKey: d.apiKey,
       organization,
       machineAccess: d.apiKey.machineAccess
     });
@@ -263,13 +257,12 @@ class ApiKeyService {
 
   async revokeApiKey(d: {
     apiKey: ApiKey & { machineAccess: MachineAccess };
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
     let organization = await db.organization.findUniqueOrThrow({
-      where: { oid: d.performedBy.organizationOid }
+      where: { oid: d.auditScope.organizationOid }
     });
 
     let res = await withTransaction(async db => {
@@ -299,8 +292,7 @@ class ApiKeyService {
 
       await machineAccessService.deleteMachineAccess({
         machineAccess: d.apiKey.machineAccess,
-        performedBy: d.performedBy,
-        context: d.context
+        auditScope: d.auditScope
       });
 
       return apiKey;
@@ -309,6 +301,7 @@ class ApiKeyService {
     await Fabric.fire('machine_access.api_key.revoked:after', {
       ...d,
       apiKey: res,
+      previousApiKey: d.apiKey,
       organization,
       machineAccess: d.apiKey.machineAccess
     });
@@ -318,14 +311,13 @@ class ApiKeyService {
 
   async rotateApiKey(d: {
     apiKey: ApiKey & { machineAccess: MachineAccess };
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: { currentExpiresAt?: Date };
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
     let organization = await db.organization.findUniqueOrThrow({
-      where: { oid: d.performedBy.organizationOid }
+      where: { oid: d.auditScope.organizationOid }
     });
 
     let res = await withTransaction(async db => {
@@ -404,6 +396,7 @@ class ApiKeyService {
       ...d,
       organization,
       apiKey: res.apiKey,
+      previousApiKey: d.apiKey,
       machineAccess: d.apiKey.machineAccess
     });
 
@@ -412,8 +405,7 @@ class ApiKeyService {
 
   async revealApiKey(d: {
     apiKey: ApiKey & { machineAccess: MachineAccess };
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
@@ -430,7 +422,7 @@ class ApiKeyService {
     }
 
     let organization = await db.organization.findUniqueOrThrow({
-      where: { oid: d.performedBy.organizationOid }
+      where: { oid: d.auditScope.organizationOid }
     });
 
     await Fabric.fire('machine_access.api_key:revealed', {

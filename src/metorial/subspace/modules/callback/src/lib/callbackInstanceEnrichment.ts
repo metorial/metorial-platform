@@ -2,15 +2,32 @@ import type {
   Callback,
   CallbackInstance,
   CallbackReceiverRegistration,
-  Tenant
+  Provider,
+  ProviderSpecification,
+  ProviderTrigger
 } from '@metorial-subspace/db';
 import { db } from '@metorial-subspace/db';
-import type {
-  CallbackInstanceReceiver,
-  CallbackInstanceReceiverTrigger,
-  EnrichedCallbackInstanceTrigger
-} from '@metorial-subspace/presenters';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { resolveMetorialFacing } from '@metorial-subspace/module-tenant';
+import type { Instance } from '@metorial/db';
+
+export type CallbackInstanceReceiverTrigger = Awaited<
+  ReturnType<typeof slates.slateTriggerReceiver.get>
+>['triggers'][number];
+
+export type EnrichedCallbackInstanceTrigger = CallbackInstanceReceiverTrigger & {
+  providerTrigger:
+    | (ProviderTrigger & {
+        provider: Provider;
+        specification: Omit<ProviderSpecification, 'value'>;
+      })
+    | null;
+};
+
+export type CallbackInstanceReceiver = {
+  receiverWebhookUrl: string | null;
+  triggers: EnrichedCallbackInstanceTrigger[];
+};
 
 type CallbackInstanceWithRegistration = CallbackInstance & {
   activeRegistration?: CallbackReceiverRegistration | null;
@@ -50,21 +67,23 @@ export let enrichTriggers = (
 };
 
 export let enrichCallbackInstanceTriggers = async (
-  tenant: Tenant,
+  instance: Instance,
   callback: Callback,
   instances: CallbackInstanceWithRegistration[]
 ): Promise<Map<string, CallbackInstanceReceiver>> => {
+  let { tenant } = await resolveMetorialFacing({ instance });
   let receiverIdToInstanceIds = new Map<string, string[]>();
-  for (let instance of instances) {
+  for (let callbackInstance of instances) {
     let receiverId =
-      instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
+      callbackInstance.slateTriggerReceiverId ??
+      callbackInstance.activeRegistration?.slateTriggerReceiverId;
     if (!receiverId) continue;
     let ids = receiverIdToInstanceIds.get(receiverId);
     if (!ids) {
       ids = [];
       receiverIdToInstanceIds.set(receiverId, ids);
     }
-    ids.push(instance.id);
+    ids.push(callbackInstance.id);
   }
 
   let result = new Map<string, CallbackInstanceReceiver>();
@@ -106,12 +125,14 @@ export let enrichCallbackInstanceTriggers = async (
 };
 
 export let enrichSingleCallbackInstanceTriggers = async (
-  tenant: Tenant,
+  instance: Instance,
   callback: Callback,
-  instance: CallbackInstanceWithRegistration
+  callbackInstance: CallbackInstanceWithRegistration
 ): Promise<CallbackInstanceReceiver | undefined> => {
+  let { tenant } = await resolveMetorialFacing({ instance });
   let receiverId =
-    instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
+    callbackInstance.slateTriggerReceiverId ??
+    callbackInstance.activeRegistration?.slateTriggerReceiverId;
   if (!receiverId) return undefined;
 
   let slatesTenant = await getTenantForSlates(tenant);

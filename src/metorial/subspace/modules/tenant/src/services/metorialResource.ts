@@ -1,0 +1,563 @@
+import { Service } from '@lowerdeck/service';
+import type {
+  Consumer as MetorialConsumer,
+  ConsumerProfile as MetorialConsumerProfile,
+  Instance as MetorialInstance,
+  InstanceConsumer as MetorialInstanceConsumer,
+  Organization as MetorialOrganization,
+  OrganizationActor as MetorialOrganizationActor,
+  OrganizationMember as MetorialOrganizationMember,
+  Project as MetorialProject
+} from '@metorial/db';
+import { db, type Tenant } from '@metorial-subspace/db';
+import { metorialDb } from '../lib/metorialDb';
+import { getOrganizationActorInternalActorIdentifier } from '../lib/scopeIds';
+import { backfillMirrorReferencesService } from './backfillMirrorReferences';
+import { subspaceScopeService } from './subspaceScope';
+import { tenantService } from './tenant';
+
+let assertIdentity = (
+  resource: string,
+  expected: { oid: bigint; id: string },
+  matches: { oid: bigint; id: string }[]
+) => {
+  if (matches.length > 1) {
+    throw new Error(
+      `Subspace ${resource} identity collision for oid ${expected.oid} and id ${expected.id}`
+    );
+  }
+
+  let match = matches[0];
+  if (match && (match.oid !== expected.oid || match.id !== expected.id)) {
+    throw new Error(
+      `Subspace ${resource} identity mismatch: expected ${expected.id}/${expected.oid}, found ${match.id}/${match.oid}`
+    );
+  }
+};
+
+class metorialResourceServiceImpl {
+  async syncOrganization(organization: MetorialOrganization) {
+    let matches = await db.organization.findMany({
+      where: {
+        OR: [{ oid: organization.oid }, { id: organization.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('organization', organization, matches);
+
+    return await db.organization.upsert({
+      where: { oid: organization.oid },
+      update: {
+        type: organization.type,
+        status: organization.status,
+        slug: organization.slug,
+        name: organization.name,
+        image: organization.image,
+        deletedAt: organization.deletedAt,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt
+      },
+      create: {
+        oid: organization.oid,
+        id: organization.id,
+        type: organization.type,
+        status: organization.status,
+        slug: organization.slug,
+        name: organization.name,
+        image: organization.image,
+        deletedAt: organization.deletedAt,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt
+      }
+    });
+  }
+
+  async syncProject(project: MetorialProject) {
+    let organization = await metorialDb.organization.findUniqueOrThrow({
+      where: { oid: project.organizationOid }
+    });
+    await this.syncOrganization(organization);
+
+    let { tenant } = await subspaceScopeService.ensureForProject(project);
+    let matches = await db.project.findMany({
+      where: {
+        OR: [{ oid: project.oid }, { id: project.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('project', project, matches);
+
+    let mirrored = await db.project.upsert({
+      where: { oid: project.oid },
+      update: {
+        status: project.status,
+        slug: project.slug,
+        name: project.name,
+        organizationOid: project.organizationOid,
+        tenantOid: tenant.oid,
+        deletedAt: project.deletedAt,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt
+      },
+      create: {
+        oid: project.oid,
+        id: project.id,
+        status: project.status,
+        slug: project.slug,
+        name: project.name,
+        organizationOid: project.organizationOid,
+        tenantOid: tenant.oid,
+        deletedAt: project.deletedAt,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt
+      }
+    });
+
+    await backfillMirrorReferencesService.backfillTenantReferences({
+      tenantOid: tenant.oid
+    });
+    await linkOrganizationActorsToTenant(tenant, project.organizationOid);
+    return mirrored;
+  }
+
+  async syncInstance(instance: MetorialInstance) {
+    let project = await metorialDb.project.findUniqueOrThrow({
+      where: { oid: instance.projectOid }
+    });
+    await this.syncProject(project);
+
+    let { tenant, environment } = await subspaceScopeService.ensureForInstance(instance);
+    let matches = await db.instance.findMany({
+      where: {
+        OR: [{ oid: instance.oid }, { id: instance.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('instance', instance, matches);
+
+    let mirrored = await db.instance.upsert({
+      where: { oid: instance.oid },
+      update: {
+        type: instance.type,
+        status: instance.status,
+        slug: instance.slug,
+        name: instance.name,
+        projectOid: instance.projectOid,
+        organizationOid: instance.organizationOid,
+        environmentOid: environment.oid,
+        deletedAt: instance.deletedAt,
+        createdAt: instance.createdAt,
+        updatedAt: instance.updatedAt
+      },
+      create: {
+        oid: instance.oid,
+        id: instance.id,
+        type: instance.type,
+        status: instance.status,
+        slug: instance.slug,
+        name: instance.name,
+        projectOid: instance.projectOid,
+        organizationOid: instance.organizationOid,
+        environmentOid: environment.oid,
+        deletedAt: instance.deletedAt,
+        createdAt: instance.createdAt,
+        updatedAt: instance.updatedAt
+      }
+    });
+
+    await tenantService.ensureNetworksForTenant(tenant);
+    await backfillMirrorReferencesService.backfillEnvironmentReferences({
+      environmentOid: environment.oid
+    });
+    return mirrored;
+  }
+
+  async syncOrganizationActor(actor: MetorialOrganizationActor) {
+    let organization = await metorialDb.organization.findUniqueOrThrow({
+      where: { oid: actor.organizationOid }
+    });
+    await this.syncOrganization(organization);
+
+    let matches = await db.organizationActor.findMany({
+      where: {
+        OR: [{ oid: actor.oid }, { id: actor.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('organization actor', actor, matches);
+
+    let mirrored = await db.organizationActor.upsert({
+      where: { oid: actor.oid },
+      update: {
+        type: actor.type,
+        isSystem: actor.isSystem,
+        email: actor.email,
+        name: actor.name,
+        image: actor.image,
+        organizationOid: actor.organizationOid,
+        createdAt: actor.createdAt,
+        updatedAt: actor.updatedAt
+      },
+      create: {
+        oid: actor.oid,
+        id: actor.id,
+        type: actor.type,
+        isSystem: actor.isSystem,
+        email: actor.email,
+        name: actor.name,
+        image: actor.image,
+        organizationOid: actor.organizationOid,
+        createdAt: actor.createdAt,
+        updatedAt: actor.updatedAt
+      }
+    });
+
+    await linkOrganizationActorToTenants(actor);
+    return mirrored;
+  }
+
+  async syncOrganizationMember(member: MetorialOrganizationMember) {
+    let actor = await metorialDb.organizationActor.findUniqueOrThrow({
+      where: { oid: member.actorOid }
+    });
+    await this.syncOrganizationActor(actor);
+
+    let matches = await db.organizationMember.findMany({
+      where: {
+        OR: [{ oid: member.oid }, { id: member.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('organization member', member, matches);
+
+    return await db.organizationMember.upsert({
+      where: { oid: member.oid },
+      update: {
+        role: member.role,
+        status: member.status,
+        isV2Member: member.isV2Member,
+        usesMetorialPersonal: member.usesMetorialPersonal,
+        lastActiveAt: member.lastActiveAt,
+        deletedAt: member.deletedAt,
+        organizationOid: member.organizationOid,
+        actorOid: member.actorOid,
+        createdAt: member.createdAt,
+        updatedAt: member.updatedAt
+      },
+      create: {
+        oid: member.oid,
+        id: member.id,
+        role: member.role,
+        status: member.status,
+        isV2Member: member.isV2Member,
+        usesMetorialPersonal: member.usesMetorialPersonal,
+        lastActiveAt: member.lastActiveAt,
+        deletedAt: member.deletedAt,
+        organizationOid: member.organizationOid,
+        actorOid: member.actorOid,
+        createdAt: member.createdAt,
+        updatedAt: member.updatedAt
+      }
+    });
+  }
+
+  private async syncConsumerAttribution(d: {
+    organizationMemberOid: bigint | null;
+    organizationActorOid: bigint | null;
+  }) {
+    let member: MetorialOrganizationMember | null = null;
+    if (d.organizationMemberOid !== null) {
+      member = await metorialDb.organizationMember.findUniqueOrThrow({
+        where: { oid: d.organizationMemberOid }
+      });
+      await this.syncOrganizationMember(member);
+    }
+
+    if (d.organizationActorOid !== null && d.organizationActorOid !== member?.actorOid) {
+      let actor = await metorialDb.organizationActor.findUniqueOrThrow({
+        where: { oid: d.organizationActorOid }
+      });
+      await this.syncOrganizationActor(actor);
+    }
+  }
+
+  async syncConsumer(consumer: MetorialConsumer) {
+    let organization = await metorialDb.organization.findUniqueOrThrow({
+      where: { oid: consumer.organizationOid }
+    });
+    await this.syncOrganization(organization);
+    await this.syncConsumerAttribution(consumer);
+
+    let matches = await db.consumer.findMany({
+      where: {
+        OR: [{ oid: consumer.oid }, { id: consumer.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('consumer', consumer, matches);
+
+    return await db.consumer.upsert({
+      where: { oid: consumer.oid },
+      update: {
+        name: consumer.name,
+        email: consumer.email,
+        organizationOid: consumer.organizationOid,
+        organizationMemberOid: consumer.organizationMemberOid,
+        organizationActorOid: consumer.organizationActorOid,
+        isOrganizationMember: consumer.isOrganizationMember,
+        isPortalConsumer: consumer.isPortalConsumer,
+        isManuallyCreated: consumer.isManuallyCreated,
+        isPending: consumer.isPending,
+        createdAt: consumer.createdAt,
+        updatedAt: consumer.updatedAt
+      },
+      create: {
+        oid: consumer.oid,
+        id: consumer.id,
+        name: consumer.name,
+        email: consumer.email,
+        organizationOid: consumer.organizationOid,
+        organizationMemberOid: consumer.organizationMemberOid,
+        organizationActorOid: consumer.organizationActorOid,
+        isOrganizationMember: consumer.isOrganizationMember,
+        isPortalConsumer: consumer.isPortalConsumer,
+        isManuallyCreated: consumer.isManuallyCreated,
+        isPending: consumer.isPending,
+        createdAt: consumer.createdAt,
+        updatedAt: consumer.updatedAt
+      }
+    });
+  }
+
+  async syncInstanceConsumer(instanceConsumer: MetorialInstanceConsumer) {
+    let [instance, consumer] = await Promise.all([
+      metorialDb.instance.findUniqueOrThrow({
+        where: { oid: instanceConsumer.instanceOid }
+      }),
+      metorialDb.consumer.findUniqueOrThrow({
+        where: { oid: instanceConsumer.consumerOid }
+      })
+    ]);
+    await this.syncInstance(instance);
+    await this.syncConsumer(consumer);
+    await this.syncConsumerAttribution(instanceConsumer);
+
+    let matches = await db.instanceConsumer.findMany({
+      where: {
+        OR: [{ oid: instanceConsumer.oid }, { id: instanceConsumer.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('instance consumer', instanceConsumer, matches);
+
+    return await db.instanceConsumer.upsert({
+      where: { oid: instanceConsumer.oid },
+      update: {
+        name: instanceConsumer.name,
+        email: instanceConsumer.email,
+        instanceOid: instanceConsumer.instanceOid,
+        consumerOid: instanceConsumer.consumerOid,
+        organizationMemberOid: instanceConsumer.organizationMemberOid,
+        organizationActorOid: instanceConsumer.organizationActorOid,
+        isPending: instanceConsumer.isPending,
+        createdAt: instanceConsumer.createdAt,
+        updatedAt: instanceConsumer.updatedAt
+      },
+      create: {
+        oid: instanceConsumer.oid,
+        id: instanceConsumer.id,
+        name: instanceConsumer.name,
+        email: instanceConsumer.email,
+        instanceOid: instanceConsumer.instanceOid,
+        consumerOid: instanceConsumer.consumerOid,
+        organizationMemberOid: instanceConsumer.organizationMemberOid,
+        organizationActorOid: instanceConsumer.organizationActorOid,
+        isPending: instanceConsumer.isPending,
+        createdAt: instanceConsumer.createdAt,
+        updatedAt: instanceConsumer.updatedAt
+      }
+    });
+  }
+
+  async syncConsumerProfile(consumerProfile: MetorialConsumerProfile) {
+    let instanceConsumer = await metorialDb.instanceConsumer.findUniqueOrThrow({
+      where: {
+        instanceOid_consumerOid: {
+          instanceOid: consumerProfile.instanceOid,
+          consumerOid: consumerProfile.consumerOid
+        }
+      }
+    });
+    await this.syncInstanceConsumer(instanceConsumer);
+    await this.syncConsumerAttribution(consumerProfile);
+
+    let matches = await db.consumerProfile.findMany({
+      where: {
+        OR: [{ oid: consumerProfile.oid }, { id: consumerProfile.id }]
+      },
+      select: { oid: true, id: true }
+    });
+    assertIdentity('consumer profile', consumerProfile, matches);
+
+    return await db.consumerProfile.upsert({
+      where: { oid: consumerProfile.oid },
+      update: {
+        status: consumerProfile.status,
+        inviteStatus: consumerProfile.inviteStatus,
+        name: consumerProfile.name,
+        email: consumerProfile.email,
+        organizationOid: consumerProfile.organizationOid,
+        instanceOid: consumerProfile.instanceOid,
+        consumerOid: consumerProfile.consumerOid,
+        organizationMemberOid: consumerProfile.organizationMemberOid,
+        organizationActorOid: consumerProfile.organizationActorOid,
+        deletedAt: consumerProfile.deletedAt,
+        createdAt: consumerProfile.createdAt,
+        updatedAt: consumerProfile.updatedAt
+      },
+      create: {
+        oid: consumerProfile.oid,
+        id: consumerProfile.id,
+        status: consumerProfile.status,
+        inviteStatus: consumerProfile.inviteStatus,
+        name: consumerProfile.name,
+        email: consumerProfile.email,
+        organizationOid: consumerProfile.organizationOid,
+        instanceOid: consumerProfile.instanceOid,
+        consumerOid: consumerProfile.consumerOid,
+        organizationMemberOid: consumerProfile.organizationMemberOid,
+        organizationActorOid: consumerProfile.organizationActorOid,
+        deletedAt: consumerProfile.deletedAt,
+        createdAt: consumerProfile.createdAt,
+        updatedAt: consumerProfile.updatedAt
+      }
+    });
+  }
+
+  async syncConsumerGraph(consumer: MetorialConsumer) {
+    await this.syncConsumer(consumer);
+
+    let [instanceConsumers, consumerProfiles] = await Promise.all([
+      metorialDb.instanceConsumer.findMany({
+        where: { consumerOid: consumer.oid },
+        orderBy: { oid: 'asc' }
+      }),
+      metorialDb.consumerProfile.findMany({
+        where: { consumerOid: consumer.oid },
+        orderBy: { oid: 'asc' }
+      })
+    ]);
+    for (let instanceConsumer of instanceConsumers) {
+      await this.syncInstanceConsumer(instanceConsumer);
+    }
+    for (let consumerProfile of consumerProfiles) {
+      await this.syncConsumerProfile(consumerProfile);
+    }
+  }
+
+  async deleteConsumer(consumerId: string) {
+    await db.consumer.deleteMany({
+      where: { id: consumerId }
+    });
+  }
+
+  async reconcileOrganization(organizationId: string) {
+    let organization = await metorialDb.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      include: {
+        projects: {
+          orderBy: { oid: 'asc' },
+          include: {
+            instances: {
+              orderBy: { oid: 'asc' }
+            }
+          }
+        }
+      }
+    });
+
+    await this.syncOrganization(organization);
+    for (let project of organization.projects) {
+      await this.syncProject(project);
+      for (let instance of project.instances) {
+        await this.syncInstance(instance);
+      }
+    }
+
+    let linkedProjects = await metorialDb.project.findMany({
+      where: {
+        organizationOid: organization.oid,
+        subspaceTenantId: { not: null }
+      },
+      select: { subspaceTenantId: true }
+    });
+    let subspaceTenantIds = [
+      ...new Set(
+        linkedProjects.flatMap(project =>
+          project.subspaceTenantId ? [project.subspaceTenantId] : []
+        )
+      )
+    ];
+
+    await metorialDb.organization.update({
+      where: { oid: organization.oid },
+      data: { subspaceTenantIds }
+    });
+  }
+}
+
+let linkOrganizationActorToTenants = async (actor: MetorialOrganizationActor) => {
+  let projects = await db.project.findMany({
+    where: { organizationOid: actor.organizationOid },
+    select: { tenantOid: true }
+  });
+  let existingActors = await db.tenantActor.findMany({
+    where: {
+      OR: [
+        { organizationActorId: actor.id },
+        { identifier: getOrganizationActorInternalActorIdentifier(actor) },
+        ...(actor.internalActorIdentifier
+          ? [{ identifier: actor.internalActorIdentifier }]
+          : []),
+        ...(actor.subspaceActorId ? [{ id: actor.subspaceActorId }] : [])
+      ]
+    },
+    select: { tenantOid: true }
+  });
+  let tenantOids = [
+    ...new Set([
+      ...projects.map(project => project.tenantOid),
+      ...existingActors.map(existing => existing.tenantOid)
+    ])
+  ];
+
+  for (let tenantOid of tenantOids) {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: tenantOid }
+    });
+    if (!tenant) continue;
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant,
+      organizationActor: actor
+    });
+  }
+};
+
+let linkOrganizationActorsToTenant = async (tenant: Tenant, organizationOid: bigint) => {
+  let organizationActors = await metorialDb.organizationActor.findMany({
+    where: { organizationOid }
+  });
+
+  for (let organizationActor of organizationActors) {
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant,
+      organizationActor
+    });
+  }
+};
+
+export let metorialResourceService = Service.create(
+  'metorialResourceService',
+  () => new metorialResourceServiceImpl()
+).build();

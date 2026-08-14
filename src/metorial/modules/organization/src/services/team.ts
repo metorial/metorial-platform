@@ -2,7 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import { db, ID, Organization, OrganizationActor, Team, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 
@@ -24,8 +24,7 @@ let include = {
 class teamServiceImpl {
   async createTeam(d: {
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       description?: string;
@@ -46,9 +45,10 @@ class teamServiceImpl {
       });
 
       await Fabric.fire('organization.team.created:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         team,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
       return team;
@@ -58,8 +58,7 @@ class teamServiceImpl {
   async updateTeam(d: {
     team: Team;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
       description?: string;
@@ -78,9 +77,11 @@ class teamServiceImpl {
       });
 
       await Fabric.fire('organization.team.updated:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         team,
-        performedBy: d.performedBy
+        previousTeam: d.team,
+        auditScope: d.auditScope
       });
 
       return team;
@@ -119,13 +120,10 @@ class teamServiceImpl {
     team: Team;
     actor: OrganizationActor;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     return withTransaction(async db => {
-      await Fabric.fire('organization.team.member.added:before', {
-        ...d
-      });
+      await Fabric.fire('organization.team.member.added:before', d);
 
       let existingMembership = await db.teamMember.findFirst({
         where: {
@@ -148,9 +146,11 @@ class teamServiceImpl {
       });
 
       await Fabric.fire('organization.team.member.added:after', {
-        ...d,
+        organization: d.organization,
+        team: d.team,
+        actor: d.actor,
         member: teamMember,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
       return teamMember;
@@ -161,8 +161,7 @@ class teamServiceImpl {
     team: Team;
     actor: OrganizationActor;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     return withTransaction(async db => {
       let teamMember = await db.teamMember.findFirst({
@@ -180,8 +179,11 @@ class teamServiceImpl {
       }
 
       await Fabric.fire('organization.team.member.removed:before', {
-        ...d,
-        member: teamMember
+        organization: d.organization,
+        team: d.team,
+        actor: d.actor,
+        member: teamMember,
+        auditScope: d.auditScope
       });
 
       await db.teamMember.delete({
@@ -189,9 +191,11 @@ class teamServiceImpl {
       });
 
       await Fabric.fire('organization.team.member.removed:after', {
-        ...d,
+        organization: d.organization,
+        team: d.team,
+        actor: d.actor,
         member: teamMember,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
     });
   }

@@ -1,6 +1,6 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
   ID,
@@ -41,18 +41,16 @@ class MachineAccessService {
             actor: OrganizationActor;
             user: User;
           };
-      context: Context;
+      auditScope: AuditScope;
     } & (
       | {
           type: 'organization_management';
           organization: Organization;
-          performedBy: OrganizationActor;
         }
       | {
           type: 'instance_secret' | 'instance_publishable';
           organization: Organization;
           instance: Instance;
-          performedBy: OrganizationActor;
         }
     )
   ) {
@@ -79,8 +77,7 @@ class MachineAccessService {
                 image: { type: 'default' }
               },
               organization: d.organization,
-              context: d.context,
-              performedBy: { type: 'actor', actor: d.performedBy }
+              auditScope: d.auditScope
             });
 
       let machineAccess = await db.machineAccess.create({
@@ -120,13 +117,12 @@ class MachineAccessService {
       hasCustomScopes?: boolean;
       scopes?: string[];
     };
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
     let org = await db.organization.findUniqueOrThrow({
-      where: { oid: d.performedBy.organizationOid }
+      where: { oid: d.auditScope.organizationOid }
     });
 
     await Fabric.fire('machine_access.updated:before', {
@@ -151,7 +147,8 @@ class MachineAccessService {
     await Fabric.fire('machine_access.updated:after', {
       ...d,
       organization: org,
-      machineAccess: res
+      machineAccess: res,
+      previousMachineAccess: d.machineAccess
     });
 
     return res;
@@ -159,13 +156,12 @@ class MachineAccessService {
 
   async deleteMachineAccess(d: {
     machineAccess: MachineAccess;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.ensureMachineAccessActive(d.machineAccess);
 
     let org = await db.organization.findUniqueOrThrow({
-      where: { oid: d.performedBy.organizationOid }
+      where: { oid: d.auditScope.organizationOid }
     });
 
     await Fabric.fire('machine_access.deleted:before', {

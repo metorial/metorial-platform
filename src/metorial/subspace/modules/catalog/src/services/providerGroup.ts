@@ -3,13 +3,13 @@ import { generateCode } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
+import { Fabric } from '@metorial/fabric';
 import {
   db,
   type Environment,
   getId,
   type ProviderListing,
   type ProviderListingGroup,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -18,22 +18,68 @@ import {
   resolveProviderListings,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+
+type ListProviderListingGroupsParams = {
+  ids?: string[];
+  providerIds?: string[];
+  providerListingIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetProviderListingGroupByIdParams = {
+  providerListingGroupId: string;
+};
+
+type CreateProviderListingGroupParams = {
+  input: { name: string; description?: string };
+};
+
+type UpdateProviderListingGroupParams = {
+  providerListingGroup: ProviderListingGroup;
+  input: {
+    name?: string;
+    description?: string;
+  };
+};
+
+type DeleteProviderListingGroupParams = {
+  providerListingGroup: ProviderListingGroup;
+};
 
 class ProviderListingGroupService {
-  async listProviderListingGroups(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listProviderListingGroups(d: MetorialFacing<ListProviderListingGroupsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
-    providerListingIds?: string[];
+    return this.listProviderListingGroupsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let providerListings = await resolveProviderListings(d, d.providerListingIds);
+  async listProviderListingGroupsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListProviderListingGroupsParams
+  ) {
+    let solution = await getMetorialSolution();
+
+    let providers = await resolveProviders(
+      { tenant: d.tenant, solution, environment: d.environment },
+      d.providerIds
+    );
+    let providerListings = await resolveProviderListings(
+      { tenant: d.tenant, solution, environment: d.environment },
+      d.providerListingIds
+    );
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -42,7 +88,7 @@ class ProviderListingGroupService {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               AND: [
@@ -62,16 +108,26 @@ class ProviderListingGroupService {
     );
   }
 
-  async getProviderListingGroupById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    providerListingGroupId: string;
-  }) {
+  async getProviderListingGroupById(d: MetorialFacing<GetProviderListingGroupByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderListingGroupByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderListingGroupByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetProviderListingGroupByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let providerListingGroup = await db.providerListingGroup.findFirst({
       where: {
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
 
         OR: [{ id: d.providerListingGroupId }, { slug: d.providerListingGroupId }]
@@ -84,18 +140,40 @@ class ProviderListingGroupService {
     return providerListingGroup;
   }
 
-  async createProviderListingGroup(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: { name: string; description?: string };
-  }) {
+  async createProviderListingGroup(d: MetorialFacing<CreateProviderListingGroupParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.provider_listing_group.created:before', eventBase);
+
+    let providerGroup = await this.createProviderListingGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.provider_listing_group.created:after', {
+      ...eventBase,
+      providerGroup
+    });
+
+    return providerGroup;
+  }
+
+  async createProviderListingGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateProviderListingGroupParams
+  ) {
+    let solution = await getMetorialSolution();
+
     return await db.providerListingGroup.create({
       data: {
         ...getId('providerGroup'),
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        projectOid: d.tenant.projectOid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         name: d.input.name,
         description: d.input.description,
         slug: slugify(`${d.input.name}-${generateCode(6)}`)
@@ -103,13 +181,22 @@ class ProviderListingGroupService {
     });
   }
 
-  async updateProviderListingGroup(d: {
-    providerListingGroup: ProviderListingGroup;
-    input: {
-      name?: string;
-      description?: string;
-    };
-  }) {
+  async updateProviderListingGroup(d: MetorialFacing<UpdateProviderListingGroupParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateProviderListingGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateProviderListingGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateProviderListingGroupParams
+  ) {
+    checkTenant(d, d.providerListingGroup);
+
     return await db.providerListingGroup.update({
       where: { id: d.providerListingGroup.id },
       data: {
@@ -119,10 +206,37 @@ class ProviderListingGroupService {
     });
   }
 
-  async deleteProviderListingGroup(d: { providerListingGroup: ProviderListingGroup }) {
+  async deleteProviderListingGroup(d: MetorialFacing<DeleteProviderListingGroupParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.provider_listing_group.deleted:before', eventBase);
+
+    let providerGroup = await this.deleteProviderListingGroupInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.provider_listing_group.deleted:after', {
+      ...eventBase,
+      providerGroup
+    });
+
+    return providerGroup;
+  }
+
+  async deleteProviderListingGroupInternal(
+    d: { tenant: Tenant; environment: Environment } & DeleteProviderListingGroupParams
+  ) {
+    checkTenant(d, d.providerListingGroup);
+
     await db.providerListingGroup.delete({
       where: { id: d.providerListingGroup.id }
     });
+
+    return d.providerListingGroup;
   }
 
   async addProviderToGroup(d: {

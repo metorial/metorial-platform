@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@metorial/api-keys": "1.0.0",
+    "@metorial/audit-scope": "1.0.0",
     "@metorial/consumer-auth": "1.0.0",
     "@metorial/config": "1.0.0",
     "@lowerdeck/hash": "workspace:2.0.0",

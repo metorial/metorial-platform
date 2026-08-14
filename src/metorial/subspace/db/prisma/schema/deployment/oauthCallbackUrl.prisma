@@ -7,6 +7,9 @@ model TenantOAuthCallbackUrl {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   providerOid BigInt
   provider    Provider @relation(fields: [providerOid], references: [oid])
 
@@ -16,4 +19,5 @@ model TenantOAuthCallbackUrl {
   createdAt DateTime @default(now())
 
   @@unique([tenantOid, providerOid])
+  @@index([projectOid])
 }

@@ -83,6 +83,11 @@ describe('sync user update queues', () => {
         name: 'Updated User',
         image: { type: 'default' },
         email: 'updated@example.com'
+      },
+      include: {
+        organization: true,
+        member: true,
+        teams: { include: { team: true } }
       }
     });
     expect(Fabric.fire).toHaveBeenCalledWith(

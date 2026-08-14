@@ -9,6 +9,13 @@ let syncOrgMemberToConsumerMock = vi.fn();
 let syncMemberDefaultPoliciesMock = vi.fn();
 let createOrganizationActorMock = vi.fn();
 
+let testAuditScope = {
+  organizationOid: 1n,
+  organizationActorOid: 3n,
+  actor: { type: 'org_actor' as const, id: 'actor_1' },
+  context: { ip: '127.0.0.1', ua: 'test' }
+};
+
 vi.mock('@lowerdeck/pagination', () => ({
   Paginator: {
     create: vi.fn()
@@ -82,8 +89,7 @@ describe('organizationMemberService admin removal safeguards', () => {
       organizationMemberService.deleteOrganizationMember({
         organization: { oid: 1n } as any,
         member: { oid: 2n, role: 'admin', status: 'active' } as any,
-        context: { ip: '127.0.0.1', ua: 'test' },
-        performedBy: { oid: 3n } as any
+        auditScope: testAuditScope as any
       })
     ).rejects.toBeInstanceOf(ServiceError);
 
@@ -98,8 +104,7 @@ describe('organizationMemberService admin removal safeguards', () => {
         organization: { oid: 1n, authVersion: 'v2' } as any,
         member: { oid: 2n, role: 'admin', status: 'active', actorOid: 4n } as any,
         input: { role: 'member' },
-        context: { ip: '127.0.0.1', ua: 'test' },
-        performedBy: { oid: 3n } as any
+        auditScope: testAuditScope as any
       })
     ).rejects.toBeInstanceOf(ServiceError);
 
@@ -113,8 +118,7 @@ describe('organizationMemberService admin removal safeguards', () => {
       organizationMemberService.deleteOrganizationMember({
         organization: { oid: 1n } as any,
         member: { oid: 2n, role: 'admin', status: 'active' } as any,
-        context: { ip: '127.0.0.1', ua: 'test' },
-        performedBy: { oid: 3n } as any
+        auditScope: testAuditScope as any
       })
     ).rejects.toMatchObject({ data: { reason: 'last_admin' } });
   });
@@ -126,8 +130,7 @@ describe('organizationMemberService admin removal safeguards', () => {
       organizationMemberService.deleteOrganizationMember({
         organization: { oid: 1n } as any,
         member: { oid: 2n, role: 'admin', status: 'active' } as any,
-        context: { ip: '127.0.0.1', ua: 'test' },
-        performedBy: { oid: 3n } as any,
+        auditScope: testAuditScope as any,
         allowLastAdminRemoval: true
       })
     ).resolves.toMatchObject({ status: 'deleted' });
@@ -144,8 +147,7 @@ describe('organizationMemberService admin removal safeguards', () => {
       organizationMemberService.deleteOrganizationMember({
         organization: { oid: 1n } as any,
         member: { oid: 2n, role: 'admin', status: 'active' } as any,
-        context: { ip: '127.0.0.1', ua: 'test' },
-        performedBy: { oid: 3n } as any
+        auditScope: testAuditScope as any
       })
     ).resolves.toMatchObject({
       id: 'orgmem_1',
@@ -181,8 +183,7 @@ describe('organizationMemberService.createOrganizationMember', () => {
       user: { oid: 4n, type: 'user', email: 'a@b.c', name: 'A' } as any,
       organization: { oid: 1n, authVersion: 'v2' } as any,
       input: { role: 'member' },
-      context: { ip: '127.0.0.1', ua: 'test' },
-      performedBy: { type: 'actor', actor: { oid: 3n } as any }
+      auditScope: testAuditScope as any
     });
 
     expect(updateOrganizationMemberMock).toHaveBeenCalledTimes(1);

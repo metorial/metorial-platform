@@ -12,6 +12,8 @@ bun run --cwd ./src/forge/service db:generate
 bun run --cwd ./src/function-bay/service db:generate
 bun run --cwd ./src/signal/service db:generate
 bun run --cwd ./src/synthesis/service db:generate
+bun run --cwd ./src/ares/service db:generate
+bun run --cwd ./src/relay/service db:generate
 
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/origin-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/forge-client
@@ -20,6 +22,8 @@ bunx turbo run --ui=stream build --filter=@metorial-platform-systems/function-ba
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/signal-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/synthesis-client
 bunx turbo run --ui=stream build --filter=@metorial-platform-systems/voyager-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/ares-client
+bunx turbo run --ui=stream build --filter=@metorial-platform-systems/relay-client
 
 # bunx turbo run --ui=stream build --filter=./src/slates/packages/**
 bunx turbo run --ui=stream build --filter=./src/shuttle/sdk/packages/**

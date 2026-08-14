@@ -29,7 +29,6 @@ import {
   consumerSkillReadRoles,
   type ResourceAuthorization
 } from '@metorial/module-access';
-import { subspaceSkillService } from '@metorial/module-subspace';
 import {
   storeAccessService,
   storeReadPermission,
@@ -49,6 +48,7 @@ import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillParticipantService } from './skillParticipant';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
 import type { SkillTemplateRecord } from './skillTemplate';
+import { skillResourceService } from './resource';
 
 let skillInclude = {
   store: true,
@@ -362,7 +362,7 @@ class SkillServiceImpl {
         let hydrated = [];
         for (let offset = 0; offset < candidates.length; offset += 100) {
           hydrated.push(
-            ...(await subspaceSkillService.hydrateResources({
+            ...(await skillResourceService.hydrateDelegatedSkillResources({
               instance,
               skillIds: candidates.slice(offset, offset + 100).map(skill => skill.id)
             }))

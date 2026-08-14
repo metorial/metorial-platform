@@ -57,6 +57,7 @@ export let scmSyncManyQueueProcessor = scmSyncManyQueue.process(async () => {
 
           repoOid: repo.oid,
           tenantOid: repo.tenantOid,
+          projectOid: repo.projectOid,
           solutionOid: repo.solutionOid
         }
       ];

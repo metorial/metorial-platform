@@ -113,6 +113,11 @@ describe('providerDeploymentConfigPairSyncSpecificationQueue', () => {
     };
     let backend = {
       capabilities: {
+        getConnectionSpecificationBehavior: vi.fn().mockResolvedValue({
+          discoverPerConnection: true,
+          mergeDiscoveredToolsIntoVersionSpecification: true,
+          preserveExistingSpecificationOnEmptyDiscovery: true
+        }),
         getSpecificationForProviderPair: vi.fn().mockResolvedValue({
           status: 'success',
           type: 'full',

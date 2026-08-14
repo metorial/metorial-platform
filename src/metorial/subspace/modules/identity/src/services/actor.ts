@@ -12,7 +12,6 @@ import {
   type IdentityActor,
   type IdentityActorStatus,
   IdentityActorType,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -26,7 +25,21 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  metorialDb,
+  type MetorialFacing,
+  resolveConsumerActorIds,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
+import type {
+  Consumer,
+  ConsumerProfile,
+  ConsumerSurface,
+  InstanceConsumer,
+  OrganizationMember
+} from '@metorial/db';
 import {
   identityActorCreatedQueue,
   identityActorDeletedQueue,
@@ -54,23 +67,137 @@ let getAgentSlug = createSlugGenerator(
     }))
 );
 
+export type IdentityActorConsumer = InstanceConsumer & {
+  consumer: Consumer & {
+    organizationMember: OrganizationMember | null;
+    profiles: (ConsumerProfile & {
+      surface: ConsumerSurface;
+    })[];
+  };
+};
+
+let enrichIdentityActors = async <T extends { id: string }>(actors: T[]) => {
+  if (!actors.length) return actors as Array<T & { consumer?: IdentityActorConsumer }>;
+
+  let consumerActors = await metorialDb.consumerActor.findMany({
+    where: {
+      id: { in: actors.map(a => a.id) }
+    },
+    include: {
+      instanceConsumer: {
+        include: {
+          consumer: {
+            include: {
+              organizationMember: true,
+              profiles: {
+                include: {
+                  surface: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  let consumerActorMap = new Map(consumerActors.map(a => [a.id, a]));
+
+  return actors.map(a => {
+    let consumerActor = consumerActorMap.get(a.id);
+    if (!consumerActor) return a as T & { consumer?: IdentityActorConsumer };
+
+    return {
+      ...a,
+      consumer: consumerActor.instanceConsumer
+    };
+  });
+};
+
+export type ListIdentityActorsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  search?: string;
+
+  status?: IdentityActorStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  consumerIds?: string[];
+  agentIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIdentityActorByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityActorId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIdentityActorParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    type: IdentityActorType;
+
+    _agentSlug?: string;
+    _agentHash?: string;
+    _agentType?: AgentType;
+  };
+};
+
+export type UpdateIdentityActorParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityActor: IdentityActor;
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+  };
+};
+
+export type ArchiveIdentityActorParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityActor: IdentityActor;
+};
+
 class identityActorServiceImpl {
-  async listIdentityActors(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIdentityActors(d: MetorialFacing<ListIdentityActorsParams>) {
+    let { instance, organizationActor, consumerIds, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
 
-    search?: string;
+    let ids = rest.ids;
+    if (consumerIds) {
+      let consumerActorIds = await resolveConsumerActorIds(consumerIds);
+      ids = [...(ids ?? []), ...consumerActorIds];
+      if (!ids.length) {
+        return Paginator.create(({ prisma }) => prisma(async () => []));
+      }
+    }
 
-    status?: IdentityActorStatus[];
-    allowDeleted?: boolean;
+    let paginator = await this.listIdentityActorsInternal({
+      ...rest,
+      ids,
+      tenant,
+      environment
+    });
 
-    ids?: string[];
-    agentIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let agents = await resolveProviders(d, d.agentIds);
+    return paginator.mapAll(items => enrichIdentityActors(items));
+  }
+
+  async listIdentityActorsInternal(d: Omit<ListIdentityActorsParams, 'consumerIds'>) {
+    let solution = await getMetorialSolution();
+    let agents = await resolveProviders({ ...d, solution }, d.agentIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -88,7 +215,7 @@ class identityActorServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               ...normalizeStatusForList(d).noParent,
@@ -109,18 +236,25 @@ class identityActorServiceImpl {
     );
   }
 
-  async getIdentityActorById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityActorId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIdentityActorById(d: MetorialFacing<GetIdentityActorByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    let identityActor = await this.getIdentityActorByIdInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+    let [enriched] = await enrichIdentityActors([identityActor]);
+    return enriched!;
+  }
+
+  async getIdentityActorByIdInternal(d: GetIdentityActorByIdParams) {
+    let solution = await getMetorialSolution();
     let identityActor = await db.identityActor.findFirst({
       where: {
         id: d.identityActorId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
@@ -132,23 +266,15 @@ class identityActorServiceImpl {
     return identityActor;
   }
 
-  async createIdentityActor(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createIdentityActor(d: MetorialFacing<CreateIdentityActorParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createIdentityActorInternal({ ...rest, tenant, environment });
+  }
 
-    input: {
-      name: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      type: IdentityActorType;
+  async createIdentityActorInternal(d: CreateIdentityActorParams) {
+    let solution = await getMetorialSolution();
 
-      _agentSlug?: string;
-      _agentHash?: string;
-      _agentType?: AgentType;
-    };
-  }) {
     return withTransaction(async db => {
       let identityActor = await db.identityActor.create({
         data: {
@@ -163,8 +289,10 @@ class identityActorServiceImpl {
           privateMetadata: d.input.privateMetadata,
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         }
       });
 
@@ -193,8 +321,10 @@ class identityActorServiceImpl {
             ),
 
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid
+            projectOid: d.tenant.projectOid,
+            solutionOid: solution.oid,
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           }
         });
         await addAfterTransactionHook(async () =>
@@ -213,17 +343,32 @@ class identityActorServiceImpl {
     });
   }
 
-  async updateIdentityActor(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityActor: IdentityActor;
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-    };
-  }) {
+  async updateIdentityActor(
+    d: MetorialFacing<UpdateIdentityActorParams> & { canEditConsumerActor?: boolean }
+  ) {
+    let { instance, organizationActor, canEditConsumerActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    if (!canEditConsumerActor) {
+      let consumerActor = await metorialDb.consumerActor.findFirst({
+        where: {
+          id: rest.identityActor.id,
+          instanceOid: instance.oid
+        }
+      });
+      if (consumerActor) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot update identity actor linked to consumer'
+          })
+        );
+      }
+    }
+
+    return this.updateIdentityActorInternal({ ...rest, tenant, environment });
+  }
+
+  async updateIdentityActorInternal(d: UpdateIdentityActorParams) {
     checkTenant(d, d.identityActor);
     checkDeletedEdit(d.identityActor, 'update');
 
@@ -246,7 +391,6 @@ class identityActorServiceImpl {
         where: {
           oid: existingIdentityActor.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -280,12 +424,34 @@ class identityActorServiceImpl {
     });
   }
 
-  async archiveIdentityActor(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityActor: IdentityActor;
-  }) {
+  async archiveIdentityActor(
+    d: MetorialFacing<ArchiveIdentityActorParams> & { canEditConsumerActor?: boolean }
+  ) {
+    let { instance, organizationActor, canEditConsumerActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    if (!canEditConsumerActor) {
+      let consumerActor = await metorialDb.consumerActor.findFirst({
+        where: {
+          id: rest.identityActor.id,
+          instanceOid: instance.oid
+        }
+      });
+      if (consumerActor) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot delete identity actor linked to consumer'
+          })
+        );
+      }
+    }
+
+    return this.archiveIdentityActorInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveIdentityActorInternal(d: ArchiveIdentityActorParams) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.identityActor);
     checkDeletedEdit(d.identityActor, 'archive');
 
@@ -305,7 +471,7 @@ class identityActorServiceImpl {
 
     await assertNoActiveIntegrationActorLink({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       identityActorOid: existingIdentityActor.oid,
       identityActorId: existingIdentityActor.id
@@ -316,7 +482,6 @@ class identityActorServiceImpl {
         where: {
           oid: existingIdentityActor.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {

@@ -22,8 +22,14 @@ model ProviderDeploymentConfigPair {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   lastUsedPairVersionOid BigInt?
   lastUsedPairVersion    ProviderDeploymentConfigPairProviderVersion? @relation(fields: [lastUsedPairVersionOid], references: [oid], name: "lastUsedVersion")
@@ -37,6 +43,9 @@ model ProviderDeploymentConfigPair {
   providerDeploymentConfigPairDiscoveries  ProviderDeploymentConfigPairDiscovery[]
   callbackInstances                        CallbackInstance[]
   callbackReceiverRegistrations            CallbackReceiverRegistration[]
+
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model ProviderDeploymentConfigPairProviderVersion {

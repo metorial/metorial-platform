@@ -1,7 +1,7 @@
 import { db, type Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer';
-import { subspaceMagicMcpBackingService } from '@metorial/module-subspace';
+import { magicMcpServerBackingService } from '@metorial-subspace/module-integration';
 import { createQueue } from '@metorial/queue';
 import { magicMcpServerDeletedQueue } from './magicMcpServer';
 import { providerTemplateArchivedQueue } from './providerTemplate';
@@ -344,7 +344,7 @@ export let magicMcpBackingCleanupBackingsManyQueueProcessor =
     if (!instance) return;
 
     let { magicMcpServerBackingIds, nextBackingCursor } =
-      await subspaceMagicMcpBackingService.resolveIntegrationResourceLinks({
+      await magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks({
         instance,
         integrationId: data.integrationId,
         integrationInstanceId: data.integrationInstanceId,
@@ -420,7 +420,7 @@ export let magicMcpBackingCleanupIntegrationInstancesManyQueueProcessor =
     if (!instance) return;
 
     let { integrationInstanceIds, nextIntegrationInstanceCursor } =
-      await subspaceMagicMcpBackingService.resolveIntegrationResourceLinks({
+      await magicMcpServerBackingService.resolveMagicMcpIntegrationResourceLinks({
         instance,
         integrationId: data.integrationId,
         integrationInstanceId: data.integrationInstanceId,

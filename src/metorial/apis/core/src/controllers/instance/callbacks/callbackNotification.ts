@@ -1,12 +1,12 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCallbackNotificationService } from '@metorial/module-subspace';
+import { callbackDeliveryService } from '@metorial-subspace/module-callback';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackNotificationPresenter } from '../../../presenters';
+import { callbackNotificationPresenter } from '@metorial/presenters';
 import { callbackGroup } from './callback';
 
 let callbackNotificationGroup = callbackGroup.use(async ctx => {
@@ -19,7 +19,7 @@ let callbackNotificationGroup = callbackGroup.use(async ctx => {
     );
   }
 
-  let callbackNotification = await subspaceCallbackNotificationService.get({
+  let callbackNotification = await callbackDeliveryService.getCallbackDelivery({
     instance: ctx.instance,
     callbackId: ctx.callback.id,
     eventDeliveryIntentId: ctx.params.callbackNotificationId
@@ -66,19 +66,32 @@ export let callbackNotificationController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCallbackNotificationService.list({
+        let list = await callbackDeliveryService.listCallbackDeliveries({
           instance: ctx.instance,
           callbackId: ctx.callback.id,
-          destinationIds: normalizeArrayParam(ctx.query.destination_id),
-          status: normalizeArrayParam(ctx.query.status) as
-            | ('pending' | 'failed' | 'delivered' | 'retrying')[]
-            | undefined
+          input: {
+            destinationIds: normalizeArrayParam(ctx.query.destination_id),
+            status: normalizeArrayParam(ctx.query.status) as
+              | ('pending' | 'failed' | 'delivered' | 'retrying')[]
+              | undefined,
+            limit: ctx.query.limit,
+            after: ctx.query.after,
+            before: ctx.query.before,
+            cursor: ctx.query.cursor,
+            order: ctx.query.order
+          }
         });
 
-        let list = await paginator.run(ctx.query);
-
-        return Paginator.present(list, callbackNotification =>
-          callbackNotificationPresenter.present({ callbackNotification })
+        return Paginator.present(
+          {
+            items: list.items,
+            pagination: {
+              hasNextPage: list.pagination.has_more_after,
+              hasPreviousPage: list.pagination.has_more_before
+            }
+          },
+          callbackNotification =>
+            callbackNotificationPresenter.present({ callbackNotification })
         );
       }),
 

@@ -15,6 +15,8 @@ let tdbStorage = new AsyncLocalStorage<{
 
 let afterQueue = new PQueue({ concurrency: Infinity });
 
+export let isInTransaction = () => tdbStorage.getStore() != null;
+
 export let withTransaction = async <T>(
   cb: (tdb: TransactionDB) => Promise<T>,
   opts?: { ifExists?: boolean }

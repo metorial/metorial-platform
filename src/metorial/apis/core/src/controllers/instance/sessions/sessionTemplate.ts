@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceSessionTemplateService } from '@metorial/module-subspace';
+import { sessionTemplateService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerToolsPresenter, sessionTemplatePresenter } from '../../../presenters';
+import { providerToolsPresenter, sessionTemplatePresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from './_shared';
 
 let sessionTemplateGroup = instanceGroup.use(async ctx => {
@@ -20,7 +20,7 @@ let sessionTemplateGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let sessionTemplate = await subspaceSessionTemplateService.get({
+  let sessionTemplate = await sessionTemplateService.getSessionTemplateById({
     instance: ctx.instance,
     sessionTemplateId: ctx.params.sessionTemplateId
   });
@@ -80,7 +80,7 @@ export let sessionTemplateController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceSessionTemplateService.list({
+        let paginator = await sessionTemplateService.listSessionTemplates({
           instance: ctx.instance,
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
@@ -145,18 +145,22 @@ export let sessionTemplateController = Controller.create(
       )
       .output(sessionTemplatePresenter)
       .do(async ctx => {
-        let sessionTemplate = await subspaceSessionTemplateService.create({
+        let sessionTemplate = await sessionTemplateService.createSessionTemplate({
           instance: ctx.instance,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          providers:
-            ctx.body.providers?.map(p => ({
-              providerDeploymentId: p.provider_deployment_id,
-              providerConfigId: p.provider_config_id,
-              providerAuthConfigId: p.provider_auth_config_id,
-              toolFilters: p.tool_filters
-            })) ?? []
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            providers:
+              ctx.body.providers?.map(p => ({
+                deploymentId: p.provider_deployment_id,
+                configId: p.provider_config_id,
+                authConfigId: p.provider_auth_config_id,
+                // The former RPC stored this validation union without normalization.
+                // Keep the boundary cast: legacy rules are intentionally outside ToolFilter.
+                toolFilters: p.tool_filters as any
+              })) ?? []
+          }
         });
 
         return sessionTemplatePresenter.present({ sessionTemplate });
@@ -180,28 +184,33 @@ export let sessionTemplateController = Controller.create(
       )
       .output(sessionTemplatePresenter)
       .do(async ctx => {
-        let sessionTemplate = await subspaceSessionTemplateService.update({
+        let sessionTemplate = await sessionTemplateService.updateSessionTemplate({
           instance: ctx.instance,
-          sessionTemplateId: ctx.sessionTemplate.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata
+          template: ctx.sessionTemplate,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata
+          }
         });
 
         return sessionTemplatePresenter.present({ sessionTemplate });
       }),
 
     delete: sessionTemplateGroup
-      .delete(instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.delete'), {
-        name: 'Delete session template',
-        description: 'Deletes a specific session template.'
-      })
+      .delete(
+        instancePath('session-templates/:sessionTemplateId', 'sessionTemplates.delete'),
+        {
+          name: 'Delete session template',
+          description: 'Deletes a specific session template.'
+        }
+      )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(sessionTemplatePresenter)
       .do(async ctx => {
-        let sessionTemplate = await subspaceSessionTemplateService.delete({
+        let sessionTemplate = await sessionTemplateService.deleteSessionTemplate({
           instance: ctx.instance,
-          sessionTemplateId: ctx.sessionTemplate.id
+          sessionTemplate: ctx.sessionTemplate
         });
 
         return sessionTemplatePresenter.present({ sessionTemplate });
@@ -222,7 +231,7 @@ export let sessionTemplateController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(providerToolsPresenter)
       .do(async ctx => {
-        let items = await subspaceSessionTemplateService.listTools({
+        let items = await sessionTemplateService.listSessionTemplateTools({
           instance: ctx.instance,
           sessionTemplateId: ctx.sessionTemplate.id
         });

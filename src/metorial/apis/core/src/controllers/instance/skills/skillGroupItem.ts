@@ -10,7 +10,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillGroupItemPresenter } from '../../../presenters';
+import { skillGroupItemPresenter } from '@metorial/presenters';
 import { skillGroupGroup } from './skillGroup';
 import { assertConsumerCanWriteSkillGroupItem } from './skillGroupItemAccess';
 

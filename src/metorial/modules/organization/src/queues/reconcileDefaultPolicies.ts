@@ -1,6 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import {
   defaultAdminScopesHash,
   defaultEveryoneScopesHash
@@ -81,6 +82,11 @@ export let reconcileDefaultPoliciesSingleQueueProcessor =
     let system = await organizationActorService.getSystemActor({
       organization: accessPolicy.organization
     });
+    let auditScope = createOrganizationActorAuditScope({
+      organization: accessPolicy.organization,
+      organizationActor: system,
+      context: { ip: '0.0.0.0', ua: 'Metorial System' }
+    });
 
     if (
       accessPolicy.type == 'admin' &&
@@ -90,8 +96,7 @@ export let reconcileDefaultPoliciesSingleQueueProcessor =
       await accessPolicyService.updateAccessPolicy({
         accessPolicy,
         organization: accessPolicy.organization,
-        performedBy: system,
-        context: { ip: '0.0.0.0', ua: 'Metorial' },
+        auditScope,
         allowDefaultDocumentUpdate: true,
         input: {
           document: await authBootstrapService.getAdminPolicyDocument({
@@ -115,8 +120,7 @@ export let reconcileDefaultPoliciesSingleQueueProcessor =
       await accessPolicyService.updateAccessPolicy({
         accessPolicy,
         organization: accessPolicy.organization,
-        performedBy: system,
-        context: { ip: '0.0.0.0', ua: 'Metorial' },
+        auditScope,
         allowDefaultDocumentUpdate: true,
         input: {
           document: await authBootstrapService.getEveryonePolicyDocument({

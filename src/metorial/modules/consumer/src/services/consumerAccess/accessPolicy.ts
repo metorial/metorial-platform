@@ -45,11 +45,6 @@ type ConsumerAccessPolicyScope =
       type: 'skill_participant';
       skillParticipantId: string;
     }
-  | {
-      type: 'skill_participant_migration';
-      runId: string;
-      skillParticipantId: string;
-    }
   | undefined;
 
 type ConsumerAccessResource =
@@ -129,17 +124,9 @@ let getPolicyConfig = (d: {
     };
   }
 
-  if (d.policyScope.type == 'skill_participant') {
-    return {
-      name: `${base.name} (${d.policyScope.skillParticipantId})`,
-      systemIdentifier: `skill_participant:${d.policyScope.skillParticipantId}:${d.permission}`,
-      roles: base.roles
-    };
-  }
-
   return {
-    name: `${base.name} migration (${d.policyScope.skillParticipantId})`,
-    systemIdentifier: `skill_participant_migration:${d.policyScope.runId}:${d.policyScope.skillParticipantId}:${d.permission}`,
+    name: `${base.name} (${d.policyScope.skillParticipantId})`,
+    systemIdentifier: `skill_participant:${d.policyScope.skillParticipantId}:${d.permission}`,
     roles: base.roles
   };
 };

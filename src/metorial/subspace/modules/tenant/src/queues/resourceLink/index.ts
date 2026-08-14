@@ -1,7 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
-import { metorialDb } from '../../lib/metorialDb';
 import { env } from '../../env';
+import { metorialDb } from '../../lib/metorialDb';
 import { reconcileResourceLinksService } from '../../services/reconcileResourceLinks';
 
 let BATCH_SIZE = 500;
@@ -18,11 +18,6 @@ export let reconcileResourceLinksOrganizationActorQueue = createQueue<{
   redisUrl: env.service.REDIS_URL
 });
 
-export let reconcileResourceLinksConsumerQueue = createQueue<{ consumerOid: string }>({
-  name: 'sub/ten/res/link/consumer',
-  redisUrl: env.service.REDIS_URL
-});
-
 export let reconcileResourceLinksProjectSearchQueue = createQueue<{ cursor?: string }>({
   name: 'sub/ten/res/link/project/search',
   redisUrl: env.service.REDIS_URL
@@ -32,11 +27,6 @@ export let reconcileResourceLinksOrganizationActorSearchQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'sub/ten/res/link/orgActor/search',
-  redisUrl: env.service.REDIS_URL
-});
-
-export let reconcileResourceLinksConsumerSearchQueue = createQueue<{ cursor?: string }>({
-  name: 'sub/ten/res/link/consumer/search',
   redisUrl: env.service.REDIS_URL
 });
 
@@ -55,10 +45,6 @@ export let reconcileResourceLinksCron = createCron(
       {},
       { id: 'subspace-resource-link-org-actor-search' }
     );
-    await reconcileResourceLinksConsumerSearchQueue.add(
-      {},
-      { id: 'subspace-resource-link-consumer-search' }
-    );
   }
 );
 
@@ -68,7 +54,6 @@ export let reconcileResourceLinksProjectSearchQueueProcessor =
       where: {
         status: 'active',
         subspaceTenantId: { not: null },
-        resourceTenantOid: { not: null },
         oid: data.cursor ? { gt: BigInt(data.cursor) } : undefined
       },
       orderBy: {
@@ -140,50 +125,10 @@ export let reconcileResourceLinksOrganizationActorQueueProcessor =
     });
   });
 
-export let reconcileResourceLinksConsumerSearchQueueProcessor =
-  reconcileResourceLinksConsumerSearchQueue.process(async data => {
-    let consumers = await metorialDb.consumer.findMany({
-      where: {
-        subspaceActorId: { not: null },
-        oid: data.cursor ? { gt: BigInt(data.cursor) } : undefined
-      },
-      orderBy: {
-        oid: 'asc'
-      },
-      take: BATCH_SIZE,
-      select: {
-        oid: true
-      }
-    });
-    if (consumers.length === 0) return;
-
-    await reconcileResourceLinksConsumerQueue.addMany(
-      consumers.map(consumer => ({
-        consumerOid: consumer.oid.toString()
-      }))
-    );
-
-    let lastConsumer = consumers[consumers.length - 1];
-    if (!lastConsumer) return;
-
-    await reconcileResourceLinksConsumerSearchQueue.add({
-      cursor: lastConsumer.oid.toString()
-    });
-  });
-
-export let reconcileResourceLinksConsumerQueueProcessor =
-  reconcileResourceLinksConsumerQueue.process(async data => {
-    await reconcileResourceLinksService.reconcileConsumerActorLink({
-      consumerOid: BigInt(data.consumerOid)
-    });
-  });
-
 export let resourceLinkQueues = combineQueueProcessors([
   reconcileResourceLinksCron,
   reconcileResourceLinksProjectSearchQueueProcessor,
   reconcileResourceLinksProjectQueueProcessor,
   reconcileResourceLinksOrganizationActorSearchQueueProcessor,
-  reconcileResourceLinksOrganizationActorQueueProcessor,
-  reconcileResourceLinksConsumerSearchQueueProcessor,
-  reconcileResourceLinksConsumerQueueProcessor
+  reconcileResourceLinksOrganizationActorQueueProcessor
 ]);

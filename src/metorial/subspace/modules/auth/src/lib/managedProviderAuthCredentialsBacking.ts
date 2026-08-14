@@ -5,10 +5,10 @@ import {
   db,
   getId,
   snowflake,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import { normalizeManagedOAuthScopeIds } from './managedOAuthScopes';
 import {
@@ -45,12 +45,12 @@ let getProviderAuthMethodGlobalOid = (managedCredentials: {
 
 export let ensureManagedProviderAuthCredentialsBacking = async (d: {
   tenant: Tenant;
-  solution: Solution;
   managedCredentials: ManagedProviderAuthCredentialsBackingSource;
   providerAuthMethod: {
     globalOid: bigint;
   };
 }) => {
+  let solution = await getMetorialSolution();
   let provider = getProviderForManagedCredentials(d.managedCredentials);
   let managedCredentialsGlobalOid = getProviderAuthMethodGlobalOid(d.managedCredentials);
   let managedScopeIds = normalizeManagedOAuthScopeIds(d.managedCredentials.oauthScopes);
@@ -168,7 +168,8 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           isEphemeral: false,
           isDefault: false,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
           providerOid: provider.oid
         }
       });
@@ -179,7 +180,8 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           managedCredentialsOid: d.managedCredentials.oid,
           providerAuthCredentialsOid: backingCredentials.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid
         }
       });
 
@@ -211,11 +213,11 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
 
 export let reconcileTenantManagedProviderAuthCredentialsBackings = async (d: {
   tenant: Tenant;
-  solution: Solution;
 }) => {
+  let solution = await getMetorialSolution();
   let managedCredentialsList = await db.managedProviderAuthCredentials.findMany({
     where: {
-      solutionOid: d.solution.oid,
+      solutionOid: solution.oid,
       status: 'active'
     },
     include: {
@@ -223,7 +225,7 @@ export let reconcileTenantManagedProviderAuthCredentialsBackings = async (d: {
       backings: {
         where: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid
+          solutionOid: solution.oid
         },
         take: 1,
         include: {
@@ -247,7 +249,6 @@ export let reconcileTenantManagedProviderAuthCredentialsBackings = async (d: {
 
       await ensureManagedProviderAuthCredentialsBacking({
         tenant: d.tenant,
-        solution: d.solution,
         managedCredentials,
         providerAuthMethod: {
           globalOid: managedCredentialsGlobalOid

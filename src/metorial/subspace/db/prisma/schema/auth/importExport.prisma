@@ -12,8 +12,14 @@ model ProviderAuthExport {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -25,6 +31,8 @@ model ProviderAuthExport {
   expiresAt DateTime?
 
   @@index([createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model ProviderAuthImport {
@@ -41,8 +49,14 @@ model ProviderAuthImport {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
@@ -60,4 +74,6 @@ model ProviderAuthImport {
   expiresAt DateTime?
 
   @@index([createdAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

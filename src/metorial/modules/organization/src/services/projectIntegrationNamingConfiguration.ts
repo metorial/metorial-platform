@@ -1,13 +1,9 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
-import { db, Organization, OrganizationActor, Project } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
+import { Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import {
-  getTenantForSubspace,
-  subspaceTenantService,
-  syncSubspaceTenantForProject
-} from '@metorial/module-subspace';
+import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
 
 class ProjectIntegrationNamingConfigurationService {
   private async ensureProjectActive(project: Project) {
@@ -21,26 +17,8 @@ class ProjectIntegrationNamingConfigurationService {
   }
 
   private async getSubspaceTenantForProject(project: Project) {
-    await syncSubspaceTenantForProject(project);
-
-    let instance = await db.instance.findFirst({
-      where: { projectOid: project.oid },
-      orderBy: { createdAt: 'asc' }
-    });
-    if (!instance) {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'Project has no instances'
-        })
-      );
-    }
-
-    let { tenant, environmentId } = await getTenantForSubspace(instance);
-
-    return subspaceTenantService.get({
-      tenantId: tenant.id,
-      environmentId
-    });
+    let { tenant } = await subspaceScopeService.ensureForProject(project);
+    return tenant;
   }
 
   async getProjectIntegrationNamingConfiguration(d: { project: Project }) {
@@ -56,8 +34,7 @@ class ProjectIntegrationNamingConfigurationService {
   async updateProjectIntegrationNamingConfiguration(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       useIntegrationNames?: boolean;
     };
@@ -71,29 +48,38 @@ class ProjectIntegrationNamingConfigurationService {
 
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
-    let updatedTenant = await subspaceTenantService.upsert({
-      name: tenant.name,
-      identifier: tenant.identifier,
-      resourceTenantId: tenant.resourceTenantId!,
-      resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
-      environments: [],
-      onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
-      isWhitelabel: tenant.isWhitelabel,
-      logRetentionInDays: tenant.logRetentionInDays,
-      enforceSessionExpiry: tenant.enforceSessionExpiry,
-      allowAuthConfigExport: tenant.allowAuthConfigExport,
-      allowAuthConfigImport: tenant.allowAuthConfigImport,
-      collectOperationDescriptionForToolCalls: tenant.collectOperationDescriptionForToolCalls,
-      useIntegrationNamesForSessionProviderNameTemplates:
-        d.input.useIntegrationNames ??
-        tenant.useIntegrationNamesForSessionProviderNameTemplates
+    let updatedTenant = await tenantService.upsertTenant({
+      input: {
+        name: tenant.name,
+        identifier: tenant.identifier,
+        resourceTenantId: tenant.resourceTenantId!,
+        resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
+        environments: [],
+        onlyAllowTrustedProviders: tenant.onlyAllowTrustedProviders,
+        isWhitelabel: tenant.isWhitelabel,
+        logRetentionInDays: tenant.logRetentionInDays,
+        enforceSessionExpiry: tenant.enforceSessionExpiry,
+        allowAuthConfigExport: tenant.allowAuthConfigExport,
+        allowAuthConfigImport: tenant.allowAuthConfigImport,
+        collectOperationDescriptionForToolCalls:
+          tenant.collectOperationDescriptionForToolCalls,
+        useIntegrationNamesForSessionProviderNameTemplates:
+          d.input.useIntegrationNames ??
+          tenant.useIntegrationNamesForSessionProviderNameTemplates
+      }
     });
 
     await Fabric.fire('organization.project.integration_naming_configuration.updated:after', {
-      ...d,
+      organization: d.organization,
+      input: d.input,
+      project: d.project,
       configuration: {
         useIntegrationNames: updatedTenant.useIntegrationNamesForSessionProviderNameTemplates
-      }
+      },
+      previousConfiguration: {
+        useIntegrationNames: tenant.useIntegrationNamesForSessionProviderNameTemplates
+      },
+      auditScope: d.auditScope
     });
 
     return {

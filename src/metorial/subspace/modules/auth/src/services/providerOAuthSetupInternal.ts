@@ -77,7 +77,6 @@ class providerOAuthSetupInternalServiceImpl {
                 type: 'oauth_automated',
                 tenant: providerOAuthSetup.tenant,
                 environment: providerOAuthSetup.environment,
-                solution: providerOAuthSetup.solution,
                 provider: providerOAuthSetup.provider,
                 providerDeployment: providerOAuthSetup.deployment ?? undefined,
                 credentials: providerOAuthSetup.authCredentials,

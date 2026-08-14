@@ -212,6 +212,7 @@ export let SandboxButton = () => {
   return (
     <Menu
       title="Select Sandbox"
+      lightMode
       items={[
         ...devInstances.map(instance => ({
           id: instance.slug,
@@ -265,7 +266,7 @@ export let SandboxButton = () => {
         }
       }}
     >
-      {instance.data?.type === 'development' ? (
+      {instance.data?.type === 'development' && location.pathname.startsWith('/i/') ? (
         <Button size="2" color="gray400" shadow={false}>
           Exit Sandbox
         </Button>

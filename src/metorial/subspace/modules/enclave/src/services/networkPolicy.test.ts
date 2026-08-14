@@ -55,8 +55,8 @@ vi.mock('@lowerdeck/lock', () => ({
 import { networkPolicyDeletedQueue } from '../queues/lifecycle/networkPolicy';
 import { networkPolicyService } from './networkPolicy';
 
-let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
-let environment = { oid: BigInt(20), id: 'ken_test' } as any;
+let tenant = { oid: BigInt(10), id: 'ktn_test', projectOid: BigInt(11) } as any;
+let environment = { oid: BigInt(20), id: 'ken_test', instanceOid: BigInt(21) } as any;
 
 describe('networkPolicyService', () => {
   beforeEach(() => {
@@ -85,7 +85,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.createNetworkPolicy({
+    let result = await networkPolicyService.createNetworkPolicyInternal({
       tenant,
       environment,
       input: {
@@ -94,6 +94,15 @@ describe('networkPolicyService', () => {
       }
     });
 
+    expect(mockDb.networkPolicy.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: 'Ingress policy',
+        tenantOid: tenant.oid,
+        projectOid: tenant.projectOid,
+        environmentOid: environment.oid,
+        instanceOid: environment.instanceOid
+      })
+    });
     expect(mockDb.networkPolicyVersion.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         version: 1,
@@ -139,7 +148,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.addNetworkPolicyRule({
+    let result = await networkPolicyService.addNetworkPolicyRuleInternal({
       tenant,
       environment,
       networkPolicy: {
@@ -193,7 +202,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.removeNetworkPolicyRule({
+    let result = await networkPolicyService.removeNetworkPolicyRuleInternal({
       tenant,
       environment,
       networkPolicy: {
@@ -255,7 +264,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    let result = await networkPolicyService.updateNetworkPolicy({
+    let result = await networkPolicyService.updateNetworkPolicyInternal({
       tenant,
       environment,
       networkPolicy: {
@@ -299,7 +308,7 @@ describe('networkPolicyService', () => {
       firewallLinks: []
     });
 
-    await networkPolicyService.archiveNetworkPolicy({
+    await networkPolicyService.archiveNetworkPolicyInternal({
       tenant,
       environment,
       networkPolicy: {

@@ -58,8 +58,8 @@ vi.mock('@metorial/module-access', () => ({
   consumerSkillReadRoles: []
 }));
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceSkillTemplateService: {}
+vi.mock('./resource', () => ({
+  skillResourceService: {}
 }));
 
 vi.mock('@metorial/cargo-module-store', () => ({

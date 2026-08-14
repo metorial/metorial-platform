@@ -5,9 +5,13 @@ import {
   type Environment,
   db,
   type Session,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { isIpAllowedByIngressAllowList } from '../lib/ingressAllowList';
 import { recordIngressNetworkLog } from '../lib/ingressNetworkLogBuffer';
 import { enclaveService } from './enclave';
@@ -26,6 +30,22 @@ export type EnclaveIngressCheckResult = {
   allowed: boolean;
   enclaveIds: string[];
   deniedEnclaveIds: string[];
+};
+
+type CheckSessionIngressAccessParams = {
+  sessionIds: string[];
+  sourceIp: string;
+  hostname?: string | null;
+  port?: number | null;
+  recordLog?: boolean;
+};
+
+type AssertSessionIngressAccessParams = {
+  sessionId: string;
+  sourceIp: string;
+  hostname?: string | null;
+  port?: number | null;
+  recordLog?: boolean;
 };
 
 let dedupeEnclaves = (enclaves: (Enclave | null)[]) => {
@@ -58,15 +78,16 @@ let sessionInclude = {
 class enclaveIngressPolicyServiceImpl {
   private async resolveSessions(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     sessionIds: string[];
   }) {
+    let solution = await getMetorialSolution();
+
     let sessions = await db.session.findMany({
       where: {
         id: { in: d.sessionIds },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active'
       },
@@ -85,7 +106,7 @@ class enclaveIngressPolicyServiceImpl {
       where: {
         id: { in: missingSessionIds },
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active'
       },
@@ -107,19 +128,24 @@ class enclaveIngressPolicyServiceImpl {
     return sessionsByRequestedId;
   }
 
-  async checkSessionIngressAccess(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionIds: string[];
-    sourceIp: string;
-    hostname?: string | null;
-    port?: number | null;
-    recordLog?: boolean;
-  }): Promise<{
+  async checkSessionIngressAccess(d: MetorialFacing<CheckSessionIngressAccessParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.checkSessionIngressAccessInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async checkSessionIngressAccessInternal(
+    d: { tenant: Tenant; environment: Environment } & CheckSessionIngressAccessParams
+  ): Promise<{
     object: 'enclave.ingress_check';
     results: EnclaveIngressCheckResult[];
   }> {
+    let solution = await getMetorialSolution();
     let sessionIds = Array.from(new Set(d.sessionIds));
     let sessionsByRequestedId = await this.resolveSessions({ ...d, sessionIds });
 
@@ -148,7 +174,7 @@ class enclaveIngressPolicyServiceImpl {
       let deniedEnclaves: Enclave[] = [];
 
       for (let enclave of enclaves) {
-        let compiledNetworkRules = await enclaveService.getCompiledNetworkRules({
+        let compiledNetworkRules = await enclaveService.getCompiledNetworkRulesInternal({
           tenant: d.tenant,
           environment: d.environment,
           enclave
@@ -184,8 +210,10 @@ class enclaveIngressPolicyServiceImpl {
       for (let record of logRecords) {
         recordIngressNetworkLog({
           tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
           environmentOid: d.environment.oid,
-          solutionOid: d.solution.oid,
+          instanceOid: d.environment.instanceOid,
+          solutionOid: solution.oid,
           enclaveOid: record.enclave.oid,
           sessionId: record.sessionId,
           sourceIp: d.sourceIp,
@@ -202,17 +230,21 @@ class enclaveIngressPolicyServiceImpl {
     };
   }
 
-  async assertSessionIngressAccess(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    sessionId: string;
-    sourceIp: string;
-    hostname?: string | null;
-    port?: number | null;
-    recordLog?: boolean;
-  }) {
-    let check = await this.checkSessionIngressAccess({
+  async assertSessionIngressAccess(d: MetorialFacing<AssertSessionIngressAccessParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.assertSessionIngressAccessInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async assertSessionIngressAccessInternal(
+    d: { tenant: Tenant; environment: Environment } & AssertSessionIngressAccessParams
+  ) {
+    let check = await this.checkSessionIngressAccessInternal({
       ...d,
       sessionIds: [d.sessionId]
     });

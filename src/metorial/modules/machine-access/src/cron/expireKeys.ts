@@ -1,4 +1,5 @@
 import { createCron } from '@metorial/cron';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
@@ -57,11 +58,20 @@ let expireSingleQueueProcessor = expireSingleQueue.process(async data => {
     ? await organizationActorService.getSystemActor({ organization })
     : null;
 
-  if (organization && systemActor) {
+  let auditScope =
+    organization && systemActor
+      ? createOrganizationActorAuditScope({
+          organization,
+          organizationActor: systemActor,
+          context: { ip: '0.0.0.0', ua: 'Metorial System' }
+        })
+      : null;
+
+  if (organization && auditScope) {
     await Fabric.fire('machine_access.api_key.expired:before', {
       apiKey,
       organization,
-      performedBy: systemActor,
+      auditScope,
       machineAccess: apiKey.machineAccess
     });
   }
@@ -75,11 +85,12 @@ let expireSingleQueueProcessor = expireSingleQueue.process(async data => {
     }
   });
 
-  if (organization && systemActor) {
+  if (organization && auditScope) {
     await Fabric.fire('machine_access.api_key.expired:after', {
       organization,
       apiKey: updatedApiKey,
-      performedBy: systemActor,
+      previousApiKey: apiKey,
+      auditScope,
       machineAccess: apiKey.machineAccess
     });
 

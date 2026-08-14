@@ -2,6 +2,7 @@ import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import {
   getEffectiveConsumerGroups,
   normalizeStringList,
@@ -137,10 +138,10 @@ class ConsumerProfileServiceImpl {
 
         let currentOrganizationActor = d.consumerProfile?.organizationActorOid
           ? await db.organizationActor.findUnique({
-          where: { oid: d.consumerProfile.organizationActorOid }
+              where: { oid: d.consumerProfile.organizationActorOid }
             })
           : null;
-    if (currentOrganizationActor?.type === 'consumer_profile') {
+        if (currentOrganizationActor?.type === 'consumer_profile') {
           return {
             organizationMemberOid: null,
             organizationActorOid: currentOrganizationActor.oid
@@ -157,7 +158,12 @@ class ConsumerProfileServiceImpl {
             email: d.email
           },
           organization: d.organization,
-          performedBy: { type: 'actor', actor: systemActor }
+          auditScope: createOrganizationActorAuditScope({
+            organization: d.organization,
+            organizationActor: systemActor,
+            instance: { oid: d.instanceConsumer.instanceOid },
+            context: { ip: '0.0.0.0', ua: 'Metorial System' }
+          })
         });
 
         await db.consumerOrganizationActor.upsert({
@@ -837,7 +843,6 @@ class ConsumerProfileServiceImpl {
     inviteStatus?: ConsumerProfileInviteStatus;
     rejectIfActiveProfileExists?: boolean;
 
-    aresUserId?: string;
     ssoGroupIds?: string[];
     ssoRoles?: string[];
   }) {
@@ -883,20 +888,8 @@ class ConsumerProfileServiceImpl {
         return await withTransaction(async db => {
           let existingProfile = await db.consumerProfile.findFirst({
             where: {
-              OR: [
-                ...(d.aresUserId
-                  ? [
-                      {
-                        surfaceOid: d.surface.oid,
-                        aresUserId: d.aresUserId
-                      }
-                    ]
-                  : []),
-                {
-                  email: consumerEmailEquals(email),
-                  surfaceOid: d.surface.oid
-                }
-              ]
+              email: consumerEmailEquals(email),
+              surfaceOid: d.surface.oid
             },
             include: { surface: { include: { portal: true } } }
           });
@@ -920,8 +913,7 @@ class ConsumerProfileServiceImpl {
 
             let nextInviteStatus = d.inviteStatus ?? existingProfile.inviteStatus;
             let shouldActivate =
-              (d.aresUserId && existingProfile.inviteStatus == 'invited') ||
-              (nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted');
+              nextInviteStatus == 'accepted' && existingProfile.inviteStatus != 'accepted';
 
             let organizationIdentity = await this.resolveOrganizationIdentity({
               consumerProfile: existingProfile,
@@ -939,15 +931,15 @@ class ConsumerProfileServiceImpl {
               },
               data: {
                 status: 'active',
-                aresUserId: d.aresUserId,
                 email,
                 name: d.name,
                 inviteStatus: shouldActivate ? existingProfile.inviteStatus : nextInviteStatus,
                 consumerOid: instanceConsumer.consumerOid,
-                ...organizationIdentity,
                 deletedAt: null,
                 ssoGroupIds,
-                ssoRoles
+                ssoRoles,
+
+                ...organizationIdentity
               },
               include
             });
@@ -998,7 +990,6 @@ class ConsumerProfileServiceImpl {
               data: {
                 id: await ID.generateId('consumerProfile'),
                 status: 'active',
-                aresUserId: d.aresUserId,
                 email,
                 name: d.name,
                 inviteStatus: d.inviteStatus ?? 'unset',
@@ -1008,9 +999,10 @@ class ConsumerProfileServiceImpl {
                 instanceOid: d.surface.instanceOid,
                 surfaceOid: d.surface.oid,
                 consumerOid: instanceConsumer.consumerOid,
-                ...organizationIdentity,
                 accessTagOid: accessTag.oid,
-                personalConsumerGroupOid: personalConsumerGroup.oid
+                personalConsumerGroupOid: personalConsumerGroup.oid,
+
+                ...organizationIdentity
               },
               include
             })

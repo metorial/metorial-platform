@@ -1,4 +1,5 @@
 import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { createAuditScope } from '@metorial/audit-scope';
 import { accessService } from '@metorial/module-access';
 import { flagService } from '@metorial/module-flags';
 import { Path } from '@metorial/rest';
@@ -27,6 +28,7 @@ export let organizationGroup = managementGroup.use(async ctx => {
       organization: ctx.auth.restrictions.organization,
       actor: ctx.auth.restrictions.actor,
       member: undefined,
+      auditScope: ctx.auth.auditScope,
       flags: await flagService.getFlags({
         organization: ctx.auth.restrictions.organization,
         machineAccess: ctx.auth.machineAccess
@@ -47,9 +49,22 @@ export let organizationGroup = managementGroup.use(async ctx => {
     authInfo: ctx.auth,
     organizationId
   });
+  let organizationActor = res.actor;
+  if (!organizationActor) {
+    throw new Error('Organization access did not resolve an organization actor');
+  }
 
   return {
     ...res,
+    auditScope: createAuditScope({
+      organization: res.organization,
+      organizationActor,
+      actor: {
+        type: 'org_actor',
+        id: organizationActor.id
+      },
+      context: ctx.context
+    }),
     flags: await flagService.getFlags({
       organization: res.organization,
       user: ctx.auth.user,

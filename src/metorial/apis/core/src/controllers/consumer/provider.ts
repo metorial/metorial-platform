@@ -25,7 +25,7 @@ import {
   magicMcpServerPresenter,
   portalOAuthAuthorizationPresenter,
   portalOAuthClientPresenter
-} from '../../presenters';
+} from '@metorial/presenters';
 
 let consumerProviderItemGroup = consumerGroup.use(async ctx => {
   if (!ctx.params.catalogItemId) {

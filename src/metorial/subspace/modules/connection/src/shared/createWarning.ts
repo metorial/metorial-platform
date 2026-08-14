@@ -23,9 +23,11 @@ export let createWarning = async (props: CreateWarningProps) => {
 
       sessionOid: props.session.oid,
       tenantOid: props.session.tenantOid,
+      projectOid: props.session.projectOid,
       connectionOid: props.connection?.oid,
       solutionOid: props.session.solutionOid,
-      environmentOid: props.session.environmentOid
+      environmentOid: props.session.environmentOid,
+      instanceOid: props.session.instanceOid
     }
   });
 

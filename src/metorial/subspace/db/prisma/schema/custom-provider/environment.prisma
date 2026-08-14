@@ -7,11 +7,17 @@ model CustomProviderEnvironment {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   providerEnvironmentOid BigInt?              @unique
   providerEnvironment    ProviderEnvironment? @relation(fields: [providerEnvironmentOid], references: [oid])
@@ -30,6 +36,8 @@ model CustomProviderEnvironment {
   @@unique([environmentOid, customProviderOid])
   @@index([createdAt])
   @@index([updatedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
 }
 
 model CustomProviderEnvironmentVersion {
@@ -48,10 +56,14 @@ model CustomProviderEnvironmentVersion {
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid])
 
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
   commitOid BigInt
   commit    CustomProviderCommit @relation(fields: [commitOid], references: [oid])
 
   createdAt DateTime @default(now())
 
   @@unique([customProviderEnvironmentOid, customProviderVersionOid])
+  @@index([instanceOid])
 }

@@ -9,7 +9,6 @@ import {
   type IdentityActor,
   type IdentityCredential,
   IdentityDelegationPermissions,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import { checkTenant } from '@metorial-subspace/module-tenant';
@@ -33,7 +32,6 @@ export class DelegationChecker {
 
   static async create(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     identity: Identity;
     actor: IdentityActor;

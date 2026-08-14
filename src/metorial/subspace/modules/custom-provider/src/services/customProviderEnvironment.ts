@@ -5,7 +5,6 @@ import {
   db,
   type CustomProviderStatus,
   type Environment,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -14,6 +13,11 @@ import {
   resolveCustomProviders,
   resolveCustomProviderVersions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 let include = {
   customProvider: {
@@ -66,22 +70,43 @@ let customProviderEnvironmentScopeFilter = (d: {
   ].filter(Boolean)
 });
 
+type ListCustomProviderEnvironmentsParams = {
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+
+  ids?: string[];
+  customProviderIds?: string[];
+  customProviderVersionIds?: string[];
+};
+
+type GetCustomProviderEnvironmentByIdParams = {
+  customProviderEnvironmentId: string;
+  includeUnpublished?: boolean;
+  includeOtherEnvironments?: boolean;
+};
+
 class customProviderEnvironmentServiceImpl {
-  async listCustomProviderEnvironments(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listCustomProviderEnvironments(
+    d: MetorialFacing<ListCustomProviderEnvironmentsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
+    return this.listCustomProviderEnvironmentsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    customProviderIds?: string[];
-    customProviderVersionIds?: string[];
-  }) {
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+  async listCustomProviderEnvironmentsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCustomProviderEnvironmentsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
     let customProviderVersions = await resolveCustomProviderVersions(
-      d,
+      ts,
       d.customProviderVersionIds
     );
 
@@ -92,7 +117,7 @@ class customProviderEnvironmentServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 customProviderEnvironmentScopeFilter(d),
@@ -124,19 +149,28 @@ class customProviderEnvironmentServiceImpl {
     );
   }
 
-  async getCustomProviderEnvironmentById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    customProviderEnvironmentId: string;
-    includeUnpublished?: boolean;
-    includeOtherEnvironments?: boolean;
-  }) {
+  async getCustomProviderEnvironmentById(
+    d: MetorialFacing<GetCustomProviderEnvironmentByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCustomProviderEnvironmentByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCustomProviderEnvironmentByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCustomProviderEnvironmentByIdParams
+  ) {
+    let solution = await getMetorialSolution();
     let customProviderEnvironment = await db.customProviderEnvironment.findFirst({
       where: {
         id: d.customProviderEnvironmentId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         AND: [customProviderEnvironmentScopeFilter(d)]
       },
       include

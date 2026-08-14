@@ -5,6 +5,6 @@ export let env = createValidatedEnv({
   service: {
     DATABASE_URL: v.string(),
 
-    PUBLIC_SERVICE_URL: v.string()
+    INTEGRATIONS_API_URL: v.string()
   }
 });

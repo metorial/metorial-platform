@@ -2,7 +2,7 @@ import { badRequestError, paymentRequiredError, ServiceError } from '@lowerdeck/
 import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { flagService } from '@metorial/module-flags';
-import { subspaceCustomProviderService } from '@metorial/module-subspace';
+import { customProviderService } from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -12,7 +12,7 @@ import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderEnvPresenter,
   subspaceCustomProviderPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 export let customProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
@@ -24,10 +24,9 @@ export let customProviderGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let customProvider = await subspaceCustomProviderService.get({
+  let customProvider = await customProviderService.getCustomProviderById({
     instance: ctx.instance,
-    customProviderId: ctx.params.customProviderId,
-    includeEnv: false
+    customProviderId: ctx.params.customProviderId
   });
 
   return { customProvider };
@@ -114,8 +113,8 @@ export let customProviderFromValidator = v.union([
 ]);
 
 type CustomProviderFromInput = Parameters<
-  typeof subspaceCustomProviderService.create
->[0]['from'];
+  typeof customProviderService.createCustomProvider
+>[0]['input']['from'];
 
 export let mapCustomProviderFrom = (
   type: ValidationTypeValue<typeof customProviderFromValidator>
@@ -231,7 +230,7 @@ export let customProviderController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await subspaceCustomProviderService.list({
+        let paginator = await customProviderService.listCustomProviders({
           instance: ctx.instance,
           allowDeleted: false,
           search: ctx.query.search,
@@ -247,7 +246,7 @@ export let customProviderController = Controller.create(
 
         return Paginator.present(list, customProvider =>
           subspaceCustomProviderPresenter.present({
-            customProvider: customProvider
+            customProvider
           })
         );
       }),
@@ -276,14 +275,8 @@ export let customProviderController = Controller.create(
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderEnvPresenter)
       .do(async ctx => {
-        let customProvider = await subspaceCustomProviderService.get({
-          instance: ctx.instance,
-          customProviderId: ctx.params.customProviderId,
-          includeEnv: true
-        });
-
         return subspaceCustomProviderEnvPresenter.present({
-          customProviderFrom: customProvider.draft.from
+          customProviderFrom: ctx.customProvider.payload.from
         });
       }),
 
@@ -322,18 +315,20 @@ export let customProviderController = Controller.create(
           }
         }
 
-        let customProvider = await subspaceCustomProviderService.create({
+        let customProvider = await customProviderService.createCustomProvider({
           instance: ctx.instance,
           organizationActor: ctx.actor!,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          from: mapCustomProviderFrom(ctx.body.from),
-          config: ctx.body.config
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            from: mapCustomProviderFrom(ctx.body.from),
+            config: ctx.body.config
+          }
         });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider: customProvider
+          customProvider
         });
       }),
 
@@ -357,19 +352,20 @@ export let customProviderController = Controller.create(
       )
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
-        let customProvider = await subspaceCustomProviderService.update({
+        let customProvider = await customProviderService.updateCustomProvider({
           instance: ctx.instance,
           organizationActor: ctx.actor!,
-
-          customProviderId: ctx.customProvider.id,
-          name: ctx.body.name,
-          description: ctx.body.description,
-          metadata: ctx.body.metadata,
-          readme: ctx.body.readme
+          customProvider: ctx.customProvider,
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            metadata: ctx.body.metadata,
+            readme: ctx.body.readme
+          }
         });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider: customProvider
+          customProvider
         });
       }),
 
@@ -386,15 +382,14 @@ export let customProviderController = Controller.create(
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(subspaceCustomProviderPresenter)
       .do(async ctx => {
-        let customProvider = await subspaceCustomProviderService.archive({
+        let customProvider = await customProviderService.archiveCustomProvider({
           instance: ctx.instance,
           organizationActor: ctx.actor!,
-
-          customProviderId: ctx.customProvider.id
+          customProvider: ctx.customProvider
         });
 
         return subspaceCustomProviderPresenter.present({
-          customProvider: customProvider
+          customProvider
         });
       })
   }

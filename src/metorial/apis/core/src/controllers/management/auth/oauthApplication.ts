@@ -12,7 +12,7 @@ import {
 import {
   oauthApplicationClientSecretPresenter,
   oauthApplicationPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 let oauthApplicationManagementGroup = organizationGroup.use(async ctx => {
   if (!ctx.params.oauthApplicationId) {
@@ -165,8 +165,7 @@ export let oauthApplicationManagementController = Controller.create(
       .do(async ctx => {
         let oauthApplication = await oauthApplicationService.createOAuthApplication({
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             type: 'user_facing',
             accessLevel: ctx.body.access_level,
@@ -263,8 +262,7 @@ export let oauthApplicationManagementController = Controller.create(
         let oauthApplication = await oauthApplicationService.updateOAuthApplication({
           oauthApplication: ctx.oauthApplication,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context,
+          auditScope: ctx.auditScope,
           input: {
             accessLevel: ctx.body.access_level,
             allowClientSecretlessTokenExchange:
@@ -296,8 +294,7 @@ export let oauthApplicationManagementController = Controller.create(
         let oauthApplication = await oauthApplicationService.archiveOAuthApplication({
           oauthApplication: ctx.oauthApplication,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return oauthApplicationPresenter.present({ oauthApplication });
@@ -320,7 +317,8 @@ export let oauthApplicationManagementController = Controller.create(
       .do(async ctx => {
         let oauthApplicationClientSecret =
           await oauthApplicationService.createOAuthApplicationClientSecret({
-            oauthApplication: ctx.oauthApplication
+            oauthApplication: ctx.oauthApplication,
+            auditScope: ctx.auditScope
           });
 
         return oauthApplicationClientSecretPresenter.present({
@@ -345,7 +343,8 @@ export let oauthApplicationManagementController = Controller.create(
       .do(async ctx => {
         let oauthApplicationClientSecret =
           await oauthApplicationService.deleteOAuthApplicationClientSecret({
-            oauthApplicationClientSecret: ctx.oauthApplicationClientSecret
+            oauthApplicationClientSecret: ctx.oauthApplicationClientSecret,
+            auditScope: ctx.auditScope
           });
 
         return oauthApplicationClientSecretPresenter.present({

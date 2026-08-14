@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { fileLinkPresenter } from '../../../presenters';
+import { fileLinkPresenter } from '@metorial/presenters';
 
 let fileLinkRootGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.linkId) throw new Error('linkId is required');

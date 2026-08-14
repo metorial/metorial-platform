@@ -16,9 +16,14 @@ model EnclaveEnvironment {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   createdAt DateTime @default(now())
 
   enclaves Enclave[]
+
+  @@index([projectOid])
 }
 
 model Enclave {
@@ -48,8 +53,14 @@ model Enclave {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   environmentOid BigInt
   environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -59,4 +70,6 @@ model Enclave {
 
   @@unique([environmentOid, slug])
   @@index([needsEnclaveReconciliation])
+  @@index([projectOid])
+  @@index([instanceOid])
 }

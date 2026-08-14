@@ -12,7 +12,6 @@ import {
   type IntegrationInstanceProviderStatus,
   type ProviderAuthConfig,
   type ProviderConfig,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -34,7 +33,12 @@ import {
 } from '@metorial-subspace/list-utils';
 import { providerService } from '@metorial-subspace/module-catalog';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import {
   createIntegrationInstanceProviderVersion,
   normalizeIntegrationProviderToolFilter,
@@ -166,39 +170,68 @@ export type SetIntegrationInstanceProviderInput = {
   lockProviderResources?: boolean;
 };
 
+export type ListIntegrationInstanceProvidersParams = {
+  search?: string;
+  includeMagicMcpBackings?: boolean;
+
+  status?: IntegrationInstanceProviderStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  integrationIds?: string[];
+  integrationInstanceIds?: string[];
+  providerIds?: string[];
+  integrationProviderIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  sessionTemplateIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIntegrationInstanceProviderByIdParams = {
+  integrationInstanceProviderId: string;
+  allowDeleted?: boolean;
+};
+
+export type SetIntegrationInstanceProviderParams = {
+  integrationInstance: IntegrationInstance;
+  input: SetIntegrationInstanceProviderInput;
+  _canBreakIntegrationCanRules?: boolean;
+  _allowMissingProviderAuthConfig?: boolean;
+  _canBypassProviderResourceOwnershipChecks?: boolean;
+};
+
 class integrationInstanceProviderServiceImpl {
-  async listIntegrationInstanceProviders(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIntegrationInstanceProviders(
+    d: MetorialFacing<ListIntegrationInstanceProvidersParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    search?: string;
-    includeMagicMcpBackings?: boolean;
+    return this.listIntegrationInstanceProvidersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    status?: IntegrationInstanceProviderStatus[];
-    allowDeleted?: boolean;
+  async listIntegrationInstanceProvidersInternal(
+    d: { tenant: Tenant; environment: Environment } & ListIntegrationInstanceProvidersParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
 
-    ids?: string[];
-    integrationIds?: string[];
-    integrationInstanceIds?: string[];
-    providerIds?: string[];
-    integrationProviderIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    sessionTemplateIds?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
-    let providers = await resolveProviders(d, d.providerIds);
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
-    let sessionTemplates = await resolveSessionTemplates(d, d.sessionTemplateIds);
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(ts, d.integrationInstanceIds);
+    let providers = await resolveProviders(ts, d.providerIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
+    let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
+    let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
 
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
@@ -210,7 +243,7 @@ class integrationInstanceProviderServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               integrationInstance: d.includeMagicMcpBackings
                 ? { isHiddenDraft: false }
@@ -275,18 +308,29 @@ class integrationInstanceProviderServiceImpl {
     );
   }
 
-  async getIntegrationInstanceProviderById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceProviderId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIntegrationInstanceProviderById(
+    d: MetorialFacing<GetIntegrationInstanceProviderByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getIntegrationInstanceProviderByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getIntegrationInstanceProviderByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetIntegrationInstanceProviderByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let integrationInstanceProvider = await db.integrationInstanceProvider.findFirst({
       where: {
         id: d.integrationInstanceProviderId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
@@ -301,9 +345,8 @@ class integrationInstanceProviderServiceImpl {
     return integrationInstanceProvider;
   }
 
-  async setIntegrationInstanceProviders(d: {
+  async setIntegrationInstanceProvidersInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstance: IntegrationInstance;
     input: SetIntegrationInstanceProviderInput[];
@@ -311,6 +354,8 @@ class integrationInstanceProviderServiceImpl {
     _allowMissingProviderAuthConfig?: boolean;
     _canBypassProviderResourceOwnershipChecks?: boolean;
   }) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integrationInstance);
     checkDeletedRelation(d.integrationInstance);
 
@@ -323,7 +368,7 @@ class integrationInstanceProviderServiceImpl {
         where: {
           id: { in: providerReferences },
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       });
@@ -340,10 +385,9 @@ class integrationInstanceProviderServiceImpl {
       let fallbackProviders = await Promise.all(
         missingReferences.map(async reference => ({
           reference: reference!,
-          provider: await providerService.getProviderById({
+          provider: await providerService.getProviderByIdInternal({
             providerId: reference!,
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment
           })
         }))
@@ -355,7 +399,7 @@ class integrationInstanceProviderServiceImpl {
             integrationOid: d.integrationInstance.integrationOid,
             providerOid: { in: fallbackProviders.map(({ provider }) => provider.oid) },
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             status: 'active'
           }
@@ -540,9 +584,8 @@ class integrationInstanceProviderServiceImpl {
         return input.providerConfigId;
       });
 
-      let combinations = await providerCombinationService.getCombinations({
+      let combinations = await providerCombinationService.getCombinationsInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         allowMissingAuthConfig: d._allowMissingProviderAuthConfig,
         providers: d.input.map((input, idx) => ({
@@ -655,8 +698,10 @@ class integrationInstanceProviderServiceImpl {
             integrationProviderOid: integrationProvider.oid,
             integrationVersionOid: materialProvider.integration.currentVersion!.oid,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
-            environmentOid: d.environment.oid
+            projectOid: d.tenant.projectOid,
+            solutionOid: solution.oid,
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           },
           update: {
             status: 'active',
@@ -779,17 +824,23 @@ class integrationInstanceProviderServiceImpl {
     });
   }
 
-  async setIntegrationInstanceProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstance: IntegrationInstance;
-    input: SetIntegrationInstanceProviderInput;
-    _canBreakIntegrationCanRules?: boolean;
-    _allowMissingProviderAuthConfig?: boolean;
-    _canBypassProviderResourceOwnershipChecks?: boolean;
-  }) {
-    let [integrationInstanceProvider] = await this.setIntegrationInstanceProviders({
+  async setIntegrationInstanceProvider(
+    d: MetorialFacing<SetIntegrationInstanceProviderParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.setIntegrationInstanceProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async setIntegrationInstanceProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & SetIntegrationInstanceProviderParams
+  ) {
+    let [integrationInstanceProvider] = await this.setIntegrationInstanceProvidersInternal({
       ...d,
       input: [d.input]
     });
@@ -840,9 +891,8 @@ class integrationInstanceProviderServiceImpl {
     }
   }
 
-  async setMagicMcpIntegrationInstanceProviders(d: {
+  async setMagicMcpIntegrationInstanceProvidersInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integration: Integration;
     integrationInstance: IntegrationInstance;
@@ -866,9 +916,8 @@ class integrationInstanceProviderServiceImpl {
     let integrationProviders = [];
     for (let input of d.input) {
       integrationProviders.push(
-        await integrationProviderService.ensureIntegrationProviderForDeployment({
+        await integrationProviderService.ensureIntegrationProviderForDeploymentInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           integration: d.integration,
           input: {
@@ -879,9 +928,8 @@ class integrationInstanceProviderServiceImpl {
       );
     }
 
-    return await this.setIntegrationInstanceProviders({
+    return await this.setIntegrationInstanceProvidersInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       integrationInstance: d.integrationInstance,
       // Magic MCP backing reconciliation must preserve explicit provider config/filter choices
@@ -899,12 +947,13 @@ class integrationInstanceProviderServiceImpl {
     });
   }
 
-  async archiveIntegrationInstanceProvider(d: {
+  async archiveIntegrationInstanceProviderInternal(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     integrationInstanceProvider: IntegrationInstanceProvider;
   }) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integrationInstanceProvider);
     checkDeletedEdit(d.integrationInstanceProvider, 'archive');
 
@@ -913,7 +962,7 @@ class integrationInstanceProviderServiceImpl {
         where: {
           oid: d.integrationInstanceProvider.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         data: {

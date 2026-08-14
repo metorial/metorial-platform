@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/db', () => ({
   db: {
-    consumer: { findFirst: vi.fn() }
+    consumer: { findFirst: vi.fn() },
+    instanceConsumer: { findUniqueOrThrow: vi.fn() }
   }
 }));
 
@@ -69,5 +70,35 @@ describe('consumer lifecycle queue', () => {
       }
     });
     expect(Fabric.fire).toHaveBeenCalledWith('consumer.updated:after', { consumer });
+  });
+
+  it('notifies listeners after a new consumer has committed and reconciled pending state', async () => {
+    let { db } = await import('@metorial/db');
+    let { Fabric } = await import('@metorial/fabric');
+    let { syncPendingStatusForInstanceConsumer } =
+      await import('../src/queues/lifecycle/pendingStatus');
+    let { consumerCreatedQueueProcessor } = await import('../src/queues/lifecycle/consumer');
+    let consumer = { id: 'consumer_123' };
+    let instanceConsumer = {
+      id: 'instance_consumer_123',
+      consumer
+    };
+    vi.mocked(db.instanceConsumer.findUniqueOrThrow).mockResolvedValue(
+      instanceConsumer as any
+    );
+
+    await (consumerCreatedQueueProcessor as any)({
+      instanceConsumerId: instanceConsumer.id
+    });
+
+    expect(syncPendingStatusForInstanceConsumer).toHaveBeenCalledWith(instanceConsumer.id);
+    expect(db.instanceConsumer.findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: instanceConsumer.id },
+      include: { consumer: true }
+    });
+    expect(Fabric.fire).toHaveBeenCalledWith('consumer.created:after', {
+      consumer,
+      instanceConsumer
+    });
   });
 });

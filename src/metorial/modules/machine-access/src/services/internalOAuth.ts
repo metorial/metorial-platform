@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
@@ -244,17 +245,24 @@ class InternalOAuthService {
       scopes: d.scopes
     };
 
+    let actor =
+      d.subject.type == 'member'
+        ? d.subject.member.actor
+        : await organizationActorService.getSystemActor({
+            organization: d.organization
+          });
+    let auditScope = createOrganizationActorAuditScope({
+      organization: d.organization,
+      organizationActor: actor,
+      instance: d.scope.type == 'instance' ? d.scope.instance : null,
+      context: d.context
+    });
+
     if (d.scope.type == 'organization') {
       return await machineAccessService.createMachineAccess({
         type: 'organization_management',
         organization: d.organization,
-        performedBy:
-          d.subject.type == 'member'
-            ? d.subject.member.actor
-            : await organizationActorService.getSystemActor({
-                organization: d.organization
-              }),
-        context: d.context,
+        auditScope,
         kind: d.subject.type == 'member' ? 'user' : 'api_key',
         linkedTo:
           d.subject.type == 'member'
@@ -272,13 +280,7 @@ class InternalOAuthService {
       type: 'instance_secret',
       organization: d.organization,
       instance: d.scope.instance,
-      performedBy:
-        d.subject.type == 'member'
-          ? d.subject.member.actor
-          : await organizationActorService.getSystemActor({
-              organization: d.organization
-            }),
-      context: d.context,
+      auditScope,
       kind: d.subject.type == 'member' ? 'user' : 'api_key',
       linkedTo:
         d.subject.type == 'member'
@@ -361,11 +363,16 @@ class InternalOAuthService {
         image: d.input.image ?? { type: 'default' as const }
       };
 
+      let auditScope = createOrganizationActorAuditScope({
+        organization: d.organization,
+        organizationActor: d.performedBy,
+        context: d.context
+      });
+
       if (!existing) {
         await Fabric.fire('machine_access.oauth_application.created:before', {
           organization: d.organization,
-          performedBy: d.performedBy,
-          context: d.context,
+          auditScope,
           input,
           serverSideMachineAccess: null
         });
@@ -387,8 +394,7 @@ class InternalOAuthService {
         addAfterTransactionHook(() =>
           Fabric.fire('machine_access.oauth_application.created:after', {
             organization: d.organization,
-            performedBy: d.performedBy,
-            context: d.context,
+            auditScope,
             input,
             serverSideMachineAccess: null,
             oauthApplication
@@ -423,8 +429,7 @@ class InternalOAuthService {
       await Fabric.fire('machine_access.oauth_application.updated:before', {
         oauthApplication: existing,
         organization: d.organization,
-        performedBy: d.performedBy,
-        context: d.context,
+        auditScope,
         input: update
       });
 
@@ -439,9 +444,9 @@ class InternalOAuthService {
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_application.updated:after', {
           oauthApplication,
+          previousOAuthApplication: existing,
           organization: d.organization,
-          performedBy: d.performedBy,
-          context: d.context,
+          auditScope,
           input: update
         })
       );
@@ -655,8 +660,7 @@ class InternalOAuthService {
       await Fabric.fire('machine_access.oauth_authorization.created:before', {
         oauthApplication: d.oauthApplication,
         oauthInstallation,
-        organization: d.organization,
-        context: d.context
+        organization: d.organization
       });
 
       let oauthAuthorization = await db.oAuthAuthorization.create({
@@ -683,8 +687,7 @@ class InternalOAuthService {
           oauthInstallation: oauthAuthorization.oauthInstallation,
           oauthAuthorization,
           organization: oauthAuthorization.oauthInstallation.organization,
-          appActor: oauthAuthorization.oauthInstallation.appActor,
-          context: d.context
+          appActor: oauthAuthorization.oauthInstallation.appActor
         })
       );
 

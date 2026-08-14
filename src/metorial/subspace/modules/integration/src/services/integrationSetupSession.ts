@@ -5,13 +5,12 @@ import {
   type Brand,
   db,
   type Environment,
+  generateRegionalClientSecret,
   getId,
-  ID,
   type Integration,
   type IntegrationSetupSession,
   type IntegrationSetupSessionStatus,
   type ProviderSetupSession,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -26,7 +25,12 @@ import {
   providerSetupSessionInclude,
   providerSetupSessionService
 } from '@metorial-subspace/module-auth';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { addMinutes } from 'date-fns';
 import { normalizeIntegrationProviderToolFilter } from '../lib/versions';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
@@ -113,6 +117,43 @@ let getPresentedSetupStatus = (setupSession: ProviderSetupSession | null) => {
   return setupSession.status;
 };
 
+export type ListIntegrationSetupSessionsParams = {
+  status?: IntegrationSetupSessionStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  integrationIds?: string[];
+  integrationInstanceIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIntegrationSetupSessionByIdParams = {
+  integrationSetupSessionId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIntegrationSetupSessionParams = {
+  integration: Integration;
+  brand?: Brand;
+  input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+    identityActorId?: string | null;
+    identityId?: string | null;
+    expiresAt?: Date;
+    redirectUrl?: string;
+    configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
+  };
+  import: {
+    ip: string;
+    ua: string;
+  };
+};
+
 class integrationSetupSessionServiceImpl {
   private async canAutoCreateIntegrationInstanceProviderFromSetupSession(d: {
     setupSession: Pick<IntegrationSetupSession, 'configuration'>;
@@ -133,21 +174,22 @@ class integrationSetupSessionServiceImpl {
     return !!explicitSetupEvent;
   }
 
-  async listIntegrationSetupSessions(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIntegrationSetupSessions(d: MetorialFacing<ListIntegrationSetupSessionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: IntegrationSetupSessionStatus[];
-    allowDeleted?: boolean;
+    return this.listIntegrationSetupSessionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    ids?: string[];
-    integrationIds?: string[];
-    integrationInstanceIds?: string[];
+  async listIntegrationSetupSessionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListIntegrationSetupSessionsParams
+  ) {
+    let solution = await getMetorialSolution();
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -155,7 +197,7 @@ class integrationSetupSessionServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               ...normalizeStatusForList(d).onlyParent,
@@ -178,18 +220,29 @@ class integrationSetupSessionServiceImpl {
     );
   }
 
-  async getIntegrationSetupSessionById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationSetupSessionId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIntegrationSetupSessionById(
+    d: MetorialFacing<GetIntegrationSetupSessionByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getIntegrationSetupSessionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getIntegrationSetupSessionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetIntegrationSetupSessionByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let integrationSetupSession = await db.integrationSetupSession.findFirst({
       where: {
         id: d.integrationSetupSessionId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).noParent
       },
@@ -305,28 +358,22 @@ class integrationSetupSessionServiceImpl {
     return { events, providerSetupSessionEvents };
   }
 
-  async createIntegrationSetupSession(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integration: Integration;
-    brand?: Brand;
-    input: {
-      name: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-      identityActorId?: string | null;
-      identityId?: string | null;
-      expiresAt?: Date;
-      redirectUrl?: string;
-      configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
-    };
-    import: {
-      ip: string;
-      ua: string;
-    };
-  }) {
+  async createIntegrationSetupSession(d: MetorialFacing<CreateIntegrationSetupSessionParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.createIntegrationSetupSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async createIntegrationSetupSessionInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateIntegrationSetupSessionParams
+  ) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.integration);
     checkTenant(d, d.brand);
     checkDeletedRelation(d.integration);
@@ -336,7 +383,7 @@ class integrationSetupSessionServiceImpl {
       where: {
         oid: d.integration.oid,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         status: 'active'
       }
@@ -359,27 +406,29 @@ class integrationSetupSessionServiceImpl {
       );
     }
 
-    let integrationInstance = await integrationInstanceService.createIntegrationInstance({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
-      integration,
-      isHiddenDraft: true,
-      input: {
-        name: d.input.name,
-        description: d.input.description,
-        metadata: d.input.metadata,
-        privateMetadata: d.input.privateMetadata,
-        identityActorId: d.input.identityActorId,
-        identityId: d.input.identityId
-      }
-    });
+    let integrationInstance =
+      await integrationInstanceService.createIntegrationInstanceInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        integration,
+        isHiddenDraft: true,
+        input: {
+          name: d.input.name,
+          description: d.input.description,
+          metadata: d.input.metadata,
+          privateMetadata: d.input.privateMetadata,
+          identityActorId: d.input.identityActorId,
+          identityId: d.input.identityId
+        }
+      });
 
     let setupSession = await db.integrationSetupSession.create({
       data: {
         ...getId('integrationSetupSession'),
         status: 'pending',
-        clientSecret: await ID.generateId('integrationSetupSession_clientSecret'),
+        clientSecret: await generateRegionalClientSecret(
+          'integrationSetupSession_clientSecret'
+        ),
         name: d.input.name?.trim() || undefined,
         description: d.input.description?.trim() || undefined,
         metadata: d.input.metadata,
@@ -387,8 +436,10 @@ class integrationSetupSessionServiceImpl {
         configuration,
         redirectUrl: d.input.redirectUrl,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        projectOid: d.tenant.projectOid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         integrationOid: integration.oid,
         integrationInstanceOid: integrationInstance.oid,
         brandOid: d.brand?.oid,
@@ -409,7 +460,6 @@ class integrationSetupSessionServiceImpl {
     for (let [idx, integrationProvider] of integrationProviders.entries()) {
       await this.createChildProviderSetupSession({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         brand: d.brand,
         integration,
@@ -535,7 +585,6 @@ class integrationSetupSessionServiceImpl {
 
       await this.createChildProviderSetupSession({
         tenant: setupSession.tenant,
-        solution: setupSession.solution,
         environment: setupSession.environment,
         brand: setupSession.brand ?? undefined,
         integration: setupSession.integration,
@@ -650,12 +699,9 @@ class integrationSetupSessionServiceImpl {
       }
 
       let integrationInstanceProvider =
-        await integrationInstanceProviderService.setIntegrationInstanceProvider({
+        await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
           tenant: await db.tenant.findFirstOrThrow({
             where: { oid: setupProvider.integrationSetupSession.tenantOid }
-          }),
-          solution: await db.solution.findFirstOrThrow({
-            where: { oid: setupProvider.integrationSetupSession.solutionOid }
           }),
           environment: await db.environment.findFirstOrThrow({
             where: { oid: setupProvider.integrationSetupSession.environmentOid }
@@ -759,7 +805,6 @@ class integrationSetupSessionServiceImpl {
 
   private async createChildProviderSetupSession(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     brand?: Brand | null;
     integration: Pick<Integration, 'canAttachCustomToolFilters' | 'canOverrideToolFilters'>;
@@ -821,9 +866,8 @@ class integrationSetupSessionServiceImpl {
       configuration: d.configuration
     });
 
-    let child = await providerSetupSessionService.createProviderSetupSession({
+    let child = await providerSetupSessionService.createProviderSetupSessionInternal({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       brand: d.brand ?? undefined,
       provider: d.integrationProvider.provider,

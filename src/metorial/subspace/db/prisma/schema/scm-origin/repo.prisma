@@ -26,6 +26,9 @@ model ScmRepo {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
@@ -39,6 +42,7 @@ model ScmRepo {
 
   @@unique([provider, tenantOid, externalId])
   @@index([createdAt])
+  @@index([projectOid])
 }
 
 model ScmRepoPush {
@@ -56,6 +60,9 @@ model ScmRepoPush {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
@@ -68,4 +75,5 @@ model ScmRepoPush {
   customProviderCommits     CustomProviderCommit[]
 
   @@index([createdAt])
+  @@index([projectOid])
 }

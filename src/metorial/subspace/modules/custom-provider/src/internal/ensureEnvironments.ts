@@ -17,8 +17,10 @@ export let ensureEnvironments = async (
       data: environments.map(env => ({
         ...getId('customProviderEnvironment'),
         tenantOid: customProvider.tenantOid,
+        projectOid: customProvider.projectOid,
         solutionOid: customProvider.solutionOid,
         environmentOid: env.oid,
+        instanceOid: env.instanceOid,
         customProviderOid: customProvider.oid
       }))
     });

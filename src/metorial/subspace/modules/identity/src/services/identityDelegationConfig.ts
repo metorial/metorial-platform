@@ -11,7 +11,6 @@ import {
   type IdentityDelegationConfigStatus,
   type IdentityDelegationConfigSubDelegationBehavior,
   type IdentityDelegationConfigVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -23,7 +22,12 @@ import {
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { env } from '../env';
 import {
   identityDelegationConfigCreatedQueue,
@@ -40,21 +44,79 @@ let ensureDefaultLock = createLock({
   name: 'sub/idn/sidx/identityDelegationConfig/default'
 });
 
+export type ListIdentityDelegationConfigsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  search?: string;
+
+  status?: IdentityDelegationConfigStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIdentityDelegationConfigByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityDelegationConfigId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIdentityDelegationConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+
+    subDelegationDepth?: number;
+    subDelegationBehavior: IdentityDelegationConfigSubDelegationBehavior;
+  };
+};
+
+export type EnsureDefaultIdentityDelegationConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+};
+
+export type UpdateIdentityDelegationConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityDelegationConfig: IdentityDelegationConfig & {
+    currentVersion: IdentityDelegationConfigVersion | null;
+  };
+
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+
+    subDelegationDepth?: number;
+    subDelegationBehavior?: IdentityDelegationConfigSubDelegationBehavior;
+  };
+};
+
+export type ArchiveIdentityDelegationConfigParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityDelegationConfig: IdentityDelegationConfig;
+};
+
 class identityDelegationConfigServiceImpl {
-  async listIdentityDelegationConfigs(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIdentityDelegationConfigs(d: MetorialFacing<ListIdentityDelegationConfigsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listIdentityDelegationConfigsInternal({ ...rest, tenant, environment });
+  }
 
-    search?: string;
+  async listIdentityDelegationConfigsInternal(d: ListIdentityDelegationConfigsParams) {
+    let solution = await getMetorialSolution();
 
-    status?: IdentityDelegationConfigStatus[];
-    allowDeleted?: boolean;
-
-    ids?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant.id,
@@ -71,7 +133,7 @@ class identityDelegationConfigServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               ...normalizeStatusForList(d).noParent,
@@ -90,23 +152,27 @@ class identityDelegationConfigServiceImpl {
     );
   }
 
-  async getIdentityDelegationConfigById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityDelegationConfigId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIdentityDelegationConfigById(
+    d: MetorialFacing<GetIdentityDelegationConfigByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getIdentityDelegationConfigByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getIdentityDelegationConfigByIdInternal(d: GetIdentityDelegationConfigByIdParams) {
     if (d.identityDelegationConfigId === 'default') {
       return await this.ensureDefaultIdentityDelegationConfig(d);
     }
+
+    let solution = await getMetorialSolution();
 
     let identityDelegationConfig = await db.identityDelegationConfig.findFirst({
       where: {
         id: d.identityDelegationConfigId,
 
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
@@ -120,20 +186,13 @@ class identityDelegationConfigServiceImpl {
     return identityDelegationConfig;
   }
 
-  async createIdentityDelegationConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createIdentityDelegationConfig(d: MetorialFacing<CreateIdentityDelegationConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createIdentityDelegationConfigInternal({ ...rest, tenant, environment });
+  }
 
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-
-      subDelegationDepth?: number;
-      subDelegationBehavior: IdentityDelegationConfigSubDelegationBehavior;
-    };
-  }) {
+  async createIdentityDelegationConfigInternal(d: CreateIdentityDelegationConfigParams) {
     return withTransaction(async (db: any) => {
       return this._createIdentityDelegationConfig({
         ...d,
@@ -142,14 +201,12 @@ class identityDelegationConfigServiceImpl {
     });
   }
 
-  async ensureDefaultIdentityDelegationConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-  }) {
+  async ensureDefaultIdentityDelegationConfig(d: EnsureDefaultIdentityDelegationConfigParams) {
+    let solution = await getMetorialSolution();
+
     let defaultFilter = {
       tenantOid: d.tenant.oid,
-      solutionOid: d.solution.oid,
+      solutionOid: solution.oid,
       environmentOid: d.environment.oid,
       isDefault: true,
       status: 'active' as const
@@ -174,7 +231,6 @@ class identityDelegationConfigServiceImpl {
       return await db.$transaction(async (db: any) => {
         return await this._createIdentityDelegationConfig({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           input: {
             name: 'Default Delegation Config',
@@ -188,23 +244,13 @@ class identityDelegationConfigServiceImpl {
     });
   }
 
-  async updateIdentityDelegationConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityDelegationConfig: IdentityDelegationConfig & {
-      currentVersion: IdentityDelegationConfigVersion | null;
-    };
+  async updateIdentityDelegationConfig(d: MetorialFacing<UpdateIdentityDelegationConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.updateIdentityDelegationConfigInternal({ ...rest, tenant, environment });
+  }
 
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-
-      subDelegationDepth?: number;
-      subDelegationBehavior?: IdentityDelegationConfigSubDelegationBehavior;
-    };
-  }) {
+  async updateIdentityDelegationConfigInternal(d: UpdateIdentityDelegationConfigParams) {
     checkTenant(d, d.identityDelegationConfig);
     checkDeletedEdit(d.identityDelegationConfig, 'update');
 
@@ -229,7 +275,6 @@ class identityDelegationConfigServiceImpl {
         where: {
           oid: d.identityDelegationConfig.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -251,12 +296,13 @@ class identityDelegationConfigServiceImpl {
     });
   }
 
-  async archiveIdentityDelegationConfig(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityDelegationConfig: IdentityDelegationConfig;
-  }) {
+  async archiveIdentityDelegationConfig(d: MetorialFacing<ArchiveIdentityDelegationConfigParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.archiveIdentityDelegationConfigInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveIdentityDelegationConfigInternal(d: ArchiveIdentityDelegationConfigParams) {
     checkTenant(d, d.identityDelegationConfig);
     checkDeletedEdit(d.identityDelegationConfig, 'archive');
 
@@ -265,7 +311,6 @@ class identityDelegationConfigServiceImpl {
         where: {
           oid: d.identityDelegationConfig.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -287,7 +332,6 @@ class identityDelegationConfigServiceImpl {
 
   private async _createIdentityDelegationConfig(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
 
     input: {
@@ -303,6 +347,8 @@ class identityDelegationConfigServiceImpl {
 
     db: typeof db;
   }) {
+    let solution = await getMetorialSolution();
+
     let identityDelegationConfig = await db.identityDelegationConfig.create({
       data: {
         ...getId('identityDelegationConfig'),
@@ -316,8 +362,10 @@ class identityDelegationConfigServiceImpl {
         metadata: d.input.metadata,
 
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
-        environmentOid: d.environment.oid
+        projectOid: d.tenant.projectOid,
+        solutionOid: solution.oid,
+        environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid
       }
     });
 

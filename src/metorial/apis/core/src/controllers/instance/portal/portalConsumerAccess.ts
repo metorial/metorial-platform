@@ -15,7 +15,7 @@ import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { consumerAccessPresenter } from '../../../presenters';
+import { consumerAccessPresenter } from '@metorial/presenters';
 import { portalGroup } from './portal';
 
 export let consumerAccessGroup = portalGroup.use(async ctx => {

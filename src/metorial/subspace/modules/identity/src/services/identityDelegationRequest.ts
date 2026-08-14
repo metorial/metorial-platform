@@ -3,12 +3,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
+  type Environment,
   type IdentityActor,
   type IdentityDelegation,
   type IdentityDelegationRequest,
-  type Environment,
   type IdentityDelegationRequestStatus,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -17,6 +16,11 @@ import {
   resolveIdentities,
   resolveIdentityActors
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { delegationInclude } from './identityDelegation';
 import {
   identityDelegationInternalService,
@@ -33,22 +37,56 @@ let include = {
   identity: true
 };
 
+export type ListIdentityDelegationRequestsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  status?: IdentityDelegationRequestStatus[];
+
+  ids?: string[];
+  actorIds?: string[];
+  identityIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIdentityDelegationRequestByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityDelegationRequestId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIdentityDelegationRequestParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: Omit<CreateDelegationInput, 'expiresAt' | 'delegatee'> & {
+    expiresAt: Date;
+    requester: IdentityActor;
+  };
+};
+
+export type ApproveIdentityDelegationRequestParams = {
+  tenant: Tenant;
+  environment: Environment;
+  delegationRequest: IdentityDelegationRequest & { delegation: IdentityDelegation };
+};
+
+export type DenyIdentityDelegationRequestParams = ApproveIdentityDelegationRequestParams;
+
 class identityDelegationRequestServiceImpl {
-  async listIdentityDelegationRequests(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIdentityDelegationRequests(d: MetorialFacing<ListIdentityDelegationRequestsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listIdentityDelegationRequestsInternal({ ...rest, tenant, environment });
+  }
 
-    status?: IdentityDelegationRequestStatus[];
+  async listIdentityDelegationRequestsInternal(d: ListIdentityDelegationRequestsParams) {
+    let solution = await getMetorialSolution();
+    let scope = { ...d, solution };
 
-    ids?: string[];
-    actorIds?: string[];
-    identityIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
+    let actors = await resolveIdentityActors(scope, d.actorIds);
+    let identities = await resolveIdentities(scope, d.identityIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -58,7 +96,7 @@ class identityDelegationRequestServiceImpl {
 
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               AND: [
@@ -78,19 +116,22 @@ class identityDelegationRequestServiceImpl {
     );
   }
 
-  async getIdentityDelegationRequestById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityDelegationRequestId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIdentityDelegationRequestById(
+    d: MetorialFacing<GetIdentityDelegationRequestByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getIdentityDelegationRequestByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getIdentityDelegationRequestByIdInternal(d: GetIdentityDelegationRequestByIdParams) {
+    let solution = await getMetorialSolution();
     let identityDelegationRequest = await db.identityDelegationRequest.findFirst({
       where: {
         id: d.identityDelegationRequestId,
 
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       },
       include
@@ -103,18 +144,17 @@ class identityDelegationRequestServiceImpl {
     return identityDelegationRequest;
   }
 
-  async createIdentityDelegationRequest(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: Omit<CreateDelegationInput, 'expiresAt' | 'delegatee'> & {
-      expiresAt: Date;
-      requester: IdentityActor;
-    };
-  }) {
+  async createIdentityDelegationRequest(
+    d: MetorialFacing<CreateIdentityDelegationRequestParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createIdentityDelegationRequestInternal({ ...rest, tenant, environment });
+  }
+
+  async createIdentityDelegationRequestInternal(d: CreateIdentityDelegationRequestParams) {
     let delegation = await identityDelegationInternalService.createDelegation({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       input: {
         ...d.input,
@@ -133,15 +173,17 @@ class identityDelegationRequestServiceImpl {
     };
   }
 
-  async approveIdentityDelegationRequest(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    delegationRequest: IdentityDelegationRequest & { delegation: IdentityDelegation };
-  }) {
+  async approveIdentityDelegationRequest(
+    d: MetorialFacing<ApproveIdentityDelegationRequestParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.approveIdentityDelegationRequestInternal({ ...rest, tenant, environment });
+  }
+
+  async approveIdentityDelegationRequestInternal(d: ApproveIdentityDelegationRequestParams) {
     let delegation = await identityDelegationInternalService.alterIdentityDelegationRequest({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       delegationRequest: d.delegationRequest,
       desiredStatus: 'approved'
@@ -153,15 +195,15 @@ class identityDelegationRequestServiceImpl {
     };
   }
 
-  async denyIdentityDelegationRequest(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    delegationRequest: IdentityDelegationRequest & { delegation: IdentityDelegation };
-  }) {
+  async denyIdentityDelegationRequest(d: MetorialFacing<DenyIdentityDelegationRequestParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.denyIdentityDelegationRequestInternal({ ...rest, tenant, environment });
+  }
+
+  async denyIdentityDelegationRequestInternal(d: DenyIdentityDelegationRequestParams) {
     let delegation = await identityDelegationInternalService.alterIdentityDelegationRequest({
       tenant: d.tenant,
-      solution: d.solution,
       environment: d.environment,
       delegationRequest: d.delegationRequest,
       desiredStatus: 'denied'

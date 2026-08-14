@@ -81,15 +81,17 @@ vi.mock('../src/queues/syncBrand', () => ({
   }
 }));
 
-vi.mock('../src/queues/syncSubspaceTenant', () => ({
-  syncSubspaceTenantQueue: {
-    add: vi.fn(),
-    addMany: vi.fn()
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganization: vi.fn(),
+    syncProject: vi.fn(),
+    syncInstance: vi.fn()
   }
 }));
 
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { instanceService } from '../src/services/instance';
 import { projectService } from '../src/services/project';
 
@@ -122,12 +124,14 @@ describe('ProjectService', () => {
         };
         return callback(mockDb as any);
       });
-      vi.mocked(instanceService.createInstance).mockResolvedValue({} as any);
+      vi.mocked(instanceService.createInstance).mockResolvedValue({
+        id: 'inst-1',
+        oid: 2
+      } as any);
 
       let result = await projectService.createProject({
         organization: mockOrg as any,
-        performedBy: mockActor as any,
-        context: {} as any,
+        auditScope: {} as any,
         input: {
           name: 'Test Project'
         }
@@ -148,12 +152,15 @@ describe('ProjectService', () => {
       expect(instanceService.createInstance).toHaveBeenCalledWith({
         project: mockProject,
         organization: mockOrg,
-        performedBy: mockActor,
-        context: {},
+        auditScope: {},
         input: {
           name: 'Production',
           type: 'production'
         }
+      });
+      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith({
+        id: 'inst-1',
+        oid: 2
       });
     });
 
@@ -184,8 +191,7 @@ describe('ProjectService', () => {
 
       await projectService.createProject({
         organization: mockOrg as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope: {} as any,
         input: {
           name: 'Test Project',
           magicMcpSessionDurationMinutes: 30
@@ -217,8 +223,7 @@ describe('ProjectService', () => {
 
       let result = await projectService.createProject({
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope: {} as any,
         input: {
           name: 'My Test Project'
         }
@@ -254,8 +259,7 @@ describe('ProjectService', () => {
       let result = await projectService.updateProject({
         project: mockProject as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope: {} as any,
         input: {
           name: 'New Name'
         }
@@ -270,6 +274,7 @@ describe('ProjectService', () => {
         'organization.project.updated:after',
         expect.any(Object)
       );
+      expect(metorialResourceService.syncProject).toHaveBeenCalledWith(updatedProject);
     });
 
     it('should throw forbidden error for deleted project', async () => {
@@ -283,8 +288,7 @@ describe('ProjectService', () => {
         projectService.updateProject({
           project: mockProject as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope: {} as any,
           input: {
             name: 'New Name'
           }
@@ -312,8 +316,7 @@ describe('ProjectService', () => {
       await projectService.updateProject({
         project: mockProject as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope: {} as any,
         input: {}
       });
 
@@ -345,8 +348,7 @@ describe('ProjectService', () => {
       await projectService.updateProject({
         project: mockProject as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope: {} as any,
         input: {
           magicMcpSessionDurationMinutes: 60
         }
@@ -385,8 +387,7 @@ describe('ProjectService', () => {
         projectService.updateProject({
           project: mockProject as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope: {} as any,
           input: {
             slug: 'new-slug'
           }
@@ -433,8 +434,7 @@ describe('ProjectService', () => {
       let result = await projectService.updateProject({
         project: mockProject as any,
         organization: { id: 'org-1', oid: 1 } as any,
-        performedBy: { id: 'actor-1', oid: 1 } as any,
-        context: {} as any,
+        auditScope: {} as any,
         input: {
           slug: 'new-slug'
         }
@@ -471,16 +471,14 @@ describe('ProjectService', () => {
         projectService.deleteProject({
           project: mockProject as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
       await expect(
         projectService.deleteProject({
           project: mockProject as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any
+          auditScope: {} as any
         })
       ).rejects.toThrow('Project deletion is not supported yet');
     });
@@ -496,8 +494,7 @@ describe('ProjectService', () => {
         projectService.deleteProject({
           project: mockProject as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any
+          auditScope: {} as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -633,8 +630,7 @@ describe('ProjectService', () => {
       await expect(
         projectService.createProject({
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope: {} as any,
           input: {
             name: 'Test'
           }
@@ -649,8 +645,7 @@ describe('ProjectService', () => {
         projectService.updateProject({
           project: { id: 'proj-1', oid: 1, status: 'active' } as any,
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope: {} as any,
           input: { name: 'New Name' }
         })
       ).rejects.toThrow('Transaction failed');
@@ -688,8 +683,7 @@ describe('ProjectService', () => {
       await expect(
         projectService.createProject({
           organization: { id: 'org-1', oid: 1 } as any,
-          performedBy: { id: 'actor-1', oid: 1 } as any,
-          context: {} as any,
+          auditScope: {} as any,
           input: {
             name: 'Test'
           }

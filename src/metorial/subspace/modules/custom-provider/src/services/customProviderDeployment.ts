@@ -8,7 +8,6 @@ import {
   type CustomProviderStatus,
   db,
   type Environment,
-  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -20,6 +19,11 @@ import {
   resolveProviders,
   resolveProviderVersions
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getTenantForShuttle, shuttle } from '@metorial-subspace/provider-shuttle/src/client';
 
 type ShuttleDeploymentStep = Awaited<
@@ -40,33 +44,54 @@ let include = {
   immutableCodeBucket: { include: { scmRepo: true } }
 };
 
+type ListCustomProviderDeploymentsParams = {
+  status?: CustomProviderDeploymentStatus[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+
+  ids?: string[];
+  providerIds?: string[];
+  providerVersionIds?: string[];
+  customProviderIds?: string[];
+  customProviderVersionIds?: string[];
+  customProviderEnvironmentIds?: string[];
+};
+
+type GetCustomProviderDeploymentByIdParams = {
+  customProviderDeploymentId: string;
+};
+
+type GetCustomProviderDeploymentLogsParams = {
+  customProviderDeployment: CustomProviderDeployment;
+};
+
 class customProviderDeploymentServiceImpl {
-  async listCustomProviderDeployments(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listCustomProviderDeployments(d: MetorialFacing<ListCustomProviderDeploymentsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    status?: CustomProviderDeploymentStatus[];
+    return this.listCustomProviderDeploymentsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-
-    ids?: string[];
-    providerIds?: string[];
-    providerVersionIds?: string[];
-    customProviderIds?: string[];
-    customProviderVersionIds?: string[];
-    customProviderEnvironmentIds?: string[];
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let providerVersions = await resolveProviderVersions(d, d.providerVersionIds);
-    let customProviders = await resolveCustomProviders(d, d.customProviderIds);
+  async listCustomProviderDeploymentsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListCustomProviderDeploymentsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let providerVersions = await resolveProviderVersions(ts, d.providerVersionIds);
+    let customProviders = await resolveCustomProviders(ts, d.customProviderIds);
     let customProviderVersions = await resolveCustomProviderVersions(
-      d,
+      ts,
       d.customProviderVersionIds
     );
     let customProviderEnvironments = await resolveCustomProviderEnvironments(
-      d,
+      ts,
       d.customProviderEnvironmentIds
     );
 
@@ -77,7 +102,7 @@ class customProviderDeploymentServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
 
               AND: [
                 {
@@ -128,17 +153,28 @@ class customProviderDeploymentServiceImpl {
     );
   }
 
-  async getCustomProviderDeploymentById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    customProviderDeploymentId: string;
-  }) {
+  async getCustomProviderDeploymentById(
+    d: MetorialFacing<GetCustomProviderDeploymentByIdParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getCustomProviderDeploymentByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getCustomProviderDeploymentByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCustomProviderDeploymentByIdParams
+  ) {
+    let solution = await getMetorialSolution();
     let customProviderDeployment = await db.customProviderDeployment.findFirst({
       where: {
         id: d.customProviderDeploymentId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid
+        solutionOid: solution.oid
       },
       include
     });
@@ -150,12 +186,20 @@ class customProviderDeploymentServiceImpl {
     return customProviderDeployment;
   }
 
-  async getLogs(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    customProviderDeployment: CustomProviderDeployment;
-  }) {
+  async getLogs(d: MetorialFacing<GetCustomProviderDeploymentLogsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getLogsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getLogsInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCustomProviderDeploymentLogsParams
+  ) {
     if (!d.customProviderDeployment.shuttleCustomServerDeploymentOid) {
       return {
         object: 'custom_provider.deployment.logs',

@@ -12,9 +12,11 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('@metorial/module-subspace', () => ({
-  subspaceMagicMcpBackingService: {
-    listServerProviders
+vi.mock('@metorial-subspace/module-integration', () => ({
+  magicMcpServerProviderService: {
+    listMagicMcpServerProviders: vi.fn().mockResolvedValue({
+      run: listServerProviders
+    })
   }
 }));
 

@@ -11,7 +11,12 @@ model Brand {
   tenantOid BigInt? @unique
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   createdAt                DateTime                  @default(now())
   providerSetupSessions    ProviderSetupSession[]
   integrationSetupSessions IntegrationSetupSession[]
+
+  @@index([projectOid])
 }

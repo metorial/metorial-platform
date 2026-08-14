@@ -69,6 +69,13 @@ const baseOrg = { oid: 'org-oid', id: 'org-id' } as any;
 const baseUser = { oid: 'user-oid' } as any;
 const baseInstance = { oid: 'instance-oid', type: 'production' } as any;
 const baseActor = { oid: 'actor-oid', id: 'actor-id' } as any;
+let testAuditScope = {
+  organizationOid: baseOrg.oid,
+  organizationActorOid: baseActor.oid,
+  actor: { type: 'org_actor' as const, id: (baseActor as any).id ?? 'actor-id' },
+  context: baseContext
+} as any;
+
 
 describe('apiKeyService', () => {
   beforeEach(() => {
@@ -88,9 +95,8 @@ describe('apiKeyService', () => {
     const result = await apiKeyService.createApiKey({
       type: 'organization_management_token',
       organization: baseOrg,
-      performedBy: baseActor,
-      input: { name: 'orgkey' },
-      context: baseContext
+      auditScope: testAuditScope,
+      input: { name: 'orgkey' }
     });
 
     expect(result.apiKey).toBeDefined();
@@ -111,9 +117,8 @@ describe('apiKeyService', () => {
     await apiKeyService.createApiKey({
       type: 'organization_management_token',
       organization: baseOrg,
-      performedBy: baseActor,
-      input: { name: 'orgkey' },
-      context: baseContext
+      auditScope: testAuditScope,
+      input: { name: 'orgkey' }
     });
 
     let { addAfterTransactionHook } = await import('@metorial/db');
@@ -151,8 +156,7 @@ describe('apiKeyService', () => {
       // @ts-ignore
       apiKey,
       input: { name: 'updated', description: 'desc' },
-      context: baseContext,
-      performedBy: baseActor
+      auditScope: testAuditScope
     });
 
     expect(result).toBeDefined();
@@ -178,8 +182,7 @@ describe('apiKeyService', () => {
     const result = await apiKeyService.revokeApiKey({
       // @ts-ignore
       apiKey,
-      performedBy: baseActor,
-      context: baseContext
+      auditScope: testAuditScope
     });
 
     expect(result).toBeDefined();
@@ -212,8 +215,7 @@ describe('apiKeyService', () => {
     const result = await apiKeyService.rotateApiKey({
       // @ts-ignore
       apiKey,
-      performedBy: baseActor,
-      context: baseContext,
+      auditScope: testAuditScope,
       input: {}
     });
 
@@ -236,8 +238,7 @@ describe('apiKeyService', () => {
     const result = await apiKeyService.revealApiKey({
       // @ts-ignore
       apiKey,
-      performedBy: baseActor,
-      context: baseContext
+      auditScope: testAuditScope
     });
 
     expect(result.secret).toBe('secret-key');
@@ -255,8 +256,7 @@ describe('apiKeyService', () => {
         // @ts-ignore
         apiKey,
         input: {},
-        context: baseContext,
-        performedBy: baseActor
+        auditScope: testAuditScope
       })
     ).rejects.toThrow(ServiceError);
   });

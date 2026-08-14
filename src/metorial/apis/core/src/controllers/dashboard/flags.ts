@@ -2,7 +2,7 @@ import { flagService } from '@metorial/module-flags';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { flagsPresenter } from '../../presenters';
+import { flagsPresenter } from '@metorial/presenters';
 
 export let flagsController = Controller.create(
   {

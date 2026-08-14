@@ -6,6 +6,7 @@ import {
   getConsumerAccessContextForSession
 } from '@metorial/consumer-auth';
 import { Context } from '@metorial/context';
+import { createAuditScope, type AuditScope } from '@metorial/audit-scope';
 import {
   ApiKey,
   Consumer,
@@ -30,11 +31,11 @@ import {
   machineAccessAuthService,
   type OAuthTokenWithAuthorization
 } from '@metorial/module-machine-access';
-import { userAuthService } from '@metorial/module-user';
 import {
   resolveResourceScopeForOwner,
   resourceActorService
 } from '@metorial/module-resource-tenant';
+import { userAuthService } from '@metorial/module-user';
 import {
   instancePublishableTokenScopes,
   instancePublishableTokenWithConsumerScopes,
@@ -73,6 +74,7 @@ type AuthenticatedResourceScope = {
 export type AuthInfo =
   | {
       type: 'user';
+      auditScope?: undefined;
       user: User;
       userSession?: UserSession;
       machineAccess?: MachineAccess;
@@ -80,6 +82,7 @@ export type AuthInfo =
     }
   | {
       type: 'machine';
+      auditScope: AuditScope;
       user?: User;
       apiKey?: ApiKey;
       oauthToken?: OAuthTokenWithAuthorization;
@@ -104,6 +107,7 @@ export type AuthInfo =
     }
   | {
       type: 'fine_grained';
+      auditScope: AuditScope;
       fineGrainedKey: FineGrainedKey;
       orgScopes: Scope[];
       restrictions: {
@@ -252,6 +256,24 @@ class AuthenticationService {
 
       return {
         type: 'fine_grained',
+        auditScope: createAuditScope({
+          organization: res.fineGrainedKey.instance.organization,
+          instance: res.fineGrainedKey.instance,
+          actor: {
+            type: 'fine_grained_token',
+            id: res.fineGrainedKey.id,
+            metadata: {
+              sessionIds: [
+                ...new Set(
+                  res.accessTagGrants
+                    .filter(grant => grant.resourceType == 'subspace.session')
+                    .map(grant => grant.resourceId)
+                )
+              ]
+            }
+          },
+          context: d.context
+        }),
         fineGrainedKey: res.fineGrainedKey,
         orgScopes: res.orgScopes,
         restrictions: {
@@ -377,6 +399,21 @@ class AuthenticationService {
 
       return {
         type: 'machine',
+        auditScope: createAuditScope({
+          organization: machineAccess.organization,
+          instance: machineAccess.instance,
+          organizationActor: consumer ? undefined : machineAccess.actor,
+          actor: consumer
+            ? {
+                type: 'consumer_profile',
+                id: consumer.consumerProfile.id
+              }
+            : {
+                type: 'org_actor',
+                id: machineAccess.actor.id
+              },
+          context: d.context
+        }),
         apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
         oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,
@@ -411,6 +448,15 @@ class AuthenticationService {
     ) {
       return {
         type: 'machine',
+        auditScope: createAuditScope({
+          organization: machineAccess.organization,
+          organizationActor: machineAccess.actor,
+          actor: {
+            type: 'org_actor',
+            id: machineAccess.actor.id
+          },
+          context: d.context
+        }),
         apiKey: res.type == 'api_key' ? res.secret!.apiKey : undefined,
         oauthToken: res.type == 'oauth_token' ? res.oauthToken! : undefined,
         machineAccess,

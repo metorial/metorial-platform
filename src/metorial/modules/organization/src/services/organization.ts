@@ -9,6 +9,8 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
+import type { AuditScope } from '@metorial/audit-scope';
+import { createAuditScope, createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
@@ -22,6 +24,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
 import { cleanupFileImage, resolveFileImage } from '../lib/fileImage';
 import { syncBrandOrganizationQueue } from '../queues/syncBrand';
@@ -118,7 +121,7 @@ class OrganizationService {
     context: Context;
     performedBy: User;
   }) {
-    return withTransaction(async db => {
+    let result = await withTransaction(async db => {
       await Fabric.fire('organization.created:before', d);
 
       let organization = await db.organization.create({
@@ -149,22 +152,44 @@ class OrganizationService {
           }
         },
         organization,
-        context: d.context,
-        performedBy: { type: 'user', user: d.performedBy }
+        auditScope: createAuditScope({
+          organization,
+          actor: { type: 'system', id: d.performedBy.id },
+          context: d.context
+        })
       });
 
       await authBootstrapService.ensureOrganizationAuthVersionV2({
         organization,
-        context: d.context,
-        performedBy: systemActor
+        auditScope: createOrganizationActorAuditScope({
+          organization,
+          organizationActor: systemActor,
+          context: d.context
+        })
       });
 
       let member = await organizationMemberService.createOrganizationMember({
         user: d.performedBy,
         organization,
         input: { role: 'admin' },
-        context: d.context,
-        performedBy: { type: 'actor', actor: systemActor }
+        auditScope: createOrganizationActorAuditScope({
+          organization,
+          organizationActor: systemActor,
+          context: d.context
+        })
+      });
+
+      await Fabric.fire('organization.initialized:after', {
+        organization,
+        auditScope: {
+          organizationOid: organization.oid,
+          organizationActorOid: member.actor.oid,
+          actor: {
+            type: 'org_actor',
+            id: member.actor.id
+          },
+          context: d.context
+        }
       });
 
       await syncProfileQueue.add({ organizationId: organization.id }, { delay: 5000 });
@@ -179,6 +204,9 @@ class OrganizationService {
         actor: member.actor
       };
     });
+
+    await metorialResourceService.syncOrganization(result.organization);
+    return result;
   }
 
   async updateOrganization(d: {
@@ -189,12 +217,11 @@ class OrganizationService {
       imageFileId?: string | null;
     };
     organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
+    auditScope: AuditScope;
   }) {
     await this.ensureOrganizationActive(d.organization);
 
-    return withTransaction(async db => {
+    let organization = await withTransaction(async db => {
       await Fabric.fire('organization.updated:before', d);
 
       let nextImage = d.input.image;
@@ -247,9 +274,10 @@ class OrganizationService {
       }
 
       await Fabric.fire('organization.updated:after', {
-        ...d,
+        input: d.input,
         organization,
-        performedBy: d.performedBy
+        previousOrganization: d.organization,
+        auditScope: d.auditScope
       });
 
       await addAfterTransactionHook(() =>
@@ -261,13 +289,12 @@ class OrganizationService {
 
       return organization;
     });
+
+    await metorialResourceService.syncOrganization(organization);
+    return organization;
   }
 
-  async deleteOrganization(d: {
-    organization: Organization;
-    context: Context;
-    performedBy: OrganizationActor;
-  }) {
+  async deleteOrganization(d: { organization: Organization; auditScope: AuditScope }) {
     await this.ensureOrganizationActive(d.organization);
 
     throw new ServiceError(

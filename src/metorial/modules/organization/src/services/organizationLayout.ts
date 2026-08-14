@@ -2,11 +2,10 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { conflictError, notFoundError, ServiceError, validationError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   ID,
   Organization,
-  OrganizationActor,
   OrganizationLayout,
   OrganizationLayoutType,
   User,
@@ -203,8 +202,7 @@ class OrganizationLayoutService {
     selector: string;
     user: User;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     value: unknown;
   }) {
     return withTransaction(async db => {
@@ -224,9 +222,8 @@ class OrganizationLayoutService {
         organization: d.organization,
         user: d.user,
         layout: resolved.layout,
-        performedBy: d.performedBy,
-        context: d.context,
-        input: { value: validation.value }
+        input: { value: validation.value },
+        auditScope: d.auditScope
       });
 
       let layout = await db.organizationLayout.update({
@@ -239,9 +236,9 @@ class OrganizationLayoutService {
         organization: d.organization,
         user: d.user,
         layout,
-        performedBy: d.performedBy,
-        context: d.context,
-        input: { value: validation.value }
+        input: { value: validation.value },
+        previousLayout: resolved.layout,
+        auditScope: d.auditScope
       });
 
       return layout;

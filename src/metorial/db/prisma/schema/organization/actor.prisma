@@ -50,6 +50,8 @@ model OrganizationActor {
   environments               Environment[]
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
+  auditLogs                  AuditLog[]
+  events                     Event[]
 
   @@unique([isSystem, organizationOid])
 }

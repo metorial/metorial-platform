@@ -1,7 +1,7 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
   db,
@@ -13,7 +13,6 @@ import {
   OAuthApplicationType,
   OAuthAuthorizationAccessLevel,
   Organization,
-  OrganizationActor,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
@@ -68,7 +67,10 @@ class OAuthApplicationService {
     );
   }
 
-  private async createClientSecret(d: { oauthApplication: OAuthApplication }) {
+  private async createClientSecret(d: {
+    oauthApplication: OAuthApplication;
+    auditScope?: AuditScope | null;
+  }) {
     let existingSecrets = await db.oAuthApplicationClientSecret.findMany({
       where: {
         oauthApplicationOid: d.oauthApplication.oid,
@@ -96,7 +98,9 @@ class OAuthApplicationService {
       });
 
       await Fabric.fire('machine_access.oauth_application.client_secret.create:after', {
-        oauthApplication: d.oauthApplication
+        oauthApplication: d.oauthApplication,
+        oauthApplicationClientSecret: newSecret,
+        auditScope: d.auditScope
       });
 
       return newSecret;
@@ -192,8 +196,7 @@ class OAuthApplicationService {
 
   async createOAuthApplication(d: {
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       type: 'user_facing' | 'server_side';
       accessLevel: OAuthAuthorizationAccessLevel;
@@ -227,8 +230,7 @@ class OAuthApplicationService {
           ? await machineAccessService.createMachineAccess({
               type: 'organization_management',
               organization: d.organization,
-              performedBy: d.performedBy,
-              context: d.context,
+              auditScope: d.auditScope,
               input: {
                 name: this.buildMachineAccessName(d.input.name),
                 hasCustomScopes: true,
@@ -304,8 +306,7 @@ class OAuthApplicationService {
   async updateOAuthApplication(d: {
     oauthApplication: OAuthApplication;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       accessLevel?: OAuthAuthorizationAccessLevel;
       allowClientSecretlessTokenExchange?: boolean;
@@ -366,8 +367,7 @@ class OAuthApplicationService {
             hasCustomScopes: scopes ? true : undefined,
             scopes
           },
-          performedBy: d.performedBy,
-          context: d.context
+          auditScope: d.auditScope
         });
       }
 
@@ -406,7 +406,8 @@ class OAuthApplicationService {
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_application.updated:after', {
           ...d,
-          oauthApplication: updatedOauthApplication
+          oauthApplication: updatedOauthApplication,
+          previousOAuthApplication: d.oauthApplication
         })
       );
 
@@ -417,8 +418,7 @@ class OAuthApplicationService {
   async archiveOAuthApplication(d: {
     oauthApplication: OAuthApplication;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.assertApplicationActive(d.oauthApplication);
     this.assertApplicationOwnedLocally(d.oauthApplication);
@@ -507,8 +507,7 @@ class OAuthApplicationService {
     return await withTransaction(async db => {
       await Fabric.fire('machine_access.oauth_application.created:before', {
         organization: null,
-        performedBy: null,
-        context: null,
+        auditScope: null,
         input,
         serverSideMachineAccess: null
       });
@@ -528,8 +527,7 @@ class OAuthApplicationService {
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_application.created:after', {
           organization: null,
-          performedBy: null,
-          context: null,
+          auditScope: null,
           input,
           serverSideMachineAccess: null,
           oauthApplication
@@ -570,8 +568,7 @@ class OAuthApplicationService {
       await Fabric.fire('machine_access.oauth_application.updated:before', {
         oauthApplication: d.oauthApplication,
         organization: null,
-        performedBy: null,
-        context: null,
+        auditScope: null,
         input: {
           ...d.input,
           scopes,
@@ -598,9 +595,9 @@ class OAuthApplicationService {
       addAfterTransactionHook(() =>
         Fabric.fire('machine_access.oauth_application.updated:after', {
           oauthApplication,
+          previousOAuthApplication: d.oauthApplication,
           organization: null,
-          performedBy: null,
-          context: null,
+          auditScope: null,
           input: {
             ...d.input,
             scopes,
@@ -624,8 +621,7 @@ class OAuthApplicationService {
       await Fabric.fire('machine_access.oauth_application.archived:before', {
         oauthApplication: d.oauthApplication,
         organization: null,
-        performedBy: null,
-        context: null
+        auditScope: null
       });
 
       await db.oAuthAuthorization.updateMany({
@@ -662,8 +658,7 @@ class OAuthApplicationService {
         Fabric.fire('machine_access.oauth_application.archived:after', {
           oauthApplication,
           organization: null,
-          performedBy: null,
-          context: null
+          auditScope: null
         })
       );
 
@@ -762,13 +757,17 @@ class OAuthApplicationService {
     );
   }
 
-  async createOAuthApplicationClientSecret(d: { oauthApplication: OAuthApplication }) {
+  async createOAuthApplicationClientSecret(d: {
+    oauthApplication: OAuthApplication;
+    auditScope?: AuditScope | null;
+  }) {
     await this.assertApplicationActive(d.oauthApplication);
     this.assertApplicationOwnedLocally(d.oauthApplication);
     this.assertSupportedType(d.oauthApplication.type);
 
     return await this.createClientSecret({
-      oauthApplication: d.oauthApplication
+      oauthApplication: d.oauthApplication,
+      auditScope: d.auditScope
     });
   }
 
@@ -797,6 +796,7 @@ class OAuthApplicationService {
 
   async deleteOAuthApplicationClientSecret(d: {
     oauthApplicationClientSecret: OAuthApplicationClientSecret;
+    auditScope?: AuditScope | null;
   }) {
     let oauthApplication = await db.oAuthApplication.findUniqueOrThrow({
       where: {
@@ -820,7 +820,9 @@ class OAuthApplicationService {
       });
 
       await Fabric.fire('machine_access.oauth_application.client_secret.revoked:after', {
-        oauthApplication: updatedSecret.oauthApplication
+        oauthApplication: updatedSecret.oauthApplication,
+        oauthApplicationClientSecret: updatedSecret,
+        auditScope: d.auditScope
       });
 
       return updatedSecret;
@@ -869,8 +871,7 @@ class OAuthApplicationService {
         oauthApplication: existing,
         input: inner,
         organization: null,
-        performedBy: null,
-        context: null
+        auditScope: null
       });
 
       let res = await db.oAuthApplication.update({
@@ -889,10 +890,10 @@ class OAuthApplicationService {
 
       await Fabric.fire('machine_access.oauth_application.updated:after', {
         oauthApplication: res,
+        previousOAuthApplication: existing,
         input: inner,
         organization: null,
-        performedBy: null,
-        context: null
+        auditScope: null
       });
 
       return res;
@@ -900,8 +901,7 @@ class OAuthApplicationService {
 
     await Fabric.fire('machine_access.oauth_application.created:before', {
       organization: null,
-      performedBy: null,
-      context: null,
+      auditScope: null,
       input: inner,
       serverSideMachineAccess: null
     });
@@ -917,8 +917,7 @@ class OAuthApplicationService {
 
     await Fabric.fire('machine_access.oauth_application.created:after', {
       organization: null,
-      performedBy: null,
-      context: null,
+      auditScope: null,
       input: inner,
       serverSideMachineAccess: null,
       oauthApplication: res

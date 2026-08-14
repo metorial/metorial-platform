@@ -1,9 +1,9 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial/cargo-module-skill';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { enqueueSyncIntegrationInstanceSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedSessionTemplate';
-import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial-subspace/module-skills/src/queues/reconciler/reconcileSkillProviderLink';
 import { env } from '../../env';
 import { integrationInstanceProviderService } from '../../services/integrationInstanceProvider';
 import { indexIntegrationQueue } from '../search/integration';

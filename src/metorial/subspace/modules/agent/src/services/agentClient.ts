@@ -7,12 +7,16 @@ import {
   db,
   type Environment,
   getId,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { indexAgentClientQueue } from '../queues/search/agentClient';
 
 type AgentClientInput =
@@ -30,20 +34,43 @@ type AgentClientInput =
       foreignId: string;
     };
 
+export type ListAgentClientsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  search?: string;
+
+  types?: AgentClientType[];
+  ids?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetAgentClientByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  agentClientId: string;
+};
+
+export type UpsertAgentClientParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: AgentClientInput;
+};
+
+export type CreateAgentClientParams = UpsertAgentClientParams;
+
 class agentClientServiceImpl {
-  async listAgentClients(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listAgentClients(d: MetorialFacing<ListAgentClientsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listAgentClientsInternal({ ...rest, tenant, environment });
+  }
 
-    search?: string;
+  async listAgentClientsInternal(d: ListAgentClientsParams) {
+    let solution = await getMetorialSolution();
 
-    types?: AgentClientType[];
-    ids?: string[];
-
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
@@ -63,7 +90,7 @@ class agentClientServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               AND: [
@@ -80,17 +107,19 @@ class agentClientServiceImpl {
     );
   }
 
-  async getAgentClientById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    agentClientId: string;
-  }) {
+  async getAgentClientById(d: MetorialFacing<GetAgentClientByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getAgentClientByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getAgentClientByIdInternal(d: GetAgentClientByIdParams) {
+    let solution = await getMetorialSolution();
     let agentClient = await db.agentClient.findFirst({
       where: {
         id: d.agentClientId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       }
     });
@@ -99,12 +128,15 @@ class agentClientServiceImpl {
     return agentClient;
   }
 
-  async upsertAgentClient(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: AgentClientInput;
-  }) {
+  async upsertAgentClient(d: MetorialFacing<UpsertAgentClientParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.upsertAgentClientInternal({ ...rest, tenant, environment });
+  }
+
+  async upsertAgentClientInternal(d: UpsertAgentClientParams) {
+    let solution = await getMetorialSolution();
+
     return await withTransaction(async db => {
       let newId = getId('agentClient');
 
@@ -121,8 +153,10 @@ class agentClientServiceImpl {
           lastConnectedAt: new Date(),
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         },
         update: {
           name: d.input.name.trim(),
@@ -130,8 +164,10 @@ class agentClientServiceImpl {
           privateMetadata: d.input.privateMetadata,
           lastConnectedAt: new Date(),
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         }
       });
 
@@ -164,13 +200,12 @@ class agentClientServiceImpl {
     });
   }
 
-  async createAgentClient(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    input: AgentClientInput;
-  }) {
+  async createAgentClient(d: MetorialFacing<CreateAgentClientParams>) {
     return await this.upsertAgentClient(d);
+  }
+
+  async createAgentClientInternal(d: CreateAgentClientParams) {
+    return await this.upsertAgentClientInternal(d);
   }
 }
 

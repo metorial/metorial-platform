@@ -4,7 +4,6 @@ import {
   db,
   type Environment,
   snowflake,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -12,7 +11,12 @@ import {
   ephemeralManagedSessionService,
   sessionTemplateService
 } from '@metorial-subspace/module-session';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { integrationService } from '../integration';
 import { integrationInstanceService } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
@@ -31,10 +35,7 @@ import {
   withMagicMcpBackingLock
 } from './shared';
 
-type UpsertMagicMcpServerBackingInput = {
-  tenant: Tenant;
-  solution: Solution;
-  environment: Environment;
+type UpsertMagicMcpServerBackingParams = {
   input: MagicMcpBackingInputBase & {
     providerTemplateBackingId?: string | null;
     ownerIntegrationId?: string | null;
@@ -46,14 +47,43 @@ type UpsertMagicMcpServerBackingInput = {
   };
 };
 
+type GetMagicMcpServerBackingByIdParams = {
+  magicMcpServerBackingId: string;
+};
+
+type ArchiveMagicMcpServerBackingParams = {
+  magicMcpServerBackingId: string;
+};
+
+type ResolveMagicMcpServerBackingIdsByIntegrationResourceParams = {
+  integrationId?: string | null;
+  integrationInstanceId?: string | null;
+};
+
+type ResolveMagicMcpIntegrationResourceLinksParams = {
+  integrationId?: string | null;
+  integrationInstanceId?: string | null;
+  backingCursor?: string | null;
+  integrationInstanceCursor?: string | null;
+  limit?: number | null;
+  includeBackings?: boolean | null;
+  includeIntegrationInstances?: boolean | null;
+};
+
+type ResolveMagicMcpServerBackingIdsForIntegrationInstanceUsageParams = {
+  integrationInstanceId: string;
+  ownerTypes?: MagicMcpOwnerType[];
+};
+
 class magicMcpServerBackingServiceImpl {
   private async getLegacyProvidersFromSessionTemplate(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     sessionTemplateId?: string | null;
   }): Promise<BackingProviderInput[]> {
     if (!d.sessionTemplateId) return [];
+
+    let solution = await getMetorialSolution();
 
     let providers = await db.sessionTemplateProvider.findMany({
       where: {
@@ -61,7 +91,7 @@ class magicMcpServerBackingServiceImpl {
         sessionTemplate: {
           id: d.sessionTemplateId,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -80,9 +110,26 @@ class magicMcpServerBackingServiceImpl {
     }));
   }
 
-  async upsertMagicMcpServerBacking(d: UpsertMagicMcpServerBackingInput) {
+  async upsertMagicMcpServerBacking(d: MetorialFacing<UpsertMagicMcpServerBackingParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.upsertMagicMcpServerBackingInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async upsertMagicMcpServerBackingInternal(
+    d: { tenant: Tenant; environment: Environment } & UpsertMagicMcpServerBackingParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let actorOid = await resolveActorOid({
-      ...d,
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
       identityActorId: d.input.identityActorId,
       identityId: d.input.identityId
     });
@@ -106,9 +153,8 @@ class magicMcpServerBackingServiceImpl {
       );
     }
     let ownerIntegration = d.input.ownerIntegrationId
-      ? await integrationService.getIntegrationById({
+      ? await integrationService.getIntegrationByIdInternal({
           tenant: d.tenant,
-          solution: d.solution,
           environment: d.environment,
           integrationId: d.input.ownerIntegrationId
         })
@@ -118,7 +164,7 @@ class magicMcpServerBackingServiceImpl {
           where: {
             id: d.input.ownerIntegrationInstanceId,
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             status: { notIn: ['deleted', 'archived'] }
           },
@@ -181,7 +227,6 @@ class magicMcpServerBackingServiceImpl {
       (d.input.isReconciliation
         ? await this.getLegacyProvidersFromSessionTemplate({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             sessionTemplateId: d.input.legacySessionTemplateId
           })
@@ -211,9 +256,8 @@ class magicMcpServerBackingServiceImpl {
             ownerIntegrationInstance?.integration ??
             existing?.integration;
           if (ownerType === 'server_owned') {
-            integration = await integrationService.upsertMagicMcpIntegration({
+            integration = await integrationService.upsertMagicMcpIntegrationInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integration,
               input: {
@@ -234,9 +278,8 @@ class magicMcpServerBackingServiceImpl {
 
           let integrationInstance =
             ownerIntegrationInstance ??
-            (await integrationInstanceService.upsertMagicMcpIntegrationInstance({
+            (await integrationInstanceService.upsertMagicMcpIntegrationInstanceInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integration,
               integrationInstance: existing?.integrationInstance,
@@ -251,9 +294,8 @@ class magicMcpServerBackingServiceImpl {
             }));
 
           let sessionTemplate =
-            await sessionTemplateService.upsertInternalLinkedSessionTemplate({
+            await sessionTemplateService.upsertInternalLinkedSessionTemplateInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               sessionTemplate: existing?.sessionTemplate,
               linkAsDefault: false,
@@ -267,9 +309,8 @@ class magicMcpServerBackingServiceImpl {
             });
 
           let ephemeralManagedSession =
-            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSession({
+            await ephemeralManagedSessionService.upsertPlaceholderEphemeralManagedSessionInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               ephemeralManagedSession: existing?.ephemeralManagedSession,
               sessionTemplate,
@@ -317,9 +358,8 @@ class magicMcpServerBackingServiceImpl {
     );
 
     if (providers.length) {
-      await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProviders({
+      await integrationInstanceProviderService.setMagicMcpIntegrationInstanceProvidersInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integration: syncTarget.integration,
         integrationInstance: syncTarget.integrationInstance,
@@ -331,14 +371,14 @@ class magicMcpServerBackingServiceImpl {
     if (shouldDeferReconcile) {
       await enqueueMagicMcpServerBackingReconcile({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpServerBackingId: d.input.id
       });
     } else if (shouldRunReconcile) {
       await reconcileMagicMcpServerBacking({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpServerBackingId: d.input.id
       });
@@ -356,18 +396,28 @@ class magicMcpServerBackingServiceImpl {
     };
   }
 
-  async getMagicMcpServerBackingById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpServerBackingId: string;
-  }) {
+  async getMagicMcpServerBackingById(d: MetorialFacing<GetMagicMcpServerBackingByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getMagicMcpServerBackingByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getMagicMcpServerBackingByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetMagicMcpServerBackingByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let backing = await db.magicMcpServerBacking.findFirst({
       where: {
         id: d.magicMcpServerBackingId,
         integrationInstance: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },
@@ -382,13 +432,21 @@ class magicMcpServerBackingServiceImpl {
     return backing;
   }
 
-  async archiveMagicMcpServerBacking(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpServerBackingId: string;
-  }) {
-    let backing = await this.getMagicMcpServerBackingById(d);
+  async archiveMagicMcpServerBacking(d: MetorialFacing<ArchiveMagicMcpServerBackingParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveMagicMcpServerBackingInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveMagicMcpServerBackingInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveMagicMcpServerBackingParams
+  ) {
+    let backing = await this.getMagicMcpServerBackingByIdInternal(d);
     checkTenant(d, backing.integrationInstance);
 
     let policy = resolveMagicMcpBackingPolicy(backing);
@@ -409,9 +467,8 @@ class magicMcpServerBackingServiceImpl {
       policy.archivesIntegrationInstance &&
       !['archived', 'deleted'].includes(backing.integrationInstance.status)
     ) {
-      await integrationInstanceService.archiveIntegrationInstance({
+      await integrationInstanceService.archiveIntegrationInstanceInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstance: backing.integrationInstance,
         _canModifyMagicMcpBacking: true
@@ -422,18 +479,16 @@ class magicMcpServerBackingServiceImpl {
       backing.integration &&
       !['archived', 'deleted'].includes(backing.integration.status)
     ) {
-      await integrationService.archiveIntegration({
+      await integrationService.archiveIntegrationInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integration: backing.integration,
         _canModifyMagicMcpBacking: true
       });
     }
     if (!['archived', 'deleted'].includes(backing.sessionTemplate.status)) {
-      await sessionTemplateService.archiveSessionTemplate({
+      await sessionTemplateService.archiveSessionTemplateInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         sessionTemplate: backing.sessionTemplate,
         _allowLinked: true
@@ -441,38 +496,50 @@ class magicMcpServerBackingServiceImpl {
     }
 
     if (!['archived', 'deleted'].includes(backing.ephemeralManagedSession.status)) {
-      await ephemeralManagedSessionService.archiveEphemeralManagedSession({
+      await ephemeralManagedSessionService.archiveEphemeralManagedSessionInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         ephemeralManagedSession:
-          await ephemeralManagedSessionService.getEphemeralManagedSessionById({
+          await ephemeralManagedSessionService.getEphemeralManagedSessionByIdInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             ephemeralManagedSessionId: backing.ephemeralManagedSession.id
           })
       });
     }
 
-    return await this.getMagicMcpServerBackingById(d);
+    return await this.getMagicMcpServerBackingByIdInternal(d);
   }
 
-  async resolveMagicMcpServerBackingIdsByIntegrationResource(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationId?: string | null;
-    integrationInstanceId?: string | null;
-  }) {
+  async resolveMagicMcpServerBackingIdsByIntegrationResource(
+    d: MetorialFacing<ResolveMagicMcpServerBackingIdsByIntegrationResourceParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.resolveMagicMcpServerBackingIdsByIntegrationResourceInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async resolveMagicMcpServerBackingIdsByIntegrationResourceInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & ResolveMagicMcpServerBackingIdsByIntegrationResourceParams
+  ) {
     if (!d.integrationId && !d.integrationInstanceId) return [];
+
+    let solution = await getMetorialSolution();
 
     let rows = await db.magicMcpServerBacking.findMany({
       where: {
         ownerType: 'integration',
         integrationInstance: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid,
           id: d.integrationInstanceId ?? undefined,
           integration: d.integrationId ? { id: d.integrationId } : undefined
@@ -486,18 +553,26 @@ class magicMcpServerBackingServiceImpl {
     return [...new Set(rows.map(row => row.id))].sort();
   }
 
-  async resolveMagicMcpIntegrationResourceLinks(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationId?: string | null;
-    integrationInstanceId?: string | null;
-    backingCursor?: string | null;
-    integrationInstanceCursor?: string | null;
-    limit?: number | null;
-    includeBackings?: boolean | null;
-    includeIntegrationInstances?: boolean | null;
-  }) {
+  async resolveMagicMcpIntegrationResourceLinks(
+    d: MetorialFacing<ResolveMagicMcpIntegrationResourceLinksParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.resolveMagicMcpIntegrationResourceLinksInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async resolveMagicMcpIntegrationResourceLinksInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & ResolveMagicMcpIntegrationResourceLinksParams
+  ) {
+    let solution = await getMetorialSolution();
     let limit = Math.min(Math.max(d.limit ?? 100, 1), 500);
     let includeBackings = d.includeBackings !== false;
     let includeIntegrationInstances = d.includeIntegrationInstances !== false;
@@ -515,7 +590,7 @@ class magicMcpServerBackingServiceImpl {
       ? await db.integrationInstance.findMany({
           where: {
             tenantOid: d.tenant.oid,
-            solutionOid: d.solution.oid,
+            solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             id: d.integrationInstanceId
               ? d.integrationInstanceId
@@ -537,7 +612,7 @@ class magicMcpServerBackingServiceImpl {
           where: {
             integrationInstance: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid
             },
             id: d.backingCursor ? { gt: d.backingCursor } : undefined,
@@ -613,18 +688,32 @@ class magicMcpServerBackingServiceImpl {
     };
   }
 
-  async resolveMagicMcpServerBackingIdsForIntegrationInstanceUsage(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationInstanceId: string;
-    ownerTypes?: MagicMcpOwnerType[];
-  }) {
+  async resolveMagicMcpServerBackingIdsForIntegrationInstanceUsage(
+    d: MetorialFacing<ResolveMagicMcpServerBackingIdsForIntegrationInstanceUsageParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.resolveMagicMcpServerBackingIdsForIntegrationInstanceUsageInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async resolveMagicMcpServerBackingIdsForIntegrationInstanceUsageInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & ResolveMagicMcpServerBackingIdsForIntegrationInstanceUsageParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let integrationInstance = await db.integrationInstance.findFirst({
       where: {
         id: d.integrationInstanceId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid
       },
       select: {
@@ -644,7 +733,7 @@ class magicMcpServerBackingServiceImpl {
         ownerType: { in: ownerTypes },
         integrationInstance: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         },
         integrationInstanceOid: integrationInstance.oid

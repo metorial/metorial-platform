@@ -5,7 +5,6 @@ import {
   type Provider,
   type ProviderVariant,
   type ProviderVersion,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -14,7 +13,12 @@ import {
   providerConfigService,
   providerDeploymentService
 } from '@metorial-subspace/module-deployment';
-import { providerDeploymentInternalService } from '@metorial-subspace/module-provider-internal';
+import { providerDeploymentInternalService } from './providerDeployment';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 
 export type ProviderCombinationInput = {
@@ -40,22 +44,31 @@ let checkProviderMatch = (
   if (a && b && a.providerOid !== b.providerOid) throw new ServiceError(providerMismatchError);
 };
 
+export type GetCombinationsParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  providers: ProviderCombinationInput[];
+
+  allowEphemeral?: boolean;
+  allowMissingAuthConfig?: boolean;
+  limit?: number;
+};
+
 class providerCombinationServiceImpl {
-  async getCombinations(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async getCombinations(d: MetorialFacing<GetCombinationsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getCombinationsInternal({ ...rest, tenant, environment });
+  }
 
-    providers: ProviderCombinationInput[];
+  async getCombinationsInternal(d: GetCombinationsParams) {
+    let solution = await getMetorialSolution();
 
-    allowEphemeral?: boolean;
-    allowMissingAuthConfig?: boolean;
-    limit?: number;
-  }) {
     return withTransaction(
       async db => {
         let ts = {
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           tenantOid: d.tenant.oid,
           environmentOid: d.environment.oid
         };
@@ -151,9 +164,8 @@ class providerCombinationServiceImpl {
 
               deployment =
                 deployment ??
-                (await providerDeploymentService.ensureDefaultProviderDeployment({
+                (await providerDeploymentService.ensureDefaultProviderDeploymentInternal({
                   tenant: d.tenant,
-                  solution: d.solution,
                   environment: d.environment,
                   provider
                 }));
@@ -223,9 +235,8 @@ class providerCombinationServiceImpl {
                   );
                 }
 
-                config = await providerConfigService.ensureDefaultEmptyProviderConfig({
+                config = await providerConfigService.ensureDefaultEmptyProviderConfigInternal({
                   tenant: d.tenant,
-                  solution: d.solution,
                   environment: d.environment,
                   provider,
                   providerDeployment: deployment

@@ -148,8 +148,10 @@ export class ConnectionState {
         connectionOid: this.connection.oid,
         providerRunOid: this.providerRun.oid,
         tenantOid: this.session.tenantOid,
+        projectOid: this.session.projectOid,
         solutionOid: this.session.solutionOid,
-        environmentOid: this.session.environmentOid
+        environmentOid: this.session.environmentOid,
+        instanceOid: this.session.instanceOid
       }
     });
 

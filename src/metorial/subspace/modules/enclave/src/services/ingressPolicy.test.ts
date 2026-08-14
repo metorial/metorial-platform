@@ -1,19 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { mockDb, mockEnclaveService, mockRecordIngressNetworkLog } = vi.hoisted(() => ({
-  mockDb: {
-    session: {
-      findMany: vi.fn()
+let { mockDb, mockEnclaveService, mockRecordIngressNetworkLog, mockGetMetorialSolution } =
+  vi.hoisted(() => ({
+    mockDb: {
+      session: {
+        findMany: vi.fn()
+      },
+      ephemeralManagedSession: {
+        findMany: vi.fn()
+      }
     },
-    ephemeralManagedSession: {
-      findMany: vi.fn()
-    }
-  },
-  mockEnclaveService: {
-    getCompiledNetworkRules: vi.fn()
-  },
-  mockRecordIngressNetworkLog: vi.fn()
-}));
+    mockEnclaveService: {
+      getCompiledNetworkRulesInternal: vi.fn()
+    },
+    mockRecordIngressNetworkLog: vi.fn(),
+    mockGetMetorialSolution: vi.fn()
+  }));
 
 vi.mock('@metorial-subspace/db', async () => ({
   db: mockDb
@@ -27,10 +29,14 @@ vi.mock('../lib/ingressNetworkLogBuffer', () => ({
   recordIngressNetworkLog: mockRecordIngressNetworkLog
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  getMetorialSolution: mockGetMetorialSolution
+}));
+
 import { enclaveIngressPolicyService } from './ingressPolicy';
 
-let tenant = { oid: BigInt(10), id: 'ktn_test' } as any;
-let environment = { oid: BigInt(20), id: 'ken_test' } as any;
+let tenant = { oid: BigInt(10), id: 'ktn_test', projectOid: BigInt(11) } as any;
+let environment = { oid: BigInt(20), id: 'ken_test', instanceOid: BigInt(21) } as any;
 let solution = { oid: 30, id: 'ksn_test' } as any;
 let enclave = {
   oid: BigInt(40),
@@ -38,10 +44,11 @@ let enclave = {
   compiledNetworkRules: null
 } as any;
 
-describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
+describe('enclaveIngressPolicyService.checkSessionIngressAccessInternal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDb.ephemeralManagedSession.findMany.mockResolvedValue([]);
+    mockGetMetorialSolution.mockResolvedValue(solution);
   });
 
   it('allows sessions when all linked enclave ingress policies allow the source IP', async () => {
@@ -51,15 +58,14 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
         providers: [{ deployment: { enclave } }]
       }
     ]);
-    mockEnclaveService.getCompiledNetworkRules.mockResolvedValueOnce({
+    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
       ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
       egress: { direction: 'egress', entries: [] }
     });
 
-    let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
+    let result = await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
       tenant,
       environment,
-      solution,
       sessionIds: ['ses_test'],
       sourceIp: '203.0.113.10'
     });
@@ -82,15 +88,14 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
         providers: [{ deployment: { enclave } }]
       }
     ]);
-    mockEnclaveService.getCompiledNetworkRules.mockResolvedValueOnce({
+    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
       ingress: { direction: 'ingress', entries: [{ cidr: '198.51.100.0/24' }] },
       egress: { direction: 'egress', entries: [] }
     });
 
-    let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
+    let result = await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
       tenant,
       environment,
-      solution,
       sessionIds: ['ses_test'],
       sourceIp: '203.0.113.10',
       hostname: 'mcp.example.com',
@@ -106,7 +111,9 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
     });
     expect(mockRecordIngressNetworkLog).toHaveBeenCalledWith({
       tenantOid: tenant.oid,
+      projectOid: tenant.projectOid,
       environmentOid: environment.oid,
+      instanceOid: environment.instanceOid,
       solutionOid: solution.oid,
       enclaveOid: enclave.oid,
       sessionId: 'ses_test',
@@ -117,6 +124,36 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
     });
   });
 
+  it('records null mirrored oids for an unlinked tenant and environment', async () => {
+    mockDb.session.findMany.mockResolvedValueOnce([
+      {
+        id: 'ses_test',
+        providers: [{ deployment: { enclave } }]
+      }
+    ]);
+    mockEnclaveService.getCompiledNetworkRulesInternal.mockResolvedValueOnce({
+      ingress: { direction: 'ingress', entries: [{ cidr: '203.0.113.0/24' }] },
+      egress: { direction: 'egress', entries: [] }
+    });
+
+    await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
+      tenant: { oid: BigInt(10), id: 'ktn_test', projectOid: null } as any,
+      environment: { oid: BigInt(20), id: 'ken_test', instanceOid: null } as any,
+      sessionIds: ['ses_test'],
+      sourceIp: '203.0.113.10',
+      recordLog: true
+    });
+
+    expect(mockRecordIngressNetworkLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantOid: BigInt(10),
+        projectOid: null,
+        environmentOid: BigInt(20),
+        instanceOid: null
+      })
+    );
+  });
+
   it('allows sessions without linked enclaves', async () => {
     mockDb.session.findMany.mockResolvedValueOnce([
       {
@@ -125,10 +162,9 @@ describe('enclaveIngressPolicyService.checkSessionIngressAccess', () => {
       }
     ]);
 
-    let result = await enclaveIngressPolicyService.checkSessionIngressAccess({
+    let result = await enclaveIngressPolicyService.checkSessionIngressAccessInternal({
       tenant,
       environment,
-      solution,
       sessionIds: ['ses_plain'],
       sourceIp: '203.0.113.10',
       recordLog: true

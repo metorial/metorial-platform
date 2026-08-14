@@ -9,7 +9,6 @@ import {
   getId,
   type NetworkPolicy,
   type NetworkPolicyStatus,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -21,7 +20,14 @@ import {
   normalizeStatusForList,
   resolveFirewalls
 } from '@metorial-subspace/list-utils';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing,
+  toProviderEventBase
+} from '@metorial-subspace/module-tenant';
+import { Fabric } from '@metorial/fabric';
 import { env } from '../env';
 import {
   assignNetworkPolicyRuleIds,
@@ -68,20 +74,221 @@ let ruleChangeLock = createLock({
   name: 'sub/enc/networkPolicy/rules'
 });
 
+export type CreateNetworkPolicyParams = {
+  tenant: Tenant;
+  environment: Environment;
+  input: {
+    name: string;
+    description?: string;
+    rules?: NetworkPolicyRuleInput[];
+  };
+};
+
+export type UpdateNetworkPolicyParams = {
+  tenant: Tenant;
+  environment: Environment;
+  networkPolicy: NetworkPolicy;
+  input: {
+    name?: string;
+    description?: string;
+    rules?: NetworkPolicyRuleInput[];
+  };
+};
+
+export type AddNetworkPolicyRuleParams = {
+  tenant: Tenant;
+  environment: Environment;
+  networkPolicy: NetworkPolicy;
+  input: {
+    rule: NetworkPolicyRuleInput;
+  };
+};
+
+export type UpdateNetworkPolicyRuleParams = {
+  tenant: Tenant;
+  environment: Environment;
+  networkPolicy: NetworkPolicy;
+  ruleId: string;
+  input: {
+    rule: NetworkPolicyRuleInput;
+  };
+};
+
+export type RemoveNetworkPolicyRuleParams = {
+  tenant: Tenant;
+  environment: Environment;
+  networkPolicy: NetworkPolicy;
+  ruleId: string;
+};
+
+export type ArchiveNetworkPolicyParams = {
+  tenant: Tenant;
+  environment: Environment;
+  networkPolicy: NetworkPolicy;
+};
+
+type ListNetworkPoliciesParams = {
+  status?: NetworkPolicyStatus[];
+  allowDeleted?: boolean;
+  ids?: string[];
+  firewallIds?: string[];
+  search?: string;
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetNetworkPolicyByIdParams = {
+  networkPolicyId: string;
+  allowDeleted?: boolean;
+};
+
+type ListNetworkPolicyVersionsParams = {
+  networkPolicy: NetworkPolicy;
+};
+
+type GetNetworkPolicyVersionParams = {
+  networkPolicy: NetworkPolicy;
+  version: number;
+};
+
 class networkPolicyServiceImpl {
-  async listNetworkPolicies(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    status?: NetworkPolicyStatus[];
-    allowDeleted?: boolean;
-    ids?: string[];
-    firewallIds?: string[];
-    search?: string;
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let firewalls = await resolveFirewalls(d, d.firewallIds);
+  async createNetworkPolicy(d: MetorialFacing<CreateNetworkPolicyParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.network_policy.created:before', eventBase);
+
+    let networkPolicy = await this.createNetworkPolicyInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.network_policy.created:after', {
+      ...eventBase,
+      networkPolicy
+    });
+
+    return networkPolicy;
+  }
+
+  async updateNetworkPolicy(d: MetorialFacing<UpdateNetworkPolicyParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.network_policy.updated:before', eventBase);
+
+    let networkPolicy = await this.updateNetworkPolicyInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.network_policy.updated:after', {
+      ...eventBase,
+      networkPolicy
+    });
+
+    return networkPolicy;
+  }
+
+  async archiveNetworkPolicy(d: MetorialFacing<ArchiveNetworkPolicyParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.network_policy.deleted:before', eventBase);
+
+    let networkPolicy = await this.archiveNetworkPolicyInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.network_policy.deleted:after', {
+      ...eventBase,
+      networkPolicy
+    });
+
+    return networkPolicy;
+  }
+
+  async addNetworkPolicyRule(d: MetorialFacing<AddNetworkPolicyRuleParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.network_policy.rule.created:before', eventBase);
+
+    let result = await this.addNetworkPolicyRuleInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('instance.network.network_policy.rule.created:after', {
+      ...eventBase,
+      networkPolicy: result.networkPolicy,
+      rule: result.rule
+    });
+
+    return result;
+  }
+
+  async updateNetworkPolicyRule(d: MetorialFacing<UpdateNetworkPolicyRuleParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.network_policy.rule.updated:before', eventBase);
+
+    let result = await this.updateNetworkPolicyRuleInternal({ ...rest, tenant, environment });
+
+    await Fabric.fire('instance.network.network_policy.rule.updated:after', {
+      ...eventBase,
+      networkPolicy: result.networkPolicy,
+      rule: result.rule
+    });
+
+    return result;
+  }
+
+  async removeNetworkPolicyRule(d: MetorialFacing<RemoveNetworkPolicyRuleParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('instance.network.network_policy.rule.deleted:before', eventBase);
+
+    let networkPolicy = await this.removeNetworkPolicyRuleInternal({
+      ...rest,
+      tenant,
+      environment
+    });
+
+    await Fabric.fire('instance.network.network_policy.rule.deleted:after', {
+      ...eventBase,
+      networkPolicy
+    });
+
+    return networkPolicy;
+  }
+
+  async listNetworkPolicies(d: MetorialFacing<ListNetworkPoliciesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listNetworkPoliciesInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listNetworkPoliciesInternal(
+    d: { tenant: Tenant; environment: Environment } & ListNetworkPoliciesParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let firewalls = await resolveFirewalls(ts, d.firewallIds);
     let search = d.search?.trim().toLowerCase();
 
     return Paginator.create(({ prisma }) =>
@@ -119,12 +326,20 @@ class networkPolicyServiceImpl {
     );
   }
 
-  async getNetworkPolicyById(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicyId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getNetworkPolicyById(d: MetorialFacing<GetNetworkPolicyByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkPolicyByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getNetworkPolicyByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetNetworkPolicyByIdParams
+  ) {
     let networkPolicy = await db.networkPolicy.findFirst({
       where: {
         id: d.networkPolicyId,
@@ -141,15 +356,7 @@ class networkPolicyServiceImpl {
     return networkPolicy;
   }
 
-  async createNetworkPolicy(d: {
-    tenant: Tenant;
-    environment: Environment;
-    input: {
-      name: string;
-      description?: string;
-      rules?: NetworkPolicyRuleInput[];
-    };
-  }) {
+  async createNetworkPolicyInternal(d: CreateNetworkPolicyParams) {
     let rules = assignNetworkPolicyRuleIds(d.input.rules ?? []);
 
     return withTransaction(async db => {
@@ -160,7 +367,9 @@ class networkPolicyServiceImpl {
           name: d.input.name.trim(),
           description: d.input.description?.trim() || undefined,
           tenantOid: d.tenant.oid,
-          environmentOid: d.environment.oid
+          projectOid: d.tenant.projectOid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         }
       });
 
@@ -180,16 +389,7 @@ class networkPolicyServiceImpl {
     });
   }
 
-  async updateNetworkPolicy(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-    input: {
-      name?: string;
-      description?: string;
-      rules?: NetworkPolicyRuleInput[];
-    };
-  }) {
+  async updateNetworkPolicyInternal(d: UpdateNetworkPolicyParams) {
     checkTenant(d, d.networkPolicy);
     checkDeletedEdit(d.networkPolicy, 'update');
 
@@ -273,14 +473,7 @@ class networkPolicyServiceImpl {
     });
   }
 
-  async addNetworkPolicyRule(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-    input: {
-      rule: NetworkPolicyRuleInput;
-    };
-  }) {
+  async addNetworkPolicyRuleInternal(d: AddNetworkPolicyRuleParams) {
     checkTenant(d, d.networkPolicy);
     checkDeletedEdit(d.networkPolicy, 'update');
 
@@ -312,15 +505,7 @@ class networkPolicyServiceImpl {
     });
   }
 
-  async updateNetworkPolicyRule(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-    ruleId: string;
-    input: {
-      rule: NetworkPolicyRuleInput;
-    };
-  }) {
+  async updateNetworkPolicyRuleInternal(d: UpdateNetworkPolicyRuleParams) {
     checkTenant(d, d.networkPolicy);
     checkDeletedEdit(d.networkPolicy, 'update');
 
@@ -373,12 +558,7 @@ class networkPolicyServiceImpl {
     });
   }
 
-  async removeNetworkPolicyRule(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-    ruleId: string;
-  }) {
+  async removeNetworkPolicyRuleInternal(d: RemoveNetworkPolicyRuleParams) {
     checkTenant(d, d.networkPolicy);
     checkDeletedEdit(d.networkPolicy, 'update');
 
@@ -410,11 +590,20 @@ class networkPolicyServiceImpl {
     });
   }
 
-  async listNetworkPolicyVersions(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-  }) {
+  async listNetworkPolicyVersions(d: MetorialFacing<ListNetworkPolicyVersionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listNetworkPolicyVersionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listNetworkPolicyVersionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListNetworkPolicyVersionsParams
+  ) {
     checkTenant(d, d.networkPolicy);
 
     return Paginator.create(({ prisma }) =>
@@ -428,12 +617,20 @@ class networkPolicyServiceImpl {
     );
   }
 
-  async getNetworkPolicyVersion(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-    version: number;
-  }) {
+  async getNetworkPolicyVersion(d: MetorialFacing<GetNetworkPolicyVersionParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getNetworkPolicyVersionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getNetworkPolicyVersionInternal(
+    d: { tenant: Tenant; environment: Environment } & GetNetworkPolicyVersionParams
+  ) {
     checkTenant(d, d.networkPolicy);
 
     let networkPolicyVersion = await db.networkPolicyVersion.findFirst({
@@ -451,11 +648,7 @@ class networkPolicyServiceImpl {
     return networkPolicyVersion;
   }
 
-  async archiveNetworkPolicy(d: {
-    tenant: Tenant;
-    environment: Environment;
-    networkPolicy: NetworkPolicy;
-  }) {
+  async archiveNetworkPolicyInternal(d: ArchiveNetworkPolicyParams) {
     checkTenant(d, d.networkPolicy);
     checkDeletedEdit(d.networkPolicy, 'archive');
 

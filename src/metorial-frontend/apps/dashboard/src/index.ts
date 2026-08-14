@@ -34,6 +34,7 @@ export { showAddIdentityCredentialModal } from './product/scenes/identity/creden
 export {
   ConfigureSectionCard,
   showConfigureIntegrationProviderPanelFlow,
+  showCreateIntegrationProviderFirstFlow,
   type IntegrationProviderPanelSubmitInput
 } from './product/scenes/integrations/providerPanelFlow';
 export { AuthMethodPicker } from './product/scenes/providerAuthConfigs/authMethodPicker';
@@ -51,6 +52,7 @@ export {
 } from './product/scenes/skills/filters';
 export { SkillPluginsGrid } from './product/scenes/skills/pluginGrid';
 export { showSkillPluginFormModal } from './product/scenes/skills/pluginModal';
+export { showSkillFormModal } from './product/scenes/skills/modal';
 export { showSkillTemplateFormModal } from './product/scenes/skills/templateModal';
 export { showSkillCloneFormModal } from './product/scenes/skills/cloneModal';
 export { SkillSyncsTable } from './product/pages/(skills)/skillSyncs';
@@ -97,6 +99,7 @@ export {
   showProviderDeploymentFormModal,
   showMagicMcpServerFormModal
 } from './product/scenes/providerDeployments/modal';
+export { showMagicMcpServerCreateFlow } from './product/scenes/providerDeployments/magicMcpForm';
 export { ProviderConfigsOverviewTable } from './product/scenes/providerConfigs/overviewTable';
 export { ProviderDeploymentsListLayout } from './product/pages/(deployments)/(list)/providerDeploymentsListLayout';
 export { ProviderConfigsOverviewPage } from './product/pages/(deployments)/(list)/provider-configs';

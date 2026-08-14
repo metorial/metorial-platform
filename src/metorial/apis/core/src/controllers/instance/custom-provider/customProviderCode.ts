@@ -1,13 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import {
-  subspaceBucketService,
-  subspaceCustomProviderService
-} from '@metorial/module-subspace';
+  bucketService,
+  customProviderService
+} from '@metorial-subspace/module-custom-provider';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { bucketEditorTokenPresenter } from '../../../presenters';
+import { bucketEditorTokenPresenter } from '@metorial/presenters';
 
 let customProviderCodeGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
@@ -19,7 +19,7 @@ let customProviderCodeGroup = instanceGroup.use(async ctx => {
     );
   }
 
-  let customProvider = await subspaceCustomProviderService.get({
+  let customProvider = await customProviderService.getCustomProviderById({
     instance: ctx.instance,
     customProviderId: ctx.params.customProviderId
   });
@@ -48,7 +48,7 @@ export let customProviderCodeController = Controller.create(
       .use(hasFlags(['custom-providers-enabled', 'paid-custom-providers']))
       .output(bucketEditorTokenPresenter)
       .do(async ctx => {
-        let draftBucket = ctx.customProvider.draftBucket;
+        let draftBucket = ctx.customProvider.draftCodeBucket;
         if (!draftBucket?.id) {
           throw new ServiceError(
             badRequestError({
@@ -57,9 +57,14 @@ export let customProviderCodeController = Controller.create(
           );
         }
 
-        let editorRes = await subspaceBucketService.getEditorUrl({
+        let bucket = await bucketService.getBucketById({
           instance: ctx.instance,
           bucketId: draftBucket.id
+        });
+
+        let editorRes = await bucketService.getEditorUrl({
+          instance: ctx.instance,
+          bucket
         });
 
         return bucketEditorTokenPresenter.present({

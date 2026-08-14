@@ -63,7 +63,9 @@ describe('environmentService.upsertEnvironment', () => {
       input: {
         name: 'Production',
         identifier: 'production',
-        type: 'production'
+        type: 'production',
+        resourceGroupId: 'resourceGroup_1',
+        resourceGroupIdentifier: 'production'
       }
     });
 
@@ -93,7 +95,9 @@ describe('environmentService.upsertEnvironment', () => {
       input: {
         name: 'Production',
         identifier: 'production',
-        type: 'production'
+        type: 'production',
+        resourceGroupId: 'resourceGroup_1',
+        resourceGroupIdentifier: 'production'
       }
     });
 

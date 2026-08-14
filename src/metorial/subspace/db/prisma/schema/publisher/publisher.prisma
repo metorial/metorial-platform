@@ -26,6 +26,9 @@ model Publisher {
   tenantOid BigInt?
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -37,4 +40,5 @@ model Publisher {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([type])
+  @@index([projectOid])
 }

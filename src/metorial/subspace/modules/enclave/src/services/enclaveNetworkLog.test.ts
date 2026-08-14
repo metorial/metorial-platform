@@ -1,21 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { mockDb, mockFunctionBay, mockGetTenantForFunctionBay } = vi.hoisted(() => ({
-  mockDb: {
-    enclave: {
-      findMany: vi.fn()
+let { mockDb, mockFunctionBay, mockGetTenantForFunctionBay, mockGetMetorialSolution } =
+  vi.hoisted(() => ({
+    mockDb: {
+      enclave: {
+        findMany: vi.fn()
+      },
+      enclaveIngressNetworkLog: {
+        findMany: vi.fn()
+      }
     },
-    enclaveIngressNetworkLog: {
-      findMany: vi.fn()
-    }
-  },
-  mockFunctionBay: {
-    networkLog: {
-      list: vi.fn()
-    }
-  },
-  mockGetTenantForFunctionBay: vi.fn()
-}));
+    mockFunctionBay: {
+      networkLog: {
+        list: vi.fn()
+      }
+    },
+    mockGetTenantForFunctionBay: vi.fn(),
+    mockGetMetorialSolution: vi.fn()
+  }));
 
 vi.mock('@metorial-subspace/db', () => ({
   db: mockDb
@@ -24,6 +26,10 @@ vi.mock('@metorial-subspace/db', () => ({
 vi.mock('../functionBay', () => ({
   functionBay: mockFunctionBay,
   getTenantForFunctionBay: mockGetTenantForFunctionBay
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  getMetorialSolution: mockGetMetorialSolution
 }));
 
 import { enclaveNetworkLogService } from './enclaveNetworkLog';
@@ -51,10 +57,11 @@ let fbLogRecord = {
   lastSeenAt: '2026-05-29T10:05:00.000Z'
 };
 
-describe('enclaveNetworkLogService.listNetworkLogs', () => {
+describe('enclaveNetworkLogService.listNetworkLogsInternal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetTenantForFunctionBay.mockResolvedValue({ id: 'fb_tenant_1', identifier: 'tenant-a' });
+    mockGetMetorialSolution.mockResolvedValue(solution);
   });
 
   it('returns empty records when no enclaves have Function Bay backing', async () => {
@@ -63,10 +70,9 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
       { oid: BigInt(2), id: 'enc_b', hasFunctionBayBacking: false }
     ]);
 
-    let result = await enclaveNetworkLogService.listNetworkLogs({
+    let result = await enclaveNetworkLogService.listNetworkLogsInternal({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       filters: {}
     });
@@ -87,10 +93,9 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     ]);
     mockFunctionBay.networkLog.list.mockResolvedValueOnce([fbLogRecord]);
 
-    let result = await enclaveNetworkLogService.listNetworkLogs({
+    let result = await enclaveNetworkLogService.listNetworkLogsInternal({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       enclaveIds: ['enc_backed', 'enc_unbacked'],
       filters: { hostnames: ['example.com'] }
@@ -116,10 +121,9 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     ]);
     mockFunctionBay.networkLog.list.mockResolvedValueOnce([]);
 
-    await enclaveNetworkLogService.listNetworkLogs({
+    await enclaveNetworkLogService.listNetworkLogsInternal({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       filters: {}
     });
@@ -145,10 +149,9 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     ]);
 
     await expect(
-      enclaveNetworkLogService.listNetworkLogs({
+      enclaveNetworkLogService.listNetworkLogsInternal({
         tenant,
         environment,
-        solution,
         direction: 'egress',
         enclaveIds: ['enc_backed', 'enc_missing'],
         filters: {}
@@ -162,10 +165,9 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
     ]);
     mockFunctionBay.networkLog.list.mockResolvedValueOnce([fbLogRecord]);
 
-    let result = await enclaveNetworkLogService.listNetworkLogs({
+    let result = await enclaveNetworkLogService.listNetworkLogsInternal({
       tenant,
       environment,
-      solution,
       direction: 'egress',
       enclaveIds: ['enc_backed'],
       filters: {}
@@ -217,10 +219,9 @@ describe('enclaveNetworkLogService.listNetworkLogs', () => {
       }
     ]);
 
-    let result = await enclaveNetworkLogService.listNetworkLogs({
+    let result = await enclaveNetworkLogService.listNetworkLogsInternal({
       tenant,
       environment,
-      solution,
       direction: 'ingress',
       enclaveIds: ['enc_backed'],
       filters: { intervalMinutes: 60 }

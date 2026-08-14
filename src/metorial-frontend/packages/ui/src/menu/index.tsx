@@ -1,8 +1,9 @@
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
+import { RiArrowRightSLine } from '@remixicon/react';
 import React, { useEffect, useState } from 'react';
-import { keyframes, styled } from 'styled-components';
+import { css, keyframes, styled } from 'styled-components';
 import { theme } from '..';
-import { useDialogZIndex } from '../dialog/state';
+import { markOverlayPointerDismiss, useDialogZIndex } from '../dialog/state';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
 
 let fadeInBottom = keyframes`
@@ -45,7 +46,7 @@ let fadeOutRight = keyframes`
   to { opacity: 0; transform: translateX(10px); }
 `;
 
-let Content = styled(RadixMenu.Content)<{
+let contentStyles = css<{
   $lightMode?: boolean;
   $matchTriggerWidth?: boolean;
 }>`
@@ -98,18 +99,34 @@ let Content = styled(RadixMenu.Content)<{
   }
 `;
 
+let Content = styled(RadixMenu.Content)<{
+  $lightMode?: boolean;
+  $matchTriggerWidth?: boolean;
+}>`
+  ${contentStyles}
+`;
+
+let SubContent = styled(RadixMenu.SubContent)<{ $lightMode?: boolean }>`
+  ${contentStyles}
+`;
+
 let Separator = styled(RadixMenu.Separator)<{ $lightMode?: boolean }>`
   height: 1px;
   background: ${({ $lightMode }) =>
     $lightMode ? theme.colors.gray300 : theme.colors.gray800};
 `;
 
-let Item = styled(RadixMenu.Item)<{ $lightMode?: boolean; $matchTriggerWidth?: boolean }>`
+let itemStyles = css<{
+  $lightMode?: boolean;
+  $matchTriggerWidth?: boolean;
+  $row?: boolean;
+}>`
   font-size: 14px;
   font-weight: 500;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: ${({ $row }) => ($row ? 'row' : 'column')};
+  align-items: ${({ $row }) => ($row ? 'center' : 'stretch')};
+  justify-content: ${({ $row }) => ($row ? 'flex-start' : 'center')};
   text-align: left;
   gap: 5px;
   padding: 7px 13px;
@@ -151,6 +168,74 @@ let Item = styled(RadixMenu.Item)<{ $lightMode?: boolean; $matchTriggerWidth?: b
   }
 `;
 
+let Item = styled(RadixMenu.Item)<{
+  $lightMode?: boolean;
+  $matchTriggerWidth?: boolean;
+  $row?: boolean;
+}>`
+  ${itemStyles}
+`;
+
+// The sub trigger renders a div rather than a button, so it relies on the data attributes
+// Radix sets instead of the :hover/:focus/:disabled selectors the leaf items use.
+let SubTrigger = styled(RadixMenu.SubTrigger)<{
+  $lightMode?: boolean;
+  $matchTriggerWidth?: boolean;
+  $row?: boolean;
+}>`
+  ${itemStyles}
+  cursor: default;
+  user-select: none;
+
+  &:not([data-disabled]) {
+    &[data-highlighted],
+    &[data-state='open'] {
+      background: ${({ $lightMode }) =>
+        $lightMode ? theme.colors.gray300 : theme.colors.gray800};
+    }
+  }
+
+  &[data-disabled] {
+    opacity: 0.7;
+  }
+`;
+
+let ItemIcon = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 16px;
+  width: 16px;
+
+  svg {
+    height: 16px;
+    width: 16px;
+  }
+`;
+
+let ItemCopy = styled.span`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+`;
+
+let ItemChevron = styled.span`
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.4;
+
+  svg {
+    height: 16px;
+    width: 16px;
+  }
+`;
+
 let Title = styled(RadixMenu.Label)<{ $lightMode?: boolean }>`
   font-size: 14px;
   font-weight: 600;
@@ -170,6 +255,7 @@ export type MenuItem =
       disabled?: boolean;
       description?: React.ReactNode;
       label: React.ReactNode;
+      icon?: React.ReactNode;
       onClick?: () => void;
     }
   | {
@@ -177,10 +263,20 @@ export type MenuItem =
       disabled?: boolean;
       description?: React.ReactNode;
       label: React.ReactNode;
+      icon?: React.ReactNode;
       onClick: () => void;
     }
   | {
       type: 'separator';
+    }
+  | {
+      type: 'submenu';
+      id?: string;
+      disabled?: boolean;
+      description?: React.ReactNode;
+      label: React.ReactNode;
+      icon?: React.ReactNode;
+      items: MenuItem[];
     };
 
 export type MenuProps = {
@@ -216,6 +312,80 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
 
     useSuppressTooltipWhileOpen(open);
 
+    let renderItems = (items: MenuItem[]): React.ReactNode =>
+      items.map((item: any, i) => {
+        if (item.type === 'separator') return <Separator key={i} $lightMode={lightMode} />;
+
+        if (item.type === 'submenu') {
+          return (
+            <RadixMenu.Sub key={i}>
+              <SubTrigger
+                $lightMode={lightMode}
+                $matchTriggerWidth={matchTriggerWidth}
+                $row
+                disabled={item.disabled}
+              >
+                {item.icon && <ItemIcon>{item.icon}</ItemIcon>}
+
+                <ItemCopy>
+                  <h1>{item.label}</h1>
+                  {item.description && <p>{item.description}</p>}
+                </ItemCopy>
+
+                <ItemChevron>
+                  <RiArrowRightSLine />
+                </ItemChevron>
+              </SubTrigger>
+
+              <RadixMenu.Portal>
+                <SubContent
+                  $lightMode={lightMode}
+                  data-metorial-menu-content="true"
+                  sideOffset={2}
+                  alignOffset={-5}
+                  style={{ zIndex: zIndex + 1 }}
+                >
+                  {renderItems(item.items)}
+                </SubContent>
+              </RadixMenu.Portal>
+            </RadixMenu.Sub>
+          );
+        }
+
+        return (
+          <Item
+            key={i}
+            $lightMode={lightMode}
+            $matchTriggerWidth={matchTriggerWidth}
+            $row={!!item.icon}
+            onClick={() => {
+              item.onClick?.();
+              if (item.id != null) onItemClick?.(item.id);
+            }}
+            disabled={item.disabled}
+            asChild
+          >
+            <button type="button" disabled={item.disabled}>
+              {item.icon ? (
+                <>
+                  <ItemIcon>{item.icon}</ItemIcon>
+
+                  <ItemCopy>
+                    <h1>{item.label}</h1>
+                    {item.description && <p>{item.description}</p>}
+                  </ItemCopy>
+                </>
+              ) : (
+                <>
+                  <h1>{item.label}</h1>
+                  {item.description && <p>{item.description}</p>}
+                </>
+              )}
+            </button>
+          </Item>
+        );
+      });
+
     return (
       <RadixMenu.Root open={open} onOpenChange={setOpen}>
         {/* Props and the ref are forwarded to the trigger so the menu can itself be the child
@@ -231,8 +401,10 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
           <Content
             $lightMode={lightMode}
             $matchTriggerWidth={matchTriggerWidth}
+            data-metorial-menu-content="true"
             sideOffset={5}
             style={{ zIndex }}
+            onPointerDownOutside={markOverlayPointerDismiss}
           >
             {title && (
               <>
@@ -241,28 +413,7 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
               </>
             )}
 
-            {items.map((item: any, i) =>
-              item.type === 'separator' ? (
-                <Separator key={i} $lightMode={lightMode} />
-              ) : (
-                <Item
-                  key={i}
-                  $lightMode={lightMode}
-                  $matchTriggerWidth={matchTriggerWidth}
-                  onClick={() => {
-                    item.onClick?.();
-                    if (item.id != null) onItemClick?.(item.id);
-                  }}
-                  disabled={item.disabled}
-                  asChild
-                >
-                  <button type="button" disabled={item.disabled}>
-                    <h1>{item.label}</h1>
-                    {item.description && <p>{item.description}</p>}
-                  </button>
-                </Item>
-              )
-            )}
+            {renderItems(items)}
           </Content>
         </RadixMenu.Portal>
       </RadixMenu.Root>

@@ -46,6 +46,7 @@ export let prepareVersion = (d: {
         trigger: d.trigger,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: d.solution.oid,
         creatorActorOid: d.actor.oid,
 
@@ -77,6 +78,7 @@ export let prepareVersion = (d: {
         scmRepoOid: d.repoPush?.repoOid ?? d.customProvider.scmRepoOid,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: d.solution.oid,
         creatorActorOid: d.actor.oid,
 
@@ -142,8 +144,10 @@ export let createVersion = (d: {
       create: {
         ...getId('customProviderEnvironment'),
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: d.solution.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         customProviderOid: d.customProvider.oid
       },
       update: {},
@@ -164,6 +168,7 @@ export let createVersion = (d: {
         message: d.message,
 
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         solutionOid: d.solution.oid,
         creatorActorOid: d.actor.oid,
 
@@ -184,6 +189,7 @@ export let createVersion = (d: {
         customProviderEnvironmentOid: env.oid,
         customProviderVersionOid: d.version.oid,
         environmentOid: d.environment.oid,
+        instanceOid: d.environment.instanceOid,
         commitOid: commit.oid
       }
     });

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import {
+  appendRegionToClientSecret,
   createSnowflakeWorkerLease,
+  generateRegionalClientSecret,
   releaseSnowflakeWorkerLease,
   snowflake,
   type RedisLeaseClient
@@ -39,7 +41,34 @@ class FakeRedis implements RedisLeaseClient {
 
 afterEach(async () => {
   delete process.env.METORIAL_ENV;
+  delete process.env.METORIAL_REGION;
   await releaseSnowflakeWorkerLease();
+});
+
+describe('regional client secrets', () => {
+  it('appends a valid region without changing the secret', () => {
+    expect(appendRegionToClientSecret('pas_secret_abc123', 'eu1')).toBe(
+      'pas_secret_abc123_eu1'
+    );
+  });
+
+  it('generates setup session secrets with the configured region', async () => {
+    process.env.METORIAL_REGION = 'us1';
+
+    let providerSecret = await generateRegionalClientSecret(
+      'providerSetupSession_clientSecret'
+    );
+    let integrationSecret = await generateRegionalClientSecret(
+      'integrationSetupSession_clientSecret'
+    );
+
+    expect(providerSecret).toMatch(/^pas_secret_.+_us1$/);
+    expect(integrationSecret).toMatch(/^iss_secret_.+_us1$/);
+  });
+
+  it('rejects region identifiers that cannot be parsed as a suffix', () => {
+    expect(() => appendRegionToClientSecret('pas_secret_abc123', 'bad_region')).toThrow();
+  });
 });
 
 describe('Snowflake worker leases', () => {

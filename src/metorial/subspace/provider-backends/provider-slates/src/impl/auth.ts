@@ -80,7 +80,8 @@ export class ProviderAuth extends IProviderAuth {
         oid: snowflake.nextId(),
         id: creds.id,
         slateOid: slate.oid,
-        tenantOid: data.tenant.oid
+        tenantOid: data.tenant.oid,
+        projectOid: data.tenant.projectOid
       }
     });
 
@@ -227,7 +228,8 @@ export class ProviderAuth extends IProviderAuth {
         oid: snowflake.nextId(),
         id: oauthSetup.id,
         slateOid: slate.oid,
-        tenantOid: data.tenant.oid
+        tenantOid: data.tenant.oid,
+        projectOid: data.tenant.projectOid
       }
     });
 
@@ -273,7 +275,8 @@ export class ProviderAuth extends IProviderAuth {
         oid: snowflake.nextId(),
         id: config.id,
         slateOid: slate.oid,
-        tenantOid: data.tenant.oid
+        tenantOid: data.tenant.oid,
+        projectOid: data.tenant.projectOid
       }
     });
 
@@ -328,7 +331,8 @@ export class ProviderAuth extends IProviderAuth {
             oid: snowflake.nextId(),
             id: record.authConfig.id,
             slateOid: setup.slateOid,
-            tenantOid: data.tenant.oid
+            tenantOid: data.tenant.oid,
+            projectOid: data.tenant.projectOid
           },
           update: {}
         })

@@ -6,7 +6,7 @@ import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { isDashboardGroup } from '../../middleware/isDashboard';
 import { organizationGroup } from '../../middleware/organizationGroup';
-import { organizationConfigPresenter } from '../../presenters';
+import { organizationConfigPresenter } from '@metorial/presenters';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
@@ -118,8 +118,7 @@ export let dashboardOrganizationConfigController = Controller.create(
           value: ctx.body.value,
           user,
           organization: ctx.organization,
-          performedBy: ctx.actor,
-          context: ctx.context
+          auditScope: ctx.auditScope
         });
 
         return organizationConfigPresenter.present({ config });

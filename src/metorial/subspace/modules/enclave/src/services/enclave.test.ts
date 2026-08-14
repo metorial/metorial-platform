@@ -63,7 +63,7 @@ describe('enclaveService.getCompiledNetworkRules', () => {
     });
     mockDb.firewallBinding.findMany.mockResolvedValueOnce([]);
 
-    let result = await enclaveService.getCompiledNetworkRules({
+    let result = await enclaveService.getCompiledNetworkRulesInternal({
       tenant,
       environment,
       enclave
@@ -131,7 +131,7 @@ describe('enclaveService.getCompiledNetworkRules', () => {
       }
     ]);
 
-    let result = await enclaveService.getCompiledNetworkRules({
+    let result = await enclaveService.getCompiledNetworkRulesInternal({
       tenant,
       environment,
       enclave

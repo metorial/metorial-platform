@@ -86,7 +86,9 @@ export let upsertParticipant = async (d: {
       connectionType,
       payload: participantData,
       tenantOid: d.session.tenantOid,
+      projectOid: d.session.projectOid,
       environmentOid: d.session.environmentOid,
+      instanceOid: d.session.instanceOid,
       providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined,
       agentInstanceOid:
         d.from.type === 'connection_client' ? d.from.agentInstance?.oid : undefined,

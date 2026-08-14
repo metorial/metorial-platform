@@ -4,11 +4,39 @@ import { Service } from '@lowerdeck/service';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
+import {
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 let include = {};
 
+type GetPublisherByIdParams = {
+  publisherId: string;
+};
+
+type ListPublishersParams = {
+  search?: string;
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
 class publisherServiceImpl {
-  async getPublisherById(d: { publisherId: string; tenant: Tenant | undefined }) {
+  async getPublisherById(d: MetorialFacing<GetPublisherByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getPublisherByIdInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async getPublisherByIdInternal(
+    d: {
+      tenant?: Tenant;
+    } & GetPublisherByIdParams
+  ) {
     let publisher = await db.publisher.findFirst({
       where: {
         AND: [
@@ -39,12 +67,21 @@ class publisherServiceImpl {
     return publisher;
   }
 
-  async listPublishers(d: {
-    tenant: Tenant | undefined;
-    search?: string;
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listPublishers(d: MetorialFacing<ListPublishersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listPublishersInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async listPublishersInternal(
+    d: {
+      tenant?: Tenant;
+    } & ListPublishersParams
+  ) {
     let search = d.search
       ? await voyager.record.search({
           tenantId: d.tenant?.id,

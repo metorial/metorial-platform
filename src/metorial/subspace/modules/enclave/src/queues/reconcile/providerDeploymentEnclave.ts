@@ -10,7 +10,6 @@ export let reconcileProviderDeploymentEnclave = async (providerDeploymentId: str
     include: {
       tenant: true,
       environment: true,
-      solution: true,
       provider: true
     }
   });
@@ -27,7 +26,6 @@ export let reconcileProviderDeploymentEnclave = async (providerDeploymentId: str
   try {
     await enclaveInternalService.ensureEnclaveForProviderDeployment({
       tenant: providerDeployment.tenant,
-      solution: providerDeployment.solution,
       environment: providerDeployment.environment,
       provider: providerDeployment.provider,
       providerDeployment

@@ -5,7 +5,7 @@ export let getToolCallAttachmentPath = (urlKey: string) => `/tool-call-attachmen
 
 export let getToolCallAttachmentPublicUrl = (urlKey: string) => {
   let path = getToolCallAttachmentPath(urlKey);
-  let baseUrl = process.env.PUBLIC_SERVICE_URL;
+  let baseUrl = process.env.INTEGRATIONS_API_URL;
 
   if (!baseUrl) return path;
 

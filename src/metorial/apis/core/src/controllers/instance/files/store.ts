@@ -12,7 +12,7 @@ import {
   storeItemListPresenter,
   storePermissionsPresenter,
   storePresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 import { stringArrayFilterSchema } from './_listFilters';
 
 let storeAccessSchema = v.enumOf(['private', 'public_read', 'public_write']);

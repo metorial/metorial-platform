@@ -8,13 +8,13 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { Context } from '@metorial/context';
+import type { AuditScope } from '@metorial/audit-scope';
 import {
-  addAfterTransactionHook,
   db,
   ID,
   Instance,
   InstanceType,
+  isInTransaction,
   Organization,
   OrganizationActor,
   OrganizationMember,
@@ -27,8 +27,8 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
-import { syncSubspaceTenantQueue } from '../queues/syncSubspaceTenant';
 
 let getInstanceSlug = createSlugGenerator(async slug => {
   let instance = await db.instance.findFirst({
@@ -166,10 +166,14 @@ class InstanceService {
     );
   }
 
-  private async syncInstanceCompanions(d: {
-    instance: Instance;
-    performedBy: OrganizationActor;
-  }) {
+  private async syncInstanceCompanions(d: { instance: Instance; auditScope: AuditScope }) {
+    let creatorActorOid = d.auditScope.organizationActorOid;
+    if (creatorActorOid === undefined) {
+      throw new Error(
+        'Creating instance companions requires an audit scope bound to an organization actor'
+      );
+    }
+
     await withTransaction(
       async db => {
         let environment = await db.environment.findFirst({
@@ -196,7 +200,7 @@ class InstanceService {
               type: d.instance.type,
               status: 'active',
               instanceOid: d.instance.oid,
-              creatorActorOid: d.performedBy.oid
+              creatorActorOid
             }
           });
         }
@@ -224,7 +228,7 @@ class InstanceService {
                 name: d.instance.name,
                 status: 'active',
                 instanceOid: d.instance.oid,
-                creatorActorOid: d.performedBy.oid
+                creatorActorOid
               }
             });
           }
@@ -301,14 +305,13 @@ class InstanceService {
   async createInstance(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
       type: InstanceType;
     };
   }) {
-    return withTransaction(async db => {
+    let instance = await withTransaction(async db => {
       await Fabric.fire('organization.project.instance.created:before', d);
 
       if (d.input.type === 'production') {
@@ -340,28 +343,31 @@ class InstanceService {
 
       await this.syncInstanceCompanions({
         instance,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
-      await addAfterTransactionHook(() =>
-        syncSubspaceTenantQueue.add({ projectId: d.project.id })
-      );
-
       await Fabric.fire('organization.project.instance.created:after', {
-        ...d,
+        organization: d.organization,
+        project: d.project,
+        input: d.input,
         instance,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
       return instance;
     });
+
+    if (!isInTransaction()) {
+      await metorialResourceService.syncInstance(instance);
+    }
+
+    return instance;
   }
 
   async updateInstance(d: {
     instance: Instance & { project: Project };
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     canOverrideSlug?: boolean;
     input: {
       name?: string;
@@ -371,7 +377,7 @@ class InstanceService {
   }) {
     await this.ensureInstanceActive(d.instance);
 
-    return withTransaction(async db => {
+    let instance = await withTransaction(async db => {
       await Fabric.fire('organization.project.instance.updated:before', {
         ...d,
         project: d.instance.project
@@ -410,29 +416,32 @@ class InstanceService {
 
       await this.syncInstanceCompanions({
         instance,
-        performedBy: d.performedBy
+        auditScope: d.auditScope
       });
 
-      await addAfterTransactionHook(() =>
-        syncSubspaceTenantQueue.add({ projectId: d.instance.project.id })
-      );
-
       await Fabric.fire('organization.project.instance.updated:after', {
-        ...d,
+        organization: d.organization,
+        input: d.input,
         instance,
-        performedBy: d.performedBy,
-        project: d.instance.project
+        previousInstance: d.instance,
+        project: d.instance.project,
+        auditScope: d.auditScope
       });
 
       return instance;
     });
+
+    if (!isInTransaction()) {
+      await metorialResourceService.syncInstance(instance);
+    }
+
+    return instance;
   }
 
   async createSandbox(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name: string;
     };
@@ -440,8 +449,7 @@ class InstanceService {
     let instance = await this.createInstance({
       project: d.project,
       organization: d.organization,
-      performedBy: d.performedBy,
-      context: d.context,
+      auditScope: d.auditScope,
       input: {
         name: d.input.name,
         type: 'development'
@@ -457,8 +465,7 @@ class InstanceService {
   async updateSandbox(d: {
     sandbox: SandboxWithRelations;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       name?: string;
     };
@@ -468,8 +475,7 @@ class InstanceService {
     await this.updateInstance({
       instance: d.sandbox.instance,
       organization: d.organization,
-      performedBy: d.performedBy,
-      context: d.context,
+      auditScope: d.auditScope,
       input: {
         name: d.input.name
       }
@@ -488,8 +494,7 @@ class InstanceService {
       resourceGroup: ResourceGroup | null;
     };
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
   }) {
     await this.ensureInstanceActive(d.instance);
 

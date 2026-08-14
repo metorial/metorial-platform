@@ -4,7 +4,6 @@ import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/a
 import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
 import { consumerLifecycleQueueProcessor } from './queues/lifecycle';
 import { materializeMagicMcpSessionOwnershipQueueProcessor } from './queues/materializeMagicMcpSessionOwnership';
-import { resourceAuthorizationMigrationQueueProcessor } from './queues/resourceAuthorizationMigration';
 import {
   reconcileUserConsumerQueueProcessor,
   reconcileUserConsumersQueueProcessor
@@ -14,17 +13,16 @@ import {
   reconcileConsumerActorQueueProcessor,
   syncIdentityConsumerQueueProcessor
 } from './queues/syncIdentityConsumer';
-import { reconcileConsumerProfileOrganizationActorsQueueProcessor } from './queues/reconcileConsumerProfileOrganizationActors';
-import {
-  syncUserConsumerQueueProcessor,
-  syncUserConsumersQueueProcessor
-} from './queues/syncUserConsumer';
 import {
   createOrgMemberConsumerForInstanceQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,
   syncOrgMemberQueue,
   syncOrgMemberQueueProcessor
 } from './queues/syncOrgMember';
+import {
+  syncUserConsumerQueueProcessor,
+  syncUserConsumersQueueProcessor
+} from './queues/syncUserConsumer';
 
 export * from './env';
 export * from './lib/consumerEmail';
@@ -51,10 +49,8 @@ export let consumerQueueProcessor = combineQueueProcessors([
   syncUserConsumersQueueProcessor,
   syncUserConsumerQueueProcessor,
   materializeMagicMcpSessionOwnershipQueueProcessor,
-  resourceAuthorizationMigrationQueueProcessor,
   reconcileUserConsumersQueueProcessor,
   reconcileUserConsumerQueueProcessor,
-  reconcileConsumerProfileOrganizationActorsQueueProcessor,
 
   syncOrgMemberQueueProcessor,
   syncOrgMemberConsumerQueueProcessor,

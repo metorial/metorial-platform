@@ -13,7 +13,6 @@ import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { ProviderAuthEventsTable } from '../../../scenes/providerAuthEvents/table';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
-import { UsageScene } from '../../../scenes/usage/usage';
 import { formatAuthConfigSource, formatAuthConfigType } from './helpers';
 
 let VariantIcon = styled.div`
@@ -91,17 +90,6 @@ export let ProviderAuthConfigOverviewPage = () => {
               content: <RenderDate date={authConfig.data.updatedAt} />
             }
           ]}
-        />
-
-        <Spacer height={15} />
-
-        <UsageScene
-          title="Usage"
-          description="See how this auth config is being used in your instance."
-          entities={[{ type: 'provider_auth_config', id: authConfig.data.id }]}
-          entityNames={{
-            [authConfig.data.id]: authConfig.data.name ?? authConfig.data.id
-          }}
         />
 
         <Spacer height={15} />

@@ -18,7 +18,10 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { providerTemplateService } from '@metorial/module-magic';
-import { subspaceIntegrationSetupSessionService } from '@metorial/module-subspace';
+import {
+  integrationService,
+  integrationSetupSessionService
+} from '@metorial-subspace/module-integration';
 
 let buildProviderSetupRedirectUrl = (portalSlug: string) => {
   let template = process.env.PORTAL_HOST_TEMPLATE;
@@ -162,25 +165,33 @@ class ConsumerProviderSetupSessionServiceImpl {
       instance: d.instance
     });
 
-    let setupSession = await subspaceIntegrationSetupSessionService.create({
+    let integration = await integrationService.getIntegrationById({
       instance: d.instance,
-      integrationId: providerTemplate.subspaceIntegrationId,
-      name: providerTemplate.name,
-      description: providerTemplate.description ?? undefined,
-      metadata: (providerTemplate.metadata as Record<string, unknown> | null) ?? {},
-      privateMetadata: getSetupSessionBindingMetadata({
-        consumerProfile: d.consumerProfile,
-        providerTemplate
-      }),
-      identityActorId: consumerIdentity.identityActorId,
-      identityId: consumerIdentity.identityId,
-      ip: d.context.ip,
-      ua: d.context.ua ?? '',
-      redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
-      configuration: {
-        ui: {
-          layout: 'box'
+      integrationId: providerTemplate.subspaceIntegrationId
+    });
+    let setupSession = await integrationSetupSessionService.createIntegrationSetupSession({
+      instance: d.instance,
+      integration,
+      input: {
+        name: providerTemplate.name,
+        description: providerTemplate.description ?? undefined,
+        metadata: (providerTemplate.metadata as Record<string, unknown> | null) ?? {},
+        privateMetadata: getSetupSessionBindingMetadata({
+          consumerProfile: d.consumerProfile,
+          providerTemplate
+        }),
+        identityActorId: consumerIdentity.identityActorId,
+        identityId: consumerIdentity.identityId,
+        redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
+        configuration: {
+          ui: {
+            layout: 'box'
+          }
         }
+      },
+      import: {
+        ip: d.context.ip,
+        ua: d.context.ua ?? ''
       }
     });
 
@@ -282,7 +293,7 @@ class ConsumerProviderSetupSessionServiceImpl {
       );
     }
 
-    let setupSession = await subspaceIntegrationSetupSessionService.get({
+    let setupSession = await integrationSetupSessionService.getIntegrationSetupSessionById({
       instance: d.instance,
       integrationSetupSessionId: d.integrationSetupSessionId
     });

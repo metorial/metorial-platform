@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -9,27 +9,50 @@ import {
   resolveProviderAuthCredentials,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 let include = {
   provider: true,
   firstOccurrence: true
 };
 
+type ListAuthConfigErrorGlobalsParams = {
+  ids?: string[];
+  providerIds?: string[];
+  authConfigIds?: string[];
+  authCredentialsIds?: string[];
+  types?: string[];
+  createdAt?: DateFilter;
+};
+
+type GetAuthConfigErrorGlobalByIdParams = {
+  authConfigErrorGlobalId: string;
+};
+
 class authConfigErrorGlobalServiceImpl {
-  async listAuthConfigErrorGlobals(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    ids?: string[];
-    providerIds?: string[];
-    authConfigIds?: string[];
-    authCredentialsIds?: string[];
-    types?: string[];
-    createdAt?: DateFilter;
-  }) {
-    let providers = await resolveProviders(d, d.providerIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.authConfigIds);
-    let authCredentials = await resolveProviderAuthCredentials(d, d.authCredentialsIds);
+  async listAuthConfigErrorGlobals(d: MetorialFacing<ListAuthConfigErrorGlobalsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listAuthConfigErrorGlobalsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listAuthConfigErrorGlobalsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListAuthConfigErrorGlobalsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+    let providers = await resolveProviders(ts, d.providerIds);
+    let authConfigs = await resolveProviderAuthConfigs(ts, d.authConfigIds);
+    let authCredentials = await resolveProviderAuthCredentials(ts, d.authCredentialsIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -58,12 +81,20 @@ class authConfigErrorGlobalServiceImpl {
     );
   }
 
-  async getAuthConfigErrorGlobalById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    authConfigErrorGlobalId: string;
-  }) {
+  async getAuthConfigErrorGlobalById(d: MetorialFacing<GetAuthConfigErrorGlobalByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getAuthConfigErrorGlobalByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getAuthConfigErrorGlobalByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetAuthConfigErrorGlobalByIdParams
+  ) {
     let authConfigErrorGlobal = await db.providerAuthConfigErrorGlobal.findFirst({
       where: {
         id: d.authConfigErrorGlobalId,

@@ -14,6 +14,7 @@ class environmentServiceImpl {
       type: EnvironmentType;
       resourceGroupId: string;
       resourceGroupIdentifier: string;
+      instanceOid?: bigint;
     };
   }) {
     try {
@@ -27,7 +28,8 @@ class environmentServiceImpl {
         update: {
           name: d.input.name,
           resourceGroupId: d.input.resourceGroupId,
-          resourceGroupIdentifier: d.input.resourceGroupIdentifier
+          resourceGroupIdentifier: d.input.resourceGroupIdentifier,
+          instanceOid: d.input.instanceOid
         },
         create: {
           ...getId('environment'),
@@ -36,6 +38,7 @@ class environmentServiceImpl {
           type: d.input.type,
           resourceGroupId: d.input.resourceGroupId,
           resourceGroupIdentifier: d.input.resourceGroupIdentifier,
+          instanceOid: d.input.instanceOid,
           tenantOid: d.tenant.oid
         },
         include

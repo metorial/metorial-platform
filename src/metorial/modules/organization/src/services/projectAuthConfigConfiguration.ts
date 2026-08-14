@@ -1,13 +1,9 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { Context } from '@metorial/context';
-import { db, Organization, OrganizationActor, Project } from '@metorial/db';
+import type { AuditScope } from '@metorial/audit-scope';
+import { db, Organization, Project } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import {
-  getTenantForSubspace,
-  subspaceTenantService,
-  syncSubspaceTenantForProject
-} from '@metorial/module-subspace';
+import { subspaceScopeService, tenantService } from '@metorial-subspace/module-tenant';
 
 class ProjectAuthConfigConfigurationService {
   private async ensureProjectActive(project: Project) {
@@ -21,26 +17,8 @@ class ProjectAuthConfigConfigurationService {
   }
 
   private async getSubspaceTenantForProject(project: Project) {
-    await syncSubspaceTenantForProject(project);
-
-    let instance = await db.instance.findFirst({
-      where: { projectOid: project.oid },
-      orderBy: { createdAt: 'asc' }
-    });
-    if (!instance) {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'Project has no instances'
-        })
-      );
-    }
-
-    let { tenant, environmentId } = await getTenantForSubspace(instance);
-
-    return subspaceTenantService.get({
-      tenantId: tenant.id,
-      environmentId
-    });
+    let { tenant } = await subspaceScopeService.ensureForProject(project);
+    return tenant;
   }
 
   async getProjectAuthConfigConfiguration(d: { project: Project }) {
@@ -62,8 +40,7 @@ class ProjectAuthConfigConfigurationService {
   async updateProjectAuthConfigConfiguration(d: {
     project: Project;
     organization: Organization;
-    performedBy: OrganizationActor;
-    context: Context;
+    auditScope: AuditScope;
     input: {
       allowAuthConfigExport?: boolean;
       allowAuthConfigImport?: boolean;
@@ -78,14 +55,16 @@ class ProjectAuthConfigConfigurationService {
 
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
-    let updatedTenant = await subspaceTenantService.upsert({
-      name: tenant.name,
-      identifier: tenant.identifier,
-      resourceTenantId: tenant.resourceTenantId!,
-      resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
-      environments: [],
-      allowAuthConfigExport: d.input.allowAuthConfigExport ?? tenant.allowAuthConfigExport,
-      allowAuthConfigImport: d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport
+    let updatedTenant = await tenantService.upsertTenant({
+      input: {
+        name: tenant.name,
+        identifier: tenant.identifier,
+        resourceTenantId: tenant.resourceTenantId!,
+        resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
+        environments: [],
+        allowAuthConfigExport: d.input.allowAuthConfigExport ?? tenant.allowAuthConfigExport,
+        allowAuthConfigImport: d.input.allowAuthConfigImport ?? tenant.allowAuthConfigImport
+      }
     });
 
     let project = await db.project.update({
@@ -99,12 +78,19 @@ class ProjectAuthConfigConfigurationService {
     });
 
     await Fabric.fire('organization.project.auth_config_configuration.updated:after', {
-      ...d,
+      organization: d.organization,
+      input: d.input,
       project,
+      previousProject: d.project,
       configuration: {
         allowAuthConfigExport: updatedTenant.allowAuthConfigExport,
         allowAuthConfigImport: updatedTenant.allowAuthConfigImport
-      }
+      },
+      previousConfiguration: {
+        allowAuthConfigExport: tenant.allowAuthConfigExport,
+        allowAuthConfigImport: tenant.allowAuthConfigImport
+      },
+      auditScope: d.auditScope
     });
 
     return {

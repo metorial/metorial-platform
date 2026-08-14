@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -10,6 +10,11 @@ import {
   resolveIntegrations,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 
 export let integrationVersionInclude = {
   integration: true,
@@ -32,25 +37,43 @@ export let integrationVersionInclude = {
   }
 };
 
+export type ListIntegrationVersionsParams = {
+  ids?: string[];
+  providerIds?: string[];
+  integrationIds?: string[];
+  integrationProviderIds?: string[];
+  integrationProviderVersionIds?: string[];
+
+  createdAt?: DateFilter;
+};
+
+export type GetIntegrationVersionByIdParams = {
+  integrationVersionId: string;
+};
+
 class integrationVersionServiceImpl {
-  async listIntegrationVersions(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIntegrationVersions(d: MetorialFacing<ListIntegrationVersionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
-    integrationIds?: string[];
-    integrationProviderIds?: string[];
-    integrationProviderVersionIds?: string[];
+    return this.listIntegrationVersionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-  }) {
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let integrationProviders = await resolveIntegrationProviders(d, d.integrationProviderIds);
-    let providers = await resolveProviders(d, d.providerIds);
+  async listIntegrationVersionsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListIntegrationVersionsParams
+  ) {
+    let solution = await getMetorialSolution();
+    let ts = { tenant: d.tenant, environment: d.environment, solution };
+
+    let integrations = await resolveIntegrations(ts, d.integrationIds);
+    let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
+    let providers = await resolveProviders(ts, d.providerIds);
     let integrationProviderVersions = await resolveIntegrationProviderVersions(
-      d,
+      ts,
       d.integrationProviderVersionIds
     );
 
@@ -62,7 +85,7 @@ class integrationVersionServiceImpl {
             where: {
               integration: {
                 tenantOid: d.tenant.oid,
-                solutionOid: d.solution.oid,
+                solutionOid: solution.oid,
                 environmentOid: d.environment.oid,
                 isMagicMcpBacking: false
               },
@@ -110,18 +133,28 @@ class integrationVersionServiceImpl {
     );
   }
 
-  async getIntegrationVersionById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    integrationVersionId: string;
-  }) {
+  async getIntegrationVersionById(d: MetorialFacing<GetIntegrationVersionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getIntegrationVersionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getIntegrationVersionByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetIntegrationVersionByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let integrationVersion = await db.integrationVersion.findFirst({
       where: {
         id: d.integrationVersionId,
         integration: {
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
+          solutionOid: solution.oid,
           environmentOid: d.environment.oid
         }
       },

@@ -1,5 +1,5 @@
 import { type Instance, db } from '@metorial/db';
-import { subspaceIdentityService } from '@metorial/module-subspace';
+import { identityService } from '@metorial-subspace/module-identity';
 
 export let resolveActorIdsForLogFilters = async (d: {
   instance: Instance;
@@ -36,7 +36,7 @@ export let resolveActorIdsForLogFilters = async (d: {
   if (d.identityIds?.length) {
     hasActorFilter = true;
 
-    let paginator = await subspaceIdentityService.list({
+    let paginator = await identityService.listIdentities({
       instance: d.instance,
       allowDeleted: true,
       ids: d.identityIds
@@ -47,7 +47,7 @@ export let resolveActorIdsForLogFilters = async (d: {
     });
 
     for (let identity of identities.items) {
-      actorIds.add(identity.owner.actor.id);
+      actorIds.add(identity.actor.id);
     }
   }
 

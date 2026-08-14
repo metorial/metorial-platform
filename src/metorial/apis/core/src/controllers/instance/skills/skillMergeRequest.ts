@@ -13,7 +13,7 @@ import {
   skillMergePlanPresenter,
   skillMergeRequestItemPresenter,
   skillMergeRequestPresenter
-} from '../../../presenters';
+} from '@metorial/presenters';
 
 export let skillMergeRequestReadScopes = [
   'instance.skill:read',

@@ -20,6 +20,11 @@ import {
   normalizeStatusForList
 } from '@metorial-subspace/list-utils';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { integrationInclude } from '../integration';
 import { integrationInstanceProviderInclude } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
@@ -367,9 +372,8 @@ let resolveIntegrationProviderMaterialInput = async (d: {
     return {};
   }
 
-  let [combination] = await providerCombinationService.getCombinations({
+  let [combination] = await providerCombinationService.getCombinationsInternal({
     tenant: d.tenant,
-    solution: d.solution,
     environment: d.environment,
     providers: [
       {
@@ -402,20 +406,72 @@ let resolveIntegrationProviderMaterialInput = async (d: {
   };
 };
 
+type ResolveMagicMcpServerBackingIdsParams = {
+  allowDeleted?: boolean;
+  status?: ('pending' | 'active' | 'archived' | 'deleted')[];
+  providerIds?: string[];
+};
+
+type ListMagicMcpServerProvidersParams = {
+  allowDeleted?: boolean;
+  status?: ('pending' | 'active' | 'archived' | 'deleted')[];
+  ids?: string[];
+  magicMcpServerBackingIds?: string[];
+  integrationProviderIds?: string[];
+  integrationInstanceProviderIds?: string[];
+  providerIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+type GetMagicMcpServerProviderByIdParams = {
+  magicMcpServerProviderId: string;
+  allowDeleted?: boolean;
+};
+
+type CreateMagicMcpServerProviderParams = {
+  magicMcpServerBackingId: string;
+  input: Required<Pick<MagicMcpServerProviderInput, 'providerId'>> &
+    Omit<MagicMcpServerProviderInput, 'providerId'>;
+};
+
+type UpdateMagicMcpServerProviderParams = {
+  magicMcpServerProviderId: string;
+  input: MagicMcpServerProviderInput;
+};
+
+type ArchiveMagicMcpServerProviderParams = {
+  magicMcpServerProviderId: string;
+};
+
 class magicMcpServerProviderServiceImpl {
-  async resolveMagicMcpServerBackingIds(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    allowDeleted?: boolean;
-    status?: ('pending' | 'active' | 'archived' | 'deleted')[];
-    providerIds?: string[];
-  }) {
+  async resolveMagicMcpServerBackingIds(
+    d: MetorialFacing<ResolveMagicMcpServerBackingIdsParams>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.resolveMagicMcpServerBackingIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async resolveMagicMcpServerBackingIdsInternal(
+    d: { tenant: Tenant; environment: Environment } & ResolveMagicMcpServerBackingIdsParams
+  ) {
     if (!d.providerIds?.length) return [];
+
+    let solution = await getMetorialSolution();
+    let scoped = { tenant: d.tenant, solution, environment: d.environment };
 
     let rows = await db.magicMcpServerProvider.findMany({
       where: {
-        magicMcpServerBacking: getBackingScopeWhere(d),
+        magicMcpServerBacking: getBackingScopeWhere(scoped),
         status: normalizeStatusForList(d).noParent.status as any,
         integrationProvider: {
           provider: {
@@ -435,28 +491,26 @@ class magicMcpServerProviderServiceImpl {
     return [...new Set(rows.map(row => row.magicMcpServerBacking.id))].sort();
   }
 
-  async listMagicMcpServerProviders(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    allowDeleted?: boolean;
-    status?: ('pending' | 'active' | 'archived' | 'deleted')[];
-    ids?: string[];
-    magicMcpServerBackingIds?: string[];
-    integrationProviderIds?: string[];
-    integrationInstanceProviderIds?: string[];
-    providerIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
+  async listMagicMcpServerProviders(d: MetorialFacing<ListMagicMcpServerProvidersParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.listMagicMcpServerProvidersInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async listMagicMcpServerProvidersInternal(
+    d: { tenant: Tenant; environment: Environment } & ListMagicMcpServerProvidersParams
+  ) {
+    let solution = await getMetorialSolution();
+    let scoped = { tenant: d.tenant, solution, environment: d.environment };
+
     for (let magicMcpServerBackingId of d.magicMcpServerBackingIds ?? []) {
       await reconcileMagicMcpServerProvidersForBacking({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
+        ...scoped,
         magicMcpServerBackingId
       });
     }
@@ -467,7 +521,7 @@ class magicMcpServerProviderServiceImpl {
           ...opts,
           where: {
             magicMcpServerBacking: {
-              ...getBackingScopeWhere(d),
+              ...getBackingScopeWhere(scoped),
               id: d.magicMcpServerBackingIds?.length
                 ? { in: d.magicMcpServerBackingIds }
                 : undefined
@@ -520,26 +574,36 @@ class magicMcpServerProviderServiceImpl {
     );
   }
 
-  async getMagicMcpServerProviderById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpServerProviderId: string;
-    allowDeleted?: boolean;
-  }) {
-    let existing = await getMagicMcpServerProviderOrThrow(d);
+  async getMagicMcpServerProviderById(d: MetorialFacing<GetMagicMcpServerProviderByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getMagicMcpServerProviderByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getMagicMcpServerProviderByIdInternal(
+    d: { tenant: Tenant; environment: Environment } & GetMagicMcpServerProviderByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+    let scoped = { tenant: d.tenant, solution, environment: d.environment };
+
+    let existing = await getMagicMcpServerProviderOrThrow({
+      ...scoped,
+      magicMcpServerProviderId: d.magicMcpServerProviderId,
+      allowDeleted: d.allowDeleted
+    });
     await reconcileMagicMcpServerProvidersForBacking({
-      tenant: d.tenant,
-      solution: d.solution,
-      environment: d.environment,
+      ...scoped,
       magicMcpServerBackingId: existing.magicMcpServerBacking.id
     });
 
     try {
       return await getMagicMcpServerProviderByIdentityOrThrow({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
+        ...scoped,
         magicMcpServerBackingOid: existing.magicMcpServerBackingOid,
         integrationProviderOid: existing.integrationProviderOid,
         allowDeleted: d.allowDeleted,
@@ -547,28 +611,40 @@ class magicMcpServerProviderServiceImpl {
       });
     } catch (error) {
       return await getMagicMcpServerProviderOrThrow({
-        tenant: d.tenant,
-        solution: d.solution,
-        environment: d.environment,
+        ...scoped,
         magicMcpServerProviderId: existing.id,
         allowDeleted: true
       });
     }
   }
 
-  async createMagicMcpServerProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpServerBackingId: string;
-    input: Required<Pick<MagicMcpServerProviderInput, 'providerId'>> &
-      Omit<MagicMcpServerProviderInput, 'providerId'>;
-  }) {
+  async createMagicMcpServerProvider(d: MetorialFacing<CreateMagicMcpServerProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.createMagicMcpServerProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async createMagicMcpServerProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & CreateMagicMcpServerProviderParams
+  ) {
+    let solution = await getMetorialSolution();
+    let scoped = {
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
+      magicMcpServerBackingId: d.magicMcpServerBackingId
+    };
+
     let created = await withMagicMcpBackingLock(
-      getMagicMcpServerBackingLockKey(d),
+      getMagicMcpServerBackingLockKey(scoped),
       async () => {
         let created = await withTransaction(async () => {
-          let backing = await loadMagicMcpServerBackingForProviders(d);
+          let backing = await loadMagicMcpServerBackingForProviders(scoped);
           let policy = resolveMagicMcpBackingPolicy(backing);
           assertCanMutateIntegrationProvider(policy);
 
@@ -579,15 +655,14 @@ class magicMcpServerProviderServiceImpl {
 
           let materialInput = await resolveIntegrationProviderMaterialInput({
             tenant: d.tenant,
-            solution: d.solution,
+            solution,
             environment: d.environment,
             input: d.input
           });
 
-          let integrationProvider = await integrationProviderService.createIntegrationProvider(
-            {
+          let integrationProvider =
+            await integrationProviderService.createIntegrationProviderInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integration: ownerIntegration,
               input: {
@@ -598,12 +673,10 @@ class magicMcpServerProviderServiceImpl {
                 providerConfigId: d.input.providerConfigId ?? undefined,
                 toolFilters: d.input.toolFilters
               }
-            }
-          );
+            });
 
-          await integrationInstanceProviderService.setIntegrationInstanceProvider({
+          await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
@@ -624,7 +697,7 @@ class magicMcpServerProviderServiceImpl {
 
         await reconcileMagicMcpServerProvidersForBackingWithExistingLock({
           tenant: d.tenant,
-          solution: d.solution,
+          solution,
           environment: d.environment,
           magicMcpServerBackingId: created.magicMcpServerBackingId
         });
@@ -642,29 +715,44 @@ class magicMcpServerProviderServiceImpl {
     });
   }
 
-  async updateMagicMcpServerProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpServerProviderId: string;
-    input: MagicMcpServerProviderInput;
-  }) {
-    let existing = await getMagicMcpServerProviderOrThrow(d);
+  async updateMagicMcpServerProvider(d: MetorialFacing<UpdateMagicMcpServerProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.updateMagicMcpServerProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async updateMagicMcpServerProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & UpdateMagicMcpServerProviderParams
+  ) {
+    let solution = await getMetorialSolution();
+    let scoped = {
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
+      magicMcpServerProviderId: d.magicMcpServerProviderId
+    };
+
+    let existing = await getMagicMcpServerProviderOrThrow(scoped);
 
     await withMagicMcpBackingLock(
       getMagicMcpServerBackingLockKey({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpServerBackingId: existing.magicMcpServerBacking.id
       }),
       async () => {
         let updated = await withTransaction(async () => {
-          let row = await getMagicMcpServerProviderOrThrow(d);
+          let row = await getMagicMcpServerProviderOrThrow(scoped);
           let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
           let backing = await loadMagicMcpServerBackingForProviders({
             tenant: d.tenant,
-            solution: d.solution,
+            solution,
             environment: d.environment,
             magicMcpServerBackingId: row.magicMcpServerBacking.id
           });
@@ -680,7 +768,7 @@ class magicMcpServerProviderServiceImpl {
           } else if (d.input.providerAuthConfigId !== undefined) {
             let materialInput = await resolveIntegrationProviderMaterialInput({
               tenant: d.tenant,
-              solution: d.solution,
+              solution,
               environment: d.environment,
               input: {
                 providerDeploymentId,
@@ -693,9 +781,8 @@ class magicMcpServerProviderServiceImpl {
           }
 
           if (policy.canMutateIntegrationProviders) {
-            await integrationProviderService.updateIntegrationProvider({
+            await integrationProviderService.updateIntegrationProviderInternal({
               tenant: d.tenant,
-              solution: d.solution,
               environment: d.environment,
               integrationProvider: row.integrationProvider,
               input: {
@@ -720,9 +807,8 @@ class magicMcpServerProviderServiceImpl {
 
           assertCanMutateIntegrationInstanceProvider(policy);
 
-          await integrationInstanceProviderService.setIntegrationInstanceProvider({
+          await integrationInstanceProviderService.setIntegrationInstanceProviderInternal({
             tenant: d.tenant,
-            solution: d.solution,
             environment: d.environment,
             integrationInstance: backing.integrationInstance as IntegrationInstance,
             input: {
@@ -740,7 +826,7 @@ class magicMcpServerProviderServiceImpl {
 
         await reconcileMagicMcpServerProvidersForBackingWithExistingLock({
           tenant: d.tenant,
-          solution: d.solution,
+          solution,
           environment: d.environment,
           magicMcpServerBackingId: updated.magicMcpServerBackingId
         });
@@ -750,7 +836,7 @@ class magicMcpServerProviderServiceImpl {
     try {
       return await getMagicMcpServerProviderByIdentityOrThrow({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpServerBackingOid: existing.magicMcpServerBackingOid,
         integrationProviderOid: existing.integrationProviderOid,
@@ -759,7 +845,7 @@ class magicMcpServerProviderServiceImpl {
     } catch (error) {
       return await getMagicMcpServerProviderOrThrow({
         tenant: d.tenant,
-        solution: d.solution,
+        solution,
         environment: d.environment,
         magicMcpServerProviderId: existing.id,
         allowDeleted: true
@@ -767,22 +853,37 @@ class magicMcpServerProviderServiceImpl {
     }
   }
 
-  async archiveMagicMcpServerProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpServerProviderId: string;
-  }) {
-    let row = await getMagicMcpServerProviderOrThrow(d);
+  async archiveMagicMcpServerProvider(d: MetorialFacing<ArchiveMagicMcpServerProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.archiveMagicMcpServerProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async archiveMagicMcpServerProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveMagicMcpServerProviderParams
+  ) {
+    let solution = await getMetorialSolution();
+    let scoped = {
+      tenant: d.tenant,
+      solution,
+      environment: d.environment,
+      magicMcpServerProviderId: d.magicMcpServerProviderId
+    };
+
+    let row = await getMagicMcpServerProviderOrThrow(scoped);
     checkDeletedEdit(row, 'archive');
 
     let policy = resolveMagicMcpBackingPolicy(row.magicMcpServerBacking);
     assertCanArchiveMagicMcpServerProvider({ row, policy });
 
     if (row.integrationInstanceProvider) {
-      await integrationInstanceProviderService.archiveIntegrationInstanceProvider({
+      await integrationInstanceProviderService.archiveIntegrationInstanceProviderInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationInstanceProvider: row.integrationInstanceProvider
       });
@@ -799,9 +900,8 @@ class magicMcpServerProviderServiceImpl {
       }
     });
     if (!remainingActive) {
-      await integrationProviderService.archiveIntegrationProvider({
+      await integrationProviderService.archiveIntegrationProviderInternal({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
         integrationProvider: row.integrationProvider
       });
@@ -809,24 +909,32 @@ class magicMcpServerProviderServiceImpl {
 
     await reconcileMagicMcpServerProvidersForBacking({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       magicMcpServerBackingId: row.magicMcpServerBacking.id
     });
 
     return await getMagicMcpServerProviderOrThrow({
-      ...d,
+      ...scoped,
       allowDeleted: true
     });
   }
 
-  async deleteMagicMcpServerProvider(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    magicMcpServerProviderId: string;
-  }) {
-    return await this.archiveMagicMcpServerProvider(d);
+  async deleteMagicMcpServerProvider(d: MetorialFacing<ArchiveMagicMcpServerProviderParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.deleteMagicMcpServerProviderInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async deleteMagicMcpServerProviderInternal(
+    d: { tenant: Tenant; environment: Environment } & ArchiveMagicMcpServerProviderParams
+  ) {
+    return await this.archiveMagicMcpServerProviderInternal(d);
   }
 }
 

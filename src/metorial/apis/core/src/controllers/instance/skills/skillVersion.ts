@@ -10,7 +10,7 @@ import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { skillVersionPresenter, skillVersionSnapshotPresenter } from '../../../presenters';
+import { skillVersionPresenter, skillVersionSnapshotPresenter } from '@metorial/presenters';
 import { skillGroup } from './skill';
 
 let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;

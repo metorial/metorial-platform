@@ -217,9 +217,9 @@ export class ProviderRunConnection extends IProviderRunConnection {
   override async getConnectionDiagnostics(): Promise<ConnectionDiagnostics> {
     return {
       state: 'connected',
-      transport: 'slates',
+      transport: 'metorial/first_party',
       protocolVersion: null,
-      serverInfo: { name: this.params.provider.identifier },
+      serverInfo: { name: this.params.provider.slug },
       lastError: null
     };
   }

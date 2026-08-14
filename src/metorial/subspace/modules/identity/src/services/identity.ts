@@ -9,7 +9,6 @@ import {
   type Identity,
   type IdentityActor,
   type IdentityStatus,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -34,7 +33,13 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
-import { checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getMetorialSolution,
+  metorialDb,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import {
   identityCreatedQueue,
   identityDeletedQueue,
@@ -68,46 +73,100 @@ let include = {
   }
 } as const;
 
+export type ListIdentitiesParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  search?: string;
+
+  status?: IdentityStatus[];
+  allowDeleted?: boolean;
+
+  ids?: string[];
+  agentIds?: string[];
+  actorIds?: string[];
+  identityIds?: string[];
+  identityCredentialIds?: string[];
+  integrationIds?: string[];
+  integrationInstanceIds?: string[];
+  integrationInstanceProviderIds?: string[];
+  providerIds?: string[];
+  providerDeploymentIds?: string[];
+  providerConfigIds?: string[];
+  providerAuthConfigIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+};
+
+export type GetIdentityByIdParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identityId: string;
+  allowDeleted?: boolean;
+};
+
+export type CreateIdentityParams = {
+  tenant: Tenant;
+  environment: Environment;
+
+  actor: IdentityActor;
+
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    privateMetadata?: Record<string, any>;
+
+    inputs: IdentityCredentialInput[];
+  };
+};
+
+export type UpdateIdentityParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identity: Identity;
+
+  input: {
+    name?: string;
+    description?: string;
+    metadata?: Record<string, any>;
+  };
+};
+
+export type ArchiveIdentityParams = {
+  tenant: Tenant;
+  environment: Environment;
+  identity: Identity;
+};
+
 class identityServiceImpl {
-  async listIdentities(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async listIdentities(d: MetorialFacing<ListIdentitiesParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.listIdentitiesInternal({ ...rest, tenant, environment });
+  }
 
-    search?: string;
+  async listIdentitiesInternal(d: ListIdentitiesParams) {
+    let solution = await getMetorialSolution();
+    let scope = { ...d, solution };
 
-    status?: IdentityStatus[];
-    allowDeleted?: boolean;
-
-    ids?: string[];
-    agentIds?: string[];
-    actorIds?: string[];
-    identityIds?: string[];
-    identityCredentialIds?: string[];
-    integrationIds?: string[];
-    integrationInstanceIds?: string[];
-    integrationInstanceProviderIds?: string[];
-    providerIds?: string[];
-    providerDeploymentIds?: string[];
-    providerConfigIds?: string[];
-    providerAuthConfigIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-  }) {
-    let agents = await resolveAgents(d, d.agentIds);
-    let actors = await resolveIdentityActors(d, d.actorIds);
-    let identities = await resolveIdentities(d, d.identityIds);
-    let credentials = await resolveIdentityCredentials(d, d.identityCredentialIds);
-    let integrations = await resolveIntegrations(d, d.integrationIds);
-    let integrationInstances = await resolveIntegrationInstances(d, d.integrationInstanceIds);
+    let agents = await resolveAgents(scope, d.agentIds);
+    let actors = await resolveIdentityActors(scope, d.actorIds);
+    let identities = await resolveIdentities(scope, d.identityIds);
+    let credentials = await resolveIdentityCredentials(scope, d.identityCredentialIds);
+    let integrations = await resolveIntegrations(scope, d.integrationIds);
+    let integrationInstances = await resolveIntegrationInstances(
+      scope,
+      d.integrationInstanceIds
+    );
     let integrationInstanceProviders = await resolveIntegrationInstanceProviders(
-      d,
+      scope,
       d.integrationInstanceProviderIds
     );
-    let providers = await resolveProviders(d, d.providerIds);
-    let deployments = await resolveProviderDeployments(d, d.providerDeploymentIds);
-    let configs = await resolveProviderConfigs(d, d.providerConfigIds);
-    let authConfigs = await resolveProviderAuthConfigs(d, d.providerAuthConfigIds);
+    let providers = await resolveProviders(scope, d.providerIds);
+    let deployments = await resolveProviderDeployments(scope, d.providerDeploymentIds);
+    let configs = await resolveProviderConfigs(scope, d.providerConfigIds);
+    let authConfigs = await resolveProviderAuthConfigs(scope, d.providerAuthConfigIds);
 
     let search = d.search
       ? await voyager.record.search({
@@ -125,7 +184,7 @@ class identityServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              solutionOid: d.solution.oid,
+              solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
               ...normalizeStatusForList(d).noParent,
@@ -192,18 +251,19 @@ class identityServiceImpl {
     );
   }
 
-  async getIdentityById(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identityId: string;
-    allowDeleted?: boolean;
-  }) {
+  async getIdentityById(d: MetorialFacing<GetIdentityByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.getIdentityByIdInternal({ ...rest, tenant, environment });
+  }
+
+  async getIdentityByIdInternal(d: GetIdentityByIdParams) {
+    let solution = await getMetorialSolution();
     let identity = await db.identity.findFirst({
       where: {
         id: d.identityId,
         tenantOid: d.tenant.oid,
-        solutionOid: d.solution.oid,
+        solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
@@ -214,22 +274,15 @@ class identityServiceImpl {
     return identity;
   }
 
-  async createIdentity(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
+  async createIdentity(d: MetorialFacing<CreateIdentityParams> & { actor: IdentityActor }) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.createIdentityInternal({ ...rest, tenant, environment });
+  }
 
-    actor: IdentityActor;
+  async createIdentityInternal(d: CreateIdentityParams) {
+    let solution = await getMetorialSolution();
 
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-      privateMetadata?: Record<string, any>;
-
-      inputs: IdentityCredentialInput[];
-    };
-  }) {
     checkTenant(d, d.actor);
     checkDeletedRelation(d.actor);
 
@@ -250,14 +303,15 @@ class identityServiceImpl {
           privateMetadata: d.input.privateMetadata,
 
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
-          environmentOid: d.environment.oid
+          projectOid: d.tenant.projectOid,
+          solutionOid: solution.oid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid
         }
       });
 
       await identityCredentialService.internalCreateIdentityCredentials({
         tenant: d.tenant,
-        solution: d.solution,
         environment: d.environment,
 
         identity,
@@ -275,18 +329,13 @@ class identityServiceImpl {
     });
   }
 
-  async updateIdentity(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identity: Identity;
+  async updateIdentity(d: MetorialFacing<UpdateIdentityParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+    return this.updateIdentityInternal({ ...rest, tenant, environment });
+  }
 
-    input: {
-      name?: string;
-      description?: string;
-      metadata?: Record<string, any>;
-    };
-  }) {
+  async updateIdentityInternal(d: UpdateIdentityParams) {
     checkTenant(d, d.identity);
     checkDeletedEdit(d.identity, 'update');
 
@@ -295,7 +344,6 @@ class identityServiceImpl {
         where: {
           oid: d.identity.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {
@@ -314,18 +362,40 @@ class identityServiceImpl {
     });
   }
 
-  async archiveIdentity(d: {
-    tenant: Tenant;
-    solution: Solution;
-    environment: Environment;
-    identity: Identity;
-  }) {
+  async archiveIdentity(
+    d: MetorialFacing<ArchiveIdentityParams> & { canEditConsumerActor?: boolean }
+  ) {
+    let { instance, organizationActor, canEditConsumerActor, ...rest } = d;
+    let { tenant, environment } = await resolveMetorialFacing({ instance, organizationActor });
+
+    if (!canEditConsumerActor) {
+      let consumerActor = await metorialDb.consumerActor.findFirst({
+        where: {
+          defaultIdentityId: rest.identity.id,
+          instanceOid: instance.oid
+        }
+      });
+      if (consumerActor) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Cannot delete identity linked to consumer'
+          })
+        );
+      }
+    }
+
+    return this.archiveIdentityInternal({ ...rest, tenant, environment });
+  }
+
+  async archiveIdentityInternal(d: ArchiveIdentityParams) {
+    let solution = await getMetorialSolution();
+
     checkTenant(d, d.identity);
     checkDeletedEdit(d.identity, 'archive');
 
     await assertNoActiveIntegrationIdentityLink({
       tenant: d.tenant,
-      solution: d.solution,
+      solution,
       environment: d.environment,
       identityOid: d.identity.oid,
       identityId: d.identity.id,
@@ -337,7 +407,6 @@ class identityServiceImpl {
         where: {
           oid: d.identity.oid,
           tenantOid: d.tenant.oid,
-          solutionOid: d.solution.oid,
           environmentOid: d.environment.oid
         },
         data: {

@@ -66,7 +66,7 @@ export let ProjectHomePage = () => {
   ] as const;
 
   return (
-    <ContentLayout>
+    <ContentLayout variant="medium2">
       <Spacer height={50} />
 
       {user.data && (

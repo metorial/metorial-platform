@@ -94,7 +94,7 @@ vi.mock('@metorial-subspace/list-utils', () => ({
 
 vi.mock('@metorial-subspace/module-deployment', () => ({
   providerConfigService: {
-    createProviderConfig: vi.fn()
+    createProviderConfigInternal: vi.fn()
   }
 }));
 
@@ -109,10 +109,10 @@ vi.mock('@metorial-subspace/module-identity', () => ({
 
 vi.mock('@metorial-subspace/module-session', () => ({
   sessionService: {
-    createSession: createSessionMock
+    createSessionInternal: createSessionMock
   },
   sessionTemplateService: {
-    upsertInternalLinkedSessionTemplate: upsertInternalLinkedSessionTemplateMock
+    upsertInternalLinkedSessionTemplateInternal: upsertInternalLinkedSessionTemplateMock
   }
 }));
 
@@ -147,7 +147,8 @@ vi.mock(
 );
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
-  checkTenant: vi.fn()
+  checkTenant: vi.fn(),
+  getMetorialSolution: vi.fn(async () => ({ oid: 2n, id: 'sol_1' }))
 }));
 
 vi.mock('../src/queues/lifecycle/integrationInstance', () => ({
@@ -168,7 +169,7 @@ vi.mock('../src/services/integration', () => ({
 
 vi.mock('../src/services/integrationInstanceProvider', () => ({
   integrationInstanceProviderService: {
-    setIntegrationInstanceProviders: vi.fn()
+    setIntegrationInstanceProvidersInternal: vi.fn()
   }
 }));
 
@@ -228,9 +229,8 @@ describe('shared integration session templates', () => {
       refreshedIntegrationInstance as any
     );
 
-    let result = await integrationInstanceService.createIntegrationInstance({
+    let result = await integrationInstanceService.createIntegrationInstanceInternal({
       tenant: { oid: 1n } as any,
-      solution: { oid: 2n } as any,
       environment: { oid: 3n } as any,
       integration: { oid: 4n } as any,
       input: {
@@ -273,9 +273,8 @@ describe('shared integration session templates', () => {
     } as any);
     createSessionMock.mockResolvedValue(createdSession);
 
-    let result = await integrationInstanceService.createSessionForIntegrationInstance({
+    let result = await integrationInstanceService.createSessionForIntegrationInstanceInternal({
       tenant: { oid: 1n } as any,
-      solution: { oid: 2 } as any,
       environment: { oid: 3n } as any,
       integrationInstance,
       input: { name: 'Session' }
@@ -283,7 +282,6 @@ describe('shared integration session templates', () => {
 
     expect(createSessionMock).toHaveBeenCalledWith({
       tenant: expect.anything(),
-      solution: expect.anything(),
       environment: expect.anything(),
       input: {
         name: 'Session',
@@ -305,9 +303,8 @@ describe('shared integration session templates', () => {
       integrationInstanceProviders: []
     } as any);
 
-    let promise = integrationInstanceService.createSessionForIntegrationInstance({
+    let promise = integrationInstanceService.createSessionForIntegrationInstanceInternal({
       tenant: { oid: 1n } as any,
-      solution: { oid: 2 } as any,
       environment: { oid: 3n } as any,
       integrationInstance: { oid: 11n, id: 'int_instance_1' } as any,
       input: {}
@@ -336,21 +333,20 @@ describe('shared integration session templates', () => {
       identityOid: 601n
     } as any;
 
-    let result = await integrationInstanceService.createSessionTemplateForIntegrationInstance({
-      tenant: { oid: 1n } as any,
-      solution: { oid: 2 } as any,
-      environment: { oid: 3n } as any,
-      integrationInstance,
-      input: {
-        name: 'Shared template',
-        description: 'Used for session creation',
-        metadata: { team: 'ops' }
-      }
-    });
+    let result =
+      await integrationInstanceService.createSessionTemplateForIntegrationInstanceInternal({
+        tenant: { oid: 1n } as any,
+        environment: { oid: 3n } as any,
+        integrationInstance,
+        input: {
+          name: 'Shared template',
+          description: 'Used for session creation',
+          metadata: { team: 'ops' }
+        }
+      });
 
     expect(upsertInternalLinkedSessionTemplateMock).toHaveBeenCalledWith({
       tenant: expect.anything(),
-      solution: expect.anything(),
       environment: expect.anything(),
       sessionTemplate: existingTemplate,
       input: {
@@ -384,21 +380,21 @@ describe('shared integration session templates', () => {
     upsertInternalLinkedSessionTemplateMock.mockResolvedValue(createdTemplate);
 
     let result =
-      await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroup({
-        tenant: { oid: 1n } as any,
-        solution: { oid: 2 } as any,
-        environment: { oid: 3n } as any,
-        integrationInstanceGroup,
-        input: {
-          name: 'Shared group template',
-          description: 'Used for grouped sessions',
-          metadata: { region: 'eu-central' }
+      await integrationInstanceGroupService.createSessionTemplateForIntegrationInstanceGroupInternal(
+        {
+          tenant: { oid: 1n } as any,
+          environment: { oid: 3n } as any,
+          integrationInstanceGroup,
+          input: {
+            name: 'Shared group template',
+            description: 'Used for grouped sessions',
+            metadata: { region: 'eu-central' }
+          }
         }
-      });
+      );
 
     expect(upsertInternalLinkedSessionTemplateMock).toHaveBeenCalledWith({
       tenant: expect.anything(),
-      solution: expect.anything(),
       environment: expect.anything(),
       sessionTemplate: existingTemplate,
       input: {
@@ -440,9 +436,8 @@ describe('shared integration session templates', () => {
     createSessionMock.mockResolvedValue(createdSession);
 
     let result =
-      await integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
+      await integrationInstanceGroupService.createSessionForIntegrationInstanceGroupInternal({
         tenant: { oid: 1n } as any,
-        solution: { oid: 2 } as any,
         environment: { oid: 3n } as any,
         integrationInstanceGroup,
         input: { name: 'Grouped session' }
@@ -450,7 +445,6 @@ describe('shared integration session templates', () => {
 
     expect(createSessionMock).toHaveBeenCalledWith({
       tenant: expect.anything(),
-      solution: expect.anything(),
       environment: expect.anything(),
       input: {
         name: 'Grouped session',
@@ -472,13 +466,14 @@ describe('shared integration session templates', () => {
       providers: []
     } as any);
 
-    let promise = integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
-      tenant: { oid: 1n } as any,
-      solution: { oid: 2 } as any,
-      environment: { oid: 3n } as any,
-      integrationInstanceGroup: { oid: 22n, id: 'int_group_1' } as any,
-      input: {}
-    });
+    let promise = integrationInstanceGroupService.createSessionForIntegrationInstanceGroupInternal(
+      {
+        tenant: { oid: 1n } as any,
+        environment: { oid: 3n } as any,
+        integrationInstanceGroup: { oid: 22n, id: 'int_group_1' } as any,
+        input: {}
+      }
+    );
     let rejection = expect(promise).rejects.toThrow();
 
     await vi.advanceTimersByTimeAsync(250 * 20);

@@ -144,6 +144,8 @@ model Instance {
   oauthAuthorizations                  OAuthAuthorization[]
   oauthAuthorizationFlows              OAuthAuthorizationFlow[]
   internalOAuthTokens                  InternalOAuthToken[]
+  auditLogs                            AuditLog[]
+  events                               Event[]
 
   @@index([previousSlugs])
   @@index([oldSlug])

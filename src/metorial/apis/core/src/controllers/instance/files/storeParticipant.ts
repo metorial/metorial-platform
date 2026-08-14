@@ -6,7 +6,7 @@ import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';
-import { storeParticipantPresenter } from '../../../presenters';
+import { storeParticipantPresenter } from '@metorial/presenters';
 import { storeGroup } from './store';
 
 export let storeParticipantGroup = storeGroup.use(async ctx => {

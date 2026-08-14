@@ -9,7 +9,6 @@ import {
   Prisma,
   type Provider,
   type ProviderDeployment,
-  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -38,7 +37,8 @@ class enclaveInternalServiceImpl {
             name: `Metorial Platform`,
             type: 'metorial',
             systemIdentifier,
-            tenantOid: d.tenant.oid
+            tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid
           }
         });
       },
@@ -48,7 +48,6 @@ class enclaveInternalServiceImpl {
 
   async ensureEnclaveForProviderDeployment(d: {
     tenant: Tenant;
-    solution: Solution;
     environment: Environment;
     provider: Provider;
     providerDeployment: ProviderDeployment;
@@ -81,7 +80,9 @@ class enclaveInternalServiceImpl {
             providerDeploymentOid: d.providerDeployment.oid,
             networkOid: network.oid,
             tenantOid: d.tenant.oid,
+            projectOid: d.tenant.projectOid,
             environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid,
             compiledNetworkRules: Prisma.JsonNull,
             needsEnclaveReconciliation: true
           }

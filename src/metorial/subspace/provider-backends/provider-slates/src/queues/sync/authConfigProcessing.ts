@@ -94,7 +94,9 @@ let createErrorForAuthConfig = async (d: {
           d.authConfigVersion.authConfig.authCredentialsOid,
         providerOid: d.authConfigVersion.authConfig.providerOid,
         tenantOid: d.authConfigVersion.authConfig.tenantOid,
+        projectOid: d.authConfigVersion.authConfig.projectOid,
         environmentOid: d.authConfigVersion.authConfig.environmentOid,
+        instanceOid: d.authConfigVersion.authConfig.instanceOid,
         solutionOid: d.authConfigVersion.authConfig.solutionOid
       }
     });
@@ -128,7 +130,9 @@ let createErrorForAuthConfig = async (d: {
         d.authConfigVersion.authConfig.authCredentialsOid,
       providerOid: d.authConfigVersion.authConfig.providerOid,
       tenantOid: d.authConfigVersion.authConfig.tenantOid,
+      projectOid: d.authConfigVersion.authConfig.projectOid,
       environmentOid: d.authConfigVersion.authConfig.environmentOid,
+      instanceOid: d.authConfigVersion.authConfig.instanceOid,
       solutionOid: d.authConfigVersion.authConfig.solutionOid
     }
   });
@@ -159,7 +163,9 @@ let createErrorForAuthConfig = async (d: {
       hash,
       providerOid: error.providerOid,
       tenantOid: error.tenantOid,
+      projectOid: error.projectOid,
       environmentOid: error.environmentOid,
+      instanceOid: error.instanceOid,
       firstOccurrenceOid: error.oid
     },
     update: {}

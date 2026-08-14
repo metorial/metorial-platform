@@ -1228,6 +1228,10 @@ let OrganizationPaths = Object.assign(
       OrganizationPaths.settings(organization, 'billing', ...subPages),
     supportAccess: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'support-access', ...subPages),
+    auditLogs: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'audit-logs', ...subPages),
+    auditLogStreams: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'audit-log-streams', ...subPages),
     members: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'members', ...subPages),
     invites: (organization: EntityParam, ...subPages: SubPages) =>
@@ -1786,6 +1790,39 @@ export let WelcomePaths = Object.assign(
   }
 );
 
+// The nexus root is an absolute URL, which joinPaths would turn into a relative path
+// (`/https://host/...`), so the sub pages have to be joined onto its pathname instead.
+let joinNexusRoot = (root: string, ...subPages: SubPages) => {
+  try {
+    let url = new URL(root);
+    let [pathname, search] = joinPaths(url.pathname, ...subPages).split('?');
+    url.pathname = pathname;
+    if (search) url.search = search;
+    return url.toString();
+  } catch {
+    return joinPaths(root, ...subPages);
+  }
+};
+
+export let IndexPaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('index', () => joinPaths(...subPages)),
+  {
+    globalIndex: (...subPages: SubPages) => {
+      let nexusRoot = (window as any).nexusRoot as string | undefined;
+      if (nexusRoot) return joinNexusRoot(nexusRoot, ...subPages);
+
+      return getNexusUrl('index', () => joinPaths(...subPages));
+    },
+
+    globalHome: (...subPages: SubPages) => {
+      let nexusRoot = (window as any).nexusRoot as string | undefined;
+      if (nexusRoot) return joinNexusRoot(nexusRoot, 'home', ...subPages);
+
+      return getNexusUrl('index', () => joinPaths('home', ...subPages));
+    }
+  }
+);
+
 export let PLACEHOLDER_INSTANCE_ENTITY = { id: 'a', slug: 'a' };
 
 export let PLACEHOLDER_INSTANCE_PARAMS = [
@@ -1850,5 +1887,6 @@ export let Paths = {
   enterprise: EnterprisePaths,
   organization: OrganizationPaths,
   welcome: WelcomePaths,
-  dashboardInstanceRedirect
+  dashboardInstanceRedirect,
+  index: IndexPaths
 };

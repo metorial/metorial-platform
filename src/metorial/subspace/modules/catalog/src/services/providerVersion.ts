@@ -1,8 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Solution, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 import { type DateFilter, normalizeDateFilter, resolveProviders } from '@metorial-subspace/list-utils';
+import {
+  getMetorialSolution,
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
 import { providerVariantInclude } from './providerVariant';
 
@@ -14,21 +19,42 @@ let include = {
   specification: true
 };
 
+type ListProviderVersionsParams = {
+  ids?: string[];
+  providerIds?: string[];
+
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+  includeDeprecated?: boolean;
+};
+
+type GetProviderVersionByIdParams = {
+  providerVersionId: string;
+  includeDeprecated?: boolean;
+};
+
 class providerVersionServiceImpl {
-  async listProviderVersions(d: {
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
+  async listProviderVersions(d: MetorialFacing<ListProviderVersionsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
 
-    ids?: string[];
-    providerIds?: string[];
+    return this.listProviderVersionsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
 
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-    includeDeprecated?: boolean;
-  }) {
+  async listProviderVersionsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & ListProviderVersionsParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length || !!d.providerIds?.length;
-    let providers = await resolveProviders(d, d.providerIds);
+    let providers = await resolveProviders({ ...d, solution }, d.providerIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -38,6 +64,7 @@ class providerVersionServiceImpl {
             where: {
               provider: getProviderTenantFilter({
                 ...d,
+                solution,
                 includeDeprecated
               }),
 
@@ -65,17 +92,30 @@ class providerVersionServiceImpl {
     );
   }
 
-  async getProviderVersionById(d: {
-    providerVersionId: string;
-    solution: Solution;
-    tenant?: Tenant;
-    environment?: Environment;
-    includeDeprecated?: boolean;
-  }) {
+  async getProviderVersionById(d: MetorialFacing<GetProviderVersionByIdParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getProviderVersionByIdInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getProviderVersionByIdInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetProviderVersionByIdParams
+  ) {
+    let solution = await getMetorialSolution();
+
     let providerVersion = await db.providerVersion.findFirst({
       where: {
         provider: getProviderTenantFilter({
           ...d,
+          solution,
           includeDeprecated: true
         }),
 

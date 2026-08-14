@@ -23,8 +23,6 @@ AI_GATEWAY_API_KEY = true
 SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
 SUBSPACE_SOLUTION = "metorial-dev"
-SUBSPACE_URL = "http://localhost:52070/subspace-controller"
-SUBSPACE_CONNECTION_URL = "http://localhost:52072"
 
 [dev.db.main]
 name = "synthesis"

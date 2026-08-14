@@ -8,6 +8,10 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  type MetorialFacing,
+  resolveMetorialFacing
+} from '@metorial-subspace/module-tenant';
+import {
   buildBaseSessionProviderNameTemplate,
   buildFallbackSessionProviderNameTemplate
 } from '../lib/sessionProviderNameTemplate';
@@ -103,7 +107,19 @@ let resolveNameTemplateSourceName = async (d: {
 };
 
 class sessionProviderNameTemplateServiceImpl {
-  async ensureForSessionProvider<ProviderType extends SessionProviderWithNameSource>(d: {
+  async ensureForSessionProvider<ProviderType extends SessionProviderWithNameSource>(
+    d: MetorialFacing<{ provider: ProviderType }>
+  ): Promise<ProviderType & { nameTemplate: string }> {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.ensureForSessionProviderInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async ensureForSessionProviderInternal<ProviderType extends SessionProviderWithNameSource>(d: {
     tenant: Pick<Tenant, 'useIntegrationNamesForSessionProviderNameTemplates'>;
     provider: ProviderType;
   }): Promise<ProviderType & { nameTemplate: string }> {
@@ -168,13 +184,25 @@ class sessionProviderNameTemplateServiceImpl {
     throw new Error(`Failed to initialize session provider name template: ${provider.id}`);
   }
 
-  async ensureForSessionProviders<ProviderType extends SessionProviderWithNameSource>(d: {
+  async ensureForSessionProviders<ProviderType extends SessionProviderWithNameSource>(
+    d: MetorialFacing<{ providers: ProviderType[] }>
+  ): Promise<Array<ProviderType & { nameTemplate: string }>> {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.ensureForSessionProvidersInternal({
+      ...rest,
+      tenant: scope.tenant
+    });
+  }
+
+  async ensureForSessionProvidersInternal<ProviderType extends SessionProviderWithNameSource>(d: {
     tenant: Pick<Tenant, 'useIntegrationNamesForSessionProviderNameTemplates'>;
     providers: ProviderType[];
   }): Promise<Array<ProviderType & { nameTemplate: string }>> {
     return await Promise.all(
       d.providers.map(provider =>
-        this.ensureForSessionProvider({
+        this.ensureForSessionProviderInternal({
           tenant: d.tenant,
           provider
         })

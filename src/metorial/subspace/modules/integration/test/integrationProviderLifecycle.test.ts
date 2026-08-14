@@ -86,14 +86,11 @@ vi.mock(
   })
 );
 
-vi.mock(
-  '@metorial-subspace/module-skills/src/queues/reconciler/reconcileSkillProviderLink',
-  () => ({
-    reconcileSkillProviderLinksForIntegrationProviderQueue: {
-      add: reconcileSkillProviderLinksForIntegrationProviderQueueAddMock
-    }
-  })
-);
+vi.mock('@metorial/cargo-module-skill', () => ({
+  reconcileSkillProviderLinksForIntegrationProviderQueue: {
+    add: reconcileSkillProviderLinksForIntegrationProviderQueueAddMock
+  }
+}));
 
 vi.mock('../src/services/integrationInstanceProvider', () => ({
   integrationInstanceProviderService: {

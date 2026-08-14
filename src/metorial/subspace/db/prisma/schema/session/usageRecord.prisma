@@ -10,12 +10,16 @@ model SessionUsageRecord {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([projectOid])
 }
 
 model ProviderRunUsageRecord {
@@ -27,8 +31,13 @@ model ProviderRunUsageRecord {
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
   solutionOid Int
   solution    Solution @relation(fields: [solutionOid], references: [oid])
 
   createdAt DateTime @default(now())
+
+  @@index([projectOid])
 }

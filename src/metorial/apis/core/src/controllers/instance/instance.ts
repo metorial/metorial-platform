@@ -1,7 +1,7 @@
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../middleware/instanceGroup';
-import { instancePresenter } from '../../presenters';
+import { instancePresenter } from '@metorial/presenters';
 
 export let instanceController = Controller.create(
   {

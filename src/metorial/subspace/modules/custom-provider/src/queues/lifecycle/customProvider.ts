@@ -1,4 +1,9 @@
 import { createQueue } from '@lowerdeck/queue';
+import {
+  reconcileSkillProviderLinksForIntegrationProviderQueue,
+  reconcileSkillProviderLinksForProviderQueue,
+  reconcileSkillProviderLinksQueue
+} from '@metorial/cargo-module-skill';
 import { db } from '@metorial-subspace/db';
 import { providerAuthConfigArchivedQueue } from '@metorial-subspace/module-auth/src/queues/lifecycle/providerAuthConfig';
 import { providerAuthCredentialsArchivedQueue } from '@metorial-subspace/module-auth/src/queues/lifecycle/providerAuthCredentials';
@@ -9,11 +14,6 @@ import { identityCredentialDeletedQueue } from '@metorial-subspace/module-identi
 import { listingUpdatedQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/listing';
 import { providerUpdatedQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/provider';
 import { indexProviderDeploymentQueue } from '@metorial-subspace/module-deployment/src/queues/search/providerDeployment';
-import { skillItemArchivedQueue } from '@metorial-subspace/module-skills/src/queues/lifecycle/skillItem';
-import {
-  reconcileSkillProviderLinksForIntegrationProviderQueue,
-  reconcileSkillProviderLinksForProviderQueue
-} from '@metorial-subspace/module-skills/src/queues/reconciler/reconcileSkillProviderLink';
 import { env } from '../../env';
 import { indexCustomProviderQueue } from '../search/customProvider';
 
@@ -872,6 +872,7 @@ export let customProviderArchiveSkillResourcesManyQueueProcessor =
         id: true,
         oid: true,
         skillOid: true,
+        skill: { select: { id: true } },
         item: { select: { id: true, oid: true } }
       }
     });
@@ -898,9 +899,9 @@ export let customProviderArchiveSkillResourcesManyQueueProcessor =
       }
     });
 
-    await skillItemArchivedQueue.addMany(
+    await reconcileSkillProviderLinksQueue.addMany(
       skillProviders.map(skillProvider => ({
-        skillItemId: skillProvider.item.id
+        skillId: skillProvider.skill.id
       }))
     );
     await reconcileSkillProviderLinksForProviderQueue.add({

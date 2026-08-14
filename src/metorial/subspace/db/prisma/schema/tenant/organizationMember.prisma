@@ -1,0 +1,38 @@
+enum OrganizationMemberRole {
+  admin
+  member
+}
+
+enum OrganizationMemberStatus {
+  active
+  deleted
+}
+
+model OrganizationMember {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  role   OrganizationMemberRole
+  status OrganizationMemberStatus
+
+  isV2Member           Boolean @default(false)
+  usesMetorialPersonal Boolean @default(false)
+
+  lastActiveAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
+
+  actorOid BigInt            @unique
+  actor    OrganizationActor @relation(fields: [actorOid], references: [oid], onDelete: Cascade)
+
+  consumers         Consumer[]
+  instanceConsumers InstanceConsumer[]
+  consumerProfiles  ConsumerProfile[]
+
+  @@index([organizationOid])
+  @@index([lastActiveAt])
+}

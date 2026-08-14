@@ -73,8 +73,10 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
         create: {
           ...getId('providerEnvironment'),
           environmentOid: targetGlobalEnvironment.oid,
+          instanceOid: targetGlobalEnvironment.instanceOid,
           providerOid: customProvider.providerOid!,
           tenantOid: commit.toEnvironment.tenantOid,
+          projectOid: commit.toEnvironment.projectOid,
           solutionOid: commit.toEnvironment.solutionOid,
           providerVariantOid: customProvider.providerVariantOid!,
           currentVersionOid: targetVersion.providerVersionOid!
@@ -100,7 +102,8 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
           ...getId('providerEnvironmentVersion'),
           providerEnvironmentOid: providerEnvironment.oid,
           providerVersionOid: targetVersion.providerVersionOid!,
-          environmentOid: targetGlobalEnvironment.oid
+          environmentOid: targetGlobalEnvironment.oid,
+          instanceOid: targetGlobalEnvironment.instanceOid
         },
         update: {}
       });
@@ -117,6 +120,7 @@ export let commitApplyQueueProcessor = commitApplyQueue.process(async data => {
           customProviderEnvironmentOid: commit.toEnvironmentOid,
           customProviderVersionOid: targetVersion.oid,
           environmentOid: commit.toEnvironment.environmentOid,
+          instanceOid: commit.toEnvironment.instanceOid,
           commitOid: commit.oid
         },
         update: {

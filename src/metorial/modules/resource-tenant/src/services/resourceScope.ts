@@ -148,46 +148,29 @@ export let resolveResourceScopeForOwner = async (
     owner.type === 'user'
       ? await db.user.findUnique({
           where: { id: ownerId },
-          select: {
-            resourceTenantOid: true,
-            resourceGroupOid: true
+          include: {
+            resourceTenant: true,
+            resourceGroup: true
           }
         })
       : owner.type === 'organization'
         ? await db.organization.findUnique({
             where: { id: ownerId },
-            select: {
-              resourceTenantOid: true,
-              resourceGroupOid: true
+            include: {
+              resourceTenant: true,
+              resourceGroup: true
             }
           })
         : await db.instance.findUnique({
             where: { id: ownerId },
-            select: {
-              resourceTenantOid: true,
-              resourceGroupOid: true
+            include: {
+              resourceTenant: true,
+              resourceGroup: true
             }
           });
 
-  if (!linkedScope?.resourceTenantOid || !linkedScope.resourceGroupOid) {
-    return owner.type === 'user'
-      ? await ensureUserResourceScope(ownerId)
-      : owner.type === 'organization'
-        ? await ensureOrganizationResourceScope(ownerId)
-        : await ensureInstanceResourceScope(ownerId);
-  }
-
-  let [resourceTenant, resourceGroup] = await Promise.all([
-    db.resourceTenant.findUnique({
-      where: { oid: linkedScope.resourceTenantOid }
-    }),
-    db.resourceGroup.findFirst({
-      where: {
-        oid: linkedScope.resourceGroupOid,
-        resourceTenantOid: linkedScope.resourceTenantOid
-      }
-    })
-  ]);
+  let resourceTenant = linkedScope?.resourceTenant;
+  let resourceGroup = linkedScope?.resourceGroup;
 
   if (!resourceTenant || !resourceGroup) {
     return owner.type === 'user'
