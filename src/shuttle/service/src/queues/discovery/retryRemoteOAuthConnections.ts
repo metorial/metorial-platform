@@ -7,6 +7,7 @@ import {
   MAX_REGISTRATION_ATTEMPTS
 } from '../../lib/oauth/registrationRetry';
 import { remoteOAuthRegistrationService } from '../../services/oauth/remote/registration';
+import { enqueuePromotion } from '../oauth/rotateRemoteCredentials';
 
 let RETRY_BATCH_SIZE = 250;
 
@@ -86,7 +87,10 @@ export let retryRegistrationQueueProcessor = retryRegistrationQueue.process(asyn
     connectionId: data.oauthConnectionId
   });
 
-  if (res.ok) return;
+  if (res.ok) {
+    await enqueuePromotion({ connection: res.connection });
+    return;
+  }
 
   // A connection that is gone or no longer eligible is not an error, the next
   // cron run reconsiders it.

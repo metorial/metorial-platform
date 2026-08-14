@@ -7,6 +7,7 @@ let { queues, dbMock, createConnection, QueueRetryError } = vi.hoisted(() => ({
   dbMock: {
     serverOAuthCredentials: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn()
@@ -93,6 +94,21 @@ let previousCredentials = (registrationCreatedAt: Date) => ({
   }
 });
 
+let replacementConnection = (d: {
+  discoveryStatus: string;
+  registrationAttemptCount?: number;
+}) => ({
+  oid: 11n,
+  id: 'cso_replacement',
+  status: 'active',
+  discoveryStatus: d.discoveryStatus,
+  registrationAttemptCount: d.registrationAttemptCount ?? 0,
+  rotatedFromOid: 10n,
+  errorCode: null,
+  errorMessage: null,
+  serverOAuthCredentials: { oid: 101n, id: 'soc_replacement' }
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -112,18 +128,91 @@ describe('rotateStaleCredentialsQueueProcessor', () => {
     createConnection.mockResolvedValue({
       oid: 11n,
       id: 'cso_replacement',
+      rotatedFromOid: 10n,
       serverOAuthCredentials: { oid: 101n, id: 'soc_replacement' }
     });
+    dbMock.serverOAuthCredentials.findFirst.mockResolvedValue({ id: 'soc_replacement' });
 
     await rotateProcessor()({ credentialsId: 'soc_previous' });
 
     expect(createConnection).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: expect.objectContaining({ scopes: ['openid'] })
+        input: expect.objectContaining({ scopes: ['openid'], rotatedFromOid: 10n })
       })
     );
     expect(promoteQueue().add).toHaveBeenCalledWith(
-      { newCredentialsId: 'soc_replacement', previousCredentialsId: 'soc_previous' },
+      { newCredentialsId: 'soc_replacement' },
+      expect.objectContaining({ delay: 5000 })
+    );
+  });
+
+  it('promotes a replacement that was left behind instead of registering another client', async () => {
+    let credentials = previousCredentials(subDays(new Date(), 5));
+
+    dbMock.serverOAuthCredentials.findUnique
+      .mockResolvedValueOnce(credentials)
+      .mockResolvedValueOnce(credentials);
+    dbMock.remoteOAuthConnection.findFirst.mockResolvedValue(
+      replacementConnection({ discoveryStatus: 'succeeded' })
+    );
+    dbMock.serverOAuthCredentials.findFirst.mockResolvedValue({ id: 'soc_replacement' });
+
+    await rotateProcessor()({ credentialsId: 'soc_previous' });
+
+    expect(createConnection).not.toHaveBeenCalled();
+    expect(promoteQueue().add).toHaveBeenCalledWith(
+      { newCredentialsId: 'soc_replacement' },
+      expect.objectContaining({ delay: 5000 })
+    );
+  });
+
+  it('waits for a failed replacement that still has retries left', async () => {
+    let credentials = previousCredentials(subDays(new Date(), 5));
+
+    dbMock.serverOAuthCredentials.findUnique
+      .mockResolvedValueOnce(credentials)
+      .mockResolvedValueOnce(credentials);
+    dbMock.remoteOAuthConnection.findFirst.mockResolvedValue(
+      replacementConnection({ discoveryStatus: 'failed', registrationAttemptCount: 3 })
+    );
+
+    await rotateProcessor()({ credentialsId: 'soc_previous' });
+
+    expect(createConnection).not.toHaveBeenCalled();
+    expect(promoteQueue().add).not.toHaveBeenCalled();
+    expect(dbMock.remoteOAuthConnection.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('retires an exhausted replacement and registers a new one', async () => {
+    let credentials = previousCredentials(subDays(new Date(), 5));
+
+    dbMock.serverOAuthCredentials.findUnique
+      .mockResolvedValueOnce(credentials)
+      .mockResolvedValueOnce(credentials);
+    dbMock.remoteOAuthConnection.findFirst.mockResolvedValue(
+      replacementConnection({ discoveryStatus: 'failed', registrationAttemptCount: 10 })
+    );
+    dbMock.remoteOAuthConfig.findUniqueOrThrow.mockResolvedValue({
+      oid: 4n,
+      discoverStatus: 'supports_auto_registration'
+    });
+    createConnection.mockResolvedValue({
+      oid: 12n,
+      id: 'cso_replacement_2',
+      rotatedFromOid: 10n,
+      serverOAuthCredentials: { oid: 102n, id: 'soc_replacement_2' }
+    });
+    dbMock.serverOAuthCredentials.findFirst.mockResolvedValue({ id: 'soc_replacement_2' });
+
+    await rotateProcessor()({ credentialsId: 'soc_previous' });
+
+    expect(dbMock.remoteOAuthConnection.updateMany).toHaveBeenCalledWith({
+      where: { oid: 11n, status: 'active' },
+      data: { status: 'inactive' }
+    });
+    expect(createConnection).toHaveBeenCalledTimes(1);
+    expect(promoteQueue().add).toHaveBeenCalledWith(
+      { newCredentialsId: 'soc_replacement_2' },
       expect.objectContaining({ delay: 5000 })
     );
   });
@@ -147,7 +236,10 @@ describe('rotateStaleCredentialsQueueProcessor', () => {
     dbMock.serverOAuthCredentials.findUnique
       .mockResolvedValueOnce(credentials)
       .mockResolvedValueOnce(credentials);
-    dbMock.remoteOAuthConnection.findFirst.mockResolvedValue({ oid: 11n });
+    dbMock.remoteOAuthConnection.findFirst.mockResolvedValue(
+      replacementConnection({ discoveryStatus: 'discovering' })
+    );
+    dbMock.serverOAuthCredentials.findFirst.mockResolvedValue({ id: 'soc_replacement' });
 
     await rotateProcessor()({ credentialsId: 'soc_previous' });
 
@@ -169,9 +261,10 @@ describe('rotateStaleCredentialsQueueProcessor', () => {
 });
 
 describe('promoteRotatedCredentialsQueueProcessor', () => {
-  let newCredentials = (discoveryStatus: string, registrationAttemptCount = 1) => ({
+  let newCredentials = (discoveryStatus: string, registrationAttemptCount = 10) => ({
     oid: 101n,
     id: 'soc_replacement',
+    isDefault: false,
     tenantOid: 2n,
     serverOid: 3n,
     remoteConnection: {
@@ -182,50 +275,72 @@ describe('promoteRotatedCredentialsQueueProcessor', () => {
       registrationAttemptCount,
       clientId: 'new-client-id',
       errorCode: 'auto_registration_failed',
-      errorMessage: 'nope'
+      errorMessage: 'nope',
+      rotatedFromOid: 10n,
+      rotatedFrom: { oid: 10n, id: 'cso_previous' }
     }
   });
 
+  let currentDefaultIsPrevious = () =>
+    dbMock.serverOAuthCredentials.findFirst.mockResolvedValue({
+      oid: 100n,
+      remoteConnectionOid: 10n
+    });
+
   it('waits while the replacement is still registering', async () => {
-    dbMock.serverOAuthCredentials.findUnique
-      .mockResolvedValueOnce(newCredentials('discovering'))
-      .mockResolvedValueOnce(previousCredentials(subDays(new Date(), 5)));
+    dbMock.serverOAuthCredentials.findUnique.mockResolvedValueOnce(newCredentials('discovering'));
 
     await expect(
-      promoteProcessor()({
-        newCredentialsId: 'soc_replacement',
-        previousCredentialsId: 'soc_previous'
-      })
+      promoteProcessor()({ newCredentialsId: 'soc_replacement' })
     ).rejects.toBeInstanceOf(QueueRetryError);
 
     expect(dbMock.serverOAuthCredentials.update).not.toHaveBeenCalled();
     expect(dbMock.serverOAuthCredentials.updateMany).not.toHaveBeenCalled();
   });
 
-  it('keeps waiting while only transient failures were recorded', async () => {
-    dbMock.serverOAuthCredentials.findUnique
-      .mockResolvedValueOnce(newCredentials('failed', 0))
-      .mockResolvedValueOnce(previousCredentials(subDays(new Date(), 5)));
+  it('leaves a failed replacement to the retry queue while it has retries left', async () => {
+    dbMock.serverOAuthCredentials.findUnique.mockResolvedValueOnce(newCredentials('failed', 3));
 
-    await expect(
-      promoteProcessor()({
-        newCredentialsId: 'soc_replacement',
-        previousCredentialsId: 'soc_previous'
-      })
-    ).rejects.toBeInstanceOf(QueueRetryError);
+    await promoteProcessor()({ newCredentialsId: 'soc_replacement' });
 
     expect(dbMock.remoteOAuthConnection.updateMany).not.toHaveBeenCalled();
+    expect(dbMock.serverOAuthCredentials.update).not.toHaveBeenCalled();
+  });
+
+  it('does not promote credentials the tenant created itself', async () => {
+    let credentials = newCredentials('succeeded');
+    credentials.remoteConnection.rotatedFromOid = null as any;
+    credentials.remoteConnection.rotatedFrom = null as any;
+
+    dbMock.serverOAuthCredentials.findUnique.mockResolvedValueOnce(credentials);
+
+    await promoteProcessor()({ newCredentialsId: 'soc_replacement' });
+
+    expect(dbMock.serverOAuthCredentials.update).not.toHaveBeenCalled();
+    expect(dbMock.serverOAuthCredentials.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('retires the replacement when the default moved on in the meantime', async () => {
+    dbMock.serverOAuthCredentials.findUnique.mockResolvedValueOnce(newCredentials('succeeded'));
+    dbMock.serverOAuthCredentials.findFirst.mockResolvedValue({
+      oid: 200n,
+      remoteConnectionOid: 30n
+    });
+
+    await promoteProcessor()({ newCredentialsId: 'soc_replacement' });
+
+    expect(dbMock.serverOAuthCredentials.update).not.toHaveBeenCalled();
+    expect(dbMock.remoteOAuthConnection.updateMany).toHaveBeenCalledWith({
+      where: { oid: 11n, status: 'active' },
+      data: { status: 'inactive' }
+    });
   });
 
   it('promotes the replacement once registration succeeded', async () => {
-    dbMock.serverOAuthCredentials.findUnique
-      .mockResolvedValueOnce(newCredentials('succeeded'))
-      .mockResolvedValueOnce(previousCredentials(subDays(new Date(), 5)));
+    dbMock.serverOAuthCredentials.findUnique.mockResolvedValueOnce(newCredentials('succeeded'));
+    currentDefaultIsPrevious();
 
-    await promoteProcessor()({
-      newCredentialsId: 'soc_replacement',
-      previousCredentialsId: 'soc_previous'
-    });
+    await promoteProcessor()({ newCredentialsId: 'soc_replacement' });
 
     expect(dbMock.serverOAuthCredentials.updateMany).toHaveBeenCalledWith({
       where: {
@@ -246,14 +361,9 @@ describe('promoteRotatedCredentialsQueueProcessor', () => {
   });
 
   it('keeps the previous default when the replacement fails to register', async () => {
-    dbMock.serverOAuthCredentials.findUnique
-      .mockResolvedValueOnce(newCredentials('failed'))
-      .mockResolvedValueOnce(previousCredentials(subDays(new Date(), 5)));
+    dbMock.serverOAuthCredentials.findUnique.mockResolvedValueOnce(newCredentials('failed'));
 
-    await promoteProcessor()({
-      newCredentialsId: 'soc_replacement',
-      previousCredentialsId: 'soc_previous'
-    });
+    await promoteProcessor()({ newCredentialsId: 'soc_replacement' });
 
     expect(dbMock.serverOAuthCredentials.update).not.toHaveBeenCalled();
     expect(dbMock.serverOAuthCredentials.updateMany).not.toHaveBeenCalled();

@@ -141,6 +141,11 @@ model RemoteOAuthConnection {
   registrationOid BigInt?
   registration    RemoteOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
 
+  // Set when this connection was created to replace the client of another one.
+  rotatedFromOid BigInt?
+  rotatedFrom    RemoteOAuthConnection?  @relation("remoteOAuthConnectionRotation", fields: [rotatedFromOid], references: [oid])
+  rotatedTo      RemoteOAuthConnection[] @relation("remoteOAuthConnectionRotation")
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
@@ -163,6 +168,7 @@ model RemoteOAuthConnection {
   serverAuthConfigs               ServerAuthConfig[]
 
   @@index([discoveryStatus, status, lastRegistrationAttemptAt])
+  @@index([rotatedFromOid, status])
 }
 
 enum RemoteOAuthConnectionEventType {

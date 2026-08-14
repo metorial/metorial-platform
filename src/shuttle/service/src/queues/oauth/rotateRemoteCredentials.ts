@@ -1,12 +1,12 @@
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { subHours } from 'date-fns';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
 import {
   getStaleRegistrationCutoff,
-  isStaleRegistration
+  isStaleRegistration,
+  MAX_REGISTRATION_ATTEMPTS
 } from '../../lib/oauth/registrationRetry';
 import { remoteOAuthConnectionService } from '../../services/oauth/remote/connection';
 import { withTransaction } from '../../transaction';
@@ -111,20 +111,30 @@ export let rotateStaleCredentialsQueueProcessor = rotateStaleCredentialsQueue.pr
         if (connection.secretOid != null) return;
         if (!isStaleRegistration(connection.registration)) return;
 
-        let pendingReplacement = await db.remoteOAuthConnection.findFirst({
+        // An earlier rotation may have left a replacement behind, for example
+        // when its promotion job ran out of attempts. Those are picked up again
+        // instead of registering yet another client.
+        let existingReplacement = await db.remoteOAuthConnection.findFirst({
           where: {
-            oid: { not: connection.oid },
-            serverOid: credentials.serverOid,
-            tenantOid: credentials.tenantOid,
-            status: 'active',
-            secretOid: null,
-            discoveryStatus: { in: ['discovering', 'succeeded'] },
-            createdAt: { gt: subHours(new Date(), 1) },
-            serverOAuthCredentials: { isDefault: false }
+            rotatedFromOid: connection.oid,
+            status: 'active'
           },
-          select: { oid: true }
+          include: { serverOAuthCredentials: true },
+          orderBy: { oid: 'desc' }
         });
-        if (pendingReplacement) return;
+
+        if (existingReplacement) {
+          if (existingReplacement.discoveryStatus != 'failed') {
+            await enqueuePromotion({ connection: existingReplacement });
+            return;
+          }
+
+          // The replacement can still be registered by the retry queue, which
+          // enqueues the promotion itself once it succeeds.
+          if (existingReplacement.registrationAttemptCount < MAX_REGISTRATION_ATTEMPTS) return;
+
+          await retireReplacement({ connection: existingReplacement, previousConnection: connection });
+        }
 
         let config = await db.remoteOAuthConfig.findUniqueOrThrow({
           where: { oid: credentials.server.remoteOauthConfigOid! }
@@ -135,18 +145,13 @@ export let rotateStaleCredentialsQueueProcessor = rotateStaleCredentialsQueue.pr
           tenant: credentials.tenant,
           input: {
             config,
-            scopes: connection.scopes
+            scopes: connection.scopes,
+            rotatedFromOid: connection.oid
           }
         });
         if (!replacement.serverOAuthCredentials) return;
 
-        await promoteRotatedCredentialsQueue.add(
-          {
-            newCredentialsId: replacement.serverOAuthCredentials.id,
-            previousCredentialsId: current.id
-          },
-          { delay: 5000, id: `prom-${replacement.serverOAuthCredentials.id}` }
-        );
+        await enqueuePromotion({ connection: replacement });
       }
     );
   }
@@ -154,7 +159,6 @@ export let rotateStaleCredentialsQueueProcessor = rotateStaleCredentialsQueue.pr
 
 export let promoteRotatedCredentialsQueue = createQueue<{
   newCredentialsId: string;
-  previousCredentialsId: string;
 }>({
   name: 'shut/rem-oaconn/rotate/promote',
   redisUrl: env.service.REDIS_URL,
@@ -165,92 +169,148 @@ export let promoteRotatedCredentialsQueueProcessor = promoteRotatedCredentialsQu
   async data => {
     let newCredentials = await db.serverOAuthCredentials.findUnique({
       where: { id: data.newCredentialsId },
-      include: { remoteConnection: true }
+      include: { remoteConnection: { include: { rotatedFrom: true } } }
     });
     if (!newCredentials?.remoteConnection) return;
-
-    let previousCredentials = await db.serverOAuthCredentials.findUnique({
-      where: { id: data.previousCredentialsId },
-      include: { remoteConnection: true }
-    });
+    if (newCredentials.isDefault) return;
 
     let newConnection = newCredentials.remoteConnection;
-    let previousConnection = previousCredentials?.remoteConnection;
+    let previousConnection = newConnection.rotatedFrom;
+
+    // Only connections created by a rotation are ever promoted, credentials the
+    // tenant created itself must keep the role it gave them.
+    if (!previousConnection) return;
+    if (newConnection.status != 'active') return;
 
     // Registration is still running, wait for it with the queue's backoff.
     if (newConnection.discoveryStatus == 'discovering') throw new QueueRetryError();
 
     if (newConnection.discoveryStatus == 'failed') {
-      // Transient provider failures do not spend the retry budget, so a
-      // replacement without a counted attempt is still being retried.
-      if (newConnection.registrationAttemptCount == 0) throw new QueueRetryError();
+      // The retry queue keeps working on the replacement until its budget is
+      // spent, and enqueues this job again once registration succeeds. Waiting
+      // here instead would outlive the job's own attempts.
+      if (newConnection.registrationAttemptCount < MAX_REGISTRATION_ATTEMPTS) return;
 
-      // The previous credentials keep working, so a failed rotation is not an
-      // error. The replacement is retired so nothing can pick it up later.
-      await db.remoteOAuthConnection.updateMany({
-        where: { oid: newConnection.oid, status: 'active' },
-        data: { status: 'inactive' }
-      });
-
-      if (previousConnection) {
-        await recordRotationEvent({
-          connectionOid: previousConnection.oid,
-          discriminator: newConnection.id,
-          metadata: {
-            status: 'failed',
-            replacementConnectionId: newConnection.id,
-            errorCode: newConnection.errorCode,
-            errorMessage: newConnection.errorMessage
-          }
-        });
-      }
+      await retireReplacement({ connection: newConnection, previousConnection });
 
       return;
     }
 
-    await withTransaction(async db => {
-      await db.serverOAuthCredentials.updateMany({
-        where: {
-          tenantOid: newCredentials.tenantOid,
-          serverOid: newCredentials.serverOid,
-          isDefault: true,
-          oid: { not: newCredentials.oid }
-        },
-        data: { isDefault: false }
-      });
-
-      await db.serverOAuthCredentials.update({
-        where: { oid: newCredentials.oid },
-        data: { isDefault: true }
-      });
-    });
-
-    // Existing auth configs stay bound to the previous connection and keep
-    // refreshing with the client they were authorized against.
-    await recordRotationEvent({
-      connectionOid: newConnection.oid,
-      discriminator: previousConnection?.id ?? newConnection.id,
-      metadata: {
-        status: 'succeeded',
-        role: 'replacement',
-        previousConnectionId: previousConnection?.id ?? null,
-        clientId: newConnection.clientId
-      }
-    });
-
-    if (previousConnection) {
-      await recordRotationEvent({
-        connectionOid: previousConnection.oid,
-        discriminator: newConnection.id,
-        metadata: {
-          status: 'succeeded',
-          role: 'replaced',
-          replacementConnectionId: newConnection.id
-        }
-      });
-    }
+    await rotationLock.usingLock(`${newCredentials.tenantOid}-${newCredentials.serverOid}`, () =>
+      promoteCredentials({ newCredentials, newConnection, previousConnection })
+    );
   }
 );
+
+let promoteCredentials = async (d: {
+  newCredentials: { oid: bigint; tenantOid: bigint; serverOid: bigint };
+  newConnection: { oid: bigint; id: string; clientId: string | null };
+  previousConnection: { oid: bigint; id: string };
+}) => {
+  let { newCredentials, newConnection, previousConnection } = d;
+
+  let currentDefault = await db.serverOAuthCredentials.findFirst({
+    where: {
+      tenantOid: newCredentials.tenantOid,
+      serverOid: newCredentials.serverOid,
+      isDefault: true
+    },
+    select: { oid: true, remoteConnectionOid: true }
+  });
+  if (currentDefault?.oid == newCredentials.oid) return;
+
+  // The default moved on while the replacement was being registered, so the
+  // rotation is obsolete and its client must not take over.
+  if (currentDefault?.remoteConnectionOid != previousConnection.oid) {
+    await retireReplacement({ connection: newConnection, previousConnection: null });
+
+    return;
+  }
+
+  await withTransaction(async db => {
+    await db.serverOAuthCredentials.updateMany({
+      where: {
+        tenantOid: newCredentials.tenantOid,
+        serverOid: newCredentials.serverOid,
+        isDefault: true,
+        oid: { not: newCredentials.oid }
+      },
+      data: { isDefault: false }
+    });
+
+    await db.serverOAuthCredentials.update({
+      where: { oid: newCredentials.oid },
+      data: { isDefault: true }
+    });
+  });
+
+  // Existing auth configs stay bound to the previous connection and keep
+  // refreshing with the client they were authorized against.
+  await recordRotationEvent({
+    connectionOid: newConnection.oid,
+    discriminator: previousConnection.id,
+    metadata: {
+      status: 'succeeded',
+      role: 'replacement',
+      previousConnectionId: previousConnection.id,
+      clientId: newConnection.clientId
+    }
+  });
+
+  await recordRotationEvent({
+    connectionOid: previousConnection.oid,
+    discriminator: newConnection.id,
+    metadata: {
+      status: 'succeeded',
+      role: 'replaced',
+      replacementConnectionId: newConnection.id
+    }
+  });
+};
+
+// Called whenever a connection finishes registering, so a replacement is still
+// promoted when its original promotion job ran out of attempts.
+export let enqueuePromotion = async (d: {
+  connection: { oid: bigint; rotatedFromOid: bigint | null };
+}) => {
+  if (!d.connection.rotatedFromOid) return;
+
+  let credentials = await db.serverOAuthCredentials.findFirst({
+    where: { remoteConnectionOid: d.connection.oid, isDefault: false },
+    select: { id: true }
+  });
+  if (!credentials) return;
+
+  // Deliberately without a job id: a permanently failed promotion stays in the
+  // failed set for a day and would swallow the job that is meant to replace it.
+  // Promotion is idempotent, so duplicates are harmless.
+  await promoteRotatedCredentialsQueue.add({ newCredentialsId: credentials.id }, { delay: 5000 });
+};
+
+// The previous credentials keep working, so a failed rotation is not an error.
+// The replacement is retired so nothing can pick it up later.
+let retireReplacement = async (d: {
+  connection: { oid: bigint; id: string; errorCode?: string | null; errorMessage?: string | null };
+  previousConnection: { oid: bigint } | null;
+}) => {
+  await db.remoteOAuthConnection.updateMany({
+    where: { oid: d.connection.oid, status: 'active' },
+    data: { status: 'inactive' }
+  });
+
+  if (!d.previousConnection) return;
+
+  await recordRotationEvent({
+    connectionOid: d.previousConnection.oid,
+    discriminator: d.connection.id,
+    metadata: {
+      status: 'failed',
+      replacementConnectionId: d.connection.id,
+      errorCode: d.connection.errorCode ?? null,
+      errorMessage: d.connection.errorMessage ?? null
+    }
+  });
+};
 
 let recordRotationEvent = async (d: {
   connectionOid: bigint;

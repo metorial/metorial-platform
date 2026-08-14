@@ -1,6 +1,7 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { env } from '../../env';
 import { remoteOAuthRegistrationService } from '../../services/oauth/remote/registration';
+import { enqueuePromotion } from '../oauth/rotateRemoteCredentials';
 
 export let discoverRemoteOAuthConnectionQueue = createQueue<{ oauthConnectionId: string }>({
   name: 'shut/rem-oaconn/discover',
@@ -13,7 +14,10 @@ export let discoverRemoteOAuthConnectionQueueProcessor =
       connectionId: data.oauthConnectionId
     });
 
-    if (res.ok) return;
+    if (res.ok) {
+      await enqueuePromotion({ connection: res.connection });
+      return;
+    }
 
     if (res.reason == 'not_found') throw new QueueRetryError();
     if (res.reason == 'failed' && res.isTransient) throw new QueueRetryError();
