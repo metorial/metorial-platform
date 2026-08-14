@@ -1,6 +1,7 @@
 import { db as subspaceDb } from '@metorial-subspace/db';
 import { Service } from '@lowerdeck/service';
 import { metorialDb } from '../lib/metorialDb';
+import { ensureInstanceMirror, ensureProjectMirror } from '../lib/mirrorRecords';
 
 let shouldUpdateTenantLink = (d: {
   currentResourceTenantId: string | null;
@@ -77,6 +78,7 @@ class ReconcileResourceLinksServiceImpl {
         id: project.subspaceTenantId
       },
       select: {
+        oid: true,
         resourceTenantId: true,
         resourceTenantIdentifier: true,
         projectOid: true
@@ -103,13 +105,19 @@ class ReconcileResourceLinksServiceImpl {
         tenantUpdate.resourceTenantIdentifier = project.resourceTenant.identifier;
       }
 
+      let mirroredProjectOid = await ensureProjectMirror({
+        projectOid: project.oid,
+        tenantOid: subspaceTenant.oid
+      });
+
       if (
+        mirroredProjectOid !== null &&
         shouldUpdateOidReference({
           current: subspaceTenant.projectOid,
-          expected: project.oid
+          expected: mirroredProjectOid
         })
       ) {
-        tenantUpdate.projectOid = project.oid;
+        tenantUpdate.projectOid = mirroredProjectOid;
       }
 
       if (Object.keys(tenantUpdate).length > 0) {
@@ -132,6 +140,8 @@ class ReconcileResourceLinksServiceImpl {
           id: instance.subspaceEnvironmentId
         },
         select: {
+          oid: true,
+          tenantOid: true,
           resourceGroupId: true,
           resourceGroupIdentifier: true,
           instanceOid: true
@@ -159,13 +169,20 @@ class ReconcileResourceLinksServiceImpl {
         environmentUpdate.resourceGroupIdentifier = instance.resourceGroup.identifier;
       }
 
+      let mirroredInstanceOid = await ensureInstanceMirror({
+        instanceOid: instance.oid,
+        environmentOid: subspaceEnvironment.oid,
+        tenantOid: subspaceEnvironment.tenantOid
+      });
+
       if (
+        mirroredInstanceOid !== null &&
         shouldUpdateOidReference({
           current: subspaceEnvironment.instanceOid,
-          expected: instance.oid
+          expected: mirroredInstanceOid
         })
       ) {
-        environmentUpdate.instanceOid = instance.oid;
+        environmentUpdate.instanceOid = mirroredInstanceOid;
       }
 
       if (Object.keys(environmentUpdate).length === 0) continue;

@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, getId, type Tenant, type TenantActorType } from '@metorial-subspace/db';
+import { ensureOrganizationActorMirror } from '../lib/mirrorRecords';
 
 let include = {};
 
@@ -39,6 +40,13 @@ class actorServiceImpl {
       resourceActorIdentifier?: string;
     };
   }) {
+    let organizationActorOid =
+      d.input.organizationActorOid === undefined
+        ? undefined
+        : ((await ensureOrganizationActorMirror({
+            organizationActorOid: d.input.organizationActorOid
+          })) ?? undefined);
+
     return await db.tenantActor.upsert({
       where: d.input.id
         ? {
@@ -55,7 +63,7 @@ class actorServiceImpl {
         identifier: d.input.identifier,
         type: d.input.type,
         organizationActorId: d.input.organizationActorId,
-        organizationActorOid: d.input.organizationActorOid,
+        organizationActorOid,
         resourceActorId: d.input.resourceActorId,
         resourceActorIdentifier: d.input.resourceActorIdentifier
       },
@@ -66,7 +74,7 @@ class actorServiceImpl {
         type: d.input.type,
         tenantOid: d.tenant.oid,
         organizationActorId: d.input.organizationActorId,
-        organizationActorOid: d.input.organizationActorOid,
+        organizationActorOid,
         resourceActorId: d.input.resourceActorId,
         resourceActorIdentifier: d.input.resourceActorIdentifier
       },

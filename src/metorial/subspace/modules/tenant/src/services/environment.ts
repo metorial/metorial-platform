@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, type EnvironmentType, getId, type Tenant } from '@metorial-subspace/db';
 import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
+import { linkEnvironmentToInstanceMirror } from '../lib/mirrorRecords';
 
 let include = {};
 
@@ -28,8 +29,7 @@ class environmentServiceImpl {
         update: {
           name: d.input.name,
           resourceGroupId: d.input.resourceGroupId,
-          resourceGroupIdentifier: d.input.resourceGroupIdentifier,
-          instanceOid: d.input.instanceOid
+          resourceGroupIdentifier: d.input.resourceGroupIdentifier
         },
         create: {
           ...getId('environment'),
@@ -38,11 +38,17 @@ class environmentServiceImpl {
           type: d.input.type,
           resourceGroupId: d.input.resourceGroupId,
           resourceGroupIdentifier: d.input.resourceGroupIdentifier,
-          instanceOid: d.input.instanceOid,
           tenantOid: d.tenant.oid
         },
         include
       });
+
+      if (d.input.instanceOid !== undefined) {
+        environment.instanceOid = await linkEnvironmentToInstanceMirror({
+          environment,
+          instanceOid: d.input.instanceOid
+        });
+      }
 
       if (!existingEnvironment) {
         await reconcileProviderDeploymentMonitorForEnvironmentQueue.add(

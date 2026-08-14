@@ -253,6 +253,37 @@ describe('audit Fabric listeners', () => {
     );
   });
 
+  it('completes member update payloads when the event carries a bare previous member', async () => {
+    let actor = { id: 'oac_1', teams: [] };
+    let user = { id: 'usr_1', email: 'a@b.c', name: 'Ada', image: { type: 'default' } };
+    let policies = [{ id: 'apa_1', accessPolicy: { id: 'apl_1' } }];
+
+    await recordOrganizationMemberUpdated({
+      organization,
+      member: { id: 'ome_1', role: 'admin', organization, actor, user, policies },
+      previousMember: { id: 'ome_1', role: 'member' },
+      auditScope
+    } as any);
+
+    expect(recordEvent).toHaveBeenCalledWith(
+      auditScope,
+      'organization_member',
+      'update',
+      expect.objectContaining({
+        previousPayload: {
+          organizationMember: {
+            id: 'ome_1',
+            role: 'member',
+            organization,
+            actor,
+            user,
+            policies
+          }
+        }
+      })
+    );
+  });
+
   it('records team, assignment, and project setting events', async () => {
     let team = { id: 'tm_1', name: 'Support', slug: 'support', organization };
     let actor = { id: 'oac_1', name: 'Ada', email: 'ada@example.com' };

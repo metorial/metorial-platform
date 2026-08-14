@@ -26,8 +26,13 @@ export let recordOrganizationMemberUpdated = async (
       previousPayload: {
         organizationMember: {
           ...event.previousMember,
-          organization: event.organization
-        } as FabricEvents['organization.member.updated:after']['member']
+          // `previousMember` only carries the member's own columns, so the relations the
+          // presenter needs are taken from the updated member. An update cannot change them.
+          organization: event.organization,
+          actor: event.member.actor,
+          user: event.member.user,
+          policies: event.member.policies
+        }
       },
       recordedAt
     });

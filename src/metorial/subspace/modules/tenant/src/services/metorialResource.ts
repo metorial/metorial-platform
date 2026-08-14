@@ -11,65 +11,21 @@ import type {
 } from '@metorial/db';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from '../lib/metorialDb';
+import {
+  assertMirrorIdentity,
+  upsertInstanceMirror,
+  upsertOrganizationActorMirror,
+  upsertOrganizationMirror,
+  upsertProjectMirror
+} from '../lib/mirrorRecords';
 import { getOrganizationActorInternalActorIdentifier } from '../lib/scopeIds';
 import { backfillMirrorReferencesService } from './backfillMirrorReferences';
 import { subspaceScopeService } from './subspaceScope';
 import { tenantService } from './tenant';
 
-let assertIdentity = (
-  resource: string,
-  expected: { oid: bigint; id: string },
-  matches: { oid: bigint; id: string }[]
-) => {
-  if (matches.length > 1) {
-    throw new Error(
-      `Subspace ${resource} identity collision for oid ${expected.oid} and id ${expected.id}`
-    );
-  }
-
-  let match = matches[0];
-  if (match && (match.oid !== expected.oid || match.id !== expected.id)) {
-    throw new Error(
-      `Subspace ${resource} identity mismatch: expected ${expected.id}/${expected.oid}, found ${match.id}/${match.oid}`
-    );
-  }
-};
-
 class metorialResourceServiceImpl {
   async syncOrganization(organization: MetorialOrganization) {
-    let matches = await db.organization.findMany({
-      where: {
-        OR: [{ oid: organization.oid }, { id: organization.id }]
-      },
-      select: { oid: true, id: true }
-    });
-    assertIdentity('organization', organization, matches);
-
-    return await db.organization.upsert({
-      where: { oid: organization.oid },
-      update: {
-        type: organization.type,
-        status: organization.status,
-        slug: organization.slug,
-        name: organization.name,
-        image: organization.image,
-        deletedAt: organization.deletedAt,
-        createdAt: organization.createdAt,
-        updatedAt: organization.updatedAt
-      },
-      create: {
-        oid: organization.oid,
-        id: organization.id,
-        type: organization.type,
-        status: organization.status,
-        slug: organization.slug,
-        name: organization.name,
-        image: organization.image,
-        deletedAt: organization.deletedAt,
-        createdAt: organization.createdAt,
-        updatedAt: organization.updatedAt
-      }
-    });
+    return await upsertOrganizationMirror(organization);
   }
 
   async syncProject(project: MetorialProject) {
@@ -79,39 +35,7 @@ class metorialResourceServiceImpl {
     await this.syncOrganization(organization);
 
     let { tenant } = await subspaceScopeService.ensureForProject(project);
-    let matches = await db.project.findMany({
-      where: {
-        OR: [{ oid: project.oid }, { id: project.id }]
-      },
-      select: { oid: true, id: true }
-    });
-    assertIdentity('project', project, matches);
-
-    let mirrored = await db.project.upsert({
-      where: { oid: project.oid },
-      update: {
-        status: project.status,
-        slug: project.slug,
-        name: project.name,
-        organizationOid: project.organizationOid,
-        tenantOid: tenant.oid,
-        deletedAt: project.deletedAt,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt
-      },
-      create: {
-        oid: project.oid,
-        id: project.id,
-        status: project.status,
-        slug: project.slug,
-        name: project.name,
-        organizationOid: project.organizationOid,
-        tenantOid: tenant.oid,
-        deletedAt: project.deletedAt,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt
-      }
-    });
+    let mirrored = await upsertProjectMirror({ project, tenantOid: tenant.oid });
 
     await backfillMirrorReferencesService.backfillTenantReferences({
       tenantOid: tenant.oid
@@ -127,42 +51,9 @@ class metorialResourceServiceImpl {
     await this.syncProject(project);
 
     let { tenant, environment } = await subspaceScopeService.ensureForInstance(instance);
-    let matches = await db.instance.findMany({
-      where: {
-        OR: [{ oid: instance.oid }, { id: instance.id }]
-      },
-      select: { oid: true, id: true }
-    });
-    assertIdentity('instance', instance, matches);
-
-    let mirrored = await db.instance.upsert({
-      where: { oid: instance.oid },
-      update: {
-        type: instance.type,
-        status: instance.status,
-        slug: instance.slug,
-        name: instance.name,
-        projectOid: instance.projectOid,
-        organizationOid: instance.organizationOid,
-        environmentOid: environment.oid,
-        deletedAt: instance.deletedAt,
-        createdAt: instance.createdAt,
-        updatedAt: instance.updatedAt
-      },
-      create: {
-        oid: instance.oid,
-        id: instance.id,
-        type: instance.type,
-        status: instance.status,
-        slug: instance.slug,
-        name: instance.name,
-        projectOid: instance.projectOid,
-        organizationOid: instance.organizationOid,
-        environmentOid: environment.oid,
-        deletedAt: instance.deletedAt,
-        createdAt: instance.createdAt,
-        updatedAt: instance.updatedAt
-      }
+    let mirrored = await upsertInstanceMirror({
+      instance,
+      environmentOid: environment.oid
     });
 
     await tenantService.ensureNetworksForTenant(tenant);
@@ -178,39 +69,7 @@ class metorialResourceServiceImpl {
     });
     await this.syncOrganization(organization);
 
-    let matches = await db.organizationActor.findMany({
-      where: {
-        OR: [{ oid: actor.oid }, { id: actor.id }]
-      },
-      select: { oid: true, id: true }
-    });
-    assertIdentity('organization actor', actor, matches);
-
-    let mirrored = await db.organizationActor.upsert({
-      where: { oid: actor.oid },
-      update: {
-        type: actor.type,
-        isSystem: actor.isSystem,
-        email: actor.email,
-        name: actor.name,
-        image: actor.image,
-        organizationOid: actor.organizationOid,
-        createdAt: actor.createdAt,
-        updatedAt: actor.updatedAt
-      },
-      create: {
-        oid: actor.oid,
-        id: actor.id,
-        type: actor.type,
-        isSystem: actor.isSystem,
-        email: actor.email,
-        name: actor.name,
-        image: actor.image,
-        organizationOid: actor.organizationOid,
-        createdAt: actor.createdAt,
-        updatedAt: actor.updatedAt
-      }
-    });
+    let mirrored = await upsertOrganizationActorMirror(actor);
 
     await linkOrganizationActorToTenants(actor);
     return mirrored;
@@ -228,7 +87,7 @@ class metorialResourceServiceImpl {
       },
       select: { oid: true, id: true }
     });
-    assertIdentity('organization member', member, matches);
+    assertMirrorIdentity('organization member', member, matches);
 
     return await db.organizationMember.upsert({
       where: { oid: member.oid },
@@ -294,7 +153,7 @@ class metorialResourceServiceImpl {
       },
       select: { oid: true, id: true }
     });
-    assertIdentity('consumer', consumer, matches);
+    assertMirrorIdentity('consumer', consumer, matches);
 
     return await db.consumer.upsert({
       where: { oid: consumer.oid },
@@ -348,7 +207,7 @@ class metorialResourceServiceImpl {
       },
       select: { oid: true, id: true }
     });
-    assertIdentity('instance consumer', instanceConsumer, matches);
+    assertMirrorIdentity('instance consumer', instanceConsumer, matches);
 
     return await db.instanceConsumer.upsert({
       where: { oid: instanceConsumer.oid },
@@ -397,7 +256,7 @@ class metorialResourceServiceImpl {
       },
       select: { oid: true, id: true }
     });
-    assertIdentity('consumer profile', consumerProfile, matches);
+    assertMirrorIdentity('consumer profile', consumerProfile, matches);
 
     return await db.consumerProfile.upsert({
       where: { oid: consumerProfile.oid },

@@ -5,6 +5,10 @@ import { db, type EnvironmentType, getId, type Tenant } from '@metorial-subspace
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
 import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
 import { networkInternalService } from '@metorial-subspace/module-enclave';
+import {
+  linkEnvironmentToInstanceMirror,
+  linkTenantToProjectMirror
+} from '../lib/mirrorRecords';
 import { tenantLogRetentionSyncQueue } from '../queues/retention/sync';
 
 let include = {};
@@ -62,12 +66,10 @@ class tenantServiceImpl {
           collectOperationDescriptionForToolCalls:
             d.input.collectOperationDescriptionForToolCalls,
           useIntegrationNamesForSessionProviderNameTemplates:
-            d.input.useIntegrationNamesForSessionProviderNameTemplates,
-          projectOid: d.input.projectOid
+            d.input.useIntegrationNamesForSessionProviderNameTemplates
         },
         create: {
           ...getId('tenant'),
-          projectOid: d.input.projectOid,
           name: d.input.name,
           identifier: d.input.identifier,
           resourceTenantId: d.input.resourceTenantId,
@@ -87,6 +89,10 @@ class tenantServiceImpl {
           urlKey: generatePlainId(10).toLowerCase()
         }
       });
+
+      if (d.input.projectOid !== undefined) {
+        await linkTenantToProjectMirror({ tenant, projectOid: d.input.projectOid });
+      }
 
       if (
         d.input.logRetentionInDays !== undefined &&
@@ -121,8 +127,7 @@ class tenantServiceImpl {
           identifier: env.identifier,
           type: env.type,
           resourceGroupId: env.resourceGroupId,
-          resourceGroupIdentifier: env.resourceGroupIdentifier,
-          instanceOid: env.instanceOid
+          resourceGroupIdentifier: env.resourceGroupIdentifier
         }))
       });
 
@@ -135,8 +140,7 @@ class tenantServiceImpl {
           data: {
             name: environment.name,
             resourceGroupId: environment.resourceGroupId,
-            resourceGroupIdentifier: environment.resourceGroupIdentifier,
-            instanceOid: environment.instanceOid
+            resourceGroupIdentifier: environment.resourceGroupIdentifier
           }
         });
       }
@@ -144,6 +148,22 @@ class tenantServiceImpl {
       let environments = await db.environment.findMany({
         where: { tenantOid: tenant.oid }
       });
+
+      let inputInstanceOids = new Map(
+        d.input.environments.flatMap(environment =>
+          environment.instanceOid === undefined
+            ? []
+            : [[environment.identifier, environment.instanceOid] as const]
+        )
+      );
+
+      for (let environment of environments) {
+        let instanceOid = inputInstanceOids.get(environment.identifier);
+        if (instanceOid === undefined) continue;
+
+        await linkEnvironmentToInstanceMirror({ environment, instanceOid });
+      }
+
       let inputEnvironmentIdentifierSet = new Set(inputEnvironmentIdentifiers);
       let createdEnvironments = environments.filter(
         environment =>
