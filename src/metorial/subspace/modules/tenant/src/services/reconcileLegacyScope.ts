@@ -471,9 +471,6 @@ class ReconcileLegacyScopeServiceImpl {
       return report;
     }
 
-    // A link to an environment named for another instance reads as a note rather than drift, so
-    // nothing else defers on it. Left alone it would keep this instance pointing at a sibling's
-    // environment while the regular path provisions a replacement behind it.
     let hasForeignLink = project.instances.some(
       instance =>
         instance.subspaceEnvironmentId &&
@@ -591,8 +588,6 @@ class ReconcileLegacyScopeServiceImpl {
   private async planEnvironments(d: { project: ScopeProject; report: LegacyScopeReport }) {
     let candidates = await collectEnvironmentCandidates(d.project.instances);
 
-    // A canonical identifier names the instance that owns the environment, so an instance linking
-    // to one that names a sibling is holding a link the identifier itself contradicts.
     let foreignEnvironmentIds = new Set(
       candidates
         .filter(candidate => {
@@ -620,9 +615,6 @@ class ReconcileLegacyScopeServiceImpl {
 
       if (resolution.value.projectOid !== d.project.oid) continue;
 
-      // A canonical identifier names the instance it belongs to, and resolution trusts the mirror
-      // before the identifier. When the two disagree the row is another instance's environment
-      // reached through a stale pointer, so promoting it would rename or delete a correct row.
       let namedInstanceOid = parseCanonicalInstanceOid(candidate.identifier);
       if (namedInstanceOid !== null && namedInstanceOid !== resolution.value.oid) {
         d.report.warnings.push(
@@ -850,9 +842,6 @@ class ReconcileLegacyScopeServiceImpl {
     for (let instance of d.project.instances) {
       let plan = planByInstance.get(instance.oid);
 
-      // The environment carries another instance's canonical name, so this link is the stale side
-      // of the disagreement. Dropping it lets the regular path provision this instance its own
-      // environment instead of leaving it pointing at a row that belongs to a sibling.
       if (!plan && instance.subspaceEnvironmentId) {
         if (d.foreignEnvironmentIds.has(instance.subspaceEnvironmentId)) {
           clearedForeignLink.add(instance.oid);
@@ -860,8 +849,6 @@ class ReconcileLegacyScopeServiceImpl {
             `Instance ${instance.id} dropped its link to ${instance.subspaceEnvironmentId}, which names another instance`
           );
         } else {
-          // Nothing names this environment, so it may well hold this instance's data. Clearing the
-          // link would orphan it, so the link stays and the instance is held back from the handoff.
           keptExistingLink.add(instance.oid);
           d.report.warnings.push(
             `Instance ${instance.id} keeps its existing environment link ${instance.subspaceEnvironmentId}, no candidate resolved to it`
