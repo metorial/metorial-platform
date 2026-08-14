@@ -42,8 +42,6 @@ export let retryFailedRegistrationsSearchQueueProcessor =
         status: 'active',
         discoveryStatus: 'failed',
 
-        // Connections with their own client must never be re-registered, doing
-        // so would swap the client out from under any token issued to it.
         registrationOid: null,
         secretOid: null,
 
@@ -91,7 +89,5 @@ export let retryRegistrationQueueProcessor = retryRegistrationQueue.process(asyn
 
   if (res.ok) return;
 
-  // A connection that is gone or no longer eligible is not an error, the next
-  // cron run reconsiders it.
   if (res.reason == 'failed' && res.isTransient) throw new QueueRetryError();
 });

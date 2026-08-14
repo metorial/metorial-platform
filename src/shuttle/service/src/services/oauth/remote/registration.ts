@@ -5,10 +5,6 @@ import { OAuthUtils } from '../../../lib/oauth/oauthUtils';
 import { getRegistrationBlocker } from '../../../lib/oauth/registrationRetry';
 
 class remoteOAuthRegistrationServiceImpl {
-  /**
-   * Registers an OAuth client for a connection that does not have one yet. Used
-   * both for the initial registration and for retries of failed registrations.
-   */
   async runAutoRegistration(d: { connectionId: string }) {
     let connection = await db.remoteOAuthConnection.findFirst({
       where: { id: d.connectionId },
@@ -42,8 +38,6 @@ class remoteOAuthRegistrationServiceImpl {
       return { ok: false as const, reason: 'unsupported' as const };
     }
 
-    // Counted before calling the provider so a crashing or hanging registration
-    // cannot be retried indefinitely.
     let attempt = connection.registrationAttemptCount + 1;
     await db.remoteOAuthConnection.update({
       where: { oid: connection.oid },
@@ -106,7 +100,6 @@ class remoteOAuthRegistrationServiceImpl {
         discoveryStatus: 'failed',
         errorCode: 'auto_registration_failed',
         errorMessage: `Failed to auto-register OAuth client for connection: ${jsonInner}`,
-        // Provider outages should not use up the connection's retry budget.
         registrationAttemptCount: isTransient ? connection.registrationAttemptCount : attempt
       }
     });

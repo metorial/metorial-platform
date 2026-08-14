@@ -142,14 +142,11 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
           deployingStep.log(`Name: ${oauthConfig.providerName}`);
           deployingStep.log(`URL: ${oauthConfig.providerUrl}`);
 
-          // If the discovery succeeded, we can update the server to point to the new OAuth config
           await db.server.updateMany({
             where: { oid: server.oid },
             data: { remoteOauthConfigOid: oauthConfig.oid }
           });
 
-          // For backwards compatibility, we need to update all existing
-          // remote connections to use the new config
           await db.remoteOAuthConnection.updateMany({
             where: {
               serverOid: server.oid,
@@ -159,9 +156,6 @@ export let deployRemoteServerStartQueueProcessor = deployRemoteServerStartQueue.
             data: { configOid: oauthConfig.oid }
           });
 
-          // Connections that never got a client registered are moved to the new
-          // config as well, and get a fresh retry budget because the newly
-          // discovered config may be what makes registration work.
           let repointed = await db.remoteOAuthConnection.updateMany({
             where: {
               serverOid: server.oid,

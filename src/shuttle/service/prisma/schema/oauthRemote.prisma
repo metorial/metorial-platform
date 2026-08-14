@@ -141,7 +141,6 @@ model RemoteOAuthConnection {
   registrationOid BigInt?
   registration    RemoteOAuthAutoRegistration? @relation(fields: [registrationOid], references: [oid])
 
-  // Set when this connection was created to replace the client of another one.
   rotatedFromOid BigInt?
   rotatedFrom    RemoteOAuthConnection?  @relation("remoteOAuthConnectionRotation", fields: [rotatedFromOid], references: [oid], onDelete: SetNull)
   rotatedTo      RemoteOAuthConnection[] @relation("remoteOAuthConnectionRotation")
