@@ -265,20 +265,42 @@ describe('OrganizationActorService', () => {
         organization: mockOrg
       };
 
-      vi.mocked(db.organizationActor.findFirst).mockResolvedValue(mockSystemActor as any);
+      let findFirst = vi.fn().mockResolvedValue(mockSystemActor);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          organizationActor: {
+            findFirst
+          }
+        };
+        return callback(mockDb as any);
+      });
 
       let result = await organizationActorService.getSystemActor({
         organization: mockOrg as any
       });
 
       expect(result).toEqual(mockSystemActor);
-      expect(db.organizationActor.findFirst).toHaveBeenCalled();
+      expect(findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            organizationOid: mockOrg.oid,
+            isSystem: true
+          }
+        })
+      );
     });
 
     it('should throw error when system actor not found', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
 
-      vi.mocked(db.organizationActor.findFirst).mockResolvedValue(null);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          organizationActor: {
+            findFirst: vi.fn().mockResolvedValue(null)
+          }
+        };
+        return callback(mockDb as any);
+      });
 
       await expect(
         organizationActorService.getSystemActor({
