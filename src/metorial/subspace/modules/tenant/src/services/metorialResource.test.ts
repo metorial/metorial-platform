@@ -30,7 +30,10 @@ let mocks = vi.hoisted(() => ({
   metorialInstanceConsumerFind: vi.fn(),
   ensureForProject: vi.fn(),
   ensureForInstance: vi.fn(),
-  ensureForOrganizationActor: vi.fn()
+  ensureForOrganizationActor: vi.fn(),
+  ensureNetworksForTenant: vi.fn(),
+  backfillTenantReferences: vi.fn(),
+  backfillEnvironmentReferences: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -105,6 +108,19 @@ vi.mock('./subspaceScope', () => ({
     ensureForProject: mocks.ensureForProject,
     ensureForInstance: mocks.ensureForInstance,
     ensureForOrganizationActor: mocks.ensureForOrganizationActor
+  }
+}));
+
+vi.mock('./tenant', () => ({
+  tenantService: {
+    ensureNetworksForTenant: mocks.ensureNetworksForTenant
+  }
+}));
+
+vi.mock('./backfillMirrorReferences', () => ({
+  backfillMirrorReferencesService: {
+    backfillTenantReferences: mocks.backfillTenantReferences,
+    backfillEnvironmentReferences: mocks.backfillEnvironmentReferences
   }
 }));
 
@@ -200,7 +216,10 @@ describe('Metorial resource synchronization', () => {
     mocks.metorialOrganizationFind.mockResolvedValue(organization);
     mocks.metorialProjectFind.mockResolvedValue(project);
     mocks.ensureForProject.mockResolvedValue({ tenant: { oid: 20n } });
-    mocks.ensureForInstance.mockResolvedValue({ environment: { oid: 30n } });
+    mocks.ensureForInstance.mockResolvedValue({
+      tenant: { oid: 20n },
+      environment: { oid: 30n }
+    });
     mocks.projectUpsert.mockResolvedValue(project);
     mocks.instanceUpsert.mockResolvedValue(instance);
 
@@ -217,6 +236,7 @@ describe('Metorial resource synchronization', () => {
         })
       })
     );
+    expect(mocks.backfillTenantReferences).toHaveBeenCalledWith({ tenantOid: 20n });
     expect(mocks.instanceUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
@@ -226,6 +246,19 @@ describe('Metorial resource synchronization', () => {
           environmentOid: 30n
         })
       })
+    );
+    expect(mocks.ensureNetworksForTenant).toHaveBeenCalledWith({ oid: 20n });
+    expect(mocks.backfillEnvironmentReferences).toHaveBeenCalledWith({
+      environmentOid: 30n
+    });
+    expect(mocks.projectUpsert.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.backfillTenantReferences.mock.invocationCallOrder[0]
+    );
+    expect(mocks.instanceUpsert.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.ensureNetworksForTenant.mock.invocationCallOrder[0]
+    );
+    expect(mocks.ensureNetworksForTenant.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.backfillEnvironmentReferences.mock.invocationCallOrder[0]
     );
   });
 

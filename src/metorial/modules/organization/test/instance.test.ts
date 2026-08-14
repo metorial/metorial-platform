@@ -29,6 +29,7 @@ vi.mock('@metorial/db', () => ({
     generateId: vi.fn()
   },
   addAfterTransactionHook: vi.fn(async callback => await callback()),
+  isInTransaction: vi.fn(() => false),
   withTransaction: vi.fn(callback =>
     callback({
       instance: {
@@ -80,14 +81,17 @@ vi.mock('date-fns', () => ({
   differenceInMinutes: vi.fn()
 }));
 
-vi.mock('../src/queues/syncSubspaceTenant', () => ({
-  syncSubspaceTenantQueue: {
-    add: vi.fn()
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganization: vi.fn(),
+    syncProject: vi.fn(),
+    syncInstance: vi.fn()
   }
 }));
 
-import { db, ID, withTransaction } from '@metorial/db';
+import { db, ID, isInTransaction, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
 import { instanceService } from '../src/services/instance';
 
@@ -120,6 +124,7 @@ let withCompanionMocks = (mockDb: any) => ({
 describe('InstanceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isInTransaction).mockReturnValue(false);
   });
 
   describe('createInstance', () => {
@@ -172,6 +177,38 @@ describe('InstanceService', () => {
           instance: mockInstance
         })
       );
+      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith(mockInstance);
+    });
+
+    it('skips subspace sync when nested in another Metorial transaction', async () => {
+      let mockInstance = {
+        id: 'inst-nested',
+        oid: 9,
+        type: 'development'
+      };
+
+      vi.mocked(ID.generateId).mockResolvedValue('inst-nested');
+      vi.mocked(isInTransaction).mockReturnValue(true);
+      vi.mocked(withTransaction).mockImplementation(async callback => {
+        let mockDb = {
+          instance: {
+            create: vi.fn().mockResolvedValue(mockInstance)
+          }
+        };
+        return callback(withCompanionMocks(mockDb) as any);
+      });
+
+      await instanceService.createInstance({
+        project: { id: 'proj-1', oid: 1 } as any,
+        organization: { id: 'org-1', oid: 1 } as any,
+        auditScope,
+        input: {
+          name: 'Nested Instance',
+          type: 'development'
+        }
+      });
+
+      expect(metorialResourceService.syncInstance).not.toHaveBeenCalled();
     });
 
     it('should create production instance', async () => {
@@ -425,6 +462,7 @@ describe('InstanceService', () => {
         'organization.project.instance.updated:after',
         expect.any(Object)
       );
+      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith(updatedInstance);
     });
 
     it('should throw forbidden error for deleted instance', async () => {

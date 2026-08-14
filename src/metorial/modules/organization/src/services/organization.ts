@@ -24,6 +24,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
 import { cleanupFileImage, resolveFileImage } from '../lib/fileImage';
 import { syncBrandOrganizationQueue } from '../queues/syncBrand';
@@ -120,7 +121,7 @@ class OrganizationService {
     context: Context;
     performedBy: User;
   }) {
-    return withTransaction(async db => {
+    let result = await withTransaction(async db => {
       await Fabric.fire('organization.created:before', d);
 
       let organization = await db.organization.create({
@@ -203,6 +204,9 @@ class OrganizationService {
         actor: member.actor
       };
     });
+
+    await metorialResourceService.syncOrganization(result.organization);
+    return result;
   }
 
   async updateOrganization(d: {
@@ -217,7 +221,7 @@ class OrganizationService {
   }) {
     await this.ensureOrganizationActive(d.organization);
 
-    return withTransaction(async db => {
+    let organization = await withTransaction(async db => {
       await Fabric.fire('organization.updated:before', d);
 
       let nextImage = d.input.image;
@@ -285,6 +289,9 @@ class OrganizationService {
 
       return organization;
     });
+
+    await metorialResourceService.syncOrganization(organization);
+    return organization;
   }
 
   async deleteOrganization(d: { organization: Organization; auditScope: AuditScope }) {

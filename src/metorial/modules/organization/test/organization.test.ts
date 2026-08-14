@@ -156,6 +156,14 @@ vi.mock('../src/queues/syncBrand', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganization: vi.fn(),
+    syncProject: vi.fn(),
+    syncInstance: vi.fn()
+  }
+}));
+
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { fileReferenceService } from '@metorial/cargo-module-file';
@@ -166,6 +174,7 @@ import { organizationActorService } from '../src/services/organizationActor';
 import { authBootstrapService } from '../src/services/authBootstrap';
 import { organizationMemberService } from '../src/services/organizationMember';
 import { projectService } from '../src/services/project';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 
 describe('OrganizationService', () => {
   beforeEach(() => {
@@ -280,6 +289,7 @@ describe('OrganizationService', () => {
           })
         })
       );
+      expect(metorialResourceService.syncOrganization).toHaveBeenCalledWith(mockOrg);
     });
 
     it('should create organization with custom image', async () => {
@@ -613,6 +623,7 @@ describe('OrganizationService', () => {
           previousOrganization: mockOrg
         })
       );
+      expect(metorialResourceService.syncOrganization).toHaveBeenCalledWith(updatedOrg);
     });
 
     it('should update organization image', async () => {

@@ -10,11 +10,11 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
-  addAfterTransactionHook,
   db,
   ID,
   Instance,
   InstanceType,
+  isInTransaction,
   Organization,
   OrganizationActor,
   OrganizationMember,
@@ -27,8 +27,8 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
-import { syncSubspaceTenantQueue } from '../queues/syncSubspaceTenant';
 
 let getInstanceSlug = createSlugGenerator(async slug => {
   let instance = await db.instance.findFirst({
@@ -311,7 +311,7 @@ class InstanceService {
       type: InstanceType;
     };
   }) {
-    return withTransaction(async db => {
+    let instance = await withTransaction(async db => {
       await Fabric.fire('organization.project.instance.created:before', d);
 
       if (d.input.type === 'production') {
@@ -346,10 +346,6 @@ class InstanceService {
         auditScope: d.auditScope
       });
 
-      await addAfterTransactionHook(() =>
-        syncSubspaceTenantQueue.add({ projectId: d.project.id })
-      );
-
       await Fabric.fire('organization.project.instance.created:after', {
         organization: d.organization,
         project: d.project,
@@ -360,6 +356,12 @@ class InstanceService {
 
       return instance;
     });
+
+    if (!isInTransaction()) {
+      await metorialResourceService.syncInstance(instance);
+    }
+
+    return instance;
   }
 
   async updateInstance(d: {
@@ -375,7 +377,7 @@ class InstanceService {
   }) {
     await this.ensureInstanceActive(d.instance);
 
-    return withTransaction(async db => {
+    let instance = await withTransaction(async db => {
       await Fabric.fire('organization.project.instance.updated:before', {
         ...d,
         project: d.instance.project
@@ -417,10 +419,6 @@ class InstanceService {
         auditScope: d.auditScope
       });
 
-      await addAfterTransactionHook(() =>
-        syncSubspaceTenantQueue.add({ projectId: d.instance.project.id })
-      );
-
       await Fabric.fire('organization.project.instance.updated:after', {
         organization: d.organization,
         input: d.input,
@@ -432,6 +430,12 @@ class InstanceService {
 
       return instance;
     });
+
+    if (!isInTransaction()) {
+      await metorialResourceService.syncInstance(instance);
+    }
+
+    return instance;
   }
 
   async createSandbox(d: {

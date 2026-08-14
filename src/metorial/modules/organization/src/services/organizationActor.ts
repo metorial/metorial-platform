@@ -60,16 +60,21 @@ class OrganizationActorService {
   }
 
   async getSystemActor(d: { organization: Organization }) {
-    let actor = await db.organizationActor.findFirst({
-      where: {
-        organizationOid: d.organization.oid,
-        isSystem: true
-      },
-      include
-    });
-    if (!actor) throw new Error('WTF - System actor not found');
+    return withTransaction(
+      async db => {
+        let actor = await db.organizationActor.findFirst({
+          where: {
+            organizationOid: d.organization.oid,
+            isSystem: true
+          },
+          include
+        });
+        if (!actor) throw new Error('WTF - System actor not found');
 
-    return actor;
+        return actor;
+      },
+      { ifExists: true }
+    );
   }
 
   async updateOrganizationActor(d: {

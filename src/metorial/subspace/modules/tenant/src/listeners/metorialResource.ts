@@ -59,12 +59,6 @@ export let syncConsumerProfileResource = async (d: { consumerProfile: { id: stri
   );
 };
 
-Fabric.listen('organization.created:after', syncOrganizationResource);
-Fabric.listen('organization.updated:after', syncOrganizationResource);
-Fabric.listen('organization.project.created:after', syncProjectResource);
-Fabric.listen('organization.project.updated:after', syncProjectResource);
-Fabric.listen('organization.project.instance.created:after', syncInstanceResource);
-Fabric.listen('organization.project.instance.updated:after', syncInstanceResource);
 Fabric.listen('organization.actor.created:after', syncOrganizationActorResource);
 Fabric.listen('organization.actor.updated:after', syncOrganizationActorResource);
 Fabric.listen('organization.member.created:after', syncOrganizationMemberResource);

@@ -475,6 +475,7 @@ class subspaceScopeServiceImpl {
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
         projectOid: loadedProject.oid,
+        skipNetworks: true,
         environments: await Promise.all(
           (loadedProject.instances ?? []).map(async instance => {
             let resourceGroup = await resolveInstanceResourceGroup(instance);

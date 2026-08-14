@@ -159,7 +159,7 @@ describe('Subspace canonical scope reconciliation', () => {
     expect(mocks.projectUpdate).not.toHaveBeenCalled();
     expect(mocks.tenantUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: expect.objectContaining({ identifier: 'mte-pro-2' })
+        input: expect.objectContaining({ identifier: 'mte-pro-2', skipNetworks: true })
       })
     );
   });
@@ -197,6 +197,7 @@ describe('Subspace canonical scope reconciliation', () => {
       expect.objectContaining({
         input: expect.objectContaining({
           projectOid: 2n,
+          skipNetworks: true,
           environments: [expect.objectContaining({ instanceOid: 3n })]
         })
       })

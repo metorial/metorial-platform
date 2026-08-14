@@ -12,7 +12,9 @@ import type {
 import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from '../lib/metorialDb';
 import { getOrganizationActorInternalActorIdentifier } from '../lib/scopeIds';
+import { backfillMirrorReferencesService } from './backfillMirrorReferences';
 import { subspaceScopeService } from './subspaceScope';
+import { tenantService } from './tenant';
 
 let assertIdentity = (
   resource: string,
@@ -111,6 +113,9 @@ class metorialResourceServiceImpl {
       }
     });
 
+    await backfillMirrorReferencesService.backfillTenantReferences({
+      tenantOid: tenant.oid
+    });
     await linkOrganizationActorsToTenant(tenant, project.organizationOid);
     return mirrored;
   }
@@ -121,7 +126,7 @@ class metorialResourceServiceImpl {
     });
     await this.syncProject(project);
 
-    let { environment } = await subspaceScopeService.ensureForInstance(instance);
+    let { tenant, environment } = await subspaceScopeService.ensureForInstance(instance);
     let matches = await db.instance.findMany({
       where: {
         OR: [{ oid: instance.oid }, { id: instance.id }]
@@ -130,7 +135,7 @@ class metorialResourceServiceImpl {
     });
     assertIdentity('instance', instance, matches);
 
-    return await db.instance.upsert({
+    let mirrored = await db.instance.upsert({
       where: { oid: instance.oid },
       update: {
         type: instance.type,
@@ -159,6 +164,12 @@ class metorialResourceServiceImpl {
         updatedAt: instance.updatedAt
       }
     });
+
+    await tenantService.ensureNetworksForTenant(tenant);
+    await backfillMirrorReferencesService.backfillEnvironmentReferences({
+      environmentOid: environment.oid
+    });
+    return mirrored;
   }
 
   async syncOrganizationActor(actor: MetorialOrganizationActor) {

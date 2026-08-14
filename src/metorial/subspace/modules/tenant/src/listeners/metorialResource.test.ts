@@ -58,12 +58,6 @@ describe('Metorial resource Fabric listeners', () => {
 
   it('registers creation and update listeners for every mirrored resource', () => {
     expect(mocks.listen.mock.calls.map(call => call[0])).toEqual([
-      'organization.created:after',
-      'organization.updated:after',
-      'organization.project.created:after',
-      'organization.project.updated:after',
-      'organization.project.instance.created:after',
-      'organization.project.instance.updated:after',
       'organization.actor.created:after',
       'organization.actor.updated:after',
       'organization.member.created:after',

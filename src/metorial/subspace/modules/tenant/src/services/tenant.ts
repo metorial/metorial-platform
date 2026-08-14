@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
-import { db, type EnvironmentType, getId } from '@metorial-subspace/db';
+import { db, type EnvironmentType, getId, type Tenant } from '@metorial-subspace/db';
 import { reconcileTenantManagedBackingsQueue } from '@metorial-subspace/module-auth/src/queues/reconcile';
 import { reconcileProviderDeploymentMonitorForEnvironmentQueue } from '@metorial-subspace/module-deployment/src/queues/reconcile/providerDeploymentMonitor';
 import { networkInternalService } from '@metorial-subspace/module-enclave';
@@ -26,6 +26,7 @@ class tenantServiceImpl {
       collectOperationDescriptionForToolCalls?: boolean;
       useIntegrationNamesForSessionProviderNameTemplates?: boolean;
       projectOid?: bigint;
+      skipNetworks?: boolean;
       environments: {
         name: string;
         identifier: string;
@@ -150,8 +151,8 @@ class tenantServiceImpl {
           !existingEnvironmentIdentifiers.has(environment.identifier)
       );
 
-      for (let environment of environments) {
-        await networkInternalService.ensureNetworkForEnvironment({ tenant, environment });
+      if (!d.input.skipNetworks) {
+        await this.ensureNetworksForTenant(tenant);
       }
 
       if (createdEnvironments.length > 0) {
@@ -197,6 +198,15 @@ class tenantServiceImpl {
       }
 
       throw error;
+    }
+  }
+
+  async ensureNetworksForTenant(tenant: Tenant) {
+    let environments = await db.environment.findMany({
+      where: { tenantOid: tenant.oid }
+    });
+    for (let environment of environments) {
+      await networkInternalService.ensureNetworkForEnvironment({ tenant, environment });
     }
   }
 

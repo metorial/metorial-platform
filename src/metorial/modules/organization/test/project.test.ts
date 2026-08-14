@@ -81,15 +81,17 @@ vi.mock('../src/queues/syncBrand', () => ({
   }
 }));
 
-vi.mock('../src/queues/syncSubspaceTenant', () => ({
-  syncSubspaceTenantQueue: {
-    add: vi.fn(),
-    addMany: vi.fn()
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganization: vi.fn(),
+    syncProject: vi.fn(),
+    syncInstance: vi.fn()
   }
 }));
 
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { instanceService } from '../src/services/instance';
 import { projectService } from '../src/services/project';
 
@@ -122,7 +124,10 @@ describe('ProjectService', () => {
         };
         return callback(mockDb as any);
       });
-      vi.mocked(instanceService.createInstance).mockResolvedValue({} as any);
+      vi.mocked(instanceService.createInstance).mockResolvedValue({
+        id: 'inst-1',
+        oid: 2
+      } as any);
 
       let result = await projectService.createProject({
         organization: mockOrg as any,
@@ -152,6 +157,10 @@ describe('ProjectService', () => {
           name: 'Production',
           type: 'production'
         }
+      });
+      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith({
+        id: 'inst-1',
+        oid: 2
       });
     });
 
@@ -265,6 +274,7 @@ describe('ProjectService', () => {
         'organization.project.updated:after',
         expect.any(Object)
       );
+      expect(metorialResourceService.syncProject).toHaveBeenCalledWith(updatedProject);
     });
 
     it('should throw forbidden error for deleted project', async () => {
