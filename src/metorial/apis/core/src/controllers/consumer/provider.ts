@@ -13,10 +13,6 @@ import {
   consumerSurfaceProviderGroupService
 } from '@metorial/module-consumer';
 import { magicMcpServerService } from '@metorial/module-magic';
-import { Controller } from '@metorial/rest';
-import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
-import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
-import { hasFlags } from '../../middleware/hasFlags';
 import {
   consumerAccessRequestPresenter,
   consumerProviderPresenter,
@@ -26,6 +22,10 @@ import {
   portalOAuthAuthorizationPresenter,
   portalOAuthClientPresenter
 } from '@metorial/presenters';
+import { Controller } from '@metorial/rest';
+import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
+import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
+import { hasFlags } from '../../middleware/hasFlags';
 
 let consumerProviderItemGroup = consumerGroup.use(async ctx => {
   if (!ctx.params.catalogItemId) {
@@ -413,6 +413,7 @@ export let consumerProviderController = Controller.create(
           consumerSurface: ctx.consumerSurface,
           consumerProfile: ctx.consumerProfile,
           providerTemplateId: consumerProvider.providerTemplate.id,
+          requestOrigin: ctx.headers['origin'],
           input: {
             providerAuthMethodId: ctx.body.provider_auth_method_id
           }

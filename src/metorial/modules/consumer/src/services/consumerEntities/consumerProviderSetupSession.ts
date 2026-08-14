@@ -5,6 +5,10 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import {
+  integrationService,
+  integrationSetupSessionService
+} from '@metorial-subspace/module-integration';
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
@@ -12,35 +16,31 @@ import {
   ConsumerSurface,
   db,
   ID,
+  Portal,
   ProviderTemplate,
   type Instance
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { providerTemplateService } from '@metorial/module-magic';
-import {
-  integrationService,
-  integrationSetupSessionService
-} from '@metorial-subspace/module-integration';
+import { portalService } from '../portal';
 
-let buildProviderSetupRedirectUrl = (portalSlug: string) => {
-  let template = process.env.PORTAL_HOST_TEMPLATE;
-  if (!template) {
-    throw new Error('PORTAL_HOST_TEMPLATE is required');
-  }
+let buildProviderSetupRedirectUrl = async (d: {
+  portal: Pick<Portal, 'oid' | 'slug'>;
+  requestOrigin?: string | null;
+}) => {
+  let url = new URL(
+    await portalService.getPortalUrlForOrigin({
+      portal: d.portal,
+      origin: d.requestOrigin
+    })
+  );
+  let basePath = url.pathname.replace(/\/+$/, '');
+  url.pathname = `${basePath}/provider-setup-complete`.replace(/\/{2,}/g, '/');
+  url.search = '';
+  url.hash = '';
 
-  let raw = template.replace(/\/+$/, '');
-
-  if (!raw.includes('{portalId}')) {
-    let url = new URL(raw);
-    let pathname = `${url.pathname.replace(/\/+$/, '')}/p/{portalId}`.replace(/\/{2,}/g, '/');
-
-    raw = `${url.origin}${pathname}${url.search}${url.hash}`.replace(/\/+$/, '');
-  }
-
-  let baseUrl = raw.replace('{portalId}', portalSlug).replace(/\/+$/, '');
-
-  return `${baseUrl}/provider-setup-complete`;
+  return url.toString();
 };
 
 let getSetupSessionBindingMetadata = (d: {
@@ -124,6 +124,7 @@ class ConsumerProviderSetupSessionServiceImpl {
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfile;
     providerTemplateId: string;
+    requestOrigin?: string | null;
     input: {
       providerAuthMethodId?: string;
     };
@@ -140,6 +141,7 @@ class ConsumerProviderSetupSessionServiceImpl {
         surfaceOid: d.consumerSurface.oid
       },
       select: {
+        oid: true,
         slug: true
       }
     });
@@ -182,7 +184,10 @@ class ConsumerProviderSetupSessionServiceImpl {
         }),
         identityActorId: consumerIdentity.identityActorId,
         identityId: consumerIdentity.identityId,
-        redirectUrl: buildProviderSetupRedirectUrl(portal.slug),
+        redirectUrl: await buildProviderSetupRedirectUrl({
+          portal,
+          requestOrigin: d.requestOrigin
+        }),
         configuration: {
           ui: {
             layout: 'box'

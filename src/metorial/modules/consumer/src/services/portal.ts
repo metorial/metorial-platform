@@ -76,6 +76,16 @@ let buildPortalUrlFromId = (portalId: string) => {
   return buildPortalUrlFromTemplate(env.portal.PORTAL_HOST_TEMPLATE, portalId);
 };
 
+let toOrigin = (value: string | null | undefined) => {
+  if (!value) return null;
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+};
+
 type PortalSurface = ConsumerSurfaceWithPublishableApiKey;
 type EnrichedPortalSurface = EnrichedConsumerSurface;
 type PortalRecord = Prisma.PortalGetPayload<{
@@ -469,6 +479,26 @@ class PortalServiceImpl {
     let urls = await this.getPrimaryPortalUrls({ portals: [d.portal] });
 
     return urls.get(d.portal.oid) ?? this.getPortalHost({ portal: d.portal }).host;
+  }
+
+  async getPortalUrlForOrigin(d: {
+    portal: Pick<Portal, 'oid' | 'slug'>;
+    origin?: string | null;
+  }) {
+    let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
+      portals: [d.portal]
+    });
+    let urls = this.getPortalUrls({
+      portal: d.portal,
+      namespaces: namespacesByPortalOid.get(d.portal.oid) ?? []
+    });
+
+    let requestOrigin = toOrigin(d.origin);
+    let match = requestOrigin
+      ? urls.find(({ url }) => toOrigin(url) == requestOrigin)
+      : undefined;
+
+    return match?.url ?? urls[0]?.url ?? this.getPortalHost({ portal: d.portal }).host;
   }
 
   parsePortalIdFromHost(d: { url: string }) {
