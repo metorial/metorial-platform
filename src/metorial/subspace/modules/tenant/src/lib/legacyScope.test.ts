@@ -391,6 +391,39 @@ describe('getProjectScopeDrift', () => {
     });
   });
 
+  it('flags a project whose legacy links only exist on its instances', async () => {
+    // The legacy model linked tenants per instance, so the project itself often has no link. The
+    // regular scope path would provision a canonical tenant next to these rows.
+    mocks.projectFindUnique.mockResolvedValue(
+      makeScopedProject({
+        subspaceTenantId: null,
+        internalTenantIdentifier: null,
+        instances: [
+          {
+            oid: 3n,
+            id: 'ins_1',
+            subspaceTenantId: 'ktn_legacy',
+            internalTenantIdentifier: 'mtei-ins_legacy',
+            subspaceEnvironmentId: 'ken_1',
+            internalEnvironmentIdentifier: 'mtei-ins_legacy'
+          }
+        ]
+      })
+    );
+    mocks.environmentFindUnique.mockResolvedValue({
+      identifier: 'mtei-ins_legacy',
+      tenantOid: 21n
+    });
+
+    let drift = await getProjectScopeDrift({ projectOid: 2n });
+
+    expect(drift.hasDrift).toBe(true);
+    expect(drift.reasons).toContainEqual(
+      expect.stringContaining('points at a different tenant than its project')
+    );
+    expect(drift.reasons).toContainEqual(expect.stringContaining('expected mte-ins-3'));
+  });
+
   it('does not defer a project whose tenant names a different project', async () => {
     mocks.tenantFindUnique.mockResolvedValue({
       oid: 20n,

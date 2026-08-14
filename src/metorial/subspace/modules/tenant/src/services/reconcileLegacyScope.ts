@@ -497,7 +497,7 @@ class ReconcileLegacyScopeServiceImpl {
 
     report.committedAt = new Date();
 
-    await this.persistMetorialLinks({
+    let keptExistingLink = await this.persistMetorialLinks({
       project,
       tenantIdentifier,
       survivorTenant,
@@ -505,7 +505,10 @@ class ReconcileLegacyScopeServiceImpl {
       report
     });
 
-    await this.handOffToRegularReconciliation({ projectOid });
+    await this.handOffToRegularReconciliation({
+      projectOid,
+      skipInstanceOids: keptExistingLink
+    });
 
     return { ...report, status: 'reconciled' as const };
   }
@@ -792,11 +795,16 @@ class ReconcileLegacyScopeServiceImpl {
     });
 
     let planByInstance = new Map(d.environmentPlans.map(plan => [plan.instanceOid, plan]));
+    let keptExistingLink = new Set<bigint>();
 
     for (let instance of d.project.instances) {
       let plan = planByInstance.get(instance.oid);
 
+      // An instance can end up without a plan because its environment resolved elsewhere. Clearing
+      // the link would orphan whatever that environment holds, so it is kept and the instance is
+      // held back from the handoff, which would otherwise provision a replacement for it.
       if (!plan && instance.subspaceEnvironmentId) {
+        keptExistingLink.add(instance.oid);
         d.report.warnings.push(
           `Instance ${instance.id} keeps its existing environment link ${instance.subspaceEnvironmentId}, no candidate resolved to it`
         );
@@ -825,7 +833,7 @@ class ReconcileLegacyScopeServiceImpl {
       })
     )?.organization;
 
-    if (!organization) return;
+    if (!organization) return keptExistingLink;
 
     let retired = new Set(d.report.retiredTenantIds);
     let subspaceTenantIds = [
@@ -838,23 +846,37 @@ class ReconcileLegacyScopeServiceImpl {
       where: { id: organization.id },
       data: { subspaceTenantIds }
     });
+
+    return keptExistingLink;
   }
 
-  private async handOffToRegularReconciliation(d: { projectOid: bigint }) {
+  private async handOffToRegularReconciliation(d: {
+    projectOid: bigint;
+    skipInstanceOids?: Set<bigint>;
+  }) {
     let project = await metorialDb.project.findUnique({
       where: { oid: d.projectOid },
       include: { instances: true }
     });
     if (!project) return;
 
-    if (project.instances.length === 0) {
+    // An instance whose environment link was left as it was must not be synced: the link is still
+    // non-canonical, so persistInstanceScope would provision a fresh environment and repoint the
+    // instance at it, orphaning the populated one this run deliberately kept.
+    let instances = project.instances.filter(
+      instance => !d.skipInstanceOids?.has(instance.oid)
+    );
+
+    if (instances.length === 0) {
       await metorialResourceService.syncProject(project);
     } else {
-      for (let instance of project.instances) {
+      for (let instance of instances) {
         await metorialResourceService.syncInstance(instance);
       }
     }
 
+    // Link reconciliation is still safe for the skipped instances, and repairing their mirror
+    // references is what lets the next run resolve them properly.
     await reconcileResourceLinksService.reconcileProjectLinks({ projectOid: d.projectOid });
   }
 }

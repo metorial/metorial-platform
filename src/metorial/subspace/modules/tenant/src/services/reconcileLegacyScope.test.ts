@@ -545,6 +545,11 @@ describe('reconcileLegacyProjectScope', () => {
     expect(update).not.toHaveProperty('subspaceEnvironmentId');
     expect(update).not.toHaveProperty('internalEnvironmentIdentifier');
     expect(h.state.environments[0]).toMatchObject({ id: 'ken_30', tenantOid: 21n });
+
+    // Syncing the instance would provision a canonical environment and repoint the instance at it,
+    // abandoning the one we just kept.
+    expect(h.state.handoff).not.toContainEqual(['syncInstance', 3n]);
+    expect(h.state.handoff).toContainEqual(['reconcileProjectLinks', 2n]);
   });
 
   it('repairs the Metorial pointers when only they have drifted', async () => {

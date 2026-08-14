@@ -270,41 +270,50 @@ export let getProjectScopeDrift = async (d: {
 
   let tenantIdentifier = `${CANONICAL_TENANT_PREFIX}${project.oid}`;
 
-  if (!project.subspaceTenantId) return result();
+  let tenant = project.subspaceTenantId
+    ? await subspaceDb.tenant.findUnique({
+        where: { id: project.subspaceTenantId },
+        select: { oid: true, identifier: true, retiredAt: true }
+      })
+    : null;
 
-  let tenant = await subspaceDb.tenant.findUnique({
-    where: { id: project.subspaceTenantId },
-    select: { oid: true, identifier: true, retiredAt: true }
-  });
+  // The legacy model linked tenants per instance, so a project can carry no tenant link at all
+  // while its instances point at legacy rows. Only the project's own link is settled here; the
+  // instance links below are inspected either way.
+  if (project.subspaceTenantId) {
+    if (!tenant) {
+      reasons.push(
+        `Project ${project.id} points at missing tenant ${project.subspaceTenantId}`
+      );
+      return result();
+    }
+    if (tenant.retiredAt) {
+      reasons.push(
+        `Project ${project.id} points at retired tenant ${project.subspaceTenantId}`
+      );
+      return result();
+    }
 
-  if (!tenant) {
-    reasons.push(`Project ${project.id} points at missing tenant ${project.subspaceTenantId}`);
-    return result();
-  }
-  if (tenant.retiredAt) {
-    reasons.push(`Project ${project.id} points at retired tenant ${project.subspaceTenantId}`);
-    return result();
-  }
+    if (
+      isCanonicalProjectIdentifier(tenant.identifier) &&
+      tenant.identifier !== tenantIdentifier
+    ) {
+      notes.push(
+        `Project ${project.id} points at tenant ${tenant.identifier}, which names another project`
+      );
+      return result();
+    }
 
-  if (
-    isCanonicalProjectIdentifier(tenant.identifier) &&
-    tenant.identifier !== tenantIdentifier
-  ) {
-    notes.push(
-      `Project ${project.id} points at tenant ${tenant.identifier}, which names another project`
-    );
-    return result();
-  }
-
-  if (tenant.identifier !== tenantIdentifier) {
-    reasons.push(
-      `Project ${project.id} resolves to tenant ${tenant.identifier}, expected ${tenantIdentifier}`
-    );
-  }
-  if (project.internalTenantIdentifier !== tenantIdentifier) {
-    reasons.push(
-      `Project ${project.id} is labelled ${project.internalTenantIdentifier}, expected ${tenantIdentifier}`
-    );
+    if (tenant.identifier !== tenantIdentifier) {
+      reasons.push(
+        `Project ${project.id} resolves to tenant ${tenant.identifier}, expected ${tenantIdentifier}`
+      );
+    }
+    if (project.internalTenantIdentifier !== tenantIdentifier) {
+      reasons.push(
+        `Project ${project.id} is labelled ${project.internalTenantIdentifier}, expected ${tenantIdentifier}`
+      );
+    }
   }
 
   for (let instance of project.instances) {
@@ -351,7 +360,7 @@ export let getProjectScopeDrift = async (d: {
         `Instance ${instance.id} resolves to environment ${environment.identifier}, expected ${environmentIdentifier}`
       );
     }
-    if (environment.tenantOid !== tenant.oid) {
+    if (tenant && environment.tenantOid !== tenant.oid) {
       reasons.push(`Instance ${instance.id} environment sits under a different tenant`);
     }
     if (instance.internalEnvironmentIdentifier !== environmentIdentifier) {
