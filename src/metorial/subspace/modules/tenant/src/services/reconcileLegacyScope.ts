@@ -445,7 +445,10 @@ class ReconcileLegacyScopeServiceImpl {
     let drift = await getProjectScopeDrift({ projectOid });
     report.warnings.push(...drift.reasons, ...drift.notes);
 
-    let environmentPlans = await this.planEnvironments({ project, report });
+    let { plans: environmentPlans, foreignEnvironmentIds } = await this.planEnvironments({
+      project,
+      report
+    });
     let tenantCandidates = await this.planTenants({
       project,
       tenantIdentifier,
@@ -468,8 +471,19 @@ class ReconcileLegacyScopeServiceImpl {
       return report;
     }
 
+    // A link to an environment named for another instance reads as a note rather than drift, so
+    // nothing else defers on it. Left alone it would keep this instance pointing at a sibling's
+    // environment while the regular path provisions a replacement behind it.
+    let hasForeignLink = project.instances.some(
+      instance =>
+        instance.subspaceEnvironmentId &&
+        foreignEnvironmentIds.has(instance.subspaceEnvironmentId) &&
+        !environmentPlans.some(plan => plan.instanceOid === instance.oid)
+    );
+
     let needsWork =
       drift.hasDrift ||
+      hasForeignLink ||
       survivorTenant.identifier !== tenantIdentifier ||
       tenantCandidates.length > 1 ||
       environmentPlans.some(
@@ -504,6 +518,7 @@ class ReconcileLegacyScopeServiceImpl {
       tenantIdentifier,
       survivorTenant,
       environmentPlans,
+      foreignEnvironmentIds,
       report
     });
 
@@ -576,7 +591,25 @@ class ReconcileLegacyScopeServiceImpl {
   private async planEnvironments(d: { project: ScopeProject; report: LegacyScopeReport }) {
     let candidates = await collectEnvironmentCandidates(d.project.instances);
 
+    // A canonical identifier names the instance that owns the environment, so an instance linking
+    // to one that names a sibling is holding a link the identifier itself contradicts.
+    let foreignEnvironmentIds = new Set(
+      candidates
+        .filter(candidate => {
+          let namedInstanceOid = parseCanonicalInstanceOid(candidate.identifier);
+          if (namedInstanceOid === null) return false;
+
+          return d.project.instances.some(
+            instance =>
+              instance.subspaceEnvironmentId === candidate.id &&
+              instance.oid !== namedInstanceOid
+          );
+        })
+        .map(candidate => candidate.id)
+    );
+
     let byInstance = new Map<bigint, EnvironmentCandidate[]>();
+
     for (let candidate of candidates) {
       let resolution = await resolveInstanceForEnvironment(candidate);
 
@@ -640,7 +673,7 @@ class ReconcileLegacyScopeServiceImpl {
       });
     }
 
-    return plans;
+    return { plans, foreignEnvironmentIds };
   }
 
   private async planTenants(d: {
@@ -799,6 +832,7 @@ class ReconcileLegacyScopeServiceImpl {
     tenantIdentifier: string;
     survivorTenant: TenantCandidate;
     environmentPlans: EnvironmentPlan[];
+    foreignEnvironmentIds: Set<string>;
     report: LegacyScopeReport;
   }) {
     await metorialDb.project.update({
@@ -811,18 +845,28 @@ class ReconcileLegacyScopeServiceImpl {
 
     let planByInstance = new Map(d.environmentPlans.map(plan => [plan.instanceOid, plan]));
     let keptExistingLink = new Set<bigint>();
+    let clearedForeignLink = new Set<bigint>();
 
     for (let instance of d.project.instances) {
       let plan = planByInstance.get(instance.oid);
 
-      // An instance can end up without a plan because its environment resolved elsewhere. Clearing
-      // the link would orphan whatever that environment holds, so it is kept and the instance is
-      // held back from the handoff, which would otherwise provision a replacement for it.
+      // The environment carries another instance's canonical name, so this link is the stale side
+      // of the disagreement. Dropping it lets the regular path provision this instance its own
+      // environment instead of leaving it pointing at a row that belongs to a sibling.
       if (!plan && instance.subspaceEnvironmentId) {
-        keptExistingLink.add(instance.oid);
-        d.report.warnings.push(
-          `Instance ${instance.id} keeps its existing environment link ${instance.subspaceEnvironmentId}, no candidate resolved to it`
-        );
+        if (d.foreignEnvironmentIds.has(instance.subspaceEnvironmentId)) {
+          clearedForeignLink.add(instance.oid);
+          d.report.warnings.push(
+            `Instance ${instance.id} dropped its link to ${instance.subspaceEnvironmentId}, which names another instance`
+          );
+        } else {
+          // Nothing names this environment, so it may well hold this instance's data. Clearing the
+          // link would orphan it, so the link stays and the instance is held back from the handoff.
+          keptExistingLink.add(instance.oid);
+          d.report.warnings.push(
+            `Instance ${instance.id} keeps its existing environment link ${instance.subspaceEnvironmentId}, no candidate resolved to it`
+          );
+        }
       }
 
       await metorialDb.instance.update({
@@ -835,6 +879,9 @@ class ReconcileLegacyScopeServiceImpl {
                 internalEnvironmentIdentifier: plan.identifier,
                 subspaceEnvironmentId: plan.survivor.id
               }
+            : {}),
+          ...(clearedForeignLink.has(instance.oid)
+            ? { internalEnvironmentIdentifier: null, subspaceEnvironmentId: null }
             : {}),
           lastSubspaceSyncAt: new Date()
         }

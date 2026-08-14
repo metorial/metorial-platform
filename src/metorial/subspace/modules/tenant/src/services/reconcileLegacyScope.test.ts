@@ -596,9 +596,20 @@ describe('reconcileLegacyProjectScope', () => {
       tenantOid: 20n,
       instanceOid: 3n
     });
+
+    // The link is the stale side, so it is dropped and the instance provisions its own environment
+    // through the regular path rather than being held back while a sibling provisions one for it.
+    expect(report.warnings).toContainEqual(
+      expect.stringContaining('dropped its link to ken_40, which names another instance')
+    );
+    expect(h.state.metorialInstanceUpdates[0]?.data).toMatchObject({
+      subspaceEnvironmentId: null,
+      internalEnvironmentIdentifier: null
+    });
+    expect(h.state.handoff).toContainEqual(['syncInstance', 3n]);
   });
 
-  it('will not repoint the mirror of an environment that names another instance', async () => {
+  it('drops a link to a sibling environment whose own mirror is correct', async () => {
     h.state.projects = [
       makeProject({
         subspaceTenantId: 'ktn_20',
@@ -615,10 +626,18 @@ describe('reconcileLegacyProjectScope', () => {
 
     let report = await reconcile();
 
+    // Instance 4 owns ken_40 on both sides, so instance 3's link is the only wrong thing here.
     expect(report.warnings).toContainEqual(
-      expect.stringContaining('names instance 4, leaving its mirror alone')
+      expect.stringContaining('dropped its link to ken_40, which names another instance')
     );
-    expect(h.state.environments[0]).toMatchObject({ instanceOid: 4n });
+    expect(h.state.environments[0]).toMatchObject({
+      identifier: 'mte-ins-4',
+      instanceOid: 4n
+    });
+    expect(h.state.metorialInstanceUpdates[0]?.data).toMatchObject({
+      subspaceEnvironmentId: null,
+      internalEnvironmentIdentifier: null
+    });
   });
 
   it('repoints a kept environment mirror so the next run can promote it', async () => {
