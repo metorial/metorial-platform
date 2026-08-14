@@ -14,10 +14,9 @@ export let discoverRemoteOAuthConnectionQueueProcessor =
       connectionId: data.oauthConnectionId
     });
 
-    if (res.ok) {
-      await enqueuePromotion({ connection: res.connection });
-      return;
-    }
+    await enqueuePromotion({ connectionId: data.oauthConnectionId });
+
+    if (res.ok) return;
 
     if (res.reason == 'not_found') throw new QueueRetryError();
     if (res.reason == 'failed' && res.isTransient) throw new QueueRetryError();
