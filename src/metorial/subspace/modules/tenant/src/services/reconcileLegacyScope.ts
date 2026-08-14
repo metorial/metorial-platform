@@ -3,9 +3,11 @@ import { db as subspaceDb, withTransaction, type TransactionDB } from '@metorial
 import {
   getProjectScopeDrift,
   isCanonicalProjectIdentifier,
+  parseCanonicalInstanceOid,
   resolveInstanceForEnvironment
 } from '../lib/legacyScope';
 import { metorialDb } from '../lib/metorialDb';
+import { ensureInstanceMirror } from '../lib/mirrorRecords';
 import {
   getInstanceInternalEnvironmentIdentifier,
   getProjectInternalTenantIdentifier
@@ -505,6 +507,8 @@ class ReconcileLegacyScopeServiceImpl {
       report
     });
 
+    await this.repairKeptEnvironmentMirrors({ project, keptExistingLink, report });
+
     await this.handOffToRegularReconciliation({
       projectOid,
       skipInstanceOids: keptExistingLink
@@ -582,6 +586,17 @@ class ReconcileLegacyScopeServiceImpl {
       }
 
       if (resolution.value.projectOid !== d.project.oid) continue;
+
+      // A canonical identifier names the instance it belongs to, and resolution trusts the mirror
+      // before the identifier. When the two disagree the row is another instance's environment
+      // reached through a stale pointer, so promoting it would rename or delete a correct row.
+      let namedInstanceOid = parseCanonicalInstanceOid(candidate.identifier);
+      if (namedInstanceOid !== null && namedInstanceOid !== resolution.value.oid) {
+        d.report.warnings.push(
+          `Environment ${candidate.id} names instance ${namedInstanceOid} but resolves to instance ${resolution.value.oid}, leaving it alone`
+        );
+        continue;
+      }
 
       byInstance.set(resolution.value.oid, [
         ...(byInstance.get(resolution.value.oid) ?? []),
@@ -850,6 +865,58 @@ class ReconcileLegacyScopeServiceImpl {
     return keptExistingLink;
   }
 
+  private async repairKeptEnvironmentMirrors(d: {
+    project: ScopeProject;
+    keptExistingLink: Set<bigint>;
+    report: LegacyScopeReport;
+  }) {
+    for (let instance of d.project.instances) {
+      if (!d.keptExistingLink.has(instance.oid) || !instance.subspaceEnvironmentId) continue;
+
+      let environment = await subspaceDb.environment.findUnique({
+        where: { id: instance.subspaceEnvironmentId },
+        select: { oid: true, identifier: true, tenantOid: true, instanceOid: true }
+      });
+      if (!environment) continue;
+
+      let namedInstanceOid = parseCanonicalInstanceOid(environment.identifier);
+      if (namedInstanceOid !== null && namedInstanceOid !== instance.oid) {
+        d.report.warnings.push(
+          `Environment ${instance.subspaceEnvironmentId} names instance ${namedInstanceOid}, leaving its mirror alone`
+        );
+        continue;
+      }
+
+      let claimants = await metorialDb.instance.count({
+        where: { subspaceEnvironmentId: instance.subspaceEnvironmentId }
+      });
+      if (claimants !== 1) {
+        d.report.warnings.push(
+          `Environment ${instance.subspaceEnvironmentId} is claimed by ${claimants} instances, leaving its mirror alone`
+        );
+        continue;
+      }
+
+      let mirroredInstanceOid = await ensureInstanceMirror({
+        instanceOid: instance.oid,
+        environmentOid: environment.oid,
+        tenantOid: environment.tenantOid
+      });
+      if (mirroredInstanceOid === null || environment.instanceOid === mirroredInstanceOid) {
+        continue;
+      }
+
+      await subspaceDb.environment.updateMany({
+        where: { id: instance.subspaceEnvironmentId },
+        data: { instanceOid: mirroredInstanceOid }
+      });
+
+      d.report.warnings.push(
+        `Repointed environment ${instance.subspaceEnvironmentId} at instance ${instance.id}, the next run can promote it`
+      );
+    }
+  }
+
   private async handOffToRegularReconciliation(d: {
     projectOid: bigint;
     skipInstanceOids?: Set<bigint>;
@@ -860,9 +927,6 @@ class ReconcileLegacyScopeServiceImpl {
     });
     if (!project) return;
 
-    // An instance whose environment link was left as it was must not be synced: the link is still
-    // non-canonical, so persistInstanceScope would provision a fresh environment and repoint the
-    // instance at it, orphaning the populated one this run deliberately kept.
     let instances = project.instances.filter(
       instance => !d.skipInstanceOids?.has(instance.oid)
     );
@@ -875,8 +939,8 @@ class ReconcileLegacyScopeServiceImpl {
       }
     }
 
-    // Link reconciliation is still safe for the skipped instances, and repairing their mirror
-    // references is what lets the next run resolve them properly.
+    if (d.skipInstanceOids?.size) return;
+
     await reconcileResourceLinksService.reconcileProjectLinks({ projectOid: d.projectOid });
   }
 }

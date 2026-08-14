@@ -135,6 +135,14 @@ export let reconcileLegacyScopeProjectQueueProcessor =
       return;
     }
 
+    if (report.warnings.length > 0) {
+      console.warn(
+        `[subspace] legacy scope reconciled project ${report.projectOid} with warnings: ${report.warnings.join('; ')}`,
+        report
+      );
+      return;
+    }
+
     console.log(`[subspace] legacy scope reconciled`, report);
   });
 

@@ -74,6 +74,12 @@ let h = vi.hoisted(() => {
         Object.assign(environment, data);
         return environment;
       },
+      updateMany: async ({ where, data }: any) => {
+        let rows = state.environments.filter(row => matches(row, where));
+        state.opLog.push({ op: 'updateEnvironments', where, data });
+        for (let row of rows) Object.assign(row, data);
+        return { count: rows.length };
+      },
       delete: async ({ where }: any) => {
         state.opLog.push({ op: 'deleteEnvironment', oid: where.oid });
         state.environments = state.environments.filter(row => row.oid !== where.oid);
@@ -167,6 +173,10 @@ vi.mock('../lib/metorialDb', () => ({
         h.state.projects
           .flatMap(project => project.instances)
           .find(row => h.matches(row, where)) ?? null,
+      count: async ({ where }: any) =>
+        h.state.projects
+          .flatMap(project => project.instances)
+          .filter(row => h.matches(row, where)).length,
       update: async ({ where, data }: any) => {
         h.state.metorialInstanceUpdates.push({ where, data });
         let instance = h.state.projects
@@ -184,6 +194,11 @@ vi.mock('../lib/metorialDb', () => ({
     },
     resourceGroup: { findUnique: async () => null }
   }
+}));
+
+vi.mock('../lib/mirrorRecords', () => ({
+  // Mirror rows carry the oid of the Metorial row they mirror.
+  ensureInstanceMirror: async (d: any) => d.instanceOid
 }));
 
 vi.mock('./metorialResource', () => ({
@@ -547,9 +562,116 @@ describe('reconcileLegacyProjectScope', () => {
     expect(h.state.environments[0]).toMatchObject({ id: 'ken_30', tenantOid: 21n });
 
     // Syncing the instance would provision a canonical environment and repoint the instance at it,
-    // abandoning the one we just kept.
+    // abandoning the one we just kept. Link reconciliation would only defer back into this queue.
     expect(h.state.handoff).not.toContainEqual(['syncInstance', 3n]);
-    expect(h.state.handoff).toContainEqual(['reconcileProjectLinks', 2n]);
+    expect(h.state.handoff).not.toContainEqual(['reconcileProjectLinks', 2n]);
+  });
+
+  it('will not promote an environment that names another instance of the same project', async () => {
+    // A stale mirror points instance 3 at instance 4's canonical environment. Promoting it would
+    // rename a correct row onto the wrong instance.
+    h.state.projects = [
+      makeProject({
+        subspaceTenantId: 'ktn_20',
+        instances: [
+          makeInstance({ subspaceEnvironmentId: 'ken_40' }),
+          makeInstance({ oid: 4n, id: 'ins_4' })
+        ]
+      })
+    ];
+    h.state.tenants = [makeTenant()];
+    h.state.environments = [
+      makeEnvironment({ oid: 40n, id: 'ken_40', identifier: 'mte-ins-4', instanceOid: 3n })
+    ];
+
+    let report = await reconcile();
+
+    expect(report.warnings).toContainEqual(
+      expect.stringContaining('names instance 4 but resolves to instance 3')
+    );
+    expect(report.renamedEnvironments).toEqual([]);
+    expect(report.deletedEnvironments).toEqual([]);
+    expect(h.state.environments[0]).toMatchObject({
+      identifier: 'mte-ins-4',
+      tenantOid: 20n,
+      instanceOid: 3n
+    });
+  });
+
+  it('will not repoint the mirror of an environment that names another instance', async () => {
+    h.state.projects = [
+      makeProject({
+        subspaceTenantId: 'ktn_20',
+        instances: [
+          makeInstance({ subspaceEnvironmentId: 'ken_40' }),
+          makeInstance({ oid: 4n, id: 'ins_4' })
+        ]
+      })
+    ];
+    h.state.tenants = [makeTenant()];
+    h.state.environments = [
+      makeEnvironment({ oid: 40n, id: 'ken_40', identifier: 'mte-ins-4', instanceOid: 4n })
+    ];
+
+    let report = await reconcile();
+
+    expect(report.warnings).toContainEqual(
+      expect.stringContaining('names instance 4, leaving its mirror alone')
+    );
+    expect(h.state.environments[0]).toMatchObject({ instanceOid: 4n });
+  });
+
+  it('repoints a kept environment mirror so the next run can promote it', async () => {
+    h.state.projects = [
+      makeProject({
+        subspaceTenantId: 'ktn_20',
+        instances: [makeInstance({ subspaceEnvironmentId: 'ken_30' })]
+      }),
+      makeProject({
+        oid: 9n,
+        id: 'prj_9',
+        instances: [makeInstance({ oid: 5n, id: 'ins_5', projectOid: 9n })]
+      })
+    ];
+    h.state.tenants = [makeTenant(), makeTenant({ oid: 21n, id: 'ktn_21' })];
+    h.state.environments = [makeEnvironment({ tenantOid: 21n, instanceOid: 5n })];
+
+    let report = await reconcile();
+
+    expect(report.warnings).toContainEqual(
+      expect.stringContaining('Repointed environment ken_30 at instance ins_1')
+    );
+    expect(h.state.environments[0]).toMatchObject({ id: 'ken_30', instanceOid: 3n });
+  });
+
+  it('leaves the mirror alone when two instances claim one environment', async () => {
+    h.state.projects = [
+      makeProject({
+        subspaceTenantId: 'ktn_20',
+        instances: [makeInstance({ subspaceEnvironmentId: 'ken_30' })]
+      }),
+      makeProject({
+        oid: 9n,
+        id: 'prj_9',
+        instances: [
+          makeInstance({
+            oid: 5n,
+            id: 'ins_5',
+            projectOid: 9n,
+            subspaceEnvironmentId: 'ken_30'
+          })
+        ]
+      })
+    ];
+    h.state.tenants = [makeTenant(), makeTenant({ oid: 21n, id: 'ktn_21' })];
+    h.state.environments = [makeEnvironment({ tenantOid: 21n, instanceOid: 5n })];
+
+    let report = await reconcile();
+
+    expect(report.warnings).toContainEqual(
+      expect.stringContaining('claimed by 2 instances, leaving its mirror alone')
+    );
+    expect(h.state.environments[0]).toMatchObject({ instanceOid: 5n });
   });
 
   it('repairs the Metorial pointers when only they have drifted', async () => {
