@@ -1,6 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ConduitHeartbeatPong } from '@metorial-subspace/connection-utils';
 import type { ConduitResponse } from '@metorial-subspace/conduit';
+
+vi.mock('../lib/conduit', () => ({
+  conduit: {
+    createSender: vi.fn(),
+    coordination: {
+      getActiveReceivers: vi.fn(async () => [])
+    }
+  }
+}));
+
 import {
   checkConduitHeartbeat,
   checkConduitHeartbeatFleet,
