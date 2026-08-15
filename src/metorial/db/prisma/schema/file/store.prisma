@@ -52,6 +52,12 @@ model Store {
   resourceGroupOid BigInt
   resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   parentStoreOid BigInt?
   parentStore    Store?  @relation("StoreHierarchy", fields: [parentStoreOid], references: [oid], onDelete: Cascade)
   childStores    Store[] @relation("StoreHierarchy")
@@ -72,6 +78,8 @@ model Store {
 
   @@index([resourceTenantOid, resourceGroupOid, dirtyAt])
   @@index([resourceTenantOid, resourceGroupOid, isTemplateBacking])
+  @@index([instanceOid, dirtyAt])
+  @@index([instanceOid, isTemplateBacking])
 }
 
 model StoreTemplate {
@@ -88,6 +96,12 @@ model StoreTemplate {
   resourceGroupOid BigInt?
   resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   sourceStoreOid BigInt?
   sourceStore    Store?  @relation("StoreTemplateSource", fields: [sourceStoreOid], references: [oid], onDelete: Cascade)
 
@@ -100,6 +114,7 @@ model StoreTemplate {
   backingStores      StoreTemplateBacking[]
 
   @@index([resourceTenantOid, resourceGroupOid])
+  @@index([projectOid, instanceOid])
   @@index([sourceStoreOid])
   @@index([hash])
 }
@@ -143,6 +158,12 @@ model StoreTemplateBacking {
   resourceGroupOid BigInt
   resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   storeOid BigInt @unique
   store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
 
@@ -153,6 +174,7 @@ model StoreTemplateBacking {
 
   @@unique([storeTemplateOid, resourceTenantOid, resourceGroupOid])
   @@index([resourceTenantOid, resourceGroupOid])
+  @@index([instanceOid])
 }
 
 model StoreItem {

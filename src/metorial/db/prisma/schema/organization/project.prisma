@@ -47,5 +47,32 @@ model Project {
   brand                ProjectBrand?
   teams                TeamProject[]
 
+  resourceActors        ResourceActor[]
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skills                Skill[]
+  skillConfigurations   SkillConfiguration[]
+  skillTemplates        SkillTemplate[]
+  skillMarketplaces     SkillMarketplace[]
+  skillPlugins          SkillPlugin[]
+  skillRepositories     SkillRepository[]
+  skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
+
+  productAssistants                      ProductAssistant[]
+  productAssistantConfig                 ProductAssistantConfig?
+  productAssistantInstances              ProductAssistantInstance[]
+  productAssistantConversations          ProductAssistantConversation[]
+  productAssistantModelRuns              ProductAssistantModelRun[]
+  productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
+
   @@index([previousSlugs])
 }

@@ -19,6 +19,12 @@ model ProductAssistantConversation {
   resourceGroupOid BigInt
   resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   createdByResourceActorOid BigInt
   createdByResourceActor    ResourceActor @relation("ProductAssistantConversationCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: Cascade)
 
@@ -34,6 +40,7 @@ model ProductAssistantConversation {
   assistantConversationParticipants ProductAssistantConversationParticipant[]
 
   @@index([resourceTenantOid, resourceGroupOid])
+  @@index([projectOid, instanceOid])
   @@index([assistantOid, assistantInstanceOid])
   @@index([createdByResourceActorOid])
 }

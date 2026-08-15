@@ -147,6 +147,24 @@ model Instance {
   auditLogs                            AuditLog[]
   events                               Event[]
 
+  fileLinks             FileLink[]
+  fileReferences        FileReference[]
+  documents             Document[]
+  documentVersions      DocumentVersion[]
+  stores                Store[]
+  storeTemplates        StoreTemplate[]
+  storeTemplateBackings StoreTemplateBacking[]
+  skillConfigurations   SkillConfiguration[]
+  skillRepositories     SkillRepository[]
+  skillExports          SkillExport[]
+  skillExportRefs       SkillExportRef[]
+  skillImports          SkillImport[]
+  skillMergeRequests    SkillMergeRequest[]
+  skillForkSyncs        SkillForkSync[]
+
+  productAssistantConversations          ProductAssistantConversation[]
+  productAssistantSubspaceMcpConnections ProductAssistantSubspaceMcpConnection[]
+
   @@index([previousSlugs])
   @@index([oldSlug])
   @@index([slug])

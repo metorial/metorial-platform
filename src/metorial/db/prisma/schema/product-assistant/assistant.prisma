@@ -25,6 +25,9 @@ model ProductAssistant {
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
   implementationOid BigInt
   implementation    ProductAssistantImplementation @relation(fields: [implementationOid], references: [oid], onDelete: Cascade)
 
@@ -42,6 +45,7 @@ model ProductAssistant {
   modelRuns              ProductAssistantModelRun[]
 
   @@index([resourceTenantOid])
+  @@index([projectOid])
   @@index([implementationOid])
 }
 
@@ -49,8 +53,11 @@ model ProductAssistantConfig {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  resourceTenantOid BigInt @unique
+  resourceTenantOid BigInt         @unique
   resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?  @unique
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -66,6 +73,9 @@ model ProductAssistantInstance {
   resourceTenantOid BigInt
   resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -75,5 +85,7 @@ model ProductAssistantInstance {
   modelRuns              ProductAssistantModelRun[]
 
   @@unique([assistantOid, resourceTenantOid])
+  @@unique([assistantOid, projectOid])
   @@index([resourceTenantOid])
+  @@index([projectOid])
 }

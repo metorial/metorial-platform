@@ -55,6 +55,9 @@ model ProductAssistantModelRun {
   resourceTenantOid BigInt
   resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
   requestOid BigInt?
   request    ProductAssistantRequest? @relation(fields: [requestOid], references: [oid], onDelete: Cascade)
 
@@ -85,4 +88,5 @@ model ProductAssistantModelRun {
   @@index([conversationOid, status])
   @@index([assistantInstanceOid])
   @@index([resourceTenantOid])
+  @@index([projectOid])
 }

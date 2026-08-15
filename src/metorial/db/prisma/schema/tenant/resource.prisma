@@ -116,6 +116,9 @@ model ResourceActor {
   resourceTenantOid BigInt
   resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
   organizationActorOid BigInt?
   organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
 
@@ -157,6 +160,9 @@ model ResourceActor {
   @@unique([resourceTenantOid, identifier])
   @@unique([resourceTenantOid, consumerProfileOid])
   @@unique([resourceTenantOid, organizationActorOid])
+  @@unique([projectOid, identifier])
+  @@unique([projectOid, consumerProfileOid])
+  @@unique([projectOid, organizationActorOid])
   @@index([consumerOid])
   @@index([consumerProfileOid])
 }
