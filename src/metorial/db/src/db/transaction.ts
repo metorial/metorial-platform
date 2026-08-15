@@ -44,15 +44,12 @@ export let withTransaction = async <T>(
       );
     });
 
-    // Sequentially, so a hook can rely on the ones registered before it, and awaited, so the work
-    // completes before the caller continues and a failure reaches them.
-    for (let hook of awaitedAfterHooks) await hook();
-
     afterQueue.add(async () => {
       let inner = async () => await Promise.all(afterHooks.map(hook => hook()));
-
       await inner();
     });
+
+    for (let hook of awaitedAfterHooks) await hook();
 
     return res;
   }

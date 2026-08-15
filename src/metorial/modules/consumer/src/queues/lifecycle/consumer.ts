@@ -1,7 +1,7 @@
-import { createQueue } from '@metorial/queue';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { metorialResourceService } from '@metorial-subspace/module-tenant';
+import { createQueue } from '@metorial/queue';
 import { indexConsumerSearchQueue } from '../search/consumer';
 import { syncIdentityConsumerQueue } from '../syncIdentityConsumer';
 import { syncPendingStatusForInstanceConsumer } from './pendingStatus';
@@ -22,8 +22,6 @@ export let consumerCreatedQueueProcessor = consumerCreatedQueue.process(async da
     instanceConsumer
   });
 
-  await metorialResourceService.syncConsumerGraph(instanceConsumer.consumer);
-
   await syncIdentityConsumerQueue.add({
     identityConsumerId: data.instanceConsumerId
   });
@@ -31,6 +29,8 @@ export let consumerCreatedQueueProcessor = consumerCreatedQueue.process(async da
   await indexConsumerSearchQueue.add({
     instanceConsumerId: data.instanceConsumerId
   });
+
+  await metorialResourceService.syncConsumerGraph(instanceConsumer.consumer);
 });
 
 export let consumerUpdatedQueue = createQueue<
