@@ -2,11 +2,11 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { providerService } from '@metorial-subspace/module-catalog';
+import { providerPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { providerPresenter } from '@metorial/presenters';
 
 let providerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerId) {
