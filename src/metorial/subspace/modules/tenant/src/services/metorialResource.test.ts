@@ -35,8 +35,7 @@ let mocks = vi.hoisted(() => ({
   ensureForOrganizationActor: vi.fn(),
   ensureNetworksForTenant: vi.fn(),
   backfillTenantReferences: vi.fn(),
-  backfillEnvironmentReferences: vi.fn(),
-  deferToLegacyScopeReconciler: vi.fn()
+  backfillEnvironmentReferences: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -126,10 +125,6 @@ vi.mock('./tenant', () => ({
   }
 }));
 
-vi.mock('../queues/legacyScope/queues', () => ({
-  deferToLegacyScopeReconciler: mocks.deferToLegacyScopeReconciler
-}));
-
 vi.mock('./backfillMirrorReferences', () => ({
   backfillMirrorReferencesService: {
     backfillTenantReferences: mocks.backfillTenantReferences,
@@ -170,7 +165,6 @@ describe('Metorial resource synchronization', () => {
     mocks.tenantFindUnique.mockResolvedValue(null);
     mocks.tenantActorFindMany.mockResolvedValue([]);
     mocks.ensureForOrganizationActor.mockResolvedValue({ oid: 40n, id: 'act_40' });
-    mocks.deferToLegacyScopeReconciler.mockResolvedValue(false);
     mocks.metorialProjectFindMany.mockResolvedValue([]);
   });
 
@@ -187,18 +181,26 @@ describe('Metorial resource synchronization', () => {
       mocks.projectUpsert.mockResolvedValue({ oid: 2n, id: 'pro_1' });
     });
 
-    it('leaves a project with a legacy scope to the legacy reconciler', async () => {
-      mocks.deferToLegacyScopeReconciler.mockResolvedValue(true);
-
+    it('syncs every project of the organization', async () => {
       await metorialResourceService.reconcileOrganization('org_1');
 
-      expect(mocks.deferToLegacyScopeReconciler).toHaveBeenCalledWith({ projectOid: 2n });
-      expect(mocks.ensureForProject).not.toHaveBeenCalled();
+      expect(mocks.ensureForProject).toHaveBeenCalledWith(project);
     });
 
-    it('syncs a project whose scope is already canonical', async () => {
-      await metorialResourceService.reconcileOrganization('org_1');
+    it('syncs the healthy projects and then reports the ones that refused to provision', async () => {
+      let legacyProject = { oid: 3n, id: 'pro_legacy', organizationOid: 1n, instances: [] };
+      mocks.metorialOrganizationFind.mockResolvedValue({
+        ...organization,
+        projects: [legacyProject, project]
+      });
+      mocks.ensureForProject.mockImplementation(async (given: any) => {
+        if (given.id === 'pro_legacy') throw new Error('scope is still legacy');
+        return { tenant: { oid: 20n, id: 'ktn_1' } };
+      });
 
+      await expect(metorialResourceService.reconcileOrganization('org_1')).rejects.toThrow(
+        'pro_legacy (scope is still legacy)'
+      );
       expect(mocks.ensureForProject).toHaveBeenCalledWith(project);
     });
   });

@@ -19,7 +19,6 @@ import {
   upsertProjectMirror
 } from '../lib/mirrorRecords';
 import { getOrganizationActorInternalActorIdentifier } from '../lib/scopeIds';
-import { deferToLegacyScopeReconciler } from '../queues/legacyScope/queues';
 import { backfillMirrorReferencesService } from './backfillMirrorReferences';
 import { subspaceScopeService } from './subspaceScope';
 import { tenantService } from './tenant';
@@ -337,14 +336,19 @@ class metorialResourceServiceImpl {
     });
 
     await this.syncOrganization(organization);
-    for (let project of organization.projects) {
-      // Provisioning a project whose scope is still legacy is what produced duplicate canonical
-      // environments, so the promotion runs instead and syncs the project itself afterwards.
-      if (await deferToLegacyScopeReconciler({ projectOid: project.oid })) continue;
 
-      await this.syncProject(project);
-      for (let instance of project.instances) {
-        await this.syncInstance(instance);
+    // A project whose subspace scope is still legacy refuses to provision, and letting that stop
+    // the loop would leave its healthy siblings unmirrored too, so failures are collected and
+    // raised once the rest of the organization is in sync.
+    let failures: { projectId: string; error: unknown }[] = [];
+    for (let project of organization.projects) {
+      try {
+        await this.syncProject(project);
+        for (let instance of project.instances) {
+          await this.syncInstance(instance);
+        }
+      } catch (error) {
+        failures.push({ projectId: project.id, error });
       }
     }
 
@@ -367,6 +371,17 @@ class metorialResourceServiceImpl {
       where: { oid: organization.oid },
       data: { subspaceTenantIds }
     });
+
+    if (failures.length > 0) {
+      throw new Error(
+        `Organization ${organizationId} has ${failures.length} project(s) that could not be reconciled: ${failures
+          .map(
+            ({ projectId, error }) =>
+              `${projectId} (${error instanceof Error ? error.message : String(error)})`
+          )
+          .join('; ')}`
+      );
+    }
   }
 }
 

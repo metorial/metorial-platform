@@ -279,7 +279,7 @@ export let reconcileMetorialResourceCron = createCron(
   {
     name: 'sub/ten/metorial/reconcile/cron',
     redisUrl: env.service.REDIS_URL,
-    cron: '0 * * * *'
+    cron: '*/15 * * * *'
   },
   async () => {
     await reconcileMetorialResourceSearchQueue.add(

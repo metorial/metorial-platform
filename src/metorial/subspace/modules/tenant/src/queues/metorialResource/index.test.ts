@@ -107,11 +107,11 @@ describe('Metorial resource reconciler', () => {
     }
   });
 
-  it('runs hourly and starts a deduplicated search', async () => {
+  it('runs every fifteen minutes and starts a deduplicated search', async () => {
     expect(mocks.cronConfig).toEqual({
       name: 'sub/ten/metorial/reconcile/cron',
       redisUrl: 'redis://test',
-      cron: '0 * * * *'
+      cron: '*/15 * * * *'
     });
 
     await mocks.cronHandler!();

@@ -26,7 +26,6 @@ import {
   getOrganizationActorInternalActorIdentifier,
   getProjectInternalTenantIdentifier
 } from '../lib/scopeIds';
-import { enqueueLegacyScopeRepair } from '../queues/legacyScope/queues';
 import { actorService } from './actor';
 import { environmentService } from './environment';
 import { solutionService } from './solution';
@@ -65,11 +64,6 @@ let hasUpdates = (update: Record<string, unknown>) =>
 
 let solutionProm = new ProgrammablePromise<Solution>();
 let solutionBootStarted = false;
-
-let failCanonicalScope = async (d: { projectOid: bigint; message: string }) => {
-  await enqueueLegacyScopeRepair({ projectOid: d.projectOid });
-  throw new Error(d.message);
-};
 
 let ensureSolutionBoot = () => {
   if (solutionBootStarted) return;
@@ -180,10 +174,9 @@ let assertCanonicalProjectScope = async (project: LoadedProject) => {
 
   let expectedIdentifier = getProjectTenantIdentifier(project);
   if (!project.subspaceTenantId) {
-    return await failCanonicalScope({
-      projectOid: project.oid,
-      message: `Project ${project.id} has canonical tenant identifier but no subspace tenant id`
-    });
+    throw new Error(
+      `Project ${project.id} has canonical tenant identifier but no subspace tenant id`
+    );
   }
 
   let tenant = await subspaceDb.tenant.findUnique({
@@ -191,11 +184,50 @@ let assertCanonicalProjectScope = async (project: LoadedProject) => {
     select: { identifier: true }
   });
   if (tenant?.identifier !== expectedIdentifier) {
-    return await failCanonicalScope({
-      projectOid: project.oid,
-      message: `Project ${project.id} canonical tenant link does not resolve to ${expectedIdentifier}`
-    });
+    throw new Error(
+      `Project ${project.id} canonical tenant link does not resolve to ${expectedIdentifier}`
+    );
   }
+};
+
+/**
+ * Provisioning derives the tenant name from the project oid and upserts on that name, so a project
+ * still pointing at a legacy tenant would gain a second, canonical tenant beside the one holding
+ * its data. Legacy scope is repaired out of band by the operator relink tool, so refuse here rather
+ * than let ordinary traffic create the duplicate.
+ */
+let assertProjectScopeIsNotLegacy = async (project: LoadedProject) => {
+  if (!project.subspaceTenantId) return;
+
+  let expectedIdentifier = getProjectTenantIdentifier(project);
+  let tenant = await subspaceDb.tenant.findUnique({
+    where: { id: project.subspaceTenantId },
+    select: { identifier: true }
+  });
+
+  // A link to a tenant that is no longer there has nothing to adopt, so provisioning a fresh one
+  // is the only way forward and is left to run.
+  if (!tenant || tenant.identifier === expectedIdentifier) return;
+
+  throw new Error(
+    `Project ${project.id} is linked to subspace tenant ${tenant.identifier}, not ${expectedIdentifier}. Its scope is still legacy and has to be relinked before it can be provisioned.`
+  );
+};
+
+let assertInstanceScopeIsNotLegacy = async (instance: Instance) => {
+  if (!instance.subspaceEnvironmentId) return;
+
+  let expectedIdentifier = getInstanceEnvironmentIdentifier(instance);
+  let environment = await subspaceDb.environment.findUnique({
+    where: { id: instance.subspaceEnvironmentId },
+    select: { identifier: true }
+  });
+
+  if (!environment || environment.identifier === expectedIdentifier) return;
+
+  throw new Error(
+    `Instance ${instance.id} is linked to subspace environment ${environment.identifier}, not ${expectedIdentifier}. Its scope is still legacy and has to be relinked before it can be provisioned.`
+  );
 };
 
 let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedProject) => {
@@ -210,16 +242,14 @@ let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedPro
 
   if (hasCanonicalTenant) {
     if (instance.internalTenantIdentifier !== expectedTenantIdentifier) {
-      return await failCanonicalScope({
-        projectOid: project.oid,
-        message: `Instance ${instance.id} canonical tenant identifier does not match project ${project.id}`
-      });
+      throw new Error(
+        `Instance ${instance.id} canonical tenant identifier does not match project ${project.id}`
+      );
     }
     if (!instance.subspaceTenantId) {
-      return await failCanonicalScope({
-        projectOid: project.oid,
-        message: `Instance ${instance.id} has canonical tenant identifier but no subspace tenant id`
-      });
+      throw new Error(
+        `Instance ${instance.id} has canonical tenant identifier but no subspace tenant id`
+      );
     }
 
     let tenant = await subspaceDb.tenant.findUnique({
@@ -227,18 +257,16 @@ let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedPro
       select: { oid: true, identifier: true }
     });
     if (tenant?.identifier !== expectedTenantIdentifier) {
-      return await failCanonicalScope({
-        projectOid: project.oid,
-        message: `Instance ${instance.id} canonical tenant link does not resolve to ${expectedTenantIdentifier}`
-      });
+      throw new Error(
+        `Instance ${instance.id} canonical tenant link does not resolve to ${expectedTenantIdentifier}`
+      );
     }
 
     if (hasCanonicalEnvironment) {
       if (!instance.subspaceEnvironmentId) {
-        return await failCanonicalScope({
-          projectOid: project.oid,
-          message: `Instance ${instance.id} has canonical environment identifier but no subspace environment id`
-        });
+        throw new Error(
+          `Instance ${instance.id} has canonical environment identifier but no subspace environment id`
+        );
       }
 
       let environment = await subspaceDb.environment.findUnique({
@@ -249,17 +277,15 @@ let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedPro
         environment?.identifier !== expectedEnvironmentIdentifier ||
         environment.tenantOid !== tenant.oid
       ) {
-        return await failCanonicalScope({
-          projectOid: project.oid,
-          message: `Instance ${instance.id} canonical environment link does not resolve beneath its canonical tenant`
-        });
+        throw new Error(
+          `Instance ${instance.id} canonical environment link does not resolve beneath its canonical tenant`
+        );
       }
     }
   } else if (hasCanonicalEnvironment) {
-    return await failCanonicalScope({
-      projectOid: project.oid,
-      message: `Instance ${instance.id} has a canonical environment linked to a legacy tenant`
-    });
+    throw new Error(
+      `Instance ${instance.id} has a canonical environment linked to a legacy tenant`
+    );
   }
 };
 
@@ -472,8 +498,10 @@ class subspaceScopeServiceImpl {
   async ensureForProject(project: ScopeProject) {
     let loadedProject = await loadProjectWithInstances(project);
     await assertCanonicalProjectScope(loadedProject);
+    await assertProjectScopeIsNotLegacy(loadedProject);
     for (let instance of loadedProject.instances ?? []) {
       await assertCanonicalInstanceScope(instance, loadedProject);
+      await assertInstanceScopeIsNotLegacy(instance);
     }
 
     let tenantIdentifier = getProjectTenantIdentifier(loadedProject);
@@ -521,6 +549,7 @@ class subspaceScopeServiceImpl {
     let loadedInstance = await loadInstanceWithSubspaceContext(instance);
     await assertCanonicalProjectScope(loadedInstance.project!);
     await assertCanonicalInstanceScope(loadedInstance, loadedInstance.project!);
+    await assertInstanceScopeIsNotLegacy(loadedInstance);
 
     let environmentIdentifier = getInstanceEnvironmentIdentifier(loadedInstance);
     let resourceGroup = await resolveInstanceResourceGroup(loadedInstance);

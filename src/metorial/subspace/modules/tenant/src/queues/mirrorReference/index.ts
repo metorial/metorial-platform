@@ -32,7 +32,7 @@ export let backfillMirrorReferencesCron = createCron(
   {
     name: 'sub/ten/mirror/cron',
     redisUrl: env.service.REDIS_URL,
-    cron: '45 4 * * *'
+    cron: '*/15 * * * *'
   },
   async () => {
     await backfillMirrorReferencesTenantSearchQueue.add(
