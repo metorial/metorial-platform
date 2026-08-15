@@ -72,11 +72,14 @@ let applyConnectionHeaders = (
     connection?: { id: string; token: string } | null;
   }
 ) => {
-  c.header('Metorial-Session-Id', connection.session.id);
+  // Mutate the live response headers in place. `c.header()` after streamSSE
+  // returns recreates the Response from `.body`, which steals the stream and
+  // closes the SSE connection with Content-Length: 0.
+  c.res.headers.set('Metorial-Session-Id', connection.session.id);
   if (connection.connection) {
-    c.header('Mcp-Session-Id', connection.connection.token);
-    c.header('Metorial-Connection-Id', connection.connection.id);
-    c.header('Metorial-Connection-Token', connection.connection.token);
+    c.res.headers.set('Mcp-Session-Id', connection.connection.token);
+    c.res.headers.set('Metorial-Connection-Id', connection.connection.id);
+    c.res.headers.set('Metorial-Connection-Token', connection.connection.token);
   }
 };
 
