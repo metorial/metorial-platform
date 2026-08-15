@@ -16,6 +16,13 @@ vi.mock('@metorial/module-consumer', () => ({
   syncUserToConsumers: vi.fn()
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganizationActor: vi.fn(),
+    syncOrganizationMember: vi.fn()
+  }
+}));
+
 vi.mock('@metorial/queue', () => ({
   createQueue: vi.fn(config => ({
     name: config.name,

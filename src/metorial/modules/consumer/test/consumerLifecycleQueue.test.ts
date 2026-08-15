@@ -11,6 +11,14 @@ vi.mock('@metorial/fabric', () => ({
   Fabric: { fire: vi.fn() }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncConsumerGraph: vi.fn(),
+    syncConsumerProfile: vi.fn(),
+    deleteConsumer: vi.fn()
+  }
+}));
+
 vi.mock('@metorial/queue', () => ({
   createQueue: vi.fn(config => ({
     name: config.name,

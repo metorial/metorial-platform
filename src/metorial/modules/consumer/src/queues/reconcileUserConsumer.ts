@@ -1,6 +1,7 @@
 import { db, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerEmailEquals, normalizeConsumerEmail } from '../lib/consumerEmail';
 import { consumerUpdatedQueue } from './lifecycle/consumer';
@@ -315,6 +316,7 @@ export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.proc
 
       for (let consumerId of deletedConsumerIds) {
         await Fabric.fire('consumer.deleted:after', { consumerId });
+        await metorialResourceService.deleteConsumer(consumerId);
       }
 
       if (consumerProfileIds.size) {
@@ -327,6 +329,8 @@ export let reconcileUserConsumerQueueProcessor = reconcileUserConsumerQueue.proc
             consumerProfile,
             surface: consumerProfile.surface
           });
+
+          await metorialResourceService.syncConsumerProfile(consumerProfile);
         }
       }
 

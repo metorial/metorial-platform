@@ -37,6 +37,13 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganizationActor: vi.fn(),
+    syncOrganizationMember: vi.fn()
+  }
+}));
+
 vi.mock('@lowerdeck/error', () => ({
   conflictError: vi.fn(),
   forbiddenError: vi.fn(),

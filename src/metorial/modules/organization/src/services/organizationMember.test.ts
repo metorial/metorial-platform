@@ -32,6 +32,7 @@ vi.mock('@lowerdeck/service', () => ({
 
 vi.mock('@metorial/db', () => ({
   addAfterTransactionHook: vi.fn(),
+  addAwaitedAfterTransactionHook: vi.fn(),
   db: {
     organizationMember: {
       count: countOrganizationMembersMock
@@ -58,6 +59,12 @@ vi.mock('@metorial/fabric', () => ({
 
 vi.mock('@metorial/module-consumer', () => ({
   syncOrgMemberToConsumer: syncOrgMemberToConsumerMock
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganizationMember: vi.fn()
+  }
 }));
 
 vi.mock('./accessPolicyAssignment', () => ({

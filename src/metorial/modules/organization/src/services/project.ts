@@ -11,6 +11,7 @@ import { createSlugGenerator } from '@lowerdeck/slugify';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
+  addAwaitedAfterTransactionHook,
   db,
   ID,
   Organization,
@@ -105,7 +106,7 @@ class ProjectService {
       magicMcpSessionDurationMinutes?: number;
     };
   }) {
-    let { project, instance } = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('organization.project.created:before', d);
 
       let project = await db.project.create({
@@ -122,7 +123,8 @@ class ProjectService {
         }
       });
 
-      let instance = await instanceService.createInstance({
+      // The instance copies itself, and its own copy pulls the project along.
+      await instanceService.createInstance({
         project,
         organization: d.organization,
         auditScope: d.auditScope,
@@ -141,11 +143,8 @@ class ProjectService {
         auditScope: d.auditScope
       });
 
-      return { project, instance };
+      return project;
     });
-
-    await metorialResourceService.syncInstance(instance);
-    return project;
   }
 
   async updateProject(d: {
@@ -161,7 +160,7 @@ class ProjectService {
   }) {
     await this.ensureProjectActive(d.project);
 
-    let project = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('organization.project.updated:before', d);
 
       if (d.input.slug && d.input.slug !== d.project.slug) {
@@ -202,11 +201,10 @@ class ProjectService {
         auditScope: d.auditScope
       });
 
+      await addAwaitedAfterTransactionHook(() => metorialResourceService.syncProject(project));
+
       return project;
     });
-
-    await metorialResourceService.syncProject(project);
-    return project;
   }
 
   async deleteProject(d: {

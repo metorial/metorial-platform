@@ -29,7 +29,7 @@ vi.mock('@metorial/db', () => ({
     generateId: vi.fn()
   },
   addAfterTransactionHook: vi.fn(async callback => await callback()),
-  isInTransaction: vi.fn(() => false),
+  addAwaitedAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(callback =>
     callback({
       instance: {
@@ -89,7 +89,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   }
 }));
 
-import { db, ID, isInTransaction, withTransaction } from '@metorial/db';
+import { addAwaitedAfterTransactionHook, db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
@@ -124,7 +124,6 @@ let withCompanionMocks = (mockDb: any) => ({
 describe('InstanceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(isInTransaction).mockReturnValue(false);
   });
 
   describe('createInstance', () => {
@@ -180,7 +179,7 @@ describe('InstanceService', () => {
       expect(metorialResourceService.syncInstance).toHaveBeenCalledWith(mockInstance);
     });
 
-    it('skips subspace sync when nested in another Metorial transaction', async () => {
+    it('defers the subspace copy until the transaction has committed', async () => {
       let mockInstance = {
         id: 'inst-nested',
         oid: 9,
@@ -188,7 +187,6 @@ describe('InstanceService', () => {
       };
 
       vi.mocked(ID.generateId).mockResolvedValue('inst-nested');
-      vi.mocked(isInTransaction).mockReturnValue(true);
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           instance: {
@@ -208,7 +206,10 @@ describe('InstanceService', () => {
         }
       });
 
-      expect(metorialResourceService.syncInstance).not.toHaveBeenCalled();
+      // Registering the copy rather than calling it inline is what lets a nested create still copy
+      // once, after everything the enclosing operation wrote is visible.
+      expect(addAwaitedAfterTransactionHook).toHaveBeenCalled();
+      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith(mockInstance);
     });
 
     it('should create production instance', async () => {

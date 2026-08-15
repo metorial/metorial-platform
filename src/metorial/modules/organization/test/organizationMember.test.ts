@@ -31,6 +31,7 @@ vi.mock('@metorial/db', () => ({
     generateId: vi.fn()
   },
   addAfterTransactionHook: vi.fn(async callback => await callback()),
+  addAwaitedAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(callback =>
     callback({
       organizationMember: {
@@ -51,6 +52,12 @@ vi.mock('@metorial/fabric', () => ({
 
 vi.mock('@metorial/module-consumer', () => ({
   syncOrgMemberToConsumer: vi.fn()
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganizationMember: vi.fn()
+  }
 }));
 
 vi.mock('@lowerdeck/pagination', () => ({
@@ -91,7 +98,6 @@ let testAuditScope = {
   actor: { type: 'org_actor' as const, id: 'actor-1' },
   context: { ip: '127.0.0.1', ua: 'test' }
 };
-
 
 describe('OrganizationMemberService', () => {
   beforeEach(() => {
@@ -512,7 +518,7 @@ describe('OrganizationMemberService', () => {
           organization: mockOrg as any,
           member: mockMember as any,
           input: { role: 'admin' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -757,7 +763,7 @@ describe('OrganizationMemberService', () => {
         organizationMemberService.deleteOrganizationMember({
           organization: mockOrg as any,
           member: mockMember as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -1012,7 +1018,7 @@ describe('OrganizationMemberService', () => {
           user: { id: 'user-1', oid: 1 } as any,
           organization: { id: 'org-1', oid: 1 } as any,
           input: { role: 'member' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -1025,7 +1031,7 @@ describe('OrganizationMemberService', () => {
           organization: { id: 'org-1', oid: 1 } as any,
           member: { id: 'member-1', oid: 1, status: 'active' } as any,
           input: { role: 'admin' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -1037,7 +1043,7 @@ describe('OrganizationMemberService', () => {
         organizationMemberService.deleteOrganizationMember({
           organization: { id: 'org-1', oid: 1 } as any,
           member: { id: 'member-1', oid: 1, status: 'active' } as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -1073,7 +1079,7 @@ describe('OrganizationMemberService', () => {
           user: { id: 'user-1', oid: 1, name: 'Test', email: 'test@example.com' } as any,
           organization: { id: 'org-1', oid: 1 } as any,
           input: { role: 'member' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Actor creation failed');
     });
@@ -1175,7 +1181,7 @@ describe('OrganizationMemberService', () => {
           user: mockUser as any,
           organization: mockOrg as any,
           input: { role: 'member' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).resolves.toBe(concurrentlyCreatedMember);
       expect(withTransaction).toHaveBeenCalledTimes(2);
@@ -1211,7 +1217,7 @@ describe('OrganizationMemberService', () => {
           organization: { id: 'org-1', oid: 1 } as any,
           member: mockMember as any,
           input: { role: 'admin' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).resolves.toBeDefined();
     });
@@ -1228,7 +1234,7 @@ describe('OrganizationMemberService', () => {
           organization: { id: 'org-1', oid: 1 } as any,
           member: mockMember as any,
           input: { role: 'admin' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -1244,7 +1250,7 @@ describe('OrganizationMemberService', () => {
         organizationMemberService.deleteOrganizationMember({
           organization: { id: 'org-1', oid: 1 } as any,
           member: mockMember as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });

@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { syncSubspaceTenantCronHandler } = vi.hoisted(() => ({
-  syncSubspaceTenantCronHandler: undefined as (() => Promise<void>) | undefined
-}));
-
 vi.mock('@metorial/db', () => ({
   db: {
     instance: {
@@ -14,13 +10,6 @@ vi.mock('@metorial/db', () => ({
       findUnique: vi.fn()
     }
   }
-}));
-
-vi.mock('@metorial/cron', () => ({
-  createCron: vi.fn((_config, handler) => {
-    syncSubspaceTenantCronHandler = handler;
-    return { handler };
-  })
 }));
 
 vi.mock('@metorial/queue', () => ({
@@ -48,54 +37,11 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 
 import { db } from '@metorial/db';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
-import {
-  syncSubspaceTenantCron,
-  syncSubspaceTenantQueue,
-  syncSubspaceTenantQueueProcessor,
-  syncSubspaceTenantSearchQueue,
-  syncSubspaceTenantSearchQueueProcessor
-} from '../src/queues/syncSubspaceTenant';
+import { syncSubspaceTenantQueueProcessor } from '../src/queues/syncSubspaceTenant';
 
-describe('syncSubspaceTenant queues', () => {
+describe('syncSubspaceTenant queue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('creates a daily cron that enqueues the search queue', async () => {
-    expect(syncSubspaceTenantCron).toBeDefined();
-
-    await syncSubspaceTenantCronHandler!();
-
-    expect(syncSubspaceTenantSearchQueue.add).toHaveBeenCalledWith(
-      {},
-      { id: 'org-sync-subspace-tenant-search' }
-    );
-  });
-
-  it('fans out active projects into single sync jobs', async () => {
-    vi.mocked(db.project.findMany).mockResolvedValue([
-      { id: 'proj-1' },
-      { id: 'proj-2' }
-    ] as any);
-
-    await (syncSubspaceTenantSearchQueueProcessor as any).handler({});
-
-    expect(db.project.findMany).toHaveBeenCalledWith({
-      where: {
-        status: 'active',
-        id: undefined
-      },
-      orderBy: { id: 'asc' },
-      take: 500,
-      select: { id: true }
-    });
-    expect(syncSubspaceTenantQueue.addMany).toHaveBeenCalledWith([
-      { projectId: 'proj-1' },
-      { projectId: 'proj-2' }
-    ]);
-    expect(syncSubspaceTenantSearchQueue.add).toHaveBeenCalledWith({
-      cursor: 'proj-2'
-    });
   });
 
   it('ensures the project tenant and each instance scope directly', async () => {

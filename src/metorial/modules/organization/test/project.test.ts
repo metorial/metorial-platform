@@ -31,6 +31,7 @@ vi.mock('@metorial/db', () => ({
     generateId: vi.fn()
   },
   addAfterTransactionHook: vi.fn(async callback => await callback()),
+  addAwaitedAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(callback =>
     callback({
       project: {
@@ -157,10 +158,6 @@ describe('ProjectService', () => {
           name: 'Production',
           type: 'production'
         }
-      });
-      expect(metorialResourceService.syncInstance).toHaveBeenCalledWith({
-        id: 'inst-1',
-        oid: 2
       });
     });
 

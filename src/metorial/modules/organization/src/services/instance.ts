@@ -10,11 +10,11 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
+  addAwaitedAfterTransactionHook,
   db,
   ID,
   Instance,
   InstanceType,
-  isInTransaction,
   Organization,
   OrganizationActor,
   OrganizationMember,
@@ -311,7 +311,7 @@ class InstanceService {
       type: InstanceType;
     };
   }) {
-    let instance = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('organization.project.instance.created:before', d);
 
       if (d.input.type === 'production') {
@@ -354,14 +354,12 @@ class InstanceService {
         auditScope: d.auditScope
       });
 
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncInstance(instance)
+      );
+
       return instance;
     });
-
-    if (!isInTransaction()) {
-      await metorialResourceService.syncInstance(instance);
-    }
-
-    return instance;
   }
 
   async updateInstance(d: {
@@ -377,7 +375,7 @@ class InstanceService {
   }) {
     await this.ensureInstanceActive(d.instance);
 
-    let instance = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('organization.project.instance.updated:before', {
         ...d,
         project: d.instance.project
@@ -428,14 +426,12 @@ class InstanceService {
         auditScope: d.auditScope
       });
 
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncInstance(instance)
+      );
+
       return instance;
     });
-
-    if (!isInTransaction()) {
-      await metorialResourceService.syncInstance(instance);
-    }
-
-    return instance;
   }
 
   async createSandbox(d: {

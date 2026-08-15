@@ -1,4 +1,3 @@
-
 let testAuditScope = {
   organizationOid: 1n,
   organizationActorOid: 1n,
@@ -126,7 +125,7 @@ describe('OrganizationInviteService', () => {
             message: 'Welcome!'
           },
           organization: mockOrg as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         });
 
         expect(result).toEqual(mockInvite);
@@ -190,7 +189,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         });
 
         expect(result.message).toBeNull();
@@ -233,7 +232,7 @@ describe('OrganizationInviteService', () => {
             role: 'admin'
           },
           organization: mockOrg as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         });
 
         expect(result.role).toBe('admin');
@@ -265,7 +264,7 @@ describe('OrganizationInviteService', () => {
               role: 'member'
             },
             organization: mockOrg as any,
-        auditScope: testAuditScope as any
+            auditScope: testAuditScope as any
           })
         ).rejects.toThrow(ServiceError);
       });
@@ -301,7 +300,7 @@ describe('OrganizationInviteService', () => {
               role: 'member'
             },
             organization: mockOrg as any,
-        auditScope: testAuditScope as any
+            auditScope: testAuditScope as any
           })
         ).rejects.toThrow(ServiceError);
       });
@@ -348,7 +347,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         });
 
         expect(result).toEqual(newInvite);
@@ -392,7 +391,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         });
 
         expect(result).toEqual(mockInvite);
@@ -440,7 +439,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: mockOrg as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         });
 
         expect(sendOrgInviteEmail.send).not.toHaveBeenCalled();
@@ -497,7 +496,7 @@ describe('OrganizationInviteService', () => {
         organizationInviteService.deleteOrganizationInvite({
           invite: mockInvite as any,
           organization: { id: 'org-1', oid: 1 } as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -639,7 +638,7 @@ describe('OrganizationInviteService', () => {
             role: 'admin'
           },
           organization: { id: 'org-1', oid: 1 } as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow(ServiceError);
     });
@@ -1143,7 +1142,7 @@ describe('OrganizationInviteService', () => {
         organizationInviteService.deleteOrganizationInvite({
           invite: rejectedInvite as any,
           organization: { id: 'org-1', oid: 1 } as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).resolves.toBeDefined(); // Rejected invites can be deleted
     });
@@ -1159,7 +1158,7 @@ describe('OrganizationInviteService', () => {
             role: 'member'
           },
           organization: { id: 'org-1', oid: 1 } as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });

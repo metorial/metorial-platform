@@ -39,6 +39,7 @@ let mocks = vi.hoisted(() => {
 vi.mock('@metorial/db', () => ({
   db: mocks.db,
   ID: { generateId: vi.fn(async prefix => `${prefix}_generated`) },
+  addAwaitedAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(async callback => await callback(mocks.db))
 }));
 
@@ -57,6 +58,14 @@ vi.mock('@lowerdeck/service', () => ({
 
 vi.mock('@metorial/fabric', () => ({
   Fabric: { fire: mocks.fire }
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncConsumerGraph: vi.fn(),
+    syncConsumerProfile: vi.fn(),
+    deleteConsumer: vi.fn()
+  }
 }));
 
 vi.mock('@metorial/lock', () => ({

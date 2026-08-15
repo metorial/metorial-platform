@@ -1,4 +1,3 @@
-
 let testAuditScope = {
   organizationOid: 1n,
   organizationActorOid: 1n,
@@ -22,6 +21,7 @@ vi.mock('@metorial/db', () => ({
   ID: {
     generateId: vi.fn()
   },
+  addAwaitedAfterTransactionHook: vi.fn(async callback => await callback()),
   withTransaction: vi.fn(callback =>
     callback({
       organizationActor: {
@@ -37,6 +37,12 @@ vi.mock('@metorial/db', () => ({
 vi.mock('@metorial/fabric', () => ({
   Fabric: {
     fire: vi.fn()
+  }
+}));
+
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncOrganizationActor: vi.fn()
   }
 }));
 
@@ -524,7 +530,7 @@ describe('OrganizationActorService', () => {
             name: 'Test'
           },
           organization: { id: 'org-1', oid: 1 } as any,
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });
@@ -537,7 +543,7 @@ describe('OrganizationActorService', () => {
           actor: { id: 'actor-1', oid: 1 } as any,
           organization: { id: 'org-1', oid: 1 } as any,
           input: { name: 'New Name' },
-        auditScope: testAuditScope as any
+          auditScope: testAuditScope as any
         })
       ).rejects.toThrow('Transaction failed');
     });

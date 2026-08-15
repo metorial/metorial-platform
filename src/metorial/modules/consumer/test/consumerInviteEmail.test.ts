@@ -26,7 +26,13 @@ vi.mock('../src/services/portal', () => ({
   }
 }));
 
-let portal = { oid: 1n, id: 'portal_1', slug: 'sso-test-1', name: 'SSO Test', status: 'active' };
+let portal = {
+  oid: 1n,
+  id: 'portal_1',
+  slug: 'sso-test-1',
+  name: 'SSO Test',
+  status: 'active'
+};
 
 let invite = {
   id: 'coi_1',
@@ -46,9 +52,8 @@ describe('consumer invite email', () => {
     let { db } = await import('@metorial/db');
     let { sendConsumerInviteEmail } = await import('../src/email/invite');
     let { portalService } = await import('../src/services/portal');
-    let { consumerInviteCreatedQueueProcessor } = await import(
-      '../src/queues/lifecycle/consumerInvite'
-    );
+    let { consumerInviteCreatedQueueProcessor } =
+      await import('../src/queues/lifecycle/consumerInvite');
 
     vi.mocked(db.consumerInvite.findUnique).mockResolvedValue(invite as any);
     vi.mocked(portalService.getPrimaryPortalUrl).mockResolvedValue(

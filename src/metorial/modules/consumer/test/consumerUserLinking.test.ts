@@ -44,6 +44,14 @@ vi.mock('@metorial/consumer-auth', () => ({
 
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: vi.fn() } }));
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  metorialResourceService: {
+    syncConsumerGraph: vi.fn(),
+    syncConsumerProfile: vi.fn(),
+    deleteConsumer: vi.fn()
+  }
+}));
+
 vi.mock('@metorial/lock', () => ({
   createLock: vi.fn(() => ({
     usingLock: vi.fn(async (_key, callback) => await callback())

@@ -2,6 +2,7 @@ import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 
 export let syncUserUpdateMemberManyQueue = createQueue<{ userId: string; cursor?: string }>({
   name: 'usr/syncUserUpdateMember/many'
@@ -133,5 +134,8 @@ export let syncUserUpdateMemberQueueProcessor = syncUserUpdateMemberQueue.proces
       input: {},
       auditScope
     });
+
+    await metorialResourceService.syncOrganizationActor(updatedActor);
+    await metorialResourceService.syncOrganizationMember(updatedMember);
   }
 );

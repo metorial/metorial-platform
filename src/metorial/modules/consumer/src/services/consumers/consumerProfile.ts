@@ -9,6 +9,7 @@ import {
   type EffectiveConsumerGroup
 } from '@metorial/consumer-auth';
 import {
+  addAwaitedAfterTransactionHook,
   ConsumerGroup,
   ConsumerProfile,
   ConsumerProfileGroupAssignedVia,
@@ -27,6 +28,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { namespaceService, organizationActorService } from '@metorial/module-organization';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { searchConsumerIds } from '@metorial/module-search';
 import {
   consumerEmailEquals,
@@ -718,6 +720,11 @@ class ConsumerProfileServiceImpl {
         surface: consumerProfile.surface
       });
 
+      // A deleted profile keeps its row and carries a status, so the copy is an update like any other.
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncConsumerProfile(consumerProfile)
+      );
+
       return consumerProfile;
     });
 
@@ -798,6 +805,9 @@ class ConsumerProfileServiceImpl {
       consumerProfile,
       surface: consumerProfile.surface
     });
+    await addAwaitedAfterTransactionHook(() =>
+      metorialResourceService.syncConsumerProfile(consumerProfile)
+    );
     await consumerProfileUpdatedQueue.add({ consumerProfileId: consumerProfile.id });
 
     if (updatedInviteIds.length > 0) {
@@ -1026,6 +1036,10 @@ class ConsumerProfileServiceImpl {
 
       await consumerProfileUpdatedQueue.add({ consumerProfileId: res.consumerProfile.id });
     }
+
+    await addAwaitedAfterTransactionHook(() =>
+      metorialResourceService.syncConsumerProfile(res.consumerProfile)
+    );
 
     let consumerProfile =
       res.lifecycleAction == 'updated' && res.shouldActivate

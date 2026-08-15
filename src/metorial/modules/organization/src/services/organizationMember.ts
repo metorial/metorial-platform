@@ -4,6 +4,7 @@ import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
+  addAwaitedAfterTransactionHook,
   db,
   ID,
   Organization,
@@ -14,6 +15,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { syncOrgMemberToConsumer } from '@metorial/module-consumer';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { accessPolicyAssignmentService } from './accessPolicyAssignment';
 import { organizationActorService } from './organizationActor';
 
@@ -162,6 +164,9 @@ class OrganizationMemberService {
           });
 
           await addAfterTransactionHook(() => syncOrgMemberToConsumer(member));
+          await addAwaitedAfterTransactionHook(() =>
+            metorialResourceService.syncOrganizationMember(member)
+          );
 
           return member;
         });
@@ -226,6 +231,9 @@ class OrganizationMemberService {
       });
 
       await addAfterTransactionHook(() => syncOrgMemberToConsumer(member));
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncOrganizationMember(member)
+      );
 
       return member;
     });
@@ -263,6 +271,11 @@ class OrganizationMemberService {
         member,
         auditScope: d.auditScope
       });
+
+      // A deleted member keeps its row and carries a status, so the copy is an update like any other.
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncOrganizationMember(member)
+      );
 
       return member;
     });

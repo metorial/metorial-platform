@@ -14,6 +14,7 @@ import { createAuditScope, createOrganizationActorAuditScope } from '@metorial/a
 import { Context } from '@metorial/context';
 import {
   addAfterTransactionHook,
+  addAwaitedAfterTransactionHook,
   ConsumerProfile,
   db,
   ID,
@@ -121,7 +122,7 @@ class OrganizationService {
     context: Context;
     performedBy: User;
   }) {
-    let result = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('organization.created:before', d);
 
       let organization = await db.organization.create({
@@ -141,6 +142,10 @@ class OrganizationService {
         organization,
         performedBy: d.performedBy
       });
+
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncOrganization(organization)
+      );
 
       let systemActor = await organizationActorService.createOrganizationActor({
         input: {
@@ -204,9 +209,6 @@ class OrganizationService {
         actor: member.actor
       };
     });
-
-    await metorialResourceService.syncOrganization(result.organization);
-    return result;
   }
 
   async updateOrganization(d: {
@@ -221,7 +223,7 @@ class OrganizationService {
   }) {
     await this.ensureOrganizationActive(d.organization);
 
-    let organization = await withTransaction(async db => {
+    return await withTransaction(async db => {
       await Fabric.fire('organization.updated:before', d);
 
       let nextImage = d.input.image;
@@ -286,12 +288,12 @@ class OrganizationService {
       await addAfterTransactionHook(() =>
         syncBrandOrganizationQueue.add({ organizationId: organization.id }, { delay: 5000 })
       );
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncOrganization(organization)
+      );
 
       return organization;
     });
-
-    await metorialResourceService.syncOrganization(organization);
-    return organization;
   }
 
   async deleteOrganization(d: { organization: Organization; auditScope: AuditScope }) {

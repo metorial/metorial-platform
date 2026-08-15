@@ -1,4 +1,3 @@
-
 let testAuditScope = {
   organizationOid: 1n,
   organizationActorOid: 1n,

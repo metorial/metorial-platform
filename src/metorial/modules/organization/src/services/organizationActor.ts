@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
+  addAwaitedAfterTransactionHook,
   db,
   ID,
   Organization,
@@ -11,6 +12,7 @@ import {
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 
 let include = {
   organization: true,
@@ -54,6 +56,10 @@ class OrganizationActorService {
         actor,
         auditScope: d.auditScope
       });
+
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncOrganizationActor(actor)
+      );
 
       return actor;
     });
@@ -109,6 +115,10 @@ class OrganizationActorService {
         previousActor: d.actor,
         auditScope: d.auditScope
       });
+
+      await addAwaitedAfterTransactionHook(() =>
+        metorialResourceService.syncOrganizationActor(actor)
+      );
 
       return actor;
     });
