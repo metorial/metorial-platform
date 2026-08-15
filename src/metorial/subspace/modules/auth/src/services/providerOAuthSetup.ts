@@ -246,7 +246,6 @@ class providerOAuthSetupServiceImpl {
       credentials =
         await providerAuthCredentialsService.getProviderAuthCredentialsForBackendUseInternal({
           tenant: d.tenant,
-          environment: d.environment,
           provider: d.provider,
           providerAuthCredentials: credentials,
           providerAuthMethod: authMethod

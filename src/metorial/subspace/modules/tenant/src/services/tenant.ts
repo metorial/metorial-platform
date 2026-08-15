@@ -216,7 +216,10 @@ class tenantServiceImpl {
         });
         if (tenant) {
           if (d.input.projectOid !== undefined) {
-            await linkTenantToProjectMirror({ tenant, projectOid: d.input.projectOid });
+            tenant.projectOid = await linkTenantToProjectMirror({
+              tenant,
+              projectOid: d.input.projectOid
+            });
           }
 
           let environments = await db.environment.findMany({

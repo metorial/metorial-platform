@@ -176,17 +176,19 @@ describe('tenantService.upsertTenant', () => {
 
   it('still links mirror oids when the tenant row already exists', async () => {
     mocks.tenantUpsert.mockRejectedValue({ code: 'P2002' });
-    mocks.tenantFindFirst.mockResolvedValue(tenant);
+    mocks.tenantFindFirst.mockResolvedValue({ ...tenant });
+    mocks.linkTenantToProjectMirror.mockResolvedValue(2n);
 
-    await tenantService.upsertTenant({ input });
+    let result = await tenantService.upsertTenant({ input });
 
     expect(mocks.linkTenantToProjectMirror).toHaveBeenCalledWith({
-      tenant,
+      tenant: expect.objectContaining({ oid: tenant.oid }),
       projectOid: 2n
     });
     expect(mocks.linkEnvironmentToInstanceMirror).toHaveBeenCalledWith({
       environment,
       instanceOid: 3n
     });
+    expect(result.projectOid).toBe(2n);
   });
 });

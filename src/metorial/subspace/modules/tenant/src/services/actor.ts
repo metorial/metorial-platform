@@ -66,7 +66,7 @@ class actorServiceImpl {
         organizationActorOid,
         resourceActorId: d.input.resourceActorId,
         resourceActorIdentifier: d.input.resourceActorIdentifier,
-        projectOid: d.tenant.projectOid
+        ...(d.tenant.projectOid != null ? { projectOid: d.tenant.projectOid } : {})
       },
       create: {
         ...getId('tenantActor'),

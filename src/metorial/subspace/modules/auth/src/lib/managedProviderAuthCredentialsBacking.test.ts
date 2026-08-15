@@ -69,7 +69,6 @@ vi.mock('../queues/lifecycle/providerAuthCredentials', () => ({
 import { ensureManagedProviderAuthCredentialsBacking } from './managedProviderAuthCredentialsBacking';
 
 let tenant = { oid: 10n, id: 'ktn_1', projectOid: 20n };
-let environment = { oid: 30n, instanceOid: 40n };
 let managedCredentials = {
   oid: 80n,
   name: 'Managed',
@@ -111,24 +110,24 @@ describe('ensureManagedProviderAuthCredentialsBacking', () => {
     mocks.managedBackingCreate.mockResolvedValue({});
   });
 
-  it('stamps project and instance oids from tenant and environment on create', async () => {
+  it('stamps projectOid from the tenant and leaves environment oids unset', async () => {
     await ensureManagedProviderAuthCredentialsBacking({
       tenant: tenant as any,
-      environment: environment as any,
       managedCredentials: managedCredentials as any,
       providerAuthMethod: { globalOid: 5n }
     });
 
     expect(mocks.providerAuthCredentialsCreate).toHaveBeenCalledTimes(1);
-    expect(mocks.providerAuthCredentialsCreate.mock.calls[0]![0].data).toMatchObject({
+    let data = mocks.providerAuthCredentialsCreate.mock.calls[0]![0].data;
+    expect(data).toMatchObject({
       tenantOid: 10n,
-      projectOid: 20n,
-      environmentOid: 30n,
-      instanceOid: 40n
+      projectOid: 20n
     });
+    expect(data).not.toHaveProperty('environmentOid');
+    expect(data).not.toHaveProperty('instanceOid');
   });
 
-  it('backfills project and instance oids on update', async () => {
+  it('backfills projectOid on update without writing environment oids', async () => {
     mocks.managedBackingFindUnique.mockResolvedValue({
       providerAuthCredentials: {
         oid: 100n,
@@ -145,16 +144,43 @@ describe('ensureManagedProviderAuthCredentialsBacking', () => {
 
     await ensureManagedProviderAuthCredentialsBacking({
       tenant: tenant as any,
-      environment: environment as any,
       managedCredentials: managedCredentials as any,
       providerAuthMethod: { globalOid: 5n }
     });
 
     expect(mocks.providerAuthCredentialsUpdate).toHaveBeenCalledTimes(1);
-    expect(mocks.providerAuthCredentialsUpdate.mock.calls[0]![0].data).toMatchObject({
-      projectOid: 20n,
-      environmentOid: 30n,
-      instanceOid: 40n
+    let data = mocks.providerAuthCredentialsUpdate.mock.calls[0]![0].data;
+    expect(data).toMatchObject({ projectOid: 20n });
+    expect(data).not.toHaveProperty('environmentOid');
+    expect(data).not.toHaveProperty('instanceOid');
+  });
+
+  it('backfills missing projectOid on an already-fresh backing without resyncing the backend', async () => {
+    mocks.managedBackingFindUnique.mockResolvedValue({
+      providerAuthCredentials: {
+        oid: 100n,
+        id: 'pacr_1',
+        status: 'active',
+        scopes: ['read'],
+        updatedAt: new Date('2026-02-01'),
+        projectOid: null
+      }
+    });
+    mocks.providerAuthCredentialsUpdate.mockResolvedValue({
+      oid: 100n,
+      id: 'pacr_1'
+    });
+
+    await ensureManagedProviderAuthCredentialsBacking({
+      tenant: tenant as any,
+      managedCredentials: managedCredentials as any,
+      providerAuthMethod: { globalOid: 5n }
+    });
+
+    expect(mocks.backendCreateProviderAuthCredentials).not.toHaveBeenCalled();
+    expect(mocks.providerAuthCredentialsUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.providerAuthCredentialsUpdate.mock.calls[0]![0].data).toEqual({
+      projectOid: 20n
     });
   });
 });

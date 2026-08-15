@@ -94,4 +94,15 @@ describe('actorService.upsertActor', () => {
     expect(mocks.ensureOrganizationActorMirror).not.toHaveBeenCalled();
     expect(mocks.tenantActorUpsert).toHaveBeenCalled();
   });
+
+  it('does not clear an existing project oid when the tenant is not linked yet', async () => {
+    await actorService.upsertActor({
+      tenant: { oid: 20n, projectOid: null } as any,
+      input: { identifier: 'system::tnt_20', name: 'System', type: 'system' }
+    });
+
+    let call = mocks.tenantActorUpsert.mock.calls[0][0];
+    expect(call.update).not.toHaveProperty('projectOid');
+    expect(call.create.projectOid).toBeNull();
+  });
 });

@@ -5,7 +5,6 @@ import {
   db,
   getId,
   snowflake,
-  type Environment,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -46,7 +45,6 @@ let getProviderAuthMethodGlobalOid = (managedCredentials: {
 
 export let ensureManagedProviderAuthCredentialsBacking = async (d: {
   tenant: Tenant;
-  environment: Environment;
   managedCredentials: ManagedProviderAuthCredentialsBackingSource;
   providerAuthMethod: {
     globalOid: bigint;
@@ -83,6 +81,24 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
     });
 
     return backing?.providerAuthCredentials ?? null;
+  };
+
+  let missingResourceOidData = (backing: { projectOid: bigint | null }) => ({
+    ...(d.tenant.projectOid != null && backing.projectOid !== d.tenant.projectOid
+      ? { projectOid: d.tenant.projectOid }
+      : {})
+  });
+
+  let backfillResourceOids = async (
+    backing: NonNullable<Awaited<ReturnType<typeof getExistingBacking>>>
+  ) => {
+    let data = missingResourceOidData(backing);
+    if (Object.keys(data).length === 0) return backing;
+
+    return await db.providerAuthCredentials.update({
+      where: { oid: backing.oid },
+      data
+    });
   };
 
   let isBackingFresh = (
@@ -138,9 +154,7 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
             metadata: d.managedCredentials.metadata,
             scopes: desiredScopes,
             needsScopeSync: false,
-            projectOid: d.tenant.projectOid,
-            environmentOid: d.environment.oid,
-            instanceOid: d.environment.instanceOid
+            projectOid: d.tenant.projectOid
           }
         });
 
@@ -174,8 +188,6 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           isDefault: false,
           tenantOid: d.tenant.oid,
           projectOid: d.tenant.projectOid,
-          environmentOid: d.environment.oid,
-          instanceOid: d.environment.instanceOid,
           solutionOid: solution.oid,
           providerOid: provider.oid
         }
@@ -203,14 +215,14 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
   };
 
   let existingBacking = await getExistingBacking();
-  if (isBackingFresh(existingBacking)) return existingBacking;
+  if (isBackingFresh(existingBacking)) return await backfillResourceOids(existingBacking);
 
   return await createManagedBackingLock.usingLock(
     [String(d.managedCredentials.oid), d.tenant.id],
     async () => {
       let lockedExistingBacking = await getExistingBacking();
       if (isBackingFresh(lockedExistingBacking)) {
-        return lockedExistingBacking;
+        return await backfillResourceOids(lockedExistingBacking);
       }
 
       return await syncBacking(lockedExistingBacking);
@@ -222,11 +234,6 @@ export let reconcileTenantManagedProviderAuthCredentialsBackings = async (d: {
   tenant: Tenant;
 }) => {
   let solution = await getMetorialSolution();
-  let environment = await db.environment.findFirst({
-    where: { tenantOid: d.tenant.oid }
-  });
-  if (!environment) return;
-
   let managedCredentialsList = await db.managedProviderAuthCredentials.findMany({
     where: {
       solutionOid: solution.oid,
@@ -261,7 +268,6 @@ export let reconcileTenantManagedProviderAuthCredentialsBackings = async (d: {
 
       await ensureManagedProviderAuthCredentialsBacking({
         tenant: d.tenant,
-        environment,
         managedCredentials,
         providerAuthMethod: {
           globalOid: managedCredentialsGlobalOid
