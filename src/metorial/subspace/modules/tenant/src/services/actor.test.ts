@@ -34,7 +34,7 @@ vi.mock('../lib/mirrorRecords', () => ({
 
 import { actorService } from './actor';
 
-let tenant = { oid: 20n } as any;
+let tenant = { oid: 20n, projectOid: 11n } as any;
 
 let input = {
   identifier: 'mte-oac-oac_4',
@@ -63,8 +63,8 @@ describe('actorService.upsertActor', () => {
     );
     expect(mocks.tenantActorUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        update: expect.objectContaining({ organizationActorOid: 4n }),
-        create: expect.objectContaining({ organizationActorOid: 4n })
+        update: expect.objectContaining({ organizationActorOid: 4n, projectOid: 11n }),
+        create: expect.objectContaining({ organizationActorOid: 4n, projectOid: 11n })
       })
     );
   });

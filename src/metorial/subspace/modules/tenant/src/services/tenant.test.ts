@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   tenantFindUnique: vi.fn(),
   tenantUpsert: vi.fn(),
+  tenantFindFirst: vi.fn(),
   tenantFindFirstOrThrow: vi.fn(),
   environmentFindMany: vi.fn(),
   environmentCreateMany: vi.fn(),
@@ -38,7 +39,7 @@ vi.mock('@metorial-subspace/db', () => ({
     tenant: {
       findUnique: mocks.tenantFindUnique,
       upsert: mocks.tenantUpsert,
-      findFirst: vi.fn(),
+      findFirst: mocks.tenantFindFirst,
       findFirstOrThrow: mocks.tenantFindFirstOrThrow
     },
     environment: {
@@ -171,5 +172,21 @@ describe('tenantService.upsertTenant', () => {
 
     expect(mocks.linkTenantToProjectMirror).not.toHaveBeenCalled();
     expect(mocks.linkEnvironmentToInstanceMirror).not.toHaveBeenCalled();
+  });
+
+  it('still links mirror oids when the tenant row already exists', async () => {
+    mocks.tenantUpsert.mockRejectedValue({ code: 'P2002' });
+    mocks.tenantFindFirst.mockResolvedValue(tenant);
+
+    await tenantService.upsertTenant({ input });
+
+    expect(mocks.linkTenantToProjectMirror).toHaveBeenCalledWith({
+      tenant,
+      projectOid: 2n
+    });
+    expect(mocks.linkEnvironmentToInstanceMirror).toHaveBeenCalledWith({
+      environment,
+      instanceOid: 3n
+    });
   });
 });

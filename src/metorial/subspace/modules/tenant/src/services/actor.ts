@@ -65,7 +65,8 @@ class actorServiceImpl {
         organizationActorId: d.input.organizationActorId,
         organizationActorOid,
         resourceActorId: d.input.resourceActorId,
-        resourceActorIdentifier: d.input.resourceActorIdentifier
+        resourceActorIdentifier: d.input.resourceActorIdentifier,
+        projectOid: d.tenant.projectOid
       },
       create: {
         ...getId('tenantActor'),
@@ -73,6 +74,7 @@ class actorServiceImpl {
         identifier: d.input.identifier,
         type: d.input.type,
         tenantOid: d.tenant.oid,
+        projectOid: d.tenant.projectOid,
         organizationActorId: d.input.organizationActorId,
         organizationActorOid,
         resourceActorId: d.input.resourceActorId,

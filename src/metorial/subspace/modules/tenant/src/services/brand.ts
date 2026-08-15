@@ -43,13 +43,21 @@ class brandServiceImpl {
       where: { identifier },
       update: {
         name: d.input.name,
-        image: d.input.image ?? Prisma.DbNull
+        image: d.input.image ?? Prisma.DbNull,
+        ...(d.input.for.type === 'tenant' && d.input.for.tenant.projectOid != null
+          ? { projectOid: d.input.for.tenant.projectOid }
+          : {})
       },
       create: {
         ...getId('brand'),
         name: d.input.name,
         identifier,
-        tenantOid: d.input.for.type === 'tenant' ? d.input.for.tenant.oid : undefined,
+        ...(d.input.for.type === 'tenant'
+          ? {
+              tenantOid: d.input.for.tenant.oid,
+              projectOid: d.input.for.tenant.projectOid
+            }
+          : {}),
         image: d.input.image ?? Prisma.DbNull
       },
       include

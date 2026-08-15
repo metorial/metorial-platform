@@ -5,6 +5,7 @@ import {
   db,
   getId,
   snowflake,
+  type Environment,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -45,6 +46,7 @@ let getProviderAuthMethodGlobalOid = (managedCredentials: {
 
 export let ensureManagedProviderAuthCredentialsBacking = async (d: {
   tenant: Tenant;
+  environment: Environment;
   managedCredentials: ManagedProviderAuthCredentialsBackingSource;
   providerAuthMethod: {
     globalOid: bigint;
@@ -135,7 +137,10 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
             description: d.managedCredentials.description,
             metadata: d.managedCredentials.metadata,
             scopes: desiredScopes,
-            needsScopeSync: false
+            needsScopeSync: false,
+            projectOid: d.tenant.projectOid,
+            environmentOid: d.environment.oid,
+            instanceOid: d.environment.instanceOid
           }
         });
 
@@ -169,6 +174,8 @@ export let ensureManagedProviderAuthCredentialsBacking = async (d: {
           isDefault: false,
           tenantOid: d.tenant.oid,
           projectOid: d.tenant.projectOid,
+          environmentOid: d.environment.oid,
+          instanceOid: d.environment.instanceOid,
           solutionOid: solution.oid,
           providerOid: provider.oid
         }
@@ -215,6 +222,11 @@ export let reconcileTenantManagedProviderAuthCredentialsBackings = async (d: {
   tenant: Tenant;
 }) => {
   let solution = await getMetorialSolution();
+  let environment = await db.environment.findFirst({
+    where: { tenantOid: d.tenant.oid }
+  });
+  if (!environment) return;
+
   let managedCredentialsList = await db.managedProviderAuthCredentials.findMany({
     where: {
       solutionOid: solution.oid,
@@ -249,6 +261,7 @@ export let reconcileTenantManagedProviderAuthCredentialsBackings = async (d: {
 
       await ensureManagedProviderAuthCredentialsBacking({
         tenant: d.tenant,
+        environment,
         managedCredentials,
         providerAuthMethod: {
           globalOid: managedCredentialsGlobalOid

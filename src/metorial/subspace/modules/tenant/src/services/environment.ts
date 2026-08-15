@@ -60,13 +60,22 @@ class environmentServiceImpl {
       return environment;
     } catch (error: any) {
       if (error.code === 'P2002') {
-        return await db.environment.findFirstOrThrow({
+        let environment = await db.environment.findFirstOrThrow({
           where: {
             tenantOid: d.tenant.oid,
             identifier: d.input.identifier
           },
           include
         });
+
+        if (d.input.instanceOid !== undefined) {
+          environment.instanceOid = await linkEnvironmentToInstanceMirror({
+            environment,
+            instanceOid: d.input.instanceOid
+          });
+        }
+
+        return environment;
       }
 
       throw error;

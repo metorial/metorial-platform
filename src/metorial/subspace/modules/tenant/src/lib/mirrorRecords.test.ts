@@ -6,9 +6,11 @@ let mocks = vi.hoisted(() => ({
   projectFindMany: vi.fn(),
   projectFindUnique: vi.fn(),
   projectUpsert: vi.fn(),
+  projectUpdate: vi.fn(),
   instanceFindMany: vi.fn(),
   instanceFindUnique: vi.fn(),
   instanceUpsert: vi.fn(),
+  instanceUpdate: vi.fn(),
   organizationActorFindMany: vi.fn(),
   organizationActorFindUnique: vi.fn(),
   organizationActorUpsert: vi.fn(),
@@ -29,12 +31,14 @@ vi.mock('@metorial-subspace/db', () => ({
     project: {
       findMany: mocks.projectFindMany,
       findUnique: mocks.projectFindUnique,
-      upsert: mocks.projectUpsert
+      upsert: mocks.projectUpsert,
+      update: mocks.projectUpdate
     },
     instance: {
       findMany: mocks.instanceFindMany,
       findUnique: mocks.instanceFindUnique,
-      upsert: mocks.instanceUpsert
+      upsert: mocks.instanceUpsert,
+      update: mocks.instanceUpdate
     },
     organizationActor: {
       findMany: mocks.organizationActorFindMany,
@@ -156,24 +160,57 @@ describe('Mirror record creation', () => {
   });
 
   it('leaves an existing project mirror untouched', async () => {
-    mocks.projectFindUnique.mockResolvedValue({ oid: 2n });
+    mocks.projectFindUnique.mockResolvedValue({ oid: 2n, tenantOid: 20n });
 
     expect(await ensureProjectMirror({ projectOid: 2n, tenantOid: 20n })).toBe(2n);
     expect(mocks.projectUpsert).not.toHaveBeenCalled();
+    expect(mocks.projectUpdate).not.toHaveBeenCalled();
     expect(mocks.metorialProjectFindUnique).not.toHaveBeenCalled();
+  });
+
+  it('repairs a project mirror that still points at a different tenant', async () => {
+    mocks.projectFindUnique.mockResolvedValue({ oid: 2n, tenantOid: 99n });
+
+    expect(await ensureProjectMirror({ projectOid: 2n, tenantOid: 20n })).toBe(2n);
+    expect(mocks.projectUpdate).toHaveBeenCalledWith({
+      where: { oid: 2n },
+      data: { tenantOid: 20n }
+    });
+    expect(mocks.projectUpsert).not.toHaveBeenCalled();
+  });
+
+  it('repairs an instance mirror that still points at a different environment', async () => {
+    mocks.instanceFindUnique.mockResolvedValue({
+      oid: 3n,
+      projectOid: 2n,
+      environmentOid: 99n
+    });
+
+    let instance = await ensureInstanceMirror({
+      instanceOid: 3n,
+      environmentOid: 30n,
+      tenantOid: 20n
+    });
+
+    expect(instance).toEqual({ oid: 3n, projectOid: 2n });
+    expect(mocks.instanceUpdate).toHaveBeenCalledWith({
+      where: { oid: 3n },
+      data: { environmentOid: 30n }
+    });
+    expect(mocks.instanceUpsert).not.toHaveBeenCalled();
   });
 
   it('creates the project mirror before the instance mirror that points at it', async () => {
     mocks.instanceFindUnique.mockResolvedValue(null);
     mocks.projectFindUnique.mockResolvedValue(null);
 
-    let instanceOid = await ensureInstanceMirror({
+    let instance = await ensureInstanceMirror({
       instanceOid: 3n,
       environmentOid: 30n,
       tenantOid: 20n
     });
 
-    expect(instanceOid).toBe(3n);
+    expect(instance?.oid).toBe(3n);
     expect(mocks.instanceUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
@@ -279,16 +316,16 @@ describe('Mirror record creation', () => {
     expect(mocks.tenantUpdate).not.toHaveBeenCalled();
   });
 
-  it('keeps tenant.projectOid unset when the project cannot be mirrored', async () => {
+  it('fails when the project cannot be mirrored', async () => {
     mocks.projectFindUnique.mockResolvedValue(null);
     mocks.metorialProjectFindUnique.mockResolvedValue(null);
 
-    let projectOid = await linkTenantToProjectMirror({
-      tenant: { oid: 20n, projectOid: null },
-      projectOid: 2n
-    });
-
-    expect(projectOid).toBeNull();
+    await expect(
+      linkTenantToProjectMirror({
+        tenant: { oid: 20n, projectOid: null },
+        projectOid: 2n
+      })
+    ).rejects.toThrow('the project mirror could not be created');
     expect(mocks.tenantUpdate).not.toHaveBeenCalled();
   });
 
@@ -304,7 +341,7 @@ describe('Mirror record creation', () => {
     expect(instanceOid).toBe(3n);
     expect(mocks.environmentUpdate).toHaveBeenCalledWith({
       where: { oid: 30n },
-      data: { instanceOid: 3n }
+      data: { instanceOid: 3n, projectOid: 2n }
     });
     expect(mocks.instanceUpsert.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.environmentUpdate.mock.invocationCallOrder[0]!
@@ -322,19 +359,22 @@ describe('Mirror record creation', () => {
 
     expect(instanceOid).toBe(3n);
     expect(mocks.instanceUpsert).toHaveBeenCalled();
-    expect(mocks.environmentUpdate).not.toHaveBeenCalled();
+    expect(mocks.environmentUpdate).toHaveBeenCalledWith({
+      where: { oid: 30n },
+      data: { instanceOid: 3n, projectOid: 2n }
+    });
   });
 
-  it('keeps environment.instanceOid unset when the instance cannot be mirrored', async () => {
+  it('fails when the instance cannot be mirrored', async () => {
     mocks.instanceFindUnique.mockResolvedValue(null);
     mocks.metorialInstanceFindUnique.mockResolvedValue(null);
 
-    let instanceOid = await linkEnvironmentToInstanceMirror({
-      environment: { oid: 30n, tenantOid: 20n, instanceOid: null },
-      instanceOid: 3n
-    });
-
-    expect(instanceOid).toBeNull();
+    await expect(
+      linkEnvironmentToInstanceMirror({
+        environment: { oid: 30n, tenantOid: 20n, instanceOid: null },
+        instanceOid: 3n
+      })
+    ).rejects.toThrow('the instance mirror could not be created');
     expect(mocks.environmentUpdate).not.toHaveBeenCalled();
   });
 });

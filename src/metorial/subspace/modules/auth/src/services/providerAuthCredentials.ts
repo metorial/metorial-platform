@@ -453,6 +453,7 @@ class providerAuthCredentialsServiceImpl {
 
     return await this.getProviderAuthCredentialsForTenantRead({
       tenant: d.tenant,
+      environment: d.environment,
       providerAuthCredentials
     });
   }
@@ -720,12 +721,13 @@ class providerAuthCredentialsServiceImpl {
 
     return this.getProviderAuthCredentialsForBackendUseInternal({
       ...rest,
-      tenant: scope.tenant
+      tenant: scope.tenant,
+      environment: scope.environment
     });
   }
 
   async getProviderAuthCredentialsForBackendUseInternal(
-    d: { tenant: Tenant } & GetProviderAuthCredentialsForBackendUseParams
+    d: { tenant: Tenant; environment: Environment } & GetProviderAuthCredentialsForBackendUseParams
   ) {
     let managedCredentials = await this.getManagedProviderAuthCredentialsContext(d);
     if (!managedCredentials) {
@@ -734,6 +736,7 @@ class providerAuthCredentialsServiceImpl {
 
     return ensureManagedProviderAuthCredentialsBacking({
       tenant: d.tenant,
+      environment: d.environment,
       managedCredentials,
       providerAuthMethod: d.providerAuthMethod
     });
@@ -911,11 +914,13 @@ class providerAuthCredentialsServiceImpl {
 
   private async getProviderAuthCredentialsForTenantRead(d: {
     tenant: Tenant;
+    environment: Environment;
     providerAuthCredentials: ProviderAuthCredentialsRecord;
   }) {
     if (d.providerAuthCredentials.origin === 'managed_backing') {
       let backingCredentials = await ensureManagedProviderAuthCredentialsBacking({
         tenant: d.tenant,
+        environment: d.environment,
         managedCredentials: d.providerAuthCredentials.managedCredentialsBacking!
           .managedCredentials as ManagedProviderAuthCredentialsBackingSource,
         providerAuthMethod: {

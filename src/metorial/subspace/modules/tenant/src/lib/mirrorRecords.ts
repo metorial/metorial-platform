@@ -193,9 +193,17 @@ export let ensureProjectMirror = async (d: {
 }): Promise<bigint | null> => {
   let existing = await subspaceDb.project.findUnique({
     where: { oid: d.projectOid },
-    select: { oid: true }
+    select: { oid: true, tenantOid: true }
   });
-  if (existing) return existing.oid;
+  if (existing) {
+    if (existing.tenantOid !== d.tenantOid) {
+      await subspaceDb.project.update({
+        where: { oid: existing.oid },
+        data: { tenantOid: d.tenantOid }
+      });
+    }
+    return existing.oid;
+  }
 
   let project = await metorialDb.project.findUnique({ where: { oid: d.projectOid } });
   if (!project) return null;
@@ -213,12 +221,20 @@ export let ensureInstanceMirror = async (d: {
   instanceOid: bigint;
   environmentOid: bigint;
   tenantOid: bigint;
-}): Promise<bigint | null> => {
+}): Promise<{ oid: bigint; projectOid: bigint } | null> => {
   let existing = await subspaceDb.instance.findUnique({
     where: { oid: d.instanceOid },
-    select: { oid: true }
+    select: { oid: true, projectOid: true, environmentOid: true }
   });
-  if (existing) return existing.oid;
+  if (existing) {
+    if (existing.environmentOid !== d.environmentOid) {
+      await subspaceDb.instance.update({
+        where: { oid: existing.oid },
+        data: { environmentOid: d.environmentOid }
+      });
+    }
+    return { oid: existing.oid, projectOid: existing.projectOid };
+  }
 
   let instance = await metorialDb.instance.findUnique({ where: { oid: d.instanceOid } });
   if (!instance) return null;
@@ -229,7 +245,8 @@ export let ensureInstanceMirror = async (d: {
   });
   if (projectOid === null) return null;
 
-  return (await upsertInstanceMirror({ instance, environmentOid: d.environmentOid })).oid;
+  let mirrored = await upsertInstanceMirror({ instance, environmentOid: d.environmentOid });
+  return { oid: mirrored.oid, projectOid: mirrored.projectOid };
 };
 
 export let ensureOrganizationActorMirror = async (d: {
@@ -263,7 +280,11 @@ export let linkTenantToProjectMirror = async (d: {
     projectOid: d.projectOid,
     tenantOid: d.tenant.oid
   });
-  if (projectOid === null) return d.tenant.projectOid;
+  if (projectOid === null) {
+    throw new Error(
+      `Cannot link tenant ${d.tenant.oid} to project ${d.projectOid}: the project mirror could not be created`
+    );
+  }
   if (projectOid === d.tenant.projectOid) return projectOid;
 
   await subspaceDb.tenant.update({
@@ -275,21 +296,39 @@ export let linkTenantToProjectMirror = async (d: {
 };
 
 export let linkEnvironmentToInstanceMirror = async (d: {
-  environment: { oid: bigint; tenantOid: bigint; instanceOid: bigint | null };
+  environment: {
+    oid: bigint;
+    tenantOid: bigint;
+    instanceOid: bigint | null;
+    projectOid?: bigint | null;
+  };
   instanceOid: bigint;
 }) => {
-  let instanceOid = await ensureInstanceMirror({
+  let instance = await ensureInstanceMirror({
     instanceOid: d.instanceOid,
     environmentOid: d.environment.oid,
     tenantOid: d.environment.tenantOid
   });
-  if (instanceOid === null) return d.environment.instanceOid;
-  if (instanceOid === d.environment.instanceOid) return instanceOid;
+  if (instance === null) {
+    throw new Error(
+      `Cannot link environment ${d.environment.oid} to instance ${d.instanceOid}: the instance mirror could not be created`
+    );
+  }
+
+  if (
+    instance.oid === d.environment.instanceOid &&
+    instance.projectOid === d.environment.projectOid
+  ) {
+    return instance.oid;
+  }
 
   await subspaceDb.environment.update({
     where: { oid: d.environment.oid },
-    data: { instanceOid }
+    data: {
+      instanceOid: instance.oid,
+      projectOid: instance.projectOid
+    }
   });
 
-  return instanceOid;
+  return instance.oid;
 };

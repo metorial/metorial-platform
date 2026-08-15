@@ -214,7 +214,29 @@ class tenantServiceImpl {
           where: { identifier: d.input.identifier },
           include
         });
-        if (tenant) return tenant;
+        if (tenant) {
+          if (d.input.projectOid !== undefined) {
+            await linkTenantToProjectMirror({ tenant, projectOid: d.input.projectOid });
+          }
+
+          let environments = await db.environment.findMany({
+            where: { tenantOid: tenant.oid }
+          });
+          let inputInstanceOids = new Map(
+            d.input.environments.flatMap(environment =>
+              environment.instanceOid === undefined
+                ? []
+                : [[environment.identifier, environment.instanceOid] as const]
+            )
+          );
+          for (let environment of environments) {
+            let instanceOid = inputInstanceOids.get(environment.identifier);
+            if (instanceOid === undefined) continue;
+            await linkEnvironmentToInstanceMirror({ environment, instanceOid });
+          }
+
+          return tenant;
+        }
       }
 
       throw error;
