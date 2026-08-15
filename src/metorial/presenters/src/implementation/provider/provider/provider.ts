@@ -54,7 +54,7 @@ export let v1ProviderPresenter = Presenter.create(providerType)
 
       name: provider.name,
       description: provider.description,
-      slug: provider.prettySlug,
+      slug: provider.prettySlug ?? provider.slug,
 
       metadata: provider.metadata,
 
