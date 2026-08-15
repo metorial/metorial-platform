@@ -33,9 +33,7 @@ let mocks = vi.hoisted(() => ({
   ensureForProject: vi.fn(),
   ensureForInstance: vi.fn(),
   ensureForOrganizationActor: vi.fn(),
-  ensureNetworksForTenant: vi.fn(),
-  backfillTenantReferences: vi.fn(),
-  backfillEnvironmentReferences: vi.fn()
+  ensureNetworksForTenant: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -125,13 +123,6 @@ vi.mock('./tenant', () => ({
   }
 }));
 
-vi.mock('./backfillMirrorReferences', () => ({
-  backfillMirrorReferencesService: {
-    backfillTenantReferences: mocks.backfillTenantReferences,
-    backfillEnvironmentReferences: mocks.backfillEnvironmentReferences
-  }
-}));
-
 import { metorialResourceService } from './metorialResource';
 
 let createdAt = new Date('2026-01-01T00:00:00.000Z');
@@ -166,43 +157,6 @@ describe('Metorial resource synchronization', () => {
     mocks.tenantActorFindMany.mockResolvedValue([]);
     mocks.ensureForOrganizationActor.mockResolvedValue({ oid: 40n, id: 'act_40' });
     mocks.metorialProjectFindMany.mockResolvedValue([]);
-  });
-
-  describe('reconcileOrganization', () => {
-    let project = { oid: 2n, id: 'pro_1', organizationOid: 1n, instances: [] };
-
-    beforeEach(() => {
-      mocks.metorialOrganizationFind.mockResolvedValue({
-        ...organization,
-        projects: [project]
-      });
-      mocks.organizationUpsert.mockResolvedValue({ oid: 1n, id: 'org_1' });
-      mocks.ensureForProject.mockResolvedValue({ tenant: { oid: 20n, id: 'ktn_1' } });
-      mocks.projectUpsert.mockResolvedValue({ oid: 2n, id: 'pro_1' });
-    });
-
-    it('syncs every project of the organization', async () => {
-      await metorialResourceService.reconcileOrganization('org_1');
-
-      expect(mocks.ensureForProject).toHaveBeenCalledWith(project);
-    });
-
-    it('syncs the healthy projects and then reports the ones that refused to provision', async () => {
-      let legacyProject = { oid: 3n, id: 'pro_legacy', organizationOid: 1n, instances: [] };
-      mocks.metorialOrganizationFind.mockResolvedValue({
-        ...organization,
-        projects: [legacyProject, project]
-      });
-      mocks.ensureForProject.mockImplementation(async (given: any) => {
-        if (given.id === 'pro_legacy') throw new Error('scope is still legacy');
-        return { tenant: { oid: 20n, id: 'ktn_1' } };
-      });
-
-      await expect(metorialResourceService.reconcileOrganization('org_1')).rejects.toThrow(
-        'pro_legacy (scope is still legacy)'
-      );
-      expect(mocks.ensureForProject).toHaveBeenCalledWith(project);
-    });
   });
 
   it('creates the organization mirror with the exact Metorial oid and id', async () => {
@@ -282,7 +236,6 @@ describe('Metorial resource synchronization', () => {
         })
       })
     );
-    expect(mocks.backfillTenantReferences).toHaveBeenCalledWith({ tenantOid: 20n });
     expect(mocks.instanceUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
@@ -294,17 +247,8 @@ describe('Metorial resource synchronization', () => {
       })
     );
     expect(mocks.ensureNetworksForTenant).toHaveBeenCalledWith({ oid: 20n });
-    expect(mocks.backfillEnvironmentReferences).toHaveBeenCalledWith({
-      environmentOid: 30n
-    });
-    expect(mocks.projectUpsert.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.backfillTenantReferences.mock.invocationCallOrder[0]
-    );
     expect(mocks.instanceUpsert.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.ensureNetworksForTenant.mock.invocationCallOrder[0]
-    );
-    expect(mocks.ensureNetworksForTenant.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.backfillEnvironmentReferences.mock.invocationCallOrder[0]
     );
   });
 

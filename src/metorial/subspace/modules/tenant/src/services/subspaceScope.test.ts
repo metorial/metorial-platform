@@ -5,6 +5,7 @@ let mocks = vi.hoisted(() => ({
   environmentFind: vi.fn(),
   projectUpdate: vi.fn(),
   instanceUpdate: vi.fn(),
+  organizationFind: vi.fn(),
   organizationUpdate: vi.fn(),
   organizationActorFind: vi.fn(),
   organizationActorUpdate: vi.fn(),
@@ -55,7 +56,10 @@ vi.mock('../lib/metorialDb', () => ({
       findUniqueOrThrow: vi.fn(),
       update: mocks.instanceUpdate
     },
-    organization: { update: mocks.organizationUpdate },
+    organization: {
+      findUniqueOrThrow: mocks.organizationFind,
+      update: mocks.organizationUpdate
+    },
     organizationActor: {
       findUniqueOrThrow: mocks.organizationActorFind,
       update: mocks.organizationActorUpdate
@@ -133,13 +137,17 @@ let makeProject = (overrides: Record<string, unknown> = {}) =>
     ...overrides
   }) as any;
 
-describe('Subspace canonical scope reconciliation', () => {
+describe('Subspace scope provisioning', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.resourceTenantFind.mockResolvedValue(resourceTenant);
     mocks.resourceGroupFind.mockResolvedValue(resourceGroup);
     mocks.tenantUpsert.mockResolvedValue(canonicalTenant);
     mocks.environmentUpsert.mockResolvedValue(canonicalEnvironment);
+    mocks.organizationFind.mockResolvedValue({
+      id: 'org_1',
+      subspaceTenantIds: ['ktn_canonical']
+    });
     mocks.solutionUpsert.mockResolvedValue({
       oid: 1,
       id: 'kso_1',
@@ -147,7 +155,7 @@ describe('Subspace canonical scope reconciliation', () => {
     });
   });
 
-  it('asserts and leaves an existing canonical project link untouched', async () => {
+  it('asserts and leaves an existing project link untouched', async () => {
     let project = makeProject({
       internalTenantIdentifier: 'mte-pro-2',
       subspaceTenantId: 'ktn_canonical'
@@ -209,7 +217,7 @@ describe('Subspace canonical scope reconciliation', () => {
     );
   });
 
-  it('fails before reconciliation when a canonical-looking project link is wrong', async () => {
+  it('refuses to provision when the project carries an identifier its oid does not produce', async () => {
     let project = makeProject({
       internalTenantIdentifier: 'mte-pro-999',
       subspaceTenantId: 'ktn_wrong'
@@ -222,34 +230,33 @@ describe('Subspace canonical scope reconciliation', () => {
     expect(mocks.projectUpdate).not.toHaveBeenCalled();
   });
 
-  it('refuses to provision when a canonical tenant link does not resolve', async () => {
+  it('refuses to provision a project whose tenant link resolves elsewhere', async () => {
     let project = makeProject({
       internalTenantIdentifier: 'mte-pro-2',
-      subspaceTenantId: 'ktn_legacy'
+      subspaceTenantId: 'ktn_other'
     });
-    mocks.tenantFind.mockResolvedValue({ identifier: 'mte-ins_0mlzkn8h5vDpg9CRUBSlP0' });
+    mocks.tenantFind.mockResolvedValue({ identifier: 'mte-pro-77' });
 
     await expect(subspaceScopeService.ensureForProject(project)).rejects.toThrow(
-      'canonical tenant link does not resolve to mte-pro-2'
-    );
-    expect(mocks.tenantUpsert).not.toHaveBeenCalled();
-  });
-
-  it('refuses to provision a project that still points at a legacy tenant', async () => {
-    let project = makeProject({
-      internalTenantIdentifier: 'mteo-org_legacy',
-      subspaceTenantId: 'ktn_legacy'
-    });
-    mocks.tenantFind.mockResolvedValue({ identifier: 'mteo-org_legacy' });
-
-    await expect(subspaceScopeService.ensureForProject(project)).rejects.toThrow(
-      'linked to subspace tenant mteo-org_legacy, not mte-pro-2'
+      'linked to subspace tenant mte-pro-77, not mte-pro-2'
     );
     expect(mocks.tenantUpsert).not.toHaveBeenCalled();
     expect(mocks.projectUpdate).not.toHaveBeenCalled();
   });
 
-  it('refuses to provision an instance that still points at a legacy environment', async () => {
+  it('provisions a project whose tenant link points at a tenant that is gone', async () => {
+    let project = makeProject({
+      internalTenantIdentifier: 'mte-pro-2',
+      subspaceTenantId: 'ktn_removed'
+    });
+    mocks.tenantFind.mockResolvedValue(null);
+
+    await subspaceScopeService.ensureForProject(project);
+
+    expect(mocks.tenantUpsert).toHaveBeenCalled();
+  });
+
+  it('refuses to provision an instance whose environment link resolves elsewhere', async () => {
     let project = makeProject({
       internalTenantIdentifier: 'mte-pro-2',
       subspaceTenantId: 'ktn_canonical'
@@ -263,21 +270,51 @@ describe('Subspace canonical scope reconciliation', () => {
       projectOid: 2n,
       resourceGroupOid: 200n,
       internalTenantIdentifier: 'mte-pro-2',
-      internalEnvironmentIdentifier: 'mtei-ins_legacy',
+      internalEnvironmentIdentifier: 'mte-ins-3',
       subspaceTenantId: 'ktn_canonical',
-      subspaceEnvironmentId: 'ken_legacy',
+      subspaceEnvironmentId: 'ken_other',
       project,
       organization: { oid: 1n, id: 'org_1', subspaceTenantIds: ['ktn_canonical'] }
     } as any;
     project.instances = [instance];
     mocks.tenantFind.mockResolvedValue({ oid: 20n, identifier: 'mte-pro-2' });
-    mocks.environmentFind.mockResolvedValue({ identifier: 'mtei-ins_legacy', tenantOid: 20n });
+    mocks.environmentFind.mockResolvedValue({ identifier: 'mte-ins-88', tenantOid: 20n });
 
     await expect(subspaceScopeService.ensureForInstance(instance)).rejects.toThrow(
-      'linked to subspace environment mtei-ins_legacy, not mte-ins-3'
+      'linked to subspace environment mte-ins-88, not mte-ins-3'
     );
     expect(mocks.environmentUpsert).not.toHaveBeenCalled();
     expect(mocks.instanceUpdate).not.toHaveBeenCalled();
+  });
+
+  it('refuses to provision an instance whose environment sits under another tenant', async () => {
+    let project = makeProject({
+      internalTenantIdentifier: 'mte-pro-2',
+      subspaceTenantId: 'ktn_canonical'
+    });
+    let instance = {
+      oid: 3n,
+      id: 'ins_3',
+      name: 'Production',
+      type: 'production',
+      organizationOid: 1n,
+      projectOid: 2n,
+      resourceGroupOid: 200n,
+      internalTenantIdentifier: 'mte-pro-2',
+      internalEnvironmentIdentifier: 'mte-ins-3',
+      subspaceTenantId: 'ktn_canonical',
+      subspaceEnvironmentId: 'ken_canonical',
+      project,
+      organization: { oid: 1n, id: 'org_1', subspaceTenantIds: ['ktn_canonical'] }
+    } as any;
+    project.instances = [instance];
+    mocks.tenantFind.mockResolvedValue({ oid: 20n, identifier: 'mte-pro-2' });
+    mocks.environmentFind.mockResolvedValue({ identifier: 'mte-ins-3', tenantOid: 999n });
+
+    await expect(subspaceScopeService.ensureForInstance(instance)).rejects.toThrow(
+      'does not sit beneath tenant mte-pro-2'
+    );
+    expect(mocks.environmentUpsert).not.toHaveBeenCalled();
   });
 
   it('provisions a project that has never been linked to a tenant', async () => {
@@ -299,6 +336,22 @@ describe('Subspace canonical scope reconciliation', () => {
         internalTenantIdentifier: 'mte-pro-2',
         subspaceTenantId: 'ktn_canonical'
       }
+    });
+  });
+
+  it('tracks the tenant on its organization when the organization does not list it yet', async () => {
+    mocks.organizationFind.mockResolvedValue({ id: 'org_1', subspaceTenantIds: [] });
+
+    await subspaceScopeService.ensureForProject(
+      makeProject({
+        internalTenantIdentifier: 'mte-pro-2',
+        subspaceTenantId: 'ktn_canonical'
+      })
+    );
+
+    expect(mocks.organizationUpdate).toHaveBeenCalledWith({
+      where: { id: 'org_1' },
+      data: { subspaceTenantIds: { push: 'ktn_canonical' } }
     });
   });
 });

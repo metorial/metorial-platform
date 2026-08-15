@@ -19,7 +19,6 @@ import {
   upsertProjectMirror
 } from '../lib/mirrorRecords';
 import { getOrganizationActorInternalActorIdentifier } from '../lib/scopeIds';
-import { backfillMirrorReferencesService } from './backfillMirrorReferences';
 import { subspaceScopeService } from './subspaceScope';
 import { tenantService } from './tenant';
 
@@ -37,9 +36,6 @@ class metorialResourceServiceImpl {
     let { tenant } = await subspaceScopeService.ensureForProject(project);
     let mirrored = await upsertProjectMirror({ project, tenantOid: tenant.oid });
 
-    await backfillMirrorReferencesService.backfillTenantReferences({
-      tenantOid: tenant.oid
-    });
     await linkOrganizationActorsToTenant(tenant, project.organizationOid);
     return mirrored;
   }
@@ -57,9 +53,6 @@ class metorialResourceServiceImpl {
     });
 
     await tenantService.ensureNetworksForTenant(tenant);
-    await backfillMirrorReferencesService.backfillEnvironmentReferences({
-      environmentOid: environment.oid
-    });
     return mirrored;
   }
 
@@ -318,70 +311,6 @@ class metorialResourceServiceImpl {
     await db.consumer.deleteMany({
       where: { id: consumerId }
     });
-  }
-
-  async reconcileOrganization(organizationId: string) {
-    let organization = await metorialDb.organization.findUniqueOrThrow({
-      where: { id: organizationId },
-      include: {
-        projects: {
-          orderBy: { oid: 'asc' },
-          include: {
-            instances: {
-              orderBy: { oid: 'asc' }
-            }
-          }
-        }
-      }
-    });
-
-    await this.syncOrganization(organization);
-
-    // A project whose subspace scope is still legacy refuses to provision, and letting that stop
-    // the loop would leave its healthy siblings unmirrored too, so failures are collected and
-    // raised once the rest of the organization is in sync.
-    let failures: { projectId: string; error: unknown }[] = [];
-    for (let project of organization.projects) {
-      try {
-        await this.syncProject(project);
-        for (let instance of project.instances) {
-          await this.syncInstance(instance);
-        }
-      } catch (error) {
-        failures.push({ projectId: project.id, error });
-      }
-    }
-
-    let linkedProjects = await metorialDb.project.findMany({
-      where: {
-        organizationOid: organization.oid,
-        subspaceTenantId: { not: null }
-      },
-      select: { subspaceTenantId: true }
-    });
-    let subspaceTenantIds = [
-      ...new Set(
-        linkedProjects.flatMap(project =>
-          project.subspaceTenantId ? [project.subspaceTenantId] : []
-        )
-      )
-    ];
-
-    await metorialDb.organization.update({
-      where: { oid: organization.oid },
-      data: { subspaceTenantIds }
-    });
-
-    if (failures.length > 0) {
-      throw new Error(
-        `Organization ${organizationId} has ${failures.length} project(s) that could not be reconciled: ${failures
-          .map(
-            ({ projectId, error }) =>
-              `${projectId} (${error instanceof Error ? error.message : String(error)})`
-          )
-          .join('; ')}`
-      );
-    }
   }
 }
 

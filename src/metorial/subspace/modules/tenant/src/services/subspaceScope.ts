@@ -16,10 +16,6 @@ import {
   type Project
 } from '@metorial/db';
 import { env } from '../env';
-import {
-  isCanonicalEnvironmentIdentifier,
-  isCanonicalProjectIdentifier
-} from '../lib/legacyScope';
 import { metorialDb } from '../lib/metorialDb';
 import {
   getInstanceInternalEnvironmentIdentifier,
@@ -95,12 +91,9 @@ let getProjectTenantIdentifier = (project: ScopeProject) => {
   if (project.oid == null) throw new Error(`Project ${project.id} is missing oid`);
 
   let expected = getProjectInternalTenantIdentifier({ oid: project.oid });
-  if (
-    isCanonicalProjectIdentifier(project.internalTenantIdentifier) &&
-    project.internalTenantIdentifier !== expected
-  ) {
+  if (project.internalTenantIdentifier && project.internalTenantIdentifier !== expected) {
     throw new Error(
-      `Project ${project.id} has canonical tenant identifier ${project.internalTenantIdentifier}, expected ${expected}`
+      `Project ${project.id} has tenant identifier ${project.internalTenantIdentifier}, expected ${expected}`
     );
   }
 
@@ -112,11 +105,11 @@ let getInstanceEnvironmentIdentifier = (instance: ScopeInstance) => {
 
   let expected = getInstanceInternalEnvironmentIdentifier({ oid: instance.oid });
   if (
-    isCanonicalEnvironmentIdentifier(instance.internalEnvironmentIdentifier) &&
+    instance.internalEnvironmentIdentifier &&
     instance.internalEnvironmentIdentifier !== expected
   ) {
     throw new Error(
-      `Instance ${instance.id} has canonical environment identifier ${instance.internalEnvironmentIdentifier}, expected ${expected}`
+      `Instance ${instance.id} has environment identifier ${instance.internalEnvironmentIdentifier}, expected ${expected}`
     );
   }
 
@@ -169,34 +162,13 @@ let loadInstanceWithSubspaceContext = async (
   });
 };
 
-let assertCanonicalProjectScope = async (project: LoadedProject) => {
-  if (!isCanonicalProjectIdentifier(project.internalTenantIdentifier)) return;
-
-  let expectedIdentifier = getProjectTenantIdentifier(project);
-  if (!project.subspaceTenantId) {
-    throw new Error(
-      `Project ${project.id} has canonical tenant identifier but no subspace tenant id`
-    );
-  }
-
-  let tenant = await subspaceDb.tenant.findUnique({
-    where: { id: project.subspaceTenantId },
-    select: { identifier: true }
-  });
-  if (tenant?.identifier !== expectedIdentifier) {
-    throw new Error(
-      `Project ${project.id} canonical tenant link does not resolve to ${expectedIdentifier}`
-    );
-  }
-};
-
 /**
- * Provisioning derives the tenant name from the project oid and upserts on that name, so a project
- * still pointing at a legacy tenant would gain a second, canonical tenant beside the one holding
- * its data. Legacy scope is repaired out of band by the operator relink tool, so refuse here rather
- * than let ordinary traffic create the duplicate.
+ * Provisioning derives the tenant from the project oid and upserts on it, so a project pointing at
+ * some other tenant would gain a second tenant beside the one already holding its data. Refuse
+ * instead of creating that duplicate. A link to a tenant that is no longer there has nothing to
+ * adopt, so provisioning a fresh one is the only way forward and is left to run.
  */
-let assertProjectScopeIsNotLegacy = async (project: LoadedProject) => {
+let assertProjectScope = async (project: LoadedProject) => {
   if (!project.subspaceTenantId) return;
 
   let expectedIdentifier = getProjectTenantIdentifier(project);
@@ -204,87 +176,56 @@ let assertProjectScopeIsNotLegacy = async (project: LoadedProject) => {
     where: { id: project.subspaceTenantId },
     select: { identifier: true }
   });
-
-  // A link to a tenant that is no longer there has nothing to adopt, so provisioning a fresh one
-  // is the only way forward and is left to run.
   if (!tenant || tenant.identifier === expectedIdentifier) return;
 
   throw new Error(
-    `Project ${project.id} is linked to subspace tenant ${tenant.identifier}, not ${expectedIdentifier}. Its scope is still legacy and has to be relinked before it can be provisioned.`
+    `Project ${project.id} is linked to subspace tenant ${tenant.identifier}, not ${expectedIdentifier}`
   );
 };
 
-let assertInstanceScopeIsNotLegacy = async (instance: Instance) => {
-  if (!instance.subspaceEnvironmentId) return;
-
-  let expectedIdentifier = getInstanceEnvironmentIdentifier(instance);
-  let environment = await subspaceDb.environment.findUnique({
-    where: { id: instance.subspaceEnvironmentId },
-    select: { identifier: true }
-  });
-
-  if (!environment || environment.identifier === expectedIdentifier) return;
-
-  throw new Error(
-    `Instance ${instance.id} is linked to subspace environment ${environment.identifier}, not ${expectedIdentifier}. Its scope is still legacy and has to be relinked before it can be provisioned.`
-  );
-};
-
-let assertCanonicalInstanceScope = async (instance: Instance, project: LoadedProject) => {
-  let hasCanonicalTenant = isCanonicalProjectIdentifier(instance.internalTenantIdentifier);
-  let hasCanonicalEnvironment = isCanonicalEnvironmentIdentifier(
-    instance.internalEnvironmentIdentifier
-  );
-  if (!hasCanonicalTenant && !hasCanonicalEnvironment) return;
-
+let assertInstanceScope = async (instance: Instance, project: LoadedProject) => {
   let expectedTenantIdentifier = getProjectTenantIdentifier(project);
   let expectedEnvironmentIdentifier = getInstanceEnvironmentIdentifier(instance);
 
-  if (hasCanonicalTenant) {
-    if (instance.internalTenantIdentifier !== expectedTenantIdentifier) {
-      throw new Error(
-        `Instance ${instance.id} canonical tenant identifier does not match project ${project.id}`
-      );
-    }
-    if (!instance.subspaceTenantId) {
-      throw new Error(
-        `Instance ${instance.id} has canonical tenant identifier but no subspace tenant id`
-      );
-    }
-
-    let tenant = await subspaceDb.tenant.findUnique({
-      where: { id: instance.subspaceTenantId },
-      select: { oid: true, identifier: true }
-    });
-    if (tenant?.identifier !== expectedTenantIdentifier) {
-      throw new Error(
-        `Instance ${instance.id} canonical tenant link does not resolve to ${expectedTenantIdentifier}`
-      );
-    }
-
-    if (hasCanonicalEnvironment) {
-      if (!instance.subspaceEnvironmentId) {
-        throw new Error(
-          `Instance ${instance.id} has canonical environment identifier but no subspace environment id`
-        );
-      }
-
-      let environment = await subspaceDb.environment.findUnique({
-        where: { id: instance.subspaceEnvironmentId },
-        select: { identifier: true, tenantOid: true }
-      });
-      if (
-        environment?.identifier !== expectedEnvironmentIdentifier ||
-        environment.tenantOid !== tenant.oid
-      ) {
-        throw new Error(
-          `Instance ${instance.id} canonical environment link does not resolve beneath its canonical tenant`
-        );
-      }
-    }
-  } else if (hasCanonicalEnvironment) {
+  if (
+    instance.internalTenantIdentifier &&
+    instance.internalTenantIdentifier !== expectedTenantIdentifier
+  ) {
     throw new Error(
-      `Instance ${instance.id} has a canonical environment linked to a legacy tenant`
+      `Instance ${instance.id} carries tenant identifier ${instance.internalTenantIdentifier}, but project ${project.id} owns ${expectedTenantIdentifier}`
+    );
+  }
+
+  let tenant = instance.subspaceTenantId
+    ? await subspaceDb.tenant.findUnique({
+        where: { id: instance.subspaceTenantId },
+        select: { oid: true, identifier: true }
+      })
+    : null;
+
+  if (tenant && tenant.identifier !== expectedTenantIdentifier) {
+    throw new Error(
+      `Instance ${instance.id} is linked to subspace tenant ${tenant.identifier}, not ${expectedTenantIdentifier}`
+    );
+  }
+
+  if (!instance.subspaceEnvironmentId) return;
+
+  let environment = await subspaceDb.environment.findUnique({
+    where: { id: instance.subspaceEnvironmentId },
+    select: { identifier: true, tenantOid: true }
+  });
+  if (!environment) return;
+
+  if (environment.identifier !== expectedEnvironmentIdentifier) {
+    throw new Error(
+      `Instance ${instance.id} is linked to subspace environment ${environment.identifier}, not ${expectedEnvironmentIdentifier}`
+    );
+  }
+
+  if (tenant && environment.tenantOid !== tenant.oid) {
+    throw new Error(
+      `Instance ${instance.id} environment ${environment.identifier} does not sit beneath tenant ${tenant.identifier}`
     );
   }
 };
@@ -419,18 +360,19 @@ let persistProjectTenantLink = async (d: {
   tenantId: string;
   tenantIdentifier: string;
 }) => {
-  if (isCanonicalProjectIdentifier(d.project.internalTenantIdentifier)) return d.project;
-
-  let update: Prisma.ProjectUpdateInput = {
-    internalTenantIdentifier: d.tenantIdentifier,
-    subspaceTenantId: d.tenantId
-  };
-
-  if (!hasUpdates(update)) return d.project;
+  if (
+    d.project.internalTenantIdentifier === d.tenantIdentifier &&
+    d.project.subspaceTenantId === d.tenantId
+  ) {
+    return d.project;
+  }
 
   return await metorialDb.project.update({
     where: { id: d.project.id },
-    data: update
+    data: {
+      internalTenantIdentifier: d.tenantIdentifier,
+      subspaceTenantId: d.tenantId
+    }
   });
 };
 
@@ -441,31 +383,32 @@ let persistInstanceScope = async (d: {
   environmentId: string;
   environmentIdentifier: string;
 }) => {
-  let canonicalTenant = isCanonicalProjectIdentifier(d.instance.internalTenantIdentifier);
-  let canonicalEnvironment = isCanonicalEnvironmentIdentifier(
-    d.instance.internalEnvironmentIdentifier
-  );
-  let update: Prisma.InstanceUpdateInput = {
-    ...(canonicalTenant
-      ? {}
-      : {
-          internalTenantIdentifier: d.tenantIdentifier,
-          subspaceTenantId: d.tenantId
-        }),
-    ...(canonicalEnvironment
-      ? {}
-      : {
-          internalEnvironmentIdentifier: d.environmentIdentifier,
-          subspaceEnvironmentId: d.environmentId
-        }),
-    lastSubspaceSyncAt: new Date()
-  };
-
-  if (!hasUpdates(update)) return;
-
   await metorialDb.instance.update({
     where: { id: d.instance.id },
-    data: update
+    data: {
+      internalTenantIdentifier: d.tenantIdentifier,
+      subspaceTenantId: d.tenantId,
+      internalEnvironmentIdentifier: d.environmentIdentifier,
+      subspaceEnvironmentId: d.environmentId,
+      lastSubspaceSyncAt: new Date()
+    }
+  });
+};
+
+/**
+ * The organization tracks the tenants beneath it so metorial-facing lookups can resolve an
+ * organization to its subspace scope without walking every project.
+ */
+let trackTenantOnOrganization = async (d: { organizationOid: bigint; tenantId: string }) => {
+  let organization = await metorialDb.organization.findUniqueOrThrow({
+    where: { oid: d.organizationOid },
+    select: { id: true, subspaceTenantIds: true }
+  });
+  if (organization.subspaceTenantIds.includes(d.tenantId)) return;
+
+  await metorialDb.organization.update({
+    where: { id: organization.id },
+    data: { subspaceTenantIds: { push: d.tenantId } }
   });
 };
 
@@ -497,11 +440,9 @@ class subspaceScopeServiceImpl {
 
   async ensureForProject(project: ScopeProject) {
     let loadedProject = await loadProjectWithInstances(project);
-    await assertCanonicalProjectScope(loadedProject);
-    await assertProjectScopeIsNotLegacy(loadedProject);
+    await assertProjectScope(loadedProject);
     for (let instance of loadedProject.instances ?? []) {
-      await assertCanonicalInstanceScope(instance, loadedProject);
-      await assertInstanceScopeIsNotLegacy(instance);
+      await assertInstanceScope(instance, loadedProject);
     }
 
     let tenantIdentifier = getProjectTenantIdentifier(loadedProject);
@@ -537,6 +478,10 @@ class subspaceScopeServiceImpl {
       tenantId: tenant.id,
       tenantIdentifier
     });
+    await trackTenantOnOrganization({
+      organizationOid: loadedProject.organizationOid,
+      tenantId: tenant.id
+    });
 
     return {
       tenant,
@@ -547,9 +492,8 @@ class subspaceScopeServiceImpl {
 
   async ensureForInstance(instance: ScopeInstance): Promise<SubspaceInstanceScope> {
     let loadedInstance = await loadInstanceWithSubspaceContext(instance);
-    await assertCanonicalProjectScope(loadedInstance.project!);
-    await assertCanonicalInstanceScope(loadedInstance, loadedInstance.project!);
-    await assertInstanceScopeIsNotLegacy(loadedInstance);
+    await assertProjectScope(loadedInstance.project!);
+    await assertInstanceScope(loadedInstance, loadedInstance.project!);
 
     let environmentIdentifier = getInstanceEnvironmentIdentifier(loadedInstance);
     let resourceGroup = await resolveInstanceResourceGroup(loadedInstance);
@@ -576,17 +520,6 @@ class subspaceScopeServiceImpl {
       environmentId: environment.id,
       environmentIdentifier
     });
-
-    if (!loadedInstance.organization!.subspaceTenantIds.includes(tenant.id)) {
-      await metorialDb.organization.update({
-        where: { id: loadedInstance.organization!.id },
-        data: {
-          subspaceTenantIds: {
-            push: tenant.id
-          }
-        }
-      });
-    }
 
     return {
       tenant,
