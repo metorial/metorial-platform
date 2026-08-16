@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import {
   skillPluginRepositoryService,
   skillPluginService
-} from '@metorial/cargo-module-skill';
+} from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';

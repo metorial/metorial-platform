@@ -1,0 +1,9 @@
+{
+  "extends": "@metorial/tsconfig/base.json",
+  "include": [
+    "src/**/*.ts"
+  ],
+  "compilerOptions": {
+    "moduleResolution": "bundler"
+  }
+}

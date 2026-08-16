@@ -1,5 +1,5 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
-import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial/cargo-module-skill';
+import { reconcileSkillProviderLinksForIntegrationProviderQueue } from '@metorial/module-skill';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { enqueueSyncIntegrationInstanceGroupSessionTemplatesMany } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';

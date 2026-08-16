@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import type { SubspaceIntegrationPreview } from '@metorial/cargo-module-skill';
+import type { SubspaceIntegrationPreview } from '@metorial/module-skill';
 import { Presenter } from '@metorial/presenter';
 import { integrationType } from '../../../types';
 import {

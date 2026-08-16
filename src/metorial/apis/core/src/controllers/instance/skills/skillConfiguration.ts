@@ -1,7 +1,7 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import type { Instance, Organization } from '@metorial/db';
-import { skillConfigurationService } from '@metorial/cargo-module-skill';
+import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';

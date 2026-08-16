@@ -1,5 +1,6 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { skillGroupService, skillService } from '@metorial/cargo-module-skill';
+import { skillService } from '@metorial/module-skill';
+import { skillGroupService } from '@metorial/module-skill-groups';
 import { ConsumerProfile, Instance, Project } from '@metorial/db';
 import type { AnyAccessTagSelector, ResourceAuthorization } from '@metorial/module-access';
 

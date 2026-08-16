@@ -3,7 +3,7 @@ import {
   reconcileSkillProviderLinksForIntegrationProviderQueue,
   reconcileSkillProviderLinksForProviderQueue,
   reconcileSkillProviderLinksQueue
-} from '@metorial/cargo-module-skill';
+} from '@metorial/module-skill';
 import { db } from '@metorial-subspace/db';
 import { providerAuthConfigArchivedQueue } from '@metorial-subspace/module-auth/src/queues/lifecycle/providerAuthConfig';
 import { providerAuthCredentialsArchivedQueue } from '@metorial-subspace/module-auth/src/queues/lifecycle/providerAuthCredentials';

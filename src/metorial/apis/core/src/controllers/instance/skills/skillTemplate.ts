@@ -1,10 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillResourceService,
-  skillTemplateService
-} from '@metorial/cargo-module-skill';
+import { skillResourceService } from '@metorial/module-skill';
+import { skillTemplateService } from '@metorial/module-skill-templates';
 import { ID } from '@metorial/db';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -12,7 +10,11 @@ import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instanceLegacyPath, instancePath } from '../../../middleware/instanceGroup';
+import {
+  instanceGroup,
+  instanceLegacyPath,
+  instancePath
+} from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillTemplatePresenter } from '@metorial/presenters';
 

@@ -2,7 +2,7 @@ import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
-import { skillConfigurationService } from '@metorial/cargo-module-skill';
+import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import { Context } from '@metorial/context';
 import {
   ConsumerSurface,

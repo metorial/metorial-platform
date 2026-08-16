@@ -2005,7 +2005,6 @@
         "@metorial/auth": "^1.0.0",
         "@metorial/cargo-module-doc": "^1.0.0",
         "@metorial/cargo-module-file": "^1.0.0",
-        "@metorial/cargo-module-skill": "^1.0.0",
         "@metorial/cargo-module-store": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
@@ -2019,7 +2018,13 @@
         "@metorial/module-product-assistant": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
         "@metorial/module-secrets": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
+        "@metorial/module-skill-configurations": "^1.0.0",
+        "@metorial/module-skill-groups": "^1.0.0",
+        "@metorial/module-skill-import": "^1.0.0",
+        "@metorial/module-skill-marketplace": "^1.0.0",
         "@metorial/module-skill-merge-requests": "^1.0.0",
+        "@metorial/module-skill-templates": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
         "@metorial/module-user": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
@@ -2826,7 +2831,6 @@
         "@metorial-subspace/module-session": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
         "@metorial/cargo-module-file": "^1.0.0",
-        "@metorial/cargo-module-skill": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
@@ -2839,6 +2843,7 @@
         "@metorial/module-product-assistant": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
         "@metorial/module-secrets": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
         "@metorial/module-skill-marketplace": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
       },
@@ -3021,41 +3026,118 @@
       },
     },
     "src/metorial/products/skills/modules/skill": {
-      "name": "@metorial/cargo-module-skill",
+      "name": "@metorial/module-skill",
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/canonicalize": "workspace:2.0.0",
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
-        "@lowerdeck/hash": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/queue": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial/cargo-list-utils": "^1.0.0",
         "@metorial/cargo-module-doc": "^1.0.0",
-        "@metorial/cargo-module-file": "^1.0.0",
         "@metorial/cargo-module-store": "^1.0.0",
-        "@metorial/code-bucket-service-generated": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
-        "@metorial/module-skill-marketplace": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/skills-common": "^1.0.0",
+        "@metorial/skills-images": "^1.0.0",
+        "@metorial/skills-search": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/modules/skill-configurations": {
+      "name": "@metorial/module-skill-configurations",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/cargo-list-utils": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/skills-common": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "^5",
+        "vitest": "^3.1.2",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/modules/skill-groups": {
+      "name": "@metorial/module-skill-groups",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/cargo-list-utils": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/module-access": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "^5",
+        "vitest": "^3.1.2",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/modules/skill-import": {
+      "name": "@metorial/module-skill-import",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cargo-module-doc": "^1.0.0",
+        "@metorial/cargo-module-file": "^1.0.0",
+        "@metorial/cargo-module-store": "^1.0.0",
+        "@metorial/code-bucket-service-generated": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/module-access": "^1.0.0",
+        "@metorial/module-consumer": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
+        "@metorial/module-skill-marketplace": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/skills-scm-utils": "^1.0.0",
         "jszip": "^3.10.1",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
+        "typescript": "^5",
+        "vitest": "^3.1.2",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -3076,15 +3158,18 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/cargo-list-utils": "^1.0.0",
         "@metorial/cargo-module-file": "^1.0.0",
-        "@metorial/cargo-module-skill": "^1.0.0",
         "@metorial/code-bucket-service-generated": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
+        "@metorial/module-skill-configurations": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/skills-common": "^1.0.0",
+        "@metorial/skills-images": "^1.0.0",
+        "@metorial/skills-scm-utils": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
         "date-fns": "^4.1.0",
         "p-queue": "^8.1.0",
@@ -3130,18 +3215,78 @@
         "typescript": "^5",
       },
     },
-    "src/metorial/products/skills/packages/common": {
-      "name": "@metorial/skills-common",
+    "src/metorial/products/skills/modules/skill-templates": {
+      "name": "@metorial/module-skill-templates",
       "version": "1.0.0",
       "dependencies": {
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/origin-client": "^1.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial-subspace/list-utils": "^1.0.0",
+        "@metorial-subspace/module-tenant": "^1.0.0",
+        "@metorial/cargo-list-utils": "^1.0.0",
+        "@metorial/cargo-module-store": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/module-access": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/skills-common": "^1.0.0",
+        "@metorial/skills-search": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "^5",
+        "vitest": "^3.1.2",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/packages/common": {
+      "name": "@metorial/skills-common",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "^5",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/packages/images": {
+      "name": "@metorial/skills-images",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
         "@metorial/cargo-module-file": "^1.0.0",
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "^5",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/packages/scm-utils": {
+      "name": "@metorial/skills-scm-utils",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial-platform-systems/origin-client": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/skills-common": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3282,7 +3427,6 @@
         "@metorial-subspace/module-session": "^1.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial/audit-scope": "workspace:*",
-        "@metorial/cargo-module-skill": "1.0.0",
         "@metorial/cargo-module-store": "1.0.0",
         "@metorial/config": "1.0.0",
         "@metorial/context": "1.0.0",
@@ -3293,7 +3437,10 @@
         "@metorial/module-organization": "1.0.0",
         "@metorial/module-resource-actor": "1.0.0",
         "@metorial/module-search": "^1.0.0",
+        "@metorial/module-skill": "1.0.0",
+        "@metorial/module-skill-configurations": "1.0.0",
         "@metorial/module-skill-marketplace": "1.0.0",
+        "@metorial/module-skill-templates": "1.0.0",
         "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
@@ -3355,7 +3502,6 @@
         "@metorial/auth": "1.0.0",
         "@metorial/cargo-module-doc": "1.0.0",
         "@metorial/cargo-module-file": "1.0.0",
-        "@metorial/cargo-module-skill": "1.0.0",
         "@metorial/cargo-module-store": "1.0.0",
         "@metorial/logging": "1.0.0",
         "@metorial/module-access": "1.0.0",
@@ -3366,8 +3512,13 @@
         "@metorial/module-machine-access": "1.0.0",
         "@metorial/module-organization": "1.0.0",
         "@metorial/module-product-assistant": "1.0.0",
+        "@metorial/module-skill": "1.0.0",
+        "@metorial/module-skill-configurations": "1.0.0",
+        "@metorial/module-skill-groups": "1.0.0",
+        "@metorial/module-skill-import": "1.0.0",
         "@metorial/module-skill-marketplace": "1.0.0",
         "@metorial/module-skill-merge-requests": "1.0.0",
+        "@metorial/module-skill-templates": "1.0.0",
         "@metorial/module-usage": "1.0.0",
         "@metorial/module-user": "1.0.0",
         "@metorial/queue": "1.0.0",
@@ -3672,9 +3823,9 @@
         "@metorial-subspace/module-search": "^1.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial-subspace/provider": "^1.0.0",
-        "@metorial/cargo-module-skill": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -3800,9 +3951,9 @@
         "@metorial-subspace/module-search": "^1.0.0",
         "@metorial-subspace/module-session": "^1.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
-        "@metorial/cargo-module-skill": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/module-skill": "^1.0.0",
         "date-fns": "^4.1.0",
       },
       "devDependencies": {
@@ -6158,8 +6309,6 @@
 
     "@metorial/cargo-module-file": ["@metorial/cargo-module-file@workspace:src/metorial/products/storage/modules/file"],
 
-    "@metorial/cargo-module-skill": ["@metorial/cargo-module-skill@workspace:src/metorial/products/skills/modules/skill"],
-
     "@metorial/cargo-module-store": ["@metorial/cargo-module-store@workspace:src/metorial/products/storage/modules/store"],
 
     "@metorial/chart": ["@metorial/chart@workspace:src/metorial-frontend/packages/chart"],
@@ -6272,9 +6421,19 @@
 
     "@metorial/module-secrets": ["@metorial/module-secrets@workspace:src/metorial/modules/secrets"],
 
+    "@metorial/module-skill": ["@metorial/module-skill@workspace:src/metorial/products/skills/modules/skill"],
+
+    "@metorial/module-skill-configurations": ["@metorial/module-skill-configurations@workspace:src/metorial/products/skills/modules/skill-configurations"],
+
+    "@metorial/module-skill-groups": ["@metorial/module-skill-groups@workspace:src/metorial/products/skills/modules/skill-groups"],
+
+    "@metorial/module-skill-import": ["@metorial/module-skill-import@workspace:src/metorial/products/skills/modules/skill-import"],
+
     "@metorial/module-skill-marketplace": ["@metorial/module-skill-marketplace@workspace:src/metorial/products/skills/modules/skill-marketplace"],
 
     "@metorial/module-skill-merge-requests": ["@metorial/module-skill-merge-requests@workspace:src/metorial/products/skills/modules/skill-merge-requests"],
+
+    "@metorial/module-skill-templates": ["@metorial/module-skill-templates@workspace:src/metorial/products/skills/modules/skill-templates"],
 
     "@metorial/module-usage": ["@metorial/module-usage@workspace:src/metorial/modules/usage"],
 
@@ -6323,6 +6482,10 @@
     "@metorial/signal": ["@metorial/signal@workspace:src/signal/service"],
 
     "@metorial/skills-common": ["@metorial/skills-common@workspace:src/metorial/products/skills/packages/common"],
+
+    "@metorial/skills-images": ["@metorial/skills-images@workspace:src/metorial/products/skills/packages/images"],
+
+    "@metorial/skills-scm-utils": ["@metorial/skills-scm-utils@workspace:src/metorial/products/skills/packages/scm-utils"],
 
     "@metorial/skills-search": ["@metorial/skills-search@workspace:src/metorial/products/skills/packages/search"],
 
@@ -10318,11 +10481,19 @@
 
     "@metorial/module-markdown/mongoose": ["mongoose@8.24.1", "", { "dependencies": { "bson": "^6.10.4", "kareem": "2.6.3", "mongodb": "~6.20.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UpHBA0l5kHyKJQFjmBaFYQFo5sgz1DK0TRqDkOyBLYbqiIbKKhIvBpHWBXqeo0rgW4kGI1UhhAw+kTQZoj1BdA=="],
 
+    "@metorial/module-skill-configurations/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/module-skill-groups/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/module-skill-import/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
     "@metorial/module-skill-marketplace/p-queue": ["p-queue@8.1.1", "", { "dependencies": { "eventemitter3": "^5.0.1", "p-timeout": "^6.1.2" } }, "sha512-aNZ+VfjobsWryoiPnEApGGmf5WmNsCo9xu8dfaYamG5qaLP7ClhLN6NgsFe6SwJ2UbLEBK5dv9x8Mn5+RVhMWQ=="],
 
     "@metorial/module-skill-marketplace/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/module-skill-merge-requests/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/module-skill-templates/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/module-usage/mongoose": ["mongoose@8.24.1", "", { "dependencies": { "bson": "^6.10.4", "kareem": "2.6.3", "mongodb": "~6.20.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UpHBA0l5kHyKJQFjmBaFYQFo5sgz1DK0TRqDkOyBLYbqiIbKKhIvBpHWBXqeo0rgW4kGI1UhhAw+kTQZoj1BdA=="],
 
@@ -10365,6 +10536,10 @@
     "@metorial/signal/vitest": ["vitest@4.0.17", "", { "dependencies": { "@vitest/expect": "4.0.17", "@vitest/mocker": "4.0.17", "@vitest/pretty-format": "4.0.17", "@vitest/runner": "4.0.17", "@vitest/snapshot": "4.0.17", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "es-module-lexer": "^1.7.0", "expect-type": "^1.2.2", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^3.10.0", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.0.17", "@vitest/browser-preview": "4.0.17", "@vitest/browser-webdriverio": "4.0.17", "@vitest/ui": "4.0.17", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-FQMeF0DJdWY0iOnbv466n/0BudNdKj1l5jYgl5JVTwjSsZSlqyXFt/9+1sEyhR6CLowbZpV7O1sCHrzBhucKKg=="],
 
     "@metorial/skills-common/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/skills-images/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@metorial/skills-scm-utils/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/skills-search/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

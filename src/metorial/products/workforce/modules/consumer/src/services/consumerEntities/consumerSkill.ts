@@ -10,9 +10,9 @@ import {
   skillParticipantService,
   skillResourceService,
   skillService,
-  skillTemplateService,
   type SkillRecord
-} from '@metorial/cargo-module-skill';
+} from '@metorial/module-skill';
+import { skillTemplateService } from '@metorial/module-skill-templates';
 import {
   Consumer,
   ConsumerGroup,

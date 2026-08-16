@@ -6,13 +6,16 @@ let mocks = vi.hoisted(() => ({
   assertSkillWriteAccess: vi.fn()
 }));
 
-vi.mock('@metorial/cargo-module-skill', () => ({
-  skillGroupService: {
-    getSkillGroupById: mocks.getSkillGroupById
-  },
+vi.mock('@metorial/module-skill', () => ({
   skillService: {
     getSkillById: mocks.getSkillById,
     assertSkillWriteAccess: mocks.assertSkillWriteAccess
+  }
+}));
+
+vi.mock('@metorial/module-skill-groups', () => ({
+  skillGroupService: {
+    getSkillGroupById: mocks.getSkillGroupById
   }
 }));
 

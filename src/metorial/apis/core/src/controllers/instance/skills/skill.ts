@@ -1,13 +1,9 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillGroupItemService,
-  skillGroupService,
-  skillResourceService,
-  skillService,
-  skillTemplateService
-} from '@metorial/cargo-module-skill';
+import { skillResourceService, skillService } from '@metorial/module-skill';
+import { skillGroupItemService, skillGroupService } from '@metorial/module-skill-groups';
+import { skillTemplateService } from '@metorial/module-skill-templates';
 import { ID } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
 import { skillPresenter } from '@metorial/presenters';

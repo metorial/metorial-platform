@@ -86,7 +86,7 @@ vi.mock(
   })
 );
 
-vi.mock('@metorial/cargo-module-skill', () => ({
+vi.mock('@metorial/module-skill', () => ({
   reconcileSkillProviderLinksForIntegrationProviderQueue: {
     add: reconcileSkillProviderLinksForIntegrationProviderQueueAddMock
   }

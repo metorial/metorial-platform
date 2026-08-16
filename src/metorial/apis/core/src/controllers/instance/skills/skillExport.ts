@@ -1,12 +1,12 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { skillService } from '@metorial/module-skill';
 import {
   skillExportService,
   skillMarketplaceService,
-  skillPluginService,
-  skillService
-} from '@metorial/cargo-module-skill';
+  skillPluginService
+} from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { hasInstanceConsumerAccess } from '../../../lib/cargoAccess';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';

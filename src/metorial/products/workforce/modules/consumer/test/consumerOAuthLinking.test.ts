@@ -99,7 +99,7 @@ vi.mock('@metorial/module-resource-actor', () => ({
   resolveResourceScopeForInstance: vi.fn()
 }));
 
-vi.mock('@metorial/cargo-module-skill', () => ({
+vi.mock('@metorial/module-skill', () => ({
   skillResourceService: {
     hydrateDelegatedSkillResources: vi.fn()
   }

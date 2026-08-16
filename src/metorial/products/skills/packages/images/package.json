@@ -1,5 +1,5 @@
 {
-  "name": "@metorial/skills-common",
+  "name": "@metorial/skills-images",
   "version": "1.0.0",
   "main": "src/index.ts",
   "module": "src/index.ts",
@@ -18,7 +18,13 @@
   "peerDependencies": {
     "typescript": "^5"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@metorial/cargo-module-file": "^1.0.0",
+    "@metorial/config": "^1.0.0",
+    "@metorial/db": "^1.0.0"
+  },
   "exports": {
     ".": "./src/index.ts"
   }

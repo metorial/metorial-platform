@@ -1,6 +1,6 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { skillResourceService } from '@metorial/cargo-module-skill';
+import { skillResourceService } from '@metorial/module-skill';
 import { skillPluginService } from '@metorial/module-skill-marketplace';
 import {
   db,

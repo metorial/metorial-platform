@@ -6,7 +6,7 @@ import {
   consumerProfileService,
   grantConsumerOwnedMagicMcpEndpointAccess
 } from '@metorial/module-consumer';
-import { skillPluginService } from '@metorial/cargo-module-skill';
+import { skillPluginService } from '@metorial/module-skill-marketplace';
 import {
   magicMcpEndpointService,
   magicMcpServerService,

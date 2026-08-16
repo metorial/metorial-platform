@@ -1,8 +1,8 @@
 import { createOriginClient } from '@metorial-platform-systems/origin-client';
 import type { SkillDestination } from '@metorial/db';
 import { db, ID } from '@metorial/db';
-import { getSkillsCommonEnv } from './env';
-import { getProjectTenantIdentifier } from './scope';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { getSkillsScmUtilsEnv } from './env';
 
 type OriginClient = ReturnType<typeof createOriginClient>;
 
@@ -11,7 +11,7 @@ let originClient: OriginClient | undefined;
 let getOriginClient = (): OriginClient => {
   if (!originClient) {
     originClient = createOriginClient({
-      endpoint: getSkillsCommonEnv().origin.ORIGIN_URL
+      endpoint: getSkillsScmUtilsEnv().origin.ORIGIN_URL
     });
   }
 

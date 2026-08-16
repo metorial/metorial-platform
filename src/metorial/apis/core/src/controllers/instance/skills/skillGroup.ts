@@ -1,7 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillGroupService, skillResourceService } from '@metorial/cargo-module-skill';
+import { skillResourceService } from '@metorial/module-skill';
+import { skillGroupService } from '@metorial/module-skill-groups';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';

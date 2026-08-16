@@ -71,13 +71,10 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('@metorial/cargo-module-skill', () => ({
+vi.mock('@metorial/module-skill', () => ({
   skillResourceService: {
     copyDelegatedTemplateResourcesToSkill: vi.fn(),
     hydrateSkill: vi.fn()
-  },
-  skillTemplateService: {
-    getSkillTemplateById: getSkillTemplateByIdMock
   },
   skillParticipantService: {
     setSkillParticipantAccessRole: setSkillParticipantAccessRoleMock
@@ -85,6 +82,12 @@ vi.mock('@metorial/cargo-module-skill', () => ({
   skillService: {
     createSkill: createSkillMock,
     getSkillById: getSkillByIdMock
+  }
+}));
+
+vi.mock('@metorial/module-skill-templates', () => ({
+  skillTemplateService: {
+    getSkillTemplateById: getSkillTemplateByIdMock
   }
 }));
 

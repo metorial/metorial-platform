@@ -4,8 +4,12 @@ import { runQueueProcessors } from '@metorial/queue';
 
 import { documentQueueProcessor as cargoDocumentQueueProcessor } from '@metorial/cargo-module-doc';
 import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/cargo-module-file';
-import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/cargo-module-skill';
+import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
+import { skillConfigurationQueueProcessor } from '@metorial/module-skill-configurations';
+import { skillGroupQueueProcessor } from '@metorial/module-skill-groups';
+import { skillImportQueueProcessor } from '@metorial/module-skill-import';
 import { skillMarketplaceQueueProcessor } from '@metorial/module-skill-marketplace';
+import { skillTemplateQueueProcessor } from '@metorial/module-skill-templates';
 import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/cargo-module-store';
 import { accessQueueProcessor } from '@metorial/module-access';
 import { auditLogStreamQueueProcessor } from '@metorial/module-audit-log-stream';
@@ -36,6 +40,10 @@ export let worker = runQueueProcessors([
   cargoDocumentQueueProcessor,
   cargoStoreQueueProcessor,
   cargoSkillQueueProcessor,
+  skillTemplateQueueProcessor,
+  skillGroupQueueProcessor,
+  skillConfigurationQueueProcessor,
+  skillImportQueueProcessor,
   skillMarketplaceQueueProcessor,
   skillMergeRequestQueueProcessor,
   eventQueueProcessor,

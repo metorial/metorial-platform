@@ -1,5 +1,5 @@
 import { createQueue } from '@lowerdeck/queue';
-import { reconcileSkillProviderLinksQueue } from '@metorial/cargo-module-skill';
+import { reconcileSkillProviderLinksQueue } from '@metorial/module-skill';
 import { db } from '@metorial-subspace/db';
 import { identityInternalService } from '@metorial-subspace/module-identity';
 import { env } from '../../env';

@@ -1,11 +1,9 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillGroupService,
-  skillService,
-  skillTemplateService
-} from '@metorial/cargo-module-skill';
+import { skillService } from '@metorial/module-skill';
+import { skillGroupService } from '@metorial/module-skill-groups';
+import { skillTemplateService } from '@metorial/module-skill-templates';
 import { db } from '@metorial/db';
 import { consumerAccessService, consumerGroupService } from '@metorial/module-consumer';
 import { magicMcpServerService, providerTemplateService } from '@metorial/module-magic';
