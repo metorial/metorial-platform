@@ -1,6 +1,8 @@
 import { renderWithPagination } from '@metorial/data-hooks';
 import { showScmRepositoryPicker } from '@metorial/scene-scm';
 import {
+  allSkillMarketplacePluginsLoader,
+  skillMarketplaceLoader,
   type SkillMarketplaceRepository,
   type SkillPluginRepository,
   useCreateSkillMarketplaceRepository,
@@ -258,6 +260,10 @@ export let useSkillMarketplaceRepositoriesManager = (p: {
       description:
         'Select or create a Git repository, then link it to this skill marketplace.',
       onManageSourceControl: manageSourceControl,
+      onClose: () => {
+        skillMarketplaceLoader.refetchAll();
+        allSkillMarketplacePluginsLoader.refetchAll();
+      },
       onSelect: async repo => {
         let [created] = await createRepository.mutate({
           instanceId: p.instanceId!,

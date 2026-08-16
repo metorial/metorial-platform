@@ -50,6 +50,7 @@ import {
   RiMore2Line as RiMoreVerticalLine,
   RiPuzzle2Line
 } from '@remixicon/react';
+import PQueue from 'p-queue';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 
@@ -396,6 +397,15 @@ let getNewSkillInput = (skill: Skill) => ({
   compatibility: skill.compatibility ?? undefined
 });
 
+let addSelectedItems = async <T,>(
+  items: T[],
+  onSelect: (item: T) => Promise<boolean>
+) => {
+  let queue = new PQueue({ concurrency: 10 });
+  let results = await queue.addAll(items.map(item => () => onSelect(item)));
+  return results.every(Boolean);
+};
+
 let PluginPickerPanel = (p: {
   instanceId: string;
   excludePluginIds: string[];
@@ -482,10 +492,7 @@ let PluginPickerPanel = (p: {
               onClick={async () => {
                 setIsAdding(true);
                 try {
-                  for (let plugin of selectedPlugins) {
-                    if (!(await p.onSelect(plugin))) return;
-                  }
-                  p.close();
+                  if (await addSelectedItems(selectedPlugins, p.onSelect)) p.close();
                 } finally {
                   setIsAdding(false);
                 }
@@ -560,17 +567,24 @@ let SkillPickerPanel = (p: {
                 headers={['Name', 'Identifier', '']}
                 data={items.map(skill => ({
                   data: [
-                    skill.name,
-                    skill.slug,
-                    <PickerCheckbox key={skill.id} onClick={event => event.stopPropagation()}>
-                      <Checkbox
-                        label={`Select ${skill.name}`}
-                        hideLabel
-                        checked={selected.has(skill.id)}
-                        disabled={isAdding}
-                        onCheckedChange={checked => toggleSelected(skill, checked)}
-                      />
-                    </PickerCheckbox>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <PickerCheckbox
+                        key={skill.id}
+                        onClick={event => event.stopPropagation()}
+                      >
+                        <Checkbox
+                          label={`Select ${skill.name}`}
+                          hideLabel
+                          checked={selected.has(skill.id)}
+                          disabled={isAdding}
+                          onCheckedChange={checked => toggleSelected(skill, checked)}
+                        />
+                      </PickerCheckbox>
+
+                      <span>{skill.name}</span>
+                    </div>,
+
+                    skill.slug
                   ],
                   onClick: () => !isAdding && toggleSelected(skill, !selected.has(skill.id))
                 }))}
@@ -584,10 +598,7 @@ let SkillPickerPanel = (p: {
               onClick={async () => {
                 setIsAdding(true);
                 try {
-                  for (let skill of selectedSkills) {
-                    if (!(await p.onSelect(skill))) return;
-                  }
-                  p.close();
+                  if (await addSelectedItems(selectedSkills, p.onSelect)) p.close();
                 } finally {
                   setIsAdding(false);
                 }

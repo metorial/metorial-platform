@@ -1077,16 +1077,23 @@ export let showScmRepositoryPicker = (
   p: Omit<ScmRepositoryPickerProps, 'close'> & {
     title?: string;
     description?: string;
+    onClose?: () => void;
   }
-) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={680}>
-      <Panel.Header>
-        <Panel.Title>{p.title ?? 'Select a repository'}</Panel.Title>
-        <Panel.Description>
-          {p.description ?? 'Choose the repository Metorial should use as the source.'}
-        </Panel.Description>
-      </Panel.Header>
-      <ScmRepositoryPicker {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+) => {
+  let { onClose, title, description, ...picker } = p;
+
+  return showModal(
+    ({ dialogProps, close }) => (
+      <Panel.Wrapper {...dialogProps} width={680}>
+        <Panel.Header>
+          <Panel.Title>{title ?? 'Select a repository'}</Panel.Title>
+          <Panel.Description>
+            {description ?? 'Choose the repository Metorial should use as the source.'}
+          </Panel.Description>
+        </Panel.Header>
+        <ScmRepositoryPicker {...picker} close={close} />
+      </Panel.Wrapper>
+    ),
+    { onClose }
+  );
+};
