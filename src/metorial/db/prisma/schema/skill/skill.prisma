@@ -37,8 +37,8 @@ model Skill {
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 
-  projectOid BigInt?
-  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
