@@ -47,16 +47,6 @@
         "vitest": "^0.34.6",
       },
     },
-    "scripts/cargo-scope-backfill": {
-      "name": "@metorial-scripts/cargo-scope-backfill",
-      "dependencies": {
-        "pg": "^8.21.0",
-      },
-      "devDependencies": {
-        "@types/pg": "^8.11.10",
-        "typescript": "^5.7.2",
-      },
-    },
     "scripts/dev-tools": {
       "name": "metorial-dev-tools",
       "version": "1.0.0",
@@ -87,16 +77,6 @@
       },
       "peerDependencies": {
         "typescript": "^5",
-      },
-    },
-    "scripts/invalid-resource-scope": {
-      "name": "@metorial-scripts/invalid-resource-scope",
-      "dependencies": {
-        "pg": "^8.21.0",
-      },
-      "devDependencies": {
-        "@types/pg": "^8.11.10",
-        "typescript": "^5.7.2",
       },
     },
     "scripts/test-tools": {
@@ -2859,6 +2839,7 @@
         "@metorial/module-product-assistant": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
         "@metorial/module-secrets": "^1.0.0",
+        "@metorial/module-skill-marketplace": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
       },
       "devDependencies": {
@@ -3053,7 +3034,6 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial-platform-systems/origin-client": "^1.0.0",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
@@ -3067,14 +3047,55 @@
         "@metorial/db": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
+        "@metorial/module-skill-marketplace": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
         "jszip": "^3.10.1",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/modules/skill-marketplace": {
+      "name": "@metorial/module-skill-marketplace",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/cargo-list-utils": "^1.0.0",
+        "@metorial/cargo-module-file": "^1.0.0",
+        "@metorial/cargo-module-skill": "^1.0.0",
+        "@metorial/code-bucket-service-generated": "^1.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/module-access": "^1.0.0",
+        "@metorial/module-resource-actor": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/skills-common": "^1.0.0",
+        "@metorial/skills-search": "^1.0.0",
+        "date-fns": "^4.1.0",
+        "p-queue": "^8.1.0",
+        "semver": "^7.7.2",
         "yaml": "^2.9.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
+        "typescript": "^5",
+        "vitest": "^3.1.2",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -3104,6 +3125,28 @@
         "@types/bun": "latest",
         "typescript": "^5",
         "vitest": "^3.1.2",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "src/metorial/products/skills/packages/common": {
+      "name": "@metorial/skills-common",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial-platform-systems/origin-client": "^1.0.0",
+        "@metorial/cargo-module-file": "^1.0.0",
+        "@metorial/config": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "^5",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -3250,6 +3293,7 @@
         "@metorial/module-organization": "1.0.0",
         "@metorial/module-resource-actor": "1.0.0",
         "@metorial/module-search": "^1.0.0",
+        "@metorial/module-skill-marketplace": "1.0.0",
         "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
@@ -3322,6 +3366,7 @@
         "@metorial/module-machine-access": "1.0.0",
         "@metorial/module-organization": "1.0.0",
         "@metorial/module-product-assistant": "1.0.0",
+        "@metorial/module-skill-marketplace": "1.0.0",
         "@metorial/module-skill-merge-requests": "1.0.0",
         "@metorial/module-usage": "1.0.0",
         "@metorial/module-user": "1.0.0",
@@ -6001,10 +6046,6 @@
 
     "@metorial-platform-systems/voyager-client": ["@metorial-platform-systems/voyager-client@workspace:src/voyager/clients/voyager"],
 
-    "@metorial-scripts/cargo-scope-backfill": ["@metorial-scripts/cargo-scope-backfill@workspace:scripts/cargo-scope-backfill"],
-
-    "@metorial-scripts/invalid-resource-scope": ["@metorial-scripts/invalid-resource-scope@workspace:scripts/invalid-resource-scope"],
-
     "@metorial-services/registry-client": ["@metorial-services/registry-client@1.0.0", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.3", "@lowerdeck/rpc-server": "^1.0.6", "@lowerdeck/validation": "^1.0.4" } }, "sha512-6A3tb7rtxex7GlygF6W832p8zoW5I1tkEzEpGzlhjA7wWIwPKVIlYF2XxKhua3z2+kXRKUW6WKjKwc+P81TIdw=="],
 
     "@metorial-services/scout-client": ["@metorial-services/scout-client@1.0.0", "", { "dependencies": { "@lowerdeck/rpc-client": "^1.0.2" } }, "sha512-iZUt3ot1libD7mDh/9K5O/oYmuZGWxaxEIuTypzz0UQY0Ra4BFWwtfB88VwQCew58Fz6S2wf6iDsFLsq+/2s7w=="],
@@ -6231,6 +6272,8 @@
 
     "@metorial/module-secrets": ["@metorial/module-secrets@workspace:src/metorial/modules/secrets"],
 
+    "@metorial/module-skill-marketplace": ["@metorial/module-skill-marketplace@workspace:src/metorial/products/skills/modules/skill-marketplace"],
+
     "@metorial/module-skill-merge-requests": ["@metorial/module-skill-merge-requests@workspace:src/metorial/products/skills/modules/skill-merge-requests"],
 
     "@metorial/module-usage": ["@metorial/module-usage@workspace:src/metorial/modules/usage"],
@@ -6278,6 +6321,8 @@
     "@metorial/shuttle": ["@metorial/shuttle@workspace:src/shuttle/service"],
 
     "@metorial/signal": ["@metorial/signal@workspace:src/signal/service"],
+
+    "@metorial/skills-common": ["@metorial/skills-common@workspace:src/metorial/products/skills/packages/common"],
 
     "@metorial/skills-search": ["@metorial/skills-search@workspace:src/metorial/products/skills/packages/search"],
 
@@ -10171,10 +10216,6 @@
 
     "@metorial-platform-systems/voyager-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@metorial-scripts/cargo-scope-backfill/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
-    "@metorial-scripts/invalid-resource-scope/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
     "@metorial-services/slates-registry-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial-services/slates-registry-internal-client/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
@@ -10277,6 +10318,10 @@
 
     "@metorial/module-markdown/mongoose": ["mongoose@8.24.1", "", { "dependencies": { "bson": "^6.10.4", "kareem": "2.6.3", "mongodb": "~6.20.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UpHBA0l5kHyKJQFjmBaFYQFo5sgz1DK0TRqDkOyBLYbqiIbKKhIvBpHWBXqeo0rgW4kGI1UhhAw+kTQZoj1BdA=="],
 
+    "@metorial/module-skill-marketplace/p-queue": ["p-queue@8.1.1", "", { "dependencies": { "eventemitter3": "^5.0.1", "p-timeout": "^6.1.2" } }, "sha512-aNZ+VfjobsWryoiPnEApGGmf5WmNsCo9xu8dfaYamG5qaLP7ClhLN6NgsFe6SwJ2UbLEBK5dv9x8Mn5+RVhMWQ=="],
+
+    "@metorial/module-skill-marketplace/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
     "@metorial/module-skill-merge-requests/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/module-usage/mongoose": ["mongoose@8.24.1", "", { "dependencies": { "bson": "^6.10.4", "kareem": "2.6.3", "mongodb": "~6.20.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-UpHBA0l5kHyKJQFjmBaFYQFo5sgz1DK0TRqDkOyBLYbqiIbKKhIvBpHWBXqeo0rgW4kGI1UhhAw+kTQZoj1BdA=="],
@@ -10318,6 +10363,8 @@
     "@metorial/signal/@types/node": ["@types/node@25.9.4", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-dszCsrKb5U7ZsVZBWiHFklTloVl0mSEnWH/iZXfZUlI4rzCUnsvGmgqfuVRHL54ugE7/wRuxEIXRa2iMZ+BG6g=="],
 
     "@metorial/signal/vitest": ["vitest@4.0.17", "", { "dependencies": { "@vitest/expect": "4.0.17", "@vitest/mocker": "4.0.17", "@vitest/pretty-format": "4.0.17", "@vitest/runner": "4.0.17", "@vitest/snapshot": "4.0.17", "@vitest/spy": "4.0.17", "@vitest/utils": "4.0.17", "es-module-lexer": "^1.7.0", "expect-type": "^1.2.2", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^3.10.0", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.0.17", "@vitest/browser-preview": "4.0.17", "@vitest/browser-webdriverio": "4.0.17", "@vitest/ui": "4.0.17", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-FQMeF0DJdWY0iOnbv466n/0BudNdKj1l5jYgl5JVTwjSsZSlqyXFt/9+1sEyhR6CLowbZpV7O1sCHrzBhucKKg=="],
+
+    "@metorial/skills-common/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@metorial/skills-search/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
@@ -11338,6 +11385,8 @@
     "@metorial/module-markdown/mongoose/mongodb": ["mongodb@6.20.0", "", { "dependencies": { "@mongodb-js/saslprep": "^1.3.0", "bson": "^6.10.4", "mongodb-connection-string-url": "^3.0.2" }, "peerDependencies": { "@aws-sdk/credential-providers": "^3.188.0", "@mongodb-js/zstd": "^1.1.0 || ^2.0.0", "gcp-metadata": "^5.2.0", "kerberos": "^2.0.1", "mongodb-client-encryption": ">=6.0.0 <7", "snappy": "^7.3.2", "socks": "^2.7.1" }, "optionalPeers": ["@aws-sdk/credential-providers", "@mongodb-js/zstd", "gcp-metadata", "kerberos", "mongodb-client-encryption", "snappy", "socks"] }, "sha512-Tl6MEIU3K4Rq3TSHd+sZQqRBoGlFsOgNrH5ltAcFBV62Re3Fd+FcaVf8uSEQFOJ51SDowDVttBTONMfoYWrWlQ=="],
 
     "@metorial/module-markdown/mongoose/mquery": ["mquery@5.0.0", "", { "dependencies": { "debug": "4.x" } }, "sha512-iQMncpmEK8R8ncT8HJGsGc9Dsp8xcgYMVSbs5jgnm1lFHTZqMJTUWTDx1LBO8+mK3tPNZWFLBghQEIOULSTHZg=="],
+
+    "@metorial/module-skill-marketplace/p-queue/p-timeout": ["p-timeout@6.1.4", "", {}, "sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg=="],
 
     "@metorial/module-usage/mongoose/kareem": ["kareem@2.6.3", "", {}, "sha512-C3iHfuGUXK2u8/ipq9LfjFfXFxAZMQJJq7vLS45r3D9Y2xQ/m4S8zaR4zMLFWh9AsNPXmcFfUDhTEO8UIC/V6Q=="],
 

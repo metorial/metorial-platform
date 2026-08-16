@@ -100,11 +100,14 @@ vi.mock('@metorial/module-resource-actor', () => ({
 }));
 
 vi.mock('@metorial/cargo-module-skill', () => ({
-  skillPluginService: {
-    getSkillPluginById: vi.fn()
-  },
   skillResourceService: {
     hydrateDelegatedSkillResources: vi.fn()
+  }
+}));
+
+vi.mock('@metorial/module-skill-marketplace', () => ({
+  skillPluginService: {
+    getSkillPluginById: vi.fn()
   }
 }));
 

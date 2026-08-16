@@ -46,7 +46,7 @@ vi.mock('@metorial/cargo-list-utils', () => ({
   resolveStoreTemplates: vi.fn()
 }));
 
-vi.mock('../internal/scope', () => ({
+vi.mock('@metorial/skills-common', () => ({
   getProjectTenantIdentifier: vi.fn(() => 'mte-pro-1')
 }));
 

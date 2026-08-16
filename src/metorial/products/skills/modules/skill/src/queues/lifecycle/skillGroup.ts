@@ -2,7 +2,7 @@ import { addAfterTransactionHook, db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { indexSkillGroupQueue } from '../search/skillGroup';
 import { indexSkillQueue } from '../search/skill';
-import { getLifecycleJobId, type LifecycleEvent } from './_ids';
+import { getLifecycleJobId, type LifecycleEvent } from '@metorial/skills-common';
 
 let skillGroupLifecycleQueue = createQueue<{
   skillGroupId: string;

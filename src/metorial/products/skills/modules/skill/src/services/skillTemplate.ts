@@ -24,7 +24,7 @@ import {
   type AnyAccessTagSelector,
   consumerSkillReadRoles
 } from '@metorial/module-access';
-import { getProjectTenantIdentifier } from '../internal/scope';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle/skillTemplate';
 import { skillResourceService } from './resource';
 import { skillService } from './skill';

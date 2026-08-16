@@ -5,6 +5,7 @@ import { runQueueProcessors } from '@metorial/queue';
 import { documentQueueProcessor as cargoDocumentQueueProcessor } from '@metorial/cargo-module-doc';
 import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/cargo-module-file';
 import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/cargo-module-skill';
+import { skillMarketplaceQueueProcessor } from '@metorial/module-skill-marketplace';
 import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/cargo-module-store';
 import { accessQueueProcessor } from '@metorial/module-access';
 import { auditLogStreamQueueProcessor } from '@metorial/module-audit-log-stream';
@@ -35,6 +36,7 @@ export let worker = runQueueProcessors([
   cargoDocumentQueueProcessor,
   cargoStoreQueueProcessor,
   cargoSkillQueueProcessor,
+  skillMarketplaceQueueProcessor,
   skillMergeRequestQueueProcessor,
   eventQueueProcessor,
   usageQueueProcessor,

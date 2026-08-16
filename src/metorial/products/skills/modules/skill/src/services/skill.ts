@@ -42,8 +42,8 @@ import {
   consumerSkillReadRoles,
   type ResourceAuthorization
 } from '@metorial/module-access';
-import { internalImageService } from '../internal/image';
-import { getProjectTenantIdentifier } from '../internal/scope';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { internalImageService } from '@metorial/skills-common/image';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillResourceService } from './resource';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';

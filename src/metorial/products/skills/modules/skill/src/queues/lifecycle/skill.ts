@@ -1,10 +1,10 @@
 import { addAfterTransactionHook, db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { enqueueManagedSkillPluginLifecycle } from '@metorial/module-skill-marketplace';
 import { createQueue } from '@metorial/queue';
-import { indexSkillGroupQueue } from '../search/skillGroup';
+import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from '@metorial/skills-common';
 import { indexSkillQueue } from '../search/skill';
-import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
-import { enqueueManagedSkillPluginLifecycle } from './managedSkillPlugin';
+import { indexSkillGroupQueue } from '../search/skillGroup';
 
 let skillLifecycleQueue = createQueue<{
   skillId: string;

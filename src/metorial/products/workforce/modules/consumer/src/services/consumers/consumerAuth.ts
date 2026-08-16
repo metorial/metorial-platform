@@ -1,4 +1,4 @@
-import { forbiddenError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
   authenticateWithConsumerSessionToken,
@@ -18,16 +18,6 @@ import {
 import { consumerProfileService } from './consumerProfile';
 
 class ConsumerAuthServiceImpl {
-  private ensureSurfaceIsActive(d: { surface: ConsumerSurface }) {
-    if (d.surface.status != 'active') {
-      throw new ServiceError(
-        preconditionFailedError({
-          message: 'The consumer surface is not active.'
-        })
-      );
-    }
-  }
-
   private getSessionExpiryDate(d: { consumerSurface: ConsumerSurface; isForUser: boolean }) {
     if (d.isForUser) {
       return addDays(new Date(), 365);

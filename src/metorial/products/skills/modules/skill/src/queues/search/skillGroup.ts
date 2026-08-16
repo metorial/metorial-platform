@@ -1,7 +1,7 @@
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { getProjectTenantIdentifier } from '../../internal/scope';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
 
 export let indexSkillGroupQueue = createQueue<{ skillGroupId: string }>({
   name: 'cargo/skill/search/skillGroup',

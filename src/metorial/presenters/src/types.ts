@@ -37,10 +37,10 @@ import type {
   SkillGroupResource,
   SkillItemResource,
   SkillResource,
-  SkillSyncRepositoryCheck,
   SkillTemplateItemResource,
   SkillTemplateResource
 } from '@metorial/cargo-module-skill';
+import type { SkillSyncRepositoryCheck } from '@metorial/module-skill-marketplace';
 import {
   AccessPolicy,
   AccessPolicyAssignment,

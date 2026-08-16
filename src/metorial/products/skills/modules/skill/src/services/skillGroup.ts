@@ -10,7 +10,7 @@ import {
   type AnyAccessTagSelector,
   consumerSkillReadRoles
 } from '@metorial/module-access';
-import { getProjectTenantIdentifier } from '../internal/scope';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle/skillGroup';
 
 let include = {
