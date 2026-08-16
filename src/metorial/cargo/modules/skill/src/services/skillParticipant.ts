@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
@@ -12,8 +13,7 @@ import type { Prisma, ResourceActor, Skill, SkillParticipantRole } from '@metori
 import { db, withTransaction } from '@metorial/db';
 import {
   exposedParticipantResourceActorWhere,
-  resourceActorPresentationInclude,
-  type ResourceScope
+  resourceActorPresentationInclude
 } from '@metorial/module-resource-tenant';
 
 export let skillParticipantInclude = {
@@ -196,7 +196,7 @@ class SkillParticipantServiceImpl {
   }
 
   async getSkillParticipantById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillParticipantId: string;
     }
   ) {
@@ -204,8 +204,8 @@ class SkillParticipantServiceImpl {
       where: {
         id: d.skillParticipantId,
         skill: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         },
         resourceActor: exposedParticipantResourceActorWhere
       },
@@ -220,7 +220,7 @@ class SkillParticipantServiceImpl {
   }
 
   async listSkillParticipants(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       skillId: string;
       actorIds?: string[];
@@ -239,8 +239,8 @@ class SkillParticipantServiceImpl {
             where: {
               oid: participants ? participants.in : undefined,
               skill: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid,
+                projectOid: d.project.oid,
+                instanceOid: d.instance.oid,
                 id: d.skillId
               },
               resourceActorOid: actors ? actors.in : undefined,

@@ -4,6 +4,7 @@ import { slugify } from '@lowerdeck/slugify';
 import { env } from '@metorial/cargo-config';
 import { db } from '@metorial/db';
 import semver from 'semver';
+import { requireRecordProject } from '../../internal/scope';
 import { internalImageService } from '../../internal/image';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
@@ -36,8 +37,13 @@ export let applyPlugin = createApplicator(
       skillPluginOid: input.skillPlugin.oid
     });
 
-    let resourceTenant = await db.resourceTenant.findFirstOrThrow({
-      where: { oid: input.skillPlugin.resourceTenantOid! }
+    let project = await db.project.findFirstOrThrow({
+      where: requireRecordProject('Skill plugin', input.skillPlugin),
+      include: {
+        organization: {
+          select: { name: true, image: true }
+        }
+      }
     });
     let agents = await db.skillAgent.findMany({
       where: {
@@ -53,8 +59,8 @@ export let applyPlugin = createApplicator(
         if (skill.skill.image?.type === 'file') image = skill.skill.image;
       }
     }
-    if (image?.type !== 'file' && resourceTenant.image?.type === 'file') {
-      image = resourceTenant.image;
+    if (image?.type !== 'file' && project.organization.image?.type === 'file') {
+      image = project.organization.image;
     }
     let legacySkillHashes = skills
       .map(skill =>
@@ -95,7 +101,7 @@ export let applyPlugin = createApplicator(
         standaloneMarketplace: input.skillMarketplace
           ? null
           : {
-              ownerName: resourceTenant.organizationName ?? resourceTenant.name
+              ownerName: project.organization.name
             },
         agents: agents.map(agent => ({
           slug: agent.slug,
@@ -107,7 +113,7 @@ export let applyPlugin = createApplicator(
 
     return {
       skills,
-      resourceTenant,
+      project,
       agents,
       image,
       hash,
@@ -117,7 +123,7 @@ export let applyPlugin = createApplicator(
   {
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { resourceTenant, agents, image, hash, legacyHash }) => {
+    apply: async (input, context, { project, agents, image, hash, legacyHash }) => {
       if (input.skillPlugin.versionHash !== hash) {
         let isHashMigration = input.skillPlugin.versionHash === legacyHash;
         let nextVersion = isHashMigration
@@ -249,7 +255,7 @@ export let applyPlugin = createApplicator(
         let cursorAndClaudeMarketplace = json({
           name: baseInfo.name,
           owner: {
-            name: resourceTenant.organizationName ?? resourceTenant.name
+            name: project.organization.name
           },
           metadata: {
             description: 'Official WorkOS skills for AI coding agents',

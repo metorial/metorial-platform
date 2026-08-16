@@ -4,7 +4,7 @@ import { createResolver } from '../resolver';
 export let resolveResourceActors = createResolver(async ({ selector, ids }) =>
   db.resourceActor.findMany({
     where: {
-      resourceTenantOid: selector.resourceTenant.oid,
+      projectOid: selector.project.oid,
       id: { in: ids }
     },
     select: { oid: true }

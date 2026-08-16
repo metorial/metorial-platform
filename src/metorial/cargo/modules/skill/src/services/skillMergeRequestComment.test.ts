@@ -53,8 +53,8 @@ import { skillMergeRequestCommentService } from './skillMergeRequestComment';
 
 let mergeRequest = { oid: 1n } as any;
 let context = {
-  resourceTenant: { oid: 2n },
-  resourceGroup: { oid: 3n },
+  project: { oid: 2n },
+  instance: { oid: 3n },
   mergeRequest,
   actor: { oid: 30n, id: 'act_test' },
   body: 'A reply'

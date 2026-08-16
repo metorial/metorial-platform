@@ -5,7 +5,7 @@ import {
   fileReferenceService,
   fileService
 } from '@metorial/cargo-module-file';
-import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
+import { resolveOwnerScope } from '@metorial/module-resource-tenant';
 
 export let resolveUserFileImage = async <ClearImage extends EntityImage | null>(d: {
   user: Pick<User, 'id'>;
@@ -14,7 +14,7 @@ export let resolveUserFileImage = async <ClearImage extends EntityImage | null>(
 }): Promise<EntityImage | ClearImage> => {
   if (d.imageFileId === null) return d.clearedImage;
 
-  let scope = await resolveResourceScopeForOwner({
+  let scope = await resolveOwnerScope({
     type: 'user',
     user: d.user
   });

@@ -104,9 +104,9 @@ vi.mock('@metorial/module-access', () => ({
 }));
 
 vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveResourceScopeForOwner: vi.fn(async () => ({
-    resourceTenant: { oid: 20n, id: 'rtn_1' },
-    resourceGroup: { oid: 21n, id: 'rgr_1' }
+  resolveInstanceScope: vi.fn(async () => ({
+    project: { oid: 2n },
+    instance: { oid: 3n }
   })),
   resourceActorService: {
     ensureConsumerActor: ensureConsumerActorMock,

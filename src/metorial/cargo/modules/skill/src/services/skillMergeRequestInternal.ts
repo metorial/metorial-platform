@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
@@ -12,10 +13,7 @@ import {
   flushDocumentCollaborationState,
   flushDocumentDraft
 } from '@metorial/cargo-module-doc';
-import {
-  resourceActorPresentationInclude,
-  type ResourceScope
-} from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import {
   storeAccessService,
   storeReadPermission,
@@ -179,11 +177,11 @@ let getResolutionStatus = (
   resolutionType === 'skip' || resolutionType === 'keep_target' ? 'skipped' : 'resolved';
 
 class SkillMergeRequestInternalServiceImpl {
-  async getSkill(d: ResourceScope & { skillId: string }) {
+  async getSkill(d: CargoScope & { skillId: string }) {
     let skill = await db.skill.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         id: d.skillId,
         status: 'active'
       },
@@ -198,15 +196,15 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async getRawSkillMergeRequestById(d: {
-    resourceTenantOid?: bigint;
-    resourceGroupOid?: bigint;
+    projectOid?: bigint;
+    instanceOid?: bigint;
     skillMergeRequestId: string;
   }) {
     let mergeRequest = await db.skillMergeRequest.findFirst({
       where: {
         id: d.skillMergeRequestId,
-        resourceTenantOid: d.resourceTenantOid,
-        resourceGroupOid: d.resourceGroupOid
+        projectOid: d.projectOid,
+        instanceOid: d.instanceOid
       },
       include: skillMergeRequestInclude
     });
@@ -609,15 +607,15 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertReadEitherSkill(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       authorization: ResourceAuthorization;
     }
   ) {
     try {
       await storeAccessService.assertStoreAccessForStore({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         store: d.mergeRequest.sourceSkill.store!,
         authorization: d.authorization,
         requiredPermission: storeReadPermission
@@ -628,8 +626,8 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: d.mergeRequest.targetSkill.store!,
       authorization: d.authorization,
       requiredPermission: storeReadPermission
@@ -637,14 +635,14 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertTargetWrite(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       authorization: ResourceAuthorization;
     }
   ) {
     return await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: d.mergeRequest.targetSkill.store!,
       authorization: d.authorization,
       requiredPermission: storeWritePermission
@@ -656,22 +654,19 @@ class SkillMergeRequestInternalServiceImpl {
     authorization: ResourceAuthorization;
   }) {
     if (d.authorization.type === 'privileged') return true;
-    return (
-      d.mergeRequest.createdByResourceActor?.oid ===
-      d.authorization.resourceActor.oid
-    );
+    return d.mergeRequest.createdByResourceActor?.oid === d.authorization.resourceActor.oid;
   }
 
   async getVisibleMergeRequestWhere(d: {
-    resourceTenantOid: bigint;
-    resourceGroupOid: bigint;
+    projectOid: bigint;
+    instanceOid: bigint;
     authorization: ResourceAuthorization;
   }) {
     return getVisibleSkillMergeRequestWhere(d);
   }
 
   async createSkillMergeRequest(
-    d: ResourceScope & {
+    d: CargoScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       authorization: ResourceAuthorization;
@@ -686,7 +681,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async createDirectedSkillMergeRequest(
-    d: ResourceScope & {
+    d: CargoScope & {
       sourceSkillId: string;
       targetSkillId?: string;
       authorization: ResourceAuthorization;
@@ -704,22 +699,22 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     let sourceSkill = await this.getSkill({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillId: d.sourceSkillId
     });
     let targetSkill = d.targetSkillId
       ? await this.getSkill({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           skillId: d.targetSkillId
         })
       : d.direction === 'fork_to_upstream'
         ? await db.skill.findFirst({
             where: {
               oid: sourceSkill.parentSkillOid ?? -1n,
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               status: 'active'
             },
             include: {
@@ -752,8 +747,8 @@ class SkillMergeRequestInternalServiceImpl {
     let actor = d.authorization.resourceActor;
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: sourceSkill.store!,
       authorization: d.authorization,
       requiredPermission: storeReadPermission
@@ -910,8 +905,8 @@ class SkillMergeRequestInternalServiceImpl {
               id: ids.id,
               title: d.title,
               description: d.description,
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               sourceSkillOid: sourceSkill.oid,
               targetSkillOid: targetSkill.oid,
               direction: d.direction,
@@ -958,7 +953,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async listSkillMergeRequests(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       sourceSkillIds?: string[];
       targetSkillIds?: string[];
@@ -969,8 +964,8 @@ class SkillMergeRequestInternalServiceImpl {
     }
   ) {
     let visibleWhere = await this.getVisibleMergeRequestWhere({
-      resourceTenantOid: d.resourceTenant.oid,
-      resourceGroupOid: d.resourceGroup.oid,
+      projectOid: d.project.oid,
+      instanceOid: d.instance.oid,
       authorization: d.authorization
     });
     let sourceSkills = await resolveSkills(d, d.sourceSkillIds);
@@ -1005,20 +1000,20 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async getSkillMergeRequestById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMergeRequestId: string;
       authorization: ResourceAuthorization;
     }
   ) {
     let mergeRequest = await this.getRawSkillMergeRequestById({
-      resourceTenantOid: d.resourceTenant.oid,
-      resourceGroupOid: d.resourceGroup.oid,
+      projectOid: d.project.oid,
+      instanceOid: d.instance.oid,
       skillMergeRequestId: d.skillMergeRequestId
     });
 
     await this.assertReadEitherSkill({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       mergeRequest,
       authorization: d.authorization
     });
@@ -1073,7 +1068,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async assertReadableReplacementFile(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       authorization: ResourceAuthorization;
       fileId: string;
@@ -1083,8 +1078,7 @@ class SkillMergeRequestInternalServiceImpl {
       where: {
         id: d.fileId,
         status: 'active',
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid
+        instanceOid: d.instance.oid
       },
       include: {
         storeItems: {
@@ -1097,7 +1091,7 @@ class SkillMergeRequestInternalServiceImpl {
     if (!file) {
       throw new ServiceError(
         badRequestError({
-          message: `Replacement file must be active and belong to this resourceTenant and resourceGroup`
+          message: `Replacement file must be active and belong to this project and instance`
         })
       );
     }
@@ -1105,8 +1099,8 @@ class SkillMergeRequestInternalServiceImpl {
     for (let storeItem of file.storeItems) {
       try {
         await storeAccessService.assertStoreAccessForStore({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           store: storeItem.store!,
           authorization: d.authorization,
           requiredPermission: storeReadPermission
@@ -1125,7 +1119,7 @@ class SkillMergeRequestInternalServiceImpl {
   }
 
   async validateItemResolution(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       item: SkillMergeRequestItemRecord;
       authorization: ResourceAuthorization;
@@ -1206,8 +1200,8 @@ class SkillMergeRequestInternalServiceImpl {
     }
 
     await this.assertReadableReplacementFile({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       mergeRequest: d.mergeRequest,
       authorization: d.authorization,
       fileId: resolution.fileId

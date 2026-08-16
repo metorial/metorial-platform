@@ -74,11 +74,8 @@ export let originChangePollQueue = createQueue<Record<string, never>>({
   workerOpts: { concurrency: 1 }
 });
 
-let pollOriginTenant = async (resourceTenantOid: bigint) => {
-  let originTenant = await getOriginTenant({
-    oid: resourceTenantOid,
-    id: 'origin-change-poll'
-  });
+let pollOriginTenant = async (projectOid: bigint) => {
+  let originTenant = await getOriginTenant({ oid: projectOid });
   let consumer = `${cursorPrefix}:${originTenant.id}`;
   let leaseId = generatePlainId(16);
   let now = new Date();
@@ -157,22 +154,24 @@ export let originChangePollQueueProcessor = originChangePollQueue.process(async 
       distinct: ['skillRepositoryOid'],
       select: {
         skillRepository: {
-          select: { resourceTenantOid: true }
+          select: { projectOid: true }
         }
       }
     });
-    let tenantOids = new Set(
-      activeTenants.map(propagation => propagation.skillRepository.resourceTenantOid)
+    let projectOids = new Set(
+      activeTenants.flatMap(propagation =>
+        propagation.skillRepository.projectOid ? [propagation.skillRepository.projectOid] : []
+      )
     );
-    for (let resourceTenantOid of tenantOids) {
+    for (let projectOid of projectOids) {
       try {
-        await pollOriginTenant(resourceTenantOid);
+        await pollOriginTenant(projectOid);
       } catch (error) {
         console.error(
           JSON.stringify({
             event: 'cargo_skill_origin_change_poll_failed',
             level: 'error',
-            resourceTenantOid: resourceTenantOid.toString(),
+            projectOid: projectOid.toString(),
             error: error instanceof Error ? error.message : String(error)
           })
         );

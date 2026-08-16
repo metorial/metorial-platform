@@ -13,7 +13,7 @@ import {
 } from '@metorial/cargo-module-file';
 import { getId } from '@metorial/cargo-config/id';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import { type ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import { assertResourceActorScope } from '@metorial/module-access';
 import type {
   Prisma,
@@ -74,7 +74,7 @@ let maxUploadedMarkdownBytes = 3 * 1024 * 1024;
 
 class SkillImportServiceImpl {
   async createSkillImport(
-    d: ResourceScope & {
+    d: CargoScope & {
       actor?: ResourceActor;
       authorization?: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -83,7 +83,7 @@ class SkillImportServiceImpl {
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     let creatorResourceActorOid = d.actor?.oid;
@@ -102,8 +102,8 @@ class SkillImportServiceImpl {
     } else if (d.input.type === 'origin') {
       repositoryName = (
         await skillRepositoryService.getOriginRepository({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           repoId: d.input.repositoryId
         })
       ).name;
@@ -114,8 +114,8 @@ class SkillImportServiceImpl {
         );
       }
       sourceFile = await fileService.getFileById({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         fileId: d.input.fileId,
         authorization: d.authorization,
         defaultPermissions: d.defaultPermissions,
@@ -157,16 +157,16 @@ class SkillImportServiceImpl {
     let ids = getId('skillImport');
     let sourceFileLink = sourceFile
       ? await fileLinkService.createFileLink({
-          resourceTenant: d.resourceTenant,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           file: sourceFile,
           input: { actor: d.actor }
         })
       : undefined;
     let sourceFileReference = sourceFileLink
       ? await fileReferenceService.upsertFileReference({
-          resourceTenant: d.resourceTenant,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           fileLink: sourceFileLink,
           input: {
             entityType: 'skill_import',
@@ -198,8 +198,8 @@ class SkillImportServiceImpl {
           sourceFileLinkOid: sourceFileLink?.oid,
           sourceFileReferenceOid: sourceFileReference?.oid,
           creatorResourceActorOid,
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         },
         include: skillImportInclude
       });
@@ -220,14 +220,14 @@ class SkillImportServiceImpl {
   }
 
   async listSkillImports(
-    d: ResourceScope & {
+    d: CargoScope & {
       actor?: ResourceActor;
       ids?: string[];
       statuses?: SkillImportStatus[];
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     let creatorResourceActorOid = d.actor?.oid;
@@ -237,8 +237,8 @@ class SkillImportServiceImpl {
           await db.skillImport.findMany({
             ...opts,
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               creatorResourceActorOid,
               id: d.ids?.length ? { in: d.ids } : undefined,
               status: d.statuses?.length ? { in: d.statuses } : undefined
@@ -250,21 +250,21 @@ class SkillImportServiceImpl {
   }
 
   async getSkillImportById(
-    d: ResourceScope & {
+    d: CargoScope & {
       actor?: ResourceActor;
       skillImportId: string;
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     let creatorResourceActorOid = d.actor?.oid;
     let skillImport = await db.skillImport.findFirst({
       where: {
         id: d.skillImportId,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         creatorResourceActorOid
       },
       include: skillImportInclude

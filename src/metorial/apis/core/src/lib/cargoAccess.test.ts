@@ -25,14 +25,18 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-let resourceTenant = { oid: 4n, id: 'rtn_1' } as any;
-let resourceGroup = { oid: 5n, id: 'rgr_1' } as any;
+let project = { oid: 7n, id: 'prj_1' } as any;
+let instance = {
+  oid: 1n,
+  id: 'ins_1',
+  projectOid: project.oid
+};
 let profileActor = {
   oid: 6n,
   id: 'rac_1',
   identifier: 'mte-cpf-cpf_1',
   name: 'Portal Profile',
-  resourceTenantOid: 4n,
+  projectOid: project.oid,
   consumerProfileOid: 2n
 } as any;
 
@@ -40,9 +44,8 @@ describe('cargoAccess', () => {
   it('treats consumer-only requests as consumer-scoped', () => {
     expect(
       hasInstanceConsumerAccess({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant,
-        resourceGroup,
+        instance,
+        project,
         consumerProfile: {
           oid: 2n,
           id: 'cpf_1',
@@ -60,9 +63,8 @@ describe('cargoAccess', () => {
   it('keeps member requests on the member bypass path', () => {
     expect(
       hasInstanceConsumerAccess({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant,
-        resourceGroup,
+        instance,
+        project,
         member: {
           actor: {
             id: 'ora_1',
@@ -86,9 +88,8 @@ describe('cargoAccess', () => {
   it('maps consumer requests to a local Cargo actor input', () => {
     expect(
       getInstanceCargoActorInput({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant,
-        resourceGroup,
+        instance,
+        project,
         consumerProfile: {
           oid: 2n,
           id: 'cpf_1',
@@ -111,9 +112,8 @@ describe('cargoAccess', () => {
   it('maps members to a full-access local Cargo actor input', () => {
     expect(
       getInstanceCargoActorInput({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant,
-        resourceGroup,
+        instance,
+        project,
         member: {
           actor: {
             oid: 2n,
@@ -133,14 +133,8 @@ describe('cargoAccess', () => {
     let accessTags = [{ accessTagOid: 3n }];
 
     let access = await getInstanceCargoAccess({
-      instance: {
-        oid: 1n,
-        id: 'ins_1',
-        resourceTenantOid: 4n,
-        resourceGroupOid: 5n
-      },
-      resourceTenant,
-      resourceGroup,
+      instance,
+      project,
       resourceActor: profileActor,
       consumerProfile: {
         oid: 2n,
@@ -157,8 +151,8 @@ describe('cargoAccess', () => {
     });
 
     expect(access).toEqual({
-      resourceTenant,
-      resourceGroup,
+      project,
+      instance,
       authorization: {
         type: 'restricted',
         resourceActor: profileActor,
@@ -174,14 +168,8 @@ describe('cargoAccess', () => {
 
   it('preserves full Cargo access for organization members', async () => {
     let access = await getInstanceCargoAccess({
-      instance: {
-        oid: 1n,
-        id: 'ins_1',
-        resourceTenantOid: 4n,
-        resourceGroupOid: 5n
-      },
-      resourceTenant,
-      resourceGroup,
+      instance,
+      project,
       resourceActor: profileActor,
       member: {
         actor: {
@@ -193,8 +181,8 @@ describe('cargoAccess', () => {
     });
 
     expect(access).toEqual({
-      resourceTenant,
-      resourceGroup,
+      project,
+      instance,
       authorization: {
         type: 'privileged',
         resourceActor: profileActor

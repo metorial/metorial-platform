@@ -1,6 +1,7 @@
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { getProjectTenantIdentifier } from '../../internal/scope';
 
 export let indexSkillGroupQueue = createQueue<{ skillGroupId: string }>({
   name: 'cargo/skill/search/skillGroup',
@@ -11,7 +12,7 @@ export let indexSkillGroupQueueProcessor = indexSkillGroupQueue.process(async da
   let group = await db.skillGroup.findUnique({
     where: { id: data.skillGroupId },
     include: {
-      instance: { include: { resourceTenant: true } },
+      instance: true,
       items: {
         where: { status: 'active', skill: { status: 'active' } },
         include: { skill: true }
@@ -34,9 +35,7 @@ export let indexSkillGroupQueueProcessor = indexSkillGroupQueue.process(async da
     sourceId: (await voyagerSource).id,
     indexId: voyagerIndex.skillGroup.id,
     documentId: group.id,
-    tenantIds: group.instance.resourceTenant
-      ? [group.instance.resourceTenant.id]
-      : [],
+    tenantIds: [getProjectTenantIdentifier({ oid: group.instance.projectOid })],
     fields: {
       skillGroupId: group.id,
       skillIds: skills.map(skill => skill.id)
@@ -47,9 +46,7 @@ export let indexSkillGroupQueueProcessor = indexSkillGroupQueue.process(async da
       skillNames: skills.map(skill => skill.name),
       skillDescriptions: skills.map(skill => skill.description).filter(Boolean),
       skillClientNames: skills.map(skill => skill.clientName),
-      skillClientDescriptions: skills
-        .map(skill => skill.clientDescription)
-        .filter(Boolean)
+      skillClientDescriptions: skills.map(skill => skill.clientDescription).filter(Boolean)
     }
   });
 });

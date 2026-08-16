@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
@@ -17,7 +18,6 @@ import {
 } from '@metorial/cargo-module-store';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import type { SkillRecord } from './skill';
 
@@ -75,7 +75,7 @@ class SkillAgentServiceImpl {
   }
 
   private async getSkillAgentRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillAgentId: string;
       includeArchived?: boolean;
     }
@@ -87,8 +87,8 @@ class SkillAgentServiceImpl {
             id: d.skillAgentId,
             status: d.includeArchived ? undefined : 'active',
             skill: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid
             }
           },
           include: skillAgentInclude
@@ -103,7 +103,7 @@ class SkillAgentServiceImpl {
   }
 
   async createSkillAgent(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       input: {
         name: string;
@@ -128,8 +128,8 @@ class SkillAgentServiceImpl {
     let input = this.normalizeCreateName(d.input.name);
     let authorization = d.input.authorization;
     let document = await documentService.createDocument({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       input: {
         title: input.name,
         content: d.input.content ?? '',
@@ -168,14 +168,14 @@ class SkillAgentServiceImpl {
     }
 
     return await this.getSkillAgentRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillAgentId: skillAgent.id
     });
   }
 
   async listSkillAgents(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       skillId: string;
       documentIds?: string[];
@@ -199,8 +199,8 @@ class SkillAgentServiceImpl {
               oid: skillAgents ? skillAgents.in : undefined,
               status: d.includeArchived ? undefined : 'active',
               skill: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid,
+                projectOid: d.project.oid,
+                instanceOid: d.instance.oid,
                 id: d.skillId
               },
               documentOid: documents ? documents.in : undefined,
@@ -218,7 +218,7 @@ class SkillAgentServiceImpl {
   }
 
   async getSkillAgentById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillAgentId: string;
       includeArchived?: boolean;
     }
@@ -227,7 +227,7 @@ class SkillAgentServiceImpl {
   }
 
   async updateSkillAgent(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillAgent: SkillAgentRecord;
       authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -256,8 +256,8 @@ class SkillAgentServiceImpl {
     }
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: d.skillAgent.skill.store!,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -277,15 +277,15 @@ class SkillAgentServiceImpl {
     });
 
     let fullDocument = await documentService.getDocumentById({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       documentId: d.skillAgent.document.id,
       authorization
     });
 
     await documentService.updateDocument({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       document: fullDocument,
       input: {
         title: name ?? d.skillAgent.name,
@@ -296,14 +296,14 @@ class SkillAgentServiceImpl {
     });
 
     return await this.getSkillAgentRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillAgentId: d.skillAgent.id
     });
   }
 
   async deleteSkillAgent(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillAgent: SkillAgentRecord;
       authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -314,8 +314,8 @@ class SkillAgentServiceImpl {
 
     if (d.skillAgent.storeItem) {
       await storeService.modifyStoreItems({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         store: d.skillAgent.skill.store!,
         operations: [
           {
@@ -341,8 +341,8 @@ class SkillAgentServiceImpl {
     }
 
     return await this.getSkillAgentRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillAgentId: d.skillAgent.id,
       includeArchived: true
     });

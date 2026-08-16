@@ -2,12 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillDestinationSyncStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
@@ -19,15 +19,13 @@ export let skillSyncInclude = {
       skillMarketplace: {
         select: {
           id: true,
-          resourceTenantOid: true,
-          resourceGroupOid: true
+          projectOid: true
         }
       },
       skillPlugin: {
         select: {
           id: true,
-          resourceTenantOid: true,
-          resourceGroupOid: true
+          projectOid: true
         }
       }
     }
@@ -80,7 +78,7 @@ export type SkillSyncRepositoryCheck = {
 
 class SkillSyncServiceImpl {
   private async getSkillSyncRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillSyncId: string;
     }
   ) {
@@ -104,19 +102,19 @@ class SkillSyncServiceImpl {
     );
   }
 
-  private scopeDestinationWhere(d: ResourceScope): Prisma.SkillDestinationWhereInput {
+  private scopeDestinationWhere(d: CargoScope): Prisma.SkillDestinationWhereInput {
     return {
       OR: [
         {
           skillMarketplace: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid
           }
         },
         {
           skillPlugin: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid
           }
         }
       ]
@@ -124,7 +122,7 @@ class SkillSyncServiceImpl {
   }
 
   async listSkillSyncs(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       skillMarketplaceIds?: string[];
       skillPluginIds?: string[];
@@ -166,7 +164,7 @@ class SkillSyncServiceImpl {
   }
 
   async getSkillSyncById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillSyncId: string;
     }
   ) {
@@ -174,7 +172,7 @@ class SkillSyncServiceImpl {
   }
 
   async getSkillSyncRepositoryChecks(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillSyncId: string;
     }
   ): Promise<SkillSyncRepositoryCheck[]> {
@@ -185,16 +183,13 @@ class SkillSyncServiceImpl {
     let repoIds = skillSync.repositoryPropagations.map(
       propagation => propagation.skillRepository.repoId
     );
-    let resourceTenantOid =
-      skillSync.destination.skillMarketplace?.resourceTenantOid ??
-      skillSync.destination.skillPlugin?.resourceTenantOid;
+    let projectOid =
+      skillSync.destination.skillMarketplace?.projectOid ??
+      skillSync.destination.skillPlugin?.projectOid;
 
-    if (!resourceTenantOid) return [];
+    if (!projectOid) return [];
 
-    let originTenant = await getOriginTenant({
-      oid: resourceTenantOid,
-      id: skillSync.destination.id
-    });
+    let originTenant = await getOriginTenant({ oid: projectOid });
     let [originSyncs, repositories] = await Promise.all([
       originSyncIds.length
         ? origin.scmRepositorySync.getMany({

@@ -1,5 +1,6 @@
 import { addAfterTransactionHook, db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
+import { requireRecordScope } from '../../internal/scope';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from './_ids';
 
 let skillConfigurationLifecycleQueue = createQueue<{
@@ -47,11 +48,13 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
       select: {
         id: true,
         isDefault: true,
-        resourceTenantOid: true,
-        resourceGroupOid: true
+        projectOid: true,
+        instanceOid: true
       }
     });
     if (!skillConfiguration) return;
+
+    let scope = requireRecordScope('Skill configuration', skillConfiguration);
 
     let configurationFilter = skillConfiguration.isDefault
       ? {
@@ -67,22 +70,22 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
         OR: [
           {
             skillPlugin: {
-              resourceTenantOid: skillConfiguration.resourceTenantOid,
-              resourceGroupOid: skillConfiguration.resourceGroupOid,
+              projectOid: scope.project.oid,
+              instanceOid: scope.instance.oid,
               ...configurationFilter
             }
           },
           {
             skillMarketplace: {
-              resourceTenantOid: skillConfiguration.resourceTenantOid,
-              resourceGroupOid: skillConfiguration.resourceGroupOid,
+              projectOid: scope.project.oid,
+              instanceOid: scope.instance.oid,
               ...configurationFilter
             }
           },
           {
             skillMarketplace: {
-              resourceTenantOid: skillConfiguration.resourceTenantOid,
-              resourceGroupOid: skillConfiguration.resourceGroupOid,
+              projectOid: scope.project.oid,
+              instanceOid: scope.instance.oid,
               plugins: {
                 some: configurationFilter
               }
@@ -90,8 +93,8 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
           },
           {
             skillMarketplace: {
-              resourceTenantOid: skillConfiguration.resourceTenantOid,
-              resourceGroupOid: skillConfiguration.resourceGroupOid,
+              projectOid: scope.project.oid,
+              instanceOid: scope.instance.oid,
               plugins: {
                 some: {
                   skillPlugin: {
@@ -103,8 +106,8 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
           },
           {
             skillPlugin: {
-              resourceTenantOid: skillConfiguration.resourceTenantOid,
-              resourceGroupOid: skillConfiguration.resourceGroupOid,
+              projectOid: scope.project.oid,
+              instanceOid: scope.instance.oid,
               skillPluginSkills: {
                 some: configurationFilter
               }
@@ -112,8 +115,8 @@ export let propagateSkillConfigurationDirtyQueueProcessor =
           },
           {
             skillMarketplace: {
-              resourceTenantOid: skillConfiguration.resourceTenantOid,
-              resourceGroupOid: skillConfiguration.resourceGroupOid,
+              projectOid: scope.project.oid,
+              instanceOid: scope.instance.oid,
               plugins: {
                 some: {
                   skillPlugin: {

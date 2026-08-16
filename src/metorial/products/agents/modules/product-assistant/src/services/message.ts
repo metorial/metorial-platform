@@ -1,12 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type {
-  ProductAssistantConversation,
-  ResourceActor,
-  ResourceGroup,
-  ResourceTenant
-} from '@metorial/db';
+import type { Instance, ProductAssistantConversation, Project, ResourceActor } from '@metorial/db';
 import { db, Prisma } from '@metorial/db';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { productAssistantConversationParticipantService } from './participant';
@@ -52,22 +47,22 @@ export type ProductAssistantConversationItemWithMessage =
 
 class ProductAssistantMessageServiceImpl {
   private async ensureScope(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     conversation: ProductAssistantConversation;
   }) {
     await productAssistantConversationParticipantService.assertConversationAccess({
-      tenant: d.tenant,
-      environment: d.environment,
+      project: d.project,
+      instance: d.instance,
       conversation: d.conversation,
       actor: d.actor
     });
   }
 
   private conversationItemWhere(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     conversation: ProductAssistantConversation;
     messageId?: string;
@@ -75,8 +70,8 @@ class ProductAssistantMessageServiceImpl {
     return {
       conversation: {
         oid: d.conversation.oid,
-        resourceTenantOid: d.tenant.oid,
-        resourceGroupOid: d.environment.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         ...productAssistantConversationParticipantService.participantAccessWhere({
           actor: d.actor
         })
@@ -88,8 +83,8 @@ class ProductAssistantMessageServiceImpl {
   }
 
   async getAssistantMessageById(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     conversation: ProductAssistantConversation;
     messageId: string;
@@ -106,8 +101,8 @@ class ProductAssistantMessageServiceImpl {
   }
 
   async listAssistantMessages(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     conversation: ProductAssistantConversation;
   }) {

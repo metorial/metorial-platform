@@ -22,8 +22,8 @@ model ProductAssistant {
 
   ownerType ProductAssistantOwner
 
-  resourceTenantOid BigInt?
-  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
   implementationOid BigInt
   implementation    ProductAssistantImplementation @relation(fields: [implementationOid], references: [oid], onDelete: Cascade)
@@ -41,7 +41,7 @@ model ProductAssistant {
   assistantMessages      ProductAssistantMessage[]
   modelRuns              ProductAssistantModelRun[]
 
-  @@index([resourceTenantOid])
+  @@index([projectOid])
   @@index([implementationOid])
 }
 
@@ -49,8 +49,8 @@ model ProductAssistantConfig {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  resourceTenantOid BigInt @unique
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  projectOid BigInt  @unique
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -63,8 +63,8 @@ model ProductAssistantInstance {
   assistantOid BigInt
   assistant    ProductAssistant @relation(fields: [assistantOid], references: [oid], onDelete: Cascade)
 
-  resourceTenantOid BigInt
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -74,6 +74,6 @@ model ProductAssistantInstance {
   assistantMessages      ProductAssistantMessage[]
   modelRuns              ProductAssistantModelRun[]
 
-  @@unique([assistantOid, resourceTenantOid])
-  @@index([resourceTenantOid])
+  @@unique([assistantOid, projectOid])
+  @@index([projectOid])
 }

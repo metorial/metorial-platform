@@ -36,8 +36,6 @@ import {
   Portal,
   Project,
   ProjectBrand,
-  ResourceGroup,
-  ResourceTenant,
   Sandbox,
   ServiceAccount,
   ServiceAccountCredential,
@@ -349,11 +347,6 @@ export type AuditOAuthApplication = OAuthApplication & {
 
 // prettier-ignore
 export interface FabricEvents {
-  'resource_tenant.resource_group.created:after': {
-    resourceTenant: ResourceTenant;
-    resourceGroup: ResourceGroup & { resourceTenant: ResourceTenant };
-  };
-
   'user.created:before': { context?: Context };
   'user.created:after': { user: User, performedBy: User; context?: Context };
   'user.updated:before': { user: User, performedBy: User; context?: Context };

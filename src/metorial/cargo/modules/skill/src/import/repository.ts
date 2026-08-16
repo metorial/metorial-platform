@@ -18,13 +18,13 @@ let maxCodeBucketMessageBytes = 3 * 1024 * 1024;
 export * from './publicRepository';
 
 export let createImportCodeBucketFromFiles = async (d: {
-  resourceTenant: { oid: bigint; id: string };
+  project: { oid: bigint };
   files: { path: string; content: Uint8Array }[];
 }) => {
   if (d.files.some(file => file.content.byteLength > maxCodeBucketMessageBytes)) {
     throw new Error('Skill import contains a file that is too large');
   }
-  let originTenant = await getOriginTenant(d.resourceTenant);
+  let originTenant = await getOriginTenant(d.project);
   let bucket = await origin.codeBucket.create({
     tenantId: originTenant.id,
     purpose: 'cargo.skill.import',
@@ -57,7 +57,7 @@ export let createImportCodeBucketFromFiles = async (d: {
 };
 
 export let acquirePublicRepository = async (d: {
-  resourceTenant: { oid: bigint; id: string };
+  project: { oid: bigint };
   repositoryUrl: string;
   ref?: string | null;
 }) => {
@@ -67,7 +67,7 @@ export let acquirePublicRepository = async (d: {
   );
   let files = await extractSkillArchive(archive);
   let bucket = await createImportCodeBucketFromFiles({
-    resourceTenant: d.resourceTenant,
+    project: d.project,
     files
   });
 
@@ -75,7 +75,7 @@ export let acquirePublicRepository = async (d: {
 };
 
 export let acquireUploadedSkillFile = async (d: {
-  resourceTenant: { oid: bigint; id: string };
+  project: { oid: bigint };
   file: Pick<File, 'status' | 'storeId'>;
   format: SkillImportFileFormat;
 }) => {
@@ -85,19 +85,19 @@ export let acquireUploadedSkillFile = async (d: {
     content: new Uint8Array(content)
   });
   let bucket = await createImportCodeBucketFromFiles({
-    resourceTenant: d.resourceTenant,
+    project: d.project,
     files
   });
   return { codeBucketId: bucket.id };
 };
 
 export let acquireOriginRepository = async (d: {
-  resourceTenant: { oid: bigint; id: string };
+  project: { oid: bigint };
   repositoryId: string;
   ref?: string | null;
   path?: string | null;
 }) => {
-  let originTenant = await getOriginTenant(d.resourceTenant);
+  let originTenant = await getOriginTenant(d.project);
   return await origin.codeBucket.createFromRepo({
     tenantId: originTenant.id,
     scmRepoId: d.repositoryId,
@@ -110,10 +110,10 @@ export let acquireOriginRepository = async (d: {
 };
 
 export let getImportCodeBucket = async (d: {
-  resourceTenant: { oid: bigint; id: string };
+  project: { oid: bigint };
   codeBucketId: string;
 }) => {
-  let originTenant = await getOriginTenant(d.resourceTenant);
+  let originTenant = await getOriginTenant(d.project);
   return await origin.codeBucket.get({
     tenantId: originTenant.id,
     codeBucketId: d.codeBucketId

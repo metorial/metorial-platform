@@ -47,8 +47,9 @@ vi.mock('@metorial/cargo-list-utils', () => ({
   resolveStoreTemplates: vi.fn()
 }));
 
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveInstanceResourceScope: vi.fn(async () => ({}))
+vi.mock('../internal/scope', () => ({
+  getInstanceOrganizationOid: vi.fn(async () => 4n),
+  getProjectTenantIdentifier: vi.fn(() => 'mte-pro-1')
 }));
 
 vi.mock('@metorial/module-access', () => ({
@@ -91,26 +92,8 @@ vi.mock('./skill', () => ({
 import { skillTemplateService } from './skillTemplate';
 
 let scope = {
-  resourceTenant: {
-    oid: 1n,
-    id: 'rtn_1',
-    identifier: 'tenant',
-    name: 'Tenant',
-    image: null,
-    organizationName: null,
-    createdAt: new Date(0),
-    updatedAt: new Date(0)
-  },
-  resourceGroup: {
-    oid: 2n,
-    id: 'rgr_1',
-    identifier: 'instance',
-    name: 'Instance',
-    type: 'production' as const,
-    resourceTenantOid: 1n,
-    createdAt: new Date(0),
-    updatedAt: new Date(0)
-  }
+  project: { oid: 1n },
+  instance: { oid: 2n }
 };
 
 describe('skillTemplateService.createSkillTemplate', () => {
@@ -213,8 +196,8 @@ describe('skillTemplateService.deleteSkillTemplate', () => {
       status: 'active',
       storeTemplate: {
         id: 'stt_1',
-        resourceTenant: { id: scope.resourceTenant.id },
-        resourceGroup: { id: scope.resourceGroup.id },
+        projectOid: scope.project.oid,
+        instanceOid: scope.instance.oid,
         sourceStore: null,
         backingStores: [],
         items: []

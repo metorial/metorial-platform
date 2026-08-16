@@ -6,6 +6,7 @@ import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
@@ -19,9 +20,8 @@ import type {
   SkillMarketplaceStatus
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import { internalImageService } from '../internal/image';
+import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
 import {
   createSkillDestination,
   forceSkillDestinationSync,
@@ -118,7 +118,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   private async getSkillMarketplaceRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplaceId: string;
     } & SkillMarketplaceAccessInput
   ) {
@@ -127,8 +127,8 @@ class SkillMarketplaceServiceImpl {
       async db => {
         let skillMarketplace = await db.skillMarketplace.findFirst({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             id: d.skillMarketplaceId,
             status: accessWhere ? 'active' : undefined,
             AND: accessWhere ? [accessWhere] : undefined
@@ -147,7 +147,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async listSkillMarketplaces(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       skillConfigurationIds?: string[];
       statuses?: SkillMarketplaceStatusFilter[];
@@ -165,7 +165,7 @@ class SkillMarketplaceServiceImpl {
 
     let search = d.search
       ? await voyager.record.search({
-          tenantId: d.resourceTenant!.id,
+          tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillMarketplace.id,
           query: d.search
@@ -187,8 +187,8 @@ class SkillMarketplaceServiceImpl {
           await db.skillMarketplace.findMany({
             ...opts,
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               AND: filters
             },
             include: skillMarketplaceInclude
@@ -198,7 +198,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async getSkillMarketplaceById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplaceId: string;
     } & SkillMarketplaceAccessInput
   ) {
@@ -206,7 +206,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async createSkillMarketplace(
-    d: ResourceScope & {
+    d: CargoScope & {
       input: {
         name: string;
         description?: string | null;
@@ -229,15 +229,15 @@ class SkillMarketplaceServiceImpl {
           ? null
           : (
               await skillConfigurationService.getSkillConfigurationById({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
+                project: d.project,
+                instance: d.instance,
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
-    let ownerScope = await resolveInstanceResourceScope(d);
+    let organizationOid = await getInstanceOrganizationOid(d.instance);
 
     return await withTransaction(async db => {
-      let destination = await createSkillDestination({ resourceTenant: d.resourceTenant });
+      let destination = await createSkillDestination({ project: d.project });
       let skillMarketplace = await db.skillMarketplace.create({
         data: {
           ...getId('skillMarketplace'),
@@ -249,9 +249,9 @@ class SkillMarketplaceServiceImpl {
           forceMergeOrPush: d.input.forceMergeOrPush,
           mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
           slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
-          ...ownerScope,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
+          organizationOid,
           skillConfigurationOid,
           destinationOid: destination.oid
         },
@@ -260,8 +260,8 @@ class SkillMarketplaceServiceImpl {
 
       if (d.input.imageFileId !== undefined) {
         let image = await internalImageService.resolveImageEntityImage({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           entity: { id: skillMarketplace.id, type: 'skill_marketplace' },
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' }
@@ -288,7 +288,7 @@ class SkillMarketplaceServiceImpl {
   }
 
   async updateSkillMarketplace(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplace: SkillMarketplaceRecord;
       input: SkillMarketplaceInput;
     }
@@ -311,16 +311,16 @@ class SkillMarketplaceServiceImpl {
           ? null
           : (
               await skillConfigurationService.getSkillConfigurationById({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
+                project: d.project,
+                instance: d.instance,
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
     let nextImage = d.input.image;
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         entity: { id: d.skillMarketplace.id, type: 'skill_marketplace' },
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' }
@@ -361,15 +361,13 @@ class SkillMarketplaceServiceImpl {
     }
 
     return await this.getSkillMarketplaceRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillMarketplaceId: d.skillMarketplace.id
     });
   }
 
-  async archiveSkillMarketplace(
-    d: ResourceScope & { skillMarketplace: SkillMarketplaceRecord }
-  ) {
+  async archiveSkillMarketplace(d: CargoScope & { skillMarketplace: SkillMarketplaceRecord }) {
     await withTransaction(async db => {
       await db.skillMarketplacePlugin.updateMany({
         where: {
@@ -404,35 +402,35 @@ class SkillMarketplaceServiceImpl {
     });
 
     return await this.getSkillMarketplaceRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillMarketplaceId: d.skillMarketplace.id
     });
   }
 
   async getSkillMarketplaceEditorUrl(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplace: SkillMarketplaceRecord;
       isReadOnly?: boolean;
     }
   ) {
     return await getSkillDestinationEditorUrl({
-      resourceTenant: d.resourceTenant!,
+      project: d.project,
       destination: d.skillMarketplace.destination!,
       isReadOnly: d.isReadOnly
     });
   }
 
   async forceSkillMarketplaceSync(
-    d: ResourceScope & { skillMarketplace: SkillMarketplaceRecord }
+    d: CargoScope & { skillMarketplace: SkillMarketplaceRecord }
   ) {
     await forceSkillDestinationSync({
       destination: d.skillMarketplace.destination!
     });
 
     return await this.getSkillMarketplaceRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillMarketplaceId: d.skillMarketplace.id
     });
   }

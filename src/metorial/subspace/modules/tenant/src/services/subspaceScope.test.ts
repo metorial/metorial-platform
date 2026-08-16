@@ -384,10 +384,7 @@ describe('Organization actor tenant linking', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.projectFindFirst.mockResolvedValue({
-      id: 'prj_2',
-      resourceTenantOid: 100n
-    });
+    mocks.projectFindFirst.mockResolvedValue({ oid: 2n });
     mocks.resourceActorFind.mockResolvedValue(resourceActor);
     mocks.findActorForOrganizationActor.mockResolvedValue(null);
     mocks.upsertActor.mockResolvedValue(tenantActor);
@@ -403,6 +400,12 @@ describe('Organization actor tenant linking', () => {
       tenant,
       organizationActor,
       identifier: 'mte-oac-oac_4'
+    });
+    expect(mocks.resourceActorFind).toHaveBeenCalledWith({
+      where: {
+        organizationActorOid: 4n,
+        projectOid: 2n
+      }
     });
     expect(mocks.upsertActor).toHaveBeenCalledWith({
       tenant,

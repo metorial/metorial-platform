@@ -3,7 +3,7 @@ import { filePurposeService, fileService } from '@metorial/cargo-module-file';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
 import type { Prisma, ResourceActor } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import { type ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import { posix as path } from 'node:path';
 import { parseSkillDocumentFrontmatter } from '../serializers/skill/frontmatter';
 import { skillService } from '../services/skill';
@@ -48,7 +48,7 @@ let titleForMarkdown = (filePath: string, content: string) => {
 };
 
 export let materializeImportedSkill = async (
-  d: ResourceScope & {
+  d: CargoScope & {
     codeBucketId: string;
     skillId: string;
     rootPath: string;
@@ -104,8 +104,8 @@ export let materializeImportedSkill = async (
     repositoryName: d.repositoryName
   });
   let skill = await skillService.createSkill({
-    resourceTenant: d.resourceTenant!,
-    resourceGroup: d.resourceGroup,
+    project: d.project,
+    instance: d.instance,
     input: {
       id: d.skillId,
       authorization,
@@ -127,8 +127,8 @@ export let materializeImportedSkill = async (
     if (isMarkdownPath(file.relativePath)) {
       let content = file.content.toString('utf8');
       await documentService.createDocument({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         input: {
           title:
             file.relativePath === '/SKILL.md'
@@ -146,8 +146,8 @@ export let materializeImportedSkill = async (
     }
 
     let importedFile = await fileService.createUploadedFile({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       purpose: genericPurpose.id,
       file: new Blob([file.content], {
         type: file.contentType || 'application/octet-stream'
@@ -160,8 +160,8 @@ export let materializeImportedSkill = async (
       }
     });
     await storeItemMutationService.attachTargetToStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: skill.store!,
       path: file.relativePath,
       target: {

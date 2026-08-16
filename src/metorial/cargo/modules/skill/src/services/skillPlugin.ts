@@ -6,6 +6,7 @@ import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
@@ -13,8 +14,6 @@ import {
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import type {
   EntityImage,
@@ -24,6 +23,7 @@ import type {
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
+import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
 import {
   createSkillDestination,
   forceSkillDestinationSync,
@@ -139,7 +139,7 @@ class SkillPluginServiceImpl {
   }
 
   private async getSkillPluginRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPluginId: string;
     }
   ) {
@@ -147,8 +147,8 @@ class SkillPluginServiceImpl {
       async db => {
         let skillPlugin = await db.skillPlugin.findFirst({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             id: d.skillPluginId
           },
           include: skillPluginInclude
@@ -164,7 +164,7 @@ class SkillPluginServiceImpl {
   }
 
   async listSkillPlugins(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       skillMarketplaceIds?: string[];
       skillMarketplacePluginIds?: string[];
@@ -191,7 +191,7 @@ class SkillPluginServiceImpl {
 
     let search = d.search
       ? await voyager.record.search({
-          tenantId: d.resourceTenant!.id,
+          tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillPlugin.id,
           query: d.search
@@ -204,8 +204,8 @@ class SkillPluginServiceImpl {
           await db.skillPlugin.findMany({
             ...opts,
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               isManaged: false,
               AND: [
                 skillPlugins ? { oid: skillPlugins.in } : undefined!,
@@ -220,8 +220,8 @@ class SkillPluginServiceImpl {
                           oid: skillMarketplacePlugins?.in,
                           skillMarketplaceOid: skillMarketplaces?.in,
                           skillMarketplace: {
-                            resourceTenantOid: d.resourceTenant.oid,
-                            resourceGroupOid: d.resourceGroup.oid
+                            projectOid: d.project.oid,
+                            instanceOid: d.instance.oid
                           }
                         }
                       }
@@ -233,8 +233,8 @@ class SkillPluginServiceImpl {
                         some: {
                           status: activeMarketplacePluginStatus,
                           skillMarketplace: {
-                            resourceTenantOid: d.resourceTenant.oid,
-                            resourceGroupOid: d.resourceGroup.oid,
+                            projectOid: d.project.oid,
+                            instanceOid: d.instance.oid,
                             status: 'active',
                             AND: [marketplaceAccessWhere]
                           }
@@ -262,18 +262,14 @@ class SkillPluginServiceImpl {
           await db.skillPlugin.findMany({
             ...opts,
             where: {},
-            include: {
-              ...skillPluginInclude,
-              resourceTenant: true,
-              resourceGroup: true
-            }
+            include: skillPluginInclude
           })
       )
     );
   }
 
   async getSkillPluginById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPluginId: string;
     }
   ) {
@@ -281,7 +277,7 @@ class SkillPluginServiceImpl {
   }
 
   async createSkillPlugin(
-    d: ResourceScope & {
+    d: CargoScope & {
       input: {
         name: string;
         description?: string | null;
@@ -303,15 +299,15 @@ class SkillPluginServiceImpl {
           ? null
           : (
               await skillConfigurationService.getSkillConfigurationById({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
+                project: d.project,
+                instance: d.instance,
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
-    let ownerScope = await resolveInstanceResourceScope(d);
+    let organizationOid = await getInstanceOrganizationOid(d.instance);
 
     return await withTransaction(async db => {
-      let destination = await createSkillDestination({ resourceTenant: d.resourceTenant });
+      let destination = await createSkillDestination({ project: d.project });
       let skillPlugin = await db.skillPlugin.create({
         data: {
           ...getId('skillPlugin'),
@@ -323,9 +319,9 @@ class SkillPluginServiceImpl {
           longDescription: d.input.longDescription,
           category: d.input.category,
           slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
-          ...ownerScope,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
+          organizationOid,
           skillConfigurationOid,
           destinationOid: destination.oid
         },
@@ -334,8 +330,8 @@ class SkillPluginServiceImpl {
 
       if (d.input.imageFileId !== undefined) {
         let image = await internalImageService.resolveImageEntityImage({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           entity: { id: skillPlugin.id, type: 'skill_plugin' },
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' }
@@ -359,7 +355,7 @@ class SkillPluginServiceImpl {
   }
 
   async updateSkillPlugin(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPlugin: SkillPluginRecord;
       input: SkillPluginInput;
     }
@@ -383,16 +379,16 @@ class SkillPluginServiceImpl {
           ? null
           : (
               await skillConfigurationService.getSkillConfigurationById({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
+                project: d.project,
+                instance: d.instance,
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
     let nextImage = d.input.image;
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         entity: { id: d.skillPlugin.id, type: 'skill_plugin' },
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' }
@@ -430,13 +426,13 @@ class SkillPluginServiceImpl {
     });
 
     return await this.getSkillPluginRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillPluginId: d.skillPlugin.id
     });
   }
 
-  async archiveSkillPlugin(d: ResourceScope & { skillPlugin: SkillPluginRecord }) {
+  async archiveSkillPlugin(d: CargoScope & { skillPlugin: SkillPluginRecord }) {
     assertPluginIsNotManaged(d.skillPlugin);
 
     await withTransaction(async db => {
@@ -483,33 +479,33 @@ class SkillPluginServiceImpl {
     });
 
     return await this.getSkillPluginRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillPluginId: d.skillPlugin.id
     });
   }
 
   async getSkillPluginEditorUrl(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPlugin: SkillPluginRecord;
       isReadOnly?: boolean;
     }
   ) {
     return await getSkillDestinationEditorUrl({
-      resourceTenant: d.resourceTenant!,
+      project: d.project,
       destination: d.skillPlugin.destination!,
       isReadOnly: d.isReadOnly
     });
   }
 
-  async forceSkillPluginSync(d: ResourceScope & { skillPlugin: SkillPluginRecord }) {
+  async forceSkillPluginSync(d: CargoScope & { skillPlugin: SkillPluginRecord }) {
     await forceSkillDestinationSync({
       destination: d.skillPlugin.destination!
     });
 
     return await this.getSkillPluginRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillPluginId: d.skillPlugin.id
     });
   }

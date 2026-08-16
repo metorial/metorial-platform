@@ -1,11 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import type {
-  ConsumerProfile,
-  Instance,
-  ResourceActor,
-  ResourceGroup,
-  ResourceTenant
-} from '@metorial/db';
+import type { ConsumerProfile, Instance, Project, ResourceActor } from '@metorial/db';
 import type { AnyAccessTagSelector } from './accessTag';
 
 export type RestrictedResourceActor = ResourceActor & {
@@ -24,8 +18,8 @@ export type ResourceAuthorization =
     };
 
 export type AuthorizedResourceScope = {
-  resourceTenant: ResourceTenant;
-  resourceGroup: ResourceGroup;
+  project: Pick<Project, 'oid'>;
+  instance: Pick<Instance, 'oid'>;
   authorization: ResourceAuthorization;
 };
 
@@ -36,9 +30,8 @@ export let createResourceAuthorization = (d: {
   restricted: boolean;
   resourceActor?: ResourceActor;
   accessTags?: AnyAccessTagSelector;
-  resourceTenant?: Pick<ResourceTenant, 'oid'>;
-  resourceGroup?: Pick<ResourceGroup, 'oid' | 'resourceTenantOid'>;
-  instance?: Pick<Instance, 'oid' | 'resourceTenantOid' | 'resourceGroupOid'>;
+  project?: Pick<Project, 'oid'>;
+  instance?: Pick<Instance, 'oid' | 'projectOid'>;
   consumerProfile?: Pick<ConsumerProfile, 'oid' | 'instanceOid'>;
 }): ResourceAuthorization => {
   if (d.resourceActor?.consumerOid && !d.resourceActor.consumerProfileOid) {
@@ -64,21 +57,17 @@ export let createResourceAuthorization = (d: {
     );
   }
   if (
-    !d.resourceTenant ||
-    !d.resourceGroup ||
+    !d.project ||
     !d.instance ||
     !d.consumerProfile ||
-    d.resourceGroup.resourceTenantOid != d.resourceTenant.oid ||
-    d.instance.resourceTenantOid != d.resourceTenant.oid ||
-    d.instance.resourceGroupOid != d.resourceGroup.oid ||
+    d.instance.projectOid != d.project.oid ||
     d.consumerProfile.instanceOid != d.instance.oid ||
-    d.resourceActor.resourceTenantOid != d.resourceTenant.oid ||
+    d.resourceActor.projectOid != d.project.oid ||
     d.resourceActor.consumerProfileOid != d.consumerProfile.oid
   ) {
     throw new ServiceError(
       badRequestError({
-        message:
-          'Restricted resource authorization does not match the selected instance ResourceScope.'
+        message: 'Restricted resource authorization does not match the selected instance scope.'
       })
     );
   }
@@ -91,21 +80,13 @@ export let createResourceAuthorization = (d: {
 };
 
 export let assertResourceAuthorizationScope = (
-  scope: Pick<AuthorizedResourceScope, 'resourceTenant' | 'resourceGroup' | 'authorization'>
+  scope: Pick<AuthorizedResourceScope, 'project' | 'authorization'>
 ) => {
-  if (scope.resourceGroup.resourceTenantOid != scope.resourceTenant.oid) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'ResourceGroup does not belong to the supplied ResourceTenant.'
-      })
-    );
-  }
-
   let actor = scope.authorization.resourceActor;
-  if (actor && actor.resourceTenantOid != scope.resourceTenant.oid) {
+  if (actor && actor.projectOid != scope.project.oid) {
     throw new ServiceError(
       badRequestError({
-        message: 'ResourceActor does not belong to the supplied ResourceTenant.'
+        message: 'ResourceActor does not belong to the supplied project.'
       })
     );
   }
@@ -118,17 +99,18 @@ export let assertResourceAuthorizationScope = (
   }
 };
 
+/**
+ * The project is optional because user avatars and organization brand images are owned outside any
+ * project. Actors are project-scoped, so supplying one against a project-less owner is a mismatch.
+ */
 export let assertResourceActorScope = (d: {
-  resourceTenant: Pick<ResourceTenant, 'oid'>;
-  resourceActor?: Pick<
-    ResourceActor,
-    'resourceTenantOid' | 'consumerOid' | 'consumerProfileOid'
-  >;
+  project?: Pick<Project, 'oid'>;
+  resourceActor?: Pick<ResourceActor, 'projectOid' | 'consumerOid' | 'consumerProfileOid'>;
 }) => {
-  if (d.resourceActor && d.resourceActor.resourceTenantOid != d.resourceTenant.oid) {
+  if (d.resourceActor && d.resourceActor.projectOid != d.project?.oid) {
     throw new ServiceError(
       badRequestError({
-        message: 'ResourceActor does not belong to the supplied ResourceTenant.'
+        message: 'ResourceActor does not belong to the supplied project.'
       })
     );
   }

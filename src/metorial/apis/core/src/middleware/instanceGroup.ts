@@ -26,8 +26,6 @@ export let instanceGroup = apiGroup.use(async ctx => {
       },
       organization: ctx.auth.restrictions.organization,
       project: ctx.auth.restrictions.instance.project,
-      resourceTenant: ctx.auth.restrictions.resourceTenant,
-      resourceGroup: ctx.auth.restrictions.resourceGroup,
       resourceActor: undefined,
       auditScope: ctx.auth.auditScope,
       accessTagGrants: ctx.auth.restrictions.accessTagGrants,
@@ -44,9 +42,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
         organization: ctx.auth.restrictions.organization
       },
       organization: ctx.auth.restrictions.organization,
+      project: ctx.auth.restrictions.instance.project,
       actor: ctx.auth.restrictions.actor,
-      resourceTenant: ctx.auth.restrictions.resourceTenant,
-      resourceGroup: ctx.auth.restrictions.resourceGroup,
       resourceActor: ctx.auth.restrictions.resourceActor,
       auditScope: ctx.auth.auditScope,
       member: undefined,
@@ -106,11 +103,9 @@ export let instanceGroup = apiGroup.use(async ctx => {
       profile: consumerProfile
     });
     let resourceActor =
-      consumerProfile.resourceActors.find(
-        actor => actor.resourceTenantOid == res.resourceTenant.oid
-      ) ??
+      consumerProfile.resourceActors.find(actor => actor.projectOid == res.project.oid) ??
       (await resourceActorService.ensureConsumerProfileActor({
-        resourceTenant: res.resourceTenant,
+        project: res.project,
         consumerProfile
       }));
 

@@ -1,6 +1,7 @@
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { getProjectTenantIdentifier, requireRecordProject } from '../../internal/scope';
 
 export let indexSkillMarketplaceQueue = createQueue<{ skillMarketplaceId: string }>({
   name: 'cargo/skill/search/marketplace',
@@ -14,7 +15,6 @@ export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.proc
     let skillMarketplace = await db.skillMarketplace.findUnique({
       where: { id: data.skillMarketplaceId },
       include: {
-        resourceTenant: true,
         plugins: {
           where: {
             status: 'active',
@@ -53,7 +53,9 @@ export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.proc
       sourceId: (await voyagerSource).id,
       indexId: voyagerIndex.skillMarketplace.id,
       documentId: skillMarketplace.id,
-      tenantIds: [skillMarketplace.resourceTenant!.id],
+      tenantIds: [
+        getProjectTenantIdentifier(requireRecordProject('Skill marketplace', skillMarketplace))
+      ],
       fields: {
         skillMarketplaceId: skillMarketplace.id,
         skillPluginIds: skillMarketplace.plugins.map(item => item.skillPlugin.id)

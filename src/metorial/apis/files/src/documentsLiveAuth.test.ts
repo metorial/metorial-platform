@@ -21,6 +21,9 @@ vi.mock('@metorial/db', () => ({
 vi.mock('@metorial/module-access', () => ({
   createResourceAuthorization: vi.fn()
 }));
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveInstanceScope: vi.fn(async () => ({ project: { oid: 3n }, instance: { oid: 1n } }))
+}));
 
 describe('documents live token authorization', () => {
   it('intersects signed capabilities with current document permissions', async () => {
@@ -46,7 +49,7 @@ describe('documents live token authorization', () => {
       actor: { id: 'rac_123', consumerProfileOid: null },
       actorId: 'rac_123',
       authorization,
-      scope: { resourceTenant: { oid: 1n }, resourceGroup: { oid: 2n } }
+      scope: { project: { oid: 3n }, instance: { oid: 1n } }
     });
     getDocumentById.mockResolvedValue({ id: 'doc_123', isReadOnly: false });
     getDocumentPermissions.mockResolvedValue({

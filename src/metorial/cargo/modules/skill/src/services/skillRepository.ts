@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
@@ -79,11 +79,11 @@ let normalizeOriginRepository = (
 
 class SkillRepositoryServiceImpl {
   async getOriginRepositories(
-    d: ResourceScope & { repoIds: string[] }
+    d: CargoScope & { repoIds: string[] }
   ): Promise<OriginRepositoryRecord[]> {
     if (d.repoIds.length === 0) return [];
 
-    let originTenant = await getOriginTenant(d.resourceTenant);
+    let originTenant = await getOriginTenant(d.project);
     let result = await origin.scmRepository.getMany({
       tenantId: originTenant.id,
       scmRepositoryIds: d.repoIds
@@ -93,11 +93,11 @@ class SkillRepositoryServiceImpl {
   }
 
   async getOriginRepository(
-    d: ResourceScope & { repoId: string }
+    d: CargoScope & { repoId: string }
   ): Promise<OriginRepositoryRecord> {
     let repositories = await this.getOriginRepositories({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       repoIds: [d.repoId]
     });
 
@@ -108,11 +108,11 @@ class SkillRepositoryServiceImpl {
   }
 
   async enrichSkillRepositories<T extends SkillRepositoryRecord>(
-    d: ResourceScope & { skillRepositories: T[] }
+    d: CargoScope & { skillRepositories: T[] }
   ): Promise<(T & { originRepository: OriginRepositoryRecord | null })[]> {
     let originRepositories = await this.getOriginRepositories({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       repoIds: d.skillRepositories.map(repository => repository.repoId)
     });
     let originRepositoryById = new Map(
@@ -125,7 +125,7 @@ class SkillRepositoryServiceImpl {
     }));
   }
 
-  async ensureSkillRepositoryForRepo(d: ResourceScope & { repoId: string }) {
+  async ensureSkillRepositoryForRepo(d: CargoScope & { repoId: string }) {
     await this.getOriginRepository(d);
 
     let existing = await db.skillRepository.findUnique({
@@ -134,13 +134,10 @@ class SkillRepositoryServiceImpl {
     });
 
     if (existing) {
-      if (
-        existing.resourceTenantOid !== d.resourceTenant.oid ||
-        existing.resourceGroupOid !== d.resourceGroup.oid
-      ) {
+      if (existing.projectOid !== d.project.oid || existing.instanceOid !== d.instance.oid) {
         throw new ServiceError(
           badRequestError({
-            message: 'Repository is already linked in another resourceGroup'
+            message: 'Repository is already linked in another instance'
           })
         );
       }
@@ -152,8 +149,8 @@ class SkillRepositoryServiceImpl {
       data: {
         ...getId('skillRepository'),
         repoId: d.repoId,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid
       },
       include: skillRepositoryInclude
     });
@@ -192,11 +189,11 @@ class SkillRepositoryServiceImpl {
     }
   }
 
-  async getSkillRepositoryById(d: ResourceScope & { skillRepositoryId: string }) {
+  async getSkillRepositoryById(d: CargoScope & { skillRepositoryId: string }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         id: d.skillRepositoryId
       },
       include: skillRepositoryInclude
@@ -207,11 +204,11 @@ class SkillRepositoryServiceImpl {
     return skillRepository;
   }
 
-  async getSkillRepositoryByRepoId(d: ResourceScope & { repoId: string }) {
+  async getSkillRepositoryByRepoId(d: CargoScope & { repoId: string }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         repoId: d.repoId
       },
       include: skillRepositoryInclude

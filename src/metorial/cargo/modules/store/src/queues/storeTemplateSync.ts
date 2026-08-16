@@ -36,8 +36,7 @@ export let storeTemplateSyncManyQueue = createQueue<{
 
 export let storeTemplateSyncSingleQueue = createQueue<{
   storeTemplateId: string;
-  resourceTenantId: string;
-  resourceGroupId: string;
+  instanceId: string;
   updatedItemIds?: string[];
   forceFullReconcile?: boolean;
 }>({
@@ -99,8 +98,7 @@ export let storeTemplateSyncManyProcessor = storeTemplateSyncManyQueue.process(a
     await storeTemplateSyncSingleQueue.addMany(
       result.targets.map(target => ({
         storeTemplateId: data.storeTemplateId,
-        resourceTenantId: target.resourceTenant.id,
-        resourceGroupId: target.resourceGroup.id,
+        instanceId: target.instance.id,
         updatedItemIds: data.updatedItemIds,
         forceFullReconcile: data.forceFullReconcile
       }))

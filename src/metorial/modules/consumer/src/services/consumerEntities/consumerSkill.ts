@@ -32,8 +32,8 @@ import {
   createResourceAuthorization
 } from '@metorial/module-access';
 import {
-  resourceActorService,
-  resolveResourceScopeForOwner
+  resolveInstanceScope,
+  resourceActorService
 } from '@metorial/module-resource-tenant';
 import { consumerAccessPolicyService } from '../consumerAccess/accessPolicy';
 import { consumerAccessService } from '../consumerAccess/consumerAccess';
@@ -63,15 +63,12 @@ let getUniqueIds = (ids?: string[]) => Array.from(new Set(ids ?? []));
 
 class ConsumerSkillServiceImpl {
   private async getConsumerActor(d: {
-    instance: Pick<Instance, 'id' | 'oid' | 'resourceTenantOid' | 'resourceGroupOid'>;
+    instance: Pick<Instance, 'id' | 'oid'>;
     consumerProfile: Pick<ConsumerProfile, 'oid' | 'instanceOid'>;
   }) {
-    let scope = await resolveResourceScopeForOwner({
-      type: 'instance',
-      instance: d.instance
-    });
+    let scope = await resolveInstanceScope(d.instance);
     let actor = await resourceActorService.ensureConsumerProfileActor({
-      resourceTenant: scope.resourceTenant,
+      project: scope.project,
       consumerProfile: d.consumerProfile
     });
 
@@ -401,12 +398,9 @@ class ConsumerSkillServiceImpl {
       );
     }
 
-    let scope = await resolveResourceScopeForOwner({
-      type: 'instance',
-      instance: d.instance
-    });
+    let scope = await resolveInstanceScope(d.instance);
     let actor = await resourceActorService.ensureConsumerProfileActor({
-      resourceTenant: scope.resourceTenant,
+      project: scope.project,
       consumerProfile: d.consumerProfile
     });
     let template = d.input.templateId
@@ -477,12 +471,9 @@ class ConsumerSkillServiceImpl {
       );
     }
 
-    let scope = await resolveResourceScopeForOwner({
-      type: 'instance',
-      instance: d.instance
-    });
+    let scope = await resolveInstanceScope(d.instance);
     let actor = await resourceActorService.ensureConsumerProfileActor({
-      resourceTenant: scope.resourceTenant,
+      project: scope.project,
       consumerProfile: d.consumerProfile
     });
     let parentSkill = await skillService.getSkillById({

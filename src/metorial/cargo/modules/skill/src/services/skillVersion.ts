@@ -2,12 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillVersions,
   resolveStoreVersions
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import type { SkillRecord } from './skill';
@@ -129,7 +129,7 @@ let toSkillVersionSnapshot = (version: SkillVersionSnapshotRecord): SkillVersion
 
 class SkillVersionServiceImpl {
   async listSkillVersions(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       ids?: string[];
       storeVersionIds?: string[];
@@ -160,7 +160,7 @@ class SkillVersionServiceImpl {
   }
 
   async getSkillVersionById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       skillVersionId: string;
     }
@@ -170,8 +170,8 @@ class SkillVersionServiceImpl {
         id: d.skillVersionId,
         skillOid: d.skill.oid,
         skill: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         }
       },
       include: skillVersionInclude
@@ -183,7 +183,7 @@ class SkillVersionServiceImpl {
   }
 
   async getSkillVersionSnapshot(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       skillVersionId: string;
     }
@@ -192,8 +192,8 @@ class SkillVersionServiceImpl {
       where: {
         id: d.skillVersionId,
         skill: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
           oid: d.skill.oid
         }
       },

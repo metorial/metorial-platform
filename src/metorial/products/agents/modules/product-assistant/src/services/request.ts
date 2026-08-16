@@ -1,14 +1,13 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type {
-  ProductAssistantModel as PersistedModel,
+  Instance,
   ProductAssistantConversation,
-  ResourceActor,
-  ResourceGroup,
-  ResourceTenant
+  ProductAssistantModel as PersistedModel,
+  Project,
+  ResourceActor
 } from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
-import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import type { Implementation } from '../lib/definitions';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import {
@@ -110,8 +109,8 @@ let chooseModel = (d: {
 
 class ProductAssistantRequestServiceImpl {
   private async ensureScope(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor: ResourceActor;
     conversation: ProductAssistantConversation;
     allowAllActors?: boolean;
@@ -119,8 +118,8 @@ class ProductAssistantRequestServiceImpl {
   }) {
     let hasAccess = await productAssistantConversationParticipantService.hasConversationAccess(
       {
-        tenant: d.tenant,
-        environment: d.environment,
+        project: d.project,
+        instance: d.instance,
         conversation: d.conversation,
         actor: d.actor,
         client: d.client
@@ -193,28 +192,15 @@ class ProductAssistantRequestServiceImpl {
       where: {
         id: d.requestId
       },
-      include: {
-        ...productAssistantRequestInclude,
-        conversation: {
-          include: {
-            resourceTenant: true,
-            resourceGroup: true
-          }
-        }
-      }
+      include: productAssistantRequestInclude
     });
     if (!request) {
       throw new ServiceError(notFoundError('assistant_request', d.requestId));
     }
 
-    let { instanceOid } = await resolveInstanceResourceScope({
-      resourceTenant: request.conversation.resourceTenant,
-      resourceGroup: request.conversation.resourceGroup
-    });
-
     let instance = await db.instance.findUniqueOrThrow({
       where: {
-        oid: instanceOid
+        oid: request.conversation.instanceOid
       },
       include: {
         organization: true,
@@ -283,8 +269,8 @@ class ProductAssistantRequestServiceImpl {
   }
 
   async createAssistantRequest(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor: ResourceActor;
     conversation: ProductAssistantConversation;
     input: {
@@ -322,8 +308,8 @@ class ProductAssistantRequestServiceImpl {
     let shouldGenerateTitle = !d.conversation.title?.trim();
     let result = await withTransaction(async tx => {
       await this.ensureScope({
-        tenant: d.tenant,
-        environment: d.environment,
+        project: d.project,
+        instance: d.instance,
         actor: d.actor,
         conversation: d.conversation,
         allowAllActors: d.input.allowAllActors,
@@ -410,8 +396,8 @@ class ProductAssistantRequestServiceImpl {
   }
 
   async respondToAssistantHandoffs(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor: ResourceActor;
     conversation: ProductAssistantConversation;
     input: {
@@ -442,8 +428,8 @@ class ProductAssistantRequestServiceImpl {
     if (!item) throw new ServiceError(notFoundError('assistant_message', d.input.messageId));
 
     await this.ensureScope({
-      tenant: d.tenant,
-      environment: d.environment,
+      project: d.project,
+      instance: d.instance,
       actor: d.actor,
       conversation: d.conversation
     });

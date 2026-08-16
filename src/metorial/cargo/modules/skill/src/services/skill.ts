@@ -12,6 +12,7 @@ import { slugify } from '@lowerdeck/slugify';
 import { snowflake } from '@metorial/cargo-config/id';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
@@ -19,8 +20,6 @@ import {
   resolveSkillTemplates,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import {
   accessTagService,
   assertResourceAuthorizationScope,
@@ -44,6 +43,7 @@ import type {
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
+import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillParticipantService } from './skillParticipant';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
@@ -99,7 +99,7 @@ export let getConsumerSkillAccessWhere = async (d: {
 
 class SkillServiceImpl {
   private async getSkillRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillId: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
@@ -110,8 +110,8 @@ class SkillServiceImpl {
       async db => {
         let skill = await db.skill.findFirst({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             id: d.skillId,
             status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
             AND: accessWhere ? [accessWhere] : undefined
@@ -128,7 +128,7 @@ class SkillServiceImpl {
   }
 
   async createSkill(
-    d: ResourceScope & {
+    d: CargoScope & {
       parentSkill?: SkillRecord;
       parentSkillTemplate?: SkillTemplateRecord;
       parentSkillCloneType?: 'fork' | 'duplicate';
@@ -170,13 +170,13 @@ class SkillServiceImpl {
             parentSkill: d.parentSkill
           })
         : undefined;
-    let ownerScope = await resolveInstanceResourceScope(d);
+    let organizationOid = await getInstanceOrganizationOid(d.instance);
 
     return await withTransaction(async db => {
       let store = d.parentSkillTemplate
         ? await storeService.createStoreFromTemplate({
-            resourceTenant: d.resourceTenant!,
-            resourceGroup: d.resourceGroup,
+            project: d.project,
+            instance: d.instance,
             authorization: d.input.authorization,
             input: {
               templateId: d.parentSkillTemplate.storeTemplate!.id,
@@ -190,8 +190,8 @@ class SkillServiceImpl {
           })
         : d.parentSkill
           ? await storeService.cloneStore({
-              resourceTenant: d.resourceTenant!,
-              resourceGroup: d.resourceGroup,
+              project: d.project,
+              instance: d.instance,
               store: d.parentSkill.store!,
               actor,
               authorization: d.input.authorization,
@@ -204,8 +204,8 @@ class SkillServiceImpl {
               }
             })
           : await storeService.createStore({
-              resourceTenant: d.resourceTenant!,
-              resourceGroup: d.resourceGroup,
+              project: d.project,
+              instance: d.instance,
               input: {
                 name: d.input.name,
                 actor,
@@ -229,9 +229,9 @@ class SkillServiceImpl {
           license: d.input.license,
           compatibility: d.input.compatibility,
 
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
-          ...ownerScope,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
+          organizationOid,
           storeId: store.id,
           skillEntityId: d.input.id,
           storeOid: store.oid,
@@ -245,8 +245,8 @@ class SkillServiceImpl {
 
       if (d.input.imageFileId !== undefined) {
         let image = await internalImageService.resolveImageEntityImage({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           entity: { id: skill.id, type: 'skill' },
           imageFileId: d.input.imageFileId,
           clearedImage: { type: 'default' },
@@ -312,7 +312,7 @@ class SkillServiceImpl {
   }
 
   async listSkills(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       storeIds?: string[];
       parentSkillIds?: string[];
@@ -339,15 +339,14 @@ class SkillServiceImpl {
     if (d.integrationIds?.length || d.providerIds?.length) {
       let instance = await db.instance.findFirst({
         where: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          oid: d.instance.oid
         }
       });
       if (instance) {
         let candidates = await db.skill.findMany({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             status: d.accessTags
               ? 'active'
               : d.statuses?.length
@@ -388,7 +387,7 @@ class SkillServiceImpl {
     let normalizedSearch = d.search?.trim() || undefined;
     let search = normalizedSearch
       ? await voyager.record.search({
-          tenantId: d.resourceTenant.id,
+          tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skill.id,
           query: normalizedSearch
@@ -428,8 +427,8 @@ class SkillServiceImpl {
           await db.skill.findMany({
             ...opts,
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               status: d.accessTags
                 ? 'active'
                 : d.statuses?.length
@@ -446,7 +445,7 @@ class SkillServiceImpl {
   }
 
   async getSkillById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillId: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
@@ -456,7 +455,7 @@ class SkillServiceImpl {
   }
 
   async assertSkillWriteAccess(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -481,8 +480,8 @@ class SkillServiceImpl {
     }
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: d.skill.store!,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -492,7 +491,7 @@ class SkillServiceImpl {
   }
 
   async updateSkill(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -543,8 +542,8 @@ class SkillServiceImpl {
     let nextImage = d.input.image;
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         entity: { id: d.skill.id, type: 'skill' },
         imageFileId: d.input.imageFileId,
         clearedImage: { type: 'default' },
@@ -556,8 +555,8 @@ class SkillServiceImpl {
 
     let store = d.input.name
       ? await storeService.updateStore({
-          resourceGroup: d.resourceGroup,
-          resourceTenant: d.resourceTenant!,
+          project: d.project,
+          instance: d.instance,
           store: d.skill.store!,
           authorization: d.authorization,
           input: {
@@ -608,14 +607,14 @@ class SkillServiceImpl {
     await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
 
     return await this.getSkillRecord({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillId: d.skill.id
     }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
   }
 
   async archiveSkill(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -657,13 +656,13 @@ class SkillServiceImpl {
   }
 
   async markSkillUse(
-    d: ResourceScope & {
+    d: CargoScope & {
       skill: SkillRecord;
       actor: ResourceActor;
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     await storeAccessService.ensureActorStorePermissions({

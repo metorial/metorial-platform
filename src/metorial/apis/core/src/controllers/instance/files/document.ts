@@ -101,8 +101,8 @@ export let documentController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let document = await documentService.createDocument({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           input: {
             title: ctx.body.title,
             content: ctx.body.content,
@@ -229,8 +229,8 @@ export let documentController = Controller.create(
         let access = await getInstanceCargoAccess(ctx);
         let document = await documentService.updateDocument({
           document: ctx.document,
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           input: {
             title: ctx.body.title,
             content: ctx.body.content,
@@ -283,8 +283,8 @@ export let documentController = Controller.create(
         let access = await getInstanceCargoAccess(ctx);
         let document = await documentService.cloneDocument({
           document: ctx.document,
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           input: {
             id: ctx.body.target_document_id,
             title: ctx.body.title,

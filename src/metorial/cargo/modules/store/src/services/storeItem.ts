@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
@@ -12,7 +13,6 @@ import {
   resolveStoreItems
 } from '@metorial/cargo-list-utils';
 import { internalDocumentContentStoreService } from '@metorial/cargo-module-doc';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, StoreItemKind, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 import { storeAccessService, storeReadPermission } from './storeAccess';
@@ -92,16 +92,16 @@ class StoreItemServiceImpl {
   }
 
   async getStoreItemById(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
-      itemId: string;
+        itemId: string;
       }
   ) {
     let item = await db.storeItem.findFirst({
       where: {
         store: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         },
         id: d.itemId
       },
@@ -111,8 +111,8 @@ class StoreItemServiceImpl {
     if (!item) throw new ServiceError(notFoundError('storeItem', d.itemId));
 
     await storeAccessService.assertStoreAccessForStoreItem({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       item,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -124,19 +124,19 @@ class StoreItemServiceImpl {
   }
 
   async listStoreItems(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
-      ids?: string[];
-      storeId: string;
-      fileIds?: string[];
-      documentIds?: string[];
-      referenceIds?: string[];
-      directoryIds?: string[];
-      parentDirectoryIds?: string[];
-      lastModifiedByActorIds?: string[];
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-      types?: StoreItemKind[];
+        ids?: string[];
+        storeId: string;
+        fileIds?: string[];
+        documentIds?: string[];
+        referenceIds?: string[];
+        directoryIds?: string[];
+        parentDirectoryIds?: string[];
+        lastModifiedByActorIds?: string[];
+        createdAt?: DateFilter;
+        updatedAt?: DateFilter;
+        types?: StoreItemKind[];
       }
   ) {
     let types = d.types ?? ['file', 'document'];
@@ -148,27 +148,28 @@ class StoreItemServiceImpl {
     let parentDirectories = await resolveStoreDirectories(d, d.parentDirectoryIds);
     let lastModifiedByActors = await resolveResourceActors(d, d.lastModifiedByActorIds);
 
-    let accessibleStoreOids = d.authorization.type === 'restricted'
-      ? (
-          await storeAccessService.resolveAccessibleStoreOids({
-            resourceTenant: d.resourceTenant,
-            resourceGroup: d.resourceGroup,
-            authorization: d.authorization,
-            defaultPermissions: d.defaultPermissions,
-            overridePermissions: d.overridePermissions,
-            requiredPermission: storeReadPermission,
-            storeOids: [
-              (
-                await storeAccessService.getStoreById({
-                  resourceTenant: d.resourceTenant,
-                  resourceGroup: d.resourceGroup,
-                  storeId: d.storeId
-                })
-              ).oid
-            ]
-          })
-        ).accessibleStoreOids
-      : undefined;
+    let accessibleStoreOids =
+      d.authorization.type === 'restricted'
+        ? (
+            await storeAccessService.resolveAccessibleStoreOids({
+              project: d.project,
+              instance: d.instance,
+              authorization: d.authorization,
+              defaultPermissions: d.defaultPermissions,
+              overridePermissions: d.overridePermissions,
+              requiredPermission: storeReadPermission,
+              storeOids: [
+                (
+                  await storeAccessService.getStoreById({
+                    project: d.project,
+                    instance: d.instance,
+                    storeId: d.storeId
+                  })
+                ).oid
+              ]
+            })
+          ).accessibleStoreOids
+        : undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -180,8 +181,8 @@ class StoreItemServiceImpl {
                 where: {
                   oid: items ? items.in : undefined,
                   store: {
-                    resourceTenantOid: d.resourceTenant.oid,
-                    resourceGroupOid: d.resourceGroup.oid,
+                    projectOid: d.project.oid,
+                    instanceOid: d.instance.oid,
                     isTemplateBacking: d.storeId ? undefined : false,
                     oid: accessibleStoreOids ? { in: accessibleStoreOids } : undefined,
                     id: d.storeId

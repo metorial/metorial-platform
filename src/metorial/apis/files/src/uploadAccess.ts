@@ -5,12 +5,12 @@ import {
 } from '@metorial/cargo-module-file';
 import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';
-import { type ResourceScopeOwner } from '@metorial/module-resource-tenant';
+import { type ScopeOwner } from '@metorial/module-resource-tenant';
 
 let uploadScopes = ['instance.file:write', 'consumer#instance.file:write'] as const;
 
 type ResolvedUploadTarget = {
-  owner: ResourceScopeOwner;
+  owner: ScopeOwner;
   cargoAccess?: ReturnType<typeof getInstanceCargoAccess>;
   isInstanceOwner: boolean;
   canWrite: boolean;

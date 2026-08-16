@@ -1,11 +1,11 @@
 import type { ValidationType } from '@lowerdeck/validation';
 import type {
+  Instance,
   ProductAssistant,
   ProductAssistantImplementation,
   ProductAssistantInstance,
-  ResourceActor,
-  ResourceGroup,
-  ResourceTenant
+  Project,
+  ResourceActor
 } from '@metorial/db';
 import { db, ID, Prisma } from '@metorial/db';
 import { Agent } from '../open-harness';
@@ -30,8 +30,8 @@ type ImplementationBase = {
 
 export type ImplementationHandleInputContext<Input> = {
   input: Input;
-  tenant: ResourceTenant;
-  environment: ResourceGroup;
+  project: Project;
+  instance: Instance;
   actor: ResourceActor;
   assistant: ProductAssistant;
   assistantInstance: ProductAssistantInstance;
@@ -41,8 +41,8 @@ export type ImplementationHandleInputContext<Input> = {
 export type ImplementationGetAgentContext<Input> = {
   input: Input;
   model: Model;
-  tenant: ResourceTenant;
-  environment: ResourceGroup;
+  project: Project;
+  instance: Instance;
   assistant: ProductAssistant;
   assistantInstance: ProductAssistantInstance;
   assistantImplementation: ProductAssistantImplementation;

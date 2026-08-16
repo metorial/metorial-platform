@@ -9,10 +9,8 @@ import {
   fileService
 } from '@metorial/cargo-module-file';
 import { assertResourceActorScope } from '@metorial/module-access';
-import {
-  resourceActorPresentationInclude,
-  type ResourceScope
-} from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import type {
   Prisma,
@@ -50,15 +48,11 @@ let fileInclude = {
   },
   createdByResourceActor: {
     include: resourceActorPresentationInclude
-  },
-  resourceTenant: true,
-  resourceGroup: true
+  }
 } satisfies Prisma.FileInclude;
 
 let fileLinkInclude = {
-  file: true,
-  resourceTenant: true,
-  resourceGroup: true
+  file: true
 } satisfies Prisma.FileLinkInclude;
 
 let fileReferenceInclude = {
@@ -66,9 +60,7 @@ let fileReferenceInclude = {
     include: {
       file: true
     }
-  },
-  resourceTenant: true,
-  resourceGroup: true
+  }
 } satisfies Prisma.FileReferenceInclude;
 
 export let skillExportRefInclude = {
@@ -171,15 +163,15 @@ class SkillExportServiceImpl {
   }
 
   private async getExportById(
-    d: ResourceScope & { skillExportId: string; actor?: ResourceActor }
+    d: CargoScope & { skillExportId: string; actor?: ResourceActor }
   ) {
     let creatorResourceActorOid = this.getActorOid(d);
 
     let skillExport = await db.skillExport.findFirst({
       where: {
         id: d.skillExportId,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         creatorResourceActorOid
       },
       include: skillExportInclude
@@ -197,14 +189,14 @@ class SkillExportServiceImpl {
   }
 
   private async resolveTarget(
-    d: ResourceScope & {
+    d: CargoScope & {
       input: CreateSkillExportInput;
     }
   ): Promise<ResolvedExportTarget> {
     if (d.input.target === 'skill') {
       let managedSkillPlugin = await managedSkillPluginService.ensureManagedSkillPlugin({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         skillId: d.input.skillId
       });
 
@@ -224,8 +216,8 @@ class SkillExportServiceImpl {
       let skillPlugin = await db.skillPlugin.findFirstOrThrow({
         where: {
           id: d.input.skillPluginId,
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
           status: 'active'
         },
         include: {
@@ -246,8 +238,8 @@ class SkillExportServiceImpl {
     let skillMarketplace = await db.skillMarketplace.findFirstOrThrow({
       where: {
         id: d.input.skillMarketplaceId,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         status: 'active'
       },
       include: {
@@ -266,7 +258,7 @@ class SkillExportServiceImpl {
   }
 
   private async resolveTargetFromExport(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillExport: SkillExportRecord;
     }
   ) {
@@ -274,8 +266,8 @@ class SkillExportServiceImpl {
 
     if (d.skillExport.target === 'skill' && ref.skill) {
       return await this.resolveTarget({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         input: {
           target: 'skill',
           skillId: ref.skill.id
@@ -285,8 +277,8 @@ class SkillExportServiceImpl {
 
     if (d.skillExport.target === 'plugin' && ref.skillPlugin) {
       return await this.resolveTarget({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         input: {
           target: 'plugin',
           skillPluginId: ref.skillPlugin.id
@@ -296,8 +288,8 @@ class SkillExportServiceImpl {
 
     if (d.skillExport.target === 'marketplace' && ref.skillMarketplace) {
       return await this.resolveTarget({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         input: {
           target: 'marketplace',
           skillMarketplaceId: ref.skillMarketplace.id
@@ -309,15 +301,14 @@ class SkillExportServiceImpl {
   }
 
   private async upsertExportRef(
-    d: ResourceScope & {
+    d: CargoScope & {
       target: ResolvedExportTarget;
     }
   ) {
     return await db.skillExportRef.upsert({
       where: {
-        resourceTenantOid_resourceGroupOid_hash: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+        instanceOid_hash: {
+          instanceOid: d.instance.oid,
           hash: d.target.hash
         }
       },
@@ -329,8 +320,8 @@ class SkillExportServiceImpl {
         managedSkillPluginOid: d.target.managedSkillPluginOid,
         skillPluginOid: d.target.skillPluginOid,
         skillMarketplaceOid: d.target.skillMarketplaceOid,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid
       },
       update: {
         skillConfigurationOid: d.target.skillConfigurationOid,
@@ -373,7 +364,7 @@ class SkillExportServiceImpl {
   }
 
   private async createExportArtifact(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillExport: SkillExportRecord;
       target: ResolvedExportTarget;
     }
@@ -386,8 +377,8 @@ class SkillExportServiceImpl {
     });
 
     let file = await fileService.createUploadedFileFromByteStream({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       purpose: purpose.slug,
       content: (async function* () {
         for await (let chunk of zipStream) {
@@ -404,8 +395,8 @@ class SkillExportServiceImpl {
     });
 
     let fileLink = await fileLinkService.createFileLink({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       file,
       input: {
         expiresAt
@@ -413,8 +404,8 @@ class SkillExportServiceImpl {
     });
 
     let fileReference = await fileReferenceService.upsertFileReference({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       fileLink,
       input: {
         entityType: 'skill_export_ref',
@@ -465,20 +456,20 @@ class SkillExportServiceImpl {
   }
 
   async createSkillExport(
-    d: ResourceScope & {
+    d: CargoScope & {
       input: CreateSkillExportInput;
       actor?: ResourceActor;
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     let target = await this.resolveTarget(d);
     let creatorResourceActorOid = this.getActorOid(d);
     let exportRef = await this.upsertExportRef({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       target
     });
     let ids = getId('skillExport');
@@ -491,8 +482,8 @@ class SkillExportServiceImpl {
         status: 'pending',
         exportRefOid: exportRef.oid,
         creatorResourceActorOid,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid
       },
       include: skillExportInclude
     });
@@ -503,7 +494,7 @@ class SkillExportServiceImpl {
   }
 
   async listSkillExports(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       targets?: SkillExportTarget[];
       statuses?: SkillExportStatus[];
@@ -511,7 +502,7 @@ class SkillExportServiceImpl {
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     let creatorResourceActorOid = this.getActorOid(d);
@@ -526,8 +517,8 @@ class SkillExportServiceImpl {
               target: d.targets?.length ? { in: d.targets } : undefined,
               status: d.statuses?.length ? { in: d.statuses } : undefined,
               creatorResourceActorOid,
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid
             },
             include: skillExportInclude
           })
@@ -535,18 +526,16 @@ class SkillExportServiceImpl {
     );
   }
 
-  async getSkillExportById(
-    d: ResourceScope & { skillExportId: string; actor?: ResourceActor }
-  ) {
+  async getSkillExportById(d: CargoScope & { skillExportId: string; actor?: ResourceActor }) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     return await this.getExportById(d);
   }
 
   async processSkillExport(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillExportId: string;
       skillDestinationSyncId?: string;
     }
@@ -588,8 +577,8 @@ class SkillExportServiceImpl {
     }
 
     let target = await this.resolveTargetFromExport({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillExport
     });
 
@@ -631,8 +620,8 @@ class SkillExportServiceImpl {
 
     try {
       return await this.createExportArtifact({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         skillExport,
         target
       });

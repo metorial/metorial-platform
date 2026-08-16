@@ -1,3 +1,4 @@
+import { cargoOwnerScopeProject, type CargoOwnerScope } from '@metorial/cargo-list-utils';
 import type { Instance, ResourceActor } from '@metorial/db';
 import {
   createResourceAuthorization,
@@ -5,10 +6,9 @@ import {
   type ResourceAuthorization
 } from '@metorial/module-access';
 import {
-  resolveResourceScopeForOwner,
+  resolveOwnerScope,
   resourceActorService,
-  type ResourceScope,
-  type ResourceScopeOwner
+  type ScopeOwner
 } from '@metorial/module-resource-tenant';
 
 let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
@@ -32,9 +32,11 @@ export type InstanceCargoAccessContext = {
       name: string;
     };
   };
-  instance: Pick<Instance, 'oid' | 'resourceTenantOid' | 'resourceGroupOid'>;
-  resourceTenant: ResourceScope['resourceTenant'];
-  resourceGroup: ResourceScope['resourceGroup'];
+  project: {
+    oid: bigint;
+    id: string;
+  };
+  instance: Pick<Instance, 'oid' | 'projectOid'>;
   resourceActor?: ResourceActor;
   accessTags?: AnyAccessTagSelector;
 };
@@ -51,8 +53,8 @@ export type CargoStorePermission = 'content_read' | 'content_write';
 export type CargoStoreAccess = 'private' | 'public_read' | 'public_write';
 
 export type CargoAccessInput = {
-  owner?: ResourceScopeOwner;
-  scope?: ResourceScope;
+  owner?: ScopeOwner;
+  scope?: CargoOwnerScope;
   resourceActor?: ResourceActor;
   accessActor?: CargoAccessActor;
   accessTags?: AnyAccessTagSelector;
@@ -66,8 +68,7 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
     restricted: hasInstanceConsumerAccess(ctx),
     resourceActor: ctx.resourceActor,
     accessTags: ctx.accessTags,
-    resourceTenant: ctx.resourceTenant,
-    resourceGroup: ctx.resourceGroup,
+    project: ctx.project,
     instance: ctx.instance,
     consumerProfile: ctx.consumerProfile
   });
@@ -82,8 +83,8 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
       defaultPermissions: [...fullCargoAccessPermissions],
       overridePermissions: true,
       scope: {
-        resourceTenant: ctx.resourceTenant,
-        resourceGroup: ctx.resourceGroup
+        project: ctx.project,
+        instance: ctx.instance
       },
       resourceActor: ctx.resourceActor,
       authorization
@@ -98,8 +99,8 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
         consumerProfileOid: ctx.consumerProfile.oid
       },
       scope: {
-        resourceTenant: ctx.resourceTenant,
-        resourceGroup: ctx.resourceGroup
+        project: ctx.project,
+        instance: ctx.instance
       },
       resourceActor: ctx.resourceActor,
       authorization
@@ -108,8 +109,8 @@ export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
 
   return {
     scope: {
-      resourceTenant: ctx.resourceTenant,
-      resourceGroup: ctx.resourceGroup
+      project: ctx.project,
+      instance: ctx.instance
     },
     resourceActor: ctx.resourceActor,
     authorization
@@ -120,41 +121,46 @@ export let hasInstanceConsumerAccess = (ctx: InstanceCargoAccessContext) =>
   !!ctx.consumerProfile?.consumer && !ctx.member?.actor;
 
 export let resolveCargoAccess = async (d: CargoAccessInput) => {
-  let scope = d.scope
+  let scope: CargoOwnerScope | undefined = d.scope
     ? d.scope
     : d.owner
-      ? await resolveResourceScopeForOwner(d.owner)
+      ? await resolveOwnerScope(d.owner)
       : undefined;
   if (!scope) {
     throw new Error('Cargo access requires either a concrete scope or an owner');
   }
 
+  let project = cargoOwnerScopeProject(scope);
+  if (!project && (d.accessActor || d.resourceActor)) {
+    throw new Error('Cargo access actors require a project-scoped owner');
+  }
+
   let actor =
     d.resourceActor ??
-    (d.accessActor?.resourceActorId
-      ? await resourceActorService.getActorById({
-          resourceTenant: scope.resourceTenant,
-          actorId: d.accessActor.resourceActorId
-        })
-      : d.accessActor?.organizationActorOid != null
-        ? await resourceActorService.ensureOrganizationActor({
-            resourceTenant: scope.resourceTenant,
-            organizationActorOid: d.accessActor.organizationActorOid
+    (!project || !d.accessActor
+      ? undefined
+      : d.accessActor.resourceActorId
+        ? await resourceActorService.getActorById({
+            project,
+            actorId: d.accessActor.resourceActorId
           })
-        : d.accessActor?.consumerProfileOid != null
-          ? await resourceActorService.ensureConsumerProfileActor({
-              resourceTenant: scope.resourceTenant,
-              consumerProfileOid: d.accessActor.consumerProfileOid
+        : d.accessActor.organizationActorOid != null
+          ? await resourceActorService.ensureOrganizationActor({
+              project,
+              organizationActorOid: d.accessActor.organizationActorOid
             })
-          : d.accessActor
-            ? await resourceActorService.upsertActor({
-                resourceTenant: scope.resourceTenant,
+          : d.accessActor.consumerProfileOid != null
+            ? await resourceActorService.ensureConsumerProfileActor({
+                project,
+                consumerProfileOid: d.accessActor.consumerProfileOid
+              })
+            : await resourceActorService.upsertActor({
+                project,
                 input: {
                   identifier: d.accessActor.identifier ?? d.accessActor.name,
                   name: d.accessActor.name
                 }
-              })
-            : undefined);
+              }));
 
   return {
     scope,

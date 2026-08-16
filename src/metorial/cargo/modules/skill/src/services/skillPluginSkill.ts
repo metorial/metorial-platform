@@ -4,13 +4,13 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
   resolveSkillPluginSkills,
   resolveSkills
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillPluginSkillStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
@@ -93,7 +93,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   private async getSkillPluginSkillRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPluginSkillId: string;
       skillPlugin?: SkillPluginRecord;
     }
@@ -105,12 +105,12 @@ class SkillPluginSkillServiceImpl {
             id: d.skillPluginSkillId,
             skillPluginOid: d.skillPlugin?.oid,
             skillPlugin: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid
             },
             skill: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid
             }
           },
           include: skillPluginSkillInclude
@@ -127,7 +127,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async listSkillPluginSkills(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPlugin: SkillPluginRecord;
       ids?: string[];
       skillIds?: string[];
@@ -151,8 +151,8 @@ class SkillPluginSkillServiceImpl {
             where: {
               skillPluginOid: d.skillPlugin.oid,
               skill: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid
+                projectOid: d.project.oid,
+                instanceOid: d.instance.oid
               },
               AND: [
                 skillPluginSkills ? { oid: skillPluginSkills.in } : undefined!,
@@ -173,7 +173,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async getSkillPluginSkillById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPluginSkillId: string;
       skillPlugin?: SkillPluginRecord;
     }
@@ -182,7 +182,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async addSkillPluginSkill(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPlugin: SkillPluginRecord;
       input: {
         skillId: string;
@@ -193,8 +193,8 @@ class SkillPluginSkillServiceImpl {
     assertPluginIsNotManaged(d.skillPlugin);
 
     let skill = await skillService.getSkillById({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillId: d.input.skillId
     });
     let existingSkillPluginSkill = await db.skillPluginSkill.findFirst({
@@ -220,8 +220,8 @@ class SkillPluginSkillServiceImpl {
           ? null
           : (
               await skillConfigurationService.getSkillConfigurationById({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
+                project: d.project,
+                instance: d.instance,
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
@@ -337,7 +337,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async updateSkillPluginSkill(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPluginSkill: SkillPluginSkillRecord;
       input: SkillPluginSkillInput;
     }
@@ -359,8 +359,8 @@ class SkillPluginSkillServiceImpl {
           ? null
           : (
               await skillConfigurationService.getSkillConfigurationById({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
+                project: d.project,
+                instance: d.instance,
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
@@ -389,7 +389,7 @@ class SkillPluginSkillServiceImpl {
   }
 
   async removeSkillPluginSkill(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillPluginSkill: SkillPluginSkillRecord;
     }
   ) {

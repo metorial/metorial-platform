@@ -10,6 +10,10 @@ import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoOwnerScope,
+  type CargoScope,
+  cargoFileScope,
+  cargoOwnerScopeProject,
   type DateFilter,
   normalizeDateFilter,
   resolveFileLinks,
@@ -19,7 +23,6 @@ import {
 import type { FileLink, Prisma, ResourceActor } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { assertResourceActorScope } from '@metorial/module-access';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { fileReferenceService } from './fileReference';
 
 let include = {
@@ -32,9 +35,7 @@ let include = {
       },
       purpose: true
     }
-  },
-  resourceTenant: true,
-  resourceGroup: true
+  }
 } satisfies Prisma.FileLinkInclude;
 
 class FileLinkServiceImpl {
@@ -43,7 +44,7 @@ class FileLinkServiceImpl {
   }
 
   async createFileLink(
-    d: ResourceScope & {
+    d: CargoOwnerScope & {
       file: {
         oid: bigint;
         id: string;
@@ -60,7 +61,7 @@ class FileLinkServiceImpl {
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: cargoOwnerScopeProject(d),
       resourceActor: d.input.actor
     });
     if (!d.file.purpose.canHaveLinks) {
@@ -73,20 +74,19 @@ class FileLinkServiceImpl {
 
     return await withTransaction(async db => {
       let actor = d.input.actor;
+      let ownedFile = { file: cargoFileScope(d) };
 
       let existing = d.input.id
         ? await db.fileLink.findFirst({
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              ...ownedFile,
               OR: [{ id: d.input.id }, ...(d.input.key ? [{ key: d.input.key }] : [])]
             }
           })
         : d.input.key
           ? await db.fileLink.findFirst({
               where: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid,
+                ...ownedFile,
                 key: d.input.key
               }
             })
@@ -115,8 +115,8 @@ class FileLinkServiceImpl {
           id: d.input.id ?? generated.id,
           key: d.input.key ?? this.getGeneratedKey(),
           fileOid: d.file.oid,
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+          projectOid: 'project' in d ? d.project.oid : null,
+          instanceOid: 'instance' in d ? d.instance.oid : null,
           expiresAt: d.input.expiresAt,
           createdByResourceActorOid: actor?.oid
         },
@@ -147,7 +147,7 @@ class FileLinkServiceImpl {
   }
 
   async listFileLinks(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       fileId?: string[];
       fileIds?: string[];
@@ -158,7 +158,7 @@ class FileLinkServiceImpl {
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     let fileLinks = await resolveFileLinks(d, d.ids);
@@ -172,11 +172,10 @@ class FileLinkServiceImpl {
             ...opts,
             where: {
               oid: fileLinks ? fileLinks.in : undefined,
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
               createdByResourceActorOid: actors ? actors.in : d.actor?.oid,
               file: {
                 status: 'active',
+                instanceOid: d.instance.oid,
                 oid: files ? files.in : undefined
               },
               AND: [
@@ -191,19 +190,18 @@ class FileLinkServiceImpl {
   }
 
   async getFileLinkById(
-    d: ResourceScope & {
+    d: CargoOwnerScope & {
       fileLinkId: string;
       actor?: ResourceActor;
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: cargoOwnerScopeProject(d),
       resourceActor: d.actor
     });
     let fileLink = await db.fileLink.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        file: cargoFileScope(d),
         id: d.fileLinkId,
         createdByResourceActorOid: d.actor?.oid
       },

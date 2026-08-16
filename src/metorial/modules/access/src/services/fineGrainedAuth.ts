@@ -31,9 +31,7 @@ class FineGrainedAuthService {
         instance: {
           include: {
             project: true,
-            organization: true,
-            resourceTenant: true,
-            resourceGroup: true
+            organization: true
           }
         },
         accessTag: {

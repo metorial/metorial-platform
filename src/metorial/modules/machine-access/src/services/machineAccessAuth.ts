@@ -10,9 +10,7 @@ export let machineAccessInclude = {
   user: true,
   instance: {
     include: {
-      project: true,
-      resourceTenant: true,
-      resourceGroup: true
+      project: true
     }
   },
   actor: {

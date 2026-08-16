@@ -23,24 +23,20 @@ export let enqueueSkillGroupLifecycle = async (d: {
   });
 };
 
-export let skillGroupLifecycleQueueProcessor = skillGroupLifecycleQueue.process(
-  async data => {
-    let group = await db.skillGroup.findUnique({
-      where: { id: data.skillGroupId },
-      select: {
-        id: true,
-        items: {
-          where: { status: 'active' },
-          select: { skill: { select: { id: true } } }
-        }
+export let skillGroupLifecycleQueueProcessor = skillGroupLifecycleQueue.process(async data => {
+  let group = await db.skillGroup.findUnique({
+    where: { id: data.skillGroupId },
+    select: {
+      id: true,
+      items: {
+        where: { status: 'active' },
+        select: { skill: { select: { id: true } } }
       }
-    });
-    if (!group) return;
+    }
+  });
+  if (!group) return;
 
-    // Search indexing is attached here by the search queue implementation.
-    await indexSkillGroupQueue.add({ skillGroupId: group.id });
-    await indexSkillQueue.addMany(
-      group.items.map(item => ({ skillId: item.skill.id }))
-    );
-  }
-);
+  // Search indexing is attached here by the search queue implementation.
+  await indexSkillGroupQueue.add({ skillGroupId: group.id });
+  await indexSkillQueue.addMany(group.items.map(item => ({ skillId: item.skill.id })));
+});

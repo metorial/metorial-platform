@@ -6,12 +6,12 @@ import {
   fileService
 } from '@metorial/cargo-module-file';
 import {
-  resolveResourceScopeForOwner,
-  type ResourceScopeOwner
+  resolveOwnerScope,
+  type ScopeOwner
 } from '@metorial/module-resource-tenant';
 
 export let resolveFileImage = async <ClearImage extends EntityImage | null>(d: {
-  owner: ResourceScopeOwner;
+  owner: ScopeOwner;
   imageFileId: string | null;
   clearedImage: ClearImage;
   entity: {
@@ -21,7 +21,7 @@ export let resolveFileImage = async <ClearImage extends EntityImage | null>(d: {
 }): Promise<EntityImage | ClearImage> => {
   if (d.imageFileId === null) return d.clearedImage;
 
-  let scope = await resolveResourceScopeForOwner(d.owner);
+  let scope = await resolveOwnerScope(d.owner);
   let file = await fileService.getFileById({
     ...scope,
     fileId: d.imageFileId,

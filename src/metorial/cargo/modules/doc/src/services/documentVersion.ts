@@ -2,15 +2,13 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocumentVersions,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import {
-  resourceActorPresentationInclude,
-  type ResourceScope
-} from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
@@ -31,7 +29,7 @@ export let documentVersionInclude = {
 
 class DocumentVersionServiceImpl {
   async getDocumentVersionById(
-    d: ResourceScope & {
+    d: CargoScope & {
       documentVersionId: string;
       authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -40,8 +38,8 @@ class DocumentVersionServiceImpl {
   ) {
     let version = await db.documentVersion.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         id: d.documentVersionId,
         document: {
           file: {
@@ -56,8 +54,8 @@ class DocumentVersionServiceImpl {
       throw new ServiceError(notFoundError('documentVersion', d.documentVersionId));
 
     await storeAccessService.assertStoreAccessForDocument({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       document: version.document,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -69,7 +67,7 @@ class DocumentVersionServiceImpl {
   }
 
   async listDocumentVersions(
-    d: ResourceScope & {
+    d: CargoScope & {
       documentId: string;
       ids?: string[];
       editorActorIds?: string[];
@@ -82,8 +80,8 @@ class DocumentVersionServiceImpl {
   ) {
     let document = await db.document.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         id: d.documentId,
         file: {
           status: 'active'
@@ -103,8 +101,8 @@ class DocumentVersionServiceImpl {
     let editorActors = await resolveResourceActors(d, d.editorActorIds);
 
     await storeAccessService.assertStoreAccessForDocument({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       document,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -118,8 +116,8 @@ class DocumentVersionServiceImpl {
           await db.documentVersion.findMany({
             ...opts,
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               oid: versions ? versions.in : undefined,
               document: {
                 id: d.documentId,

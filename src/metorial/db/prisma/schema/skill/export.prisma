@@ -42,17 +42,24 @@ model SkillExportRef {
 
   fileDestinationTag Int?
 
-  resourceTenantOid BigInt
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
-  resourceGroupOid BigInt
-  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
   skillExports SkillExport[]
 
   @@unique([resourceTenantOid, resourceGroupOid, hash])
+  @@unique([instanceOid, hash])
 }
 
 model SkillExport {
@@ -77,11 +84,17 @@ model SkillExport {
   creatorResourceActorOid BigInt?
   creatorResourceActor    ResourceActor? @relation("SkillExportCreator", fields: [creatorResourceActorOid], references: [oid], onDelete: SetNull)
 
-  resourceTenantOid BigInt
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
-  resourceGroupOid BigInt
-  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   createdAt   DateTime  @default(now())
   startedAt   DateTime?

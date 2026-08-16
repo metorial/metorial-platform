@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { getVisibleSkillMergeRequestWhere } from './skillMergeRequestAccess';
 
-let resourceTenantOid = 1n;
-let resourceGroupOid = 2n;
+let projectOid = 1n;
+let instanceOid = 2n;
 let actor = {
   oid: 3n,
-  resourceTenantOid,
+  projectOid: 1n,
   consumerProfileOid: 4n
 } as any;
 
@@ -16,20 +16,20 @@ describe('skill merge request visibility', () => {
   ])('allows privileged authorization to see every request in scope', authorization => {
     expect(
       getVisibleSkillMergeRequestWhere({
-        resourceTenantOid,
-        resourceGroupOid,
+        projectOid,
+        instanceOid,
         authorization
       })
     ).toEqual({
-      resourceTenantOid,
-      resourceGroupOid
+      projectOid,
+      instanceOid
     });
   });
 
   it('keeps restricted consumers limited to visible source or target stores', () => {
     let where = getVisibleSkillMergeRequestWhere({
-      resourceTenantOid,
-      resourceGroupOid,
+      projectOid,
+      instanceOid,
       authorization: {
         type: 'restricted',
         resourceActor: actor,
@@ -54,8 +54,8 @@ describe('skill merge request visibility', () => {
     };
 
     expect(where).toEqual({
-      resourceTenantOid,
-      resourceGroupOid,
+      projectOid,
+      instanceOid,
       OR: [
         { sourceSkill: { store: readableStoreWhere } },
         { targetSkill: { store: readableStoreWhere } }

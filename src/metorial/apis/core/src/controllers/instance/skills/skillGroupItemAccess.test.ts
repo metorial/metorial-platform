@@ -18,14 +18,15 @@ vi.mock('@metorial/cargo-module-skill', () => ({
 
 import { assertConsumerCanWriteSkillGroupItem } from './skillGroupItemAccess';
 
+let project = { oid: 9n } as any;
+let instance = { oid: 8n, id: 'ins_1' } as any;
+
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 describe('assertConsumerCanWriteSkillGroupItem', () => {
   it('uses the authenticated instance scope before checking consumer access', async () => {
-    let resourceTenant = { oid: 1n, id: 'rtn_1' };
-    let resourceGroup = { oid: 2n, id: 'rgr_1' };
     let skill = { oid: 3n, id: 'skl_1' };
     let consumerProfile = { oid: 4n, id: 'cpr_1' };
 
@@ -36,9 +37,8 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
     });
 
     await assertConsumerCanWriteSkillGroupItem({
-      instance: { id: 'ins_1' } as any,
-      resourceTenant: resourceTenant as any,
-      resourceGroup: resourceGroup as any,
+      instance,
+      project,
       skillGroupId: 'skg_1',
       skillId: 'skl_1',
       consumerProfile: consumerProfile as any,
@@ -47,21 +47,21 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
     });
 
     expect(mocks.getSkillById).toHaveBeenCalledWith({
-      resourceTenant,
-      resourceGroup,
+      project,
+      instance,
       skillId: 'skl_1',
       allowDeleted: true,
       accessTags: [{ accessTagOid: 5n }]
     });
     expect(mocks.getSkillGroupById).toHaveBeenCalledWith({
-      resourceTenant,
-      resourceGroup,
+      project,
+      instance,
       skillGroupId: 'skg_1',
       accessTags: [{ accessTagOid: 5n }]
     });
     expect(mocks.assertSkillWriteAccess).toHaveBeenCalledWith({
-      resourceTenant,
-      resourceGroup,
+      project,
+      instance,
       skill,
       authorization: { type: 'restricted' }
     });
@@ -69,9 +69,8 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
 
   it('does not provision a scope for non-consumer requests', async () => {
     await assertConsumerCanWriteSkillGroupItem({
-      instance: { id: 'ins_1' } as any,
-      resourceTenant: {} as any,
-      resourceGroup: {} as any,
+      instance,
+      project,
       skillGroupId: 'skg_1',
       skillId: 'skl_1',
       authorization: { type: 'privileged' }
@@ -81,8 +80,6 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
   });
 
   it('rejects consumer assignment when the shared group disables it', async () => {
-    let resourceTenant = { oid: 1n, id: 'rtn_1' };
-    let resourceGroup = { oid: 2n, id: 'rgr_1' };
     mocks.getSkillGroupById.mockResolvedValue({
       id: 'skg_1',
       allowConsumerSkillAssignment: false
@@ -91,9 +88,8 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
 
     await expect(
       assertConsumerCanWriteSkillGroupItem({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant: resourceTenant as any,
-        resourceGroup: resourceGroup as any,
+        instance,
+        project,
         skillGroupId: 'skg_1',
         skillId: 'skl_1',
         consumerProfile: { oid: 4n } as any,
@@ -111,9 +107,8 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
 
     await expect(
       assertConsumerCanWriteSkillGroupItem({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant: { oid: 1n } as any,
-        resourceGroup: { oid: 2n } as any,
+        instance,
+        project,
         skillGroupId: 'skg_unshared',
         skillId: 'skl_1',
         consumerProfile: { oid: 4n } as any,
@@ -136,9 +131,8 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
 
     await expect(
       assertConsumerCanWriteSkillGroupItem({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant: { oid: 1n } as any,
-        resourceGroup: { oid: 2n } as any,
+        instance,
+        project,
         skillGroupId: 'skg_1',
         skillId: skill.id,
         consumerProfile: { oid: 4n } as any,
@@ -154,9 +148,8 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
 
     await expect(
       assertConsumerCanWriteSkillGroupItem({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant: { oid: 1n } as any,
-        resourceGroup: { oid: 2n } as any,
+        instance,
+        project,
         skillGroupId: 'skg_1',
         skillId: 'skl_1',
         consumerProfile: { oid: 4n } as any,
@@ -172,9 +165,8 @@ describe('assertConsumerCanWriteSkillGroupItem', () => {
 
     await expect(
       assertConsumerCanWriteSkillGroupItem({
-        instance: { id: 'ins_1' } as any,
-        resourceTenant: { oid: 1n } as any,
-        resourceGroup: { oid: 2n } as any,
+        instance,
+        project,
         skillGroupId: 'skg_archived',
         skillId: 'skl_1',
         consumerProfile: { oid: 4n } as any,

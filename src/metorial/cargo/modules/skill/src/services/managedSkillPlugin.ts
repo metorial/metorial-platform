@@ -4,9 +4,10 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
-import type { Prisma, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial/db';
+import type { CargoScope } from '@metorial/cargo-list-utils';
+import type { Prisma, Skill, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import { requireRecordProject } from '../internal/scope';
 import { createSkillDestination } from '../internal/skillDestination';
 import type { LifecycleEvent } from '../queues/lifecycle/_ids';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
@@ -24,12 +25,7 @@ export type ManagedSkillPluginRecord = Prisma.ManagedSkillPluginGetPayload<{
   include: typeof managedSkillPluginInclude;
 }>;
 
-type SkillForManagedPlugin = Prisma.SkillGetPayload<{
-  include: {
-    resourceTenant: true;
-    resourceGroup: true;
-  };
-}>;
+type SkillForManagedPlugin = Skill;
 
 type ManagedSkillPluginValues = {
   name: string;
@@ -120,7 +116,7 @@ class ManagedSkillPluginServiceImpl {
     values: ManagedSkillPluginValues
   ) {
     let destination = await createSkillDestination({
-      resourceTenant: skill.resourceTenant!,
+      project: requireRecordProject('Skill', skill),
       purpose: 'cargo.skill.managed-plugin'
     });
 
@@ -133,9 +129,8 @@ class ManagedSkillPluginServiceImpl {
           name: values.name,
           description: values.description,
           slug: values.slug,
-          resourceTenantOid: skill.resourceTenantOid,
-          resourceGroupOid: skill.resourceGroupOid,
           organizationOid: skill.organizationOid,
+          projectOid: skill.projectOid,
           instanceOid: skill.instanceOid,
           destinationOid: destination.oid
         }
@@ -314,20 +309,16 @@ class ManagedSkillPluginServiceImpl {
   }
 
   async ensureManagedSkillPlugin(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillId: string;
     }
   ) {
     let skill = await db.skill.findFirst({
       where: {
         id: d.skillId,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         status: 'active'
-      },
-      include: {
-        resourceTenant: true,
-        resourceGroup: true
       }
     });
 
@@ -423,10 +414,6 @@ class ManagedSkillPluginServiceImpl {
       where: {
         id: d.skillId,
         status: 'active'
-      },
-      include: {
-        resourceTenant: true,
-        resourceGroup: true
       }
     });
 

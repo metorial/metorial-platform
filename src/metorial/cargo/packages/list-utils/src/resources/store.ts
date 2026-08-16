@@ -34,12 +34,12 @@ export let resolveStoreTemplates = createResolver(async ({ scope, ids }) =>
       id: { in: ids },
       OR: [
         {
-          resourceTenantOid: scope.resourceTenantOid,
-          resourceGroupOid: scope.resourceGroupOid
+          projectOid: scope.projectOid,
+          instanceOid: scope.instanceOid
         },
         {
-          resourceTenantOid: null,
-          resourceGroupOid: null
+          projectOid: null,
+          instanceOid: null
         }
       ]
     },

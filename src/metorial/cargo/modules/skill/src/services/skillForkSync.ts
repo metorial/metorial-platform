@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import {
   storeAccessService,
@@ -37,7 +37,7 @@ export type SkillForkSyncRecord = Prisma.SkillForkSyncGetPayload<{
 
 class SkillForkSyncServiceImpl {
   async createSkillForkSync(
-    d: ResourceScope & {
+    d: CargoScope & {
       forkSkillId: string;
       authorization: ResourceAuthorization;
     }
@@ -45,8 +45,8 @@ class SkillForkSyncServiceImpl {
     let forkSkill = await db.skill.findFirst({
       where: {
         id: d.forkSkillId,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         status: 'active'
       },
       include: {
@@ -69,15 +69,15 @@ class SkillForkSyncServiceImpl {
     let actor = d.authorization.resourceActor;
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: upstreamSkill.store!,
       authorization: d.authorization,
       requiredPermission: storeReadPermission
     });
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: forkSkill.store!,
       authorization: d.authorization,
       requiredPermission: storeWritePermission
@@ -110,8 +110,8 @@ class SkillForkSyncServiceImpl {
               oid: ids.oid,
               id: ids.id,
               activePairKey,
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               forkSkillOid: forkSkill.oid,
               upstreamSkillOid: upstreamSkill.oid,
               createdByResourceActorOid: actor?.oid
@@ -141,7 +141,7 @@ class SkillForkSyncServiceImpl {
   }
 
   async getSkillForkSyncById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillForkSyncId: string;
       authorization: ResourceAuthorization;
     }
@@ -149,16 +149,16 @@ class SkillForkSyncServiceImpl {
     let sync = await db.skillForkSync.findFirst({
       where: {
         id: d.skillForkSyncId,
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid
       },
       include: skillForkSyncInclude
     });
     if (!sync) throw new ServiceError(notFoundError('skill.forkSync', d.skillForkSyncId));
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: sync.forkSkill.store!,
       authorization: d.authorization,
       requiredPermission: storeReadPermission

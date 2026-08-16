@@ -1,12 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type {
-  ProductAssistantConversation,
-  ResourceActor,
-  ResourceGroup,
-  ResourceTenant
-} from '@metorial/db';
+import type { Instance, ProductAssistantConversation, Project, ResourceActor } from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
@@ -29,8 +24,8 @@ export let productAssistantConversationInclude = {
   createdByResourceActor: {
     include: resourceActorPresentationInclude
   },
-  resourceGroup: true,
-  resourceTenant: true,
+  instance: true,
+  project: true,
   rootMessage: true,
   assistantConversationParticipants: {
     include: productAssistantConversationParticipantInclude
@@ -63,11 +58,11 @@ let toNullableJson = (value: unknown) => {
 
 class ProductAssistantConversationServiceImpl {
   private async enrichConversations(d: {
-    tenant: ResourceTenant;
+    project: Project;
     conversations: ProductAssistantConversationWithRelations[];
   }): Promise<ProductAssistantConversationWithAssistant[]> {
     let assistants = await productAssistantService.getMany({
-      tenant: d.tenant,
+      project: d.project,
       assistantIds: d.conversations.map(conversation => conversation.assistant.id)
     });
     let assistantsById = new Map(assistants.map(assistant => [assistant.id, assistant]));
@@ -86,36 +81,36 @@ class ProductAssistantConversationServiceImpl {
   }
 
   private async enrichConversation(d: {
-    tenant: ResourceTenant;
+    project: Project;
     conversation: ProductAssistantConversationWithRelations;
   }) {
     return (
       await this.enrichConversations({
-        tenant: d.tenant,
+        project: d.project,
         conversations: [d.conversation]
       })
     )[0]!;
   }
 
   private ensureScope(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
   }) {
-    productAssistantConversationParticipantService.assertTenantEnvironmentScope(d);
+    productAssistantConversationParticipantService.assertProjectInstanceScope(d);
   }
 
   private conversationWhere(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     conversationId?: string;
     assistantId?: string;
     assistantIds?: string[];
   }) {
     return {
-      resourceTenantOid: d.tenant.oid,
-      resourceGroupOid: d.environment.oid,
+      projectOid: d.project.oid,
+      instanceOid: d.instance.oid,
       id: d.conversationId,
       ...productAssistantConversationParticipantService.participantAccessWhere({
         actor: d.actor
@@ -145,8 +140,8 @@ class ProductAssistantConversationServiceImpl {
   }
 
   async getAssistantConversationById(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     conversationId: string;
   }) {
@@ -161,14 +156,14 @@ class ProductAssistantConversationServiceImpl {
     }
 
     return await this.enrichConversation({
-      tenant: d.tenant,
+      project: d.project,
       conversation
     });
   }
 
   async listAssistantConversations(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     assistantIds?: string[];
   }) {
@@ -177,7 +172,7 @@ class ProductAssistantConversationServiceImpl {
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
         this.enrichConversations({
-          tenant: d.tenant,
+          project: d.project,
           conversations: await db.productAssistantConversation.findMany({
             ...opts,
             where: this.conversationWhere(d),
@@ -189,8 +184,8 @@ class ProductAssistantConversationServiceImpl {
   }
 
   async createAssistantConversation(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor: ResourceActor;
     input: {
       assistantId: string;
@@ -201,12 +196,12 @@ class ProductAssistantConversationServiceImpl {
     this.ensureScope(d);
 
     let assistant = await productAssistantService.get({
-      tenant: d.tenant,
+      project: d.project,
       assistantId: d.input.assistantId
     });
     let assistantInstance = await productAssistantService.getOrCreateAssistantInstance({
       assistant,
-      tenant: d.tenant
+      project: d.project
     });
     if (!assistant.defaultModel) {
       throw new ServiceError(notFoundError('model', assistant.id));
@@ -214,8 +209,8 @@ class ProductAssistantConversationServiceImpl {
     let defaultModel = assistant.defaultModel;
     let definition = await getAssistantDefinition(assistant.implementation.slug);
     let conversationInput = await resolveAssistantConversationInput({
-      tenant: d.tenant,
-      environment: d.environment,
+      project: d.project,
+      instance: d.instance,
       actor: d.actor,
       assistant,
       assistantInstance,
@@ -243,8 +238,8 @@ class ProductAssistantConversationServiceImpl {
           input: toNullableJson(conversationInput),
           assistantOid: assistant.oid,
           assistantInstanceOid: assistantInstance.oid,
-          resourceTenantOid: d.tenant.oid,
-          resourceGroupOid: d.environment.oid,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
           createdByResourceActorOid: d.actor.oid,
           rootMessageOid: rootMessage.oid,
           items: {
@@ -294,8 +289,8 @@ class ProductAssistantConversationServiceImpl {
   }
 
   async updateAssistantConversation(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
     conversation: ProductAssistantConversation;
     input: {
@@ -304,8 +299,8 @@ class ProductAssistantConversationServiceImpl {
   }) {
     this.ensureScope(d);
     await productAssistantConversationParticipantService.assertConversationAccess({
-      tenant: d.tenant,
-      environment: d.environment,
+      project: d.project,
+      instance: d.instance,
       conversation: d.conversation,
       actor: d.actor
     });
@@ -321,7 +316,7 @@ class ProductAssistantConversationServiceImpl {
     });
 
     return await this.enrichConversation({
-      tenant: d.tenant,
+      project: d.project,
       conversation
     });
   }

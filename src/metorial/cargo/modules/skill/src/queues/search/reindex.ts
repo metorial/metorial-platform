@@ -38,8 +38,8 @@ export let reindexSkillResourcesSingleQueue = createQueue<{
   workerOpts: { concurrency: 10 }
 });
 
-export let reindexSkillResourcesManyQueueProcessor =
-  reindexSkillResourcesManyQueue.process(async data => {
+export let reindexSkillResourcesManyQueueProcessor = reindexSkillResourcesManyQueue.process(
+  async data => {
     let resources = await listSkillResources({
       resourceType: data.resourceType,
       cursor: data.cursor
@@ -59,7 +59,8 @@ export let reindexSkillResourcesManyQueueProcessor =
         cursor: resources[resources.length - 1]!.id
       });
     }
-  });
+  }
+);
 
 export let reindexSkillResourcesSingleQueueProcessor =
   reindexSkillResourcesSingleQueue.process(async data => {

@@ -5,9 +5,9 @@ import { getId } from '@metorial/cargo-config/id';
 import {
   normalizeDateFilter,
   resolveStoreVersions,
+  type CargoScope,
   type DateFilter
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db, withTransaction, type TransactionDB } from '@metorial/db';
 import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
@@ -602,7 +602,7 @@ class StoreVersionServiceImpl {
   }
 
   async listStoreVersions(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         storeId: string;
         ids?: string[];
@@ -611,14 +611,14 @@ class StoreVersionServiceImpl {
       }
   ) {
     let store = await storeAccessService.getStoreById({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       storeId: d.storeId
     });
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -649,7 +649,7 @@ class StoreVersionServiceImpl {
   }
 
   async getStoreVersionById(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         storeVersionId: string;
       }
@@ -658,8 +658,8 @@ class StoreVersionServiceImpl {
       where: {
         id: d.storeVersionId,
         store: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         }
       },
       include: storeVersionInclude
@@ -668,8 +668,8 @@ class StoreVersionServiceImpl {
     if (!version) throw new ServiceError(notFoundError('storeVersion', d.storeVersionId));
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: version.store,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -681,20 +681,20 @@ class StoreVersionServiceImpl {
   }
 
   async getLatestStoreVersion(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         storeId: string;
       }
   ) {
     let store = await storeAccessService.getStoreById({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       storeId: d.storeId
     });
 
     await storeAccessService.assertStoreAccessForStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -733,7 +733,7 @@ class StoreVersionServiceImpl {
   }
 
   async getResolvedStoreVersion(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         storeId: string;
         storeVersionId: string;
@@ -744,8 +744,8 @@ class StoreVersionServiceImpl {
     }
 
     let version = await this.getStoreVersionById({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,

@@ -11,7 +11,6 @@ import {
   resolveSkillTemplates,
   resolveStoreTemplates
 } from '@metorial/cargo-list-utils';
-import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
 import {
   accessTagService,
   type AnyAccessTagSelector,
@@ -26,6 +25,7 @@ import type {
 import { storeService, storeTemplateService } from '@metorial/cargo-module-store';
 import type { Prisma } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
 import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle/skillTemplate';
 import { skillResourceService } from './resource';
 import { skillService } from './skill';
@@ -33,8 +33,6 @@ import { skillService } from './skill';
 let skillTemplateSummaryInclude = {
   storeTemplate: {
     include: {
-      resourceTenant: true,
-      resourceGroup: true,
       sourceStore: {
         select: {
           id: true
@@ -42,8 +40,8 @@ let skillTemplateSummaryInclude = {
       },
       backingStores: {
         select: {
-          resourceTenantOid: true,
-          resourceGroupOid: true,
+          projectOid: true,
+          instanceOid: true,
           store: {
             select: {
               id: true
@@ -63,8 +61,6 @@ let skillTemplateSummaryInclude = {
 let skillTemplateInclude = {
   storeTemplate: {
     include: {
-      resourceTenant: true,
-      resourceGroup: true,
       sourceStore: {
         select: {
           id: true
@@ -72,8 +68,8 @@ let skillTemplateInclude = {
       },
       backingStores: {
         select: {
-          resourceTenantOid: true,
-          resourceGroupOid: true,
+          projectOid: true,
+          instanceOid: true,
           store: {
             select: {
               id: true
@@ -102,6 +98,8 @@ export type SkillTemplateSummaryRecord = Prisma.SkillTemplateGetPayload<{
 export type SkillTemplateRecord = Prisma.SkillTemplateGetPayload<{
   include: typeof skillTemplateInclude;
 }>;
+
+type SkillTemplateScope = StoreTemplateScope;
 
 export type SkillTemplateWithScopedStoreId<T> = T & {
   storeTemplate: T extends { storeTemplate: infer S } ? S & { storeId?: string } : never;
@@ -157,18 +155,18 @@ class SkillTemplateServiceImpl {
     });
   }
   private getReadableStoreTemplateScopeWhere(d: {
-    resourceTenant: { oid: bigint };
-    resourceGroup: { oid: bigint };
+    project: { oid: bigint };
+    instance: { oid: bigint };
   }): Prisma.StoreTemplateWhereInput {
     return {
       OR: [
         {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         },
         {
-          resourceTenantOid: null,
-          resourceGroupOid: null
+          projectOid: null,
+          instanceOid: null
         }
       ]
     };
@@ -176,27 +174,27 @@ class SkillTemplateServiceImpl {
 
   private assertMatchingScope(d: {
     skillTemplate: SkillTemplateRecord;
-    resourceTenant: { id: string };
-    resourceGroup: { id: string };
+    project: { oid: bigint };
+    instance: { oid: bigint };
   }) {
     if (
-      d.skillTemplate.storeTemplate!.resourceTenant?.id !== d.resourceTenant!.id ||
-      d.skillTemplate.storeTemplate!.resourceGroup?.id !== d.resourceGroup.id
+      d.skillTemplate.storeTemplate!.projectOid !== d.project.oid ||
+      d.skillTemplate.storeTemplate!.instanceOid !== d.instance.oid
     ) {
       throw new ServiceError(
         badRequestError({
           message:
-            'Skill template updates and deletes are only allowed within the matching resourceTenant and resourceGroup'
+            'Skill template updates and deletes are only allowed within the matching project and instance'
         })
       );
     }
   }
 
   private assertRequiredScope(d: StoreTemplateScope): asserts d is RequiredStoreTemplateScope {
-    if (!d.resourceTenant || !d.resourceGroup) {
+    if (!d.project || !d.instance) {
       throw new ServiceError(
         badRequestError({
-          message: 'resourceTenantId and resourceGroupId are required'
+          message: 'projectId and instanceId are required'
         })
       );
     }
@@ -204,8 +202,8 @@ class SkillTemplateServiceImpl {
 
   private async getSkillTemplateRecord(d: {
     skillTemplateId: string;
-    resourceTenant?: { oid: bigint; id: string };
-    resourceGroup?: { oid: bigint; id: string };
+    project?: { oid: bigint };
+    instance?: { oid: bigint };
     accessTags?: AnyAccessTagSelector;
   }) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
@@ -218,11 +216,11 @@ class SkillTemplateServiceImpl {
         status: d.accessTags ? 'active' : undefined,
         accessTagEntities: accessTagFilter,
         storeTemplate:
-          d.resourceTenant && d.resourceGroup
+          d.project && d.instance
             ? {
                 is: this.getReadableStoreTemplateScopeWhere({
-                  resourceTenant: d.resourceTenant!,
-                  resourceGroup: d.resourceGroup
+                  project: d.project,
+                  instance: d.instance
                 })
               }
             : undefined
@@ -269,8 +267,7 @@ class SkillTemplateServiceImpl {
 
     let backing = skillTemplate.storeTemplate!.backingStores.find(
       backing =>
-        backing.resourceTenantOid === scope.resourceTenant.oid &&
-        backing.resourceGroupOid === scope.resourceGroup.oid
+        backing.projectOid === scope.project.oid && backing.instanceOid === scope.instance.oid
     );
 
     return {
@@ -304,7 +301,7 @@ class SkillTemplateServiceImpl {
   }
 
   private async resolveCreateStoreId(
-    d: StoreTemplateScope & {
+    d: SkillTemplateScope & {
       input: SkillTemplateCreateInput;
     }
   ) {
@@ -319,8 +316,8 @@ class SkillTemplateServiceImpl {
     if (!d.input.skillId) {
       let plainTemplate = await this.ensurePlainSkillTemplate();
       let store = await storeService.createStoreFromTemplate({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         authorization: { type: 'privileged' },
         input: {
           templateId: plainTemplate.storeTemplate!.id,
@@ -333,13 +330,13 @@ class SkillTemplateServiceImpl {
     }
 
     let skill = await skillService.getSkillById({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillId: d.input.skillId
     });
     let clonedStore = await storeService.cloneStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       authorization: { type: 'privileged' },
       store: skill.store!,
       input: {
@@ -353,20 +350,14 @@ class SkillTemplateServiceImpl {
   }
 
   private async createSkillTemplateRecord(
-    d: StoreTemplateScope & {
+    d: SkillTemplateScope & {
       input: SkillTemplateCreateInput & {
         systemIdentifier?: string | null;
       };
     }
   ) {
     let storeId = await this.resolveCreateStoreId(d);
-    let ownerScope =
-      d.resourceTenant && d.resourceGroup
-        ? await resolveInstanceResourceScope({
-            resourceTenant: d.resourceTenant!,
-            resourceGroup: d.resourceGroup
-          })
-        : {};
+    let organizationOid = d.instance ? await getInstanceOrganizationOid(d.instance) : null;
 
     return await withTransaction(async db => {
       let storeTemplate = await storeTemplateService.createStoreTemplate({
@@ -380,11 +371,11 @@ class SkillTemplateServiceImpl {
 
       let template = await db.skillTemplate.create({
         data: {
-          resourceTenantOid: d.resourceTenant?.oid,
-          resourceGroupOid: d.resourceGroup?.oid,
+          projectOid: d.project?.oid ?? null,
+          instanceOid: d.instance?.oid ?? null,
           oid: snowflake.nextId(),
           id: d.input.id,
-          owner: d.resourceTenant ? 'tenant' : 'system',
+          owner: d.project ? 'tenant' : 'system',
           slug:
             d.input.systemIdentifier ??
             `${slugify(d.input.name)}-${generatePlainId(5).toLowerCase()}`,
@@ -393,7 +384,7 @@ class SkillTemplateServiceImpl {
           metadata: d.input.metadata as any,
           storeId,
           storeTemplateId: storeTemplate.id,
-          ...ownerScope,
+          organizationOid,
           systemIdentifier: d.input.systemIdentifier ?? null,
           storeTemplateOid: storeTemplate.oid
         },
@@ -484,8 +475,7 @@ class SkillTemplateServiceImpl {
     if (d.providerIds?.length || d.integrationIds?.length) {
       let instance = await db.instance.findFirst({
         where: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          oid: d.instance.oid
         }
       });
       let candidates = await db.skillTemplate.findMany({
@@ -536,7 +526,7 @@ class SkillTemplateServiceImpl {
     let normalizedSearch = d.search?.trim() || undefined;
     let search = normalizedSearch
       ? await voyager.record.search({
-          tenantId: d.resourceTenant.id,
+          tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillTemplate.id,
           query: normalizedSearch
@@ -613,7 +603,7 @@ class SkillTemplateServiceImpl {
   }
 
   async createSkillTemplate(
-    d: StoreTemplateScope & {
+    d: SkillTemplateScope & {
       input: SkillTemplateCreateInput;
     }
   ) {
@@ -677,15 +667,15 @@ class SkillTemplateServiceImpl {
     }
   ) {
     let skillTemplate = await this.getSkillTemplateById({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillTemplateId: d.skillTemplateId
     });
 
     this.assertMatchingScope({
       skillTemplate,
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup
+      project: d.project,
+      instance: d.instance
     });
 
     return await this.updateSkillTemplateRecord({
@@ -703,8 +693,8 @@ class SkillTemplateServiceImpl {
 
     this.assertMatchingScope({
       skillTemplate,
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup
+      project: d.project,
+      instance: d.instance
     });
 
     return await withTransaction(async db => {

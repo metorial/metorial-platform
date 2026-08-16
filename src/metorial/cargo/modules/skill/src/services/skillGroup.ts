@@ -1,7 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
+import {
+  type CargoScope,
+  type DateFilter,
+  normalizeDateFilter
+} from '@metorial/cargo-list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
 import {
@@ -9,8 +13,7 @@ import {
   type AnyAccessTagSelector,
   consumerSkillReadRoles
 } from '@metorial/module-access';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
-import { resolveInstanceResourceScope } from '@metorial/module-resource-tenant';
+import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle/skillGroup';
 
 let include = {
@@ -30,7 +33,7 @@ export type SkillGroupRecord = Prisma.SkillGroupGetPayload<{ include: typeof inc
 
 class SkillGroupServiceImpl {
   async getSkillGroupById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillGroupId: string;
       allowDeleted?: boolean;
       accessTags?: AnyAccessTagSelector;
@@ -43,10 +46,7 @@ class SkillGroupServiceImpl {
     let group = await db.skillGroup.findFirst({
       where: {
         id: d.skillGroupId,
-        instance: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
-        },
+        instanceOid: d.instance.oid,
         status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
         accessTagEntities: accessTagFilter
       },
@@ -57,7 +57,7 @@ class SkillGroupServiceImpl {
   }
 
   async listSkillGroups(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       skillIds?: string[];
       statuses?: Array<'active' | 'archived' | 'deleted'>;
@@ -74,7 +74,7 @@ class SkillGroupServiceImpl {
     let normalizedSearch = d.search?.trim() || undefined;
     let search = normalizedSearch
       ? await voyager.record.search({
-          tenantId: d.resourceTenant.id,
+          tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillGroup.id,
           query: normalizedSearch
@@ -85,10 +85,7 @@ class SkillGroupServiceImpl {
         db.skillGroup.findMany({
           ...opts,
           where: {
-            instance: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
-            },
+            instanceOid: d.instance.oid,
             id: d.ids?.length ? { in: d.ids } : undefined,
             status: d.accessTags
               ? 'active'
@@ -118,7 +115,7 @@ class SkillGroupServiceImpl {
   }
 
   async createSkillGroup(
-    d: ResourceScope & {
+    d: CargoScope & {
       input: {
         name: string;
         description?: string | null;
@@ -128,12 +125,12 @@ class SkillGroupServiceImpl {
       };
     }
   ) {
-    let owner = await resolveInstanceResourceScope(d);
+    let organizationOid = await getInstanceOrganizationOid(d.instance);
     let skills = await db.skill.findMany({
       where: {
         id: { in: d.input.skillIds ?? [] },
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         status: 'active'
       }
     });
@@ -145,8 +142,8 @@ class SkillGroupServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata as any,
           allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment,
-          organizationOid: owner.organizationOid!,
-          instanceOid: owner.instanceOid!
+          organizationOid,
+          instanceOid: d.instance.oid
         }
       });
       if (skills.length) {
@@ -170,7 +167,7 @@ class SkillGroupServiceImpl {
   }
 
   async updateSkillGroup(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillGroupId: string;
       input: {
         name?: string;
@@ -186,8 +183,8 @@ class SkillGroupServiceImpl {
       ? await db.skill.findMany({
           where: {
             id: { in: d.input.skillIds },
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             status: 'active'
           }
         })
@@ -237,7 +234,7 @@ class SkillGroupServiceImpl {
     });
   }
 
-  async archiveSkillGroup(d: ResourceScope & { skillGroupId: string }) {
+  async archiveSkillGroup(d: CargoScope & { skillGroupId: string }) {
     let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
     return await withTransaction(async db => {
       await db.skillGroupItem.updateMany({

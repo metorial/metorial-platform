@@ -88,8 +88,8 @@ let assertConsumerCanCreateExport = async (
   if (input.target === 'skill') {
     let access = await getSkillPluginAccess(ctx);
     await skillService.getSkillById({
-      resourceTenant: access.resourceTenant,
-      resourceGroup: access.resourceGroup,
+      project: access.project,
+      instance: access.instance,
       skillId: input.skillId,
       accessTags: ctx.accessTags
     });

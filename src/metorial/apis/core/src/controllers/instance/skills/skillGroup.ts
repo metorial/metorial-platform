@@ -24,8 +24,8 @@ export let skillGroupGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use
 
   let access = await getInstanceCargoAccess(ctx);
   let localGroup = await skillGroupService.getSkillGroupById({
-    resourceTenant: access.resourceTenant,
-    resourceGroup: access.resourceGroup,
+    project: access.project,
+    instance: access.instance,
     skillGroupId: ctx.params.skillGroupId,
     allowDeleted: true,
     accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
@@ -75,8 +75,8 @@ export let skillGroupController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let paginator = await skillGroupService.listSkillGroups({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           search: ctx.query.search,
           statuses: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -132,8 +132,8 @@ export let skillGroupController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let localGroup = await skillGroupService.createSkillGroup({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -168,8 +168,8 @@ export let skillGroupController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let localGroup = await skillGroupService.updateSkillGroup({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skillGroupId: ctx.skillGroup.id,
           input: {
             name: ctx.body.name,
@@ -195,8 +195,8 @@ export let skillGroupController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let localGroup = await skillGroupService.archiveSkillGroup({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skillGroupId: ctx.skillGroup.id
         });
         let skillGroup = await skillResourceService.hydrateSkillGroup(localGroup);

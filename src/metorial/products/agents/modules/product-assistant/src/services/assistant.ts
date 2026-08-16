@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { ProductAssistant, ResourceTenant } from '@metorial/db';
+import type { ProductAssistant, Project } from '@metorial/db';
 import { db, ID, Prisma } from '@metorial/db';
 import { assistants } from '../definitions/assistants';
 import {
@@ -14,7 +14,7 @@ export type ProductAssistantModelWithProvider = ImplementationModelWithProvider;
 
 export let productAssistantInclude = {
   implementation: true,
-  resourceTenant: true
+  project: true
 } satisfies Prisma.ProductAssistantInclude;
 
 export type ProductAssistantWithRelations = Prisma.ProductAssistantGetPayload<{
@@ -30,7 +30,7 @@ export let productAssistantInstanceInclude = {
   assistant: {
     include: productAssistantInclude
   },
-  resourceTenant: true
+  project: true
 } satisfies Prisma.ProductAssistantInstanceInclude;
 
 export type ProductAssistantInstanceWithRelations = Prisma.ProductAssistantInstanceGetPayload<{
@@ -78,7 +78,7 @@ class ProductAssistantServiceImpl {
     });
   }
 
-  private availableAssistantWhere(d: { tenant: ResourceTenant; assistantId?: string }) {
+  private availableAssistantWhere(d: { project: Project; assistantId?: string }) {
     return {
       AND: [
         d.assistantId
@@ -93,14 +93,14 @@ class ProductAssistantServiceImpl {
         {
           OR: [
             { ownerType: 'metorial' as const },
-            { ownerType: 'tenant' as const, resourceTenantOid: d.tenant.oid }
+            { ownerType: 'tenant' as const, projectOid: d.project.oid }
           ]
         }
       ]
     } satisfies Prisma.ProductAssistantWhereInput;
   }
 
-  async get(d: { tenant: ResourceTenant; assistantId: string }) {
+  async get(d: { project: Project; assistantId: string }) {
     await this.syncSystemAssistants();
 
     let assistant = await db.productAssistant.findFirst({
@@ -112,7 +112,7 @@ class ProductAssistantServiceImpl {
     return (await this.enrichAssistants([assistant]))[0]!;
   }
 
-  async getMany(d: { tenant: ResourceTenant; assistantIds: string[] }) {
+  async getMany(d: { project: Project; assistantIds: string[] }) {
     await this.syncSystemAssistants();
 
     let assistantIds = Array.from(new Set(d.assistantIds));
@@ -121,7 +121,7 @@ class ProductAssistantServiceImpl {
     let assistants = await db.productAssistant.findMany({
       where: {
         AND: [
-          this.availableAssistantWhere({ tenant: d.tenant }),
+          this.availableAssistantWhere({ project: d.project }),
           {
             id: { in: assistantIds }
           }
@@ -138,7 +138,7 @@ class ProductAssistantServiceImpl {
     });
   }
 
-  async list(d: { tenant: ResourceTenant }) {
+  async list(d: { project: Project }) {
     await this.syncSystemAssistants();
 
     return Paginator.create(({ prisma }) =>
@@ -156,20 +156,20 @@ class ProductAssistantServiceImpl {
 
   async getOrCreateAssistantInstance(d: {
     assistant: ProductAssistant;
-    tenant: ResourceTenant;
+    project: Project;
   }): Promise<ProductAssistantInstanceWithRelations> {
     return await db.productAssistantInstance.upsert({
       where: {
-        assistantOid_resourceTenantOid: {
+        assistantOid_projectOid: {
           assistantOid: d.assistant.oid,
-          resourceTenantOid: d.tenant.oid
+          projectOid: d.project.oid
         }
       },
       update: {},
       create: {
         id: await ID.generateId('productAssistantInstance'),
         assistantOid: d.assistant.oid,
-        resourceTenantOid: d.tenant.oid
+        projectOid: d.project.oid
       },
       include: productAssistantInstanceInclude
     });

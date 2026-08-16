@@ -1,15 +1,10 @@
-export type CargoListSelector = {
-  resourceTenant: {
-    oid: bigint;
-  };
-  resourceGroup: {
-    oid: bigint;
-  };
-};
+import type { CargoScope } from './scope';
+
+export type CargoListSelector = CargoScope;
 
 export type CargoListScope = {
-  resourceTenantOid: bigint;
-  resourceGroupOid: bigint;
+  projectOid: bigint;
+  instanceOid: bigint;
 };
 
 let getSelectors = <O extends number | bigint>(oids: O[]) => ({
@@ -36,8 +31,8 @@ let createResolverForOid =
       ids,
       selector,
       scope: {
-        resourceTenantOid: selector.resourceTenant.oid,
-        resourceGroupOid: selector.resourceGroup.oid
+        projectOid: selector.project.oid,
+        instanceOid: selector.instance.oid
       }
     });
 

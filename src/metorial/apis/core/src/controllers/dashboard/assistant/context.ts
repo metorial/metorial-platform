@@ -1,5 +1,5 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
-import type { ResourceActor, ResourceGroup, ResourceTenant } from '@metorial/db';
+import type { Instance, Project, ResourceActor } from '@metorial/db';
 import {
   productAssistantConversationService,
   productAssistantMessageService
@@ -8,8 +8,8 @@ import { requireParam } from '../../../lib/requireParam';
 import { instanceGroup } from '../../../middleware/instanceGroup';
 
 type AssistantAccessContext = {
-  resourceTenant: ResourceTenant;
-  resourceGroup: ResourceGroup;
+  project: Project;
+  instance: Instance;
   resourceActor?: ResourceActor;
 };
 
@@ -28,8 +28,8 @@ let requireAssistantActor = (ctx: AssistantAccessContext) => {
 };
 
 export let getAssistantScope = (ctx: AssistantAccessContext) => ({
-  tenant: ctx.resourceTenant,
-  environment: ctx.resourceGroup,
+  project: ctx.project,
+  instance: ctx.instance,
   actor: requireAssistantActor(ctx)
 });
 

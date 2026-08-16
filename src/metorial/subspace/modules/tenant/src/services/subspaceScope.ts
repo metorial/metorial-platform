@@ -312,19 +312,17 @@ let resolveInstanceResourceGroup = async (instance: ScopeInstance) => {
   return resourceGroup;
 };
 
-let getProjectResourceTenantOidForSubspaceTenant = async (tenantId: string) => {
+let getProjectOidForSubspaceTenant = async (tenantId: string) => {
   let project = await metorialDb.project.findFirst({
     where: { subspaceTenantId: tenantId },
-    select: { id: true, resourceTenantOid: true }
+    select: { oid: true }
   });
 
   if (!project) {
     throw new Error(`No Metorial project is linked to subspace tenant ${tenantId}`);
   }
 
-  if (project.resourceTenantOid) return project.resourceTenantOid;
-
-  return (await resolveProjectResourceTenant(project)).oid;
+  return project.oid;
 };
 
 let resolveOrganizationActorResourceActor = async (d: {
@@ -332,12 +330,12 @@ let resolveOrganizationActorResourceActor = async (d: {
   organizationActor: Pick<OrganizationActor, 'id'> & Partial<OrganizationActor>;
 }) => {
   let loadedOrganizationActor = await loadOrganizationActor(d.organizationActor);
-  let resourceTenantOid = await getProjectResourceTenantOidForSubspaceTenant(d.tenantId);
+  let projectOid = await getProjectOidForSubspaceTenant(d.tenantId);
 
   let resourceActor = await metorialDb.resourceActor.findFirst({
     where: {
       organizationActorOid: loadedOrganizationActor.oid,
-      resourceTenantOid
+      projectOid
     }
   });
 
@@ -346,7 +344,7 @@ let resolveOrganizationActorResourceActor = async (d: {
   return await metorialDb.resourceActor.create({
     data: {
       id: await ID.generateId('resourceActor'),
-      resourceTenantOid,
+      projectOid,
       identifier: getOrganizationActorIdentifier(loadedOrganizationActor),
       name: loadedOrganizationActor.name,
       type: 'external',

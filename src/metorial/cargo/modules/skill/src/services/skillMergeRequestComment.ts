@@ -7,7 +7,7 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import { type ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import { assertResourceActorScope } from '@metorial/module-access';
 import type { ResourceActor } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
@@ -42,7 +42,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async listComments(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId?: string;
     }
@@ -73,7 +73,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async createComment(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       itemId?: string;
       inReplyToCommentId?: string;
@@ -83,7 +83,7 @@ class SkillMergeRequestCommentServiceImpl {
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     if (!d.body.trim()) {
@@ -164,7 +164,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async updateComment(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
       actor: ResourceActor;
@@ -173,7 +173,7 @@ class SkillMergeRequestCommentServiceImpl {
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     if (!d.body.trim()) {
@@ -200,7 +200,7 @@ class SkillMergeRequestCommentServiceImpl {
   }
 
   async deleteComment(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       comment: SkillMergeRequestCommentRecord;
       actor: ResourceActor;
@@ -208,7 +208,7 @@ class SkillMergeRequestCommentServiceImpl {
     }
   ) {
     assertResourceActorScope({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       resourceActor: d.actor
     });
     let actor = d.actor;

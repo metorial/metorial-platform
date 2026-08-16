@@ -1,1 +1,1 @@
-import './resourceGroup';
+import './instance';

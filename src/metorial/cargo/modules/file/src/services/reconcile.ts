@@ -1,17 +1,15 @@
 import { Service } from '@lowerdeck/service';
+import { type CargoOwnerScope, cargoFileScope } from '@metorial/cargo-list-utils';
 import { db } from '@metorial/db';
 import { fileService } from './file';
 import { fileLinkService } from './fileLink';
-import {
-  resourceActorPresentationInclude,
-  type ResourceScope
-} from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 
 class ReconcileServiceImpl {
   private async reconcileReferencesForLink(
-    d: ResourceScope & {
+    d: CargoOwnerScope & {
       link: { oid: bigint };
       inputs: Array<{
         id?: string;
@@ -20,14 +18,14 @@ class ReconcileServiceImpl {
       }>;
     }
   ) {
+    let { link, inputs, ...scope } = d;
     let references = [];
 
-    for (let referenceInput of d.inputs) {
+    for (let referenceInput of inputs) {
       references.push(
         await fileReferenceService.upsertFileReference({
-          resourceTenant: d.resourceTenant,
-          resourceGroup: d.resourceGroup,
-          fileLink: d.link as any,
+          ...scope,
+          fileLink: link as any,
           input: {
             id: referenceInput.id,
             entityType: referenceInput.entityType,
@@ -39,9 +37,8 @@ class ReconcileServiceImpl {
 
     await db.fileReference.deleteMany({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
-        fileLinkOid: d.link.oid,
+        fileLink: { file: cargoFileScope(d) },
+        fileLinkOid: link.oid,
         id: {
           notIn: references.map(reference => reference.id)
         }
@@ -74,7 +71,7 @@ class ReconcileServiceImpl {
   }
 
   async reconcileFiles(
-    d: ResourceScope & {
+    d: CargoOwnerScope & {
       inputs: Array<{
         id: string;
         storeId: string;
@@ -97,12 +94,12 @@ class ReconcileServiceImpl {
       }>;
     }
   ) {
+    let { inputs, ...scope } = d;
     let items = [];
 
-    for (let input of d.inputs) {
+    for (let input of inputs) {
       let file = await fileService.createFile({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        ...scope,
         purpose: input.purpose,
         storeId: input.storeId,
         input: {
@@ -132,9 +129,7 @@ class ReconcileServiceImpl {
             createdByResourceActor: {
               include: resourceActorPresentationInclude
             },
-            purpose: true,
-            resourceTenant: true,
-            resourceGroup: true
+            purpose: true
           }
         });
       }
@@ -143,8 +138,7 @@ class ReconcileServiceImpl {
 
       for (let linkInput of input.links ?? []) {
         let link = await fileLinkService.createFileLink({
-          resourceTenant: d.resourceTenant,
-          resourceGroup: d.resourceGroup,
+          ...scope,
           file,
           input: {
             id: linkInput.id,
@@ -154,8 +148,7 @@ class ReconcileServiceImpl {
         });
 
         let references = await this.reconcileReferencesForLink({
-          resourceTenant: d.resourceTenant,
-          resourceGroup: d.resourceGroup,
+          ...scope,
           link,
           inputs: linkInput.references ?? []
         });
@@ -168,8 +161,7 @@ class ReconcileServiceImpl {
 
       await db.fileLink.deleteMany({
         where: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+          file: cargoFileScope(d),
           fileOid: file.oid,
           id: {
             notIn: links.map(linkItem => linkItem.link.id)

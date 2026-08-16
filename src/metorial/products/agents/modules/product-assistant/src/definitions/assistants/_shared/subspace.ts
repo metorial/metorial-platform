@@ -1,12 +1,12 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { sessionMcpMessagingService, sessionService } from '@metorial-subspace/module-session';
-import { tenantService } from '@metorial-subspace/module-tenant';
+import {
+  getInstanceInternalEnvironmentIdentifier,
+  getProjectInternalTenantIdentifier,
+  tenantService
+} from '@metorial-subspace/module-tenant';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
-import type {
-  ProductAssistantSubspaceMcpConnection,
-  ResourceGroup,
-  ResourceTenant
-} from '@metorial/db';
+import type { Instance, ProductAssistantSubspaceMcpConnection, Project } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import { env } from '../../../env';
 import { InternalMcpTransport, type MCPServerConfig } from '../../../lib/open-harness/lib/mcp';
@@ -67,13 +67,13 @@ export class SubspaceAssistant {
   constructor(private readonly subspaceServices: SubspaceServicesLike) {}
 
   async getInput(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     input: { sessionId: string };
   }): Promise<ExplorerAssistantInput> {
     let scope = await this.subspaceServices.tenant.getTenantAndEnvironmentById({
-      tenantId: d.tenant.identifier,
-      environmentId: d.environment.identifier
+      tenantId: getProjectInternalTenantIdentifier(d.project),
+      environmentId: getInstanceInternalEnvironmentIdentifier(d.instance)
     });
     let session = await this.subspaceServices.session.getSessionByIdInternal({
       tenant: scope.tenant,
@@ -86,14 +86,14 @@ export class SubspaceAssistant {
     return {
       sessionId: session.id,
       solutionId: env.subspace.SUBSPACE_SOLUTION,
-      subspaceTenantId: d.tenant.identifier,
-      environmentId: d.environment.identifier
+      subspaceTenantId: getProjectInternalTenantIdentifier(d.project),
+      environmentId: getInstanceInternalEnvironmentIdentifier(d.instance)
     };
   }
 
   async createMcpServerConfig(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     input: ExplorerAssistantInput;
   }): Promise<MCPServerConfig> {
     let existing = await this.getUsableConnection(d);
@@ -112,7 +112,7 @@ export class SubspaceAssistant {
               agentClient: {
                 name: 'Metorial Assistant',
                 type: 'system_client',
-                foreignId: `product-assistant:${d.tenant.id}:${d.environment.id}:${d.input.sessionId}`
+                foreignId: `product-assistant:${d.project.id}:${d.instance.id}:${d.input.sessionId}`
               },
               connectionPrivateMetadata: {
                 source: 'product-assistant',
@@ -196,15 +196,14 @@ export class SubspaceAssistant {
   }
 
   private async getCurrentConnection(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     input: ExplorerAssistantInput;
   }) {
     return await db.productAssistantSubspaceMcpConnection.findUnique({
       where: {
-        resourceTenantOid_resourceGroupOid_sessionId: {
-          resourceTenantOid: d.tenant.oid,
-          resourceGroupOid: d.environment.oid,
+        instanceOid_sessionId: {
+          instanceOid: d.instance.oid,
           sessionId: d.input.sessionId
         }
       }
@@ -212,8 +211,8 @@ export class SubspaceAssistant {
   }
 
   private async getUsableConnection(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     input: ExplorerAssistantInput;
   }) {
     let connection = await this.getCurrentConnection(d);
@@ -231,8 +230,8 @@ export class SubspaceAssistant {
   }
 
   private async persistConnection(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     input: ExplorerAssistantInput;
     connectionId: string;
     connectionToken: string;
@@ -242,9 +241,8 @@ export class SubspaceAssistant {
     await withTransaction(async tx => {
       let existing = await tx.productAssistantSubspaceMcpConnection.findUnique({
         where: {
-          resourceTenantOid_resourceGroupOid_sessionId: {
-            resourceTenantOid: d.tenant.oid,
-            resourceGroupOid: d.environment.oid,
+          instanceOid_sessionId: {
+            instanceOid: d.instance.oid,
             sessionId: d.input.sessionId
           }
         }
@@ -260,9 +258,8 @@ export class SubspaceAssistant {
 
       await tx.productAssistantSubspaceMcpConnection.upsert({
         where: {
-          resourceTenantOid_resourceGroupOid_sessionId: {
-            resourceTenantOid: d.tenant.oid,
-            resourceGroupOid: d.environment.oid,
+          instanceOid_sessionId: {
+            instanceOid: d.instance.oid,
             sessionId: d.input.sessionId
           }
         },
@@ -276,8 +273,8 @@ export class SubspaceAssistant {
         },
         create: {
           id: await ID.generateId('productAssistantSubspaceMcpConnection'),
-          resourceTenantOid: d.tenant.oid,
-          resourceGroupOid: d.environment.oid,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
           sessionId: d.input.sessionId,
           solutionId: d.input.solutionId,
           subspaceTenantId: d.input.subspaceTenantId,

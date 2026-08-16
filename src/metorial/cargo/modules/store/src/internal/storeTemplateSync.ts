@@ -3,6 +3,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import {
   documentInclude,
   documentService,
@@ -17,7 +18,6 @@ import {
 } from '@metorial/cargo-module-file';
 import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '@metorial/db';
 import { db, isUniqueConstraintError, withTransaction } from '@metorial/db';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { storeItemInclude } from '../services/storeItem';
 import { storeItemMutationService } from '../services/storeItemMutation';
 import { storeVersionService } from '../services/storeVersion';
@@ -25,8 +25,6 @@ import { storeVersionService } from '../services/storeVersion';
 let syncTargetBatchSize = 100;
 
 let storeTemplateSyncInclude = {
-  resourceTenant: true,
-  resourceGroup: true,
   items: {
     orderBy: [
       {
@@ -263,7 +261,7 @@ class InternalStoreTemplateSyncServiceImpl {
 
     let limit = d.limit ?? syncTargetBatchSize;
 
-    if (storeTemplate.resourceGroupOid) {
+    if (storeTemplate.instanceOid) {
       if (d.cursor) {
         return {
           targets: [],
@@ -271,28 +269,32 @@ class InternalStoreTemplateSyncServiceImpl {
         };
       }
 
+      let instance = await db.instance.findFirst({
+        where: {
+          oid: storeTemplate.instanceOid
+        },
+        select: {
+          id: true
+        }
+      });
+
       return {
-        targets: [
-          {
-            resourceTenant: storeTemplate.resourceTenant!,
-            resourceGroup: storeTemplate.resourceGroup!
-          }
-        ],
+        targets: instance ? [{ instance }] : [],
         nextCursor: undefined
       };
     }
 
-    let environments = await db.resourceGroup.findMany({
+    let instances = await db.instance.findMany({
       where: {
-        resourceTenantOid: storeTemplate.resourceTenantOid ?? undefined,
+        projectOid: storeTemplate.projectOid ?? undefined,
         id: d.cursor
           ? {
               gt: d.cursor
             }
           : undefined
       },
-      include: {
-        resourceTenant: true
+      select: {
+        id: true
       },
       orderBy: {
         id: 'asc'
@@ -301,17 +303,13 @@ class InternalStoreTemplateSyncServiceImpl {
     });
 
     return {
-      targets: environments.map(resourceGroup => ({
-        resourceTenant: resourceGroup.resourceTenant,
-        resourceGroup
-      })),
-      nextCursor:
-        environments.length === limit ? environments[environments.length - 1]!.id : undefined
+      targets: instances.map(instance => ({ instance })),
+      nextCursor: instances.length === limit ? instances[instances.length - 1]!.id : undefined
     };
   }
 
   private async ensureBackingStore(
-    d: ResourceScope & {
+    d: CargoScope & {
       storeTemplate: StoreTemplateSyncRecord;
     }
   ) {
@@ -320,8 +318,8 @@ class InternalStoreTemplateSyncServiceImpl {
         let existing = await db.storeTemplateBacking.findFirst({
           where: {
             storeTemplateOid: d.storeTemplate.oid,
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid
           },
           include: {
             store: true
@@ -366,8 +364,8 @@ class InternalStoreTemplateSyncServiceImpl {
             name: d.storeTemplate.name,
             access: 'public_read',
             itemCount: 0,
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             parentStoreTemplateOid: d.storeTemplate.oid,
             isReadOnly: true,
             isTemplateBacking: true
@@ -376,18 +374,17 @@ class InternalStoreTemplateSyncServiceImpl {
 
         let backing = await db.storeTemplateBacking.upsert({
           where: {
-            storeTemplateOid_resourceTenantOid_resourceGroupOid: {
+            storeTemplateOid_instanceOid: {
               storeTemplateOid: d.storeTemplate.oid,
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
+              instanceOid: d.instance.oid
             }
           },
           create: {
             oid: backingIds.oid,
             id: backingIds.id,
             storeTemplateOid: d.storeTemplate.oid,
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             storeOid: store.oid
           },
           update: {},
@@ -416,10 +413,9 @@ class InternalStoreTemplateSyncServiceImpl {
 
       let backing = await db.storeTemplateBacking.findUnique({
         where: {
-          storeTemplateOid_resourceTenantOid_resourceGroupOid: {
+          storeTemplateOid_instanceOid: {
             storeTemplateOid: d.storeTemplate.oid,
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid
+            instanceOid: d.instance.oid
           }
         },
         include: {
@@ -436,7 +432,7 @@ class InternalStoreTemplateSyncServiceImpl {
   }
 
   private async removeItems(
-    d: ResourceScope & {
+    d: CargoScope & {
       store: Store;
       items: Array<{ id: string; path: string; kind: StoreItemKind }>;
     }
@@ -454,8 +450,8 @@ class InternalStoreTemplateSyncServiceImpl {
       if (!currentItem) continue;
 
       await storeItemMutationService.modifyStoreItems({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         store: d.store,
         operations: [
           {
@@ -469,7 +465,7 @@ class InternalStoreTemplateSyncServiceImpl {
   }
 
   private async upsertFileItem(
-    d: ResourceScope & {
+    d: CargoScope & {
       store: Store;
       item: StoreTemplateSyncItem;
       existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
@@ -502,14 +498,12 @@ class InternalStoreTemplateSyncServiceImpl {
                 select: {
                   id: true
                 }
-              },
-              resourceTenant: true,
-              resourceGroup: true
+              }
             }
           })
         : await fileService.createFile({
-            resourceTenant: d.resourceTenant,
-            resourceGroup: d.resourceGroup,
+            project: d.project,
+            instance: d.instance,
             purpose: filePurpose.id,
             storeId: d.item.fileStoreId!,
             input: {
@@ -526,8 +520,8 @@ class InternalStoreTemplateSyncServiceImpl {
           });
 
     await storeItemMutationService.attachTargetToStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: d.store,
       path: d.item.path,
       target: {
@@ -539,7 +533,7 @@ class InternalStoreTemplateSyncServiceImpl {
   }
 
   private async upsertDocumentItem(
-    d: ResourceScope & {
+    d: CargoScope & {
       store: Store;
       item: StoreTemplateSyncItem;
       existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
@@ -579,8 +573,8 @@ class InternalStoreTemplateSyncServiceImpl {
 
             let version = contentIds
               ? await internalDocumentVersioningService.createVersion({
-                  resourceTenant: d.resourceTenant,
-                  resourceGroup: d.resourceGroup,
+                  project: d.project,
+                  instance: d.instance,
                   document: currentDocument,
                   contentOid: contentIds.oid,
                   previousVersionOid: currentDocument.currentVersionOid,
@@ -621,8 +615,8 @@ class InternalStoreTemplateSyncServiceImpl {
       );
 
       await storeItemMutationService.attachTargetToStore({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         store: d.store,
         path: d.item.path,
         target: {
@@ -639,8 +633,8 @@ class InternalStoreTemplateSyncServiceImpl {
     }
 
     let document = await documentService.createDocument({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       input: {
         title,
         content,
@@ -654,8 +648,8 @@ class InternalStoreTemplateSyncServiceImpl {
     });
 
     await storeItemMutationService.attachTargetToStore({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       store: d.store,
       path: d.item.path,
       target: {
@@ -671,8 +665,7 @@ class InternalStoreTemplateSyncServiceImpl {
 
   async syncStoreTemplateBackingStore(d: {
     storeTemplateId: string;
-    resourceTenantId: string;
-    resourceGroupId: string;
+    instanceId: string;
     updatedItemIds?: string[];
     forceFullReconcile?: boolean;
   }) {
@@ -681,35 +674,24 @@ class InternalStoreTemplateSyncServiceImpl {
 
     if (!storeTemplate.hash) return null;
 
-    let resourceTenant = await db.resourceTenant.findFirst({
+    let scopedInstance = await db.instance.findFirst({
       where: {
-        id: d.resourceTenantId
-      }
+        id: d.instanceId
+      },
+      select: { oid: true, projectOid: true }
     });
-    if (!resourceTenant)
-      throw new ServiceError(notFoundError('resourceTenant', d.resourceTenantId));
+    if (!scopedInstance) throw new ServiceError(notFoundError('instance', d.instanceId));
 
-    let resourceGroup = await db.resourceGroup.findFirst({
-      where: {
-        id: d.resourceGroupId,
-        resourceTenantOid: resourceTenant.oid
-      }
-    });
-    if (!resourceGroup)
-      throw new ServiceError(notFoundError('resourceGroup', d.resourceGroupId));
+    let project = { oid: scopedInstance.projectOid };
+    let instance = { oid: scopedInstance.oid };
 
-    if (
-      storeTemplate.resourceTenantOid &&
-      storeTemplate.resourceTenantOid !== resourceTenant.oid
-    )
-      return null;
-    if (storeTemplate.resourceGroupOid && storeTemplate.resourceGroupOid !== resourceGroup.oid)
-      return null;
+    if (storeTemplate.projectOid && storeTemplate.projectOid !== project.oid) return null;
+    if (storeTemplate.instanceOid && storeTemplate.instanceOid !== instance.oid) return null;
 
     let { backing, store } = await this.ensureBackingStore({
       storeTemplate,
-      resourceTenant,
-      resourceGroup
+      project,
+      instance
     });
 
     if (backing.lastSyncedHash === storeTemplate.hash && !d.forceFullReconcile) {
@@ -730,8 +712,8 @@ class InternalStoreTemplateSyncServiceImpl {
     let templatePaths = storeTemplate.items.map(item => item.path);
 
     await this.removeItems({
-      resourceTenant,
-      resourceGroup,
+      project,
+      instance,
       store,
       items: currentItems
         .filter(item => {
@@ -753,8 +735,8 @@ class InternalStoreTemplateSyncServiceImpl {
         if (item.path === '/') continue;
 
         await storeItemMutationService.modifyStoreItems({
-          resourceTenant,
-          resourceGroup,
+          project,
+          instance,
           store,
           operations: [
             {
@@ -770,8 +752,8 @@ class InternalStoreTemplateSyncServiceImpl {
       let existingItem = itemByPath.get(item.path);
       if (item.kind === 'file') {
         await this.upsertFileItem({
-          resourceTenant,
-          resourceGroup,
+          project,
+          instance,
           store,
           item,
           existingItem
@@ -780,8 +762,8 @@ class InternalStoreTemplateSyncServiceImpl {
       }
 
       await this.upsertDocumentItem({
-        resourceTenant,
-        resourceGroup,
+        project,
+        instance,
         store,
         item,
         existingItem
@@ -802,8 +784,8 @@ class InternalStoreTemplateSyncServiceImpl {
     });
 
     await this.removeItems({
-      resourceTenant,
-      resourceGroup,
+      project,
+      instance,
       store,
       items: latestItems.filter(item => {
         if (item.path === '/' || desiredPaths.has(item.path)) return false;

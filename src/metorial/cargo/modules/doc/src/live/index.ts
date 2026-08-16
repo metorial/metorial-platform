@@ -583,8 +583,8 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
           documentId
         });
         await documentService.getDocumentById({
-          resourceTenant: scopedDocument.resourceTenant,
-          resourceGroup: scopedDocument.resourceGroup,
+          project: scopedDocument.project,
+          instance: scopedDocument.instance,
           documentId,
           authorization,
           defaultPermissions,
@@ -851,8 +851,8 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
               });
 
               await documentService.getDocumentById({
-                resourceTenant: currentScopedDocument.resourceTenant,
-                resourceGroup: currentScopedDocument.resourceGroup,
+                project: currentScopedDocument.project,
+                instance: currentScopedDocument.instance,
                 documentId: session.documentId,
                 authorization: session.authorization,
                 defaultPermissions: session.defaultPermissions,
@@ -860,8 +860,8 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
               });
 
               let updatedDocument = await documentService.updateDocument({
-                resourceTenant: currentScopedDocument.resourceTenant,
-                resourceGroup: currentScopedDocument.resourceGroup,
+                project: currentScopedDocument.project,
+                instance: currentScopedDocument.instance,
                 document: currentScopedDocument.document,
                 input: {
                   authorization: session.authorization,

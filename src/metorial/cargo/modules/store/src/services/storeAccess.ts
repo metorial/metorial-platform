@@ -1,6 +1,7 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import {
   accessTagService,
   type AnyAccessTagSelector,
@@ -9,7 +10,6 @@ import {
   assertResourceAuthorizationScope,
   type ResourceAuthorization
 } from '@metorial/module-access';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type {
   ResourceActor,
   Prisma,
@@ -152,7 +152,7 @@ class StoreAccessServiceImpl {
   }
 
   async getStoreById(
-    d: ResourceScope & {
+    d: CargoScope & {
       storeId: string;
     }
   ) {
@@ -160,8 +160,8 @@ class StoreAccessServiceImpl {
       async db => {
         let store = await db.store.findFirst({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             id: d.storeId
           }
         });
@@ -397,8 +397,8 @@ class StoreAccessServiceImpl {
   }
 
   private async getSkillStoreAccess(d: {
-    resourceTenant: { oid: bigint };
-    resourceGroup: { oid: bigint };
+    project: { oid: bigint };
+    instance: { oid: bigint };
     actor: ResourceActor;
     accessTags?: AnyAccessTagSelector;
     requiredPermission: StoreParticipantPermissions;
@@ -439,8 +439,8 @@ class StoreAccessServiceImpl {
         await Promise.all([
           db.skill.findMany({
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               storeOid: {
                 in: uniqueBigInts(d.storeOids)
               }
@@ -451,8 +451,8 @@ class StoreAccessServiceImpl {
           }),
           db.skill.findMany({
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               status: 'active',
               storeOid: {
                 in: uniqueBigInts(d.storeOids)
@@ -575,7 +575,7 @@ class StoreAccessServiceImpl {
   }
 
   async resolveAccessibleStoreOids(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
         storeOids: bigint[];
@@ -587,8 +587,8 @@ class StoreAccessServiceImpl {
         let requestedStoreOids = uniqueBigInts(d.storeOids);
         let stores = await db.store.findMany({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             oid: {
               in: requestedStoreOids
             }
@@ -639,8 +639,8 @@ class StoreAccessServiceImpl {
           : [];
         let skillStoreAccess = actor
           ? await this.getSkillStoreAccess({
-              resourceTenant: d.resourceTenant,
-              resourceGroup: d.resourceGroup,
+              project: d.project,
+              instance: d.instance,
               actor,
               accessTags: this.getAccessTags(d),
               requiredPermission: d.requiredPermission,
@@ -670,7 +670,7 @@ class StoreAccessServiceImpl {
   }
 
   async listAccessibleStoreOidsForTenantEnvironment(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
       }
@@ -679,8 +679,8 @@ class StoreAccessServiceImpl {
       async db => {
         let stores = await db.store.findMany({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid
           },
           select: {
             oid: true
@@ -688,8 +688,8 @@ class StoreAccessServiceImpl {
         });
 
         return await this.resolveAccessibleStoreOids({
-          resourceTenant: d.resourceTenant,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           ...this.getAccessInput(d),
           defaultPermissions: d.defaultPermissions,
           overridePermissions: d.overridePermissions,
@@ -702,15 +702,15 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStore(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id'>;
         requiredPermission: StoreParticipantPermissions;
       }
   ) {
     let result = await this.resolveAccessibleStoreOids({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -736,7 +736,7 @@ class StoreAccessServiceImpl {
   }
 
   async getStorePermissions(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
@@ -767,8 +767,8 @@ class StoreAccessServiceImpl {
 
     let [readAccess, writeAccess] = await Promise.all([
       this.resolveAccessibleStoreOids({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -776,8 +776,8 @@ class StoreAccessServiceImpl {
         storeOids: [d.store.oid]
       }),
       this.resolveAccessibleStoreOids({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -808,7 +808,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForDocument(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         document: {
           id: string;
@@ -834,8 +834,8 @@ class StoreAccessServiceImpl {
       document: d.document
     });
     let access = await this.resolveAccessibleStoreOids({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -860,7 +860,7 @@ class StoreAccessServiceImpl {
   }
 
   async getDocumentPermissions(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         document: {
           id: string;
@@ -906,8 +906,8 @@ class StoreAccessServiceImpl {
 
     let [readAccess, writeAccess] = await Promise.all([
       this.resolveAccessibleStoreOids({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -915,8 +915,8 @@ class StoreAccessServiceImpl {
         storeOids: relevantStoreOids
       }),
       this.resolveAccessibleStoreOids({
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         ...this.getAccessInput(d),
         defaultPermissions: d.defaultPermissions,
         overridePermissions: d.overridePermissions,
@@ -949,7 +949,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForFile(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         file: {
           id: string;
@@ -965,8 +965,8 @@ class StoreAccessServiceImpl {
       file: d.file
     });
     let access = await this.resolveAccessibleStoreOids({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
@@ -991,7 +991,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStoreItem(
-    d: ResourceScope &
+    d: CargoScope &
       StoreAccessInput & {
         item: {
           id: string;
@@ -1001,8 +1001,8 @@ class StoreAccessServiceImpl {
       }
   ) {
     let access = await this.resolveAccessibleStoreOids({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,

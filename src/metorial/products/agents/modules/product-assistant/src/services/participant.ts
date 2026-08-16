@@ -1,11 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type {
+  Instance,
   ProductAssistantConversation,
   ProductAssistantConversationParticipant,
-  ResourceActor,
-  ResourceGroup,
-  ResourceTenant
+  Project,
+  ResourceActor
 } from '@metorial/db';
 import { db, ID, Prisma } from '@metorial/db';
 
@@ -26,17 +26,17 @@ class ProductAssistantConversationParticipantServiceImpl {
     return client ?? db;
   }
 
-  assertTenantEnvironmentScope(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+  assertProjectInstanceScope(d: {
+    project: Project;
+    instance: Instance;
     actor?: ResourceActor | null;
   }) {
-    if (d.environment.resourceTenantOid !== d.tenant.oid) {
-      throw new ServiceError(notFoundError('environment', d.environment.id));
+    if (d.instance.projectOid !== d.project.oid) {
+      throw new ServiceError(notFoundError('instance', d.instance.id));
     }
 
-    if (d.actor && d.actor.resourceTenantOid !== d.tenant.oid) {
-      throw new ServiceError(notFoundError('tenant_actor', d.actor.id));
+    if (d.actor && d.actor.projectOid !== d.project.oid) {
+      throw new ServiceError(notFoundError('actor', d.actor.id));
     }
   }
 
@@ -60,20 +60,20 @@ class ProductAssistantConversationParticipantServiceImpl {
   }
 
   async hasConversationAccess(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     conversation: Pick<
       ProductAssistantConversation,
-      'oid' | 'id' | 'resourceTenantOid' | 'resourceGroupOid' | 'createdByResourceActorOid'
+      'oid' | 'id' | 'projectOid' | 'instanceOid' | 'createdByResourceActorOid'
     >;
     actor?: ResourceActor | null;
     client?: DbClient;
   }) {
-    this.assertTenantEnvironmentScope(d);
+    this.assertProjectInstanceScope(d);
 
     if (
-      d.conversation.resourceTenantOid !== d.tenant.oid ||
-      d.conversation.resourceGroupOid !== d.environment.oid
+      d.conversation.projectOid !== d.project.oid ||
+      d.conversation.instanceOid !== d.instance.oid
     ) {
       return false;
     }
@@ -95,11 +95,11 @@ class ProductAssistantConversationParticipantServiceImpl {
   }
 
   async assertConversationAccess(d: {
-    tenant: ResourceTenant;
-    environment: ResourceGroup;
+    project: Project;
+    instance: Instance;
     conversation: Pick<
       ProductAssistantConversation,
-      'oid' | 'id' | 'resourceTenantOid' | 'resourceGroupOid' | 'createdByResourceActorOid'
+      'oid' | 'id' | 'projectOid' | 'instanceOid' | 'createdByResourceActorOid'
     >;
     actor?: ResourceActor | null;
     client?: DbClient;

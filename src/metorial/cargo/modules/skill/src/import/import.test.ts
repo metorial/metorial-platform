@@ -114,12 +114,14 @@ describe('skill repository imports', () => {
 
   it('normalizes an uploaded Markdown file as the root skill document', async () => {
     let content = new TextEncoder().encode('---\nname: Uploaded\n---\n# Uploaded');
-    await expect(normalizeUploadedSkillFile({ format: 'markdown', content })).resolves.toEqual([
-      {
-        path: '/SKILL.md',
-        content
-      }
-    ]);
+    await expect(normalizeUploadedSkillFile({ format: 'markdown', content })).resolves.toEqual(
+      [
+        {
+          path: '/SKILL.md',
+          content
+        }
+      ]
+    );
   });
 
   it('discovers case-insensitive skill roots and prunes nested skills', () => {

@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
@@ -10,8 +11,7 @@ import {
 } from '@metorial/cargo-list-utils';
 import {
   exposedParticipantResourceActorWhere,
-  resourceActorPresentationInclude,
-  type ResourceScope
+  resourceActorPresentationInclude
 } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
@@ -25,7 +25,7 @@ export let storeParticipantInclude = {
 
 class StoreParticipantServiceImpl {
   async getStoreParticipantById(
-    d: ResourceScope & {
+    d: CargoScope & {
       storeParticipantId: string;
     }
   ) {
@@ -33,8 +33,8 @@ class StoreParticipantServiceImpl {
       where: {
         id: d.storeParticipantId,
         store: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         },
         resourceActor: exposedParticipantResourceActorWhere
       },
@@ -49,7 +49,7 @@ class StoreParticipantServiceImpl {
   }
 
   async listStoreParticipants(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       storeIds?: string[];
       actorIds?: string[];
@@ -68,8 +68,8 @@ class StoreParticipantServiceImpl {
             where: {
               oid: participants ? participants.in : undefined,
               store: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid,
+                projectOid: d.project.oid,
+                instanceOid: d.instance.oid,
                 oid: stores ? stores.in : undefined
               },
               resourceActorOid: actors ? actors.in : undefined,

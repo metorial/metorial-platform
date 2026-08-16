@@ -2,11 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
 import {
-  resourceActorPresentationInclude,
-  type ResourceScope
-} from '@metorial/module-resource-tenant';
+  type CargoScope,
+  type DateFilter,
+  normalizeDateFilter
+} from '@metorial/cargo-list-utils';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { SkillMergeRequestEventType, TransactionDB } from '@metorial/db';
@@ -61,15 +62,15 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   private async assertReadAccess(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       authorization: ResourceAuthorization;
     }
   ) {
     let readable = async (store: SkillMergeRequestRecord['sourceSkill']['store']) =>
       await storeAccessService.assertStoreAccessForStore({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         store: store!,
         authorization: d.authorization,
         requiredPermission: storeReadPermission
@@ -86,7 +87,7 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   async listEvents(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       authorization: ResourceAuthorization;
       types?: SkillMergeRequestEventType[];
@@ -112,7 +113,7 @@ class SkillMergeRequestEventServiceImpl {
   }
 
   async getEventById(
-    d: ResourceScope & {
+    d: CargoScope & {
       mergeRequest: SkillMergeRequestRecord;
       authorization: ResourceAuthorization;
       eventId: string;

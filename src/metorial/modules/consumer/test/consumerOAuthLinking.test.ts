@@ -96,7 +96,7 @@ vi.mock('@metorial/module-magic', () => ({
 }));
 
 vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveResourceScopeForOwner: vi.fn()
+  resolveResourceScopeForInstance: vi.fn()
 }));
 
 vi.mock('@metorial/cargo-module-skill', () => ({

@@ -3,6 +3,7 @@ import { documentEditTokenService, documentService } from '@metorial/cargo-modul
 import { resolveCargoAccess } from '@metorial/cargo-module-file';
 import { db } from '@metorial/db';
 import { createResourceAuthorization } from '@metorial/module-access';
+import { resolveInstanceScope } from '@metorial/module-resource-tenant';
 
 export let resolveDocumentsLiveToken = async (d: {
   editToken: string;
@@ -16,8 +17,9 @@ export let resolveDocumentsLiveToken = async (d: {
     instanceId: d.instanceId,
     organizationId: d.organizationId
   });
+  let scope = await resolveInstanceScope(token.owner.instance);
   let access = await resolveCargoAccess({
-    owner: token.owner,
+    scope,
     accessTags: token.accessTags,
     accessActor: token.accessActor,
     defaultPermissions: token.defaultPermissions,
@@ -48,22 +50,21 @@ export let resolveDocumentsLiveToken = async (d: {
       restricted: true,
       resourceActor: access.actor,
       accessTags: token.accessTags,
-      resourceTenant: access.scope.resourceTenant,
-      resourceGroup: access.scope.resourceGroup,
+      project: scope.project,
       instance: token.owner.instance,
       consumerProfile
     });
   }
 
   let document = await documentService.getDocumentById({
-    ...access.scope,
+    ...scope,
     documentId: token.documentId,
     authorization,
     defaultPermissions: token.defaultPermissions,
     overridePermissions: token.overridePermissions
   });
   let permissions = await documentService.getDocumentPermissions({
-    ...access.scope,
+    ...scope,
     document,
     authorization,
     defaultPermissions: token.defaultPermissions,

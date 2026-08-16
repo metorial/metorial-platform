@@ -2,6 +2,7 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial/db';
 import semver from 'semver';
+import { requireRecordProject } from '../../internal/scope';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 
@@ -41,8 +42,13 @@ export let applyMarketplace = createApplicator(
       skillMarketplaceOid: input.skillMarketplace.oid
     });
 
-    let resourceTenant = await db.resourceTenant.findFirstOrThrow({
-      where: { oid: input.skillMarketplace.resourceTenantOid! }
+    let project = await db.project.findFirstOrThrow({
+      where: requireRecordProject('Skill marketplace', input.skillMarketplace),
+      include: {
+        organization: {
+          select: { name: true, image: true }
+        }
+      }
     });
     let legacyPluginHashes = plugins
       .map(plugin =>
@@ -73,7 +79,7 @@ export let applyMarketplace = createApplicator(
         marketplace: {
           slug: input.skillMarketplace.slug,
           name: input.skillMarketplace.name,
-          ownerName: resourceTenant.organizationName ?? resourceTenant.name
+          ownerName: project.organization.name
         },
         plugins: plugins.map(plugin => ({
           slug: plugin.pluginSlug,
@@ -88,7 +94,7 @@ export let applyMarketplace = createApplicator(
 
     return {
       plugins,
-      resourceTenant,
+      project,
       hash,
       legacyHash
     };
@@ -96,7 +102,7 @@ export let applyMarketplace = createApplicator(
   {
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { plugins, resourceTenant, hash, legacyHash }) => {
+    apply: async (input, context, { plugins, project, hash, legacyHash }) => {
       if (input.skillMarketplace.versionHash !== hash) {
         let isHashMigration = input.skillMarketplace.versionHash === legacyHash;
         let nextVersion = isHashMigration
@@ -156,7 +162,7 @@ export let applyMarketplace = createApplicator(
       let claudeMarketplace = json({
         name: input.skillMarketplace.slug,
         owner: {
-          name: resourceTenant.organizationName ?? resourceTenant.name
+          name: project.organization.name
         },
         metadata: {
           description: 'Official WorkOS skills for AI coding agents',
@@ -177,7 +183,7 @@ export let applyMarketplace = createApplicator(
       let cursorMarketplace = json({
         name: input.skillMarketplace.slug,
         owner: {
-          name: resourceTenant.organizationName ?? resourceTenant.name
+          name: project.organization.name
         },
         metadata: {
           description: 'Official WorkOS skills for AI coding agents',

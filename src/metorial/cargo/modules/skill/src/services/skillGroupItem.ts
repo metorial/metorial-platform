@@ -1,8 +1,11 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import {
+  type CargoScope,
+  type DateFilter,
+  normalizeDateFilter
+} from '@metorial/cargo-list-utils';
 import {
   accessTagService,
   type AnyAccessTagSelector,
@@ -24,7 +27,7 @@ export type SkillGroupItemRecord = Prisma.SkillGroupItemGetPayload<{
 
 class SkillGroupItemServiceImpl {
   async listSkillGroupItems(
-    d: ResourceScope & {
+    d: CargoScope & {
       statuses?: Array<'active' | 'archived' | 'deleted'>;
       allowDeleted?: boolean;
       ids?: string[];
@@ -54,10 +57,7 @@ class SkillGroupItemServiceImpl {
             id: d.ids?.length ? { in: d.ids } : undefined,
             createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
             skillGroup: {
-              instance: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid
-              },
+              instanceOid: d.instance.oid,
               id: d.skillGroupIds?.length ? { in: d.skillGroupIds } : undefined,
               status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
               accessTagEntities: accessTagFilter
@@ -75,7 +75,7 @@ class SkillGroupItemServiceImpl {
   }
 
   async getSkillGroupItemById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillGroupItemId: string;
       skillGroupId?: string;
       allowDeleted?: boolean;
@@ -93,10 +93,7 @@ class SkillGroupItemServiceImpl {
         status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
         skillGroup: {
           id: d.skillGroupId,
-          instance: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid
-          },
+          instanceOid: d.instance.oid,
           status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
           accessTagEntities: accessTagFilter
         },
@@ -116,7 +113,7 @@ class SkillGroupItemServiceImpl {
   }
 
   async createSkillGroupItem(
-    d: ResourceScope & { input: { skillGroupId: string; skillId: string } }
+    d: CargoScope & { input: { skillGroupId: string; skillId: string } }
   ) {
     let [group, skill] = await Promise.all([
       skillGroupService.getSkillGroupById({
@@ -164,7 +161,7 @@ class SkillGroupItemServiceImpl {
     });
   }
 
-  async archiveSkillGroupItem(d: ResourceScope & { skillGroupItem: SkillGroupItemRecord }) {
+  async archiveSkillGroupItem(d: CargoScope & { skillGroupItem: SkillGroupItemRecord }) {
     let current = await this.getSkillGroupItemById({
       ...d,
       skillGroupItemId: d.skillGroupItem.id,

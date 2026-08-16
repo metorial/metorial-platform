@@ -7,6 +7,7 @@ import {
   acquireUploadedSkillFile,
   getImportCodeBucket
 } from '../../import/repository';
+import { requireRecordProject } from '../../internal/scope';
 import { skillImportDiscoverQueue } from './discover';
 
 let importTimeoutMs = 30 * 60 * 1000;
@@ -52,8 +53,6 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
   let skillImport = await db.skillImport.findUnique({
     where: { id: data.skillImportId },
     include: {
-      resourceTenant: true,
-      resourceGroup: true,
       sourceFile: true,
       sourceFileReference: true
     }
@@ -86,12 +85,13 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
       if (claimed.count === 0) return;
     }
 
+    let importProject = requireRecordProject('Skill import', skillImport);
     let codeBucketId = skillImport.codeBucketId;
     if (!codeBucketId && skillImport.sourceType === 'public_repository') {
       if (!skillImport.repositoryUrl) throw new Error('Public repository URL is missing');
       codeBucketId = (
         await acquirePublicRepository({
-          resourceTenant: skillImport.resourceTenant!,
+          project: importProject,
           repositoryUrl: skillImport.repositoryUrl,
           ref: skillImport.ref
         })
@@ -103,7 +103,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
     } else if (!codeBucketId && skillImport.sourceType === 'origin_repository') {
       if (!skillImport.repositoryId) throw new Error('Origin repository ID is missing');
       let bucket = await acquireOriginRepository({
-        resourceTenant: skillImport.resourceTenant!,
+        project: importProject,
         repositoryId: skillImport.repositoryId,
         ref: skillImport.ref,
         path: skillImport.path
@@ -119,7 +119,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
       }
       codeBucketId = (
         await acquireUploadedSkillFile({
-          resourceTenant: skillImport.resourceTenant!,
+          project: importProject,
           file: skillImport.sourceFile,
           format: skillImport.sourceFileFormat
         })
@@ -132,7 +132,7 @@ export let skillImportAcquireQueueProcessor = skillImportAcquireQueue.process(as
 
     if (skillImport.sourceType === 'origin_repository') {
       let bucket: any = await getImportCodeBucket({
-        resourceTenant: skillImport.resourceTenant!,
+        project: importProject,
         codeBucketId
       });
       if (bucket.status === 'importing') {

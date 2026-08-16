@@ -76,8 +76,8 @@ export let explorerAssistantImplementation = implementation({
 
   async handleInput(d) {
     return await subspaceAssistant.getInput({
-      tenant: d.tenant,
-      environment: d.environment,
+      project: d.project,
+      instance: d.instance,
       input: d.input
     });
   },
@@ -89,8 +89,8 @@ export let explorerAssistantImplementation = implementation({
       systemPrompt,
       mcpServers: {
         metorial: await subspaceAssistant.createMcpServerConfig({
-          tenant: d.tenant,
-          environment: d.environment,
+          project: d.project,
+          instance: d.instance,
           input: d.input
         })
       },

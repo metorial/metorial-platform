@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID, type Prisma } from '@metorial/db';
-import type { ResourceScope } from './resourceScope';
+import { db, ID, type Prisma, type Project } from '@metorial/db';
 
 export let resourceActorPresentationInclude = {
   organizationActor: {
@@ -57,9 +56,11 @@ export type ResourceActorPresentationRecord = Prisma.ResourceActorGetPayload<{
   include: typeof resourceActorPresentationInclude;
 }>;
 
+type ActorProject = { project: Pick<Project, 'oid'> };
+
 class ResourceActorServiceImpl {
   async upsertActor(
-    d: Pick<ResourceScope, 'resourceTenant'> & {
+    d: ActorProject & {
       input: {
         id?: string;
         identifier: string;
@@ -83,8 +84,8 @@ class ResourceActorServiceImpl {
       try {
         return await db.resourceActor.upsert({
           where: {
-            resourceTenantOid_identifier: {
-              resourceTenantOid: d.resourceTenant.oid,
+            projectOid_identifier: {
+              projectOid: d.project.oid,
               identifier: d.input.identifier
             }
           },
@@ -97,7 +98,7 @@ class ResourceActorServiceImpl {
           },
           create: {
             id: await ID.generateId('resourceActor'),
-            resourceTenantOid: d.resourceTenant.oid,
+            projectOid: d.project.oid,
             identifier: d.input.identifier,
             type: d.input.type ?? 'external',
             name: d.input.name,
@@ -111,7 +112,7 @@ class ResourceActorServiceImpl {
 
         let resourceActor = await db.resourceActor.findFirst({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
+            projectOid: d.project.oid,
             identifier: d.input.identifier
           }
         });
@@ -124,7 +125,7 @@ class ResourceActorServiceImpl {
     let existing = d.input.id
       ? await db.resourceActor.findFirst({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
+            projectOid: d.project.oid,
             OR: [{ id: d.input.id }, { identifier: d.input.identifier }]
           }
         })
@@ -150,7 +151,7 @@ class ResourceActorServiceImpl {
       return await db.resourceActor.create({
         data: {
           id: d.input.id ?? (await ID.generateId('resourceActor')),
-          resourceTenantOid: d.resourceTenant.oid,
+          projectOid: d.project.oid,
           identifier: d.input.identifier,
           type: d.input.type ?? 'external',
           name: d.input.name,
@@ -164,7 +165,7 @@ class ResourceActorServiceImpl {
 
       let resourceActor = await db.resourceActor.findFirst({
         where: {
-          resourceTenantOid: d.resourceTenant.oid,
+          projectOid: d.project.oid,
           OR: [{ id: d.input.id }, { identifier: d.input.identifier }]
         }
       });
@@ -175,13 +176,13 @@ class ResourceActorServiceImpl {
   }
 
   async getActorById(
-    d: Pick<ResourceScope, 'resourceTenant'> & {
+    d: ActorProject & {
       actorId: string;
     }
   ) {
     let actor = await db.resourceActor.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
+        projectOid: d.project.oid,
         OR: [{ id: d.actorId }, { identifier: d.actorId }]
       }
     });
@@ -192,7 +193,7 @@ class ResourceActorServiceImpl {
   }
 
   async ensureOrganizationActor(
-    d: Pick<ResourceScope, 'resourceTenant'> & {
+    d: ActorProject & {
       organizationActorOid: bigint;
     }
   ) {
@@ -213,7 +214,7 @@ class ResourceActorServiceImpl {
     }
 
     return await this.upsertActor({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       input: {
         identifier: `mte-oac-${organizationActor.id}`,
         name: organizationActor.name,
@@ -223,7 +224,7 @@ class ResourceActorServiceImpl {
   }
 
   async ensureConsumerProfileActor(
-    d: Pick<ResourceScope, 'resourceTenant'> & {
+    d: ActorProject & {
       consumerProfileOid?: bigint;
       consumerProfile?: {
         oid: bigint;
@@ -239,7 +240,7 @@ class ResourceActorServiceImpl {
       where: {
         oid: consumerProfileOid,
         instance: {
-          resourceTenantOid: d.resourceTenant.oid
+          projectOid: d.project.oid
         }
       },
       select: {
@@ -254,7 +255,7 @@ class ResourceActorServiceImpl {
     }
 
     return await this.upsertActor({
-      resourceTenant: d.resourceTenant,
+      project: d.project,
       input: {
         identifier: `mte-cpf-${consumerProfile.id}`,
         name: consumerProfile.name,

@@ -1,17 +1,17 @@
 import { ServiceError, validationError } from '@lowerdeck/error';
 import type {
+  Instance,
   ProductAssistant,
   ProductAssistantImplementation,
   ProductAssistantInstance,
-  ResourceActor,
-  ResourceGroup,
-  ResourceTenant
+  Project,
+  ResourceActor
 } from '@metorial/db';
 import type { Implementation } from './implementation';
 
 export let resolveAssistantConversationInput = async (d: {
-  tenant: ResourceTenant;
-  environment: ResourceGroup;
+  project: Project;
+  instance: Instance;
   actor: ResourceActor;
   assistant: ProductAssistant;
   assistantInstance: ProductAssistantInstance;
@@ -42,8 +42,8 @@ export let resolveAssistantConversationInput = async (d: {
 
   return await assistantImplementation.handleInput({
     input: valRes.value,
-    tenant: d.tenant,
-    environment: d.environment,
+    project: d.project,
+    instance: d.instance,
     actor: d.actor,
     assistant: d.assistant,
     assistantInstance: d.assistantInstance,

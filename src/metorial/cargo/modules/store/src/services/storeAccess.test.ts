@@ -36,8 +36,8 @@ vi.mock('@metorial/module-access', () => ({
 import { storeAccessService, storeReadPermission, storeWritePermission } from './storeAccess';
 
 let scope: any = {
-  resourceTenant: { oid: 1n, id: 'rtn_1' },
-  resourceGroup: { oid: 2n, id: 'rgr_1' }
+  project: { oid: 6n, id: 'prj_1' },
+  instance: { oid: 7n, id: 'ins_1' }
 };
 let actor: any = { oid: 3n, id: 'rac_1' };
 let store = { oid: 4n, id: 'store_1', access: 'private' };
@@ -91,6 +91,8 @@ describe('native consumer skill store access', () => {
     let accessibleSkillQuery = db.skill.findMany.mock.calls[1]![0];
     expect(accessibleSkillQuery.where).toEqual(
       expect.objectContaining({
+        projectOid: scope.project.oid,
+        instanceOid: scope.instance.oid,
         status: 'active',
         OR: expect.arrayContaining([
           {

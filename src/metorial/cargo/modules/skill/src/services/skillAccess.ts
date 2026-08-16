@@ -5,36 +5,36 @@ import {
   type ResourceAuthorization,
   consumerSkillWriteRoles
 } from '@metorial/module-access';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 
 export let assertSkillRecordScope = (
-  d: ResourceScope & {
+  d: CargoScope & {
     skill: {
-      resourceTenantOid: bigint | null;
-      resourceGroupOid: bigint | null;
+      projectOid: bigint | null;
+      instanceOid: bigint;
       store?: {
-        resourceTenantOid: bigint;
-        resourceGroupOid: bigint;
+        projectOid: bigint | null;
+        instanceOid: bigint | null;
       } | null;
     };
   }
 ) => {
   if (
-    d.skill.resourceTenantOid != d.resourceTenant.oid ||
-    d.skill.resourceGroupOid != d.resourceGroup.oid ||
-    d.skill.store?.resourceTenantOid != d.resourceTenant.oid ||
-    d.skill.store?.resourceGroupOid != d.resourceGroup.oid
+    d.skill.projectOid != d.project.oid ||
+    d.skill.instanceOid != d.instance.oid ||
+    d.skill.store?.projectOid != d.project.oid ||
+    d.skill.store?.instanceOid != d.instance.oid
   ) {
     throw new ServiceError(
       badRequestError({
-        message: 'Skill does not belong to the supplied ResourceScope.'
+        message: 'Skill does not belong to the supplied project and instance.'
       })
     );
   }
 };
 
 export let getSkillMetadataWriteAccessWhere = async (
-  d: ResourceScope & {
+  d: CargoScope & {
     skill: {
       oid: bigint;
     };
@@ -49,8 +49,8 @@ export let getSkillMetadataWriteAccessWhere = async (
   });
   return {
     oid: accessTagFilter ? d.skill.oid : { in: [] },
-    resourceTenantOid: d.resourceTenant.oid,
-    resourceGroupOid: d.resourceGroup.oid,
+    projectOid: d.project.oid,
+    instanceOid: d.instance.oid,
     accessTagEntities: accessTagFilter
   };
 };

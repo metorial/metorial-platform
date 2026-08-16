@@ -188,8 +188,8 @@ export let portalConsumerAccessController = Controller.create(
 
         if (access.type == 'skill') {
           localSkill = await skillService.getSkillById({
-            resourceTenant: cargoAccess.resourceTenant,
-            resourceGroup: cargoAccess.resourceGroup,
+            project: cargoAccess.project,
+            instance: cargoAccess.instance,
             skillId: access.skill_id,
             allowDeleted: true
           });
@@ -197,16 +197,16 @@ export let portalConsumerAccessController = Controller.create(
 
         if (access.type == 'skill_template') {
           localSkillTemplate = await skillTemplateService.getSkillTemplateById({
-            resourceTenant: cargoAccess.resourceTenant,
-            resourceGroup: cargoAccess.resourceGroup,
+            project: cargoAccess.project,
+            instance: cargoAccess.instance,
             skillTemplateId: access.skill_template_id
           });
         }
 
         if (access.type == 'skill_group') {
           localSkillGroup = await skillGroupService.getSkillGroupById({
-            resourceTenant: cargoAccess.resourceTenant,
-            resourceGroup: cargoAccess.resourceGroup,
+            project: cargoAccess.project,
+            instance: cargoAccess.instance,
             skillGroupId: access.skill_group_id,
             allowDeleted: true
           });

@@ -135,11 +135,14 @@ class InternalDocumentSyncServiceImpl {
           });
           if (!parentVersion) return null;
 
+          let { projectOid, instanceOid } = parentVersion;
+          if (projectOid == null || instanceOid == null) return null;
+
           let childDocument = await db.document.findFirst({
             where: {
               id: d.childDocumentId,
-              resourceTenantOid: parentVersion.resourceTenantOid,
-              resourceGroupOid: parentVersion.resourceGroupOid,
+              projectOid,
+              instanceOid,
               parentDocumentOid: parentVersion.documentOid,
               isContentOwner: false,
               file: {
@@ -165,12 +168,8 @@ class InternalDocumentSyncServiceImpl {
           }
 
           let nextVersion = await internalDocumentVersioningService.createVersion({
-            resourceTenant: {
-              oid: parentVersion.resourceTenantOid
-            },
-            resourceGroup: {
-              oid: parentVersion.resourceGroupOid
-            },
+            project: { oid: projectOid },
+            instance: { oid: instanceOid },
             document: childDocument,
             contentOid: parentVersion.contentOid,
             previousVersionOid: currentVersion?.oid,

@@ -54,8 +54,8 @@ export let skillGroup = instanceGroup.use(hasFlags(['skills-enabled'])).use(asyn
 
   let access = await getInstanceCargoAccess(ctx);
   let localSkill = await skillService.getSkillById({
-    resourceTenant: access.resourceTenant,
-    resourceGroup: access.resourceGroup,
+    project: access.project,
+    instance: access.instance,
     skillId: ctx.params.skillId,
     allowDeleted: true,
     accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
@@ -107,8 +107,8 @@ export let skillController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let paginator = await skillService.listSkills({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           search: ctx.query.search,
           allowDeleted: true,
           statuses: normalizeArrayParam(ctx.query.status),
@@ -142,8 +142,8 @@ export let skillController = Controller.create(
         if (ctx.resourceActor) {
           let access = await getInstanceCargoAccess(ctx);
           await skillService.markSkillUse({
-            resourceTenant: access.resourceTenant,
-            resourceGroup: access.resourceGroup,
+            project: access.project,
+            instance: access.instance,
             skill: ctx.skill.localSkill,
             actor: ctx.resourceActor
           });
@@ -182,8 +182,8 @@ export let skillController = Controller.create(
         let access = await getInstanceCargoAccess(ctx);
         if (skillGroupId) {
           await skillGroupService.getSkillGroupById({
-            resourceTenant: access.resourceTenant,
-            resourceGroup: access.resourceGroup,
+            project: access.project,
+            instance: access.instance,
             skillGroupId,
             allowDeleted: true,
             accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
@@ -217,17 +217,17 @@ export let skillController = Controller.create(
           : await (async () => {
               let template = input.templateId
                 ? await skillTemplateService.getSkillTemplateById({
-                    resourceTenant: access.resourceTenant,
-                    resourceGroup: access.resourceGroup,
+                    project: access.project,
+                    instance: access.instance,
                     skillTemplateId: input.templateId
                   })
                 : await skillTemplateService.getDefaultSkillTemplate({
-                    resourceTenant: access.resourceTenant,
-                    resourceGroup: access.resourceGroup
+                    project: access.project,
+                    instance: access.instance
                   });
               let localSkill = await skillService.createSkill({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
+                project: access.project,
+                instance: access.instance,
                 parentSkillTemplate: template,
                 input: {
                   id: await ID.generateId('skill'),
@@ -254,8 +254,8 @@ export let skillController = Controller.create(
 
         if (skillGroupId) {
           await skillGroupItemService.createSkillGroupItem({
-            resourceTenant: access.resourceTenant,
-            resourceGroup: access.resourceGroup,
+            project: access.project,
+            instance: access.instance,
             input: { skillGroupId, skillId: skill.id }
           });
         }
@@ -300,8 +300,8 @@ export let skillController = Controller.create(
           imageFileId: ctx.body.image_file_id
         };
         let updated = await skillService.updateSkill({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skill: ctx.skill.localSkill,
           authorization: access.authorization,
           defaultPermissions: access.defaultPermissions,
@@ -325,8 +325,8 @@ export let skillController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let archived = await skillService.archiveSkill({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skill: ctx.skill.localSkill,
           authorization: access.authorization,
           defaultPermissions: access.defaultPermissions,
@@ -391,14 +391,14 @@ export let skillController = Controller.create(
           : await (async () => {
               let access = await getInstanceCargoAccess(ctx);
               let parentSkill = await skillService.getSkillById({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
+                project: access.project,
+                instance: access.instance,
                 skillId: ctx.skill.id,
                 allowDeleted: true
               });
               let duplicate = await skillService.createSkill({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
+                project: access.project,
+                instance: access.instance,
                 parentSkill,
                 parentSkillCloneType: 'duplicate',
                 input: {
@@ -517,14 +517,14 @@ export let skillController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let parentSkill = await skillService.getSkillById({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skillId: ctx.skill.id,
           allowDeleted: true
         });
         let localSkill = await skillService.createSkill({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           parentSkill,
           parentSkillCloneType: 'duplicate',
           input: {

@@ -23,7 +23,7 @@ export let assistantHandlers = {
     .outputList(assistantPresenter)
     .do(async ctx => {
       let paginator = await productAssistantService.list({
-        tenant: ctx.resourceTenant
+        project: ctx.project
       });
       let list = await paginator.run(ctx.query);
 
@@ -46,7 +46,7 @@ export let assistantHandlers = {
     .output(assistantPresenter)
     .do(async ctx => {
       let assistant = await productAssistantService.get({
-        tenant: ctx.resourceTenant,
+        project: ctx.project,
         assistantId: requireParam(ctx.params, 'assistantId')
       });
 

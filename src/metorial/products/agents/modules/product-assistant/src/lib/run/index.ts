@@ -1,9 +1,9 @@
 import type {
+  Instance,
   ProductAssistant,
   ProductAssistantConversation,
   ProductAssistantImplementation,
-  ResourceGroup,
-  ResourceTenant
+  Project
 } from '@metorial/db';
 import type { FilePart, ModelMessage, TextPart } from 'ai';
 import { summaryModel } from '../../definitions/models/_util';
@@ -74,8 +74,8 @@ export class AgentRun {
   constructor(
     private readonly agent: Agent,
     private readonly model: Model,
-    private readonly tenant: ResourceTenant,
-    private readonly environment: ResourceGroup,
+    private readonly project: Project,
+    private readonly instance: Instance,
     private readonly assistant: ProductAssistant,
     private readonly assistantImplementation: ProductAssistantImplementation,
     private readonly implementation: Implementation

@@ -28,8 +28,8 @@ export let skillGroupItemGroup = skillGroupGroup.use(async ctx => {
 
   let access = await getInstanceCargoAccess(ctx);
   let localSkillGroupItem = await skillGroupItemService.getSkillGroupItemById({
-    resourceTenant: access.resourceTenant,
-    resourceGroup: access.resourceGroup,
+    project: access.project,
+    instance: access.instance,
     skillGroupItemId: ctx.params.skillGroupItemId,
     skillGroupId: ctx.skillGroup.id,
     allowDeleted: true,
@@ -78,8 +78,8 @@ export let skillGroupItemController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let paginator = await skillGroupItemService.listSkillGroupItems({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           allowDeleted: true,
           skillGroupIds: [ctx.skillGroup.id],
           statuses: normalizeArrayParam(ctx.query.status),
@@ -137,9 +137,8 @@ export let skillGroupItemController = Controller.create(
       .output(skillGroupItemPresenter)
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
+          project: ctx.project,
           instance: ctx.instance,
-          resourceTenant: ctx.resourceTenant,
-          resourceGroup: ctx.resourceGroup,
           skillGroupId: ctx.skillGroup.id,
           skillId: ctx.body.skill_id,
           consumerProfile: ctx.consumerProfile,
@@ -149,8 +148,8 @@ export let skillGroupItemController = Controller.create(
 
         let access = await getInstanceCargoAccess(ctx);
         let localSkillGroupItem = await skillGroupItemService.createSkillGroupItem({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           input: {
             skillGroupId: ctx.skillGroup.id,
             skillId: ctx.body.skill_id
@@ -179,9 +178,8 @@ export let skillGroupItemController = Controller.create(
       .output(skillGroupItemPresenter)
       .do(async ctx => {
         await assertConsumerCanWriteSkillGroupItem({
+          project: ctx.project,
           instance: ctx.instance,
-          resourceTenant: ctx.resourceTenant,
-          resourceGroup: ctx.resourceGroup,
           skillGroupId: ctx.skillGroup.id,
           skillId: ctx.skillGroupItem.skill.id,
           consumerProfile: ctx.consumerProfile,
@@ -191,14 +189,14 @@ export let skillGroupItemController = Controller.create(
 
         let access = await getInstanceCargoAccess(ctx);
         let localSkillGroupItem = await skillGroupItemService.getSkillGroupItemById({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skillGroupItemId: ctx.skillGroupItem.id,
           allowDeleted: true
         });
         localSkillGroupItem = await skillGroupItemService.archiveSkillGroupItem({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skillGroupItem: localSkillGroupItem
         });
         let skillGroupItem =

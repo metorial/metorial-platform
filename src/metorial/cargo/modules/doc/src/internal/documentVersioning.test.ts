@@ -33,8 +33,8 @@ import { internalDocumentVersioningService } from './documentVersioning';
 
 let createVersion = async (maxVersionNumber: number) =>
   await internalDocumentVersioningService.createVersion({
-    resourceTenant: { oid: 1n },
-    resourceGroup: { oid: 2n },
+    project: { oid: 5n },
+    instance: { oid: 6n },
     document: {
       oid: 3n,
       maxVersionNumber
@@ -118,8 +118,8 @@ describe('document version allocation', () => {
       data: {
         oid: 100n,
         id: 'dver_generated',
-        resourceTenantOid: 1n,
-        resourceGroupOid: 2n,
+        projectOid: 5n,
+        instanceOid: 6n,
         documentOid: 3n,
         versionNumber: 6,
         contentOid: 4n,

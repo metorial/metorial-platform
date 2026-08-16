@@ -1782,15 +1782,13 @@ export let skillSyncType = PresentableType.create<{
           skillMarketplace: {
             select: {
               id: true;
-              resourceTenantOid: true;
-              resourceGroupOid: true;
+              projectOid: true;
             };
           };
           skillPlugin: {
             select: {
               id: true;
-              resourceTenantOid: true;
-              resourceGroupOid: true;
+              projectOid: true;
             };
           };
         };

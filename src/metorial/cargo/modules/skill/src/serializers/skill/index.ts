@@ -108,8 +108,8 @@ export let applySkill = createApplicator(
 
     let defaultConfig = await db.skillConfiguration.findFirst({
       where: {
-        resourceTenantOid: input.skill.resourceTenantOid!,
-        resourceGroupOid: input.skill.resourceGroupOid!,
+        projectOid: input.skill.projectOid,
+        instanceOid: input.skill.instanceOid,
         isDefault: true
       }
     });

@@ -5,6 +5,7 @@ import { withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalDocumentContentService, internalDocumentDraftService } from '../internal';
 import { documentInclude } from '../services/document';
+import { requireDocumentScope } from '../lib/documentScope';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 import { enqueueDocumentLifecycle } from './lifecycle';
 let batchSize = 100;
@@ -78,11 +79,7 @@ export let flushDocumentDraft = async (d: {
         where: {
           id: d.documentId
         },
-        include: {
-          ...documentInclude,
-          resourceTenant: true,
-          resourceGroup: true
-        }
+        include: documentInclude
       });
       if (!currentDocument) {
         throw new ServiceError(notFoundError('document', d.documentId));
@@ -90,11 +87,13 @@ export let flushDocumentDraft = async (d: {
       ensureDocumentActive(currentDocument);
       assertDocumentWritable(currentDocument);
 
+      let scope = requireDocumentScope(currentDocument);
+
       let actors =
         draft.actorIds.length > 0
           ? await db.resourceActor.findMany({
               where: {
-                resourceTenantOid: currentDocument.resourceTenantOid,
+                projectOid: scope.project.oid,
                 id: {
                   in: draft.actorIds
                 }
@@ -103,8 +102,7 @@ export let flushDocumentDraft = async (d: {
           : [];
 
       return await internalDocumentContentService.persistDraftToDocument({
-        resourceTenant: currentDocument.resourceTenant,
-        resourceGroup: currentDocument.resourceGroup,
+        ...scope,
         document: currentDocument,
         draft,
         actors

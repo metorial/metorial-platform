@@ -2,6 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocumentParticipants,
@@ -10,8 +11,7 @@ import {
 } from '@metorial/cargo-list-utils';
 import {
   exposedParticipantResourceActorWhere,
-  resourceActorPresentationInclude,
-  type ResourceScope
+  resourceActorPresentationInclude
 } from '@metorial/module-resource-tenant';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { ResourceAuthorization } from '@metorial/module-access';
@@ -28,7 +28,7 @@ export let documentParticipantInclude = {
 
 class DocumentParticipantServiceImpl {
   async getDocumentParticipantById(
-    d: ResourceScope & {
+    d: CargoScope & {
       documentParticipantId: string;
       authorization: ResourceAuthorization;
       defaultPermissions?: StoreParticipantPermissions[];
@@ -38,8 +38,8 @@ class DocumentParticipantServiceImpl {
     let participant = await db.documentParticipant.findFirst({
       where: {
         document: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
           file: {
             status: 'active'
           }
@@ -55,8 +55,8 @@ class DocumentParticipantServiceImpl {
     }
 
     await storeAccessService.assertStoreAccessForDocument({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       document: participant.document,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -68,7 +68,7 @@ class DocumentParticipantServiceImpl {
   }
 
   async listDocumentParticipants(
-    d: ResourceScope & {
+    d: CargoScope & {
       documentId: string;
       ids?: string[];
       actorIds?: string[];
@@ -82,8 +82,8 @@ class DocumentParticipantServiceImpl {
   ) {
     let document = await db.document.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         id: d.documentId,
         file: {
           status: 'active'
@@ -94,8 +94,8 @@ class DocumentParticipantServiceImpl {
     if (!document) throw new ServiceError(notFoundError('document', d.documentId));
 
     await storeAccessService.assertStoreAccessForDocument({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       document,
       authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
@@ -118,8 +118,8 @@ class DocumentParticipantServiceImpl {
             where: {
               oid: participants ? participants.in : undefined,
               document: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid,
+                projectOid: d.project.oid,
+                instanceOid: d.instance.oid,
                 oid: documents ? documents.in : undefined,
                 file: {
                   status: 'active'

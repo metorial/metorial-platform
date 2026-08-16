@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
@@ -33,13 +33,13 @@ export type EnrichedSkillMarketplaceRepositoryRecord = Omit<
 
 class SkillMarketplaceRepositoryServiceImpl {
   private async enrichRepositories<T extends SkillMarketplaceRepositoryRecord>(
-    d: ResourceScope & { repositories: T[] }
+    d: CargoScope & { repositories: T[] }
   ): Promise<
     (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
   > {
     let enrichedSkillRepositories = await skillRepositoryService.enrichSkillRepositories({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillRepositories: d.repositories.map(repository => repository.skillRepository)
     });
     let skillRepositoryByOid = new Map(
@@ -53,7 +53,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   async listSkillMarketplaceRepositories(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplaceId: string;
     }
   ) {
@@ -73,8 +73,8 @@ class SkillMarketplaceRepositoryServiceImpl {
         });
 
         return await this.enrichRepositories({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           repositories
         });
       })
@@ -82,7 +82,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   async getSkillMarketplaceRepositoryById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplaceId: string;
       skillMarketplaceRepositoryId: string;
     }
@@ -106,8 +106,8 @@ class SkillMarketplaceRepositoryServiceImpl {
     }
 
     let [enriched] = await this.enrichRepositories({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       repositories: [repository]
     });
 
@@ -115,7 +115,7 @@ class SkillMarketplaceRepositoryServiceImpl {
   }
 
   async createSkillMarketplaceRepository(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplaceId: string;
       repoId: string;
     }
@@ -125,8 +125,8 @@ class SkillMarketplaceRepositoryServiceImpl {
       throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
     }
     let skillRepository = await skillRepositoryService.ensureSkillRepositoryForRepo({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       repoId: d.repoId
     });
 
@@ -143,8 +143,8 @@ class SkillMarketplaceRepositoryServiceImpl {
     });
     if (existing) {
       let [enriched] = await this.enrichRepositories({
-        resourceTenant: d.resourceTenant!,
-        resourceGroup: d.resourceGroup,
+        project: d.project,
+        instance: d.instance,
         repositories: [existing]
       });
       return enriched!;
@@ -165,15 +165,15 @@ class SkillMarketplaceRepositoryServiceImpl {
     });
 
     let [enriched] = await this.enrichRepositories({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       repositories: [repository]
     });
     return enriched!;
   }
 
   async deleteSkillMarketplaceRepository(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplaceId: string;
       skillMarketplaceRepositoryId: string;
     }

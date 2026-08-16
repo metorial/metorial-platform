@@ -9,8 +9,6 @@ let accessService = vi.hoisted(() => ({
 let getInstanceCargoAccess = vi.hoisted(() =>
   vi.fn((ctx: any) => ({
     scope: {
-      resourceTenant: ctx.resourceTenant,
-      resourceGroup: ctx.resourceGroup
     },
     resourceActor: ctx.resourceActor,
     authorization: ctx.consumerProfile
@@ -42,22 +40,15 @@ vi.mock('@metorial/module-organization', () => ({
 
 import { resolveUploadTarget } from './uploadAccess';
 
-let resourceTenant = { oid: 1n, id: 'rtn_1' } as any;
-let resourceGroup = {
-  oid: 2n,
-  id: 'rgr_1',
-  resourceTenantOid: resourceTenant.oid
-} as any;
+let project = { oid: 6n, id: 'prj_1' } as any;
 let instance = {
   oid: 3n,
   id: 'ins_1',
   slug: 'instance',
-  resourceTenantOid: resourceTenant.oid,
-  resourceGroupOid: resourceGroup.oid
+  projectOid: project.oid
 } as any;
 let organization = { oid: 4n, id: 'org_1' } as any;
 let organizationActor = { oid: 5n, id: 'oac_1', name: 'Organization actor' } as any;
-let project = { oid: 6n, id: 'prj_1' } as any;
 let consumerProfile = {
   oid: 7n,
   id: 'cpf_1',
@@ -72,13 +63,13 @@ let consumerProfile = {
 let consumerResourceActor = {
   oid: 9n,
   id: 'rac_consumer',
-  resourceTenantOid: resourceTenant.oid,
+  projectOid: project.oid,
   consumerProfileOid: consumerProfile.oid
 } as any;
 let organizationResourceActor = {
   oid: 10n,
   id: 'rac_organization',
-  resourceTenantOid: resourceTenant.oid,
+  projectOid: project.oid,
   organizationActorOid: organizationActor.oid
 } as any;
 let accessTags = [11n, 12n];
@@ -89,8 +80,6 @@ let getInstanceAccess = (resourceActor: any) => ({
   organization,
   actor: organizationActor,
   project,
-  resourceTenant,
-  resourceGroup,
   resourceActor
 });
 
@@ -115,8 +104,6 @@ describe('file upload access', () => {
         organization,
         actor: organizationActor,
         instance,
-        resourceTenant,
-        resourceGroup,
         resourceActor: consumerResourceActor,
         consumer: {
           consumerProfile,
@@ -157,8 +144,6 @@ describe('file upload access', () => {
         organization,
         actor: organizationActor,
         instance,
-        resourceTenant,
-        resourceGroup,
         resourceActor: organizationResourceActor
       }
     } as any;

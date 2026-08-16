@@ -77,8 +77,6 @@ it('builds an audit scope after resolving a user instance', async () => {
     project: { id: 'prj_1', oid: 2n },
     actor: { id: 'act_1', oid: 4n },
     member: { id: 'mem_1' },
-    resourceTenant: { oid: 10n },
-    resourceGroup: { oid: 20n },
     resourceActor: { oid: 30n }
   });
 
@@ -110,13 +108,11 @@ it('overrides the audit actor when a consumer profile is selected', async () => 
     project: { id: 'prj_1', oid: 2n },
     actor: { id: 'act_1', oid: 4n },
     member: { id: 'mem_1' },
-    resourceTenant: { oid: 10n },
-    resourceGroup: { oid: 20n },
     resourceActor: { oid: 30n }
   });
   mocks.getConsumerProfile.mockResolvedValue({
     id: 'cop_1',
-    resourceActors: [{ oid: 40n, resourceTenantOid: 10n }],
+    resourceActors: [{ oid: 40n, projectOid: 2n }],
     surface: {
       type: 'portal',
       portal: { id: 'por_1' }

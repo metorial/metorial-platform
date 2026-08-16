@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
@@ -8,7 +8,7 @@ import { documentService, type ResolvedDocumentRecord } from './document';
 
 class DocumentAuthoritativeWriteService {
   async applyDocumentContent(
-    d: ResourceScope & {
+    d: CargoScope & {
       document: ResolvedDocumentRecord;
       input: {
         title: string;
@@ -21,8 +21,8 @@ class DocumentAuthoritativeWriteService {
       d.document.id,
       async () => {
         await documentService.updateDocument({
-          resourceTenant: d.resourceTenant,
-          resourceGroup: d.resourceGroup,
+          project: d.project,
+          instance: d.instance,
           document: d.document,
           input: d.input
         });
@@ -54,8 +54,8 @@ class DocumentAuthoritativeWriteService {
     });
 
     return await documentService.getDocumentById({
-      resourceTenant: d.resourceTenant,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       documentId: d.document.id,
       authorization: d.input.authorization
     });

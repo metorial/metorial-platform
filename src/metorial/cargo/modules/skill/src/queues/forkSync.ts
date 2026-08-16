@@ -1,6 +1,7 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { getCanonicalSkillPairKey } from '../lib/mergeLock';
+import { requireRecordScope } from '../internal/scope';
 import { skillMergeRequestService } from '../services/skillMergeRequest';
 import {
   skillMergeRequestInclude,
@@ -25,8 +26,6 @@ export let processSkillForkSyncJob = async (d: { skillForkSyncId: string }) => {
   let sync = await db.skillForkSync.findUnique({
     where: { id: d.skillForkSyncId },
     include: {
-      resourceTenant: true,
-      resourceGroup: true,
       forkSkill: {
         include: {
           store: true
@@ -64,11 +63,12 @@ export let processSkillForkSyncJob = async (d: { skillForkSyncId: string }) => {
     });
     if (claimed.count !== 1) return null;
 
+    let syncScope = requireRecordScope('Skill fork sync', sync);
+
     let mergeRequest = sync.generatedMergeRequest;
     if (!mergeRequest) {
       mergeRequest = await skillMergeRequestInternalService.createDirectedSkillMergeRequest({
-        resourceTenant: sync.resourceTenant!,
-        resourceGroup: sync.resourceGroup,
+        ...syncScope,
         sourceSkillId: sync.upstreamSkill.id,
         targetSkillId: sync.forkSkill.id,
         authorization: {
@@ -114,8 +114,7 @@ export let processSkillForkSyncJob = async (d: { skillForkSyncId: string }) => {
 
     if (mergeRequest.status === 'open') {
       await skillMergeRequestService.performSkillMergeRequest({
-        resourceTenant: sync.resourceTenant!,
-        resourceGroup: sync.resourceGroup,
+        ...syncScope,
         mergeRequest,
         authorization: {
           type: 'privileged',

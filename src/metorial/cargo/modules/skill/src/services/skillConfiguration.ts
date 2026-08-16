@@ -8,11 +8,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { enqueueSkillConfigurationLifecycle } from '../queues/lifecycle';
@@ -77,7 +77,7 @@ class SkillConfigurationServiceImpl {
   }
 
   private async getSkillConfigurationRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillConfigurationId: string;
     }
   ) {
@@ -85,8 +85,8 @@ class SkillConfigurationServiceImpl {
       async db => {
         let skillConfiguration = await db.skillConfiguration.findFirst({
           where: {
-            resourceTenantOid: d.resourceTenant.oid,
-            resourceGroupOid: d.resourceGroup.oid,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
             isDefault: d.skillConfigurationId === 'default' ? true : undefined,
             id: d.skillConfigurationId === 'default' ? undefined : d.skillConfigurationId
           },
@@ -104,7 +104,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async createSkillConfiguration(
-    d: ResourceScope & {
+    d: CargoScope & {
       input: SkillConfigurationInput & {
         isInternal?: boolean;
       };
@@ -115,8 +115,8 @@ class SkillConfigurationServiceImpl {
     return await db.skillConfiguration.create({
       data: {
         ...getId('skillConfiguration'),
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         isInternal: d.input.isInternal ?? false,
         allowScripts: data.allowScripts ?? true,
         allowedFileExtensions: data.allowedFileExtensions ?? [],
@@ -127,7 +127,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async listSkillConfigurations(
-    d: ResourceScope & {
+    d: CargoScope & {
       ids?: string[];
       createdAt?: DateFilter;
       updatedAt?: DateFilter;
@@ -141,8 +141,8 @@ class SkillConfigurationServiceImpl {
           await db.skillConfiguration.findMany({
             ...opts,
             where: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid,
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid,
               deletedAt: null,
               isInternal: false,
               oid: skillConfigurations ? skillConfigurations.in : undefined,
@@ -156,7 +156,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async getSkillConfigurationById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillConfigurationId: string;
     }
   ) {
@@ -168,7 +168,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async getManySkillConfigurations(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillConfigurationIds: string[];
     }
   ) {
@@ -179,8 +179,8 @@ class SkillConfigurationServiceImpl {
 
     return await db.skillConfiguration.findMany({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
         id: {
           in: skillConfigurationIds
         }
@@ -189,12 +189,12 @@ class SkillConfigurationServiceImpl {
     });
   }
 
-  async upsertDefaultSkillConfiguration(d: ResourceScope) {
+  async upsertDefaultSkillConfiguration(d: CargoScope) {
     return await withTransaction(async db => {
       let existing = await db.skillConfiguration.findFirst({
         where: {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
           isDefault: true
         },
         include: skillConfigurationInclude
@@ -205,8 +205,8 @@ class SkillConfigurationServiceImpl {
       return await db.skillConfiguration.create({
         data: {
           ...getId('skillConfiguration'),
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid,
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid,
           isDefault: true,
           allowScripts: true,
           allowedFileExtensions: [],
@@ -218,7 +218,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async updateSkillConfiguration(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillConfigurationId: string;
       input: SkillConfigurationInput;
     }
@@ -253,7 +253,7 @@ class SkillConfigurationServiceImpl {
   }
 
   async deleteSkillConfiguration(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillConfigurationId: string;
     }
   ) {

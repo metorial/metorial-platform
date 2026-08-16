@@ -1,7 +1,7 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
+import type { CargoScope } from '@metorial/cargo-list-utils';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
 import type { EntityImage, ResourceActor, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
@@ -44,7 +44,7 @@ class InternalImageServiceImpl {
   }
 
   private async createImageEntityImage(
-    d: ResourceScope & {
+    d: CargoScope & {
       entity: { id: string; type: string };
       fileId: string;
       actor?: ResourceActor;
@@ -54,8 +54,7 @@ class InternalImageServiceImpl {
   ): Promise<EntityImage> {
     let file = await db.file.findFirst({
       where: {
-        resourceTenantOid: d.resourceTenant.oid,
-        resourceGroupOid: d.resourceGroup.oid,
+        instanceOid: d.instance.oid,
         id: d.fileId,
         status: 'active'
       },
@@ -73,16 +72,16 @@ class InternalImageServiceImpl {
     }
 
     let link = await fileLinkService.createFileLink({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       file,
       input: {
         actor: d.actor
       }
     });
     let ref = await fileReferenceService.upsertFileReference({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       fileLink: link,
       input: {
         entityId: d.entity.id,
@@ -100,7 +99,7 @@ class InternalImageServiceImpl {
   }
 
   async resolveImageEntityImage<ClearImage extends EntityImage | null>(
-    d: ResourceScope & {
+    d: CargoScope & {
       entity: { id: string; type: string };
       imageFileId: string | null;
       clearedImage: ClearImage;
@@ -112,8 +111,8 @@ class InternalImageServiceImpl {
     if (d.imageFileId === null) return d.clearedImage;
 
     return await this.createImageEntityImage({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       entity: d.entity,
       fileId: d.imageFileId,
       actor: d.actor,

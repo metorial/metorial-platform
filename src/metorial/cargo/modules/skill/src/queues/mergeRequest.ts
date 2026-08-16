@@ -7,6 +7,7 @@ import {
   toSkillMergeRequestMergeError
 } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
+import { requireRecordScope } from '../internal/scope';
 import { skillMergeRequestApplyInternalService } from '../services/skillMergeRequestApplyInternal';
 import { skillMergeRequestEventService } from '../services/skillMergeRequestEvent';
 import {
@@ -99,16 +100,8 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
         });
       }
 
-      let resourceTenant = await db.resourceTenant.findUniqueOrThrow({
-        where: { oid: mergeRequest.resourceTenantOid }
-      });
-      let resourceGroup = await db.resourceGroup.findUniqueOrThrow({
-        where: { oid: mergeRequest.resourceGroupOid }
-      });
-
       await skillMergeRequestApplyInternalService.applyResolvedItems({
-        resourceTenant,
-        resourceGroup,
+        ...requireRecordScope('Skill merge request', mergeRequest),
         mergeRequest,
         items,
         actor: mergeActor

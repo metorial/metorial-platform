@@ -3,6 +3,7 @@ import { storeVersionService } from '@metorial/cargo-module-store';
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { requireDocumentScope } from '../lib/documentScope';
 import { internalDocumentDraftService, internalDocumentVersioningService } from '../internal';
 import { documentInclude } from '../services/document';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
@@ -91,11 +92,7 @@ export let flushExpiredDraftVersion = async (d: {
             status: 'active'
           }
         },
-        include: {
-          ...documentInclude,
-          resourceTenant: true,
-          resourceGroup: true
-        }
+        include: documentInclude
       });
       if (!document || document.isReadOnly || !document.currentVersion) return null;
 
@@ -125,8 +122,7 @@ export let flushExpiredDraftVersion = async (d: {
       });
 
       let nextVersion = await internalDocumentVersioningService.createVersion({
-        resourceTenant: document.resourceTenant,
-        resourceGroup: document.resourceGroup,
+        ...requireDocumentScope(document),
         document,
         contentOid: document.contentOid,
         previousVersionOid: document.currentVersion.oid,

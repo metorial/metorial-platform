@@ -7,13 +7,13 @@ let readableStorePermissions: StoreParticipantPermissions[] = [
 ];
 
 export let getVisibleSkillMergeRequestWhere = (d: {
-  resourceTenantOid: bigint;
-  resourceGroupOid: bigint;
+  projectOid: bigint;
+  instanceOid: bigint;
   authorization: ResourceAuthorization;
 }) => {
   let scopeWhere = {
-    resourceTenantOid: d.resourceTenantOid,
-    resourceGroupOid: d.resourceGroupOid
+    projectOid: d.projectOid,
+    instanceOid: d.instanceOid
   } satisfies Prisma.SkillMergeRequestWhereInput;
 
   if (d.authorization.type === 'privileged') return scopeWhere;

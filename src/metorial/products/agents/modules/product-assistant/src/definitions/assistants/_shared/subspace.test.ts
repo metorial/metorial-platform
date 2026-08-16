@@ -8,7 +8,12 @@ vi.mock('@metorial-subspace/module-session', () => ({
   sessionService: {},
   sessionMcpMessagingService: { send: vi.fn() }
 }));
-vi.mock('@metorial-subspace/module-tenant', () => ({ tenantService: {} }));
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  tenantService: {},
+  getProjectInternalTenantIdentifier: (project: { oid: bigint }) => `mte-pro-${project.oid}`,
+  getInstanceInternalEnvironmentIdentifier: (instance: { oid: bigint }) =>
+    `mte-ins-${instance.oid}`
+}));
 
 let setEnv = () => {
   process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/metorial';
@@ -38,20 +43,20 @@ describe('subspace assistant input validation', () => {
 
     await expect(
       subspaceAssistant.getInput({
-        tenant: { identifier: 'tenant_1' } as any,
-        environment: { identifier: 'production' } as any,
+        project: { oid: 2n } as any,
+        instance: { oid: 3n } as any,
         input: { sessionId: 'sess_1' }
       })
     ).resolves.toEqual({
       sessionId: 'sess_1',
       solutionId: 'metorial-platform',
-      subspaceTenantId: 'tenant_1',
-      environmentId: 'production'
+      subspaceTenantId: 'mte-pro-2',
+      environmentId: 'mte-ins-3'
     });
 
     expect(getTenantAndEnvironmentById).toHaveBeenCalledWith({
-      tenantId: 'tenant_1',
-      environmentId: 'production'
+      tenantId: 'mte-pro-2',
+      environmentId: 'mte-ins-3'
     });
     expect(getSessionByIdInternal).toHaveBeenCalledWith({
       tenant,
@@ -79,8 +84,8 @@ describe('subspace assistant input validation', () => {
 
     await expect(
       subspaceAssistant.getInput({
-        tenant: { identifier: 'tenant_1' } as any,
-        environment: { identifier: 'production' } as any,
+        project: { oid: 2n } as any,
+        instance: { oid: 3n } as any,
         input: { sessionId: 'sess_1' }
       })
     ).rejects.toThrow('Subspace session sess_1 is not active.');

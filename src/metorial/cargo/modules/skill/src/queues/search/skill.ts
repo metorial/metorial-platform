@@ -1,6 +1,7 @@
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { getProjectTenantIdentifier } from '../../internal/scope';
 import { skillResourceService } from '../../services/resource';
 
 export let indexSkillQueue = createQueue<{ skillId: string }>({
@@ -10,10 +11,7 @@ export let indexSkillQueue = createQueue<{ skillId: string }>({
 
 export let indexSkillQueueProcessor = indexSkillQueue.process(async data => {
   let skill = await db.skill.findUnique({
-    where: { id: data.skillId },
-    include: {
-      resourceTenant: true
-    }
+    where: { id: data.skillId }
   });
   if (!skill) throw new QueueRetryError();
 
@@ -31,7 +29,7 @@ export let indexSkillQueueProcessor = indexSkillQueue.process(async data => {
     sourceId: (await voyagerSource).id,
     indexId: voyagerIndex.skill.id,
     documentId: skill.id,
-    tenantIds: skill.resourceTenant ? [skill.resourceTenant.id] : [],
+    tenantIds: skill.projectOid ? [getProjectTenantIdentifier({ oid: skill.projectOid })] : [],
     fields: {
       skillId: skill.id,
       skillEntityId: skill.skillEntityId,

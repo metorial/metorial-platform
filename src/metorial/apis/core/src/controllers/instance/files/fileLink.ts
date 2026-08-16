@@ -104,8 +104,8 @@ export let fileLinkController = Controller.create(
         let access = await getInstanceCargoAccess(ctx);
         let fileLink = await fileLinkService.createFileLink({
           file,
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           input: {
             expiresAt: ctx.body.expires_at,
             actor: access.actor

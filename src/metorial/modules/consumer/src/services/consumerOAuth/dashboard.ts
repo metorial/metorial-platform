@@ -4,7 +4,7 @@ import { db, type ConsumerProfile, type ConsumerSurface, type Instance } from '@
 import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { skillPluginService, skillResourceService } from '@metorial/cargo-module-skill';
 import { magicMcpEndpointService } from '@metorial/module-magic';
-import { resolveResourceScopeForOwner } from '@metorial/module-resource-tenant';
+import { resolveInstanceScope } from '@metorial/module-resource-tenant';
 import { addMinutes } from 'date-fns';
 import { consumerIntegrationService } from '../consumerEntities/consumerIntegration';
 import {
@@ -232,10 +232,7 @@ class ConsumerOAuthDashboardService {
     if (!d.skillPlugin) return [];
 
     let owner = getSkillPluginOwner(d.skillPlugin);
-    let scope = await resolveResourceScopeForOwner({
-      type: 'instance',
-      instance: owner.instance
-    });
+    let scope = await resolveInstanceScope(owner.instance);
     let skillPlugin = await skillPluginService.getSkillPluginById({
       ...scope,
       skillPluginId: d.skillPlugin.id

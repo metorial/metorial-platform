@@ -2,6 +2,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { getId } from '@metorial/cargo-config/id';
 import { db, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { requireRecordProject } from '../../internal/scope';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
 import {
   getRepositorySyncRetryMessage,
@@ -251,10 +252,9 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
           });
         }
 
-        let originTenant = await getOriginTenant({
-          oid: propagation.skillRepository.resourceTenantOid,
-          id: sync.destination.id
-        });
+        let originTenant = await getOriginTenant(
+          requireRecordProject('Skill repository', propagation.skillRepository)
+        );
         let originRepositories = await origin.scmRepository.getMany({
           tenantId: originTenant.id,
           scmRepositoryIds: [propagation.skillRepository.repoId]
@@ -381,10 +381,9 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(asyn
     return;
   }
 
-  let originTenant = await getOriginTenant({
-    oid: propagations[0]!.skillRepository.resourceTenantOid,
-    id: sync.destination.id
-  });
+  let originTenant = await getOriginTenant(
+    requireRecordProject('Skill repository', propagations[0]!.skillRepository)
+  );
 
   let originSyncs = await origin.scmRepositorySync.getMany({
     tenantId: originTenant.id,

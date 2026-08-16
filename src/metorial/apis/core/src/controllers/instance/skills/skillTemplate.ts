@@ -30,8 +30,8 @@ export let skillTemplateGroup = instanceGroup
 
     let access = await getInstanceCargoAccess(ctx);
     let localTemplate = await skillTemplateService.getSkillTemplateById({
-      resourceTenant: access.resourceTenant,
-      resourceGroup: access.resourceGroup,
+      project: access.project,
+      instance: access.instance,
       skillTemplateId: ctx.params.skillTemplateId,
       accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
     });
@@ -88,8 +88,8 @@ export let skillTemplateController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let paginator = await skillTemplateService.listSkillTemplates({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           search: ctx.query.search,
           statuses: normalizeArrayParam(ctx.query.status),
           owners: normalizeArrayParam(ctx.query.owner),
@@ -148,8 +148,8 @@ export let skillTemplateController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let localTemplate = await skillTemplateService.createSkillTemplate({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           input: {
             id: await ID.generateId('skillTemplate'),
             name: ctx.body.name,
@@ -190,8 +190,8 @@ export let skillTemplateController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let localTemplate = await skillTemplateService.updateSkillTemplate({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skillTemplateId: ctx.skillTemplate.id,
           input: {
             name: ctx.body.name,
@@ -217,8 +217,8 @@ export let skillTemplateController = Controller.create(
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
         let localTemplate = await skillTemplateService.deleteSkillTemplate({
-          resourceTenant: access.resourceTenant,
-          resourceGroup: access.resourceGroup,
+          project: access.project,
+          instance: access.instance,
           skillTemplateId: ctx.skillTemplate.id
         });
         await skillResourceService.ensureDelegatedSkillTemplate(localTemplate);

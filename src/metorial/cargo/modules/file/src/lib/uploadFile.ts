@@ -1,12 +1,12 @@
 import { generatePlainId } from '@lowerdeck/id';
+import type { CargoOwnerScope } from '@metorial/cargo-list-utils';
 import type { StoreParticipantPermissions } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { fileService } from '../services/file';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 
 export let uploadCargoFile = async (
-  d: ResourceScope & {
+  d: CargoOwnerScope & {
     purpose: string;
     file: Blob;
     fileName: string;
@@ -28,10 +28,10 @@ export let uploadCargoFile = async (
 
   await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
 
+  let { file, ...scope } = d;
+
   return await fileService.createFile({
-    resourceTenant: d.resourceTenant,
-    resourceGroup: d.resourceGroup,
-    purpose: d.purpose,
+    ...scope,
     storeId,
     input: {
       id: d.fileId,

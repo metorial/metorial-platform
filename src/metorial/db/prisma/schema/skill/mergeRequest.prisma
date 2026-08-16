@@ -74,11 +74,17 @@ model SkillMergeRequest {
   mergeErrorCode SkillMergeRequestErrorCode?
   activePairKey  String?                     @unique
 
-  resourceTenantOid BigInt
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
-  resourceGroupOid BigInt
-  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   sourceSkillOid BigInt
   sourceSkill    Skill  @relation("SkillMergeRequestSource", fields: [sourceSkillOid], references: [oid], onDelete: Cascade)
@@ -135,6 +141,7 @@ model SkillMergeRequest {
   generatedForkSync SkillForkSync?             @relation("SkillForkSyncMergeRequest")
 
   @@index([resourceTenantOid, resourceGroupOid, status, createdAt])
+  @@index([instanceOid, status, createdAt])
   @@index([sourceSkillOid, status, createdAt])
   @@index([targetSkillOid, status, createdAt])
   @@index([baseSourceSkillVersionOid])
@@ -159,11 +166,17 @@ model SkillForkSync {
   activePairKey String?             @unique
   error         String?
 
-  resourceTenantOid BigInt
-  resourceTenant    ResourceTenant @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
+  resourceTenantOid BigInt?
+  resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
-  resourceGroupOid BigInt
-  resourceGroup    ResourceGroup @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+  resourceGroupOid BigInt?
+  resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   forkSkillOid BigInt
   forkSkill    Skill  @relation("SkillForkSyncFork", fields: [forkSkillOid], references: [oid], onDelete: Cascade)
@@ -186,6 +199,7 @@ model SkillForkSync {
   updatedAt           DateTime  @default(now()) @updatedAt
 
   @@index([resourceTenantOid, resourceGroupOid, status, createdAt])
+  @@index([instanceOid, status, createdAt])
   @@index([forkSkillOid, status, createdAt])
   @@index([upstreamSkillOid, status, createdAt])
   @@index([createdByResourceActorOid, createdAt])

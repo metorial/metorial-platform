@@ -1,4 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@metorial/module-resource-tenant', () => ({
+  resolveOwnerScope: vi.fn(),
+  resourceActorService: {}
+}));
+
+vi.mock(
+  '@metorial/cargo-list-utils',
+  async () => await vi.importActual('../../../../packages/list-utils/src/scope')
+);
+
+vi.mock(
+  '@metorial/module-access',
+  async () =>
+    await vi.importActual('../../../../../modules/access/src/services/resourceAuthorization')
+);
+
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from './access';
 
 let member = {
@@ -20,30 +37,13 @@ let consumerProfile = {
     name: 'Consumer'
   }
 };
-let resourceTenant = {
-  oid: 10n,
-  id: 'rtn_1',
-  identifier: 'tenant',
-  name: 'Tenant',
-  image: null,
-  organizationName: null,
-  createdAt: new Date(0),
-  updatedAt: new Date(0)
-};
-let resourceGroup = {
-  oid: 11n,
-  id: 'rgr_1',
-  identifier: 'instance',
-  name: 'Instance',
-  type: 'production' as const,
-  resourceTenantOid: resourceTenant.oid,
-  createdAt: new Date(0),
-  updatedAt: new Date(0)
+let project = {
+  oid: 14n,
+  id: 'prj_1'
 };
 let instance = {
   oid: consumerProfile.instanceOid,
-  resourceTenantOid: resourceTenant.oid,
-  resourceGroupOid: resourceGroup.oid
+  projectOid: project.oid
 };
 let memberResourceActor = {
   oid: 12n,
@@ -51,7 +51,7 @@ let memberResourceActor = {
   identifier: 'mte-oac-oac_member',
   name: 'Member',
   type: 'external' as const,
-  resourceTenantOid: resourceTenant.oid,
+  projectOid: project.oid,
   organizationActorOid: member.actor.oid,
   consumerOid: null,
   consumerProfileOid: null,
@@ -69,7 +69,7 @@ let consumerResourceActor = {
   consumerProfileOid: consumerProfile.oid
 };
 let accessTags = [{ accessTagOid: 30n }];
-let scopeContext = { resourceTenant, resourceGroup, instance };
+let scopeContext = { project, instance };
 
 describe('local Cargo access', () => {
   it('prefers member access over consumer access', () => {
@@ -89,8 +89,8 @@ describe('local Cargo access', () => {
       defaultPermissions: ['content_read', 'content_write'],
       overridePermissions: true,
       scope: {
-        resourceTenant,
-        resourceGroup
+        project,
+        instance
       },
       resourceActor: memberResourceActor,
       authorization: {
@@ -123,8 +123,8 @@ describe('local Cargo access', () => {
         consumerProfileOid: 20n
       },
       scope: {
-        resourceTenant,
-        resourceGroup
+        project,
+        instance
       },
       resourceActor: consumerResourceActor,
       authorization: {

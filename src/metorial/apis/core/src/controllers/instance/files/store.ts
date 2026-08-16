@@ -107,8 +107,8 @@ export let storeController = Controller.create(
         let access = await getInstanceCargoAccess(ctx);
         let store = ctx.body.template_id
           ? await storeService.createStoreFromTemplate({
-              resourceTenant: access.resourceTenant,
-              resourceGroup: access.resourceGroup,
+              project: access.project,
+              instance: access.instance,
               authorization: access.authorization,
               input: {
                 templateId: ctx.body.template_id,
@@ -130,8 +130,8 @@ export let storeController = Controller.create(
                 }
               })
             : await storeService.createStore({
-                resourceTenant: access.resourceTenant,
-                resourceGroup: access.resourceGroup,
+                project: access.project,
+                instance: access.instance,
                 input: {
                   name: ctx.body.name,
                   access: ctx.body.access,

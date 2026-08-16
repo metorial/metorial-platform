@@ -98,8 +98,8 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
               }
             },
             assistantInstance: true,
-            resourceGroup: true,
-            resourceTenant: true
+            instance: true,
+            project: true
           }
         },
         runs: true
@@ -141,7 +141,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
         data: {
           id: await ID.generateId('productAssistantModelRun'),
           status: 'running',
-          resourceTenantOid: conversation.resourceTenantOid,
+          projectOid: conversation.projectOid,
           requestOid: request.oid,
           conversationOid: conversation.oid,
           assistantOid: conversation.assistantOid,
@@ -198,8 +198,8 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
       agent = await getAgent({
         input: assistantImplementation.input ? conversation.input : undefined,
         model,
-        tenant: conversation.resourceTenant,
-        environment: conversation.resourceGroup,
+        project: conversation.project,
+        instance: conversation.instance,
         assistant: conversation.assistant,
         assistantInstance: conversation.assistantInstance,
         assistantImplementation: assistantImplementation._persisted
@@ -208,8 +208,8 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
       let runner = new AgentRun(
         agent,
         model,
-        conversation.resourceTenant,
-        conversation.resourceGroup,
+        conversation.project,
+        conversation.instance,
         conversation.assistant,
         assistantImplementation._persisted,
         assistantImplementation

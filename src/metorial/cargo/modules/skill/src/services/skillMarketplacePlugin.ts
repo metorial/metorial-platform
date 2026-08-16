@@ -4,13 +4,13 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
   resolveSkillMarketplacePlugins,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import type { Prisma, SkillMarketplacePluginStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
@@ -65,7 +65,7 @@ let getMarketplacePluginSlug = createSlugGenerator(
 
 class SkillMarketplacePluginServiceImpl {
   private async getSkillMarketplacePluginRecord(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplacePluginId: string;
       skillMarketplace?: SkillMarketplaceRecord;
     }
@@ -77,12 +77,12 @@ class SkillMarketplacePluginServiceImpl {
             id: d.skillMarketplacePluginId,
             skillMarketplaceOid: d.skillMarketplace?.oid,
             skillMarketplace: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid
             },
             skillPlugin: {
-              resourceTenantOid: d.resourceTenant.oid,
-              resourceGroupOid: d.resourceGroup.oid
+              projectOid: d.project.oid,
+              instanceOid: d.instance.oid
             }
           },
           include: skillMarketplacePluginInclude
@@ -101,7 +101,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async listSkillMarketplacePlugins(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplace: SkillMarketplaceRecord;
       ids?: string[];
       skillPluginIds?: string[];
@@ -127,8 +127,8 @@ class SkillMarketplacePluginServiceImpl {
             where: {
               skillMarketplaceOid: d.skillMarketplace.oid,
               skillPlugin: {
-                resourceTenantOid: d.resourceTenant.oid,
-                resourceGroupOid: d.resourceGroup.oid,
+                projectOid: d.project.oid,
+                instanceOid: d.instance.oid,
                 isManaged: false
               },
               AND: [
@@ -150,7 +150,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async getSkillMarketplacePluginById(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplacePluginId: string;
       skillMarketplace?: SkillMarketplaceRecord;
     }
@@ -159,7 +159,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async addSkillMarketplacePlugin(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplace: SkillMarketplaceRecord;
       input: {
         skillPluginId: string;
@@ -169,8 +169,8 @@ class SkillMarketplacePluginServiceImpl {
     }
   ) {
     let skillPlugin = await skillPluginService.getSkillPluginById({
-      resourceTenant: d.resourceTenant!,
-      resourceGroup: d.resourceGroup,
+      project: d.project,
+      instance: d.instance,
       skillPluginId: d.input.skillPluginId
     });
     assertPluginIsNotManaged(skillPlugin);
@@ -198,8 +198,8 @@ class SkillMarketplacePluginServiceImpl {
           ? null
           : (
               await skillConfigurationService.getSkillConfigurationById({
-                resourceTenant: d.resourceTenant,
-                resourceGroup: d.resourceGroup,
+                project: d.project,
+                instance: d.instance,
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
@@ -292,7 +292,7 @@ class SkillMarketplacePluginServiceImpl {
   }
 
   async removeSkillMarketplacePlugin(
-    d: ResourceScope & {
+    d: CargoScope & {
       skillMarketplacePlugin: SkillMarketplacePluginRecord;
     }
   ) {

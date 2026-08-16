@@ -64,8 +64,8 @@ let assertConsumerCanWriteSkillItems = async (
 
   let access = await getInstanceCargoAccess(ctx);
   await skillService.assertSkillWriteAccess({
-    resourceTenant: access.resourceTenant,
-    resourceGroup: access.resourceGroup,
+    project: access.project,
+    instance: access.instance,
     skill: ctx.skill.localSkill,
     authorization: access.authorization
   });

@@ -3,26 +3,23 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
+  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveStores,
   resolveStoreTemplates
 } from '@metorial/cargo-list-utils';
-import type { Prisma } from '@metorial/db';
+import type { Prisma, Store } from '@metorial/db';
 import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
-import type { ResourceScope } from '@metorial/module-resource-tenant';
 import { normalizeStorePath } from '../lib/storePath';
 import {
   storeTemplateItemsUpdatedQueue,
   storeTemplateItemUpdatedQueue
 } from '../queues/storeTemplateSync';
 
-export type StoreTemplateScope = Partial<ResourceScope>;
+export type StoreTemplateScope = Partial<CargoScope>;
 
-export type RequiredStoreTemplateScope = {
-  resourceTenant: NonNullable<StoreTemplateScope['resourceTenant']>;
-  resourceGroup: NonNullable<StoreTemplateScope['resourceGroup']>;
-};
+export type RequiredStoreTemplateScope = CargoScope;
 
 export type StoreTemplateItemInput = {
   path: string;
@@ -46,8 +43,6 @@ export type StoreTemplateUpdateInput = {
 };
 
 let storeTemplateSummaryInclude = {
-  resourceTenant: true,
-  resourceGroup: true,
   sourceStore: {
     select: {
       id: true
@@ -55,8 +50,8 @@ let storeTemplateSummaryInclude = {
   },
   backingStores: {
     select: {
-      resourceTenantOid: true,
-      resourceGroupOid: true,
+      projectOid: true,
+      instanceOid: true,
       store: {
         select: {
           id: true
@@ -72,8 +67,6 @@ let storeTemplateSummaryInclude = {
 } satisfies Prisma.StoreTemplateInclude;
 
 let storeTemplateInclude = {
-  resourceTenant: true,
-  resourceGroup: true,
   sourceStore: {
     select: {
       id: true
@@ -81,8 +74,8 @@ let storeTemplateInclude = {
   },
   backingStores: {
     select: {
-      resourceTenantOid: true,
-      resourceGroupOid: true,
+      projectOid: true,
+      instanceOid: true,
       store: {
         select: {
           id: true
@@ -114,13 +107,6 @@ export type StoreTemplateWithScopedStoreId<T> = T & {
   storeId?: string;
 };
 
-type SourceStoreRecord = Prisma.StoreGetPayload<{
-  include: {
-    resourceTenant: true;
-    resourceGroup: true;
-  };
-}>;
-
 type NormalizedStoreTemplateItem = {
   kind: 'file' | 'document' | 'directory';
   path: string;
@@ -132,10 +118,10 @@ type NormalizedStoreTemplateItem = {
 
 class StoreTemplateServiceImpl {
   private assertValidScope(d: StoreTemplateScope) {
-    if (d.resourceGroup && !d.resourceTenant) {
+    if (d.instance && !d.project) {
       throw new ServiceError(
         badRequestError({
-          message: 'resourceTenantId is required when resourceGroupId is provided'
+          message: 'projectId is required when instanceId is provided'
         })
       );
     }
@@ -145,10 +131,6 @@ class StoreTemplateServiceImpl {
     let store = await db.store.findFirst({
       where: {
         id: d.storeId
-      },
-      include: {
-        resourceTenant: true,
-        resourceGroup: true
       }
     });
 
@@ -179,49 +161,51 @@ class StoreTemplateServiceImpl {
     );
   }
 
-  private assertRequiredScope(d: StoreTemplateScope): asserts d is RequiredStoreTemplateScope {
+  private assertRequiredScope<T extends StoreTemplateScope>(
+    d: T
+  ): asserts d is T & RequiredStoreTemplateScope {
     this.assertValidScope(d);
 
-    if (!d.resourceTenant || !d.resourceGroup) {
+    if (!d.project || !d.instance) {
       throw new ServiceError(
         badRequestError({
-          message: 'resourceTenantId and resourceGroupId are required'
+          message: 'projectId and instanceId are required'
         })
       );
     }
   }
 
   private getReadableScopeWhere(d: {
-    resourceTenant: { oid: bigint };
-    resourceGroup: { oid: bigint };
+    project: { oid: bigint };
+    instance: { oid: bigint };
   }): Prisma.StoreTemplateWhereInput {
     return {
       OR: [
         {
-          resourceTenantOid: d.resourceTenant.oid,
-          resourceGroupOid: d.resourceGroup.oid
+          projectOid: d.project.oid,
+          instanceOid: d.instance.oid
         },
         {
-          resourceTenantOid: null,
-          resourceGroupOid: null
+          projectOid: null,
+          instanceOid: null
         }
       ]
     };
   }
 
   private assertMatchingScope(d: {
-    storeTemplate: Pick<StoreTemplateRecord, 'id' | 'resourceTenant' | 'resourceGroup'>;
-    resourceTenant: { oid: bigint; id: string };
-    resourceGroup: { oid: bigint; id: string };
+    storeTemplate: Pick<StoreTemplateRecord, 'id' | 'projectOid' | 'instanceOid'>;
+    project: { oid: bigint };
+    instance: { oid: bigint };
   }) {
     if (
-      d.storeTemplate.resourceTenant?.id !== d.resourceTenant.id ||
-      d.storeTemplate.resourceGroup?.id !== d.resourceGroup.id
+      d.storeTemplate.projectOid !== d.project.oid ||
+      d.storeTemplate.instanceOid !== d.instance.oid
     ) {
       throw new ServiceError(
         badRequestError({
           message:
-            'Store template updates and deletes are only allowed within the matching resourceTenant and resourceGroup'
+            'Store template updates and deletes are only allowed within the matching project and instance'
         })
       );
     }
@@ -379,7 +363,7 @@ class StoreTemplateServiceImpl {
 
   private withScopedStoreId<T extends StoreTemplateSummaryRecord | StoreTemplateRecord>(
     storeTemplate: T,
-    scope?: RequiredStoreTemplateScope
+    scope?: CargoScope
   ): StoreTemplateWithScopedStoreId<T> {
     if (storeTemplate.sourceStore?.id) {
       return {
@@ -392,8 +376,7 @@ class StoreTemplateServiceImpl {
 
     let backing = storeTemplate.backingStores.find(
       backing =>
-        backing.resourceTenantOid === scope.resourceTenant.oid &&
-        backing.resourceGroupOid === scope.resourceGroup.oid
+        backing.projectOid === scope.project.oid && backing.instanceOid === scope.instance.oid
     );
 
     return {
@@ -428,9 +411,9 @@ class StoreTemplateServiceImpl {
       );
     }
 
-    let sourceStore: SourceStoreRecord | undefined;
-    let resourceTenant = d.resourceTenant;
-    let resourceGroup = d.resourceGroup;
+    let sourceStore: Store | undefined;
+    let projectOid = d.project?.oid ?? null;
+    let instanceOid = d.instance?.oid ?? null;
     let standaloneItems: NormalizedStoreTemplateItem[] | undefined;
 
     if (d.input.storeId) {
@@ -438,24 +421,24 @@ class StoreTemplateServiceImpl {
         storeId: d.input.storeId
       });
 
-      if (resourceTenant && resourceTenant.oid !== sourceStore.resourceTenantOid) {
+      if (projectOid && sourceStore.projectOid && projectOid !== sourceStore.projectOid) {
         throw new ServiceError(
           badRequestError({
-            message: 'Store template resourceTenant must match the linked store resourceTenant'
+            message: 'Store template project must match the linked store project'
           })
         );
       }
 
-      if (resourceGroup && resourceGroup.oid !== sourceStore.resourceGroupOid) {
+      if (instanceOid && sourceStore.instanceOid && instanceOid !== sourceStore.instanceOid) {
         throw new ServiceError(
           badRequestError({
-            message: 'Store template resourceGroup must match the linked store resourceGroup'
+            message: 'Store template instance must match the linked store instance'
           })
         );
       }
 
-      resourceTenant = resourceTenant ?? sourceStore.resourceTenant;
-      resourceGroup = resourceGroup ?? sourceStore.resourceGroup;
+      projectOid = projectOid ?? sourceStore.projectOid;
+      instanceOid = instanceOid ?? sourceStore.instanceOid;
     } else {
       standaloneItems = this.normalizeStandaloneItems({
         items: d.input.items ?? []
@@ -473,8 +456,8 @@ class StoreTemplateServiceImpl {
           id: templateIds.id,
           name: d.input.name,
           type: sourceStore ? 'linked_store' : 'standalone',
-          resourceTenantOid: resourceTenant?.oid ?? null,
-          resourceGroupOid: resourceGroup?.oid ?? null,
+          projectOid,
+          instanceOid,
           sourceStoreOid: sourceStore?.oid ?? null,
           items: standaloneItems
             ? {
@@ -579,17 +562,19 @@ class StoreTemplateServiceImpl {
     return await this.getStoreTemplateRecord(d);
   }
 
-  async updateStoreTemplate(d: StoreTemplateScope & {
-    storeTemplate: StoreTemplateRecord;
-    input: StoreTemplateUpdateInput;
-    skipScopeCheck?: true;
-  }) {
+  async updateStoreTemplate(
+    d: StoreTemplateScope & {
+      storeTemplate: StoreTemplateRecord;
+      input: StoreTemplateUpdateInput;
+      skipScopeCheck?: true;
+    }
+  ) {
     if (!d.skipScopeCheck) {
       this.assertRequiredScope(d);
       this.assertMatchingScope({
         storeTemplate: d.storeTemplate,
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup
+        project: d.project,
+        instance: d.instance
       });
     }
 
@@ -710,20 +695,22 @@ class StoreTemplateServiceImpl {
 
       return this.withScopedStoreId(
         updatedTemplate,
-        d.resourceTenant && d.resourceGroup
+        d.project && d.instance
           ? {
-              resourceTenant: d.resourceTenant,
-              resourceGroup: d.resourceGroup
+              project: d.project,
+              instance: d.instance
             }
           : undefined
       );
     });
   }
 
-  async deleteStoreTemplate(d: StoreTemplateScope & {
-    storeTemplateId: string;
-    skipScopeCheck?: true;
-  }) {
+  async deleteStoreTemplate(
+    d: StoreTemplateScope & {
+      storeTemplateId: string;
+      skipScopeCheck?: true;
+    }
+  ) {
     if (!d.skipScopeCheck) {
       this.assertRequiredScope(d);
     }
@@ -731,16 +718,16 @@ class StoreTemplateServiceImpl {
     let storeTemplate = d.skipScopeCheck
       ? await this.getStoreTemplateRecord(d)
       : await this.getStoreTemplateById({
-          resourceTenant: d.resourceTenant!,
-          resourceGroup: d.resourceGroup!,
+          project: d.project!,
+          instance: d.instance!,
           storeTemplateId: d.storeTemplateId
         });
 
-    if (!d.skipScopeCheck && d.resourceTenant && d.resourceGroup) {
+    if (!d.skipScopeCheck && d.project && d.instance) {
       this.assertMatchingScope({
         storeTemplate,
-        resourceTenant: d.resourceTenant,
-        resourceGroup: d.resourceGroup
+        project: d.project,
+        instance: d.instance
       });
     }
 

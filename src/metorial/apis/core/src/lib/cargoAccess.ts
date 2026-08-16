@@ -2,9 +2,7 @@ import {
   type Consumer,
   type OrganizationActor,
   type OrganizationMember,
-  type ResourceActor,
-  type ResourceGroup,
-  type ResourceTenant
+  type ResourceActor
 } from '@metorial/db';
 import {
   createResourceAuthorization,
@@ -17,11 +15,12 @@ export type InstanceCargoAccessContext = {
   instance: {
     id: string;
     oid: bigint;
-    resourceTenantOid: bigint | null;
-    resourceGroupOid: bigint | null;
+    projectOid: bigint;
   };
-  resourceTenant: ResourceTenant;
-  resourceGroup: ResourceGroup;
+  project: {
+    id: string;
+    oid: bigint;
+  };
   resourceActor?: ResourceActor;
   member?: OrganizationMember & {
     actor: OrganizationActor;
@@ -73,15 +72,14 @@ export let getInstanceCargoAccess = async (ctx: InstanceCargoAccessContext) => {
     restricted,
     resourceActor: ctx.resourceActor,
     accessTags: ctx.accessTags,
-    resourceTenant: ctx.resourceTenant,
-    resourceGroup: ctx.resourceGroup,
+    project: ctx.project,
     instance: ctx.instance,
     consumerProfile: ctx.consumerProfile
   });
 
   return {
-    resourceTenant: ctx.resourceTenant,
-    resourceGroup: ctx.resourceGroup,
+    project: ctx.project,
+    instance: ctx.instance,
     authorization,
     actor: ctx.resourceActor,
     actorId: ctx.resourceActor?.id,

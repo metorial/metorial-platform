@@ -22,12 +22,12 @@ let accessTagFilter = {
   }
 };
 let scope = {
-  resourceTenant: { oid: 1n },
-  resourceGroup: { oid: 2n, resourceTenantOid: 1n }
+  project: { oid: 1n },
+  instance: { oid: 2n }
 } as any;
 let actor = {
   oid: 3n,
-  resourceTenantOid: 1n,
+  projectOid: 1n,
   consumerProfileOid: 4n,
   consumerOid: 5n
 } as any;
@@ -51,8 +51,8 @@ describe('skill metadata write access', () => {
       })
     ).resolves.toEqual({
       oid: 6n,
-      resourceTenantOid: 1n,
-      resourceGroupOid: 2n,
+      projectOid: 1n,
+      instanceOid: 2n,
       accessTagEntities: accessTagFilter
     });
   });
@@ -72,7 +72,7 @@ describe('skill metadata write access', () => {
     expect(where).not.toHaveProperty('skillGroupItems');
     expect(where).toMatchObject({
       oid: 6n,
-      resourceGroupOid: 2n
+      instanceOid: 2n
     });
   });
 
@@ -92,14 +92,14 @@ describe('skill metadata write access', () => {
       assertSkillRecordScope({
         ...scope,
         skill: {
-          resourceTenantOid: 1n,
-          resourceGroupOid: 999n,
+          projectOid: 1n,
+          instanceOid: 999n,
           store: {
-            resourceTenantOid: 1n,
-            resourceGroupOid: 999n
+            projectOid: 1n,
+            instanceOid: 999n
           }
         }
       })
-    ).toThrow('Skill does not belong to the supplied ResourceScope');
+    ).toThrow('Skill does not belong to the supplied project and instance');
   });
 });
