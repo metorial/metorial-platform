@@ -23,9 +23,9 @@ import type {
 } from '@metorial/db';
 import { db, ID } from '@metorial/db';
 import { skillRepositoryService } from '@metorial/module-skill-marketplace';
-import { detectUploadedSkillFileFormat } from '../import/archive';
-import { parsePublicRepositoryUrl } from '../import/publicRepository';
-import { skillImportAcquireQueue } from '../queues/import/acquire';
+import { detectUploadedSkillFileFormat } from '../lib/archive';
+import { parsePublicRepositoryUrl } from '../lib/publicRepository';
+import { skillImportAcquireQueue } from '../queues/acquire';
 
 export let skillImportInclude = {
   creatorResourceActor: true,

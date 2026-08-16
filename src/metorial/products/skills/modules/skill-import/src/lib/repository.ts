@@ -2,7 +2,7 @@ import { env } from '../env';
 import { fileService } from '@metorial/cargo-module-file';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import type { File, SkillImportFileFormat } from '@metorial/db';
-import { getOriginTenant, origin } from '@metorial/skills-common/origin';
+import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { extractSkillArchive, normalizeUploadedSkillFile } from './archive';
 import {
   fetchRepositoryArchive,

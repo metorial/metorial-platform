@@ -6,7 +6,7 @@ import {
   acquirePublicRepository,
   acquireUploadedSkillFile,
   getImportCodeBucket
-} from '../../import/repository';
+} from '../lib/repository';
 import { skillImportDiscoverQueue } from './discover';
 
 let importTimeoutMs = 30 * 60 * 1000;

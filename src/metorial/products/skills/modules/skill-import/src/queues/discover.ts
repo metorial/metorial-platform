@@ -1,7 +1,7 @@
 import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { discoverSkillPaths } from '../../import/discovery';
-import { listCodeBucketFiles } from '../../import/repository';
+import { discoverSkillPaths } from '../lib/discovery';
+import { listCodeBucketFiles } from '../lib/repository';
 import { skillImportItemQueue } from './item';
 
 export let skillImportDiscoverQueue = createQueue<{ skillImportId: string }>({

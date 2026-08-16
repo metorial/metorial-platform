@@ -1,9 +1,8 @@
+import { skillService, type SkillRecord } from '@metorial/module-skill';
 import { db } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
 import { createQueue } from '@metorial/queue';
-import { materializeImportedSkill } from '../../import/materialize';
-import type { SkillRecord } from '../../services/skill';
-import { skillService } from '../../services/skill';
+import { materializeImportedSkill } from '../lib/materialize';
 import { skillImportFinishQueue } from './finish';
 
 export let skillImportItemQueue = createQueue<{ skillImportItemId: string }>({

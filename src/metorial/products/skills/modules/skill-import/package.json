@@ -1,0 +1,45 @@
+{
+  "name": "@metorial/module-skill-import",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "NODE_OPTIONS=--max_old_space_size=20480 tsc --noEmit",
+    "_test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "^5",
+    "vitest": "^3.1.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/cargo-module-doc": "^1.0.0",
+    "@metorial/cargo-module-file": "^1.0.0",
+    "@metorial/module-skill": "^1.0.0",
+    "@metorial/cargo-module-store": "^1.0.0",
+    "@metorial/code-bucket-service-generated": "^1.0.0",
+    "@metorial/cron": "^1.0.0",
+    "@metorial/db": "^1.0.0",
+    "@metorial/module-access": "^1.0.0",
+    "@metorial/module-consumer": "^1.0.0",
+    "@metorial/module-skill-marketplace": "^1.0.0",
+    "@metorial/queue": "^1.0.0",
+    "@metorial/skills-scm-utils": "^1.0.0",
+    "jszip": "^3.10.1"
+  },
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
