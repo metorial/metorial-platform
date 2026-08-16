@@ -1,0 +1,10 @@
+{
+  "extends": "@metorial/tsconfig/base.json",
+  "include": [
+    "src/**/*.ts"
+  ],
+  "compilerOptions": {
+    "jsx": "react",
+    "moduleResolution": "bundler"
+  }
+}
