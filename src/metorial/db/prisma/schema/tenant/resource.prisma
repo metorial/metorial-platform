@@ -38,7 +38,6 @@ model ResourceTenant {
   skillImports          SkillImport[]
   skillMergeRequests    SkillMergeRequest[]
   skillForkSyncs        SkillForkSync[]
-
 }
 
 enum ResourceGroupType {
@@ -106,9 +105,6 @@ model ResourceActor {
 
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
-
-  projectOid BigInt?
-  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
   projectOid BigInt?
   project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)

@@ -54,12 +54,6 @@ model SkillExportRef {
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
-  projectOid BigInt?
-  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
-
-  instanceOid BigInt?
-  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
-
   createdAt DateTime @default(now())
 
   skillExports SkillExport[]
@@ -95,12 +89,6 @@ model SkillExport {
 
   resourceGroupOid BigInt?
   resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
-
-  projectOid BigInt?
-  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
-
-  instanceOid BigInt?
-  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   projectOid BigInt?
   project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
