@@ -1,5 +1,4 @@
-import { getId } from '@metorial/cargo-config/id';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { discoverSkillPaths } from '../../import/discovery';
 import { listCodeBucketFiles } from '../../import/repository';
@@ -31,18 +30,17 @@ export let skillImportDiscoverQueueProcessor = skillImportDiscoverQueue.process(
         where: { skillImportOid: skillImport.oid }
       });
       let existingPaths = new Set(existing.map(item => item.path));
-      let newItems = roots
-        .filter(root => !existingPaths.has(root))
-        .map(root => {
-          let itemIds = getId('skillImportItem');
-          return {
-            ...itemIds,
+      let newItems = await Promise.all(
+        roots
+          .filter(root => !existingPaths.has(root))
+          .map(async root => ({
+            id: await ID.generateId('skillImportItem'),
             path: root,
-            targetSkillId: getId('skill').id,
+            targetSkillId: await ID.generateId('skill'),
             skillImportOid: skillImport.oid,
             status: 'pending' as const
-          };
-        });
+          }))
+      );
 
       if (newItems.length > 0) {
         await db.skillImportItem.createMany({ data: newItems });

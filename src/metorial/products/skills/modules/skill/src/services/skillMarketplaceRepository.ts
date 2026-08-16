@@ -1,9 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import type { Instance, Prisma, Project } from '@metorial/db';
-import { db } from '@metorial/db';
+import { db, ID } from '@metorial/db';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
 import {
   type EnrichedSkillRepositoryRecord,
@@ -153,7 +152,7 @@ class SkillMarketplaceRepositoryServiceImpl {
 
     let repository = await db.skillMarketplaceRepository.create({
       data: {
-        ...getId('skillMarketplaceRepository'),
+        id: await ID.generateId('skillMarketplaceRepository'),
         skillMarketplaceOid: marketplace.oid,
         skillRepositoryOid: skillRepository.oid
       },

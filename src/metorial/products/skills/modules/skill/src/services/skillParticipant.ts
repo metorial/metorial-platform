@@ -1,7 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -16,7 +15,7 @@ import type {
   Skill,
   SkillParticipantRole
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
@@ -94,12 +93,9 @@ class SkillParticipantServiceImpl {
         });
       }
 
-      let generated = getId('skillParticipant');
-
       return await db.skillParticipant.create({
         data: {
-          oid: generated.oid,
-          id: generated.id,
+          id: await ID.generateId('skillParticipant'),
           skillOid: d.skill.oid,
           resourceActorOid: d.actor.oid,
           roles: nextRoles
@@ -163,11 +159,9 @@ class SkillParticipantServiceImpl {
       }
       if (nextRoles.length == 0) return undefined;
 
-      let generated = getId('skillParticipant');
       return await db.skillParticipant.create({
         data: {
-          oid: generated.oid,
-          id: generated.id,
+          id: await ID.generateId('skillParticipant'),
           skillOid: d.skill.oid,
           resourceActorOid: d.actor.oid,
           roles: nextRoles

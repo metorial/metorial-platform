@@ -6,7 +6,6 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -30,7 +29,7 @@ import type {
   StoreCloneType,
   StoreParticipantPermissions
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { internalDocumentContentService } from '../internal/documentContent';
@@ -216,16 +215,13 @@ class DocumentServiceImpl {
     let actor = d.input.authorization.resourceActor;
 
     return await withTransaction(async db => {
-      let documentIds = d.input.id
-        ? { oid: getId('document').oid, id: d.input.id }
-        : getId('document');
-      let contentIds = getId('documentContent');
+      let documentId = d.input.id ?? (await ID.generateId('document'));
 
       let file = await fileService.createFile({
         project: d.project,
         instance: d.instance,
         purpose: purpose.id,
-        storeId: d.input.fileStoreId ?? getDocumentStoreId(documentIds.id),
+        storeId: d.input.fileStoreId ?? getDocumentStoreId(documentId),
         _isDocument: true,
         internal: d.internal,
         input: {
@@ -237,17 +233,15 @@ class DocumentServiceImpl {
         }
       });
 
-      await db.documentContent.create({
+      let content = await db.documentContent.create({
         data: {
-          oid: contentIds.oid,
           content: d.input.content
         }
       });
 
       let document = await db.document.create({
         data: {
-          oid: documentIds.oid,
-          id: documentIds.id,
+          id: documentId,
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
           fileOid: file.oid,
@@ -256,7 +250,7 @@ class DocumentServiceImpl {
           isTemplateBacking: d.internal?.isTemplateBacking ?? false,
           isContentOwner: true,
           maxVersionNumber: 1,
-          contentOid: contentIds.oid,
+          contentOid: content.oid,
           createdByResourceActorOid: actor?.oid
         },
         include: documentInclude
@@ -266,7 +260,7 @@ class DocumentServiceImpl {
         project: d.project,
         instance: d.instance,
         document,
-        contentOid: contentIds.oid,
+        contentOid: content.oid,
         listEditedAt: new Date()
       });
 
@@ -685,10 +679,7 @@ class DocumentServiceImpl {
     }
 
     let clonedDocument = await withTransaction(async db => {
-      let documentIds = d.input.id
-        ? { oid: getId('document').oid, id: d.input.id }
-        : getId('document');
-      let contentIds = getId('documentContent');
+      let documentId = d.input.id ?? (await ID.generateId('document'));
       let sourceTitle = d.document.resolvedTitle ?? d.document.title;
       let sourceContent = d.document.resolvedContent ?? d.document.content.content;
       let nextTitle = d.input.title ?? sourceTitle;
@@ -700,7 +691,7 @@ class DocumentServiceImpl {
         project: d.project,
         instance: d.instance,
         purpose: purpose.id,
-        storeId: getDocumentStoreId(documentIds.id),
+        storeId: getDocumentStoreId(documentId),
         _isDocument: true,
         input: {
           name: nextTitle,
@@ -714,26 +705,25 @@ class DocumentServiceImpl {
         }
       });
 
-      if (cloneType === 'duplicate') {
-        await db.documentContent.create({
-          data: {
-            oid: contentIds.oid,
-            content: nextContent
-          }
-        });
-      }
+      let content =
+        cloneType === 'duplicate'
+          ? await db.documentContent.create({
+              data: {
+                content: nextContent
+              }
+            })
+          : null;
 
       let document = await db.document.create({
         data: {
-          oid: documentIds.oid,
-          id: documentIds.id,
+          id: documentId,
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
           fileOid: file.oid,
           title: nextTitle,
           isContentOwner: cloneType === 'duplicate',
           maxVersionNumber: 1,
-          contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
+          contentOid: cloneType === 'duplicate' ? content!.oid : d.document.contentOid,
           parentDocumentOid: cloneType === 'sync_until_change' ? d.document.oid : null,
           createdByResourceActorOid: creatorActor?.oid
         },
@@ -744,7 +734,7 @@ class DocumentServiceImpl {
         project: d.project,
         instance: d.instance,
         document,
-        contentOid: cloneType === 'duplicate' ? contentIds.oid : d.document.contentOid,
+        contentOid: cloneType === 'duplicate' ? content!.oid : d.document.contentOid,
         listEditedAt: new Date()
       });
 

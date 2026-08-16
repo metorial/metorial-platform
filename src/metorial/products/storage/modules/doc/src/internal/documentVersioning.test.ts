@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, withTransaction, getId } = vi.hoisted(() => {
+let { db, withTransaction, generateId } = vi.hoisted(() => {
   let db = {
     documentVersion: {
       aggregate: vi.fn(),
@@ -14,19 +14,15 @@ let { db, withTransaction, getId } = vi.hoisted(() => {
   return {
     db,
     withTransaction: vi.fn(async (fn: any) => await fn(db)),
-    getId: vi.fn(() => ({
-      oid: 100n,
-      id: 'dver_generated'
-    }))
+    generateId: vi.fn(async () => 'dver_generated')
   };
 });
 
 vi.mock('@metorial/db', () => ({
-  withTransaction
-}));
-
-vi.mock('@metorial/cargo-config/id', () => ({
-  getId
+  withTransaction,
+  ID: {
+    generateId
+  }
 }));
 
 import { internalDocumentVersioningService } from './documentVersioning';
@@ -116,7 +112,6 @@ describe('document version allocation', () => {
     expect(withTransaction).toHaveBeenCalledTimes(1);
     expect(db.documentVersion.create).toHaveBeenCalledWith({
       data: {
-        oid: 100n,
         id: 'dver_generated',
         projectOid: 5n,
         instanceOid: 6n,

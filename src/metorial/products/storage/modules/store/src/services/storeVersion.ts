@@ -1,14 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   normalizeDateFilter,
   resolveStoreVersions,
   type DateFilter
 } from '@metorial/cargo-list-utils';
 import type { Instance, Prisma, Project } from '@metorial/db';
-import { db, withTransaction, type TransactionDB } from '@metorial/db';
+import { db, ID, withTransaction, type TransactionDB } from '@metorial/db';
 import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
 
 let currentStoreVersionItemInclude = {
@@ -170,15 +169,14 @@ class StoreVersionServiceImpl {
 
     if (!skill) return null;
 
-    let ids = getId('skillVersion');
+    let id = await ID.generateId('skillVersion');
 
     return await tx.skillVersion.upsert({
       where: {
         storeVersionOid: d.storeVersionOid
       },
       create: {
-        oid: ids.oid,
-        id: ids.id,
+        id,
         skillOid: skill.oid,
         storeVersionOid: d.storeVersionOid,
         versionNumber: d.versionNumber
@@ -392,11 +390,9 @@ class StoreVersionServiceImpl {
         }
       });
 
-      let versionIds = getId('storeVersion');
       let version = await db.storeVersion.create({
         data: {
-          oid: versionIds.oid,
-          id: versionIds.id,
+          id: await ID.generateId('storeVersion'),
           storeOid: store.oid,
           versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
           sourceDirtyAt: store.dirtyAt
@@ -411,12 +407,9 @@ class StoreVersionServiceImpl {
 
       if (currentItems.length > 0) {
         await db.storeVersionItem.createMany({
-          data: currentItems.map(item => {
-            let itemIds = getId('storeVersionItem');
-
-            return {
-              oid: itemIds.oid,
-              id: itemIds.id,
+          data: await Promise.all(
+            currentItems.map(async item => ({
+              id: await ID.generateId('storeVersionItem'),
               storeVersionOid: version.oid,
               kind: item.kind,
               path: item.path,
@@ -424,8 +417,8 @@ class StoreVersionServiceImpl {
               documentOid: item.documentOid,
               documentTitle: item.document?.title ?? null,
               documentVersionOid: item.document?.currentVersion?.oid ?? null
-            };
-          })
+            }))
+          )
         });
       }
 
@@ -530,12 +523,10 @@ class StoreVersionServiceImpl {
         }
       });
 
-      let versionIds = getId('storeVersion');
       let sourceDirtyAt = snapshotStartedAt;
       let version = await db.storeVersion.create({
         data: {
-          oid: versionIds.oid,
-          id: versionIds.id,
+          id: await ID.generateId('storeVersion'),
           storeOid: store.oid,
           versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
           sourceDirtyAt
@@ -550,12 +541,9 @@ class StoreVersionServiceImpl {
 
       if (currentItems.length > 0) {
         await db.storeVersionItem.createMany({
-          data: currentItems.map(item => {
-            let itemIds = getId('storeVersionItem');
-
-            return {
-              oid: itemIds.oid,
-              id: itemIds.id,
+          data: await Promise.all(
+            currentItems.map(async item => ({
+              id: await ID.generateId('storeVersionItem'),
               storeVersionOid: version.oid,
               kind: item.kind,
               path: item.path,
@@ -563,8 +551,8 @@ class StoreVersionServiceImpl {
               documentOid: item.documentOid,
               documentTitle: item.document?.title ?? null,
               documentVersionOid: item.document?.currentVersion?.oid ?? null
-            };
-          })
+            }))
+          )
         });
       }
 

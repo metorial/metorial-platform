@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -9,7 +8,7 @@ import {
   resolveStoreTemplates
 } from '@metorial/cargo-list-utils';
 import type { Instance, Prisma, Project, Store } from '@metorial/db';
-import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
+import { addAfterTransactionHook, db, ID, withTransaction } from '@metorial/db';
 import { normalizeStorePath } from '../lib/storePath';
 import {
   storeTemplateItemsUpdatedQueue,
@@ -318,23 +317,20 @@ class StoreTemplateServiceImpl {
     });
   }
 
-  private buildStandaloneTemplateItemCreateManyData(d: {
+  private async buildStandaloneTemplateItemCreateManyData(d: {
     items: NormalizedStoreTemplateItem[];
   }) {
-    return d.items.map(item => {
-      let itemIds = getId('storeTemplateItem');
-
-      return {
-        oid: itemIds.oid,
-        id: itemIds.id,
+    return await Promise.all(
+      d.items.map(async item => ({
+        id: await ID.generateId('storeTemplateItem'),
         kind: item.kind,
         path: item.path,
         content: item.content ?? null,
         encoding: item.encoding ?? null,
         mimeType: item.mimeType ?? null,
         title: item.title ?? null
-      };
-    });
+      }))
+    );
   }
 
   private sameStandaloneItem(
@@ -445,14 +441,9 @@ class StoreTemplateServiceImpl {
     }
 
     return await withTransaction(async db => {
-      let templateIds = d.input.id
-        ? { oid: getId('storeTemplate').oid, id: d.input.id }
-        : getId('storeTemplate');
-
       let createdTemplate = await db.storeTemplate.create({
         data: {
-          oid: templateIds.oid,
-          id: templateIds.id,
+          id: d.input.id ?? (await ID.generateId('storeTemplate')),
           name: d.input.name,
           type: sourceStore ? 'linked_store' : 'standalone',
           projectOid,
@@ -461,7 +452,7 @@ class StoreTemplateServiceImpl {
           items: standaloneItems
             ? {
                 createMany: {
-                  data: this.buildStandaloneTemplateItemCreateManyData({
+                  data: await this.buildStandaloneTemplateItemCreateManyData({
                     items: standaloneItems
                   })
                 }
@@ -638,9 +629,11 @@ class StoreTemplateServiceImpl {
 
           if (!existing) {
             let [createdItem] = await db.storeTemplateItem.createManyAndReturn({
-              data: this.buildStandaloneTemplateItemCreateManyData({
-                items: [item]
-              }).map(item => ({
+              data: (
+                await this.buildStandaloneTemplateItemCreateManyData({
+                  items: [item]
+                })
+              ).map(item => ({
                 ...item,
                 storeTemplateOid: d.storeTemplate.oid
               }))

@@ -31,7 +31,9 @@ let { db, mocks } = vi.hoisted(() => {
 
 vi.mock('@metorial-subspace/db', () => ({
   db,
-  getId: vi.fn(() => ({ oid: 100n, id: 'generated' })),
+  ID: {
+    generateId: vi.fn(() => Promise.resolve('generated'))
+  },
   withTransaction: vi.fn(async (callback: (tx: typeof db) => unknown) => await callback(db)),
   addAfterTransactionHook: mocks.addAfterTransactionHook
 }));

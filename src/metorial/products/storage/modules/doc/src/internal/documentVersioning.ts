@@ -1,7 +1,6 @@
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import type { Prisma } from '@metorial/db';
-import { withTransaction } from '@metorial/db';
+import { ID, withTransaction } from '@metorial/db';
 import type { documentInclude } from '../services/document';
 
 type DocumentRecord = Prisma.DocumentGetPayload<{
@@ -36,7 +35,6 @@ class InternalDocumentVersioningServiceImpl {
     listEditedAt?: Date;
   }) {
     return await withTransaction(async db => {
-      let generated = getId('documentVersion');
       let aggregate = await db.documentVersion.aggregate({
         where: {
           documentOid: d.document.oid
@@ -62,7 +60,7 @@ class InternalDocumentVersioningServiceImpl {
 
       let version = await db.documentVersion.create({
         data: {
-          ...generated,
+          id: await ID.generateId('documentVersion'),
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
           documentOid: d.document.oid,

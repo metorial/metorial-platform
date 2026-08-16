@@ -6,14 +6,13 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations
 } from '@metorial/cargo-list-utils';
 import type { Instance, Prisma, Project } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { enqueueSkillConfigurationLifecycle } from '../queues/lifecycle';
 
 let skillConfigurationInclude = {} satisfies Prisma.SkillConfigurationInclude;
@@ -113,7 +112,7 @@ class SkillConfigurationServiceImpl {
 
     return await db.skillConfiguration.create({
       data: {
-        ...getId('skillConfiguration'),
+        id: await ID.generateId('skillConfiguration'),
         projectOid: d.project.oid,
         instanceOid: d.instance.oid,
         isInternal: d.input.isInternal ?? false,
@@ -203,7 +202,7 @@ class SkillConfigurationServiceImpl {
 
       return await db.skillConfiguration.create({
         data: {
-          ...getId('skillConfiguration'),
+          id: await ID.generateId('skillConfiguration'),
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
           isDefault: true,

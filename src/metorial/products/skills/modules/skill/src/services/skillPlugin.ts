@@ -4,7 +4,6 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -22,7 +21,7 @@ import type {
   SkillMarketplacePluginStatus,
   SkillPluginStatus
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
 import { getProjectTenantIdentifier } from '../internal/scope';
 import {
@@ -312,7 +311,7 @@ class SkillPluginServiceImpl {
       let destination = await createSkillDestination({ project: d.project });
       let skillPlugin = await db.skillPlugin.create({
         data: {
-          ...getId('skillPlugin'),
+          id: await ID.generateId('skillPlugin'),
           status: 'active',
           isManaged: false,
           providerOverrides: d.input.providerOverrides as any,

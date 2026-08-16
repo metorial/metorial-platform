@@ -1,13 +1,12 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import {
   storeAccessService,
   storeReadPermission,
   storeWritePermission
 } from '@metorial/cargo-module-store';
-import { db, Prisma } from '@metorial/db';
+import { db, ID, Prisma } from '@metorial/db';
 import type { Project, Instance } from '@metorial/db';
 import {
   getCanonicalSkillPairKey,
@@ -104,11 +103,9 @@ class SkillForkSyncServiceImpl {
             );
           }
 
-          let ids = getId('skillForkSync');
           return await db.skillForkSync.create({
             data: {
-              oid: ids.oid,
-              id: ids.id,
+              id: await ID.generateId('skillForkSync'),
               activePairKey,
               projectOid: d.project.oid,
               instanceOid: d.instance.oid,

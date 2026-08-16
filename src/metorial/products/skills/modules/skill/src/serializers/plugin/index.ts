@@ -1,7 +1,7 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
-import { env } from '@metorial/cargo-config';
+import { getConfig } from '@metorial/config';
 import { db } from '@metorial/db';
 import semver from 'semver';
 import { internalImageService } from '../../internal/image';
@@ -106,7 +106,7 @@ export let applyPlugin = createApplicator(
           slug: agent.slug,
           content: agent.document.content.content
         })),
-        mcpUrl: `${env.service.API_URL}/connect/plugin/${input.skillPlugin.slug}`
+        mcpUrl: `${getConfig().urls.apiUrl}/connect/plugin/${input.skillPlugin.slug}`
       })
     );
 
@@ -164,7 +164,7 @@ export let applyPlugin = createApplicator(
       let mcpServers = {
         metorial: {
           type: 'http',
-          url: `${env.service.API_URL}/connect/plugin/${input.skillPlugin.slug}`
+          url: `${getConfig().urls.apiUrl}/connect/plugin/${input.skillPlugin.slug}`
         }
       };
       let mcpJson = json(mcpServers);

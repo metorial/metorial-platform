@@ -1,8 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import type { Instance, Prisma, Project } from '@metorial/db';
-import { db } from '@metorial/db';
+import { db, ID } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
 
 export let skillRepositoryInclude = {
@@ -156,7 +155,7 @@ class SkillRepositoryServiceImpl {
 
     return await db.skillRepository.create({
       data: {
-        ...getId('skillRepository'),
+        id: await ID.generateId('skillRepository'),
         repoId: d.repoId,
         projectOid: d.project.oid,
         instanceOid: d.instance.oid

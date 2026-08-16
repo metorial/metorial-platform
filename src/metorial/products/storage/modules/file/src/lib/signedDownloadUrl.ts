@@ -1,5 +1,5 @@
 import { Tokens } from '@lowerdeck/tokens';
-import { env } from '@metorial/cargo-config';
+import { env } from '../env';
 import type { File } from '@metorial/db';
 
 let signedDownloadTokenType = 'file_download';

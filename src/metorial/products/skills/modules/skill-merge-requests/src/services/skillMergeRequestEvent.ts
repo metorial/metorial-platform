@@ -1,7 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import type { ResourceAuthorization } from '@metorial/module-access';
@@ -12,7 +11,7 @@ import type {
   SkillMergeRequestEventType,
   TransactionDB
 } from '@metorial/db';
-import { db, type Prisma } from '@metorial/db';
+import { db, ID, type Prisma } from '@metorial/db';
 import type { SkillMergeRequestRecord } from './skillMergeRequestInternal';
 
 export let skillMergeRequestEventInclude = {
@@ -45,12 +44,10 @@ class SkillMergeRequestEventServiceImpl {
     errorMessage?: string | null;
   }) {
     let database = d.database ?? db;
-    let ids = getId('skillMergeRequestEvent');
 
     return await database.skillMergeRequestEvent.create({
       data: {
-        oid: ids.oid,
-        id: ids.id,
+        id: await ID.generateId('skillMergeRequestEvent'),
         type: d.type,
         skillMergeRequestOid: d.mergeRequestOid,
         resourceActorOid: d.actorOid,

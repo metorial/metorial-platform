@@ -25,10 +25,9 @@ let { mocks, db } = vi.hoisted(() => {
   return { mocks, db };
 });
 
-vi.mock('@metorial/cargo-config/id', () => ({
-  snowflake: {
-    nextId: vi.fn(() => 100n)
-  }
+vi.mock('@metorial/db', () => ({
+  db,
+  withTransaction: vi.fn(async (callback: (tx: typeof db) => unknown) => await callback(db))
 }));
 
 vi.mock('@lowerdeck/id', () => ({

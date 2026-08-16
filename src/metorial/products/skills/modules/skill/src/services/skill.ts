@@ -9,7 +9,6 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import { snowflake } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -215,7 +214,6 @@ class SkillServiceImpl {
 
       let skill = await db.skill.create({
         data: {
-          oid: snowflake.nextId(),
           id: d.input.id,
           status: 'active',
           name: d.input.name,

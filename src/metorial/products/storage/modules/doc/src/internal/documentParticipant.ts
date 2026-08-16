@@ -1,8 +1,7 @@
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import { storeAccessService } from '@metorial/cargo-module-store';
 import type { Document, ResourceActor } from '@metorial/db';
-import { withTransaction } from '@metorial/db';
+import { ID, withTransaction } from '@metorial/db';
 
 class InternalDocumentParticipantServiceImpl {
   private async upsertParticipant(d: {
@@ -13,8 +12,6 @@ class InternalDocumentParticipantServiceImpl {
     return await withTransaction(async db => {
       let now = new Date();
 
-      let id = getId('documentParticipant');
-
       return await db.documentParticipant.upsert({
         where: {
           documentOid_resourceActorOid: {
@@ -23,7 +20,7 @@ class InternalDocumentParticipantServiceImpl {
           }
         },
         create: {
-          ...id,
+          id: await ID.generateId('documentParticipant'),
           role: d.mode === 'edit' ? 'editor' : 'viewer',
           documentOid: d.document.oid,
           resourceActorOid: d.actor.oid,
@@ -111,8 +108,6 @@ class InternalDocumentParticipantServiceImpl {
 
       if (existing) return existing;
 
-      let generated = getId('documentVersionEditor');
-
       await db.documentParticipant.updateMany({
         where: {
           documentOid: d.document.oid,
@@ -127,7 +122,7 @@ class InternalDocumentParticipantServiceImpl {
 
       return await db.documentVersionEditors.create({
         data: {
-          ...generated,
+          id: await ID.generateId('documentVersionEditor'),
           documentVersionOid: d.version.oid,
           resourceActorOid: d.actor.oid
         }

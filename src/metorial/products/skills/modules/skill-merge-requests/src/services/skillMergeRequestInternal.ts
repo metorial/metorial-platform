@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -29,7 +28,7 @@ import type {
   SkillMergeRequestResolutionType,
   SkillMergeRequestStatus
 } from '@metorial/db';
-import { db, Prisma, withTransaction } from '@metorial/db';
+import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import {
   getCanonicalSkillPairKey,
   getSkillMergeRequestActivePairKey,
@@ -431,7 +430,7 @@ class SkillMergeRequestInternalServiceImpl {
     };
   }
 
-  buildMergeItems(d: {
+  async buildMergeItems(d: {
     mergeRequestOid: bigint;
     sourceBase: Snapshot;
     targetBase: Snapshot;
@@ -475,11 +474,9 @@ class SkillMergeRequestInternalServiceImpl {
 
       let representative = source ?? sourceBase ?? target ?? targetBase;
       if (!representative) continue;
-      let ids = getId('skillMergeRequestItem');
 
       data.push({
-        oid: ids.oid,
-        id: ids.id,
+        id: await ID.generateId('skillMergeRequestItem'),
         skillMergeRequestOid: d.mergeRequestOid,
         path,
         kind: representative.kind,
@@ -522,7 +519,7 @@ class SkillMergeRequestInternalServiceImpl {
       d.mergeRequest.requestedTargetSkillVersionOid
     );
     let target = await this.getSkillVersionSnapshot(d.targetSkillVersionOid);
-    let nextItems = this.buildMergeItems({
+    let nextItems = await this.buildMergeItems({
       mergeRequestOid: d.mergeRequest.oid,
       sourceBase,
       targetBase,
@@ -819,7 +816,7 @@ class SkillMergeRequestInternalServiceImpl {
         let targetBase = await this.getSkillVersionSnapshot(mergeBases.targetBaseVersion.oid);
         let source = await this.getSkillVersionSnapshot(requestedSourceVersion.oid);
         let target = await this.getSkillVersionSnapshot(requestedTargetVersion.oid);
-        let items = this.buildMergeItems({
+        let items = await this.buildMergeItems({
           mergeRequestOid: 0n,
           sourceBase,
           targetBase,
@@ -899,11 +896,9 @@ class SkillMergeRequestInternalServiceImpl {
             );
           }
 
-          let ids = getId('skillMergeRequest');
           let mergeRequest = await tx.skillMergeRequest.create({
             data: {
-              oid: ids.oid,
-              id: ids.id,
+              id: await ID.generateId('skillMergeRequest'),
               title: d.title,
               description: d.description,
               projectOid: d.project.oid,

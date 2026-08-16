@@ -7,8 +7,7 @@ import {
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { env } from '@metorial/cargo-config';
-import { getId } from '@metorial/cargo-config/id';
+import { env } from '../env';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -22,7 +21,7 @@ import {
   type CargoOwnerScope
 } from '../internal/ownerScope';
 import type { FileLink, Instance, Prisma, Project, ResourceActor } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { assertResourceActorScope } from '@metorial/module-access';
 import { fileReferenceService } from './fileReference';
 
@@ -108,12 +107,9 @@ class FileLinkServiceImpl {
         });
       }
 
-      let generated = getId('fileLink');
-
       return await db.fileLink.create({
         data: {
-          oid: generated.oid,
-          id: d.input.id ?? generated.id,
+          id: d.input.id ?? (await ID.generateId('fileLink')),
           key: d.input.key ?? this.getGeneratedKey(),
           fileOid: d.file.oid,
           projectOid: 'project' in d ? d.project.oid : null,

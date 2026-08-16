@@ -1,6 +1,5 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
 import type {
   Instance,
@@ -11,7 +10,7 @@ import type {
   StoreDirectory,
   StoreItemKind
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import {
   listAncestorDirectoryPaths,
   normalizeStorePath,
@@ -337,10 +336,9 @@ class StoreItemMutationServiceImpl {
           return;
         }
 
-        let ids = getId('skillAgent');
         await db.skillAgent.create({
           data: {
-            ...ids,
+            id: await ID.generateId('skillAgent'),
             name,
             slug,
             skillOid: d.skill.oid,
@@ -667,7 +665,6 @@ class StoreItemMutationServiceImpl {
               path: normalizedPath.parentPath
             });
 
-      let directoryIds = getId('storeDirectory');
       return await client.storeDirectory.upsert({
         where: {
           storeOid_path: {
@@ -676,8 +673,7 @@ class StoreItemMutationServiceImpl {
           }
         },
         create: {
-          oid: directoryIds.oid,
-          id: directoryIds.id,
+          id: await ID.generateId('storeDirectory'),
           storeOid: d.store.oid,
           path: normalizedPath.path,
           isAutoCreated: d.isAutoCreated,
@@ -739,13 +735,12 @@ class StoreItemMutationServiceImpl {
         };
       }
 
-      let itemIds = getId('storeItem');
+      let itemId = await ID.generateId('storeItem');
       return {
         created: true,
         item: await client.storeItem.create({
           data: {
-            oid: itemIds.oid,
-            id: itemIds.id,
+            id: itemId,
             kind: 'directory',
             path: d.directory.path,
             storeOid: d.store.oid,
@@ -1038,19 +1033,18 @@ class StoreItemMutationServiceImpl {
         };
       }
 
-      let itemIds = getId('storeItem');
+      let itemId = await ID.generateId('storeItem');
       let reference = await this.createItemReference({
         project: d.project,
         instance: d.instance,
-        itemId: itemIds.id,
+        itemId,
         target: d.target
       });
 
       let createResult = await client.storeItem.createMany({
         data: [
           {
-            oid: itemIds.oid,
-            id: itemIds.id,
+            id: itemId,
             kind: this.getContentItemKind(d.target),
             path: d.path.path,
             storeOid: d.store.oid,
@@ -1070,7 +1064,7 @@ class StoreItemMutationServiceImpl {
           created: true,
           item: (await client.storeItem.findUnique({
             where: {
-              id: itemIds.id
+              id: itemId
             },
             include: storeItemInclude
           }))!

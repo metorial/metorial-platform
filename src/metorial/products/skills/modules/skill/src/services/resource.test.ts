@@ -33,7 +33,9 @@ vi.mock('@metorial-subspace/db', () => ({
       upsert: mocks.subspaceUpsertSkillTemplate
     }
   },
-  getId: vi.fn(() => ({})),
+  ID: {
+    generateId: vi.fn(() => Promise.resolve('generated'))
+  },
   withTransaction: vi.fn(async (cb: any) =>
     cb({
       skillEntity: { create: mocks.createSkillEntity, update: mocks.updateSkillEntity },

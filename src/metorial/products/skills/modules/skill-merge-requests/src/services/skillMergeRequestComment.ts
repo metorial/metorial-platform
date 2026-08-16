@@ -6,10 +6,9 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import { assertResourceActorScope } from '@metorial/module-access';
 import type { Instance, Project, ResourceActor } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
   skillMergeRequestCommentInclude,
@@ -135,13 +134,10 @@ class SkillMergeRequestCommentServiceImpl {
       }
     }
 
-    let ids = getId('skillMergeRequestComment');
-
     return await withTransaction(async tx => {
       let comment = await tx.skillMergeRequestComment.create({
         data: {
-          oid: ids.oid,
-          id: ids.id,
+          id: await ID.generateId('skillMergeRequestComment'),
           skillMergeRequestOid: d.mergeRequest.oid,
           skillMergeRequestItemOid,
           inReplyToCommentOid: reply?.oid,

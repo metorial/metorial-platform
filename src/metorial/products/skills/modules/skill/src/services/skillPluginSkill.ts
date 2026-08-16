@@ -2,7 +2,6 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -11,7 +10,7 @@ import {
   resolveSkills
 } from '@metorial/cargo-list-utils';
 import type { Instance, Prisma, Project, SkillPluginSkillStatus } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import {
   assertSkillMarketplaceSkillLimit,
   assertSkillPluginSkillLimit,
@@ -310,7 +309,7 @@ class SkillPluginSkillServiceImpl {
         lifecycleEvent = 'created';
         skillPluginSkill = await db.skillPluginSkill.create({
           data: {
-            ...getId('skillPluginSkill'),
+            id: await ID.generateId('skillPluginSkill'),
             status: 'active',
             pluginSkillSlug,
             clientName: d.input.clientName,

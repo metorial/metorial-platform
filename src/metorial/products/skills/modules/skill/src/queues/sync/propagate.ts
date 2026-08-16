@@ -1,6 +1,5 @@
 import { generatePlainId } from '@lowerdeck/id';
-import { getId } from '@metorial/cargo-config/id';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getOriginTenant, origin } from '../../internal/skillDestination';
 import {
@@ -164,7 +163,7 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(as
 
       return await db.skillDestinationSyncRepositoryPropagation.create({
         data: {
-          ...getId('skillDestinationSyncRepositoryPropagation'),
+          id: await ID.generateId('skillDestinationSyncRepositoryPropagation'),
           status: 'pending',
           repositoryAccessMode,
           forceMergeOrPush,

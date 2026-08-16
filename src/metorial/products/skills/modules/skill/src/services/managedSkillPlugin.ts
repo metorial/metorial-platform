@@ -3,7 +3,6 @@ import { Hash } from '@lowerdeck/hash';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import { getId } from '@metorial/cargo-config/id';
 import type {
   Instance,
   Prisma,
@@ -12,7 +11,7 @@ import type {
   SkillPluginSkillStatus,
   SkillPluginStatus
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { createSkillDestination } from '../internal/skillDestination';
 import type { LifecycleEvent } from '../queues/lifecycle/_ids';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
@@ -128,7 +127,7 @@ class ManagedSkillPluginServiceImpl {
     let managedSkillPlugin = await withTransaction(async db => {
       let skillPlugin = await db.skillPlugin.create({
         data: {
-          ...getId('skillPlugin'),
+          id: await ID.generateId('skillPlugin'),
           status: 'active' as SkillPluginStatus,
           isManaged: true,
           name: values.name,
@@ -143,7 +142,7 @@ class ManagedSkillPluginServiceImpl {
 
       await db.skillPluginSkill.create({
         data: {
-          ...getId('skillPluginSkill'),
+          id: await ID.generateId('skillPluginSkill'),
           status: 'active' as SkillPluginSkillStatus,
           pluginSkillSlug: slugify(
             (skill.clientName ?? skill.name ?? skill.id).replaceAll('_', '-')
@@ -158,7 +157,7 @@ class ManagedSkillPluginServiceImpl {
           skillOid: skill.oid
         },
         create: {
-          ...getId('managedSkillPlugin'),
+          id: await ID.generateId('managedSkillPlugin'),
           configHash: values.configHash,
           skillOid: skill.oid,
           skillPluginOid: skillPlugin.oid
@@ -266,7 +265,7 @@ class ManagedSkillPluginServiceImpl {
         } else {
           let skillPluginSkill = await db.skillPluginSkill.create({
             data: {
-              ...getId('skillPluginSkill'),
+              id: await ID.generateId('skillPluginSkill'),
               status: 'active',
               pluginSkillSlug: slugify(
                 (

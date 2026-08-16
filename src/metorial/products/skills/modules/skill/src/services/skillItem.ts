@@ -4,7 +4,7 @@ import { Service } from '@lowerdeck/service';
 import {
   addAfterTransactionHook,
   db,
-  getId,
+  ID,
   type Prisma,
   type SkillItem,
   type SkillItemStatus,
@@ -325,7 +325,7 @@ class SkillItemServiceImpl {
         } else {
           let item = await db.skillItem.create({
             data: {
-              ...getId('skillItem'),
+              id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'integration',
               skillOid: skill.oid
@@ -334,7 +334,7 @@ class SkillItemServiceImpl {
           itemId = item.id;
           await db.skillIntegration.create({
             data: {
-              ...getId('skillIntegration'),
+              id: await ID.generateId('skillIntegration'),
               status: 'active',
               skillOid: skill.oid,
               integrationOid: integration.oid,
@@ -395,7 +395,7 @@ class SkillItemServiceImpl {
       } else {
         let item = await db.skillItem.create({
           data: {
-            ...getId('skillItem'),
+            id: await ID.generateId('skillItem'),
             status: 'active',
             type: 'provider',
             skillOid: skill.oid
@@ -404,7 +404,7 @@ class SkillItemServiceImpl {
         itemId = item.id;
         await db.skillProvider.create({
           data: {
-            ...getId('skillProvider'),
+            id: await ID.generateId('skillProvider'),
             status: 'active',
             skillOid: skill.oid,
             providerOid: provider.oid,

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
@@ -27,8 +28,7 @@
     "@metorial/cargo-list-utils": "^1.0.0",
     "object-storage-client": "^0.2.5",
     "@metorial/queue": "^1.0.0",
-    "@metorial/cron": "^1.0.0",
-    "@metorial/cargo-config": "^1.0.0"
+    "@metorial/cron": "^1.0.0"
   },
   "module": "src/index.ts",
   "types": "src/index.ts",

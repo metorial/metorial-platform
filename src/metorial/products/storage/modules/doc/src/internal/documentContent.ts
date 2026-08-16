@@ -1,5 +1,4 @@
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
 import { documentInclude } from '../services/document';
@@ -115,11 +114,8 @@ class InternalDocumentContentServiceImpl {
         });
       } else if (shouldCreateNewVersion) {
         if (d.document.currentVersion) {
-          let retiredContentIds = getId('documentContent');
-
-          await db.documentContent.create({
+          let retiredContent = await db.documentContent.create({
             data: {
-              oid: retiredContentIds.oid,
               content: d.document.content.content
             }
           });
@@ -129,23 +125,20 @@ class InternalDocumentContentServiceImpl {
               id: d.document.currentVersion.id
             },
             data: {
-              contentOid: retiredContentIds.oid
+              contentOid: retiredContent.oid
             }
           });
         }
 
         if (d.document.isContentOwner) {
           if (shouldDetachOwnedContent) {
-            let liveContentIds = getId('documentContent');
-
-            await db.documentContent.create({
+            let liveContent = await db.documentContent.create({
               data: {
-                oid: liveContentIds.oid,
                 content: d.nextContent
               }
             });
 
-            liveContentOid = liveContentIds.oid;
+            liveContentOid = liveContent.oid;
           } else {
             await db.documentContent.update({
               where: {
@@ -159,16 +152,13 @@ class InternalDocumentContentServiceImpl {
         } else if (shouldKeepParentSync) {
           liveContentOid = parentLiveContent!.contentOid;
         } else {
-          let liveContentIds = getId('documentContent');
-
-          await db.documentContent.create({
+          let liveContent = await db.documentContent.create({
             data: {
-              oid: liveContentIds.oid,
               content: d.nextContent
             }
           });
 
-          liveContentOid = liveContentIds.oid;
+          liveContentOid = liveContent.oid;
         }
 
         activeVersion = await internalDocumentVersioningService.createVersion({
@@ -182,16 +172,13 @@ class InternalDocumentContentServiceImpl {
         didCreateVersion = true;
       } else if (d.document.isContentOwner) {
         if (shouldDetachOwnedContent) {
-          let liveContentIds = getId('documentContent');
-
-          await db.documentContent.create({
+          let liveContent = await db.documentContent.create({
             data: {
-              oid: liveContentIds.oid,
               content: d.nextContent
             }
           });
 
-          liveContentOid = liveContentIds.oid;
+          liveContentOid = liveContent.oid;
 
           if (!d.document.currentVersion) {
             activeVersion = await internalDocumentVersioningService.createVersion({
@@ -255,16 +242,13 @@ class InternalDocumentContentServiceImpl {
           });
         }
       } else {
-        let liveContentIds = getId('documentContent');
-
-        await db.documentContent.create({
+        let liveContent = await db.documentContent.create({
           data: {
-            oid: liveContentIds.oid,
             content: d.nextContent
           }
         });
 
-        liveContentOid = liveContentIds.oid;
+        liveContentOid = liveContent.oid;
 
         if (!d.document.currentVersion) {
           activeVersion = await internalDocumentVersioningService.createVersion({

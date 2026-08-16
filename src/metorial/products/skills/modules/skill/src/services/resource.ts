@@ -6,7 +6,7 @@ import {
 } from '@metorial/module-resource-actor';
 import {
   db as subspaceDb,
-  getId as getSubspaceId,
+  ID,
   type Prisma as SubspacePrisma,
   withTransaction as withSubspaceTransaction
 } from '@metorial-subspace/db';
@@ -214,7 +214,7 @@ class SkillResourceServiceImpl {
         existing?.skillEntity ??
         (await subspaceDb.skillEntity.create({
           data: {
-            ...getSubspaceId('skillEntity'),
+            id: await ID.generateId('skillEntity'),
             slug: record.slug ?? record.id,
             name: record.name,
             description: record.description,
@@ -230,7 +230,6 @@ class SkillResourceServiceImpl {
       let projected = await subspaceDb.skill.upsert({
         where: { id: record.id },
         create: {
-          ...getSubspaceId('skill'),
           id: record.id,
           status: record.status,
           slug: record.slug ?? record.id,
@@ -295,7 +294,6 @@ class SkillResourceServiceImpl {
     await subspaceDb.skillTemplate.upsert({
       where: { id: record.id },
       create: {
-        ...getSubspaceId('skillTemplate'),
         id: record.id,
         status: record.status,
         owner: record.owner,
@@ -446,7 +444,7 @@ class SkillResourceServiceImpl {
     for (let integration of resources.integrations) {
       await subspaceDb.skillTemplateItem.create({
         data: {
-          ...getSubspaceId('skillTemplateItem'),
+          id: await ID.generateId('skillTemplateItem'),
           skillTemplateOid: targetTemplate.oid,
           integrationOid: integration.oid
         }
@@ -455,7 +453,7 @@ class SkillResourceServiceImpl {
     for (let provider of resources.providers) {
       await subspaceDb.skillTemplateItem.create({
         data: {
-          ...getSubspaceId('skillTemplateItem'),
+          id: await ID.generateId('skillTemplateItem'),
           skillTemplateOid: targetTemplate.oid,
           providerOid: provider.oid
         }
@@ -490,7 +488,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
-              ...getSubspaceId('skillItem'),
+              id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'integration',
               skillOid: targetSkill.oid
@@ -498,7 +496,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillIntegration.create({
             data: {
-              ...getSubspaceId('skillIntegration'),
+              id: await ID.generateId('skillIntegration'),
               status: 'active',
               skillOid: targetSkill.oid,
               integrationOid: item.integration!.oid,
@@ -510,7 +508,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
-              ...getSubspaceId('skillItem'),
+              id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'provider',
               skillOid: targetSkill.oid
@@ -518,7 +516,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillProvider.create({
             data: {
-              ...getSubspaceId('skillProvider'),
+              id: await ID.generateId('skillProvider'),
               status: 'active',
               skillOid: targetSkill.oid,
               providerOid: item.provider!.oid,
@@ -558,7 +556,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
-              ...getSubspaceId('skillItem'),
+              id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'integration',
               skillOid: targetSkill.oid
@@ -566,7 +564,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillIntegration.create({
             data: {
-              ...getSubspaceId('skillIntegration'),
+              id: await ID.generateId('skillIntegration'),
               status: 'active',
               skillOid: targetSkill.oid,
               integrationOid: item.integration!.oid,
@@ -578,7 +576,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
-              ...getSubspaceId('skillItem'),
+              id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'provider',
               skillOid: targetSkill.oid
@@ -586,7 +584,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillProvider.create({
             data: {
-              ...getSubspaceId('skillProvider'),
+              id: await ID.generateId('skillProvider'),
               status: 'active',
               skillOid: targetSkill.oid,
               providerOid: item.provider!.oid,

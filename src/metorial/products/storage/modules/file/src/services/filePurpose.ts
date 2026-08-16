@@ -1,8 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
-import { db } from '@metorial/db';
+import { db, ID } from '@metorial/db';
 
 export let documentFilePurposeSlug = 'document';
 export let documentFilePurposeName = 'Document';
@@ -20,14 +19,12 @@ class FilePurposeServiceImpl {
     };
   }) {
     if (!d.input.id) {
-      let generated = getId('filePurpose');
-
       return await db.filePurpose.upsert({
         where: {
           slug: d.input.slug
         },
         create: {
-          id: generated.id,
+          id: await ID.generateId('filePurpose'),
           slug: d.input.slug,
           name: d.input.name,
           ownerType: d.input.ownerType,
@@ -66,8 +63,6 @@ class FilePurposeServiceImpl {
         }
       });
     }
-
-    let generated = getId('filePurpose');
 
     return await db.filePurpose.create({
       data: {

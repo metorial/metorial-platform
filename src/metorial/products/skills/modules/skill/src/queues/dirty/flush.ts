@@ -1,6 +1,5 @@
-import { getId } from '@metorial/cargo-config/id';
 import { createCron } from '@metorial/cron';
-import { db } from '@metorial/db';
+import { db, ID } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { syncStartQueue } from '../sync/start';
 
@@ -85,7 +84,7 @@ export let flushDirtySkillDestinationsSingleQueueProcessor =
 
     let sync = await db.skillDestinationSync.create({
       data: {
-        ...getId('skillDestinationSync'),
+        id: await ID.generateId('skillDestinationSync'),
         destinationOid: destination.oid,
         status: 'pending'
       }

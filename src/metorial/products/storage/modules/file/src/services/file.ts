@@ -7,7 +7,6 @@ import {
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -37,7 +36,7 @@ import type {
   Project,
   StoreParticipantPermissions
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { requireInstanceScope } from '../lib/instanceScope';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
@@ -222,12 +221,9 @@ class FileServiceImpl {
         return await this.withEffectiveStoreId(updatedFile);
       }
 
-      let generated = getId('file');
-
       let createdFile = await db.file.create({
         data: {
-          oid: generated.oid,
-          id: d.input.id ?? generated.id,
+          id: d.input.id ?? (await ID.generateId('file')),
           ...cargoFileScope(d),
           purposeOid: purpose.oid,
           storeId: d.storeId,

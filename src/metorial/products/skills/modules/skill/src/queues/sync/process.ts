@@ -1,5 +1,4 @@
-import { env } from '@metorial/cargo-config';
-import { snowflake } from '@metorial/cargo-config/id';
+import { env } from '../../env';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
@@ -282,7 +281,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
 
     await db.skillDestinationItem.create({
       data: {
-        oid: snowflake.nextId(),
         destinationOid: sync.destinationOid,
         skillMarketplaceOid: d.skillMarketplaceOid,
         skillPluginOid: d.skillPluginOid,

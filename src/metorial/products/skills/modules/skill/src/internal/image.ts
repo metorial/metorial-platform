@@ -1,6 +1,6 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { env } from '@metorial/cargo-config';
+import { getConfig } from '@metorial/config';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
 import type {
   EntityImage,
@@ -43,9 +43,10 @@ let getExtension = (fileName: string) => {
 
 class InternalImageServiceImpl {
   private getFileLinkUrl(d: { fileId: string; key: string }) {
-    if (!env.service.DOWNLOAD_PUBLIC_URL) return '';
+    let filesUrl = getConfig().urls.filesUrl;
+    if (!filesUrl) return '';
 
-    return `${env.service.DOWNLOAD_PUBLIC_URL}/files/${d.fileId}/${d.key}`;
+    return `${filesUrl.replace(/\/$/, '')}/files/${d.fileId}/${d.key}`;
   }
 
   private async createImageEntityImage(d: {

@@ -17,19 +17,15 @@ vi.mock('@metorial/db', () => ({
       findFirst: mocks.findItem
     }
   },
+  ID: {
+    generateId: vi.fn(() => Promise.resolve('skmrc_reply'))
+  },
   withTransaction: async (callback: (tx: unknown) => unknown) =>
     callback({
       skillMergeRequestComment: {
         create: mocks.createComment
       }
     })
-}));
-
-vi.mock('@metorial/cargo-config/id', () => ({
-  getId: () => ({
-    oid: 100n,
-    id: 'skmrc_reply'
-  })
 }));
 
 vi.mock('@metorial/module-access', () => ({

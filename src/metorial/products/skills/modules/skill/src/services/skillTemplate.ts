@@ -3,7 +3,6 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import { snowflake } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -372,7 +371,6 @@ class SkillTemplateServiceImpl {
         data: {
           projectOid: d.project?.oid ?? null,
           instanceOid: d.instance?.oid ?? null,
-          oid: snowflake.nextId(),
           id: d.input.id,
           owner: d.project ? 'tenant' : 'system',
           slug:

@@ -2,7 +2,6 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   documentInclude,
   documentService,
@@ -23,7 +22,7 @@ import type {
   StoreItemKind,
   StoreTemplateItem
 } from '@metorial/db';
-import { db, isUniqueConstraintError, withTransaction } from '@metorial/db';
+import { db, ID, isUniqueConstraintError, withTransaction } from '@metorial/db';
 import { storeItemInclude } from '../services/storeItem';
 import { storeItemMutationService } from '../services/storeItemMutation';
 import { storeVersionService } from '../services/storeVersion';
@@ -361,12 +360,9 @@ class InternalStoreTemplateSyncServiceImpl {
           };
         }
 
-        let storeIds = getId('store');
-        let backingIds = getId('storeTemplateBacking');
         let store = await db.store.create({
           data: {
-            oid: storeIds.oid,
-            id: storeIds.id,
+            id: await ID.generateId('store'),
             name: d.storeTemplate.name,
             access: 'public_read',
             itemCount: 0,
@@ -386,8 +382,7 @@ class InternalStoreTemplateSyncServiceImpl {
             }
           },
           create: {
-            oid: backingIds.oid,
-            id: backingIds.id,
+            id: await ID.generateId('storeTemplateBacking'),
             storeTemplateOid: d.storeTemplate.oid,
             projectOid: d.project.oid,
             instanceOid: d.instance.oid,
@@ -567,22 +562,20 @@ class InternalStoreTemplateSyncServiceImpl {
 
             if (!hasContentChange && !hasTitleChange) return currentDocument;
 
-            let contentIds = hasContentChange ? getId('documentContent') : null;
-            if (contentIds) {
-              await db.documentContent.create({
-                data: {
-                  oid: contentIds.oid,
-                  content
-                }
-              });
-            }
+            let content = hasContentChange
+              ? await db.documentContent.create({
+                  data: {
+                    content
+                  }
+                })
+              : null;
 
-            let version = contentIds
+            let version = content
               ? await internalDocumentVersioningService.createVersion({
                   project: d.project,
                   instance: d.instance,
                   document: currentDocument,
-                  contentOid: contentIds.oid,
+                  contentOid: content.oid,
                   previousVersionOid: currentDocument.currentVersionOid,
                   listEditedAt: new Date()
                 })
@@ -611,9 +604,9 @@ class InternalStoreTemplateSyncServiceImpl {
                 title,
                 isReadOnly: true,
                 isTemplateBacking: true,
-                contentOid: contentIds ? contentIds.oid : undefined,
-                currentVersionOid: contentIds ? version!.oid : undefined,
-                isContentOwner: contentIds ? true : undefined
+                contentOid: content ? content.oid : undefined,
+                currentVersionOid: content ? version!.oid : undefined,
+                isContentOwner: content ? true : undefined
               },
               include: documentInclude
             });

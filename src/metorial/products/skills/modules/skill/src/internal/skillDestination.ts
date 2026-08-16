@@ -1,8 +1,7 @@
 import { createOriginClient } from '@metorial-platform-systems/origin-client';
-import { env } from '@metorial/cargo-config';
-import { getId } from '@metorial/cargo-config/id';
 import type { SkillDestination, SkillRepository } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
+import { env } from '../env';
 import { syncStartQueue } from '../queues/sync/start';
 import { getProjectTenantIdentifier } from './scope';
 
@@ -42,7 +41,7 @@ export let createSkillDestination = async (d: {
 
   return await db.skillDestination.create({
     data: {
-      ...getId('skillDestination'),
+      id: await ID.generateId('skillDestination'),
       codeBucketId: codeBucket.id,
       lastUsedAt: new Date()
     }
@@ -87,7 +86,7 @@ export let forceSkillDestinationSync = async (d: {
 
     return await db.skillDestinationSync.create({
       data: {
-        ...getId('skillDestinationSync'),
+        id: await ID.generateId('skillDestinationSync'),
         destinationOid: d.destination.oid,
         status: 'pending'
       }

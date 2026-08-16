@@ -11,7 +11,6 @@ import {
   fileReferenceService,
   fileService
 } from '@metorial/cargo-module-file';
-import { getId } from '@metorial/cargo-config/id';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { assertResourceActorScope } from '@metorial/module-access';
 import type {
@@ -22,7 +21,7 @@ import type {
   SkillImportStatus,
   StoreParticipantPermissions
 } from '@metorial/db';
-import { db } from '@metorial/db';
+import { db, ID } from '@metorial/db';
 import { detectUploadedSkillFileFormat } from '../import/archive';
 import { parsePublicRepositoryUrl } from '../import/publicRepository';
 import { skillImportAcquireQueue } from '../queues/import/acquire';
@@ -155,7 +154,7 @@ class SkillImportServiceImpl {
       }
     }
 
-    let ids = getId('skillImport');
+    let id = await ID.generateId('skillImport');
     let sourceFileLink = sourceFile
       ? await fileLinkService.createFileLink({
           project: d.project,
@@ -171,7 +170,7 @@ class SkillImportServiceImpl {
           fileLink: sourceFileLink,
           input: {
             entityType: 'skill_import',
-            entityId: ids.id
+            entityId: id
           }
         })
       : undefined;
@@ -179,8 +178,7 @@ class SkillImportServiceImpl {
     try {
       skillImport = await db.skillImport.create({
         data: {
-          oid: ids.oid,
-          id: ids.id,
+          id,
           sourceType:
             d.input.type === 'public'
               ? 'public_repository'

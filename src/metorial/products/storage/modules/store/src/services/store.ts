@@ -2,7 +2,6 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   normalizeDateFilter,
   resolveResourceActors,
@@ -29,7 +28,7 @@ import type {
   StoreAccess,
   StoreCloneType
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { assertResourceActorScope } from '@metorial/module-access';
 import { posix as pathPosix } from 'node:path';
 import { normalizeStorePath } from '../lib/storePath';
@@ -283,13 +282,11 @@ class StoreServiceImpl {
     }
 
     return await withTransaction(async db => {
-      let storeIds = d.input.id ? { oid: getId('store').oid, id: d.input.id } : getId('store');
       let lastEditedAt = new Date();
 
       let createdStore = await db.store.create({
         data: {
-          oid: storeIds.oid,
-          id: storeIds.id,
+          id: d.input.id ?? (await ID.generateId('store')),
           name: d.input.name,
           access: this.getTemplateLinkedStoreAccess({
             access: d.input.access,

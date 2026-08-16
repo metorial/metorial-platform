@@ -1,7 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -11,7 +10,7 @@ import {
 } from '@metorial/cargo-list-utils';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import type { File, FileLink, FileReference, Instance, Project } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 
 let include = {
   fileLink: {
@@ -72,12 +71,9 @@ class FileReferenceServiceImpl {
         });
       }
 
-      let generated = getId('fileRef');
-
       return await db.fileReference.create({
         data: {
-          oid: generated.oid,
-          id: d.input.id ?? generated.id,
+          id: d.input.id ?? (await ID.generateId('fileRef')),
           fileLinkOid: d.fileLink.oid,
           projectOid: 'project' in d ? d.project.oid : null,
           instanceOid: 'instance' in d ? d.instance.oid : null,

@@ -17,11 +17,10 @@ let { db, getAccessTagFilterMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@metorial/db', () => ({
-  withTransaction: vi.fn(async (fn: any) => await fn(db))
-}));
-
-vi.mock('@metorial/cargo-config/id', () => ({
-  getId: vi.fn()
+  withTransaction: vi.fn(async (fn: any) => await fn(db)),
+  ID: {
+    generateId: vi.fn(async () => 'storeParticipant_generated')
+  }
 }));
 
 vi.mock('@metorial/module-access', () => ({

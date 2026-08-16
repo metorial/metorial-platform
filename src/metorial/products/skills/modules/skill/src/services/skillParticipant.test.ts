@@ -21,14 +21,10 @@ let { db } = vi.hoisted(() => ({
 
 vi.mock('@metorial/db', () => ({
   db,
+  ID: {
+    generateId: vi.fn(() => Promise.resolve('skp_generated'))
+  },
   withTransaction: vi.fn(async (fn: any) => await fn(db))
-}));
-
-vi.mock('@metorial/cargo-config/id', () => ({
-  getId: vi.fn(() => ({
-    oid: 100n,
-    id: 'skp_generated'
-  }))
 }));
 
 vi.mock('@metorial/cargo-list-utils', () => ({

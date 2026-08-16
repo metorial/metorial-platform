@@ -1,6 +1,5 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { getId } from '@metorial/cargo-config/id';
 import type {
   Instance,
   Prisma,
@@ -11,7 +10,7 @@ import type {
   StoreParticipant,
   StoreParticipantPermissions
 } from '@metorial/db';
-import { withTransaction } from '@metorial/db';
+import { ID, withTransaction } from '@metorial/db';
 import {
   accessTagService,
   type AnyAccessTagSelector,
@@ -325,7 +324,6 @@ class StoreAccessServiceImpl {
               continue;
             }
 
-            let ids = getId('storeParticipant');
             let participant = await client.storeParticipant.upsert({
               where: {
                 storeOid_resourceActorOid: {
@@ -337,8 +335,7 @@ class StoreAccessServiceImpl {
                 permissions: nextPermissions
               },
               create: {
-                oid: ids.oid,
-                id: ids.id,
+                id: await ID.generateId('storeParticipant'),
                 storeOid,
                 resourceActorOid: d.actor.oid,
                 permissions: nextPermissions
@@ -355,7 +352,6 @@ class StoreAccessServiceImpl {
           for (let storeOid of storeOids) {
             if (byStoreOid.has(storeOid.toString())) continue;
 
-            let ids = getId('storeParticipant');
             let participant = await client.storeParticipant.upsert({
               where: {
                 storeOid_resourceActorOid: {
@@ -365,8 +361,7 @@ class StoreAccessServiceImpl {
               },
               update: {},
               create: {
-                oid: ids.oid,
-                id: ids.id,
+                id: await ID.generateId('storeParticipant'),
                 storeOid,
                 resourceActorOid: d.actor.oid,
                 permissions: nextPermissions
@@ -521,11 +516,9 @@ class StoreAccessServiceImpl {
             continue;
           }
 
-          let ids = getId('storeParticipant');
           let participant = await client.storeParticipant.create({
             data: {
-              oid: ids.oid,
-              id: ids.id,
+              id: await ID.generateId('storeParticipant'),
               storeOid: item.storeOid,
               resourceActorOid: d.actor.oid,
               permissions: item.permissions

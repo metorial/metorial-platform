@@ -1,4 +1,3 @@
-import { getId } from '@metorial/cargo-config/id';
 import { storeVersionService } from '@metorial/cargo-module-store';
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
@@ -107,10 +106,8 @@ export let flushExpiredDraftVersion = async (d: {
       }
       if (draftVersionExpiresAt.getTime() > now.getTime()) return null;
 
-      let retiredContentIds = getId('documentContent');
-      await db.documentContent.create({
+      let retiredContent = await db.documentContent.create({
         data: {
-          oid: retiredContentIds.oid,
           content: document.content.content
         }
       });
@@ -120,7 +117,7 @@ export let flushExpiredDraftVersion = async (d: {
           id: document.currentVersion.id
         },
         data: {
-          contentOid: retiredContentIds.oid
+          contentOid: retiredContent.oid
         }
       });
 

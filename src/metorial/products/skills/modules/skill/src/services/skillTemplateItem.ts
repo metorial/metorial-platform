@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   db,
-  getId,
+  ID,
   type Prisma,
   type SkillTemplate,
   withTransaction
@@ -279,7 +279,7 @@ class SkillTemplateItemServiceImpl {
   }) {
     return await d.db.skillTemplateItem.create({
       data: {
-        ...getId('skillTemplateItem'),
+        id: await ID.generateId('skillTemplateItem'),
         skillTemplateOid: d.skillTemplate.oid,
         integrationOid: d.integrationOid,
         providerOid: d.providerOid
@@ -313,18 +313,22 @@ class SkillTemplateItemServiceImpl {
     ]);
 
     return [
-      ...integrations.map(integration => ({
-        ...getId('skillTemplateItem'),
-        skillTemplateOid: d.skillTemplateOid,
-        integrationOid: integration.integrationOid,
-        providerOid: null
-      })),
-      ...providers.map(provider => ({
-        ...getId('skillTemplateItem'),
-        skillTemplateOid: d.skillTemplateOid,
-        integrationOid: null,
-        providerOid: provider.providerOid
-      }))
+      ...(await Promise.all(
+        integrations.map(async integration => ({
+          id: await ID.generateId('skillTemplateItem'),
+          skillTemplateOid: d.skillTemplateOid,
+          integrationOid: integration.integrationOid,
+          providerOid: null
+        }))
+      )),
+      ...(await Promise.all(
+        providers.map(async provider => ({
+          id: await ID.generateId('skillTemplateItem'),
+          skillTemplateOid: d.skillTemplateOid,
+          integrationOid: null,
+          providerOid: provider.providerOid
+        }))
+      ))
     ];
   }
 

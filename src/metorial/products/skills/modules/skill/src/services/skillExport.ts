@@ -1,7 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { env } from '@metorial/cargo-config';
-import { getId, snowflake } from '@metorial/cargo-config/id';
+import { env } from '../env';
 import {
   fileLinkService,
   filePurposeService,
@@ -20,7 +19,7 @@ import type {
   SkillExportStatus,
   SkillExportTarget
 } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { createHash } from 'node:crypto';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
 import { enqueueSkillExport } from '../queues/export';
@@ -317,7 +316,6 @@ class SkillExportServiceImpl {
         }
       },
       create: {
-        oid: snowflake.nextId(),
         hash: d.target.hash,
         skillConfigurationOid: d.target.skillConfigurationOid,
         skillOid: d.target.skillOid,
@@ -476,12 +474,9 @@ class SkillExportServiceImpl {
       instance: d.instance,
       target
     });
-    let ids = getId('skillExport');
-
     let skillExport = await db.skillExport.create({
       data: {
-        oid: ids.oid,
-        id: ids.id,
+        id: await ID.generateId('skillExport'),
         target: target.target,
         status: 'pending',
         exportRefOid: exportRef.oid,
