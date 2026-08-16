@@ -16,7 +16,7 @@ let { db } = vi.hoisted(() => ({
 
 vi.mock('@metorial/db', () => ({ db }));
 
-import { resolveInstanceScope, resolveOwnerScope } from '../src/services/ownerScope';
+import { resolveInstanceScope, resolveOwnerScope } from './ownerScope';
 
 beforeEach(() => {
   vi.clearAllMocks();

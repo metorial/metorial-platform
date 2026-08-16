@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import type { ResourceActorPresentationRecord } from '@metorial/module-resource-tenant';
+import type { ResourceActorPresentationRecord } from '@metorial/module-resource-actor';
 import type { PresenterContext } from '@metorial/presenter';
 import { Presenter } from '@metorial/presenter';
 import { documentParticipantType } from '../../types';

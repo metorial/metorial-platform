@@ -10,15 +10,17 @@ import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoOwnerScope,
-  cargoFileScope,
-  cargoOwnerScopeProject,
   type DateFilter,
   normalizeDateFilter,
   resolveFileLinks,
   resolveFiles,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
+import {
+  cargoFileScope,
+  cargoOwnerScopeProject,
+  type CargoOwnerScope
+} from '../internal/ownerScope';
 import type { FileLink, Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { assertResourceActorScope } from '@metorial/module-access';

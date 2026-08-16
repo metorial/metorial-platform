@@ -32,7 +32,7 @@ import {
   consumerSkillManageAccessRoles,
   createResourceAuthorization
 } from '@metorial/module-access';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { consumerAccessPolicyService } from '../consumerAccess/accessPolicy';
 import { consumerAccessService } from '../consumerAccess/consumerAccess';
 

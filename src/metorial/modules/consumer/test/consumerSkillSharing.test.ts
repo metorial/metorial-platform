@@ -38,6 +38,9 @@ let {
     },
     skill: {
       findFirst: vi.fn()
+    },
+    project: {
+      findUniqueOrThrow: vi.fn(async () => ({ oid: 2n }))
     }
   },
   transactionDb: {
@@ -103,11 +106,7 @@ vi.mock('@metorial/module-access', () => ({
   }
 }));
 
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveInstanceScope: vi.fn(async () => ({
-    project: { oid: 2n },
-    instance: { oid: 3n }
-  })),
+vi.mock('@metorial/module-resource-actor', () => ({
   resourceActorService: {
     ensureConsumerActor: ensureConsumerActorMock,
     ensureConsumerProfileActor: ensureConsumerActorMock,

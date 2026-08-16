@@ -9,8 +9,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoOwnerScope,
-  cargoFileScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
@@ -21,6 +19,7 @@ import {
   resolveResourceActors,
   resolveStores
 } from '@metorial/cargo-list-utils';
+import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import {
   internalDocumentContentStoreService,
   internalDocumentDraftService
@@ -43,7 +42,7 @@ import { requireInstanceScope } from '../lib/instanceScope';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import type { ResourceAuthorization } from '@metorial/module-access';
 
 let include = {

@@ -7,7 +7,7 @@ import {
   resolveDocumentVersions,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';

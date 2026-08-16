@@ -32,7 +32,7 @@ import type {
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { internalDocumentContentService } from '../internal/documentContent';
 import { internalDocumentContentStoreService } from '../internal/documentContentStore';
 import type { DocumentDraft } from '../internal/documentDraft';

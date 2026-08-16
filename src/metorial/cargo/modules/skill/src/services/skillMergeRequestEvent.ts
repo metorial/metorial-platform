@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type {

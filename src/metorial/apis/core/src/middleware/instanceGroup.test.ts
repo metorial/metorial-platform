@@ -34,7 +34,7 @@ vi.mock('@metorial/module-consumer', () => ({
     getConsumerProfileByIdForInstance: mocks.getConsumerProfile
   }
 }));
-vi.mock('@metorial/module-resource-tenant', () => ({
+vi.mock('@metorial/module-resource-actor', () => ({
   resourceActorService: {
     ensureConsumerProfileActor: mocks.ensureConsumerProfileActor
   }

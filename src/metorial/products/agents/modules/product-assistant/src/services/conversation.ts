@@ -3,7 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Instance, ProductAssistantConversation, Project, ResourceActor } from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import { resolveAssistantConversationInput } from '../lib/definitions/conversationInput';
 import type { State } from '../types';

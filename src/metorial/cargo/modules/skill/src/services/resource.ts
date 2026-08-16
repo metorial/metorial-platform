@@ -3,7 +3,7 @@ import { db, type Prisma } from '@metorial/db';
 import {
   resourceActorPresentationInclude,
   type ResourceActorPresentationRecord
-} from '@metorial/module-resource-tenant';
+} from '@metorial/module-resource-actor';
 import {
   db as subspaceDb,
   getId as getSubspaceId,

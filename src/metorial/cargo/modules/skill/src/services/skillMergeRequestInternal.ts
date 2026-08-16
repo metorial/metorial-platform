@@ -12,7 +12,7 @@ import {
   flushDocumentCollaborationState,
   flushDocumentDraft
 } from '@metorial/cargo-module-doc';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import {
   storeAccessService,
   storeReadPermission,

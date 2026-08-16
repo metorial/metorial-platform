@@ -1,6 +1,6 @@
 import { generatePlainId } from '@lowerdeck/id';
-import type { CargoOwnerScope } from '@metorial/cargo-list-utils';
 import type { StoreParticipantPermissions } from '@metorial/db';
+import type { CargoOwnerScope } from '../internal/ownerScope';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { fileService } from '../services/file';
 import { getCargoFilesBucketName, getStorage } from '../storage';

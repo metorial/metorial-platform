@@ -95,7 +95,7 @@ vi.mock('@metorial/module-magic', () => ({
   resolveMagicMcpTargetByIdOrAlias: vi.fn()
 }));
 
-vi.mock('@metorial/module-resource-tenant', () => ({
+vi.mock('@metorial/module-resource-actor', () => ({
   resolveResourceScopeForInstance: vi.fn()
 }));
 

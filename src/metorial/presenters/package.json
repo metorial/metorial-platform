@@ -34,7 +34,7 @@
     "@metorial/module-magic": "^1.0.0",
     "@metorial/module-organization": "^1.0.0",
     "@metorial/module-product-assistant": "^1.0.0",
-    "@metorial/module-resource-tenant": "^1.0.0",
+    "@metorial/module-resource-actor": "^1.0.0",
     "@metorial/module-secrets": "^1.0.0",
     "@metorial/presenter": "^1.0.0"
   },

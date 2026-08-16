@@ -166,7 +166,7 @@ import type {
 import {
   resourceActorPresentationInclude,
   type ResourceActorPresentationRecord
-} from '@metorial/module-resource-tenant';
+} from '@metorial/module-resource-actor';
 import { PresentableType } from '@metorial/presenter';
 
 type RawProvider = SubspacePrisma.ProviderGetPayload<{

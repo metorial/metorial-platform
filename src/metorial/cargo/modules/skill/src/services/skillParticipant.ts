@@ -20,7 +20,7 @@ import { db, withTransaction } from '@metorial/db';
 import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
-} from '@metorial/module-resource-tenant';
+} from '@metorial/module-resource-actor';
 
 export let skillParticipantInclude = {
   skill: true,

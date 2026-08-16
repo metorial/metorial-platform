@@ -29,7 +29,7 @@ import {
   machineAccessAuthService,
   type OAuthTokenWithAuthorization
 } from '@metorial/module-machine-access';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { userAuthService } from '@metorial/module-user';
 import {
   instancePublishableTokenScopes,

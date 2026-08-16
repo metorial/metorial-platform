@@ -11,7 +11,7 @@ import {
 import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
-} from '@metorial/module-resource-tenant';
+} from '@metorial/module-resource-actor';
 import type { Instance, Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
 

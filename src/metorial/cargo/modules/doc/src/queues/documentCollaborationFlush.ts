@@ -5,7 +5,7 @@ import {
   composeFullMarkdown,
   yjsUpdateToDocumentSnapshot
 } from '@metorial/docs-editor-schema';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalDocumentCollaborationService } from '../internal';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';

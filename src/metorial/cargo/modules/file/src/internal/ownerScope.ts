@@ -11,6 +11,14 @@ export type OwnerScope =
   | { organization: { oid: bigint } }
   | InstanceScope;
 
+export type CargoOwnerScope = OwnerScope;
+
+export type CargoFileScope = {
+  userOid: bigint | null;
+  organizationOid: bigint | null;
+  instanceOid: bigint | null;
+};
+
 export type ScopeOwner =
   | {
       type: 'user';
@@ -24,6 +32,18 @@ export type ScopeOwner =
       type: 'instance';
       instance: { id: string };
     };
+
+export let cargoFileScope = (scope: OwnerScope): CargoFileScope => ({
+  userOid: 'user' in scope ? scope.user.oid : null,
+  organizationOid: 'organization' in scope ? scope.organization.oid : null,
+  instanceOid: 'instance' in scope ? scope.instance.oid : null
+});
+
+export let cargoOwnerScopeInstance = (scope: OwnerScope) =>
+  'instance' in scope ? scope.instance : null;
+
+export let cargoOwnerScopeProject = (scope: OwnerScope) =>
+  'project' in scope ? scope.project : undefined;
 
 export let resolveInstanceScope = async (instance: { id: string }): Promise<InstanceScope> => {
   let loaded = await db.instance.findUnique({

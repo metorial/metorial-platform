@@ -3,12 +3,10 @@ import type { EntityImage } from '@metorial/db';
 import {
   fileLinkService,
   fileReferenceService,
-  fileService
-} from '@metorial/cargo-module-file';
-import {
+  fileService,
   resolveOwnerScope,
   type ScopeOwner
-} from '@metorial/module-resource-tenant';
+} from '@metorial/cargo-module-file';
 
 export let resolveFileImage = async <ClearImage extends EntityImage | null>(d: {
   owner: ScopeOwner;

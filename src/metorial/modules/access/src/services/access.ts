@@ -13,7 +13,7 @@ import {
   instanceService,
   organizationService
 } from '@metorial/module-organization';
-import { resourceActorService } from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { Scope } from '../definitions';
 import { AuthInfo } from './authentication';
 

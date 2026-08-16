@@ -106,11 +106,8 @@ vi.mock('@metorial/cargo-module-file', () => ({
   fileReferenceService: {
     upsertFileReference: vi.fn(),
     deleteFileReferenceByIdAndCleanup: vi.fn()
-  }
-}));
-
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveResourceScopeForOwner: vi.fn()
+  },
+  resolveOwnerScope: vi.fn()
 }));
 
 // Mock organizationActorService

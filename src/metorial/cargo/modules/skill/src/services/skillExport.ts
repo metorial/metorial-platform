@@ -9,7 +9,7 @@ import {
   fileService
 } from '@metorial/cargo-module-file';
 import { assertResourceActorScope } from '@metorial/module-access';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import type {
   Instance,

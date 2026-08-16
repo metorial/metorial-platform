@@ -1,14 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@metorial/module-resource-tenant', () => ({
-  resolveOwnerScope: vi.fn(),
-  resourceActorService: {}
+vi.mock('@metorial/db', () => ({
+  db: {
+    instance: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
+    organization: { findUnique: vi.fn() }
+  }
 }));
 
-vi.mock(
-  '@metorial/cargo-list-utils',
-  async () => await vi.importActual('../../../../packages/list-utils/src/scope')
-);
+vi.mock('@metorial/module-resource-actor', () => ({
+  resourceActorService: {}
+}));
 
 vi.mock(
   '@metorial/module-access',
@@ -55,6 +57,7 @@ let memberResourceActor = {
   organizationActorOid: member.actor.oid,
   consumerOid: null,
   consumerProfileOid: null,
+  resourceTenantOid: null,
   createdAt: new Date(0),
   updatedAt: new Date(0)
 };

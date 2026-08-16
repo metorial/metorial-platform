@@ -1,15 +1,16 @@
-import { cargoOwnerScopeProject, type CargoOwnerScope } from '@metorial/cargo-list-utils';
 import type { Instance, ResourceActor } from '@metorial/db';
 import {
   createResourceAuthorization,
   type AnyAccessTagSelector,
   type ResourceAuthorization
 } from '@metorial/module-access';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import {
+  cargoOwnerScopeProject,
   resolveOwnerScope,
-  resourceActorService,
+  type CargoOwnerScope,
   type ScopeOwner
-} from '@metorial/module-resource-tenant';
+} from '../internal/ownerScope';
 
 let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
 

@@ -1,11 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import {
   getInstanceCargoAccess,
-  type InstanceCargoAccessContext
+  type InstanceCargoAccessContext,
+  type ScopeOwner
 } from '@metorial/cargo-module-file';
 import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';
-import { type ScopeOwner } from '@metorial/module-resource-tenant';
 
 let uploadScopes = ['instance.file:write', 'consumer#instance.file:write'] as const;
 

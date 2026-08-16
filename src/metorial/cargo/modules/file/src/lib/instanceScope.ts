@@ -1,6 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import type { CargoOwnerScope } from '@metorial/cargo-list-utils';
 import type { Project, Instance } from '@metorial/db';
+import type { CargoOwnerScope } from '../internal/ownerScope';
 
 export let requireInstanceScope = (
   scope: CargoOwnerScope,

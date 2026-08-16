@@ -3,9 +3,9 @@ import type { EntityImage, User } from '@metorial/db';
 import {
   fileLinkService,
   fileReferenceService,
-  fileService
+  fileService,
+  resolveOwnerScope
 } from '@metorial/cargo-module-file';
-import { resolveOwnerScope } from '@metorial/module-resource-tenant';
 
 export let resolveUserFileImage = async <ClearImage extends EntityImage | null>(d: {
   user: Pick<User, 'id'>;

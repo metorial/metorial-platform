@@ -1,9 +1,9 @@
 import { Service } from '@lowerdeck/service';
-import { type CargoOwnerScope, cargoFileScope } from '@metorial/cargo-list-utils';
 import { db } from '@metorial/db';
+import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { fileService } from './file';
 import { fileLinkService } from './fileLink';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
 

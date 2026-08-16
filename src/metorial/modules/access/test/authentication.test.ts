@@ -71,7 +71,7 @@ vi.mock('@metorial/db', () => ({
   db: mocks.db
 }));
 
-vi.mock('@metorial/module-resource-tenant', () => ({
+vi.mock('@metorial/module-resource-actor', () => ({
   resourceActorService: {
     ensureOrganizationActor: vi.fn(async () => ({
       oid: 102n,

@@ -3,14 +3,13 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoOwnerScope,
-  cargoFileScope,
   type DateFilter,
   normalizeDateFilter,
   resolveFileLinks,
   resolveFileReferences,
   resolveFiles
 } from '@metorial/cargo-list-utils';
+import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import type { File, FileLink, FileReference, Instance, Project } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 
