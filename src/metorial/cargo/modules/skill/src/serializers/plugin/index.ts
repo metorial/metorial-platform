@@ -4,7 +4,6 @@ import { slugify } from '@lowerdeck/slugify';
 import { env } from '@metorial/cargo-config';
 import { db } from '@metorial/db';
 import semver from 'semver';
-import { requireRecordProject } from '../../internal/scope';
 import { internalImageService } from '../../internal/image';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
@@ -38,7 +37,7 @@ export let applyPlugin = createApplicator(
     });
 
     let project = await db.project.findFirstOrThrow({
-      where: requireRecordProject('Skill plugin', input.skillPlugin),
+      where: { oid: input.skillPlugin.projectOid },
       include: {
         organization: {
           select: { name: true, image: true }

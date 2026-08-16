@@ -2,13 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { Prisma, SkillDestinationSyncStatus } from '@metorial/db';
+import type { Instance, Prisma, Project, SkillDestinationSyncStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
 import { isRepositorySyncRetrying } from '../lib/repositorySyncStatus';
@@ -77,11 +76,11 @@ export type SkillSyncRepositoryCheck = {
 };
 
 class SkillSyncServiceImpl {
-  private async getSkillSyncRecord(
-    d: CargoScope & {
-      skillSyncId: string;
-    }
-  ) {
+  private async getSkillSyncRecord(d: {
+    project: Project;
+    instance: Instance;
+    skillSyncId: string;
+  }) {
     return await withTransaction(
       async db => {
         let skillSync = await db.skillDestinationSync.findFirst({
@@ -102,7 +101,10 @@ class SkillSyncServiceImpl {
     );
   }
 
-  private scopeDestinationWhere(d: CargoScope): Prisma.SkillDestinationWhereInput {
+  private scopeDestinationWhere(d: {
+    project: Project;
+    instance: Instance;
+  }): Prisma.SkillDestinationWhereInput {
     return {
       OR: [
         {
@@ -121,15 +123,15 @@ class SkillSyncServiceImpl {
     };
   }
 
-  async listSkillSyncs(
-    d: CargoScope & {
-      ids?: string[];
-      skillMarketplaceIds?: string[];
-      skillPluginIds?: string[];
-      statuses?: SkillSyncStatusFilter[];
-      createdAt?: DateFilter;
-    }
-  ) {
+  async listSkillSyncs(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    skillMarketplaceIds?: string[];
+    skillPluginIds?: string[];
+    statuses?: SkillSyncStatusFilter[];
+    createdAt?: DateFilter;
+  }) {
     let skillMarketplaces = await resolveSkillMarketplaces(d, d.skillMarketplaceIds);
     let skillPlugins = await resolveSkillPlugins(d, d.skillPluginIds);
     let destinationFilters: Prisma.SkillDestinationWhereInput[] = [];
@@ -163,19 +165,15 @@ class SkillSyncServiceImpl {
     );
   }
 
-  async getSkillSyncById(
-    d: CargoScope & {
-      skillSyncId: string;
-    }
-  ) {
+  async getSkillSyncById(d: { project: Project; instance: Instance; skillSyncId: string }) {
     return await this.getSkillSyncRecord(d);
   }
 
-  async getSkillSyncRepositoryChecks(
-    d: CargoScope & {
-      skillSyncId: string;
-    }
-  ): Promise<SkillSyncRepositoryCheck[]> {
+  async getSkillSyncRepositoryChecks(d: {
+    project: Project;
+    instance: Instance;
+    skillSyncId: string;
+  }): Promise<SkillSyncRepositoryCheck[]> {
     let skillSync = await this.getSkillSyncRecord(d);
     let originSyncIds = skillSync.repositoryPropagations.flatMap(propagation =>
       propagation.originSyncId ? [propagation.originSyncId] : []

@@ -48,7 +48,6 @@ vi.mock('@metorial/cargo-list-utils', () => ({
 }));
 
 vi.mock('../internal/scope', () => ({
-  getInstanceOrganizationOid: vi.fn(async () => 4n),
   getProjectTenantIdentifier: vi.fn(() => 'mte-pro-1')
 }));
 

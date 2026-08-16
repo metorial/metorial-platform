@@ -13,10 +13,11 @@ import {
 } from '@metorial/cargo-module-file';
 import { getId } from '@metorial/cargo-config/id';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import { assertResourceActorScope } from '@metorial/module-access';
 import type {
+  Instance,
   Prisma,
+  Project,
   ResourceActor,
   SkillImportStatus,
   StoreParticipantPermissions
@@ -73,15 +74,15 @@ let maxUploadedArchiveBytes = 10 * 1024 * 1024;
 let maxUploadedMarkdownBytes = 3 * 1024 * 1024;
 
 class SkillImportServiceImpl {
-  async createSkillImport(
-    d: CargoScope & {
-      actor?: ResourceActor;
-      authorization?: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-      input: CreateSkillImportInput;
-    }
-  ) {
+  async createSkillImport(d: {
+    project: Project;
+    instance: Instance;
+    actor?: ResourceActor;
+    authorization?: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+    input: CreateSkillImportInput;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor
@@ -219,13 +220,13 @@ class SkillImportServiceImpl {
     return skillImport;
   }
 
-  async listSkillImports(
-    d: CargoScope & {
-      actor?: ResourceActor;
-      ids?: string[];
-      statuses?: SkillImportStatus[];
-    }
-  ) {
+  async listSkillImports(d: {
+    project: Project;
+    instance: Instance;
+    actor?: ResourceActor;
+    ids?: string[];
+    statuses?: SkillImportStatus[];
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor
@@ -249,12 +250,12 @@ class SkillImportServiceImpl {
     );
   }
 
-  async getSkillImportById(
-    d: CargoScope & {
-      actor?: ResourceActor;
-      skillImportId: string;
-    }
-  ) {
+  async getSkillImportById(d: {
+    project: Project;
+    instance: Instance;
+    actor?: ResourceActor;
+    skillImportId: string;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor

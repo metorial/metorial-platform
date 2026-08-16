@@ -1,8 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
-import type { Prisma } from '@metorial/db';
+import type { Instance, Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
 import { getOriginTenant, origin } from '../internal/skillDestination';
 
@@ -78,9 +77,11 @@ let normalizeOriginRepository = (
 });
 
 class SkillRepositoryServiceImpl {
-  async getOriginRepositories(
-    d: CargoScope & { repoIds: string[] }
-  ): Promise<OriginRepositoryRecord[]> {
+  async getOriginRepositories(d: {
+    project: Project;
+    instance: Instance;
+    repoIds: string[];
+  }): Promise<OriginRepositoryRecord[]> {
     if (d.repoIds.length === 0) return [];
 
     let originTenant = await getOriginTenant(d.project);
@@ -92,9 +93,11 @@ class SkillRepositoryServiceImpl {
     return result.repositories.map(normalizeOriginRepository);
   }
 
-  async getOriginRepository(
-    d: CargoScope & { repoId: string }
-  ): Promise<OriginRepositoryRecord> {
+  async getOriginRepository(d: {
+    project: Project;
+    instance: Instance;
+    repoId: string;
+  }): Promise<OriginRepositoryRecord> {
     let repositories = await this.getOriginRepositories({
       project: d.project,
       instance: d.instance,
@@ -107,9 +110,11 @@ class SkillRepositoryServiceImpl {
     return repository;
   }
 
-  async enrichSkillRepositories<T extends SkillRepositoryRecord>(
-    d: CargoScope & { skillRepositories: T[] }
-  ): Promise<(T & { originRepository: OriginRepositoryRecord | null })[]> {
+  async enrichSkillRepositories<T extends SkillRepositoryRecord>(d: {
+    project: Project;
+    instance: Instance;
+    skillRepositories: T[];
+  }): Promise<(T & { originRepository: OriginRepositoryRecord | null })[]> {
     let originRepositories = await this.getOriginRepositories({
       project: d.project,
       instance: d.instance,
@@ -125,7 +130,11 @@ class SkillRepositoryServiceImpl {
     }));
   }
 
-  async ensureSkillRepositoryForRepo(d: CargoScope & { repoId: string }) {
+  async ensureSkillRepositoryForRepo(d: {
+    project: Project;
+    instance: Instance;
+    repoId: string;
+  }) {
     await this.getOriginRepository(d);
 
     let existing = await db.skillRepository.findUnique({
@@ -189,7 +198,11 @@ class SkillRepositoryServiceImpl {
     }
   }
 
-  async getSkillRepositoryById(d: CargoScope & { skillRepositoryId: string }) {
+  async getSkillRepositoryById(d: {
+    project: Project;
+    instance: Instance;
+    skillRepositoryId: string;
+  }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
         projectOid: d.project.oid,
@@ -204,7 +217,11 @@ class SkillRepositoryServiceImpl {
     return skillRepository;
   }
 
-  async getSkillRepositoryByRepoId(d: CargoScope & { repoId: string }) {
+  async getSkillRepositoryByRepoId(d: {
+    project: Project;
+    instance: Instance;
+    repoId: string;
+  }) {
     let skillRepository = await db.skillRepository.findFirst({
       where: {
         projectOid: d.project.oid,

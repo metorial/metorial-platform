@@ -4,14 +4,13 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
   resolveSkillMarketplacePlugins,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import type { Prisma, SkillMarketplacePluginStatus } from '@metorial/db';
+import type { Instance, Prisma, Project, SkillMarketplacePluginStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
   assertSkillMarketplacePluginLimit,
@@ -64,12 +63,12 @@ let getMarketplacePluginSlug = createSlugGenerator(
 );
 
 class SkillMarketplacePluginServiceImpl {
-  private async getSkillMarketplacePluginRecord(
-    d: CargoScope & {
-      skillMarketplacePluginId: string;
-      skillMarketplace?: SkillMarketplaceRecord;
-    }
-  ) {
+  private async getSkillMarketplacePluginRecord(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplacePluginId: string;
+    skillMarketplace?: SkillMarketplaceRecord;
+  }) {
     return await withTransaction(
       async db => {
         let skillMarketplacePlugin = await db.skillMarketplacePlugin.findFirst({
@@ -100,18 +99,18 @@ class SkillMarketplacePluginServiceImpl {
     );
   }
 
-  async listSkillMarketplacePlugins(
-    d: CargoScope & {
-      skillMarketplace: SkillMarketplaceRecord;
-      ids?: string[];
-      skillPluginIds?: string[];
-      skillConfigurationIds?: string[];
-      statuses?: SkillMarketplacePluginStatusFilter[];
-      pluginSlug?: string;
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-    }
-  ) {
+  async listSkillMarketplacePlugins(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplace: SkillMarketplaceRecord;
+    ids?: string[];
+    skillPluginIds?: string[];
+    skillConfigurationIds?: string[];
+    statuses?: SkillMarketplacePluginStatusFilter[];
+    pluginSlug?: string;
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+  }) {
     let skillMarketplacePlugins = await resolveSkillMarketplacePlugins(d, d.ids);
     let skillPlugins = await resolveSkillPlugins(d, d.skillPluginIds);
     let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
@@ -149,25 +148,25 @@ class SkillMarketplacePluginServiceImpl {
     );
   }
 
-  async getSkillMarketplacePluginById(
-    d: CargoScope & {
-      skillMarketplacePluginId: string;
-      skillMarketplace?: SkillMarketplaceRecord;
-    }
-  ) {
+  async getSkillMarketplacePluginById(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplacePluginId: string;
+    skillMarketplace?: SkillMarketplaceRecord;
+  }) {
     return await this.getSkillMarketplacePluginRecord(d);
   }
 
-  async addSkillMarketplacePlugin(
-    d: CargoScope & {
-      skillMarketplace: SkillMarketplaceRecord;
-      input: {
-        skillPluginId: string;
-        pluginSlug?: string;
-        skillConfigurationId?: string | null;
-      };
-    }
-  ) {
+  async addSkillMarketplacePlugin(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplace: SkillMarketplaceRecord;
+    input: {
+      skillPluginId: string;
+      pluginSlug?: string;
+      skillConfigurationId?: string | null;
+    };
+  }) {
     let skillPlugin = await skillPluginService.getSkillPluginById({
       project: d.project,
       instance: d.instance,
@@ -291,11 +290,11 @@ class SkillMarketplacePluginServiceImpl {
     });
   }
 
-  async removeSkillMarketplacePlugin(
-    d: CargoScope & {
-      skillMarketplacePlugin: SkillMarketplacePluginRecord;
-    }
-  ) {
+  async removeSkillMarketplacePlugin(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplacePlugin: SkillMarketplacePluginRecord;
+  }) {
     assertPluginIsNotManaged(d.skillMarketplacePlugin.skillPlugin);
 
     let skillMarketplacePlugin = await db.skillMarketplacePlugin.update({

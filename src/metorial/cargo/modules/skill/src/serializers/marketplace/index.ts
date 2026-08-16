@@ -2,7 +2,6 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial/db';
 import semver from 'semver';
-import { requireRecordProject } from '../../internal/scope';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 
@@ -43,7 +42,7 @@ export let applyMarketplace = createApplicator(
     });
 
     let project = await db.project.findFirstOrThrow({
-      where: requireRecordProject('Skill marketplace', input.skillMarketplace),
+      where: { oid: input.skillMarketplace.projectOid },
       include: {
         organization: {
           select: { name: true, image: true }

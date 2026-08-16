@@ -1,9 +1,16 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
-import type { ResourceActor, Skill, Store, StoreDirectory, StoreItemKind } from '@metorial/db';
+import type {
+  Instance,
+  Project,
+  ResourceActor,
+  Skill,
+  Store,
+  StoreDirectory,
+  StoreItemKind
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
   listAncestorDirectoryPaths,
@@ -450,13 +457,13 @@ class StoreItemMutationServiceImpl {
     }
   }
 
-  private async resolveStoreItemTarget(
-    d: CargoScope & {
-      fileId?: string;
-      documentId?: string;
-      allowEmpty?: boolean;
-    }
-  ) {
+  private async resolveStoreItemTarget(d: {
+    project: Project;
+    instance: Instance;
+    fileId?: string;
+    documentId?: string;
+    allowEmpty?: boolean;
+  }) {
     this.ensureOnlyOneTarget(d.fileId, d.documentId);
 
     if (!d.fileId && !d.documentId) {
@@ -524,11 +531,11 @@ class StoreItemMutationServiceImpl {
     } satisfies ResolvedStoreItemTarget;
   }
 
-  private async normalizeStoreItemOperation(
-    d: CargoScope & {
-      operation: StoreItemOperationInput;
-    }
-  ): Promise<NormalizedStoreItemOperation> {
+  private async normalizeStoreItemOperation(d: {
+    project: Project;
+    instance: Instance;
+    operation: StoreItemOperationInput;
+  }): Promise<NormalizedStoreItemOperation> {
     let { operation } = d;
     let type =
       operation.type ??
@@ -596,12 +603,12 @@ class StoreItemMutationServiceImpl {
     };
   }
 
-  private async createItemReference(
-    d: CargoScope & {
-      itemId: string;
-      target: ResolvedStoreItemTarget;
-    }
-  ) {
+  private async createItemReference(d: {
+    project: Project;
+    instance: Instance;
+    itemId: string;
+    target: ResolvedStoreItemTarget;
+  }) {
     return await withTransaction(async () => {
       let link = await fileLinkService.createFileLink({
         project: d.project,
@@ -684,13 +691,13 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  private async ensureDirectoryItem(
-    d: CargoScope & {
-      store: Store;
-      directory: StoreDirectory;
-      actor?: Pick<ResourceActor, 'oid'>;
-    }
-  ) {
+  private async ensureDirectoryItem(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    directory: StoreDirectory;
+    actor?: Pick<ResourceActor, 'oid'>;
+  }) {
     return await withTransaction(async client => {
       let existingItem = await this.getStoreItemByPath({
         store: d.store,
@@ -752,15 +759,15 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  private async ensureDirectoryHierarchy(
-    d: CargoScope & {
-      store: Store;
-      path: NormalizedStorePath;
-      actor?: Pick<ResourceActor, 'oid'>;
-      includeSelf?: boolean;
-      explicitSelf?: boolean;
-    }
-  ) {
+  private async ensureDirectoryHierarchy(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    path: NormalizedStorePath;
+    actor?: Pick<ResourceActor, 'oid'>;
+    includeSelf?: boolean;
+    explicitSelf?: boolean;
+  }) {
     return await withTransaction(async () => {
       let createdItemCount = 0;
       let ensuredItem: StoreItemRecord | null = null;
@@ -851,12 +858,12 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  private async ensureStoreRootDirectoryInTransaction(
-    d: CargoScope & {
-      store: Store;
-      actor?: Pick<ResourceActor, 'oid'>;
-    }
-  ) {
+  private async ensureStoreRootDirectoryInTransaction(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    actor?: Pick<ResourceActor, 'oid'>;
+  }) {
     return await withTransaction(async () => {
       let result = await this.ensureDirectoryHierarchy({
         project: d.project,
@@ -890,15 +897,15 @@ class StoreItemMutationServiceImpl {
     );
   }
 
-  private async updateContentStoreItem(
-    d: CargoScope & {
-      store: Store;
-      item: StoreItemRecord;
-      path: NormalizedStorePath;
-      target?: ResolvedStoreItemTarget;
-      actor?: Pick<ResourceActor, 'oid'>;
-    }
-  ) {
+  private async updateContentStoreItem(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    item: StoreItemRecord;
+    path: NormalizedStorePath;
+    target?: ResolvedStoreItemTarget;
+    actor?: Pick<ResourceActor, 'oid'>;
+  }) {
     return await withTransaction(async client => {
       this.validateContentItem(d.item);
 
@@ -982,14 +989,14 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  private async addContentStoreItem(
-    d: CargoScope & {
-      store: Store;
-      path: NormalizedStorePath;
-      target: ResolvedStoreItemTarget;
-      actor?: Pick<ResourceActor, 'oid'>;
-    }
-  ) {
+  private async addContentStoreItem(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    path: NormalizedStorePath;
+    target: ResolvedStoreItemTarget;
+    actor?: Pick<ResourceActor, 'oid'>;
+  }) {
     return await withTransaction(async client => {
       let parentDirectory = await this.getStoreDirectoryByPath({
         store: d.store,
@@ -1199,14 +1206,14 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  private async moveDirectoryItem(
-    d: CargoScope & {
-      store: Store;
-      item: StoreItemRecord;
-      nextPath: NormalizedStorePath;
-      actor?: Pick<ResourceActor, 'oid'>;
-    }
-  ) {
+  private async moveDirectoryItem(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    item: StoreItemRecord;
+    nextPath: NormalizedStorePath;
+    actor?: Pick<ResourceActor, 'oid'>;
+  }) {
     return await withTransaction(async client => {
       let normalizedCurrentPath = this.normalizeExistingItemPath(d.item);
 
@@ -1323,15 +1330,15 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  async attachTargetToStore(
-    d: CargoScope & {
-      store: Store;
-      path: string;
-      target: ResolvedStoreItemTarget;
-      actor?: Pick<ResourceActor, 'oid'>;
-      allowReadOnly?: boolean;
-    }
-  ) {
+  async attachTargetToStore(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    path: string;
+    target: ResolvedStoreItemTarget;
+    actor?: Pick<ResourceActor, 'oid'>;
+    allowReadOnly?: boolean;
+  }) {
     this.assertStoreWritable(d);
 
     return await withTransaction(async client => {
@@ -1421,12 +1428,12 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  async ensureStoreRootDirectory(
-    d: CargoScope & {
-      store: Store;
-      actor?: Pick<ResourceActor, 'oid'>;
-    }
-  ) {
+  async ensureStoreRootDirectory(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    actor?: Pick<ResourceActor, 'oid'>;
+  }) {
     return await withTransaction(async client => {
       let result = await this.ensureStoreRootDirectoryInTransaction(d);
       if (result.createdItemCount > 0) {
@@ -1446,14 +1453,14 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  async modifyStoreItems(
-    d: CargoScope & {
-      store: Store;
-      operations: StoreItemOperationInput[];
-      actor?: Pick<ResourceActor, 'oid'>;
-      allowReadOnly?: boolean;
-    }
-  ) {
+  async modifyStoreItems(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    operations: StoreItemOperationInput[];
+    actor?: Pick<ResourceActor, 'oid'>;
+    allowReadOnly?: boolean;
+  }) {
     this.assertStoreWritable(d);
 
     if (d.operations.length > modifyOperationLimit) {

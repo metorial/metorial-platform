@@ -2,13 +2,12 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillVersions,
   resolveStoreVersions
 } from '@metorial/cargo-list-utils';
-import type { Prisma } from '@metorial/db';
+import type { Instance, Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
 import type { SkillRecord } from './skill';
 
@@ -128,14 +127,14 @@ let toSkillVersionSnapshot = (version: SkillVersionSnapshotRecord): SkillVersion
 });
 
 class SkillVersionServiceImpl {
-  async listSkillVersions(
-    d: CargoScope & {
-      skill: SkillRecord;
-      ids?: string[];
-      storeVersionIds?: string[];
-      createdAt?: DateFilter;
-    }
-  ) {
+  async listSkillVersions(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    ids?: string[];
+    storeVersionIds?: string[];
+    createdAt?: DateFilter;
+  }) {
     let skillVersions = await resolveSkillVersions(d, d.ids);
     let storeVersions = await resolveStoreVersions(d, d.storeVersionIds);
 
@@ -159,12 +158,12 @@ class SkillVersionServiceImpl {
     );
   }
 
-  async getSkillVersionById(
-    d: CargoScope & {
-      skill: SkillRecord;
-      skillVersionId: string;
-    }
-  ) {
+  async getSkillVersionById(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    skillVersionId: string;
+  }) {
     let version = await db.skillVersion.findFirst({
       where: {
         id: d.skillVersionId,
@@ -182,12 +181,12 @@ class SkillVersionServiceImpl {
     return version;
   }
 
-  async getSkillVersionSnapshot(
-    d: CargoScope & {
-      skill: SkillRecord;
-      skillVersionId: string;
-    }
-  ) {
+  async getSkillVersionSnapshot(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    skillVersionId: string;
+  }) {
     let version = await db.skillVersion.findFirst({
       where: {
         id: d.skillVersionId,

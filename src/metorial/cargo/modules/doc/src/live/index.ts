@@ -582,6 +582,7 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
         let scopedDocument = await documentService.getScopedDocumentById({
           documentId
         });
+
         await documentService.getDocumentById({
           project: scopedDocument.project,
           instance: scopedDocument.instance,

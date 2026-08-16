@@ -3,7 +3,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
@@ -22,6 +21,8 @@ import {
 } from '@metorial/cargo-module-store';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import type {
+  Instance,
+  Project,
   SkillMergeRequestChangeType,
   SkillMergeRequestDirection,
   SkillMergeRequestItemStatus,
@@ -177,7 +178,7 @@ let getResolutionStatus = (
   resolutionType === 'skip' || resolutionType === 'keep_target' ? 'skipped' : 'resolved';
 
 class SkillMergeRequestInternalServiceImpl {
-  async getSkill(d: CargoScope & { skillId: string }) {
+  async getSkill(d: { project: Project; instance: Instance; skillId: string }) {
     let skill = await db.skill.findFirst({
       where: {
         projectOid: d.project.oid,
@@ -606,12 +607,12 @@ class SkillMergeRequestInternalServiceImpl {
     });
   }
 
-  async assertReadEitherSkill(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async assertReadEitherSkill(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     try {
       await storeAccessService.assertStoreAccessForStore({
         project: d.project,
@@ -634,12 +635,12 @@ class SkillMergeRequestInternalServiceImpl {
     });
   }
 
-  async assertTargetWrite(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async assertTargetWrite(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     return await storeAccessService.assertStoreAccessForStore({
       project: d.project,
       instance: d.instance,
@@ -665,33 +666,33 @@ class SkillMergeRequestInternalServiceImpl {
     return getVisibleSkillMergeRequestWhere(d);
   }
 
-  async createSkillMergeRequest(
-    d: CargoScope & {
-      sourceSkillId: string;
-      targetSkillId?: string;
-      authorization: ResourceAuthorization;
-      title: string;
-      description?: string | null;
-    }
-  ) {
+  async createSkillMergeRequest(d: {
+    project: Project;
+    instance: Instance;
+    sourceSkillId: string;
+    targetSkillId?: string;
+    authorization: ResourceAuthorization;
+    title: string;
+    description?: string | null;
+  }) {
     return (await this.createDirectedSkillMergeRequest({
       ...d,
       direction: 'fork_to_upstream'
     }))!;
   }
 
-  async createDirectedSkillMergeRequest(
-    d: CargoScope & {
-      sourceSkillId: string;
-      targetSkillId?: string;
-      authorization: ResourceAuthorization;
-      title: string;
-      description?: string | null;
-      direction: SkillMergeRequestDirection;
-      returnNullOnNoChanges?: boolean;
-      skillForkSyncId?: string;
-    }
-  ) {
+  async createDirectedSkillMergeRequest(d: {
+    project: Project;
+    instance: Instance;
+    sourceSkillId: string;
+    targetSkillId?: string;
+    authorization: ResourceAuthorization;
+    title: string;
+    description?: string | null;
+    direction: SkillMergeRequestDirection;
+    returnNullOnNoChanges?: boolean;
+    skillForkSyncId?: string;
+  }) {
     if (!d.title.trim()) {
       throw new ServiceError(
         badRequestError({ message: 'Merge request title cannot be empty' })
@@ -952,17 +953,17 @@ class SkillMergeRequestInternalServiceImpl {
     });
   }
 
-  async listSkillMergeRequests(
-    d: CargoScope & {
-      ids?: string[];
-      sourceSkillIds?: string[];
-      targetSkillIds?: string[];
-      statuses?: SkillMergeRequestStatus[];
-      createdByActorIds?: string[];
-      createdAt?: DateFilter;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async listSkillMergeRequests(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    sourceSkillIds?: string[];
+    targetSkillIds?: string[];
+    statuses?: SkillMergeRequestStatus[];
+    createdByActorIds?: string[];
+    createdAt?: DateFilter;
+    authorization: ResourceAuthorization;
+  }) {
     let visibleWhere = await this.getVisibleMergeRequestWhere({
       projectOid: d.project.oid,
       instanceOid: d.instance.oid,
@@ -999,12 +1000,12 @@ class SkillMergeRequestInternalServiceImpl {
     );
   }
 
-  async getSkillMergeRequestById(
-    d: CargoScope & {
-      skillMergeRequestId: string;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async getSkillMergeRequestById(d: {
+    project: Project;
+    instance: Instance;
+    skillMergeRequestId: string;
+    authorization: ResourceAuthorization;
+  }) {
     let mergeRequest = await this.getRawSkillMergeRequestById({
       projectOid: d.project.oid,
       instanceOid: d.instance.oid,
@@ -1067,13 +1068,13 @@ class SkillMergeRequestInternalServiceImpl {
     } satisfies SkillMergePlan;
   }
 
-  async assertReadableReplacementFile(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-      fileId: string;
-    }
-  ) {
+  async assertReadableReplacementFile(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+    fileId: string;
+  }) {
     let file = await db.file.findFirst({
       where: {
         id: d.fileId,
@@ -1118,15 +1119,15 @@ class SkillMergeRequestInternalServiceImpl {
     );
   }
 
-  async validateItemResolution(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      item: SkillMergeRequestItemRecord;
-      authorization: ResourceAuthorization;
-      resolutionType: SkillMergeRequestResolutionType;
-      resolution?: Prisma.InputJsonValue | null;
-    }
-  ) {
+  async validateItemResolution(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    item: SkillMergeRequestItemRecord;
+    authorization: ResourceAuthorization;
+    resolutionType: SkillMergeRequestResolutionType;
+    resolution?: Prisma.InputJsonValue | null;
+  }) {
     let resolution = (d.resolution ?? {}) as {
       title?: unknown;
       content?: unknown;

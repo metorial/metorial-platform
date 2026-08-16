@@ -18,7 +18,6 @@ import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
-import { resolveInstanceScope } from '@metorial/module-resource-tenant';
 import { normalizeConsumerSurfaceEmailWhitelist } from '../../lib/consumerSurfaceEmailWhitelist';
 import {
   consumerSurfaceArchivedQueue,
@@ -80,10 +79,16 @@ class ConsumerSurfaceServiceImpl {
     let instance = await db.instance.findUniqueOrThrow({
       where: {
         oid: d.consumerSurface.instanceOid
+      },
+      include: {
+        project: true
       }
     });
 
-    return await resolveInstanceScope(instance);
+    return {
+      project: instance.project,
+      instance
+    };
   }
 
   async enrichConsumerSurfaces<T extends ConsumerSurfaceWithPublishableApiKey>(d: {
@@ -92,7 +97,9 @@ class ConsumerSurfaceServiceImpl {
   }): Promise<(T & { skillConfiguration: SkillConfiguration })[]> {
     if (!d.consumerSurfaces.length) return [];
 
-    let scope = await resolveInstanceScope(d.instance);
+    let scope = await this.getSurfaceCargoScope({
+      consumerSurface: d.consumerSurfaces[0]
+    });
 
     let skillConfigurationIds = [
       ...new Set(

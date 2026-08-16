@@ -10,9 +10,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { snowflake } from '@metorial/cargo-config/id';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
@@ -20,35 +18,38 @@ import {
   resolveSkillTemplates,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import {
-  accessTagService,
-  assertResourceAuthorizationScope,
-  assertResourceActorScope,
-  type AnyAccessTagSelector,
-  consumerSkillReadRoles,
-  type ResourceAuthorization
-} from '@metorial/module-access';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import {
   storeAccessService,
   storeReadPermission,
   storeService,
-  storeWritePermission,
-  storeVersionService
+  storeVersionService,
+  storeWritePermission
 } from '@metorial/cargo-module-store';
 import type {
   EntityImage,
+  Instance,
   Prisma,
+  Project,
   ResourceActor,
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  assertResourceActorScope,
+  assertResourceAuthorizationScope,
+  consumerSkillReadRoles,
+  type ResourceAuthorization
+} from '@metorial/module-access';
 import { internalImageService } from '../internal/image';
-import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
+import { getProjectTenantIdentifier } from '../internal/scope';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
-import { skillParticipantService } from './skillParticipant';
-import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
-import type { SkillTemplateRecord } from './skillTemplate';
 import { skillResourceService } from './resource';
+import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
+import { skillParticipantService } from './skillParticipant';
+import type { SkillTemplateRecord } from './skillTemplate';
 
 let skillInclude = {
   store: true,
@@ -98,13 +99,13 @@ export let getConsumerSkillAccessWhere = async (d: {
 };
 
 class SkillServiceImpl {
-  private async getSkillRecord(
-    d: CargoScope & {
-      skillId: string;
-      allowDeleted?: boolean;
-      accessTags?: AnyAccessTagSelector;
-    }
-  ) {
+  private async getSkillRecord(d: {
+    project: Project;
+    instance: Instance;
+    skillId: string;
+    allowDeleted?: boolean;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let accessWhere = await getConsumerSkillAccessWhere(d);
     return await withTransaction(
       async db => {
@@ -127,26 +128,26 @@ class SkillServiceImpl {
     );
   }
 
-  async createSkill(
-    d: CargoScope & {
-      parentSkill?: SkillRecord;
-      parentSkillTemplate?: SkillTemplateRecord;
-      parentSkillCloneType?: 'fork' | 'duplicate';
-      input: {
-        id: string;
-        authorization: ResourceAuthorization;
-        name: string;
-        description?: string | null;
-        metadata?: Prisma.InputJsonValue | null;
-        clientName?: string | null;
-        clientDescription?: string | null;
-        clientMetadata?: Prisma.InputJsonValue | null;
-        license?: string | null;
-        compatibility?: string | null;
-        imageFileId?: string | null;
-      };
-    }
-  ) {
+  async createSkill(d: {
+    project: Project;
+    instance: Instance;
+    parentSkill?: SkillRecord;
+    parentSkillTemplate?: SkillTemplateRecord;
+    parentSkillCloneType?: 'fork' | 'duplicate';
+    input: {
+      id: string;
+      authorization: ResourceAuthorization;
+      name: string;
+      description?: string | null;
+      metadata?: Prisma.InputJsonValue | null;
+      clientName?: string | null;
+      clientDescription?: string | null;
+      clientMetadata?: Prisma.InputJsonValue | null;
+      license?: string | null;
+      compatibility?: string | null;
+      imageFileId?: string | null;
+    };
+  }) {
     if (!d.input.name.trim()) {
       throw new ServiceError(
         badRequestError({
@@ -170,7 +171,6 @@ class SkillServiceImpl {
             parentSkill: d.parentSkill
           })
         : undefined;
-    let organizationOid = await getInstanceOrganizationOid(d.instance);
 
     return await withTransaction(async db => {
       let store = d.parentSkillTemplate
@@ -231,7 +231,7 @@ class SkillServiceImpl {
 
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
-          organizationOid,
+          organizationOid: d.project.organizationOid,
           storeId: store.id,
           skillEntityId: d.input.id,
           storeOid: store.oid,
@@ -311,24 +311,24 @@ class SkillServiceImpl {
     return skillVersion;
   }
 
-  async listSkills(
-    d: CargoScope & {
-      ids?: string[];
-      storeIds?: string[];
-      parentSkillIds?: string[];
-      parentSkillTemplateIds?: string[];
-      createdByActorIds?: string[];
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-      search?: string;
-      statuses?: Array<'active' | 'archived' | 'deleted'>;
-      skillGroupIds?: string[];
-      integrationIds?: string[];
-      providerIds?: string[];
-      allowDeleted?: boolean;
-      accessTags?: AnyAccessTagSelector;
-    }
-  ) {
+  async listSkills(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    storeIds?: string[];
+    parentSkillIds?: string[];
+    parentSkillTemplateIds?: string[];
+    createdByActorIds?: string[];
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+    search?: string;
+    statuses?: Array<'active' | 'archived' | 'deleted'>;
+    skillGroupIds?: string[];
+    integrationIds?: string[];
+    providerIds?: string[];
+    allowDeleted?: boolean;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let skills = await resolveSkills(d, d.ids);
     let stores = await resolveStores(d, d.storeIds);
     let parentSkills = await resolveSkills(d, d.parentSkillIds);
@@ -444,24 +444,24 @@ class SkillServiceImpl {
     );
   }
 
-  async getSkillById(
-    d: CargoScope & {
-      skillId: string;
-      allowDeleted?: boolean;
-      accessTags?: AnyAccessTagSelector;
-    }
-  ) {
+  async getSkillById(d: {
+    project: Project;
+    instance: Instance;
+    skillId: string;
+    allowDeleted?: boolean;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     return await this.getSkillRecord(d);
   }
 
-  async assertSkillWriteAccess(
-    d: CargoScope & {
-      skill: SkillRecord;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async assertSkillWriteAccess(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     assertResourceAuthorizationScope(d);
     assertSkillRecordScope(d);
     if (d.authorization.type == 'restricted') {
@@ -490,26 +490,26 @@ class SkillServiceImpl {
     });
   }
 
-  async updateSkill(
-    d: CargoScope & {
-      skill: SkillRecord;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-      input: {
-        name?: string;
-        description?: string | null;
-        metadata?: Prisma.InputJsonValue | null;
-        clientName?: string | null;
-        clientDescription?: string | null;
-        clientMetadata?: Prisma.InputJsonValue | null;
-        license?: string | null;
-        compatibility?: string | null;
-        imageFileId?: string | null;
-        image?: EntityImage | null;
-      };
-    }
-  ) {
+  async updateSkill(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+    input: {
+      name?: string;
+      description?: string | null;
+      metadata?: Prisma.InputJsonValue | null;
+      clientName?: string | null;
+      clientDescription?: string | null;
+      clientMetadata?: Prisma.InputJsonValue | null;
+      license?: string | null;
+      compatibility?: string | null;
+      imageFileId?: string | null;
+      image?: EntityImage | null;
+    };
+  }) {
     if (
       d.input.name === undefined &&
       d.input.description === undefined &&
@@ -613,14 +613,14 @@ class SkillServiceImpl {
     }).then(skill => ({ ...skill, store }) satisfies SkillRecord);
   }
 
-  async archiveSkill(
-    d: CargoScope & {
-      skill: SkillRecord;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async archiveSkill(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     await this.assertSkillWriteAccess(d);
 
     await withTransaction(async db => {
@@ -655,12 +655,12 @@ class SkillServiceImpl {
     return d.skill;
   }
 
-  async markSkillUse(
-    d: CargoScope & {
-      skill: SkillRecord;
-      actor: ResourceActor;
-    }
-  ) {
+  async markSkillUse(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    actor: ResourceActor;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor

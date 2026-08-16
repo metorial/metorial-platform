@@ -2,7 +2,6 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
@@ -13,7 +12,13 @@ import {
   resolveStoreItems
 } from '@metorial/cargo-list-utils';
 import { internalDocumentContentStoreService } from '@metorial/cargo-module-doc';
-import type { Prisma, StoreItemKind, StoreParticipantPermissions } from '@metorial/db';
+import type {
+  Instance,
+  Prisma,
+  Project,
+  StoreItemKind,
+  StoreParticipantPermissions
+} from '@metorial/db';
 import { db } from '@metorial/db';
 import { storeAccessService, storeReadPermission } from './storeAccess';
 import type { StoreAccessInput } from './storeAccess';
@@ -92,8 +97,7 @@ class StoreItemServiceImpl {
   }
 
   async getStoreItemById(
-    d: CargoScope &
-      StoreAccessInput & {
+    d: { project: Project; instance: Instance } & StoreAccessInput & {
         itemId: string;
       }
   ) {
@@ -124,8 +128,7 @@ class StoreItemServiceImpl {
   }
 
   async listStoreItems(
-    d: CargoScope &
-      StoreAccessInput & {
+    d: { project: Project; instance: Instance } & StoreAccessInput & {
         ids?: string[];
         storeId: string;
         fileIds?: string[];

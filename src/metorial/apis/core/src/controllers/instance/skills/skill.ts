@@ -10,15 +10,15 @@ import {
 } from '@metorial/cargo-module-skill';
 import { ID } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
+import { skillPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
-import { dateFilterValidator } from '../../../lib/dateFilter';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
+import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { skillPresenter } from '@metorial/presenters';
 
 let skillClientNameValidator = v.string({
   modifiers: [
@@ -202,11 +202,13 @@ export let skillController = Controller.create(
           imageFileId: ctx.body.image_file_id,
           templateId: ctx.body.template_id
         };
+
         let skill = ctx.consumerProfile
           ? await (async () => {
               let created = await consumerSkillService.createConsumerSkill({
                 organization: ctx.organization,
                 instance: ctx.instance,
+                project: ctx.project,
                 consumerSurface: ctx.consumerSurface!,
                 consumerProfile: ctx.consumerProfile,
                 consumerGroups: ctx.consumerGroups!,
@@ -225,6 +227,7 @@ export let skillController = Controller.create(
                     project: access.project,
                     instance: access.instance
                   });
+
               let localSkill = await skillService.createSkill({
                 project: access.project,
                 instance: access.instance,
@@ -249,6 +252,7 @@ export let skillController = Controller.create(
                   skill: localSkill
                 });
               }
+
               return await skillResourceService.hydrateSkill(localSkill);
             })();
 
@@ -299,6 +303,7 @@ export let skillController = Controller.create(
           metadata: ctx.body.metadata,
           imageFileId: ctx.body.image_file_id
         };
+
         let updated = await skillService.updateSkill({
           project: access.project,
           instance: access.instance,
@@ -324,6 +329,7 @@ export let skillController = Controller.create(
       .output(skillPresenter)
       .do(async ctx => {
         let access = await getInstanceCargoAccess(ctx);
+
         let archived = await skillService.archiveSkill({
           project: access.project,
           instance: access.instance,
@@ -332,6 +338,7 @@ export let skillController = Controller.create(
           defaultPermissions: access.defaultPermissions,
           overridePermissions: access.overridePermissions
         });
+
         let skill = await skillResourceService.hydrateSkill(archived);
 
         return skillPresenter.present({ skill });
@@ -380,6 +387,7 @@ export let skillController = Controller.create(
               let forked = await consumerSkillService.forkConsumerSkill({
                 organization: ctx.organization,
                 instance: ctx.instance,
+                project: ctx.project,
                 consumerSurface: ctx.consumerSurface!,
                 consumerProfile: ctx.consumerProfile,
                 consumerGroups: ctx.consumerGroups!,

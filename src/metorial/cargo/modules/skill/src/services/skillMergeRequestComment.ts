@@ -7,9 +7,8 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import { assertResourceActorScope } from '@metorial/module-access';
-import type { ResourceActor } from '@metorial/db';
+import type { Instance, Project, ResourceActor } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 import {
@@ -41,12 +40,12 @@ class SkillMergeRequestCommentServiceImpl {
     return comment;
   }
 
-  async listComments(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      itemId?: string;
-    }
-  ) {
+  async listComments(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    itemId?: string;
+  }) {
     let item = d.itemId
       ? await skillMergeRequestInternalService.getSkillMergeRequestItemById({
           mergeRequest: d.mergeRequest,
@@ -72,16 +71,16 @@ class SkillMergeRequestCommentServiceImpl {
     );
   }
 
-  async createComment(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      itemId?: string;
-      inReplyToCommentId?: string;
-      actor: ResourceActor;
-      body: string;
-      path?: string | null;
-    }
-  ) {
+  async createComment(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    itemId?: string;
+    inReplyToCommentId?: string;
+    actor: ResourceActor;
+    body: string;
+    path?: string | null;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor
@@ -163,15 +162,15 @@ class SkillMergeRequestCommentServiceImpl {
     });
   }
 
-  async updateComment(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      comment: SkillMergeRequestCommentRecord;
-      actor: ResourceActor;
-      body: string;
-      canManageComments?: boolean;
-    }
-  ) {
+  async updateComment(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    comment: SkillMergeRequestCommentRecord;
+    actor: ResourceActor;
+    body: string;
+    canManageComments?: boolean;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor
@@ -199,14 +198,14 @@ class SkillMergeRequestCommentServiceImpl {
     });
   }
 
-  async deleteComment(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      comment: SkillMergeRequestCommentRecord;
-      actor: ResourceActor;
-      canManageComments?: boolean;
-    }
-  ) {
+  async deleteComment(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    comment: SkillMergeRequestCommentRecord;
+    actor: ResourceActor;
+    canManageComments?: boolean;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor

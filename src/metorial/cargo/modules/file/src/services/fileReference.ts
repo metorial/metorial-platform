@@ -4,7 +4,6 @@ import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
   type CargoOwnerScope,
-  type CargoScope,
   cargoFileScope,
   type DateFilter,
   normalizeDateFilter,
@@ -12,7 +11,7 @@ import {
   resolveFileReferences,
   resolveFiles
 } from '@metorial/cargo-list-utils';
-import type { File, FileLink, FileReference } from '@metorial/db';
+import type { File, FileLink, FileReference, Instance, Project } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 
 let include = {
@@ -111,18 +110,18 @@ class FileReferenceServiceImpl {
     return fileReference;
   }
 
-  async listFileReferences(
-    d: CargoScope & {
-      ids?: string[];
-      fileLinkId?: string;
-      fileLinkIds?: string[];
-      fileIds?: string[];
-      entityType?: string;
-      entityId?: string;
-      entityIds?: string[];
-      createdAt?: DateFilter;
-    }
-  ) {
+  async listFileReferences(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    fileLinkId?: string;
+    fileLinkIds?: string[];
+    fileIds?: string[];
+    entityType?: string;
+    entityId?: string;
+    entityIds?: string[];
+    createdAt?: DateFilter;
+  }) {
     let fileReferences = await resolveFileReferences(d, d.ids);
     let fileLinks = await resolveFileLinks(
       d,

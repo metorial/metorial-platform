@@ -3,7 +3,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
@@ -16,7 +15,7 @@ import {
   storeService,
   storeWritePermission
 } from '@metorial/cargo-module-store';
-import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
+import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import type { SkillRecord } from './skill';
@@ -74,12 +73,12 @@ class SkillAgentServiceImpl {
     };
   }
 
-  private async getSkillAgentRecord(
-    d: CargoScope & {
-      skillAgentId: string;
-      includeArchived?: boolean;
-    }
-  ) {
+  private async getSkillAgentRecord(d: {
+    project: Project;
+    instance: Instance;
+    skillAgentId: string;
+    includeArchived?: boolean;
+  }) {
     return await withTransaction(
       async db => {
         let skillAgent = await db.skillAgent.findFirst({
@@ -102,19 +101,19 @@ class SkillAgentServiceImpl {
     );
   }
 
-  async createSkillAgent(
-    d: CargoScope & {
-      skill: SkillRecord;
-      input: {
-        name: string;
-        description?: string | null;
-        content?: string;
-        authorization: ResourceAuthorization;
-        defaultPermissions?: StoreParticipantPermissions[];
-        overridePermissions?: boolean;
-      };
-    }
-  ) {
+  async createSkillAgent(d: {
+    project: Project;
+    instance: Instance;
+    skill: SkillRecord;
+    input: {
+      name: string;
+      description?: string | null;
+      content?: string;
+      authorization: ResourceAuthorization;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    };
+  }) {
     if (!d.input.content?.trim()) {
       d.input.content = [
         `# ${d.input.name}`,
@@ -174,18 +173,18 @@ class SkillAgentServiceImpl {
     });
   }
 
-  async listSkillAgents(
-    d: CargoScope & {
-      ids?: string[];
-      skillId: string;
-      documentIds?: string[];
-      storeItemIds?: string[];
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-      archivedAt?: DateFilter;
-      includeArchived?: boolean;
-    }
-  ) {
+  async listSkillAgents(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    skillId: string;
+    documentIds?: string[];
+    storeItemIds?: string[];
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+    archivedAt?: DateFilter;
+    includeArchived?: boolean;
+  }) {
     let skillAgents = await resolveSkillAgents(d, d.ids);
     let documents = await resolveDocuments(d, d.documentIds);
     let storeItems = await resolveStoreItems(d, d.storeItemIds);
@@ -217,27 +216,27 @@ class SkillAgentServiceImpl {
     );
   }
 
-  async getSkillAgentById(
-    d: CargoScope & {
-      skillAgentId: string;
-      includeArchived?: boolean;
-    }
-  ) {
+  async getSkillAgentById(d: {
+    project: Project;
+    instance: Instance;
+    skillAgentId: string;
+    includeArchived?: boolean;
+  }) {
     return await this.getSkillAgentRecord(d);
   }
 
-  async updateSkillAgent(
-    d: CargoScope & {
-      skillAgent: SkillAgentRecord;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-      input: {
-        name?: string;
-        description?: string | null;
-      };
-    }
-  ) {
+  async updateSkillAgent(d: {
+    project: Project;
+    instance: Instance;
+    skillAgent: SkillAgentRecord;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+    input: {
+      name?: string;
+      description?: string | null;
+    };
+  }) {
     if (d.input.name === undefined && d.input.description === undefined) {
       throw new ServiceError(
         badRequestError({
@@ -302,14 +301,14 @@ class SkillAgentServiceImpl {
     });
   }
 
-  async deleteSkillAgent(
-    d: CargoScope & {
-      skillAgent: SkillAgentRecord;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async deleteSkillAgent(d: {
+    project: Project;
+    instance: Instance;
+    skillAgent: SkillAgentRecord;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     let actor = d.authorization.resourceActor;
 
     if (d.skillAgent.storeItem) {

@@ -10,7 +10,6 @@ import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
   type CargoOwnerScope,
-  type CargoScope,
   cargoFileScope,
   type DateFilter,
   normalizeDateFilter,
@@ -32,7 +31,13 @@ import {
   storeReadPermission,
   storeWritePermission
 } from '@metorial/cargo-module-store';
-import type { File, Prisma, StoreParticipantPermissions } from '@metorial/db';
+import type {
+  File,
+  Instance,
+  Prisma,
+  Project,
+  StoreParticipantPermissions
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { requireInstanceScope } from '../lib/instanceScope';
 import { getCargoFilesBucketName, getStorage } from '../storage';
@@ -537,7 +542,9 @@ class FileServiceImpl {
   }
 
   async listFiles(
-    d: CargoScope & {
+    d: {
+      project: Project;
+      instance: Instance;
       ids?: string[];
       purpose?: string[];
       storeIds?: string[];

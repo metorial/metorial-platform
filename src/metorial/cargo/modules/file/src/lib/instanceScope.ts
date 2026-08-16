@@ -1,7 +1,11 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import type { CargoOwnerScope, CargoScope } from '@metorial/cargo-list-utils';
+import type { CargoOwnerScope } from '@metorial/cargo-list-utils';
+import type { Project, Instance } from '@metorial/db';
 
-export let requireInstanceScope = (scope: CargoOwnerScope, action: string): CargoScope => {
+export let requireInstanceScope = (
+  scope: CargoOwnerScope,
+  action: string
+): { project: Project; instance: Instance } => {
   if (!('instance' in scope)) {
     throw new ServiceError(
       badRequestError({
@@ -10,5 +14,5 @@ export let requireInstanceScope = (scope: CargoOwnerScope, action: string): Carg
     );
   }
 
-  return scope;
+  return scope as { project: Project; instance: Instance };
 };

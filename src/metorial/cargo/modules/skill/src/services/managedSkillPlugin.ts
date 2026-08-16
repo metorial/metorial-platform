@@ -4,10 +4,15 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
-import type { Prisma, Skill, SkillPluginSkillStatus, SkillPluginStatus } from '@metorial/db';
+import type {
+  Instance,
+  Prisma,
+  Project,
+  Skill,
+  SkillPluginSkillStatus,
+  SkillPluginStatus
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
-import { requireRecordProject } from '../internal/scope';
 import { createSkillDestination } from '../internal/skillDestination';
 import type { LifecycleEvent } from '../queues/lifecycle/_ids';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
@@ -116,7 +121,7 @@ class ManagedSkillPluginServiceImpl {
     values: ManagedSkillPluginValues
   ) {
     let destination = await createSkillDestination({
-      project: requireRecordProject('Skill', skill),
+      project: { oid: skill.projectOid },
       purpose: 'cargo.skill.managed-plugin'
     });
 
@@ -308,11 +313,11 @@ class ManagedSkillPluginServiceImpl {
     return result.managedSkillPlugin;
   }
 
-  async ensureManagedSkillPlugin(
-    d: CargoScope & {
-      skillId: string;
-    }
-  ) {
+  async ensureManagedSkillPlugin(d: {
+    project: Project;
+    instance: Instance;
+    skillId: string;
+  }) {
     let skill = await db.skill.findFirst({
       where: {
         id: d.skillId,

@@ -2,7 +2,7 @@ import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error'
 import { Service } from '@lowerdeck/service';
 import { Tokens } from '@lowerdeck/tokens';
 import { getConfig } from '@metorial/config';
-import { db, type Instance, type Organization, type User } from '@metorial/db';
+import { db, Project, type Instance, type Organization, type User } from '@metorial/db';
 import type { AccessTagSelector, AnyAccessTagSelector } from '@metorial/module-access';
 
 let documentEditTokenTtlMs = 5 * 60 * 1000;
@@ -62,6 +62,7 @@ export type DocumentEditOwner =
       type: 'instance';
       organization: Organization;
       instance: Instance;
+      project: Project;
     }
   | {
       type: 'organization';
@@ -234,7 +235,8 @@ class DocumentEditTokenServiceImpl {
         }
       },
       include: {
-        organization: true
+        organization: true,
+        project: true
       }
     });
 
@@ -255,6 +257,7 @@ class DocumentEditTokenServiceImpl {
       owner: {
         type: 'instance',
         organization: instance.organization,
+        project: instance.project,
         instance
       },
       accessTags: deserializeAccessTags(claims.accessTagOids) ?? [],

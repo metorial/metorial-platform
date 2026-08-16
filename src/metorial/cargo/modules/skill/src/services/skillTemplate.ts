@@ -4,18 +4,13 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { snowflake } from '@metorial/cargo-config/id';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillTemplates,
   resolveStoreTemplates
 } from '@metorial/cargo-list-utils';
-import {
-  accessTagService,
-  type AnyAccessTagSelector,
-  consumerSkillReadRoles
-} from '@metorial/module-access';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import type {
   RequiredStoreTemplateScope,
   StoreTemplateCreateInput,
@@ -25,7 +20,12 @@ import type {
 import { storeService, storeTemplateService } from '@metorial/cargo-module-store';
 import type { Prisma } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
-import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  consumerSkillReadRoles
+} from '@metorial/module-access';
+import { getProjectTenantIdentifier } from '../internal/scope';
 import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle/skillTemplate';
 import { skillResourceService } from './resource';
 import { skillService } from './skill';
@@ -357,7 +357,6 @@ class SkillTemplateServiceImpl {
     }
   ) {
     let storeId = await this.resolveCreateStoreId(d);
-    let organizationOid = d.instance ? await getInstanceOrganizationOid(d.instance) : null;
 
     return await withTransaction(async db => {
       let storeTemplate = await storeTemplateService.createStoreTemplate({
@@ -384,7 +383,7 @@ class SkillTemplateServiceImpl {
           metadata: d.input.metadata as any,
           storeId,
           storeTemplateId: storeTemplate.id,
-          organizationOid,
+          organizationOid: d.instance?.organizationOid,
           systemIdentifier: d.input.systemIdentifier ?? null,
           storeTemplateOid: storeTemplate.oid
         },

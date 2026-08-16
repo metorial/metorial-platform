@@ -1,7 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import {
   storeAccessService,
@@ -9,6 +8,7 @@ import {
   storeWritePermission
 } from '@metorial/cargo-module-store';
 import { db, Prisma } from '@metorial/db';
+import type { Project, Instance } from '@metorial/db';
 import {
   getCanonicalSkillPairKey,
   skillMergePairLock,
@@ -36,12 +36,12 @@ export type SkillForkSyncRecord = Prisma.SkillForkSyncGetPayload<{
 }>;
 
 class SkillForkSyncServiceImpl {
-  async createSkillForkSync(
-    d: CargoScope & {
-      forkSkillId: string;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async createSkillForkSync(d: {
+    project: Project;
+    instance: Instance;
+    forkSkillId: string;
+    authorization: ResourceAuthorization;
+  }) {
     let forkSkill = await db.skill.findFirst({
       where: {
         id: d.forkSkillId,
@@ -140,12 +140,12 @@ class SkillForkSyncServiceImpl {
     }
   }
 
-  async getSkillForkSyncById(
-    d: CargoScope & {
-      skillForkSyncId: string;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async getSkillForkSyncById(d: {
+    project: Project;
+    instance: Instance;
+    skillForkSyncId: string;
+    authorization: ResourceAuthorization;
+  }) {
     let sync = await db.skillForkSync.findFirst({
       where: {
         id: d.skillForkSyncId,

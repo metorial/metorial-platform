@@ -7,7 +7,6 @@ import {
   toSkillMergeRequestMergeError
 } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
-import { requireRecordScope } from '../internal/scope';
 import { skillMergeRequestApplyInternalService } from '../services/skillMergeRequestApplyInternal';
 import { skillMergeRequestEventService } from '../services/skillMergeRequestEvent';
 import {
@@ -35,7 +34,11 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
     where: {
       id: d.skillMergeRequestId
     },
-    include: skillMergeRequestInclude
+    include: {
+      ...skillMergeRequestInclude,
+      instance: true,
+      project: true
+    }
   });
 
   if (!mergeRequest || mergeRequest.status !== 'merging') return null;
@@ -45,7 +48,11 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
       where: {
         id: d.skillMergeRequestId
       },
-      include: skillMergeRequestInclude
+      include: {
+        ...skillMergeRequestInclude,
+        instance: true,
+        project: true
+      }
     });
     if (!mergeRequest || mergeRequest.status !== 'merging') return null;
     let activeMergeRequest = mergeRequest;
@@ -101,7 +108,8 @@ export let processSkillMergeRequestPerformJob = async (d: { skillMergeRequestId:
       }
 
       await skillMergeRequestApplyInternalService.applyResolvedItems({
-        ...requireRecordScope('Skill merge request', mergeRequest),
+        project: mergeRequest.project,
+        instance: mergeRequest.instance,
         mergeRequest,
         items,
         actor: mergeActor

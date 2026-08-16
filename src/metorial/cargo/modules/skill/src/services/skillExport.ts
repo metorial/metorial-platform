@@ -9,11 +9,12 @@ import {
   fileService
 } from '@metorial/cargo-module-file';
 import { assertResourceActorScope } from '@metorial/module-access';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import type {
+  Instance,
   Prisma,
+  Project,
   ResourceActor,
   SkillDestination,
   SkillExportStatus,
@@ -162,9 +163,12 @@ class SkillExportServiceImpl {
     return d.actor?.oid;
   }
 
-  private async getExportById(
-    d: CargoScope & { skillExportId: string; actor?: ResourceActor }
-  ) {
+  private async getExportById(d: {
+    project: Project;
+    instance: Instance;
+    skillExportId: string;
+    actor?: ResourceActor;
+  }) {
     let creatorResourceActorOid = this.getActorOid(d);
 
     let skillExport = await db.skillExport.findFirst({
@@ -188,11 +192,11 @@ class SkillExportServiceImpl {
     });
   }
 
-  private async resolveTarget(
-    d: CargoScope & {
-      input: CreateSkillExportInput;
-    }
-  ): Promise<ResolvedExportTarget> {
+  private async resolveTarget(d: {
+    project: Project;
+    instance: Instance;
+    input: CreateSkillExportInput;
+  }): Promise<ResolvedExportTarget> {
     if (d.input.target === 'skill') {
       let managedSkillPlugin = await managedSkillPluginService.ensureManagedSkillPlugin({
         project: d.project,
@@ -257,11 +261,11 @@ class SkillExportServiceImpl {
     };
   }
 
-  private async resolveTargetFromExport(
-    d: CargoScope & {
-      skillExport: SkillExportRecord;
-    }
-  ) {
+  private async resolveTargetFromExport(d: {
+    project: Project;
+    instance: Instance;
+    skillExport: SkillExportRecord;
+  }) {
     let ref = d.skillExport.exportRef;
 
     if (d.skillExport.target === 'skill' && ref.skill) {
@@ -300,11 +304,11 @@ class SkillExportServiceImpl {
     throw new Error(`Unable to resolve target for skill export ${d.skillExport.id}`);
   }
 
-  private async upsertExportRef(
-    d: CargoScope & {
-      target: ResolvedExportTarget;
-    }
-  ) {
+  private async upsertExportRef(d: {
+    project: Project;
+    instance: Instance;
+    target: ResolvedExportTarget;
+  }) {
     return await db.skillExportRef.upsert({
       where: {
         instanceOid_hash: {
@@ -363,12 +367,12 @@ class SkillExportServiceImpl {
     });
   }
 
-  private async createExportArtifact(
-    d: CargoScope & {
-      skillExport: SkillExportRecord;
-      target: ResolvedExportTarget;
-    }
-  ) {
+  private async createExportArtifact(d: {
+    project: Project;
+    instance: Instance;
+    skillExport: SkillExportRecord;
+    target: ResolvedExportTarget;
+  }) {
     let purpose = await this.ensureExportFilePurpose();
     let expiresAt = getExportExpiresAt();
     let zipStream = codeBucketClient.getBucketFilesAsZipStream({
@@ -455,12 +459,12 @@ class SkillExportServiceImpl {
     });
   }
 
-  async createSkillExport(
-    d: CargoScope & {
-      input: CreateSkillExportInput;
-      actor?: ResourceActor;
-    }
-  ) {
+  async createSkillExport(d: {
+    project: Project;
+    instance: Instance;
+    input: CreateSkillExportInput;
+    actor?: ResourceActor;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor
@@ -493,14 +497,14 @@ class SkillExportServiceImpl {
     return skillExport;
   }
 
-  async listSkillExports(
-    d: CargoScope & {
-      ids?: string[];
-      targets?: SkillExportTarget[];
-      statuses?: SkillExportStatus[];
-      actor?: ResourceActor;
-    }
-  ) {
+  async listSkillExports(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    targets?: SkillExportTarget[];
+    statuses?: SkillExportStatus[];
+    actor?: ResourceActor;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor
@@ -526,7 +530,12 @@ class SkillExportServiceImpl {
     );
   }
 
-  async getSkillExportById(d: CargoScope & { skillExportId: string; actor?: ResourceActor }) {
+  async getSkillExportById(d: {
+    project: Project;
+    instance: Instance;
+    skillExportId: string;
+    actor?: ResourceActor;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor
@@ -534,12 +543,12 @@ class SkillExportServiceImpl {
     return await this.getExportById(d);
   }
 
-  async processSkillExport(
-    d: CargoScope & {
-      skillExportId: string;
-      skillDestinationSyncId?: string;
-    }
-  ) {
+  async processSkillExport(d: {
+    project: Project;
+    instance: Instance;
+    skillExportId: string;
+    skillDestinationSyncId?: string;
+  }) {
     let skillExport = await this.getExportById(d);
     if (skillExport.status !== 'pending') return skillExport;
 

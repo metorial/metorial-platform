@@ -3,13 +3,19 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
   resolveSkillParticipants
 } from '@metorial/cargo-list-utils';
-import type { Prisma, ResourceActor, Skill, SkillParticipantRole } from '@metorial/db';
+import type {
+  Instance,
+  Prisma,
+  Project,
+  ResourceActor,
+  Skill,
+  SkillParticipantRole
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
   exposedParticipantResourceActorWhere,
@@ -195,11 +201,11 @@ class SkillParticipantServiceImpl {
     return await this.setSkillParticipantAccessRole(d);
   }
 
-  async getSkillParticipantById(
-    d: CargoScope & {
-      skillParticipantId: string;
-    }
-  ) {
+  async getSkillParticipantById(d: {
+    project: Project;
+    instance: Instance;
+    skillParticipantId: string;
+  }) {
     let participant = await db.skillParticipant.findFirst({
       where: {
         id: d.skillParticipantId,
@@ -219,15 +225,15 @@ class SkillParticipantServiceImpl {
     return participant;
   }
 
-  async listSkillParticipants(
-    d: CargoScope & {
-      ids?: string[];
-      skillId: string;
-      actorIds?: string[];
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-    }
-  ) {
+  async listSkillParticipants(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    skillId: string;
+    actorIds?: string[];
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+  }) {
     let participants = await resolveSkillParticipants(d, d.ids);
     let actors = await resolveResourceActors(d, d.actorIds);
 

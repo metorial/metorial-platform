@@ -7,14 +7,7 @@ import {
 } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { getConfig } from '@metorial/config';
-import {
-  db,
-  Organization,
-  SkillPlugin,
-  type ConsumerAuthAttempt,
-  type ConsumerSurface,
-  type Instance
-} from '@metorial/db';
+import { db, SkillPlugin, type ConsumerAuthAttempt, type ConsumerSurface } from '@metorial/db';
 import { addSeconds } from 'date-fns';
 import {
   consumerAuthAccessTokenTtlSeconds,
@@ -154,15 +147,6 @@ export let ensureSkillPluginMatchesEndpoint = (d: {
     );
   }
 };
-
-export let getSkillPluginOwner = (skillPlugin: {
-  organization: Organization;
-  instance: Instance;
-}) => ({
-  type: 'instance' as const,
-  organization: skillPlugin.organization,
-  instance: skillPlugin.instance
-});
 
 export let buildDashboardConsumerAuthUrl = (d: {
   consumerSurface: DashboardConsumerSurface;

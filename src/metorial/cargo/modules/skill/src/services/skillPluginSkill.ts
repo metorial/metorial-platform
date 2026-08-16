@@ -4,14 +4,13 @@ import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
   resolveSkillPluginSkills,
   resolveSkills
 } from '@metorial/cargo-list-utils';
-import type { Prisma, SkillPluginSkillStatus } from '@metorial/db';
+import type { Instance, Prisma, Project, SkillPluginSkillStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
   assertSkillMarketplaceSkillLimit,
@@ -92,12 +91,12 @@ class SkillPluginSkillServiceImpl {
     );
   }
 
-  private async getSkillPluginSkillRecord(
-    d: CargoScope & {
-      skillPluginSkillId: string;
-      skillPlugin?: SkillPluginRecord;
-    }
-  ) {
+  private async getSkillPluginSkillRecord(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginSkillId: string;
+    skillPlugin?: SkillPluginRecord;
+  }) {
     return await withTransaction(
       async db => {
         let skillPluginSkill = await db.skillPluginSkill.findFirst({
@@ -126,18 +125,18 @@ class SkillPluginSkillServiceImpl {
     );
   }
 
-  async listSkillPluginSkills(
-    d: CargoScope & {
-      skillPlugin: SkillPluginRecord;
-      ids?: string[];
-      skillIds?: string[];
-      skillConfigurationIds?: string[];
-      statuses?: SkillPluginSkillStatusFilter[];
-      pluginSkillSlug?: string;
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-    }
-  ) {
+  async listSkillPluginSkills(d: {
+    project: Project;
+    instance: Instance;
+    skillPlugin: SkillPluginRecord;
+    ids?: string[];
+    skillIds?: string[];
+    skillConfigurationIds?: string[];
+    statuses?: SkillPluginSkillStatusFilter[];
+    pluginSkillSlug?: string;
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+  }) {
     let skillPluginSkills = await resolveSkillPluginSkills(d, d.ids);
     let skills = await resolveSkills(d, d.skillIds);
     let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
@@ -172,24 +171,24 @@ class SkillPluginSkillServiceImpl {
     );
   }
 
-  async getSkillPluginSkillById(
-    d: CargoScope & {
-      skillPluginSkillId: string;
-      skillPlugin?: SkillPluginRecord;
-    }
-  ) {
+  async getSkillPluginSkillById(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginSkillId: string;
+    skillPlugin?: SkillPluginRecord;
+  }) {
     return await this.getSkillPluginSkillRecord(d);
   }
 
-  async addSkillPluginSkill(
-    d: CargoScope & {
-      skillPlugin: SkillPluginRecord;
-      input: {
-        skillId: string;
-        pluginSkillSlug?: string;
-      } & SkillPluginSkillInput;
-    }
-  ) {
+  async addSkillPluginSkill(d: {
+    project: Project;
+    instance: Instance;
+    skillPlugin: SkillPluginRecord;
+    input: {
+      skillId: string;
+      pluginSkillSlug?: string;
+    } & SkillPluginSkillInput;
+  }) {
     assertPluginIsNotManaged(d.skillPlugin);
 
     let skill = await skillService.getSkillById({
@@ -336,12 +335,12 @@ class SkillPluginSkillServiceImpl {
     });
   }
 
-  async updateSkillPluginSkill(
-    d: CargoScope & {
-      skillPluginSkill: SkillPluginSkillRecord;
-      input: SkillPluginSkillInput;
-    }
-  ) {
+  async updateSkillPluginSkill(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginSkill: SkillPluginSkillRecord;
+    input: SkillPluginSkillInput;
+  }) {
     assertPluginIsNotManaged(d.skillPluginSkill.skillPlugin);
 
     if (!this.hasUpdate(d.input)) {
@@ -388,11 +387,11 @@ class SkillPluginSkillServiceImpl {
     return skillPluginSkill;
   }
 
-  async removeSkillPluginSkill(
-    d: CargoScope & {
-      skillPluginSkill: SkillPluginSkillRecord;
-    }
-  ) {
+  async removeSkillPluginSkill(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginSkill: SkillPluginSkillRecord;
+  }) {
     assertPluginIsNotManaged(d.skillPluginSkill.skillPlugin);
 
     let skillPluginSkill = await db.skillPluginSkill.update({

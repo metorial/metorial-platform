@@ -1,4 +1,6 @@
 import {
+  Instance,
+  Project,
   type Consumer,
   type OrganizationActor,
   type OrganizationMember,
@@ -12,15 +14,8 @@ import {
 let fullCargoAccessPermissions = ['content_read', 'content_write'] as const;
 
 export type InstanceCargoAccessContext = {
-  instance: {
-    id: string;
-    oid: bigint;
-    projectOid: bigint;
-  };
-  project: {
-    id: string;
-    oid: bigint;
-  };
+  instance: Instance;
+  project: Project;
   resourceActor?: ResourceActor;
   member?: OrganizationMember & {
     actor: OrganizationActor;

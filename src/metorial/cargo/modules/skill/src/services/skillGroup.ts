@@ -1,19 +1,16 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  type CargoScope,
-  type DateFilter,
-  normalizeDateFilter
-} from '@metorial/cargo-list-utils';
+import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
+import type { Instance, Project } from '@metorial/db';
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
 import {
   accessTagService,
   type AnyAccessTagSelector,
   consumerSkillReadRoles
 } from '@metorial/module-access';
-import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
+import { getProjectTenantIdentifier } from '../internal/scope';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle/skillGroup';
 
 let include = {
@@ -32,13 +29,13 @@ let include = {
 export type SkillGroupRecord = Prisma.SkillGroupGetPayload<{ include: typeof include }>;
 
 class SkillGroupServiceImpl {
-  async getSkillGroupById(
-    d: CargoScope & {
-      skillGroupId: string;
-      allowDeleted?: boolean;
-      accessTags?: AnyAccessTagSelector;
-    }
-  ) {
+  async getSkillGroupById(d: {
+    project: Project;
+    instance: Instance;
+    skillGroupId: string;
+    allowDeleted?: boolean;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
@@ -56,17 +53,17 @@ class SkillGroupServiceImpl {
     return group;
   }
 
-  async listSkillGroups(
-    d: CargoScope & {
-      ids?: string[];
-      skillIds?: string[];
-      statuses?: Array<'active' | 'archived' | 'deleted'>;
-      search?: string;
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-      accessTags?: AnyAccessTagSelector;
-    }
-  ) {
+  async listSkillGroups(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    skillIds?: string[];
+    statuses?: Array<'active' | 'archived' | 'deleted'>;
+    search?: string;
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
@@ -114,18 +111,17 @@ class SkillGroupServiceImpl {
     );
   }
 
-  async createSkillGroup(
-    d: CargoScope & {
-      input: {
-        name: string;
-        description?: string | null;
-        metadata?: Prisma.InputJsonValue | null;
-        skillIds?: string[];
-        allowConsumerSkillAssignment?: boolean;
-      };
-    }
-  ) {
-    let organizationOid = await getInstanceOrganizationOid(d.instance);
+  async createSkillGroup(d: {
+    project: Project;
+    instance: Instance;
+    input: {
+      name: string;
+      description?: string | null;
+      metadata?: Prisma.InputJsonValue | null;
+      skillIds?: string[];
+      allowConsumerSkillAssignment?: boolean;
+    };
+  }) {
     let skills = await db.skill.findMany({
       where: {
         id: { in: d.input.skillIds ?? [] },
@@ -142,7 +138,7 @@ class SkillGroupServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata as any,
           allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment,
-          organizationOid,
+          organizationOid: d.project.organizationOid,
           instanceOid: d.instance.oid
         }
       });
@@ -166,18 +162,18 @@ class SkillGroupServiceImpl {
     });
   }
 
-  async updateSkillGroup(
-    d: CargoScope & {
-      skillGroupId: string;
-      input: {
-        name?: string;
-        description?: string | null;
-        metadata?: Prisma.InputJsonValue | null;
-        skillIds?: string[];
-        allowConsumerSkillAssignment?: boolean;
-      };
-    }
-  ) {
+  async updateSkillGroup(d: {
+    project: Project;
+    instance: Instance;
+    skillGroupId: string;
+    input: {
+      name?: string;
+      description?: string | null;
+      metadata?: Prisma.InputJsonValue | null;
+      skillIds?: string[];
+      allowConsumerSkillAssignment?: boolean;
+    };
+  }) {
     let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
     let skills = d.input.skillIds
       ? await db.skill.findMany({
@@ -234,7 +230,7 @@ class SkillGroupServiceImpl {
     });
   }
 
-  async archiveSkillGroup(d: CargoScope & { skillGroupId: string }) {
+  async archiveSkillGroup(d: { project: Project; instance: Instance; skillGroupId: string }) {
     let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
     return await withTransaction(async db => {
       await db.skillGroupItem.updateMany({

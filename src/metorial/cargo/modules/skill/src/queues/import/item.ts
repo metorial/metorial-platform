@@ -2,7 +2,6 @@ import { db } from '@metorial/db';
 import { consumerSkillService } from '@metorial/module-consumer';
 import { createQueue } from '@metorial/queue';
 import { materializeImportedSkill } from '../../import/materialize';
-import { requireRecordScope } from '../../internal/scope';
 import type { SkillRecord } from '../../services/skill';
 import { skillService } from '../../services/skill';
 import { skillImportFinishQueue } from './finish';
@@ -23,7 +22,9 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     include: {
       skillImport: {
         include: {
-          creatorResourceActor: true
+          creatorResourceActor: true,
+          project: true,
+          instance: true
         }
       },
       skill: {
@@ -37,7 +38,6 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
   });
   if (!item) return;
 
-  let scope = requireRecordScope('Skill import', item.skillImport);
   if (item.status === 'completed' || item.status === 'failed') {
     if (item.status === 'failed') {
       let cleanupSkill =
@@ -45,8 +45,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         (await db.skill.findFirst({
           where: {
             id: item.targetSkillId,
-            projectOid: scope.project.oid,
-            instanceOid: scope.instance.oid,
+            projectOid: item.skillImport.project.oid,
+            instanceOid: item.skillImport.instance.oid,
             status: 'active'
           },
           include: {
@@ -57,7 +57,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         }));
       if (cleanupSkill) {
         await skillService.archiveSkill({
-          ...scope,
+          project: item.skillImport.project,
+          instance: item.skillImport.instance,
           skill: cleanupSkill,
           authorization: { type: 'privileged' }
         });
@@ -96,7 +97,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     let actor = item.skillImport.creatorResourceActor ?? undefined;
     let consumerProfileOid = actor?.consumerProfileOid ?? undefined;
     createdSkill = await materializeImportedSkill({
-      ...scope,
+      project: item.skillImport.project,
+      instance: item.skillImport.instance,
       codeBucketId: item.skillImport.codeBucketId,
       skillId: item.targetSkillId,
       rootPath: item.path,
@@ -146,7 +148,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     });
     if (completed.count === 0) {
       await skillService.archiveSkill({
-        ...scope,
+        project: item.skillImport.project,
+        instance: item.skillImport.instance,
         skill: createdSkill,
         authorization: { type: 'privileged' }
       });
@@ -156,7 +159,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     if (createdSkill) {
       try {
         await skillService.archiveSkill({
-          ...scope,
+          project: item.skillImport.project,
+          instance: item.skillImport.instance,
           skill: createdSkill,
           authorization: { type: 'privileged' }
         });

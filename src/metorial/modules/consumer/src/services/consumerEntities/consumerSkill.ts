@@ -7,9 +7,9 @@ import {
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
+  skillParticipantService,
   skillResourceService,
   skillService,
-  skillParticipantService,
   skillTemplateService,
   type SkillRecord
 } from '@metorial/cargo-module-skill';
@@ -23,6 +23,7 @@ import {
   Instance,
   Organization,
   Prisma,
+  Project,
   Skill,
   withTransaction
 } from '@metorial/db';
@@ -31,10 +32,7 @@ import {
   consumerSkillManageAccessRoles,
   createResourceAuthorization
 } from '@metorial/module-access';
-import {
-  resolveInstanceScope,
-  resourceActorService
-} from '@metorial/module-resource-tenant';
+import { resourceActorService } from '@metorial/module-resource-tenant';
 import { consumerAccessPolicyService } from '../consumerAccess/accessPolicy';
 import { consumerAccessService } from '../consumerAccess/consumerAccess';
 
@@ -62,17 +60,23 @@ type SkillSharePermission = 'read' | 'write' | 'none';
 let getUniqueIds = (ids?: string[]) => Array.from(new Set(ids ?? []));
 
 class ConsumerSkillServiceImpl {
-  private async getConsumerActor(d: {
-    instance: Pick<Instance, 'id' | 'oid'>;
-    consumerProfile: Pick<ConsumerProfile, 'oid' | 'instanceOid'>;
-  }) {
-    let scope = await resolveInstanceScope(d.instance);
+  private async getConsumerActor(d: { instance: Instance; consumerProfile: ConsumerProfile }) {
+    let project = await db.project.findUniqueOrThrow({
+      where: { oid: d.instance.projectOid }
+    });
+
     let actor = await resourceActorService.ensureConsumerProfileActor({
-      project: scope.project,
+      project,
       consumerProfile: d.consumerProfile
     });
 
-    return { scope, actor };
+    return {
+      scope: {
+        instance: d.instance,
+        project
+      },
+      actor
+    };
   }
 
   private async getConsumerWriteAccessTags(
@@ -132,10 +136,7 @@ class ConsumerSkillServiceImpl {
   private async createConsumerPersonalSkillAccess(d: {
     organization: Organization;
     instance: Instance;
-    consumerProfile: Pick<
-      ConsumerProfile,
-      'id' | 'oid' | 'instanceOid' | 'personalConsumerGroupOid'
-    >;
+    consumerProfile: ConsumerProfile;
     skill: Skill;
     permission: Exclude<SkillSharePermission, 'none'>;
     grantManageAccess?: boolean;
@@ -385,6 +386,7 @@ class ConsumerSkillServiceImpl {
   async createConsumerSkill(d: {
     organization: Organization;
     instance: Instance;
+    project: Project;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfileForSkill;
     consumerGroups: Pick<ConsumerGroup, 'oid' | 'accessTagOid'>[];
@@ -398,20 +400,26 @@ class ConsumerSkillServiceImpl {
       );
     }
 
-    let scope = await resolveInstanceScope(d.instance);
     let actor = await resourceActorService.ensureConsumerProfileActor({
-      project: scope.project,
+      project: d.project,
       consumerProfile: d.consumerProfile
     });
+
     let template = d.input.templateId
       ? await skillTemplateService.getSkillTemplateById({
-          ...scope,
+          project: d.project,
+          instance: d.instance,
           skillTemplateId: d.input.templateId,
           accessTags: d.consumerGroups.map(group => group.accessTagOid)
         })
-      : await skillTemplateService.getDefaultSkillTemplate(scope);
+      : await skillTemplateService.getDefaultSkillTemplate({
+          project: d.project,
+          instance: d.instance
+        });
+
     let localSkill = await skillService.createSkill({
-      ...scope,
+      instance: d.instance,
+      project: d.project,
       parentSkillTemplate: template,
       input: {
         id: await ID.generateId('skill'),
@@ -421,7 +429,7 @@ class ConsumerSkillServiceImpl {
           accessTags: d.consumerGroups.map(group => ({
             accessTagOid: group.accessTagOid
           })),
-          ...scope,
+          project: d.project,
           instance: d.instance,
           consumerProfile: d.consumerProfile
         }),
@@ -457,6 +465,7 @@ class ConsumerSkillServiceImpl {
   async forkConsumerSkill(d: {
     organization: Organization;
     instance: Instance;
+    project: Project;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfileForSkill;
     consumerGroups: Pick<ConsumerGroup, 'oid' | 'accessTagOid'>[];
@@ -471,18 +480,19 @@ class ConsumerSkillServiceImpl {
       );
     }
 
-    let scope = await resolveInstanceScope(d.instance);
     let actor = await resourceActorService.ensureConsumerProfileActor({
-      project: scope.project,
+      project: d.project,
       consumerProfile: d.consumerProfile
     });
     let parentSkill = await skillService.getSkillById({
-      ...scope,
+      project: d.project,
+      instance: d.instance,
       skillId: d.parentSkillId,
       accessTags: d.consumerGroups.map(group => group.accessTagOid)
     });
     let localSkill = await skillService.createSkill({
-      ...scope,
+      project: d.project,
+      instance: d.instance,
       parentSkill,
       parentSkillCloneType: 'fork',
       input: {
@@ -493,7 +503,7 @@ class ConsumerSkillServiceImpl {
           accessTags: d.consumerGroups.map(group => ({
             accessTagOid: group.accessTagOid
           })),
-          ...scope,
+          project: d.project,
           instance: d.instance,
           consumerProfile: d.consumerProfile
         }),
@@ -630,6 +640,7 @@ class ConsumerSkillServiceImpl {
       }),
       this.getConsumerWriteAccessTags(d.consumerProfile)
     ]);
+
     let skill = await skillService.getSkillById({
       ...scope,
       skillId: d.skillId

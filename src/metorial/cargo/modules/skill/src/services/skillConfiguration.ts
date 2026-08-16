@@ -8,12 +8,11 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations
 } from '@metorial/cargo-list-utils';
-import type { Prisma } from '@metorial/db';
+import type { Instance, Prisma, Project } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { enqueueSkillConfigurationLifecycle } from '../queues/lifecycle';
 
@@ -76,11 +75,11 @@ class SkillConfigurationServiceImpl {
     );
   }
 
-  private async getSkillConfigurationRecord(
-    d: CargoScope & {
-      skillConfigurationId: string;
-    }
-  ) {
+  private async getSkillConfigurationRecord(d: {
+    project: Project;
+    instance: Instance;
+    skillConfigurationId: string;
+  }) {
     return await withTransaction(
       async db => {
         let skillConfiguration = await db.skillConfiguration.findFirst({
@@ -103,13 +102,13 @@ class SkillConfigurationServiceImpl {
     );
   }
 
-  async createSkillConfiguration(
-    d: CargoScope & {
-      input: SkillConfigurationInput & {
-        isInternal?: boolean;
-      };
-    }
-  ) {
+  async createSkillConfiguration(d: {
+    project: Project;
+    instance: Instance;
+    input: SkillConfigurationInput & {
+      isInternal?: boolean;
+    };
+  }) {
     let data = this.getUpdateData(d.input);
 
     return await db.skillConfiguration.create({
@@ -126,13 +125,13 @@ class SkillConfigurationServiceImpl {
     });
   }
 
-  async listSkillConfigurations(
-    d: CargoScope & {
-      ids?: string[];
-      createdAt?: DateFilter;
-      updatedAt?: DateFilter;
-    }
-  ) {
+  async listSkillConfigurations(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    createdAt?: DateFilter;
+    updatedAt?: DateFilter;
+  }) {
     let skillConfigurations = await resolveSkillConfigurations(d, d.ids);
 
     return Paginator.create(({ prisma }) =>
@@ -155,11 +154,11 @@ class SkillConfigurationServiceImpl {
     );
   }
 
-  async getSkillConfigurationById(
-    d: CargoScope & {
-      skillConfigurationId: string;
-    }
-  ) {
+  async getSkillConfigurationById(d: {
+    project: Project;
+    instance: Instance;
+    skillConfigurationId: string;
+  }) {
     if (d.skillConfigurationId === 'default') {
       return await this.upsertDefaultSkillConfiguration(d);
     }
@@ -167,11 +166,11 @@ class SkillConfigurationServiceImpl {
     return await this.getSkillConfigurationRecord(d);
   }
 
-  async getManySkillConfigurations(
-    d: CargoScope & {
-      skillConfigurationIds: string[];
-    }
-  ) {
+  async getManySkillConfigurations(d: {
+    project: Project;
+    instance: Instance;
+    skillConfigurationIds: string[];
+  }) {
     let skillConfigurationIds = [...new Set(d.skillConfigurationIds)].filter(
       id => id !== 'default'
     );
@@ -189,7 +188,7 @@ class SkillConfigurationServiceImpl {
     });
   }
 
-  async upsertDefaultSkillConfiguration(d: CargoScope) {
+  async upsertDefaultSkillConfiguration(d: { project: Project; instance: Instance }) {
     return await withTransaction(async db => {
       let existing = await db.skillConfiguration.findFirst({
         where: {
@@ -217,12 +216,12 @@ class SkillConfigurationServiceImpl {
     });
   }
 
-  async updateSkillConfiguration(
-    d: CargoScope & {
-      skillConfigurationId: string;
-      input: SkillConfigurationInput;
-    }
-  ) {
+  async updateSkillConfiguration(d: {
+    project: Project;
+    instance: Instance;
+    skillConfigurationId: string;
+    input: SkillConfigurationInput;
+  }) {
     if (!this.hasUpdate(d.input)) {
       throw new ServiceError(
         badRequestError({
@@ -252,11 +251,11 @@ class SkillConfigurationServiceImpl {
     return updatedConfiguration;
   }
 
-  async deleteSkillConfiguration(
-    d: CargoScope & {
-      skillConfigurationId: string;
-    }
-  ) {
+  async deleteSkillConfiguration(d: {
+    project: Project;
+    instance: Instance;
+    skillConfigurationId: string;
+  }) {
     let skillConfiguration = await this.getSkillConfigurationRecord(d);
 
     if (skillConfiguration.isDefault) {

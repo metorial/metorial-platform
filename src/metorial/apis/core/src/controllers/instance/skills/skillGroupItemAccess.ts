@@ -1,10 +1,10 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
-import { ConsumerProfile, Instance } from '@metorial/db';
 import { skillGroupService, skillService } from '@metorial/cargo-module-skill';
+import { ConsumerProfile, Instance, Project } from '@metorial/db';
 import type { AnyAccessTagSelector, ResourceAuthorization } from '@metorial/module-access';
 
 export let assertConsumerCanWriteSkillGroupItem = async (d: {
-  project: { oid: bigint };
+  project: Project;
   instance: Instance;
   skillGroupId: string;
   skillId: string;

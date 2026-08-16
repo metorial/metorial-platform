@@ -1,17 +1,14 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  type CargoScope,
-  type DateFilter,
-  normalizeDateFilter
-} from '@metorial/cargo-list-utils';
+import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
 import {
   accessTagService,
   type AnyAccessTagSelector,
   consumerSkillReadRoles
 } from '@metorial/module-access';
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
+import type { Project, Instance } from '@metorial/db';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle/skillGroup';
 import { skillGroupService } from './skillGroup';
 import { getConsumerSkillAccessWhere, skillService } from './skill';
@@ -26,17 +23,17 @@ export type SkillGroupItemRecord = Prisma.SkillGroupItemGetPayload<{
 }>;
 
 class SkillGroupItemServiceImpl {
-  async listSkillGroupItems(
-    d: CargoScope & {
-      statuses?: Array<'active' | 'archived' | 'deleted'>;
-      allowDeleted?: boolean;
-      ids?: string[];
-      skillGroupIds?: string[];
-      skillIds?: string[];
-      createdAt?: DateFilter;
-      accessTags?: AnyAccessTagSelector;
-    }
-  ) {
+  async listSkillGroupItems(d: {
+    project: Project;
+    instance: Instance;
+    statuses?: Array<'active' | 'archived' | 'deleted'>;
+    allowDeleted?: boolean;
+    ids?: string[];
+    skillGroupIds?: string[];
+    skillIds?: string[];
+    createdAt?: DateFilter;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
@@ -74,14 +71,14 @@ class SkillGroupItemServiceImpl {
     );
   }
 
-  async getSkillGroupItemById(
-    d: CargoScope & {
-      skillGroupItemId: string;
-      skillGroupId?: string;
-      allowDeleted?: boolean;
-      accessTags?: AnyAccessTagSelector;
-    }
-  ) {
+  async getSkillGroupItemById(d: {
+    project: Project;
+    instance: Instance;
+    skillGroupItemId: string;
+    skillGroupId?: string;
+    allowDeleted?: boolean;
+    accessTags?: AnyAccessTagSelector;
+  }) {
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
@@ -112,9 +109,11 @@ class SkillGroupItemServiceImpl {
     return item;
   }
 
-  async createSkillGroupItem(
-    d: CargoScope & { input: { skillGroupId: string; skillId: string } }
-  ) {
+  async createSkillGroupItem(d: {
+    project: Project;
+    instance: Instance;
+    input: { skillGroupId: string; skillId: string };
+  }) {
     let [group, skill] = await Promise.all([
       skillGroupService.getSkillGroupById({
         ...d,
@@ -161,7 +160,11 @@ class SkillGroupItemServiceImpl {
     });
   }
 
-  async archiveSkillGroupItem(d: CargoScope & { skillGroupItem: SkillGroupItemRecord }) {
+  async archiveSkillGroupItem(d: {
+    project: Project;
+    instance: Instance;
+    skillGroupItem: SkillGroupItemRecord;
+  }) {
     let current = await this.getSkillGroupItemById({
       ...d,
       skillGroupItemId: d.skillGroupItem.id,

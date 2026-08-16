@@ -1,9 +1,14 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { env } from '@metorial/cargo-config';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
-import type { EntityImage, ResourceActor, StoreParticipantPermissions } from '@metorial/db';
+import type {
+  EntityImage,
+  Instance,
+  Project,
+  ResourceActor,
+  StoreParticipantPermissions
+} from '@metorial/db';
 import { db } from '@metorial/db';
 
 export type GetImageFieldsParams = {
@@ -43,15 +48,15 @@ class InternalImageServiceImpl {
     return `${env.service.DOWNLOAD_PUBLIC_URL}/files/${d.fileId}/${d.key}`;
   }
 
-  private async createImageEntityImage(
-    d: CargoScope & {
-      entity: { id: string; type: string };
-      fileId: string;
-      actor?: ResourceActor;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ): Promise<EntityImage> {
+  private async createImageEntityImage(d: {
+    project: Project;
+    instance: Instance;
+    entity: { id: string; type: string };
+    fileId: string;
+    actor?: ResourceActor;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }): Promise<EntityImage> {
     let file = await db.file.findFirst({
       where: {
         instanceOid: d.instance.oid,
@@ -98,16 +103,16 @@ class InternalImageServiceImpl {
     };
   }
 
-  async resolveImageEntityImage<ClearImage extends EntityImage | null>(
-    d: CargoScope & {
-      entity: { id: string; type: string };
-      imageFileId: string | null;
-      clearedImage: ClearImage;
-      actor?: ResourceActor;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ): Promise<EntityImage | ClearImage> {
+  async resolveImageEntityImage<ClearImage extends EntityImage | null>(d: {
+    project: Project;
+    instance: Instance;
+    entity: { id: string; type: string };
+    imageFileId: string | null;
+    clearedImage: ClearImage;
+    actor?: ResourceActor;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }): Promise<EntityImage | ClearImage> {
     if (d.imageFileId === null) return d.clearedImage;
 
     return await this.createImageEntityImage({

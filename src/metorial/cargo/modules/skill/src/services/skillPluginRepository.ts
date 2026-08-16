@@ -2,8 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
-import type { Prisma } from '@metorial/db';
+import type { Instance, Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
 import {
@@ -32,9 +31,11 @@ export type EnrichedSkillPluginRepositoryRecord = Omit<
 };
 
 class SkillPluginRepositoryServiceImpl {
-  private async enrichRepositories<T extends SkillPluginRepositoryRecord>(
-    d: CargoScope & { repositories: T[] }
-  ): Promise<
+  private async enrichRepositories<T extends SkillPluginRepositoryRecord>(d: {
+    project: Project;
+    instance: Instance;
+    repositories: T[];
+  }): Promise<
     (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
   > {
     let enrichedSkillRepositories = await skillRepositoryService.enrichSkillRepositories({
@@ -52,11 +53,11 @@ class SkillPluginRepositoryServiceImpl {
     }));
   }
 
-  async listSkillPluginRepositories(
-    d: CargoScope & {
-      skillPluginId: string;
-    }
-  ) {
+  async listSkillPluginRepositories(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginId: string;
+  }) {
     let plugin = await skillPluginService.getSkillPluginById(d);
     if (plugin.status !== 'active' || plugin.isManaged) {
       throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
@@ -81,12 +82,12 @@ class SkillPluginRepositoryServiceImpl {
     );
   }
 
-  async getSkillPluginRepositoryById(
-    d: CargoScope & {
-      skillPluginId: string;
-      skillPluginRepositoryId: string;
-    }
-  ) {
+  async getSkillPluginRepositoryById(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginId: string;
+    skillPluginRepositoryId: string;
+  }) {
     let plugin = await skillPluginService.getSkillPluginById(d);
     if (plugin.status !== 'active' || plugin.isManaged) {
       throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
@@ -114,12 +115,12 @@ class SkillPluginRepositoryServiceImpl {
     return enriched!;
   }
 
-  async createSkillPluginRepository(
-    d: CargoScope & {
-      skillPluginId: string;
-      repoId: string;
-    }
-  ) {
+  async createSkillPluginRepository(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginId: string;
+    repoId: string;
+  }) {
     let plugin = await skillPluginService.getSkillPluginById(d);
     if (plugin.status !== 'active' || plugin.isManaged) {
       throw new ServiceError(notFoundError('skill.plugin', d.skillPluginId));
@@ -171,12 +172,12 @@ class SkillPluginRepositoryServiceImpl {
     return enriched!;
   }
 
-  async deleteSkillPluginRepository(
-    d: CargoScope & {
-      skillPluginId: string;
-      skillPluginRepositoryId: string;
-    }
-  ) {
+  async deleteSkillPluginRepository(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginId: string;
+    skillPluginRepositoryId: string;
+  }) {
     let repository = await this.getSkillPluginRepositoryById(d);
 
     await db.skillPluginRepository.delete({

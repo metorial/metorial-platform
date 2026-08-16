@@ -8,7 +8,6 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
@@ -16,23 +15,24 @@ import {
   resolveResourceActors,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
-import type { ResourceAuthorization } from '@metorial/module-access';
 import { filePurposeService, fileService } from '@metorial/cargo-module-file';
 import {
-  type StoreAccessInput,
   storeAccessService,
   storeItemMutationService,
   storeReadPermission,
   storeWritePermission
 } from '@metorial/cargo-module-store';
 import type {
+  Instance,
   Prisma,
+  Project,
   ResourceActor,
   StoreCloneType,
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { internalDocumentContentService } from '../internal/documentContent';
 import { internalDocumentContentStoreService } from '../internal/documentContentStore';
 import type { DocumentDraft } from '../internal/documentDraft';
@@ -40,7 +40,6 @@ import { internalDocumentDraftService } from '../internal/documentDraft';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 import { internalDocumentVersioningService } from '../internal/documentVersioning';
 import { rewriteDocumentMarkdownTitle } from '../lib/documentMarkdown';
-import { requireDocumentScope } from '../lib/documentScope';
 import { documentFlushQueue } from '../queues/documentFlush';
 
 let draftFlushDelayMs = 60 * 1000;
@@ -78,12 +77,8 @@ export type ResolvedDocumentRecord = Prisma.DocumentGetPayload<{
 };
 
 export type ScopedResolvedDocumentRecord = {
-  project: {
-    oid: bigint;
-  };
-  instance: {
-    oid: bigint;
-  };
+  project: Project;
+  instance: Instance;
   document: ResolvedDocumentRecord;
 };
 
@@ -116,12 +111,12 @@ class DocumentServiceImpl {
     );
   }
 
-  private async getDocumentRecord(
-    d: CargoScope & {
-      documentId: string;
-      includeDeleted?: boolean;
-    }
-  ) {
+  private async getDocumentRecord(d: {
+    project: Project;
+    instance: Instance;
+    documentId: string;
+    includeDeleted?: boolean;
+  }) {
     return await withTransaction(
       async db => {
         let document = await db.document.findFirst({
@@ -194,28 +189,28 @@ class DocumentServiceImpl {
     }
   }
 
-  async createDocument(
-    d: CargoScope & {
-      internal?: {
-        isReadOnly?: boolean;
-        isTemplateBacking?: boolean;
-        allowReadOnlyStore?: boolean;
+  async createDocument(d: {
+    project: Project;
+    instance: Instance;
+    internal?: {
+      isReadOnly?: boolean;
+      isTemplateBacking?: boolean;
+      allowReadOnlyStore?: boolean;
+    };
+    input: {
+      id?: string;
+      title: string;
+      content: string;
+      fileStoreId?: string | null;
+      authorization: ResourceAuthorization;
+      store?: {
+        id: string;
+        path: string;
       };
-      input: {
-        id?: string;
-        title: string;
-        content: string;
-        fileStoreId?: string | null;
-        authorization: ResourceAuthorization;
-        store?: {
-          id: string;
-          path: string;
-        };
-        defaultPermissions?: StoreParticipantPermissions[];
-        overridePermissions?: boolean;
-      };
-    }
-  ) {
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    };
+  }) {
     let purpose = await filePurposeService.ensureDocumentFilePurpose();
 
     let actor = d.input.authorization.resourceActor;
@@ -337,15 +332,15 @@ class DocumentServiceImpl {
     });
   }
 
-  async getDocumentById(
-    d: CargoScope & {
-      documentId: string;
-      includeDeleted?: boolean;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async getDocumentById(d: {
+    project: Project;
+    instance: Instance;
+    documentId: string;
+    includeDeleted?: boolean;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     let document = await this.getDocumentRecord(d);
     let access = await storeAccessService.assertStoreAccessForDocument({
       project: d.project,
@@ -370,20 +365,20 @@ class DocumentServiceImpl {
     return await this.resolveDocument(document);
   }
 
-  async getDocumentPermissions(
-    d: CargoScope & {
-      document: {
-        id: string;
-        oid: bigint;
-        fileOid: bigint;
-        isReadOnly?: boolean;
-        createdByResourceActorOid?: bigint | null;
-      };
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async getDocumentPermissions(d: {
+    project: Project;
+    instance: Instance;
+    document: {
+      id: string;
+      oid: bigint;
+      fileOid: bigint;
+      isReadOnly?: boolean;
+      createdByResourceActorOid?: bigint | null;
+    };
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     return await storeAccessService.getDocumentPermissions({
       project: d.project,
       instance: d.instance,
@@ -414,7 +409,11 @@ class DocumentServiceImpl {
         id: d.documentId,
         file: d.includeDeleted ? undefined : { status: 'active' }
       },
-      include: documentInclude
+      include: {
+        ...documentInclude,
+        instance: true,
+        project: true
+      }
     });
 
     if (!document) {
@@ -422,14 +421,14 @@ class DocumentServiceImpl {
     }
 
     return {
-      ...requireDocumentScope(document),
+      project: document.project,
+      instance: document.instance,
       document: await this.resolveDocument(document)
     } satisfies ScopedResolvedDocumentRecord;
   }
 
   async listDocuments(
-    d: CargoScope &
-      DocumentAccessInput & {
+    d: { project: Project; instance: Instance } & DocumentAccessInput & {
         ids?: string[];
         fileIds?: string[];
         storeIds?: string[];
@@ -521,18 +520,18 @@ class DocumentServiceImpl {
     );
   }
 
-  async updateDocument(
-    d: CargoScope & {
-      document: ResolvedDocumentRecord;
-      input: {
-        title?: string;
-        content?: string;
-        authorization: ResourceAuthorization;
-        defaultPermissions?: StoreParticipantPermissions[];
-        overridePermissions?: boolean;
-      };
-    }
-  ) {
+  async updateDocument(d: {
+    project: Project;
+    instance: Instance;
+    document: ResolvedDocumentRecord;
+    input: {
+      title?: string;
+      content?: string;
+      authorization: ResourceAuthorization;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    };
+  }) {
     if (d.input.title === undefined && d.input.content === undefined) {
       throw new ServiceError(
         badRequestError({
@@ -646,21 +645,21 @@ class DocumentServiceImpl {
     return await this.withEffectiveFileStore(resolved);
   }
 
-  async cloneDocument(
-    d: CargoScope & {
-      document: ResolvedDocumentRecord;
-      input: {
-        id?: string;
-        title?: string;
-        cloneType?: StoreCloneType;
-        rewriteContentTitle?: boolean;
-        authorization: ResourceAuthorization;
-        creatorActor?: ResourceActor;
-        defaultPermissions?: StoreParticipantPermissions[];
-        overridePermissions?: boolean;
-      };
-    }
-  ) {
+  async cloneDocument(d: {
+    project: Project;
+    instance: Instance;
+    document: ResolvedDocumentRecord;
+    input: {
+      id?: string;
+      title?: string;
+      cloneType?: StoreCloneType;
+      rewriteContentTitle?: boolean;
+      authorization: ResourceAuthorization;
+      creatorActor?: ResourceActor;
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    };
+  }) {
     let access = await storeAccessService.assertStoreAccessForDocument({
       project: d.project,
       instance: d.instance,
@@ -779,14 +778,14 @@ class DocumentServiceImpl {
     return await this.withEffectiveFileStore(clonedDocument);
   }
 
-  async deleteDocument(
-    d: CargoScope & {
-      document: ResolvedDocumentRecord;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async deleteDocument(d: {
+    project: Project;
+    instance: Instance;
+    document: ResolvedDocumentRecord;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     await storeAccessService.assertStoreAccessForDocument({
       project: d.project,
       instance: d.instance,

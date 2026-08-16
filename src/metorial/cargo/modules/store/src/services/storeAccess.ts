@@ -1,24 +1,25 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
-import {
-  accessTagService,
-  type AnyAccessTagSelector,
-  consumerSkillReadRoles,
-  consumerSkillWriteRoles,
-  assertResourceAuthorizationScope,
-  type ResourceAuthorization
-} from '@metorial/module-access';
 import type {
-  ResourceActor,
+  Instance,
   Prisma,
+  Project,
+  ResourceActor,
   Store,
   StoreAccess,
   StoreParticipant,
   StoreParticipantPermissions
 } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  assertResourceAuthorizationScope,
+  consumerSkillReadRoles,
+  consumerSkillWriteRoles,
+  type ResourceAuthorization
+} from '@metorial/module-access';
 
 export type StoreAccessInput = {
   authorization: ResourceAuthorization;
@@ -151,11 +152,7 @@ class StoreAccessServiceImpl {
     return permissions;
   }
 
-  async getStoreById(
-    d: CargoScope & {
-      storeId: string;
-    }
-  ) {
+  async getStoreById(d: { project: Project; instance: Instance; storeId: string }) {
     return await withTransaction(
       async db => {
         let store = await db.store.findFirst({
@@ -575,11 +572,12 @@ class StoreAccessServiceImpl {
   }
 
   async resolveAccessibleStoreOids(
-    d: CargoScope &
-      StoreAccessInput & {
-        requiredPermission: StoreParticipantPermissions;
-        storeOids: bigint[];
-      }
+    d: StoreAccessInput & {
+      project: { oid: bigint };
+      instance: { oid: bigint };
+      requiredPermission: StoreParticipantPermissions;
+      storeOids: bigint[];
+    }
   ) {
     return await withTransaction(
       async db => {
@@ -670,8 +668,7 @@ class StoreAccessServiceImpl {
   }
 
   async listAccessibleStoreOidsForTenantEnvironment(
-    d: CargoScope &
-      StoreAccessInput & {
+    d: { project: Project; instance: Instance } & StoreAccessInput & {
         requiredPermission: StoreParticipantPermissions;
       }
   ) {
@@ -702,11 +699,12 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStore(
-    d: CargoScope &
-      StoreAccessInput & {
-        store: Pick<Store, 'oid' | 'id'>;
-        requiredPermission: StoreParticipantPermissions;
-      }
+    d: StoreAccessInput & {
+      project: { oid: bigint };
+      instance: { oid: bigint };
+      store: Pick<Store, 'oid' | 'id'>;
+      requiredPermission: StoreParticipantPermissions;
+    }
   ) {
     let result = await this.resolveAccessibleStoreOids({
       project: d.project,
@@ -736,8 +734,7 @@ class StoreAccessServiceImpl {
   }
 
   async getStorePermissions(
-    d: CargoScope &
-      StoreAccessInput & {
+    d: { project: Project; instance: Instance } & StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
   ) {
@@ -808,8 +805,7 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForDocument(
-    d: CargoScope &
-      StoreAccessInput & {
+    d: { project: Project; instance: Instance } & StoreAccessInput & {
         document: {
           id: string;
           oid: bigint;
@@ -860,8 +856,7 @@ class StoreAccessServiceImpl {
   }
 
   async getDocumentPermissions(
-    d: CargoScope &
-      StoreAccessInput & {
+    d: { project: Project; instance: Instance } & StoreAccessInput & {
         document: {
           id: string;
           oid: bigint;
@@ -949,15 +944,16 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForFile(
-    d: CargoScope &
-      StoreAccessInput & {
-        file: {
-          id: string;
-          oid: bigint;
-          createdByResourceActorOid?: bigint | null;
-        };
-        requiredPermission: StoreParticipantPermissions;
-      }
+    d: StoreAccessInput & {
+      project: { oid: bigint };
+      instance: { oid: bigint };
+      file: {
+        id: string;
+        oid: bigint;
+        createdByResourceActorOid?: bigint | null;
+      };
+      requiredPermission: StoreParticipantPermissions;
+    }
   ) {
     let actor = await this.getActor(d);
     let isOwner = !!actor && d.file.createdByResourceActorOid === actor.oid;
@@ -965,9 +961,9 @@ class StoreAccessServiceImpl {
       file: d.file
     });
     let access = await this.resolveAccessibleStoreOids({
+      ...this.getAccessInput(d),
       project: d.project,
       instance: d.instance,
-      ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,
@@ -991,19 +987,20 @@ class StoreAccessServiceImpl {
   }
 
   async assertStoreAccessForStoreItem(
-    d: CargoScope &
-      StoreAccessInput & {
-        item: {
-          id: string;
-          storeOid: bigint;
-        };
-        requiredPermission: StoreParticipantPermissions;
-      }
+    d: StoreAccessInput & {
+      project: { oid: bigint };
+      instance: { oid: bigint };
+      item: {
+        id: string;
+        storeOid: bigint;
+      };
+      requiredPermission: StoreParticipantPermissions;
+    }
   ) {
     let access = await this.resolveAccessibleStoreOids({
+      ...this.getAccessInput(d),
       project: d.project,
       instance: d.instance,
-      ...this.getAccessInput(d),
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: d.requiredPermission,

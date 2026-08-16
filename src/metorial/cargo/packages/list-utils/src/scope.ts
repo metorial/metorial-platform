@@ -1,12 +1,10 @@
-export type CargoScope = {
-  project: { oid: bigint };
-  instance: { oid: bigint };
-};
-
 export type CargoOwnerScope =
   | { user: { oid: bigint } }
   | { organization: { oid: bigint } }
-  | CargoScope;
+  | {
+      project: { oid: bigint };
+      instance: { oid: bigint };
+    };
 
 export type CargoFileScope = {
   userOid: bigint | null;

@@ -3,7 +3,6 @@ import { documentEditTokenService, documentService } from '@metorial/cargo-modul
 import { resolveCargoAccess } from '@metorial/cargo-module-file';
 import { db } from '@metorial/db';
 import { createResourceAuthorization } from '@metorial/module-access';
-import { resolveInstanceScope } from '@metorial/module-resource-tenant';
 
 export let resolveDocumentsLiveToken = async (d: {
   editToken: string;
@@ -17,7 +16,12 @@ export let resolveDocumentsLiveToken = async (d: {
     instanceId: d.instanceId,
     organizationId: d.organizationId
   });
-  let scope = await resolveInstanceScope(token.owner.instance);
+  let scope = {
+    instance: token.owner.instance,
+    project: token.owner.project,
+    organization: token.owner.organization
+  };
+
   let access = await resolveCargoAccess({
     scope,
     accessTags: token.accessTags,

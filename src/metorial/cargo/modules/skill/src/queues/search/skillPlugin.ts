@@ -1,7 +1,7 @@
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { getProjectTenantIdentifier, requireRecordProject } from '../../internal/scope';
+import { getProjectTenantIdentifier } from '../../internal/scope';
 
 export let indexSkillPluginQueue = createQueue<{ skillPluginId: string }>({
   name: 'cargo/skill/search/plugin',
@@ -17,30 +17,16 @@ export let indexSkillPluginQueueProcessor = indexSkillPluginQueue.process(async 
       skillPluginSkills: {
         where: { status: 'active' },
         include: {
-          skill: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              clientName: true,
-              clientDescription: true
-            }
-          }
+          skill: true
         }
       },
       skillMarketplacePlugins: {
         where: { status: 'active' },
         include: {
-          skillMarketplace: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              description: true
-            }
-          }
+          skillMarketplace: true
         }
-      }
+      },
+      project: true
     }
   });
   if (!skillPlugin) throw new QueueRetryError();
@@ -58,7 +44,7 @@ export let indexSkillPluginQueueProcessor = indexSkillPluginQueue.process(async 
     sourceId: (await voyagerSource).id,
     indexId: voyagerIndex.skillPlugin.id,
     documentId: skillPlugin.id,
-    tenantIds: [getProjectTenantIdentifier(requireRecordProject('Skill plugin', skillPlugin))],
+    tenantIds: [getProjectTenantIdentifier(skillPlugin.project)],
     fields: {
       skillPluginId: skillPlugin.id,
       skillIds: skillPlugin.skillPluginSkills.map(item => item.skill.id),

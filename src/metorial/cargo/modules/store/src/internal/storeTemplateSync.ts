@@ -3,7 +3,6 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import {
   documentInclude,
   documentService,
@@ -16,7 +15,14 @@ import {
   getCargoFilesBucketName,
   getStorage
 } from '@metorial/cargo-module-file';
-import type { Prisma, Store, StoreItemKind, StoreTemplateItem } from '@metorial/db';
+import type {
+  Instance,
+  Prisma,
+  Project,
+  Store,
+  StoreItemKind,
+  StoreTemplateItem
+} from '@metorial/db';
 import { db, isUniqueConstraintError, withTransaction } from '@metorial/db';
 import { storeItemInclude } from '../services/storeItem';
 import { storeItemMutationService } from '../services/storeItemMutation';
@@ -308,11 +314,11 @@ class InternalStoreTemplateSyncServiceImpl {
     };
   }
 
-  private async ensureBackingStore(
-    d: CargoScope & {
-      storeTemplate: StoreTemplateSyncRecord;
-    }
-  ) {
+  private async ensureBackingStore(d: {
+    project: Project;
+    instance: Instance;
+    storeTemplate: StoreTemplateSyncRecord;
+  }) {
     try {
       return await withTransaction(async db => {
         let existing = await db.storeTemplateBacking.findFirst({
@@ -431,12 +437,12 @@ class InternalStoreTemplateSyncServiceImpl {
     }
   }
 
-  private async removeItems(
-    d: CargoScope & {
-      store: Store;
-      items: Array<{ id: string; path: string; kind: StoreItemKind }>;
-    }
-  ) {
+  private async removeItems(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    items: Array<{ id: string; path: string; kind: StoreItemKind }>;
+  }) {
     for (let item of sortStoreItemsForRemoval(d.items)) {
       let currentItem = await db.storeItem.findFirst({
         where: {
@@ -464,13 +470,13 @@ class InternalStoreTemplateSyncServiceImpl {
     }
   }
 
-  private async upsertFileItem(
-    d: CargoScope & {
-      store: Store;
-      item: StoreTemplateSyncItem;
-      existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
-    }
-  ) {
+  private async upsertFileItem(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    item: StoreTemplateSyncItem;
+    existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
+  }) {
     let filePurpose = await filePurposeService.ensureGenericFilePurpose();
     let name = getStoreTemplateItemName(d.item.path);
     let mimeType = d.item.mimeType ?? 'application/octet-stream';
@@ -532,13 +538,13 @@ class InternalStoreTemplateSyncServiceImpl {
     });
   }
 
-  private async upsertDocumentItem(
-    d: CargoScope & {
-      store: Store;
-      item: StoreTemplateSyncItem;
-      existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
-    }
-  ) {
+  private async upsertDocumentItem(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    item: StoreTemplateSyncItem;
+    existingItem?: Prisma.StoreItemGetPayload<{ include: typeof storeItemInclude }>;
+  }) {
     let content = decodeStoreTemplateItemContent(d.item)!.toString('utf8');
     let title = getDocumentTitle(d.item, content);
 
@@ -674,23 +680,22 @@ class InternalStoreTemplateSyncServiceImpl {
 
     if (!storeTemplate.hash) return null;
 
-    let scopedInstance = await db.instance.findFirst({
+    let instance = await db.instance.findFirstOrThrow({
       where: {
         id: d.instanceId
       },
-      select: { oid: true, projectOid: true }
+      include: {
+        project: true
+      }
     });
-    if (!scopedInstance) throw new ServiceError(notFoundError('instance', d.instanceId));
 
-    let project = { oid: scopedInstance.projectOid };
-    let instance = { oid: scopedInstance.oid };
-
-    if (storeTemplate.projectOid && storeTemplate.projectOid !== project.oid) return null;
+    if (storeTemplate.projectOid && storeTemplate.projectOid !== instance.project.oid)
+      return null;
     if (storeTemplate.instanceOid && storeTemplate.instanceOid !== instance.oid) return null;
 
     let { backing, store } = await this.ensureBackingStore({
       storeTemplate,
-      project,
+      project: instance.project,
       instance
     });
 
@@ -712,7 +717,7 @@ class InternalStoreTemplateSyncServiceImpl {
     let templatePaths = storeTemplate.items.map(item => item.path);
 
     await this.removeItems({
-      project,
+      project: instance.project,
       instance,
       store,
       items: currentItems
@@ -735,7 +740,7 @@ class InternalStoreTemplateSyncServiceImpl {
         if (item.path === '/') continue;
 
         await storeItemMutationService.modifyStoreItems({
-          project,
+          project: instance.project,
           instance,
           store,
           operations: [
@@ -752,7 +757,7 @@ class InternalStoreTemplateSyncServiceImpl {
       let existingItem = itemByPath.get(item.path);
       if (item.kind === 'file') {
         await this.upsertFileItem({
-          project,
+          project: instance.project,
           instance,
           store,
           item,
@@ -762,7 +767,7 @@ class InternalStoreTemplateSyncServiceImpl {
       }
 
       await this.upsertDocumentItem({
-        project,
+        project: instance.project,
         instance,
         store,
         item,
@@ -784,7 +789,7 @@ class InternalStoreTemplateSyncServiceImpl {
     });
 
     await this.removeItems({
-      project,
+      project: instance.project,
       instance,
       store,
       items: latestItems.filter(item => {

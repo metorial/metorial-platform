@@ -120,6 +120,7 @@ let portalOAuthAuthorizationGroup = consumerGroup.use(async ctx => {
   let portalOAuthAuthorization =
     await consumerOAuthDashboardService.getConsumerAuthAuthorizationForConsumer({
       instance: ctx.instance,
+      project: ctx.project,
       consumerSurface: ctx.consumerSurface,
       consumerProfile: ctx.consumerProfile,
       portalAuthAttemptId: ctx.params.portalAuthAttemptId

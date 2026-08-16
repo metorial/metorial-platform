@@ -4,10 +4,9 @@ import {
   documentAuthoritativeWriteService,
   documentService
 } from '@metorial/cargo-module-doc';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
-import type { ResourceActor, Store } from '@metorial/db';
+import type { Instance, Project, ResourceActor, Store } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
@@ -71,15 +70,15 @@ class SkillMergeRequestApplyInternalServiceImpl {
     return { title, content };
   }
 
-  private async applyDocumentResolution(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      item: SkillMergeRequestItemRecord;
-      actor?: ResourceActor;
-      title: string;
-      content: string;
-    }
-  ) {
+  private async applyDocumentResolution(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    item: SkillMergeRequestItemRecord;
+    actor?: ResourceActor;
+    title: string;
+    content: string;
+  }) {
     let targetItem = await this.getTargetItemByPath({
       store: d.mergeRequest.targetSkill.store!,
       path: d.item.path
@@ -148,13 +147,13 @@ class SkillMergeRequestApplyInternalServiceImpl {
     });
   }
 
-  async applyItemResolution(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      item: SkillMergeRequestItemRecord;
-      actor?: ResourceActor;
-    }
-  ) {
+  async applyItemResolution(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    item: SkillMergeRequestItemRecord;
+    actor?: ResourceActor;
+  }) {
     let actor = d.actor;
     let resolution = this.getResolutionContent({ item: d.item });
     let resolutionType = d.item.resolutionType;
@@ -262,13 +261,13 @@ class SkillMergeRequestApplyInternalServiceImpl {
     });
   }
 
-  async applyResolvedItems(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      items: SkillMergeRequestItemRecord[];
-      actor?: ResourceActor;
-    }
-  ) {
+  async applyResolvedItems(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    items: SkillMergeRequestItemRecord[];
+    actor?: ResourceActor;
+  }) {
     let items = [...d.items].sort((left, right) => {
       let leftRemovesDirectory = left.resolutionType === 'remove' && left.kind === 'directory';
       let rightRemovesDirectory =
@@ -367,13 +366,13 @@ class SkillMergeRequestApplyInternalServiceImpl {
     }
   }
 
-  private async restoreSnapshotItem(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      item: SnapshotItem;
-      actor?: ResourceActor;
-    }
-  ) {
+  private async restoreSnapshotItem(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    item: SnapshotItem;
+    actor?: ResourceActor;
+  }) {
     let syntheticItem = {
       path: d.item.path,
       kind: d.item.kind,
@@ -414,12 +413,12 @@ class SkillMergeRequestApplyInternalServiceImpl {
     });
   }
 
-  private async rollbackSkillMergeRequestUnlocked(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  private async rollbackSkillMergeRequestUnlocked(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     if (
       d.mergeRequest.status !== 'merged' ||
       !d.mergeRequest.preMergeTargetSkillVersionOid ||
@@ -512,12 +511,12 @@ class SkillMergeRequestApplyInternalServiceImpl {
     });
   }
 
-  async rollbackSkillMergeRequest(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async rollbackSkillMergeRequest(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     return await skillMergeTargetLock.usingLock(
       d.mergeRequest.targetSkill.store!.id,
       async () => {

@@ -6,7 +6,6 @@ import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
@@ -15,13 +14,15 @@ import {
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import type {
   EntityImage,
+  Instance,
   Prisma,
+  Project,
   SkillMarketplaceRepositoryAccessMode,
   SkillMarketplaceStatus
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
-import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
+import { getProjectTenantIdentifier } from '../internal/scope';
 import {
   createSkillDestination,
   forceSkillDestinationSync,
@@ -118,7 +119,9 @@ class SkillMarketplaceServiceImpl {
   }
 
   private async getSkillMarketplaceRecord(
-    d: CargoScope & {
+    d: {
+      project: Project;
+      instance: Instance;
       skillMarketplaceId: string;
     } & SkillMarketplaceAccessInput
   ) {
@@ -147,7 +150,9 @@ class SkillMarketplaceServiceImpl {
   }
 
   async listSkillMarketplaces(
-    d: CargoScope & {
+    d: {
+      project: Project;
+      instance: Instance;
       ids?: string[];
       skillConfigurationIds?: string[];
       statuses?: SkillMarketplaceStatusFilter[];
@@ -198,28 +203,30 @@ class SkillMarketplaceServiceImpl {
   }
 
   async getSkillMarketplaceById(
-    d: CargoScope & {
+    d: {
+      project: Project;
+      instance: Instance;
       skillMarketplaceId: string;
     } & SkillMarketplaceAccessInput
   ) {
     return await this.getSkillMarketplaceRecord(d);
   }
 
-  async createSkillMarketplace(
-    d: CargoScope & {
-      input: {
-        name: string;
-        description?: string | null;
-        slug?: string;
-        providerOverrides?: Prisma.InputJsonValue | null;
-        imageFileId?: string | null;
-        skillConfigurationId?: string | null;
-        repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
-        forceMergeOrPush?: boolean;
-        mergeBeforeChecksPass?: boolean;
-      };
-    }
-  ) {
+  async createSkillMarketplace(d: {
+    project: Project;
+    instance: Instance;
+    input: {
+      name: string;
+      description?: string | null;
+      slug?: string;
+      providerOverrides?: Prisma.InputJsonValue | null;
+      imageFileId?: string | null;
+      skillConfigurationId?: string | null;
+      repositoryAccessMode?: SkillMarketplaceRepositoryAccessMode;
+      forceMergeOrPush?: boolean;
+      mergeBeforeChecksPass?: boolean;
+    };
+  }) {
     this.assertName(d.input.name);
 
     let skillConfigurationOid =
@@ -234,7 +241,6 @@ class SkillMarketplaceServiceImpl {
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
-    let organizationOid = await getInstanceOrganizationOid(d.instance);
 
     return await withTransaction(async db => {
       let destination = await createSkillDestination({ project: d.project });
@@ -251,7 +257,7 @@ class SkillMarketplaceServiceImpl {
           slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
-          organizationOid,
+          organizationOid: d.instance.organizationOid,
           skillConfigurationOid,
           destinationOid: destination.oid
         },
@@ -287,12 +293,12 @@ class SkillMarketplaceServiceImpl {
     });
   }
 
-  async updateSkillMarketplace(
-    d: CargoScope & {
-      skillMarketplace: SkillMarketplaceRecord;
-      input: SkillMarketplaceInput;
-    }
-  ) {
+  async updateSkillMarketplace(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplace: SkillMarketplaceRecord;
+    input: SkillMarketplaceInput;
+  }) {
     let updateFlags = getSkillMarketplaceUpdateFlags(d.input);
     if (!updateFlags.hasUpdate) {
       throw new ServiceError(
@@ -367,7 +373,11 @@ class SkillMarketplaceServiceImpl {
     });
   }
 
-  async archiveSkillMarketplace(d: CargoScope & { skillMarketplace: SkillMarketplaceRecord }) {
+  async archiveSkillMarketplace(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplace: SkillMarketplaceRecord;
+  }) {
     await withTransaction(async db => {
       await db.skillMarketplacePlugin.updateMany({
         where: {
@@ -408,12 +418,12 @@ class SkillMarketplaceServiceImpl {
     });
   }
 
-  async getSkillMarketplaceEditorUrl(
-    d: CargoScope & {
-      skillMarketplace: SkillMarketplaceRecord;
-      isReadOnly?: boolean;
-    }
-  ) {
+  async getSkillMarketplaceEditorUrl(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplace: SkillMarketplaceRecord;
+    isReadOnly?: boolean;
+  }) {
     return await getSkillDestinationEditorUrl({
       project: d.project,
       destination: d.skillMarketplace.destination!,
@@ -421,9 +431,11 @@ class SkillMarketplaceServiceImpl {
     });
   }
 
-  async forceSkillMarketplaceSync(
-    d: CargoScope & { skillMarketplace: SkillMarketplaceRecord }
-  ) {
+  async forceSkillMarketplaceSync(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplace: SkillMarketplaceRecord;
+  }) {
     await forceSkillDestinationSync({
       destination: d.skillMarketplace.destination!
     });

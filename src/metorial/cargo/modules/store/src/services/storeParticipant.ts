@@ -2,7 +2,6 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
@@ -13,7 +12,7 @@ import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
 } from '@metorial/module-resource-tenant';
-import type { Prisma } from '@metorial/db';
+import type { Instance, Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
 
 export let storeParticipantInclude = {
@@ -24,11 +23,11 @@ export let storeParticipantInclude = {
 } satisfies Prisma.StoreParticipantInclude;
 
 class StoreParticipantServiceImpl {
-  async getStoreParticipantById(
-    d: CargoScope & {
-      storeParticipantId: string;
-    }
-  ) {
+  async getStoreParticipantById(d: {
+    project: Project;
+    instance: Instance;
+    storeParticipantId: string;
+  }) {
     let participant = await db.storeParticipant.findFirst({
       where: {
         id: d.storeParticipantId,
@@ -48,14 +47,14 @@ class StoreParticipantServiceImpl {
     return participant;
   }
 
-  async listStoreParticipants(
-    d: CargoScope & {
-      ids?: string[];
-      storeIds?: string[];
-      actorIds?: string[];
-      createdAt?: DateFilter;
-    }
-  ) {
+  async listStoreParticipants(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    storeIds?: string[];
+    actorIds?: string[];
+    createdAt?: DateFilter;
+  }) {
     let participants = await resolveStoreParticipants(d, d.ids);
     let stores = await resolveStores(d, d.storeIds);
     let actors = await resolveResourceActors(d, d.actorIds);

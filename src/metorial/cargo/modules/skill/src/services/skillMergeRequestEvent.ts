@@ -2,15 +2,16 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import {
-  type CargoScope,
-  type DateFilter,
-  normalizeDateFilter
-} from '@metorial/cargo-list-utils';
+import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
-import type { SkillMergeRequestEventType, TransactionDB } from '@metorial/db';
+import type {
+  Instance,
+  Project,
+  SkillMergeRequestEventType,
+  TransactionDB
+} from '@metorial/db';
 import { db, type Prisma } from '@metorial/db';
 import type { SkillMergeRequestRecord } from './skillMergeRequestInternal';
 
@@ -61,12 +62,12 @@ class SkillMergeRequestEventServiceImpl {
     });
   }
 
-  private async assertReadAccess(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  private async assertReadAccess(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     let readable = async (store: SkillMergeRequestRecord['sourceSkill']['store']) =>
       await storeAccessService.assertStoreAccessForStore({
         project: d.project,
@@ -86,14 +87,14 @@ class SkillMergeRequestEventServiceImpl {
     await readable(d.mergeRequest.targetSkill.store);
   }
 
-  async listEvents(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-      types?: SkillMergeRequestEventType[];
-      createdAt?: DateFilter;
-    }
-  ) {
+  async listEvents(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+    types?: SkillMergeRequestEventType[];
+    createdAt?: DateFilter;
+  }) {
     await this.assertReadAccess(d);
 
     return Paginator.create(({ prisma }) =>
@@ -112,13 +113,13 @@ class SkillMergeRequestEventServiceImpl {
     );
   }
 
-  async getEventById(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-      eventId: string;
-    }
-  ) {
+  async getEventById(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+    eventId: string;
+  }) {
     await this.assertReadAccess(d);
 
     let event = await db.skillMergeRequestEvent.findFirst({

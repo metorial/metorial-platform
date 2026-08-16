@@ -8,7 +8,6 @@ import {
   resolveResourceActors,
   resolveStores,
   resolveStoreTemplates,
-  type CargoScope,
   type DateFilter
 } from '@metorial/cargo-list-utils';
 import {
@@ -22,7 +21,14 @@ import {
   getCargoFilesBucketName,
   getStorage
 } from '@metorial/cargo-module-file';
-import type { ResourceActor, Store, StoreAccess, StoreCloneType } from '@metorial/db';
+import type {
+  Instance,
+  Project,
+  ResourceActor,
+  Store,
+  StoreAccess,
+  StoreCloneType
+} from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { assertResourceActorScope } from '@metorial/module-access';
 import { posix as pathPosix } from 'node:path';
@@ -77,7 +83,7 @@ class StoreServiceImpl {
     );
   }
 
-  private async getStoreRecord(d: CargoScope & { storeId: string }) {
+  private async getStoreRecord(d: { project: Project; instance: Instance; storeId: string }) {
     return await withTransaction(
       async db => {
         let store = await db.store.findFirst({
@@ -96,11 +102,11 @@ class StoreServiceImpl {
     );
   }
 
-  private assertStoreTemplateCloneScope(
-    d: CargoScope & {
-      storeTemplate: Pick<StoreTemplateRecord, 'id' | 'projectOid' | 'instanceOid'>;
-    }
-  ) {
+  private assertStoreTemplateCloneScope(d: {
+    project: Project;
+    instance: Instance;
+    storeTemplate: Pick<StoreTemplateRecord, 'id' | 'projectOid' | 'instanceOid'>;
+  }) {
     if (d.storeTemplate.projectOid && d.storeTemplate.projectOid !== d.project.oid) {
       throw new ServiceError(
         badRequestError({
@@ -146,14 +152,14 @@ class StoreServiceImpl {
       : Buffer.from(item.content, 'utf8');
   }
 
-  private async instantiateStandaloneTemplateItems(
-    d: CargoScope & {
-      store: Store;
-      storeTemplate: StoreTemplateRecord;
-      actor?: ResourceActor;
-      documentTitleOverrides?: Record<string, string>;
-    }
-  ) {
+  private async instantiateStandaloneTemplateItems(d: {
+    project: Project;
+    instance: Instance;
+    store: Store;
+    storeTemplate: StoreTemplateRecord;
+    actor?: ResourceActor;
+    documentTitleOverrides?: Record<string, string>;
+  }) {
     let filePurpose = await filePurposeService.ensureGenericFilePurpose();
     let sortedItems = [...d.storeTemplate.items].sort((a, b) => {
       if (a.kind === b.kind) return a.path.localeCompare(b.path);
@@ -251,19 +257,19 @@ class StoreServiceImpl {
     }
   }
 
-  async createStore(
-    d: CargoScope & {
-      input: {
-        id?: string;
-        name: string;
-        actor?: ResourceActor;
-        access?: StoreAccess;
-        cloneType?: StoreCloneType;
-        parentStore?: Store;
-        parentStoreTemplate?: Pick<StoreTemplateRecord, 'oid'>;
-      };
-    }
-  ) {
+  async createStore(d: {
+    project: Project;
+    instance: Instance;
+    input: {
+      id?: string;
+      name: string;
+      actor?: ResourceActor;
+      access?: StoreAccess;
+      cloneType?: StoreCloneType;
+      parentStore?: Store;
+      parentStoreTemplate?: Pick<StoreTemplateRecord, 'oid'>;
+    };
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.input.actor
@@ -325,8 +331,7 @@ class StoreServiceImpl {
   }
 
   async createStoreFromTemplate(
-    d: CargoScope &
-      StoreAccessInput & {
+    d: { project: Project; instance: Instance } & StoreAccessInput & {
         input: {
           templateId: string;
           id?: string;
@@ -402,8 +407,7 @@ class StoreServiceImpl {
   }
 
   async listStores(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         ids?: string[];
         parentStoreIds?: string[];
         parentStoreTemplateIds?: string[];
@@ -463,8 +467,7 @@ class StoreServiceImpl {
   }
 
   async getStoreById(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         storeId: string;
       }
   ) {
@@ -483,8 +486,7 @@ class StoreServiceImpl {
   }
 
   async getStorePermissions(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
       }
   ) {
@@ -499,8 +501,7 @@ class StoreServiceImpl {
   }
 
   async updateStore(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         store: Store;
         input: {
           name?: string;
@@ -562,8 +563,7 @@ class StoreServiceImpl {
   }
 
   async cloneStore(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         store: Store;
         input: {
           id?: string;
@@ -639,8 +639,7 @@ class StoreServiceImpl {
   }
 
   async deleteStore(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         store: Store;
         allowLinkedSkillDelete?: boolean;
         allowLinkedStoreTemplateDelete?: boolean;
@@ -740,8 +739,7 @@ class StoreServiceImpl {
   }
 
   async modifyStoreItems(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         store: Store;
         operations: StoreItemOperationInput[];
       }
@@ -770,8 +768,7 @@ class StoreServiceImpl {
   }
 
   private async cloneStoreItemIntoStore(
-    d: CargoScope &
-      StoreServiceAccessInput & {
+    d: { project: Project; instance: Instance } & StoreServiceAccessInput & {
         targetStore: Store;
         item: StoreItemRecord;
         cloneType: StoreCloneType;

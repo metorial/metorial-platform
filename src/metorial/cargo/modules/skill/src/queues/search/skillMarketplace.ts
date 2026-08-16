@@ -1,7 +1,7 @@
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { getProjectTenantIdentifier, requireRecordProject } from '../../internal/scope';
+import { getProjectTenantIdentifier } from '../../internal/scope';
 
 export let indexSkillMarketplaceQueue = createQueue<{ skillMarketplaceId: string }>({
   name: 'cargo/skill/search/marketplace',
@@ -35,7 +35,8 @@ export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.proc
               }
             }
           }
-        }
+        },
+        project: true
       }
     });
     if (!skillMarketplace) throw new QueueRetryError();
@@ -53,9 +54,7 @@ export let indexSkillMarketplaceQueueProcessor = indexSkillMarketplaceQueue.proc
       sourceId: (await voyagerSource).id,
       indexId: voyagerIndex.skillMarketplace.id,
       documentId: skillMarketplace.id,
-      tenantIds: [
-        getProjectTenantIdentifier(requireRecordProject('Skill marketplace', skillMarketplace))
-      ],
+      tenantIds: [getProjectTenantIdentifier(skillMarketplace.project)],
       fields: {
         skillMarketplaceId: skillMarketplace.id,
         skillPluginIds: skillMarketplace.plugins.map(item => item.skillPlugin.id)

@@ -2,7 +2,6 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocumentParticipants,
@@ -15,7 +14,7 @@ import {
 } from '@metorial/module-resource-tenant';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
+import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 
@@ -27,14 +26,14 @@ export let documentParticipantInclude = {
 } satisfies Prisma.DocumentParticipantInclude;
 
 class DocumentParticipantServiceImpl {
-  async getDocumentParticipantById(
-    d: CargoScope & {
-      documentParticipantId: string;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async getDocumentParticipantById(d: {
+    project: Project;
+    instance: Instance;
+    documentParticipantId: string;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     let participant = await db.documentParticipant.findFirst({
       where: {
         document: {
@@ -67,19 +66,19 @@ class DocumentParticipantServiceImpl {
     return participant;
   }
 
-  async listDocumentParticipants(
-    d: CargoScope & {
-      documentId: string;
-      ids?: string[];
-      actorIds?: string[];
-      createdAt?: DateFilter;
-      lastEditedAt?: DateFilter;
-      lastViewedAt?: DateFilter;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async listDocumentParticipants(d: {
+    project: Project;
+    instance: Instance;
+    documentId: string;
+    ids?: string[];
+    actorIds?: string[];
+    createdAt?: DateFilter;
+    lastEditedAt?: DateFilter;
+    lastViewedAt?: DateFilter;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     let document = await db.document.findFirst({
       where: {
         projectOid: d.project.oid,

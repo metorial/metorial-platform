@@ -6,7 +6,6 @@ import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
@@ -17,13 +16,15 @@ import {
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
 import type {
   EntityImage,
+  Instance,
   Prisma,
+  Project,
   SkillMarketplacePluginStatus,
   SkillPluginStatus
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { internalImageService } from '../internal/image';
-import { getInstanceOrganizationOid, getProjectTenantIdentifier } from '../internal/scope';
+import { getProjectTenantIdentifier } from '../internal/scope';
 import {
   createSkillDestination,
   forceSkillDestinationSync,
@@ -138,11 +139,11 @@ class SkillPluginServiceImpl {
     );
   }
 
-  private async getSkillPluginRecord(
-    d: CargoScope & {
-      skillPluginId: string;
-    }
-  ) {
+  private async getSkillPluginRecord(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginId: string;
+  }) {
     return await withTransaction(
       async db => {
         let skillPlugin = await db.skillPlugin.findFirst({
@@ -164,7 +165,9 @@ class SkillPluginServiceImpl {
   }
 
   async listSkillPlugins(
-    d: CargoScope & {
+    d: {
+      project: Project;
+      instance: Instance;
       ids?: string[];
       skillMarketplaceIds?: string[];
       skillMarketplacePluginIds?: string[];
@@ -268,28 +271,28 @@ class SkillPluginServiceImpl {
     );
   }
 
-  async getSkillPluginById(
-    d: CargoScope & {
-      skillPluginId: string;
-    }
-  ) {
+  async getSkillPluginById(d: {
+    project: Project;
+    instance: Instance;
+    skillPluginId: string;
+  }) {
     return await this.getSkillPluginRecord(d);
   }
 
-  async createSkillPlugin(
-    d: CargoScope & {
-      input: {
-        name: string;
-        description?: string | null;
-        longDescription?: string | null;
-        category?: string | null;
-        slug?: string;
-        providerOverrides?: Prisma.InputJsonValue | null;
-        imageFileId?: string | null;
-        skillConfigurationId?: string | null;
-      };
-    }
-  ) {
+  async createSkillPlugin(d: {
+    project: Project;
+    instance: Instance;
+    input: {
+      name: string;
+      description?: string | null;
+      longDescription?: string | null;
+      category?: string | null;
+      slug?: string;
+      providerOverrides?: Prisma.InputJsonValue | null;
+      imageFileId?: string | null;
+      skillConfigurationId?: string | null;
+    };
+  }) {
     this.assertName(d.input.name);
 
     let skillConfigurationOid =
@@ -304,7 +307,6 @@ class SkillPluginServiceImpl {
                 skillConfigurationId: d.input.skillConfigurationId
               })
             ).oid;
-    let organizationOid = await getInstanceOrganizationOid(d.instance);
 
     return await withTransaction(async db => {
       let destination = await createSkillDestination({ project: d.project });
@@ -321,7 +323,7 @@ class SkillPluginServiceImpl {
           slug: `${slugify((d.input.slug ?? d.input.name).replaceAll('_', '-'))}-${generatePlainId(6)}`.toLowerCase(),
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
-          organizationOid,
+          organizationOid: d.project.organizationOid,
           skillConfigurationOid,
           destinationOid: destination.oid
         },
@@ -354,12 +356,12 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async updateSkillPlugin(
-    d: CargoScope & {
-      skillPlugin: SkillPluginRecord;
-      input: SkillPluginInput;
-    }
-  ) {
+  async updateSkillPlugin(d: {
+    project: Project;
+    instance: Instance;
+    skillPlugin: SkillPluginRecord;
+    input: SkillPluginInput;
+  }) {
     assertPluginIsNotManaged(d.skillPlugin);
 
     if (!this.hasUpdate(d.input)) {
@@ -432,7 +434,11 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async archiveSkillPlugin(d: CargoScope & { skillPlugin: SkillPluginRecord }) {
+  async archiveSkillPlugin(d: {
+    project: Project;
+    instance: Instance;
+    skillPlugin: SkillPluginRecord;
+  }) {
     assertPluginIsNotManaged(d.skillPlugin);
 
     await withTransaction(async db => {
@@ -485,12 +491,12 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async getSkillPluginEditorUrl(
-    d: CargoScope & {
-      skillPlugin: SkillPluginRecord;
-      isReadOnly?: boolean;
-    }
-  ) {
+  async getSkillPluginEditorUrl(d: {
+    project: Project;
+    instance: Instance;
+    skillPlugin: SkillPluginRecord;
+    isReadOnly?: boolean;
+  }) {
     return await getSkillDestinationEditorUrl({
       project: d.project,
       destination: d.skillPlugin.destination!,
@@ -498,7 +504,11 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async forceSkillPluginSync(d: CargoScope & { skillPlugin: SkillPluginRecord }) {
+  async forceSkillPluginSync(d: {
+    project: Project;
+    instance: Instance;
+    skillPlugin: SkillPluginRecord;
+  }) {
     await forceSkillDestinationSync({
       destination: d.skillPlugin.destination!
     });

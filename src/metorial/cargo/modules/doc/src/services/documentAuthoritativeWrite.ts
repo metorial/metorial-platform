@@ -1,22 +1,22 @@
 import { Service } from '@lowerdeck/service';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
 import { flushDocumentDraft } from '../queues/documentFlush';
 import { documentService, type ResolvedDocumentRecord } from './document';
+import type { Project, Instance } from '@metorial/db';
 
 class DocumentAuthoritativeWriteService {
-  async applyDocumentContent(
-    d: CargoScope & {
-      document: ResolvedDocumentRecord;
-      input: {
-        title: string;
-        content: string;
-        authorization: ResourceAuthorization;
-      };
-    }
-  ) {
+  async applyDocumentContent(d: {
+    project: Project;
+    instance: Instance;
+    document: ResolvedDocumentRecord;
+    input: {
+      title: string;
+      content: string;
+      authorization: ResourceAuthorization;
+    };
+  }) {
     let collaboration = await internalDocumentCollaborationService.withDocumentLock(
       d.document.id,
       async () => {

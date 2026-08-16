@@ -1,7 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
-import type { Prisma, ResourceActor } from '@metorial/db';
+import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
 import { documentInclude } from '../services/document';
 import { type DocumentDraft } from './documentDraft';
@@ -61,13 +60,13 @@ class InternalDocumentContentServiceImpl {
     };
   }
 
-  private async writeDocumentContent(
-    d: CargoScope & {
-      document: DocumentRecord;
-      nextContent: string;
-      listEditedAt?: Date;
-    }
-  ) {
+  private async writeDocumentContent(d: {
+    project: Project;
+    instance: Instance;
+    document: DocumentRecord;
+    nextContent: string;
+    listEditedAt?: Date;
+  }) {
     return await withTransaction(async db => {
       let now = new Date();
       let shouldCreateNewVersion =
@@ -304,13 +303,13 @@ class InternalDocumentContentServiceImpl {
     });
   }
 
-  async persistDraftToDocument(
-    d: CargoScope & {
-      document: DocumentRecord;
-      draft: DocumentDraft;
-      actors: ResourceActor[];
-    }
-  ) {
+  async persistDraftToDocument(d: {
+    project: Project;
+    instance: Instance;
+    document: DocumentRecord;
+    draft: DocumentDraft;
+    actors: ResourceActor[];
+  }) {
     return await withTransaction(async db => {
       let nextTitle = d.draft.title;
       let nextContent = d.draft.content;

@@ -1,18 +1,22 @@
 import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, type ConsumerProfile, type ConsumerSurface, type Instance } from '@metorial/db';
-import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { skillPluginService, skillResourceService } from '@metorial/cargo-module-skill';
+import {
+  db,
+  Project,
+  type ConsumerProfile,
+  type ConsumerSurface,
+  type Instance
+} from '@metorial/db';
+import { type AnyAccessTagSelector } from '@metorial/module-access';
 import { magicMcpEndpointService } from '@metorial/module-magic';
-import { resolveInstanceScope } from '@metorial/module-resource-tenant';
 import { addMinutes } from 'date-fns';
 import { consumerIntegrationService } from '../consumerEntities/consumerIntegration';
 import {
   ensurePendingConsumerAuthAuthorization,
   ensureSkillPluginMatchesEndpoint,
   getAttemptMagicMcpEndpoint,
-  getConsumerAuthClientPlugin,
-  getSkillPluginOwner
+  getConsumerAuthClientPlugin
 } from './_helpers';
 import {
   consumerAuthAttemptInclude,
@@ -48,6 +52,7 @@ class ConsumerOAuthDashboardService {
 
   async getConsumerAuthAuthorizationForConsumer(d: {
     instance: Instance;
+    project: Project;
     consumerSurface: ConsumerSurface;
     consumerProfile: ConsumerProfile;
     portalAuthAttemptId: string;
@@ -85,7 +90,9 @@ class ConsumerOAuthDashboardService {
     return {
       ...portalOAuthAuthorization,
       skillPluginSupportedProviderIds: await this.getSkillPluginSupportedProviderIds({
-        skillPlugin: portalOAuthAuthorization.skillPlugin
+        skillPlugin: portalOAuthAuthorization.skillPlugin,
+        project: d.project,
+        instance: d.instance
       })
     };
   }
@@ -228,17 +235,19 @@ class ConsumerOAuthDashboardService {
 
   private async getSkillPluginSupportedProviderIds(d: {
     skillPlugin: ConsumerOAuthAuthorization['skillPlugin'];
+    project: Project;
+    instance: Instance;
   }) {
     if (!d.skillPlugin) return [];
 
-    let owner = getSkillPluginOwner(d.skillPlugin);
-    let scope = await resolveInstanceScope(owner.instance);
     let skillPlugin = await skillPluginService.getSkillPluginById({
-      ...scope,
+      instance: d.instance,
+      project: d.project,
       skillPluginId: d.skillPlugin.id
     });
+
     let resources = await skillResourceService.hydrateDelegatedSkillResources({
-      instance: owner.instance,
+      instance: d.instance,
       skillIds: skillPlugin.skillPluginSkills
         .filter(skill => skill.status === 'active')
         .map(skill => skill.skill.id)

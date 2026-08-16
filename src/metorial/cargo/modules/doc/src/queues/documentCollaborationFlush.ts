@@ -5,9 +5,8 @@ import {
   composeFullMarkdown,
   yjsUpdateToDocumentSnapshot
 } from '@metorial/docs-editor-schema';
-import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { resourceActorService } from '@metorial/module-resource-tenant';
-import { requireDocumentScope } from '../lib/documentScope';
+import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalDocumentCollaborationService } from '../internal';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
 import { documentInclude, documentService } from '../services/document';
@@ -77,7 +76,11 @@ export let flushDocumentCollaborationState = async (d: {
     where: {
       id: d.documentId
     },
-    include: documentInclude
+    include: {
+      ...documentInclude,
+      project: true,
+      instance: true
+    }
   });
   if (!currentDocument) {
     throw new ServiceError(notFoundError('document', d.documentId));
@@ -116,20 +119,19 @@ export let flushDocumentCollaborationState = async (d: {
     body: snapshot.body
   });
 
-  let scope = requireDocumentScope(currentDocument);
-
   let actorId = await internalDocumentCollaborationService.getActorId(d.documentId);
   let actor = actorId
     ? await resourceActorService
         .getActorById({
-          project: scope.project,
+          project: currentDocument.project,
           actorId
         })
         .catch(() => undefined)
     : undefined;
 
   await documentService.updateDocument({
-    ...scope,
+    project: currentDocument.project,
+    instance: currentDocument.instance,
     document: currentDocument,
     input: {
       authorization: {

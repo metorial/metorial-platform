@@ -2,8 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
-import type { Prisma } from '@metorial/db';
+import type { Instance, Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
 import { forceSkillDestinationSync } from '../internal/skillDestination';
 import {
@@ -32,9 +31,11 @@ export type EnrichedSkillMarketplaceRepositoryRecord = Omit<
 };
 
 class SkillMarketplaceRepositoryServiceImpl {
-  private async enrichRepositories<T extends SkillMarketplaceRepositoryRecord>(
-    d: CargoScope & { repositories: T[] }
-  ): Promise<
+  private async enrichRepositories<T extends SkillMarketplaceRepositoryRecord>(d: {
+    project: Project;
+    instance: Instance;
+    repositories: T[];
+  }): Promise<
     (Omit<T, 'skillRepository'> & { skillRepository: EnrichedSkillRepositoryRecord })[]
   > {
     let enrichedSkillRepositories = await skillRepositoryService.enrichSkillRepositories({
@@ -52,11 +53,11 @@ class SkillMarketplaceRepositoryServiceImpl {
     }));
   }
 
-  async listSkillMarketplaceRepositories(
-    d: CargoScope & {
-      skillMarketplaceId: string;
-    }
-  ) {
+  async listSkillMarketplaceRepositories(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplaceId: string;
+  }) {
     let marketplace = await skillMarketplaceService.getSkillMarketplaceById(d);
     if (marketplace.status !== 'active') {
       throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
@@ -81,12 +82,12 @@ class SkillMarketplaceRepositoryServiceImpl {
     );
   }
 
-  async getSkillMarketplaceRepositoryById(
-    d: CargoScope & {
-      skillMarketplaceId: string;
-      skillMarketplaceRepositoryId: string;
-    }
-  ) {
+  async getSkillMarketplaceRepositoryById(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplaceId: string;
+    skillMarketplaceRepositoryId: string;
+  }) {
     let marketplace = await skillMarketplaceService.getSkillMarketplaceById(d);
     if (marketplace.status !== 'active') {
       throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
@@ -114,12 +115,12 @@ class SkillMarketplaceRepositoryServiceImpl {
     return enriched!;
   }
 
-  async createSkillMarketplaceRepository(
-    d: CargoScope & {
-      skillMarketplaceId: string;
-      repoId: string;
-    }
-  ) {
+  async createSkillMarketplaceRepository(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplaceId: string;
+    repoId: string;
+  }) {
     let marketplace = await skillMarketplaceService.getSkillMarketplaceById(d);
     if (marketplace.status !== 'active') {
       throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
@@ -172,12 +173,12 @@ class SkillMarketplaceRepositoryServiceImpl {
     return enriched!;
   }
 
-  async deleteSkillMarketplaceRepository(
-    d: CargoScope & {
-      skillMarketplaceId: string;
-      skillMarketplaceRepositoryId: string;
-    }
-  ) {
+  async deleteSkillMarketplaceRepository(d: {
+    project: Project;
+    instance: Instance;
+    skillMarketplaceId: string;
+    skillMarketplaceRepositoryId: string;
+  }) {
     let repository = await this.getSkillMarketplaceRepositoryById(d);
 
     await db.skillMarketplaceRepository.delete({

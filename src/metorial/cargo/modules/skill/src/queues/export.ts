@@ -1,6 +1,5 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { requireRecordScope } from '../internal/scope';
 import { skillExportService } from '../services/skillExport';
 
 export let skillExportQueue = createQueue<{
@@ -29,13 +28,18 @@ export let skillExportQueueProcessor = skillExportQueue.process(async data => {
   let skillExport = await db.skillExport.findUnique({
     where: {
       id: data.skillExportId
+    },
+    include: {
+      project: true,
+      instance: true
     }
   });
 
   if (!skillExport) throw new QueueRetryError();
 
   await skillExportService.processSkillExport({
-    ...requireRecordScope('Skill export', skillExport),
+    project: skillExport.project,
+    instance: skillExport.instance,
     skillExportId: skillExport.id,
     skillDestinationSyncId: data.skillDestinationSyncId
   });

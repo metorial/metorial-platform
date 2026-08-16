@@ -3,13 +3,12 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveStores,
   resolveStoreTemplates
 } from '@metorial/cargo-list-utils';
-import type { Prisma, Store } from '@metorial/db';
+import type { Instance, Prisma, Project, Store } from '@metorial/db';
 import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
 import { normalizeStorePath } from '../lib/storePath';
 import {
@@ -17,9 +16,9 @@ import {
   storeTemplateItemUpdatedQueue
 } from '../queues/storeTemplateSync';
 
-export type StoreTemplateScope = Partial<CargoScope>;
+export type StoreTemplateScope = Partial<{ project: Project; instance: Instance }>;
 
-export type RequiredStoreTemplateScope = CargoScope;
+export type RequiredStoreTemplateScope = { project: Project; instance: Instance };
 
 export type StoreTemplateItemInput = {
   path: string;
@@ -363,7 +362,7 @@ class StoreTemplateServiceImpl {
 
   private withScopedStoreId<T extends StoreTemplateSummaryRecord | StoreTemplateRecord>(
     storeTemplate: T,
-    scope?: CargoScope
+    scope?: { project: Project; instance: Instance }
   ): StoreTemplateWithScopedStoreId<T> {
     if (storeTemplate.sourceStore?.id) {
       return {

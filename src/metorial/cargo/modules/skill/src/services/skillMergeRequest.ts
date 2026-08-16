@@ -1,8 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { CargoScope, DateFilter } from '@metorial/cargo-list-utils';
+import type { DateFilter } from '@metorial/cargo-list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import type { SkillMergeRequestResolutionType, SkillMergeRequestStatus } from '@metorial/db';
+import type {
+  Instance,
+  Project,
+  SkillMergeRequestResolutionType,
+  SkillMergeRequestStatus
+} from '@metorial/db';
 import { db, Prisma, withTransaction } from '@metorial/db';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
@@ -26,38 +31,38 @@ export type {
 } from './skillMergeRequestInternal';
 
 class SkillMergeRequestServiceImpl {
-  async createSkillMergeRequest(
-    d: CargoScope & {
-      sourceSkillId: string;
-      targetSkillId?: string;
-      authorization: ResourceAuthorization;
-      title: string;
-      description?: string | null;
-    }
-  ) {
+  async createSkillMergeRequest(d: {
+    project: Project;
+    instance: Instance;
+    sourceSkillId: string;
+    targetSkillId?: string;
+    authorization: ResourceAuthorization;
+    title: string;
+    description?: string | null;
+  }) {
     return await skillMergeRequestInternalService.createSkillMergeRequest(d);
   }
 
-  async listSkillMergeRequests(
-    d: CargoScope & {
-      ids?: string[];
-      sourceSkillIds?: string[];
-      targetSkillIds?: string[];
-      statuses?: SkillMergeRequestStatus[];
-      createdByActorIds?: string[];
-      createdAt?: DateFilter;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async listSkillMergeRequests(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    sourceSkillIds?: string[];
+    targetSkillIds?: string[];
+    statuses?: SkillMergeRequestStatus[];
+    createdByActorIds?: string[];
+    createdAt?: DateFilter;
+    authorization: ResourceAuthorization;
+  }) {
     return await skillMergeRequestInternalService.listSkillMergeRequests(d);
   }
 
-  async getSkillMergeRequestById(
-    d: CargoScope & {
-      skillMergeRequestId: string;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async getSkillMergeRequestById(d: {
+    project: Project;
+    instance: Instance;
+    skillMergeRequestId: string;
+    authorization: ResourceAuthorization;
+  }) {
     return await skillMergeRequestInternalService.getSkillMergeRequestById(d);
   }
 
@@ -67,15 +72,15 @@ class SkillMergeRequestServiceImpl {
     return await skillMergeRequestInternalService.getSkillMergePlan(d);
   }
 
-  async saveSkillMergeRequestItemResolution(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      itemId: string;
-      authorization: ResourceAuthorization;
-      resolutionType: SkillMergeRequestResolutionType;
-      resolution?: Prisma.InputJsonValue | null;
-    }
-  ) {
+  async saveSkillMergeRequestItemResolution(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    itemId: string;
+    authorization: ResourceAuthorization;
+    resolutionType: SkillMergeRequestResolutionType;
+    resolution?: Prisma.InputJsonValue | null;
+  }) {
     return await skillMergeTargetLock.usingLock(
       d.mergeRequest.targetSkill.store!.id,
       async () => {
@@ -150,17 +155,17 @@ class SkillMergeRequestServiceImpl {
     );
   }
 
-  async bulkSaveSkillMergeRequestItemResolutions(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-      items: {
-        itemId: string;
-        resolutionType: SkillMergeRequestResolutionType;
-        resolution?: Prisma.InputJsonValue | null;
-      }[];
-    }
-  ) {
+  async bulkSaveSkillMergeRequestItemResolutions(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+    items: {
+      itemId: string;
+      resolutionType: SkillMergeRequestResolutionType;
+      resolution?: Prisma.InputJsonValue | null;
+    }[];
+  }) {
     if (new Set(d.items.map(item => item.itemId)).size !== d.items.length) {
       throw new ServiceError(
         badRequestError({ message: 'Merge request item IDs must be unique' })
@@ -256,12 +261,12 @@ class SkillMergeRequestServiceImpl {
     );
   }
 
-  async performSkillMergeRequest(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async performSkillMergeRequest(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     if (d.mergeRequest.status !== 'open') {
       throw new ServiceError(
         badRequestError({ message: 'Only open merge requests can merge' })
@@ -373,12 +378,12 @@ class SkillMergeRequestServiceImpl {
     return updated;
   }
 
-  async closeSkillMergeRequest(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async closeSkillMergeRequest(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     let actor = d.authorization.resourceActor;
 
     return await skillMergeTargetLock.usingLock(
@@ -447,12 +452,12 @@ class SkillMergeRequestServiceImpl {
     );
   }
 
-  async rollbackSkillMergeRequest(
-    d: CargoScope & {
-      mergeRequest: SkillMergeRequestRecord;
-      authorization: ResourceAuthorization;
-    }
-  ) {
+  async rollbackSkillMergeRequest(d: {
+    project: Project;
+    instance: Instance;
+    mergeRequest: SkillMergeRequestRecord;
+    authorization: ResourceAuthorization;
+  }) {
     return await skillMergeRequestApplyInternalService.rollbackSkillMergeRequest(d);
   }
 }

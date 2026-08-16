@@ -2,7 +2,6 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type CargoScope,
   type DateFilter,
   normalizeDateFilter,
   resolveDocumentVersions,
@@ -11,7 +10,7 @@ import {
 import { resourceActorPresentationInclude } from '@metorial/module-resource-tenant';
 import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
+import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
 import { db } from '@metorial/db';
 
 export let documentVersionInclude = {
@@ -28,14 +27,14 @@ export let documentVersionInclude = {
 } satisfies Prisma.DocumentVersionInclude;
 
 class DocumentVersionServiceImpl {
-  async getDocumentVersionById(
-    d: CargoScope & {
-      documentVersionId: string;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async getDocumentVersionById(d: {
+    project: Project;
+    instance: Instance;
+    documentVersionId: string;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     let version = await db.documentVersion.findFirst({
       where: {
         projectOid: d.project.oid,
@@ -66,18 +65,18 @@ class DocumentVersionServiceImpl {
     return version;
   }
 
-  async listDocumentVersions(
-    d: CargoScope & {
-      documentId: string;
-      ids?: string[];
-      editorActorIds?: string[];
-      createdAt?: DateFilter;
-      listEditedAt?: DateFilter;
-      authorization: ResourceAuthorization;
-      defaultPermissions?: StoreParticipantPermissions[];
-      overridePermissions?: boolean;
-    }
-  ) {
+  async listDocumentVersions(d: {
+    project: Project;
+    instance: Instance;
+    documentId: string;
+    ids?: string[];
+    editorActorIds?: string[];
+    createdAt?: DateFilter;
+    listEditedAt?: DateFilter;
+    authorization: ResourceAuthorization;
+    defaultPermissions?: StoreParticipantPermissions[];
+    overridePermissions?: boolean;
+  }) {
     let document = await db.document.findFirst({
       where: {
         projectOid: d.project.oid,

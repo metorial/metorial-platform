@@ -1,6 +1,7 @@
-import type { CargoScope } from './scope';
-
-export type CargoListSelector = CargoScope;
+export type CargoListSelector = {
+  project: { oid: bigint };
+  instance: { oid: bigint };
+};
 
 export type CargoListScope = {
   projectOid: bigint;

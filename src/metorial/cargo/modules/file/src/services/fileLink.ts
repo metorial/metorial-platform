@@ -11,7 +11,6 @@ import { env } from '@metorial/cargo-config';
 import { getId } from '@metorial/cargo-config/id';
 import {
   type CargoOwnerScope,
-  type CargoScope,
   cargoFileScope,
   cargoOwnerScopeProject,
   type DateFilter,
@@ -20,7 +19,7 @@ import {
   resolveFiles,
   resolveResourceActors
 } from '@metorial/cargo-list-utils';
-import type { FileLink, Prisma, ResourceActor } from '@metorial/db';
+import type { FileLink, Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { assertResourceActorScope } from '@metorial/module-access';
 import { fileReferenceService } from './fileReference';
@@ -146,17 +145,17 @@ class FileLinkServiceImpl {
     });
   }
 
-  async listFileLinks(
-    d: CargoScope & {
-      ids?: string[];
-      fileId?: string[];
-      fileIds?: string[];
-      actor?: ResourceActor;
-      actorIds?: string[];
-      createdAt?: DateFilter;
-      expiresAt?: DateFilter;
-    }
-  ) {
+  async listFileLinks(d: {
+    project: Project;
+    instance: Instance;
+    ids?: string[];
+    fileId?: string[];
+    fileIds?: string[];
+    actor?: ResourceActor;
+    actorIds?: string[];
+    createdAt?: DateFilter;
+    expiresAt?: DateFilter;
+  }) {
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor

@@ -1,6 +1,5 @@
 import { Service } from '@lowerdeck/service';
 import { getId } from '@metorial/cargo-config/id';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import type { Prisma } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
 import type { documentInclude } from '../services/document';
@@ -28,14 +27,14 @@ class InternalDocumentVersioningServiceImpl {
     );
   }
 
-  async createVersion(
-    d: CargoScope & {
-      document: { oid: bigint; maxVersionNumber: number };
-      contentOid: bigint;
-      previousVersionOid?: bigint | null;
-      listEditedAt?: Date;
-    }
-  ) {
+  async createVersion(d: {
+    project: { oid: bigint };
+    instance: { oid: bigint };
+    document: { oid: bigint; maxVersionNumber: number };
+    contentOid: bigint;
+    previousVersionOid?: bigint | null;
+    listEditedAt?: Date;
+  }) {
     return await withTransaction(async db => {
       let generated = getId('documentVersion');
       let aggregate = await db.documentVersion.aggregate({

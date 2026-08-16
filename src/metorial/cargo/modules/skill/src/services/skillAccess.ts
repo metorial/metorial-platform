@@ -1,24 +1,23 @@
-import type { Prisma } from '@metorial/db';
+import type { Instance, Prisma, Project } from '@metorial/db';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import {
   accessTagService,
   type ResourceAuthorization,
   consumerSkillWriteRoles
 } from '@metorial/module-access';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 
-export let assertSkillRecordScope = (
-  d: CargoScope & {
-    skill: {
+export let assertSkillRecordScope = (d: {
+  project: Project;
+  instance: Instance;
+  skill: {
+    projectOid: bigint | null;
+    instanceOid: bigint;
+    store?: {
       projectOid: bigint | null;
-      instanceOid: bigint;
-      store?: {
-        projectOid: bigint | null;
-        instanceOid: bigint | null;
-      } | null;
-    };
-  }
-) => {
+      instanceOid: bigint | null;
+    } | null;
+  };
+}) => {
   if (
     d.skill.projectOid != d.project.oid ||
     d.skill.instanceOid != d.instance.oid ||
@@ -33,14 +32,14 @@ export let assertSkillRecordScope = (
   }
 };
 
-export let getSkillMetadataWriteAccessWhere = async (
-  d: CargoScope & {
-    skill: {
-      oid: bigint;
-    };
-    authorization: ResourceAuthorization;
-  }
-): Promise<Prisma.SkillWhereInput | undefined> => {
+export let getSkillMetadataWriteAccessWhere = async (d: {
+  project: Project;
+  instance: Instance;
+  skill: {
+    oid: bigint;
+  };
+  authorization: ResourceAuthorization;
+}): Promise<Prisma.SkillWhereInput | undefined> => {
   if (d.authorization.type == 'privileged') return undefined;
 
   let accessTagFilter = await accessTagService.getAccessTagFilter({

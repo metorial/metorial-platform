@@ -1,9 +1,8 @@
 import { documentService } from '@metorial/cargo-module-doc';
 import { filePurposeService, fileService } from '@metorial/cargo-module-file';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
-import type { Prisma, ResourceActor } from '@metorial/db';
+import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import type { CargoScope } from '@metorial/cargo-list-utils';
 import { posix as path } from 'node:path';
 import { parseSkillDocumentFrontmatter } from '../serializers/skill/frontmatter';
 import { skillService } from '../services/skill';
@@ -47,20 +46,20 @@ let titleForMarkdown = (filePath: string, content: string) => {
   return heading || path.basename(filePath).replace(/\.(md|markdown)$/i, '') || 'Document';
 };
 
-export let materializeImportedSkill = async (
-  d: CargoScope & {
-    codeBucketId: string;
-    skillId: string;
-    rootPath: string;
-    repositoryName?: string | null;
-    actor?: ResourceActor;
-    authorization?: ResourceAuthorization;
-    onSkillCreated?: (
-      skill: Awaited<ReturnType<typeof skillService.createSkill>>
-    ) => void | Promise<void>;
-    onProgress?: () => void | Promise<void>;
-  }
-) => {
+export let materializeImportedSkill = async (d: {
+  project: Project;
+  instance: Instance;
+  codeBucketId: string;
+  skillId: string;
+  rootPath: string;
+  repositoryName?: string | null;
+  actor?: ResourceActor;
+  authorization?: ResourceAuthorization;
+  onSkillCreated?: (
+    skill: Awaited<ReturnType<typeof skillService.createSkill>>
+  ) => void | Promise<void>;
+  onProgress?: () => void | Promise<void>;
+}) => {
   let authorization = d.authorization ?? {
     type: 'privileged' as const,
     resourceActor: d.actor
