@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMergeRequestEventService } from '@metorial/cargo-module-skill';
+import { skillMergeRequestEventService } from '@metorial/module-skill-merge-requests';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';

@@ -4,9 +4,10 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   ID,
+  snowflake,
+  withTransaction,
   type Prisma,
-  type SkillTemplate,
-  withTransaction
+  type SkillTemplate
 } from '@metorial-subspace/db';
 import {
   checkDeletedEdit,
@@ -14,8 +15,8 @@ import {
   normalizeStatusForGet
 } from '@metorial-subspace/list-utils';
 import { checkTenant, subspaceScopeService } from '@metorial-subspace/module-tenant';
-import { skillItemService } from './skillItem';
 import { skillResourceService } from './resource';
+import { skillItemService } from './skillItem';
 
 type InstanceScopeInput = Parameters<typeof subspaceScopeService.ensureForInstance>[0];
 type SubspaceScope = Awaited<ReturnType<typeof subspaceScopeService.ensureForInstance>>;
@@ -272,20 +273,24 @@ class SkillTemplateItemServiceImpl {
   }
 
   private async createItem(d: {
-    db: TransactionDb;
     skillTemplate: SkillTemplate;
     integrationOid?: bigint;
     providerOid?: bigint;
   }) {
-    return await d.db.skillTemplateItem.create({
-      data: {
-        id: await ID.generateId('skillTemplateItem'),
-        skillTemplateOid: d.skillTemplate.oid,
-        integrationOid: d.integrationOid,
-        providerOid: d.providerOid
-      },
-      include: skillTemplateItemInclude
-    });
+    return await withTransaction(
+      async db =>
+        await db.skillTemplateItem.create({
+          data: {
+            oid: snowflake.nextId(),
+            id: await ID.generateId('skillTemplateItem'),
+            skillTemplateOid: d.skillTemplate.oid,
+            integrationOid: d.integrationOid,
+            providerOid: d.providerOid
+          },
+          include: skillTemplateItemInclude
+        }),
+      { ifExists: true }
+    );
   }
 
   async buildSkillTemplateItemsFromSkill(d: { skillOid: bigint; skillTemplateOid: bigint }) {
@@ -410,7 +415,6 @@ class SkillTemplateItemServiceImpl {
       return await withTransaction(async db =>
         presentSkillTemplateItem(
           await this.createItem({
-            db,
             skillTemplate,
             integrationOid: integration.oid
           })
@@ -440,7 +444,6 @@ class SkillTemplateItemServiceImpl {
     return await withTransaction(async db =>
       presentSkillTemplateItem(
         await this.createItem({
-          db,
           skillTemplate,
           providerOid: provider.oid
         })
@@ -509,7 +512,6 @@ class SkillTemplateItemServiceImpl {
       return await withTransaction(async db =>
         presentSkillTemplateItem(
           await this.createItem({
-            db,
             skillTemplate,
             integrationOid: skillItem.integration!.oid
           })
@@ -536,7 +538,6 @@ class SkillTemplateItemServiceImpl {
       return await withTransaction(async db =>
         presentSkillTemplateItem(
           await this.createItem({
-            db,
             skillTemplate,
             providerOid: skillItem.provider!.oid
           })

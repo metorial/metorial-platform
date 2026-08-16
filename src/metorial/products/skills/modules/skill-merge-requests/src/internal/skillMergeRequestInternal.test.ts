@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getVisibleSkillMergeRequestWhere } from './skillMergeRequestAccess';
+import { getVisibleSkillMergeRequestWhere } from '../lib/skillMergeRequestAccess';
 
 let projectOid = 1n;
 let instanceOid = 2n;

@@ -11,14 +11,12 @@ import {
   flushDocumentCollaborationState,
   flushDocumentDraft
 } from '@metorial/cargo-module-doc';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import {
   storeAccessService,
   storeReadPermission,
   storeVersionService,
   storeWritePermission
 } from '@metorial/cargo-module-store';
-import type { ResourceAuthorization } from '@metorial/module-access';
 import type {
   Instance,
   Project,
@@ -29,6 +27,8 @@ import type {
   SkillMergeRequestStatus
 } from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import {
   getCanonicalSkillPairKey,
   getSkillMergeRequestActivePairKey,
@@ -42,8 +42,8 @@ import {
   type Snapshot,
   type SnapshotItem
 } from '../lib/mergeSnapshot';
-import { getVisibleSkillMergeRequestWhere } from './skillMergeRequestAccess';
-import { skillMergeRequestEventService } from './skillMergeRequestEvent';
+import { getVisibleSkillMergeRequestWhere } from '../lib/skillMergeRequestAccess';
+import { skillMergeRequestEventService } from '../services/skillMergeRequestEvent';
 
 export let skillMergeRequestInclude = {
   sourceSkill: {

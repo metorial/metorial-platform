@@ -44,6 +44,7 @@
     "@metorial/cargo-module-doc": "^1.0.0",
     "@metorial/cargo-module-file": "^1.0.0",
     "@metorial/cargo-module-skill": "^1.0.0",
+    "@metorial/module-skill-merge-requests": "^1.0.0",
     "@metorial/cargo-module-store": "^1.0.0",
     "@metorial/module-secrets": "^1.0.0",
     "@metorial/module-organization": "^1.0.0",

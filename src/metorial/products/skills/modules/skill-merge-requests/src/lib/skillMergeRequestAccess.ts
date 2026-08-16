@@ -1,5 +1,5 @@
-import type { ResourceAuthorization } from '@metorial/module-access';
 import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
+import type { ResourceAuthorization } from '@metorial/module-access';
 
 let readableStorePermissions: StoreParticipantPermissions[] = [
   'content_read',

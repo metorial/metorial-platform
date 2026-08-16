@@ -1,11 +1,11 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { getCanonicalSkillPairKey } from '../lib/mergeLock';
-import { skillMergeRequestService } from '../services/skillMergeRequest';
 import {
   skillMergeRequestInclude,
   skillMergeRequestInternalService
-} from '../services/skillMergeRequestInternal';
+} from '../internal/skillMergeRequestInternal';
+import { getCanonicalSkillPairKey } from '../lib/mergeLock';
+import { skillMergeRequestService } from '../services/skillMergeRequest';
 export let skillForkSyncQueue = createQueue<{
   skillForkSyncId: string;
 }>({

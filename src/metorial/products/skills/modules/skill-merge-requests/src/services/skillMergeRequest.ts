@@ -1,7 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { DateFilter } from '@metorial/cargo-list-utils';
-import type { ResourceAuthorization } from '@metorial/module-access';
 import type {
   Instance,
   Project,
@@ -9,18 +8,19 @@ import type {
   SkillMergeRequestStatus
 } from '@metorial/db';
 import { db, Prisma, withTransaction } from '@metorial/db';
-import { createSkillMergeRequestMergeError } from '../lib/mergeError';
-import { skillMergeTargetLock } from '../lib/mergeLock';
-import { enqueueSkillMergeRequestPerform } from '../queues/mergeRequest';
-import { skillMergeRequestApplyInternalService } from './skillMergeRequestApplyInternal';
-import { skillMergeRequestEventService } from './skillMergeRequestEvent';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import { skillMergeRequestApplyInternalService } from '../internal/skillMergeRequestApplyInternal';
 import {
   skillMergeRequestInclude,
   skillMergeRequestInternalService,
   skillMergeRequestItemInclude,
   type SkillMergePlan,
   type SkillMergeRequestRecord
-} from './skillMergeRequestInternal';
+} from '../internal/skillMergeRequestInternal';
+import { createSkillMergeRequestMergeError } from '../lib/mergeError';
+import { skillMergeTargetLock } from '../lib/mergeLock';
+import { enqueueSkillMergeRequestPerform } from '../queues/mergeRequest';
+import { skillMergeRequestEventService } from './skillMergeRequestEvent';
 
 export type {
   SkillMergePlan,
@@ -28,7 +28,7 @@ export type {
   SkillMergeRequestCommentRecord,
   SkillMergeRequestItemRecord,
   SkillMergeRequestRecord
-} from './skillMergeRequestInternal';
+} from '../internal/skillMergeRequestInternal';
 
 class SkillMergeRequestServiceImpl {
   async createSkillMergeRequest(d: {

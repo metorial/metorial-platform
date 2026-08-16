@@ -2,18 +2,18 @@ import { createCron } from '@metorial/cron';
 import type { SkillVersion } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
+import { skillMergeRequestApplyInternalService } from '../internal/skillMergeRequestApplyInternal';
+import {
+  skillMergeRequestInclude,
+  skillMergeRequestInternalService,
+  skillMergeRequestItemInclude
+} from '../internal/skillMergeRequestInternal';
 import {
   createSkillMergeRequestMergeError,
   toSkillMergeRequestMergeError
 } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
-import { skillMergeRequestApplyInternalService } from '../services/skillMergeRequestApplyInternal';
 import { skillMergeRequestEventService } from '../services/skillMergeRequestEvent';
-import {
-  skillMergeRequestInclude,
-  skillMergeRequestInternalService,
-  skillMergeRequestItemInclude
-} from '../services/skillMergeRequestInternal';
 export let skillMergeRequestPerformQueue = createQueue<{
   skillMergeRequestId: string;
 }>({

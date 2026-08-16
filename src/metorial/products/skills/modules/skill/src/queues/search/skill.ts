@@ -1,4 +1,4 @@
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { getProjectTenantIdentifier } from '../../internal/scope';

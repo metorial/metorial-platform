@@ -9,6 +9,7 @@ import {
   type SkillItem,
   type SkillItemStatus,
   type SkillItemType,
+  snowflake,
   withTransaction
 } from '@metorial-subspace/db';
 import {
@@ -325,6 +326,7 @@ class SkillItemServiceImpl {
         } else {
           let item = await db.skillItem.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'integration',
@@ -334,6 +336,7 @@ class SkillItemServiceImpl {
           itemId = item.id;
           await db.skillIntegration.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillIntegration'),
               status: 'active',
               skillOid: skill.oid,
@@ -395,6 +398,7 @@ class SkillItemServiceImpl {
       } else {
         let item = await db.skillItem.create({
           data: {
+            oid: snowflake.nextId(),
             id: await ID.generateId('skillItem'),
             status: 'active',
             type: 'provider',
@@ -404,6 +408,7 @@ class SkillItemServiceImpl {
         itemId = item.id;
         await db.skillProvider.create({
           data: {
+            oid: snowflake.nextId(),
             id: await ID.generateId('skillProvider'),
             status: 'active',
             skillOid: skill.oid,

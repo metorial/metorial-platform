@@ -1,16 +1,17 @@
 import { Service } from '@lowerdeck/service';
+import {
+  ID,
+  snowflake,
+  db as subspaceDb,
+  type Prisma as SubspacePrisma,
+  withTransaction as withSubspaceTransaction
+} from '@metorial-subspace/db';
+import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import { db, type Prisma } from '@metorial/db';
 import {
   resourceActorPresentationInclude,
   type ResourceActorPresentationRecord
 } from '@metorial/module-resource-actor';
-import {
-  db as subspaceDb,
-  ID,
-  type Prisma as SubspacePrisma,
-  withTransaction as withSubspaceTransaction
-} from '@metorial-subspace/db';
-import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import { reconcileSkillProviderLinksQueue } from '../queues/reconcileSkillProviderLinks';
 import type { SkillGroupRecord } from './skillGroup';
 import type { SkillGroupItemRecord } from './skillGroupItem';
@@ -214,6 +215,7 @@ class SkillResourceServiceImpl {
         existing?.skillEntity ??
         (await subspaceDb.skillEntity.create({
           data: {
+            oid: snowflake.nextId(),
             id: await ID.generateId('skillEntity'),
             slug: record.slug ?? record.id,
             name: record.name,
@@ -230,6 +232,7 @@ class SkillResourceServiceImpl {
       let projected = await subspaceDb.skill.upsert({
         where: { id: record.id },
         create: {
+          oid: snowflake.nextId(),
           id: record.id,
           status: record.status,
           slug: record.slug ?? record.id,
@@ -294,6 +297,7 @@ class SkillResourceServiceImpl {
     await subspaceDb.skillTemplate.upsert({
       where: { id: record.id },
       create: {
+        oid: snowflake.nextId(),
         id: record.id,
         status: record.status,
         owner: record.owner,
@@ -444,6 +448,7 @@ class SkillResourceServiceImpl {
     for (let integration of resources.integrations) {
       await subspaceDb.skillTemplateItem.create({
         data: {
+          oid: snowflake.nextId(),
           id: await ID.generateId('skillTemplateItem'),
           skillTemplateOid: targetTemplate.oid,
           integrationOid: integration.oid
@@ -453,6 +458,7 @@ class SkillResourceServiceImpl {
     for (let provider of resources.providers) {
       await subspaceDb.skillTemplateItem.create({
         data: {
+          oid: snowflake.nextId(),
           id: await ID.generateId('skillTemplateItem'),
           skillTemplateOid: targetTemplate.oid,
           providerOid: provider.oid
@@ -488,6 +494,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'integration',
@@ -496,6 +503,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillIntegration.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillIntegration'),
               status: 'active',
               skillOid: targetSkill.oid,
@@ -508,6 +516,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'provider',
@@ -516,6 +525,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillProvider.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillProvider'),
               status: 'active',
               skillOid: targetSkill.oid,
@@ -556,6 +566,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'integration',
@@ -564,6 +575,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillIntegration.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillIntegration'),
               status: 'active',
               skillOid: targetSkill.oid,
@@ -576,6 +588,7 @@ class SkillResourceServiceImpl {
         await withSubspaceTransaction(async subspaceDb => {
           let targetItem = await subspaceDb.skillItem.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillItem'),
               status: 'active',
               type: 'provider',
@@ -584,6 +597,7 @@ class SkillResourceServiceImpl {
           });
           await subspaceDb.skillProvider.create({
             data: {
+              oid: snowflake.nextId(),
               id: await ID.generateId('skillProvider'),
               status: 'active',
               skillOid: targetSkill.oid,

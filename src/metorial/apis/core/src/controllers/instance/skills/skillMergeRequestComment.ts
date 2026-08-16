@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { skillMergeRequestCommentService } from '@metorial/cargo-module-skill';
+import { skillMergeRequestCommentService } from '@metorial/module-skill-merge-requests';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instancePath } from '../../../middleware/instanceGroup';

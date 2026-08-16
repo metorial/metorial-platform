@@ -1,6 +1,6 @@
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
+import { db, ID, snowflake, withTransaction } from '@metorial-subspace/db';
 import { getConfig } from '@metorial/config';
-import { db, ID, withTransaction } from '@metorial-subspace/db';
 
 export let reconcileSkillProviderLinksQueue = createQueue<{ skillId: string }>({
   name: 'sub/sk/lc/reconcileSkillProviderLinks',
@@ -61,6 +61,7 @@ export let reconcileSkillProviderLinks = async (d: { skillId: string }) => {
     for (let providerOid of skill.status === 'active' ? providerOidsToCreate : []) {
       await db.skillProviderLink.create({
         data: {
+          oid: snowflake.nextId(),
           id: await ID.generateId('skillProviderLink'),
           skillOid: skill.oid,
           providerOid

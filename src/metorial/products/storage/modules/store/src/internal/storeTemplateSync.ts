@@ -562,7 +562,7 @@ class InternalStoreTemplateSyncServiceImpl {
 
             if (!hasContentChange && !hasTitleChange) return currentDocument;
 
-            let content = hasContentChange
+            let contentRecord = hasContentChange
               ? await db.documentContent.create({
                   data: {
                     content
@@ -570,12 +570,12 @@ class InternalStoreTemplateSyncServiceImpl {
                 })
               : null;
 
-            let version = content
+            let version = contentRecord
               ? await internalDocumentVersioningService.createVersion({
                   project: d.project,
                   instance: d.instance,
                   document: currentDocument,
-                  contentOid: content.oid,
+                  contentOid: contentRecord.oid,
                   previousVersionOid: currentDocument.currentVersionOid,
                   listEditedAt: new Date()
                 })
@@ -604,9 +604,9 @@ class InternalStoreTemplateSyncServiceImpl {
                 title,
                 isReadOnly: true,
                 isTemplateBacking: true,
-                contentOid: content ? content.oid : undefined,
-                currentVersionOid: content ? version!.oid : undefined,
-                isContentOwner: content ? true : undefined
+                contentOid: contentRecord ? contentRecord.oid : undefined,
+                currentVersionOid: contentRecord ? version!.oid : undefined,
+                isContentOwner: contentRecord ? true : undefined
               },
               include: documentInclude
             });

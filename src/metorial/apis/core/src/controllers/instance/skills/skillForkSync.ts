@@ -1,6 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
-import { skillForkSyncService } from '@metorial/cargo-module-skill';
+import { skillForkSyncService } from '@metorial/module-skill-merge-requests';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';

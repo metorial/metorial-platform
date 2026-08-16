@@ -17,6 +17,7 @@ import { machineAccessQueueProcessor } from '@metorial/module-machine-access';
 import { magicQueueProcessor } from '@metorial/module-magic';
 import { organizationQueueProcessor } from '@metorial/module-organization';
 import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
+import { skillMergeRequestQueueProcessor } from '@metorial/module-skill-merge-requests';
 import { usageQueueProcessor } from '@metorial/module-usage';
 import { userQueueProcessor } from '@metorial/module-user';
 import { multiRegionQueueProcessor } from '@metorial/multi-region';
@@ -34,6 +35,7 @@ export let worker = runQueueProcessors([
   cargoDocumentQueueProcessor,
   cargoStoreQueueProcessor,
   cargoSkillQueueProcessor,
+  skillMergeRequestQueueProcessor,
   eventQueueProcessor,
   usageQueueProcessor,
   communityQueueProcessor,

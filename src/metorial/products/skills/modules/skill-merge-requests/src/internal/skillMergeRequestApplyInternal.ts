@@ -4,14 +4,14 @@ import {
   documentAuthoritativeWriteService,
   documentService
 } from '@metorial/cargo-module-doc';
-import type { ResourceAuthorization } from '@metorial/module-access';
 import { storeItemMutationService } from '@metorial/cargo-module-store';
 import type { Instance, Project, ResourceActor, Store } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { createSkillMergeRequestMergeError } from '../lib/mergeError';
 import { skillMergeTargetLock } from '../lib/mergeLock';
 import { sameSnapshotItem, type Snapshot, type SnapshotItem } from '../lib/mergeSnapshot';
-import { skillMergeRequestEventService } from './skillMergeRequestEvent';
+import { skillMergeRequestEventService } from '../services/skillMergeRequestEvent';
 import {
   skillMergeRequestInclude,
   skillMergeRequestInternalService,

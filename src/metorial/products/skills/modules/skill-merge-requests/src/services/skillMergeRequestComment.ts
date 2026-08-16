@@ -15,7 +15,7 @@ import {
   skillMergeRequestInternalService,
   type SkillMergeRequestCommentRecord,
   type SkillMergeRequestRecord
-} from './skillMergeRequestInternal';
+} from '../internal/skillMergeRequestInternal';
 
 class SkillMergeRequestCommentServiceImpl {
   async getSkillMergeRequestCommentById(d: {

@@ -12,7 +12,7 @@ import type {
   TransactionDB
 } from '@metorial/db';
 import { db, ID, type Prisma } from '@metorial/db';
-import type { SkillMergeRequestRecord } from './skillMergeRequestInternal';
+import type { SkillMergeRequestRecord } from '../internal/skillMergeRequestInternal';
 
 export let skillMergeRequestEventInclude = {
   resourceActor: {

@@ -34,7 +34,7 @@ vi.mock('@lowerdeck/id', () => ({
   generatePlainId: vi.fn(() => 'ABCDE')
 }));
 
-vi.mock('@metorial/cargo-module-search', () => ({
+vi.mock('@metorial/skills-search', () => ({
   voyager: {},
   voyagerIndex: {},
   voyagerSource: Promise.resolve({})

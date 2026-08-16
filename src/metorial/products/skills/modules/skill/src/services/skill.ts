@@ -17,7 +17,7 @@ import {
   resolveSkillTemplates,
   resolveStores
 } from '@metorial/cargo-list-utils';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import {
   storeAccessService,
   storeReadPermission,

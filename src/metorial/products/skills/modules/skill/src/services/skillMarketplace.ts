@@ -10,7 +10,7 @@ import {
   resolveSkillConfigurations,
   resolveSkillMarketplaces
 } from '@metorial/cargo-list-utils';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/cargo-module-search';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import type {
   EntityImage,
   Instance,

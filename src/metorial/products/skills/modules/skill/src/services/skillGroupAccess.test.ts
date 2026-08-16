@@ -28,7 +28,7 @@ vi.mock('@metorial/module-access', () => ({
   }
 }));
 
-vi.mock('@metorial/cargo-module-search', () => ({
+vi.mock('@metorial/skills-search', () => ({
   voyager: {},
   voyagerIndex: {},
   voyagerSource: Promise.resolve({})
