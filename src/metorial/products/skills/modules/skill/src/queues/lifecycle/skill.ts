@@ -3,8 +3,8 @@ import { Fabric } from '@metorial/fabric';
 import { enqueueManagedSkillPluginLifecycle } from '@metorial/module-skill-marketplace';
 import { createQueue } from '@metorial/queue';
 import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from '@metorial/skills-common';
+import { indexSkillGroupQueue } from '@metorial/module-skill-groups';
 import { indexSkillQueue } from '../search/skill';
-import { indexSkillGroupQueue } from '../search/skillGroup';
 
 let skillLifecycleQueue = createQueue<{
   skillId: string;

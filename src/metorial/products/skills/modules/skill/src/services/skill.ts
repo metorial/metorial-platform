@@ -43,12 +43,12 @@ import {
   type ResourceAuthorization
 } from '@metorial/module-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
-import { internalImageService } from '@metorial/skills-common/image';
+import { internalImageService } from '@metorial/skills-images';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillResourceService } from './resource';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
 import { skillParticipantService } from './skillParticipant';
-import type { SkillTemplateRecord } from './skillTemplate';
+import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 
 let skillInclude = {
   store: true,

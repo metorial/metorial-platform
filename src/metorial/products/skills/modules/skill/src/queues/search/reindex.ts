@@ -1,9 +1,9 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
+import { indexSkillGroupQueue } from '@metorial/module-skill-groups';
+import { indexSkillTemplateQueue } from '@metorial/module-skill-templates';
 import { indexSkillQueue } from './skill';
-import { indexSkillGroupQueue } from './skillGroup';
-import { indexSkillTemplateQueue } from './skillTemplate';
 
 let batchSize = 100;
 type SkillResourceType = 'skill' | 'skillGroup' | 'skillTemplate';

@@ -13,8 +13,7 @@ import {
   type ResourceActorPresentationRecord
 } from '@metorial/module-resource-actor';
 import { reconcileSkillProviderLinksQueue } from '../queues/reconcileSkillProviderLinks';
-import type { SkillGroupRecord } from './skillGroup';
-import type { SkillGroupItemRecord } from './skillGroupItem';
+import type { SkillGroupItemRecord, SkillGroupRecord } from '@metorial/module-skill-groups';
 
 let subspaceSkillItemInclude = {
   skill: true,
