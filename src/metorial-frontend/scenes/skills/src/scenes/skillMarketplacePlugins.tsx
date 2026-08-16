@@ -397,10 +397,7 @@ let getNewSkillInput = (skill: Skill) => ({
   compatibility: skill.compatibility ?? undefined
 });
 
-let addSelectedItems = async <T,>(
-  items: T[],
-  onSelect: (item: T) => Promise<boolean>
-) => {
+let addSelectedItems = async <T,>(items: T[], onSelect: (item: T) => Promise<boolean>) => {
   let queue = new PQueue({ concurrency: 10 });
   let results = await queue.addAll(items.map(item => () => onSelect(item)));
   return results.every(Boolean);
@@ -465,20 +462,26 @@ let PluginPickerPanel = (p: {
 
             return (
               <Table
-                headers={['Name', 'Identifier', '']}
+                headers={['Name', 'Identifier']}
                 data={items.map(plugin => ({
                   data: [
-                    plugin.name,
-                    plugin.slug,
-                    <PickerCheckbox key={plugin.id} onClick={event => event.stopPropagation()}>
-                      <Checkbox
-                        label={`Select ${plugin.name}`}
-                        hideLabel
-                        checked={selected.has(plugin.id)}
-                        disabled={isAdding}
-                        onCheckedChange={checked => toggleSelected(plugin, checked)}
-                      />
-                    </PickerCheckbox>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <PickerCheckbox
+                        key={plugin.id}
+                        onClick={event => event.stopPropagation()}
+                      >
+                        <Checkbox
+                          label={`Select ${plugin.name}`}
+                          hideLabel
+                          checked={selected.has(plugin.id)}
+                          disabled={isAdding}
+                          onCheckedChange={checked => toggleSelected(plugin, checked)}
+                        />
+                      </PickerCheckbox>
+
+                      <span>{plugin.name}</span>
+                    </div>,
+                    plugin.slug
                   ],
                   onClick: () => !isAdding && toggleSelected(plugin, !selected.has(plugin.id))
                 }))}
@@ -564,7 +567,7 @@ let SkillPickerPanel = (p: {
 
             return (
               <Table
-                headers={['Name', 'Identifier', '']}
+                headers={['Name', 'Identifier']}
                 data={items.map(skill => ({
                   data: [
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
