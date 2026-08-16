@@ -31,6 +31,12 @@ model Document {
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   contentOid BigInt
   content    DocumentContent @relation(fields: [contentOid], references: [oid], onDelete: Cascade)
 
@@ -107,6 +113,12 @@ model DocumentVersion {
 
   resourceGroupOid BigInt?
   resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   projectOid BigInt?
   project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)

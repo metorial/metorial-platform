@@ -110,6 +110,9 @@ model ResourceActor {
   projectOid BigInt?
   project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
   organizationActorOid BigInt?
   organizationActor    OrganizationActor? @relation(fields: [organizationActorOid], references: [oid], onDelete: SetNull)
 

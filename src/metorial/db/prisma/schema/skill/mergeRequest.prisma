@@ -86,6 +86,12 @@ model SkillMergeRequest {
   instanceOid BigInt?
   instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
   sourceSkillOid BigInt
   sourceSkill    Skill  @relation("SkillMergeRequestSource", fields: [sourceSkillOid], references: [oid], onDelete: Cascade)
 
@@ -171,6 +177,12 @@ model SkillForkSync {
 
   resourceGroupOid BigInt?
   resourceGroup    ResourceGroup? @relation(fields: [resourceGroupOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
   projectOid BigInt?
   project    Project? @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
