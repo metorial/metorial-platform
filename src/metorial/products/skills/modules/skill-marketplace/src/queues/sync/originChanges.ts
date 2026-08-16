@@ -2,7 +2,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { getOriginTenant, origin } from '@metorial/skills-common/origin';
+import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { syncPropagateWaitQueue } from './propagate';
 
 let pollIntervalMs = 5_000;

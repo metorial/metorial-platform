@@ -12,7 +12,7 @@ import {
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/cargo-list-utils';
-import { skillConfigurationService } from '@metorial/cargo-module-skill';
+import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import type {
   EntityImage,
   Instance,
@@ -23,11 +23,11 @@ import type {
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
-import { internalImageService } from '@metorial/skills-common/image';
+import { internalImageService } from '@metorial/skills-images';
 import {
   createSkillDestination,
   getSkillDestinationEditorUrl
-} from '@metorial/skills-common/origin';
+} from '@metorial/skills-scm-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {

@@ -9,7 +9,7 @@ import {
 } from '@metorial/cargo-list-utils';
 import type { Instance, Prisma, Project, SkillDestinationSyncStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
-import { getOriginTenant, origin } from '@metorial/skills-common/origin';
+import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { isRepositorySyncRetrying } from '../lib/repositorySyncStatus';
 
 export let skillSyncInclude = {

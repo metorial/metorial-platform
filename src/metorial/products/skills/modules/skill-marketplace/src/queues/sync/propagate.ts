@@ -1,7 +1,7 @@
 import { generatePlainId } from '@lowerdeck/id';
 import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { getOriginTenant, origin } from '@metorial/skills-common/origin';
+import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import {
   getRepositorySyncRetryMessage,
   isRepositorySyncRetrying

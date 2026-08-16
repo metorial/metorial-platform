@@ -12,7 +12,7 @@ import type {
   SkillPluginStatus
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
-import { createSkillDestination } from '@metorial/skills-common/origin';
+import { createSkillDestination } from '@metorial/skills-scm-utils';
 import type { LifecycleEvent } from '@metorial/skills-common';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle/skillPluginSkill';

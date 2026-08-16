@@ -4,7 +4,7 @@ import { slugify } from '@lowerdeck/slugify';
 import { getConfig } from '@metorial/config';
 import { db } from '@metorial/db';
 import semver from 'semver';
-import { internalImageService } from '@metorial/skills-common/image';
+import { internalImageService } from '@metorial/skills-images';
 import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import type { PluginSerializerInput } from '../_lib/types';

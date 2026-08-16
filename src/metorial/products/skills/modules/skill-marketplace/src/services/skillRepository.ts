@@ -2,7 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Prisma, Project } from '@metorial/db';
 import { db, ID } from '@metorial/db';
-import { getOriginTenant, origin } from '@metorial/skills-common/origin';
+import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 
 export let skillRepositoryInclude = {
   marketplaceRepository: {

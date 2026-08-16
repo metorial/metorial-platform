@@ -9,7 +9,8 @@ import {
   resolveSkillPluginSkills,
   resolveSkills
 } from '@metorial/cargo-list-utils';
-import { skillConfigurationService, skillService } from '@metorial/cargo-module-skill';
+import { skillService } from '@metorial/module-skill';
+import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import type { Instance, Prisma, Project, SkillPluginSkillStatus } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
