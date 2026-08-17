@@ -1,10 +1,30 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
 
 export let MENU_VIEWPORT_PADDING = 20;
+export let MENU_MAX_HEIGHT_VAR = '--metorial-menu-max-height';
+
+let MENU_SIDES = new Set(['top', 'bottom', 'left', 'right']);
 
 type MenuHeightConstraint = {
   apply: () => void;
   detach: () => void;
+};
+
+type MenuSide = 'top' | 'bottom' | 'left' | 'right';
+
+let getViewportTop = () => {
+  if (typeof window == 'undefined') return 0;
+
+  try {
+    let visualViewport = window.visualViewport;
+    if (visualViewport && Number.isFinite(visualViewport.offsetTop)) {
+      return visualViewport.offsetTop;
+    }
+  } catch {
+    // Some embedded webviews expose visualViewport but throw when it is read.
+  }
+
+  return 0;
 };
 
 let getViewportBottom = () => {
@@ -13,32 +33,129 @@ let getViewportBottom = () => {
   try {
     let visualViewport = window.visualViewport;
     if (visualViewport && Number.isFinite(visualViewport.height)) {
-      let offsetTop = Number.isFinite(visualViewport.offsetTop) ? visualViewport.offsetTop : 0;
-      return offsetTop + visualViewport.height;
+      return getViewportTop() + visualViewport.height;
     }
-  } catch {}
+  } catch {
+    // Some embedded webviews expose visualViewport but throw when it is read.
+  }
 
   let clientHeight = document.documentElement?.clientHeight;
-  if (Number.isFinite(clientHeight) && clientHeight > 0) return clientHeight;
+  if (Number.isFinite(clientHeight) && clientHeight > 0) {
+    return getViewportTop() + clientHeight;
+  }
 
-  return Number.isFinite(window.innerHeight) ? window.innerHeight : 0;
+  if (Number.isFinite(window.innerHeight)) return getViewportTop() + window.innerHeight;
+
+  return 0;
+};
+
+let readPositiveNumber = (value: string) => {
+  let parsed = parseFloat(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+let escapeSelector = (value: string) => {
+  if (typeof CSS != 'undefined' && typeof CSS.escape == 'function') return CSS.escape(value);
+  return value.replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+};
+
+let readCssPx = (node: Element | null, name: string) => {
+  if (!node) return null;
+
+  try {
+    return readPositiveNumber(getComputedStyle(node).getPropertyValue(name));
+  } catch {
+    return null;
+  }
+};
+
+let readRadixAvailableHeight = (element: HTMLElement) => {
+  return (
+    readCssPx(element, '--radix-dropdown-menu-content-available-height') ??
+    readCssPx(element.parentElement, '--radix-dropdown-menu-content-available-height')
+  );
+};
+
+let getMenuSide = (element: HTMLElement): MenuSide | null => {
+  let side = element.getAttribute('data-side');
+  if (side && MENU_SIDES.has(side)) return side as MenuSide;
+  return null;
+};
+
+let getTriggerRect = (element: HTMLElement) => {
+  try {
+    let id = element.id;
+    if (!id) return null;
+
+    let trigger = document.querySelector(`[aria-controls="${escapeSelector(id)}"]`);
+    if (!(trigger instanceof Element)) return null;
+
+    let rect = trigger.getBoundingClientRect();
+    if (!Number.isFinite(rect.top) || !Number.isFinite(rect.bottom)) return null;
+    if (rect.width == 0 && rect.height == 0) return null;
+
+    return rect;
+  } catch {
+    return null;
+  }
 };
 
 export let measureMenuMaxHeight = (element: HTMLElement) => {
   if (!element.isConnected) return null;
 
   let rect = element.getBoundingClientRect();
-  if (!Number.isFinite(rect.top)) return null;
+  if (!Number.isFinite(rect.top) || !Number.isFinite(rect.bottom)) return null;
   if (rect.width == 0 && rect.height == 0) return null;
 
-  let topOffset = rect.top;
+  let viewportTop = getViewportTop();
   let viewportBottom = getViewportBottom();
-  if (!Number.isFinite(viewportBottom) || viewportBottom <= 0) return null;
+  if (!Number.isFinite(viewportTop) || !Number.isFinite(viewportBottom)) return null;
+  if (viewportBottom <= viewportTop) return null;
 
-  let maxHeight = Math.floor(viewportBottom - topOffset - MENU_VIEWPORT_PADDING);
+  let side = getMenuSide(element);
+  let triggerRect = getTriggerRect(element);
+  let radixAvailable = readRadixAvailableHeight(element);
+  let radixMaxHeight =
+    radixAvailable != null ? radixAvailable - MENU_VIEWPORT_PADDING : null;
+
+  // From the menu's current top down to the viewport. Stable for downward
+  // menus because max-height shrinks the box from the bottom, leaving `top`
+  // unchanged.
+  let spaceBelow = viewportBottom - rect.top - MENU_VIEWPORT_PADDING;
+
+  // From the viewport down to the trigger. The trigger is a stable anchor
+  // for upward menus — never use rect.bottom here, or shrinking the box
+  // would chase itself before Radix repositions.
+  let spaceAbove = triggerRect
+    ? triggerRect.top - viewportTop - MENU_VIEWPORT_PADDING
+    : radixMaxHeight;
+
+  let maxHeight: number | null;
+
+  if (side == 'top') {
+    maxHeight = spaceAbove;
+  } else if (side == 'left' || side == 'right') {
+    maxHeight = Math.min(
+      spaceBelow,
+      viewportBottom - viewportTop - MENU_VIEWPORT_PADDING * 2
+    );
+  } else if (side == 'bottom') {
+    maxHeight = spaceBelow;
+  } else if (spaceAbove != null) {
+    maxHeight = Math.min(spaceBelow, spaceAbove);
+  } else {
+    maxHeight = spaceBelow;
+  }
+
+  if (maxHeight == null) return null;
+
+  if (radixMaxHeight != null) {
+    maxHeight = Math.min(maxHeight, radixMaxHeight);
+  }
+
   if (!Number.isFinite(maxHeight)) return null;
 
-  return Math.max(0, maxHeight);
+  return Math.max(0, Math.floor(maxHeight));
 };
 
 let addListener = (
@@ -73,10 +190,18 @@ export let attachMenuHeightConstraint = (element: HTMLElement): MenuHeightConstr
     if (maxHeight == null) return;
 
     let value = `${maxHeight}px`;
-    if (lastApplied == value && element.style.maxHeight == value) return;
+    if (
+      lastApplied == value &&
+      element.style.getPropertyValue(MENU_MAX_HEIGHT_VAR) == value
+    ) {
+      return;
+    }
 
     lastApplied = value;
-    element.style.maxHeight = value;
+    // Never write inline maxHeight — that overrides Radix's available-height
+    // and is what let upward menus grow past the viewport.
+    element.style.maxHeight = '';
+    element.style.setProperty(MENU_MAX_HEIGHT_VAR, value);
   };
 
   let schedule = () => {
@@ -121,7 +246,7 @@ export let attachMenuHeightConstraint = (element: HTMLElement): MenuHeightConstr
       let mutationObserver = new MutationObserver(schedule);
       mutationObserver.observe(element, {
         attributes: true,
-        attributeFilter: ['style', 'data-side', 'data-align', 'data-state']
+        attributeFilter: ['data-side', 'data-align', 'data-state']
       });
 
       // Radix puts the transform on a wrapper around the content, so watch
@@ -150,8 +275,11 @@ export let attachMenuHeightConstraint = (element: HTMLElement): MenuHeightConstr
       for (let cleanup of cleanups) cleanup();
       cleanups = [];
 
-      if (lastApplied != null && element.style.maxHeight == lastApplied) {
-        element.style.maxHeight = '';
+      if (lastApplied != null) {
+        if (element.style.getPropertyValue(MENU_MAX_HEIGHT_VAR) == lastApplied) {
+          element.style.removeProperty(MENU_MAX_HEIGHT_VAR);
+        }
+        if (element.style.maxHeight) element.style.maxHeight = '';
       }
       lastApplied = null;
     }

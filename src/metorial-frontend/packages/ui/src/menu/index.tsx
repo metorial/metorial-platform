@@ -5,7 +5,11 @@ import { css, keyframes, styled } from 'styled-components';
 import { theme } from '..';
 import { markOverlayPointerDismiss, useDialogZIndex } from '../dialog/state';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
-import { MENU_VIEWPORT_PADDING, useConstrainedMenuHeight } from './useConstrainedMenuHeight';
+import {
+  MENU_MAX_HEIGHT_VAR,
+  MENU_VIEWPORT_PADDING,
+  useConstrainedMenuHeight
+} from './useConstrainedMenuHeight';
 
 let fadeInBottom = keyframes`
   from { opacity: 0; transform: translateY(-10px) scale(0.99); }
@@ -75,8 +79,9 @@ let contentStyles = css<{
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  max-height: calc(
-    var(--radix-dropdown-menu-content-available-height, 100dvh) - ${MENU_VIEWPORT_PADDING}px
+  max-height: min(
+    var(${MENU_MAX_HEIGHT_VAR}, 100dvh),
+    calc(var(--radix-dropdown-menu-content-available-height, 100dvh) - ${MENU_VIEWPORT_PADDING}px)
   );
 
   &[data-state='open'][data-side='top'] {
