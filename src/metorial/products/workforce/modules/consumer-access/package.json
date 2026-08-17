@@ -1,0 +1,29 @@
+{
+  "name": "@metorial/module-consumer-access",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@metorial/db": "1.0.0",
+    "@metorial/module-access": "1.0.0",
+    "@metorial/module-email": "1.0.0",
+    "@metorial/module-search": "^1.0.0",
+    "@metorial/portal-url": "1.0.0",
+    "@metorial/queue": "1.0.0",
+    "react": "19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "5.8.2",
+    "vitest": "^3.1.2"
+  }
+}
