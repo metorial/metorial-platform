@@ -1,6 +1,6 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
-import { documentEditTokenService, documentService } from '@metorial/cargo-module-doc';
-import { resolveCargoAccess } from '@metorial/cargo-module-file';
+import { documentEditTokenService, documentService } from '@metorial/module-documents';
+import { resolveCargoAccess } from '@metorial/module-file';
 import { db } from '@metorial/db';
 import { createResourceAuthorization } from '@metorial/module-access';
 

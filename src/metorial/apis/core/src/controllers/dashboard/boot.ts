@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { consumerProfileService } from '@metorial/module-consumer';
+import { consumerProfileService } from '@metorial/module-consumer-core';
 import { organizationService } from '@metorial/module-organization';
 import { Controller, Path } from '@metorial/rest';
 import { isDashboardGroup } from '../../middleware/isDashboard';

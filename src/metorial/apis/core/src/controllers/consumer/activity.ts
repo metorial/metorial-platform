@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerActivityService } from '@metorial/module-consumer';
+import { consumerActivityService } from '@metorial/module-consumer-entities';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../lib/dateFilter';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';

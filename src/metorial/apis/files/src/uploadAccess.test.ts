@@ -8,8 +8,7 @@ let accessService = vi.hoisted(() => ({
 }));
 let getInstanceCargoAccess = vi.hoisted(() =>
   vi.fn((ctx: any) => ({
-    scope: {
-    },
+    scope: {},
     resourceActor: ctx.resourceActor,
     authorization: ctx.consumerProfile
       ? {
@@ -28,7 +27,7 @@ vi.mock('@metorial/module-access', () => ({
   accessService
 }));
 
-vi.mock('@metorial/cargo-module-file', () => ({
+vi.mock('@metorial/module-file', () => ({
   getInstanceCargoAccess
 }));
 
@@ -92,9 +91,7 @@ describe('file upload access', () => {
   });
 
   it('preserves consumer tags in restricted Cargo authorization', async () => {
-    accessService.accessInstance.mockResolvedValue(
-      getInstanceAccess(consumerResourceActor)
-    );
+    accessService.accessInstance.mockResolvedValue(getInstanceAccess(consumerResourceActor));
     let auth = {
       type: 'machine',
       machineAccess: { type: 'instance_publishable' },

@@ -1,17 +1,19 @@
 import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { consumerAccessRequestService } from '@metorial/module-consumer-access';
 import {
-  consumerAccessRequestService,
-  consumerOAuthDashboardService,
   consumerProfileService,
+  consumerSurfaceProviderGroupService
+} from '@metorial/module-consumer-core';
+import {
   ConsumerProviderCatalogEntry,
   ConsumerProviderCatalogItem,
   consumerProviderCatalogService,
   consumerProviderDeploymentService,
-  consumerProviderSetupSessionService,
-  consumerSurfaceProviderGroupService
-} from '@metorial/module-consumer';
+  consumerProviderSetupSessionService
+} from '@metorial/module-consumer-entities';
+import { consumerOAuthDashboardService } from '@metorial/module-consumer-oauth';
 import { magicMcpServerService } from '@metorial/module-magic';
 import {
   consumerAccessRequestPresenter,

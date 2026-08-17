@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpTokenStatus } from '@metorial/db';
-import { grantConsumerOwnedMagicMcpTokenAccess } from '@metorial/module-consumer';
+import { grantConsumerOwnedMagicMcpTokenAccess } from '@metorial/consumer-magic-access';
 import {
   magicMcpEndpointService,
   magicMcpGroupService,

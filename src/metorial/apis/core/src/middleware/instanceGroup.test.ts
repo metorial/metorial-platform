@@ -29,7 +29,7 @@ vi.mock('@metorial/module-access', () => ({
 vi.mock('@metorial/consumer-auth', () => ({
   getConsumerAccessContextForConsumerProfile: mocks.getConsumerAccessContext
 }));
-vi.mock('@metorial/module-consumer', () => ({
+vi.mock('@metorial/module-consumer-core', () => ({
   consumerProfileService: {
     getConsumerProfileByIdForInstance: mocks.getConsumerProfile
   }

@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { portalService } from '@metorial/module-consumer';
+import { portalService } from '@metorial/module-portal';
 import { namespaceService } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';

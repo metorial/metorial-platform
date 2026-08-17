@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createAuditScope } from '@metorial/audit-scope';
 import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
-import { consumerProfileService } from '@metorial/module-consumer';
+import { consumerProfileService } from '@metorial/module-consumer-core';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';

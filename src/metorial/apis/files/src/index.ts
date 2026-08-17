@@ -3,13 +3,13 @@ import { createExecutionContext, provideExecutionContext } from '@lowerdeck/exec
 import { extractIp } from '@lowerdeck/forwarded-for';
 import { Context, cors, createHono } from '@lowerdeck/hono';
 import { authenticate } from '@metorial/auth';
-import { createDocumentLiveApi } from '@metorial/cargo-module-doc/live';
+import { createDocumentLiveApi } from '@metorial/module-documents/live';
 import {
   getCargoFileContent,
   purposeSlugs,
   resolveCargoAccess,
   uploadCargoFile
-} from '@metorial/cargo-module-file';
+} from '@metorial/module-file';
 import { generatePlainId } from '@metorial/id';
 import { websocket } from 'hono/bun';
 import { resolveDocumentsLiveToken } from './documentsLiveAuth';

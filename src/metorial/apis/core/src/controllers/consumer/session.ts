@@ -1,6 +1,6 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer';
+import { consumerAuthService, consumerProfileService } from '@metorial/module-consumer-core';
 import { Controller } from '@metorial/rest';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
 import {

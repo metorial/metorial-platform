@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { getSignedFileDownloadUrl } from '@metorial/cargo-module-file';
+import { getSignedFileDownloadUrl } from '@metorial/module-file';
 import { Presenter } from '@metorial/presenter';
 import { fileType } from '../../types';
 import {

@@ -3,7 +3,7 @@ import {
   getInstanceCargoAccess,
   type InstanceCargoAccessContext,
   type ScopeOwner
-} from '@metorial/cargo-module-file';
+} from '@metorial/module-file';
 import { accessService, type AuthInfo, type Scope } from '@metorial/module-access';
 import { organizationService } from '@metorial/module-organization';
 

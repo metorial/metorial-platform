@@ -5,7 +5,7 @@ import {
   consumerProfileService,
   consumerService,
   consumerSurfaceService
-} from '@metorial/module-consumer';
+} from '@metorial/module-consumer-core';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';

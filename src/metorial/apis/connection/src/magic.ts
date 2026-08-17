@@ -15,7 +15,7 @@ import { AuthInfo } from '@metorial/module-access';
 import {
   consumerIntegrationService,
   enqueueMaterializeMagicMcpSessionOwnership
-} from '@metorial/module-consumer';
+} from '@metorial/module-consumer-entities';
 import {
   ensureMagicMcpSubspaceSession,
   magicMcpEndpointService,

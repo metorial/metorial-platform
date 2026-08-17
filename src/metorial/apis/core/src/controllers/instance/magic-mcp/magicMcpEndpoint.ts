@@ -2,10 +2,8 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpEndpointStatus } from '@metorial/db';
-import {
-  consumerProfileService,
-  grantConsumerOwnedMagicMcpEndpointAccess
-} from '@metorial/module-consumer';
+import { grantConsumerOwnedMagicMcpEndpointAccess } from '@metorial/consumer-magic-access';
+import { consumerProfileService } from '@metorial/module-consumer-core';
 import { skillPluginService } from '@metorial/module-skill-marketplace';
 import {
   magicMcpEndpointService,

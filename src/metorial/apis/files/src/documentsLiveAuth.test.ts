@@ -6,11 +6,11 @@ let getDocumentById = vi.hoisted(() => vi.fn());
 let getDocumentPermissions = vi.hoisted(() => vi.fn());
 let resolveCargoAccess = vi.hoisted(() => vi.fn());
 
-vi.mock('@metorial/cargo-module-doc', () => ({
+vi.mock('@metorial/module-documents', () => ({
   documentEditTokenService: { verifyDocumentEditToken },
   documentService: { getDocumentById, getDocumentPermissions }
 }));
-vi.mock('@metorial/cargo-module-file', () => ({ resolveCargoAccess }));
+vi.mock('@metorial/module-file', () => ({ resolveCargoAccess }));
 vi.mock('@metorial/db', () => ({
   db: {
     consumerProfile: {

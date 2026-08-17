@@ -1,7 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { consumerInviteService, portalService } from '@metorial/module-consumer';
+import { consumerInviteService } from '@metorial/module-consumer-core';
+import { portalService } from '@metorial/module-portal';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';

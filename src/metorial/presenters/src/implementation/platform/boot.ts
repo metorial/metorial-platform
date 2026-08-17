@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
-import { portalService } from '@metorial/module-consumer';
+import { portalService } from '@metorial/module-portal';
 import { Presenter } from '@metorial/presenter';
 import { bootType } from '../../types';
 import { v1InstancePresenter } from '../organization/instance';

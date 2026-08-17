@@ -148,9 +148,9 @@ import type { AuditLog } from '@metorial/module-audit-log';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
-  ConsumerProviderCatalogEntry,
-  EnrichedConsumerSurface
-} from '@metorial/module-consumer';
+  ConsumerProviderCatalogEntry
+} from '@metorial/module-consumer-entities';
+import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import { Flags } from '@metorial/module-flags';
 import type {
   OAuthAuthorizationLogWithRelations,

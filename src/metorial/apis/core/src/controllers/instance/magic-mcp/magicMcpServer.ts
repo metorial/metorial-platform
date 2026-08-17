@@ -2,11 +2,8 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { MagicMcpServerStatus } from '@metorial/db';
-import {
-  consumerProfileService,
-  consumerService,
-  grantConsumerOwnedMagicMcpServerAccess
-} from '@metorial/module-consumer';
+import { grantConsumerOwnedMagicMcpServerAccess } from '@metorial/consumer-magic-access';
+import { consumerProfileService, consumerService } from '@metorial/module-consumer-core';
 import {
   ensureMagicMcpServerBacking,
   magicMcpServerService,

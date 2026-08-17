@@ -1,7 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { storeParticipantService } from '@metorial/cargo-module-store';
+import { storeParticipantService } from '@metorial/module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -37,7 +37,9 @@ export let storeParticipantController = Controller.create(
         name: 'List store participants',
         description: 'Returns a paginated list of participants for a specific store.'
       })
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .outputList(storeParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
@@ -63,7 +65,9 @@ export let storeParticipantController = Controller.create(
           description: 'Retrieves a specific participant within a store.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] }))
+      .use(
+        checkAccess({ possibleScopes: ['instance.file:read', 'consumer#instance.store:read'] })
+      )
       .output(storeParticipantPresenter)
       .do(async ctx =>
         storeParticipantPresenter.present({ storeParticipant: ctx.storeParticipant })

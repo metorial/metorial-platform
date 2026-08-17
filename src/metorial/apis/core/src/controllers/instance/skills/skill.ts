@@ -5,7 +5,7 @@ import { skillResourceService, skillService } from '@metorial/module-skill';
 import { skillGroupItemService, skillGroupService } from '@metorial/module-skill-groups';
 import { skillTemplateService } from '@metorial/module-skill-templates';
 import { ID } from '@metorial/db';
-import { consumerSkillService } from '@metorial/module-consumer';
+import { consumerSkillService } from '@metorial/module-consumer-entities';
 import { skillPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';

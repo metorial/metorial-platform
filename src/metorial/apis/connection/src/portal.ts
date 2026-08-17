@@ -10,7 +10,7 @@ import {
   consumerOAuthRoutingService,
   consumerOAuthTestAuthorizationService,
   consumerOAuthTokenService
-} from '@metorial/module-consumer';
+} from '@metorial/module-consumer-oauth';
 import { Authenticator } from '@metorial/rest';
 import { getMagicMcpTokenSecretFromRequest, handleMagicMcpRequest } from './magic';
 import {
