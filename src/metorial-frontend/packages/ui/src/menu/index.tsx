@@ -5,6 +5,7 @@ import { css, keyframes, styled } from 'styled-components';
 import { theme } from '..';
 import { markOverlayPointerDismiss, useDialogZIndex } from '../dialog/state';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
+import { MENU_VIEWPORT_PADDING, useConstrainedMenuHeight } from './useConstrainedMenuHeight';
 
 let fadeInBottom = keyframes`
   from { opacity: 0; transform: translateY(-10px) scale(0.99); }
@@ -52,7 +53,11 @@ let contentStyles = css<{
 }>`
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
   padding: 5px;
   color: ${({ $lightMode }) =>
     $lightMode ? theme.colors.foreground : theme.colors.background};
@@ -63,9 +68,17 @@ let contentStyles = css<{
     ${({ $lightMode }) => ($lightMode ? theme.colors.gray400 : theme.colors.foreground)};
   border-radius: 10px;
   min-width: 200px;
+  min-height: 0;
   width: ${({ $matchTriggerWidth }) =>
     $matchTriggerWidth ? 'var(--radix-dropdown-menu-trigger-width)' : undefined};
   gap: 5px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: calc(
+    var(--radix-dropdown-menu-content-available-height, 100dvh) - ${MENU_VIEWPORT_PADDING}px
+  );
+
   &[data-state='open'][data-side='top'] {
     animation: ${fadeInTop} 0.2s ease forwards;
   }
@@ -109,6 +122,16 @@ let Content = styled(RadixMenu.Content)<{
 let SubContent = styled(RadixMenu.SubContent)<{ $lightMode?: boolean }>`
   ${contentStyles}
 `;
+
+let ConstrainedContent = (props: React.ComponentProps<typeof Content>) => {
+  let ref = useConstrainedMenuHeight();
+  return <Content {...props} ref={ref} />;
+};
+
+let ConstrainedSubContent = (props: React.ComponentProps<typeof SubContent>) => {
+  let ref = useConstrainedMenuHeight();
+  return <SubContent {...props} ref={ref} />;
+};
 
 let Separator = styled(RadixMenu.Separator)<{ $lightMode?: boolean }>`
   height: 1px;
@@ -338,7 +361,7 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
               </SubTrigger>
 
               <RadixMenu.Portal>
-                <SubContent
+                <ConstrainedSubContent
                   $lightMode={lightMode}
                   data-metorial-menu-content="true"
                   sideOffset={2}
@@ -346,7 +369,7 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
                   style={{ zIndex: zIndex + 1 }}
                 >
                   {renderItems(item.items)}
-                </SubContent>
+                </ConstrainedSubContent>
               </RadixMenu.Portal>
             </RadixMenu.Sub>
           );
@@ -398,7 +421,7 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
         </OverlayOpenProvider>
 
         <RadixMenu.Portal>
-          <Content
+          <ConstrainedContent
             $lightMode={lightMode}
             $matchTriggerWidth={matchTriggerWidth}
             data-metorial-menu-content="true"
@@ -414,7 +437,7 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
             )}
 
             {renderItems(items)}
-          </Content>
+          </ConstrainedContent>
         </RadixMenu.Portal>
       </RadixMenu.Root>
     );
