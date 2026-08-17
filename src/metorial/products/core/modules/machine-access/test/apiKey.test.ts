@@ -1,0 +1,329 @@
+import { ServiceError } from '@lowerdeck/error';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiKeyService } from '../src/services/apiKey';
+
+// @ts-ignore
+const { db } = await import('@metorial/db');
+
+// Mocks
+vi.mock('@metorial/db', () => ({
+  db: {
+    apiKey: {
+      create: vi.fn(),
+      update: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn()
+    },
+    apiKeySecret: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      updateMany: vi.fn()
+    },
+    organization: {
+      findUniqueOrThrow: vi.fn()
+    }
+  },
+  withTransaction: (fn: any) => fn(db),
+  addAfterTransactionHook: vi.fn(),
+  ID: { generateId: vi.fn().mockResolvedValue('mock-id') }
+}));
+vi.mock('@lowerdeck/service', () => ({
+  Service: { create: (_: string, fn: any) => ({ build: () => fn() }) }
+}));
+vi.mock('@metorial/api-keys', () => ({
+  UnifiedApiKey: {
+    create: vi.fn(() => ({
+      toString: () => 'secret-key'
+    })),
+    redact: vi.fn(() => 'redacted-key')
+  }
+}));
+vi.mock('@metorial/config', () => ({
+  getConfig: () => ({ urls: { apiUrl: 'http://api' } })
+}));
+vi.mock('@lowerdeck/hash', () => ({
+  Hash: { sha512: vi.fn(() => Promise.resolve('sha512')) }
+}));
+vi.mock('@metorial/fabric', () => ({
+  Fabric: { fire: vi.fn() }
+}));
+vi.mock('../src/queues/created/sendApiKeyCreatedEmail', () => ({
+  sendApiKeyCreatedEmailQueue: {
+    add: vi.fn()
+  }
+}));
+vi.mock('../src/services/machineAccess', () => ({
+  machineAccessService: {
+    createMachineAccess: vi.fn(() => Promise.resolve({ oid: 'machine-access-oid' })),
+    updateMachineAccess: vi.fn(() => Promise.resolve()),
+    deleteMachineAccess: vi.fn(() => Promise.resolve())
+  }
+}));
+vi.mock('@lowerdeck/pagination', () => ({
+  Paginator: { create: (fn: any) => fn({ prisma: (cb: any) => cb({}) }) }
+}));
+
+const baseContext = { user: { oid: 'user-oid' } } as any;
+const baseOrg = { oid: 'org-oid', id: 'org-id' } as any;
+const baseUser = { oid: 'user-oid' } as any;
+const baseInstance = { oid: 'instance-oid', type: 'production' } as any;
+const baseActor = { oid: 'actor-oid', id: 'actor-id' } as any;
+let testAuditScope = {
+  organizationOid: baseOrg.oid,
+  organizationActorOid: baseActor.oid,
+  actor: { type: 'org_actor' as const, id: (baseActor as any).id ?? 'actor-id' },
+  context: baseContext
+} as any;
+
+
+describe('apiKeyService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should create an organization management token api key', async () => {
+    // @ts-ignore
+    db.apiKey.create.mockResolvedValue({
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      machineAccess: {}
+    });
+    // @ts-ignore
+    db.apiKeySecret.create.mockResolvedValue({ secret: 'secret-key' });
+
+    const result = await apiKeyService.createApiKey({
+      type: 'organization_management_token',
+      organization: baseOrg,
+      auditScope: testAuditScope,
+      input: { name: 'orgkey' }
+    });
+
+    expect(result.apiKey).toBeDefined();
+    expect(result.secret.secret).toBe('secret-key');
+  });
+
+  it('should enqueue created api key emails after the transaction commits', async () => {
+    // @ts-ignore
+    db.apiKey.create.mockResolvedValue({
+      oid: 'api-key-oid',
+      id: 'api-key-id',
+      type: 'organization_management_token',
+      machineAccess: {}
+    });
+    // @ts-ignore
+    db.apiKeySecret.create.mockResolvedValue({ secret: 'secret-key' });
+
+    await apiKeyService.createApiKey({
+      type: 'organization_management_token',
+      organization: baseOrg,
+      auditScope: testAuditScope,
+      input: { name: 'orgkey' }
+    });
+
+    let { addAfterTransactionHook } = await import('@metorial/db');
+    let { sendApiKeyCreatedEmailQueue } = await import('../src/queues/created/sendApiKeyCreatedEmail');
+
+    expect(addAfterTransactionHook).toHaveBeenCalledTimes(1);
+
+    let hook = vi.mocked(addAfterTransactionHook).mock.calls[0]?.[0];
+    await hook();
+
+    expect(sendApiKeyCreatedEmailQueue.add).toHaveBeenCalledWith({
+      apiKeyId: 'api-key-id',
+      organizationId: 'org-id',
+      performedByActorId: 'actor-id'
+    });
+  });
+
+  it('should update an api key', async () => {
+    // @ts-ignore
+    db.apiKey.update.mockResolvedValue({
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      machineAccess: {}
+    });
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
+
+    const apiKey = {
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      status: 'active',
+      machineAccess: {}
+    };
+    const result = await apiKeyService.updateApiKey({
+      // @ts-ignore
+      apiKey,
+      input: { name: 'updated', description: 'desc' },
+      auditScope: testAuditScope
+    });
+
+    expect(result).toBeDefined();
+    expect(db.apiKey.update).toHaveBeenCalled();
+  });
+
+  it('should revoke an api key', async () => {
+    // @ts-ignore
+    db.apiKey.update.mockResolvedValue({
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      machineAccess: {}
+    });
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
+
+    const apiKey = {
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      status: 'active',
+      machineAccess: {}
+    };
+    const result = await apiKeyService.revokeApiKey({
+      // @ts-ignore
+      apiKey,
+      auditScope: testAuditScope
+    });
+
+    expect(result).toBeDefined();
+    expect(db.apiKey.update).toHaveBeenCalled();
+  });
+
+  it('should rotate an api key', async () => {
+    // @ts-ignore
+    db.apiKey.update.mockResolvedValue({
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      machineAccess: {}
+    });
+    // @ts-ignore
+    db.apiKeySecret.create.mockResolvedValue({ secret: 'secret-key' });
+    // @ts-ignore
+    db.apiKeySecret.findMany.mockResolvedValue([{ id: 'secret-1' }]);
+    // @ts-ignore
+    db.apiKeySecret.updateMany.mockResolvedValue({});
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
+
+    const apiKey = {
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      status: 'active',
+      machineAccess: {},
+      expiresAt: new Date()
+    };
+    const result = await apiKeyService.rotateApiKey({
+      // @ts-ignore
+      apiKey,
+      auditScope: testAuditScope,
+      input: {}
+    });
+
+    expect(result.apiKey).toBeDefined();
+    expect(result.secret.secret).toBe('secret-key');
+  });
+
+  it('should reveal an api key secret', async () => {
+    // @ts-ignore
+    db.apiKeySecret.findFirst.mockResolvedValue({ secret: 'secret-key' });
+    // @ts-ignore
+    db.organization.findUniqueOrThrow.mockResolvedValue(baseOrg);
+
+    const apiKey = {
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      status: 'active',
+      machineAccess: {}
+    };
+    const result = await apiKeyService.revealApiKey({
+      // @ts-ignore
+      apiKey,
+      auditScope: testAuditScope
+    });
+
+    expect(result.secret).toBe('secret-key');
+  });
+
+  it('should throw if api key is not active', async () => {
+    const apiKey = {
+      oid: 'api-key-oid',
+      type: 'organization_management_token',
+      status: 'deleted',
+      machineAccess: {}
+    };
+    await expect(
+      apiKeyService.updateApiKey({
+        // @ts-ignore
+        apiKey,
+        input: {},
+        auditScope: testAuditScope
+      })
+    ).rejects.toThrow(ServiceError);
+  });
+
+  it('should get api key by id', async () => {
+    // @ts-ignore
+    db.apiKey.findFirst.mockResolvedValue({ id: 'api-key-id', machineAccess: {} });
+
+    const result = await apiKeyService.getApiKeyById({
+      apiKeyId: 'api-key-id',
+      organization: baseOrg
+    });
+    expect(result).toBeDefined();
+    expect(db.apiKey.findFirst).toHaveBeenCalled();
+  });
+
+  it('should throw if api key by id not found', async () => {
+    // @ts-ignore
+    db.apiKey.findFirst.mockResolvedValue(undefined);
+
+    await expect(
+      apiKeyService.getApiKeyById({ apiKeyId: 'notfound', organization: baseOrg })
+    ).rejects.toThrow(ServiceError);
+  });
+
+  it('should get api key by id for user', async () => {
+    // @ts-ignore
+    db.apiKey.findFirst.mockResolvedValue({ id: 'api-key-id', machineAccess: {} });
+
+    const result = await apiKeyService.getApiKeyByIdForUser({
+      apiKeyId: 'api-key-id',
+      user: baseUser
+    });
+    expect(result).toBeDefined();
+    expect(db.apiKey.findFirst).toHaveBeenCalled();
+  });
+
+  it('should throw if api key by id for user not found', async () => {
+    // @ts-ignore
+    db.apiKey.findFirst.mockResolvedValue(undefined);
+
+    await expect(
+      apiKeyService.getApiKeyByIdForUser({ apiKeyId: 'notfound', user: baseUser })
+    ).rejects.toThrow(ServiceError);
+  });
+
+  it('should list api keys for organization', async () => {
+    // @ts-ignore
+    db.apiKey.findMany.mockResolvedValue([{ id: 'api-key-id', machineAccess: {} }]);
+
+    const paginator = await apiKeyService.listApiKeys({
+      filter: { type: 'organization_management_token', organization: baseOrg }
+    });
+
+    expect(Array.isArray(paginator)).toBe(true);
+    expect(db.apiKey.findMany).toHaveBeenCalled();
+  });
+
+  it('should list api keys for instance', async () => {
+    // @ts-ignore
+    db.apiKey.findMany.mockResolvedValue([{ id: 'api-key-id', machineAccess: {} }]);
+
+    const paginator = await apiKeyService.listApiKeys({
+      filter: { type: 'instance_access_token', instance: baseInstance, organization: baseOrg }
+    });
+
+    expect(Array.isArray(paginator)).toBe(true);
+    expect(db.apiKey.findMany).toHaveBeenCalled();
+  });
+});
