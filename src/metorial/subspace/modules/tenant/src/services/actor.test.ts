@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   tenantActorUpsert: vi.fn(),
+  tenantActorFindFirst: vi.fn(),
+  tenantActorUpdate: vi.fn(),
   ensureOrganizationActorMirror: vi.fn()
 }));
 
@@ -22,7 +24,8 @@ vi.mock('@metorial-subspace/db', () => ({
   db: {
     tenantActor: {
       upsert: mocks.tenantActorUpsert,
-      findFirst: vi.fn()
+      findFirst: mocks.tenantActorFindFirst,
+      update: mocks.tenantActorUpdate
     }
   },
   getId: (model: string) => ({ oid: 1n, id: `${model}_1` })
@@ -104,5 +107,69 @@ describe('actorService.upsertActor', () => {
     let call = mocks.tenantActorUpsert.mock.calls[0][0];
     expect(call.update).not.toHaveProperty('projectOid');
     expect(call.create.projectOid).toBeNull();
+  });
+
+  it('keeps the provided id on create so upsert-by-id can match the existing row', async () => {
+    await actorService.upsertActor({
+      tenant,
+      input: { ...input, id: 'act_existing' }
+    });
+
+    expect(mocks.tenantActorUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'act_existing' },
+        create: expect.objectContaining({ id: 'act_existing' })
+      })
+    );
+  });
+
+  it('updates the existing actor after a concurrent unique conflict', async () => {
+    let existing = { id: 'act_existing', identifier: input.identifier };
+    mocks.ensureOrganizationActorMirror.mockResolvedValue(4n);
+    mocks.tenantActorUpsert.mockRejectedValue({ code: 'P2002' });
+    mocks.tenantActorFindFirst.mockResolvedValue(existing);
+    mocks.tenantActorUpdate.mockResolvedValue({ ...existing, name: input.name });
+
+    await expect(actorService.upsertActor({ tenant, input })).resolves.toEqual({
+      ...existing,
+      name: input.name
+    });
+
+    expect(mocks.tenantActorFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          tenantOid: 20n,
+          OR: [{ identifier: input.identifier }, { organizationActorOid: 4n }]
+        }
+      })
+    );
+    expect(mocks.tenantActorUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'act_existing' },
+        data: expect.objectContaining({
+          name: input.name,
+          identifier: input.identifier,
+          organizationActorOid: 4n
+        })
+      })
+    );
+  });
+
+  it('returns the existing actor when the follow-up update still conflicts', async () => {
+    let existing = { id: 'act_existing', identifier: input.identifier };
+    mocks.tenantActorUpsert.mockRejectedValue({ code: 'P2002' });
+    mocks.tenantActorFindFirst.mockResolvedValue(existing);
+    mocks.tenantActorUpdate.mockRejectedValue({ code: 'P2002' });
+
+    await expect(actorService.upsertActor({ tenant, input })).resolves.toBe(existing);
+  });
+
+  it('rethrows unique conflicts when no existing actor can be found', async () => {
+    let error = { code: 'P2002' };
+    mocks.tenantActorUpsert.mockRejectedValue(error);
+    mocks.tenantActorFindFirst.mockResolvedValue(null);
+
+    await expect(actorService.upsertActor({ tenant, input })).rejects.toBe(error);
+    expect(mocks.tenantActorUpdate).not.toHaveBeenCalled();
   });
 });

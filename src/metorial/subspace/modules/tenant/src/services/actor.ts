@@ -47,41 +47,72 @@ class actorServiceImpl {
             organizationActorOid: d.input.organizationActorOid
           })) ?? undefined);
 
-    return await db.tenantActor.upsert({
-      where: d.input.id
-        ? {
-            id: d.input.id
-          }
-        : {
-            tenantOid_identifier: {
-              identifier: d.input.identifier,
-              tenantOid: d.tenant.oid
+    let update = {
+      name: d.input.name,
+      identifier: d.input.identifier,
+      type: d.input.type,
+      organizationActorId: d.input.organizationActorId,
+      organizationActorOid,
+      resourceActorId: d.input.resourceActorId,
+      resourceActorIdentifier: d.input.resourceActorIdentifier,
+      ...(d.tenant.projectOid != null ? { projectOid: d.tenant.projectOid } : {})
+    };
+
+    try {
+      return await db.tenantActor.upsert({
+        where: d.input.id
+          ? {
+              id: d.input.id
             }
-          },
-      update: {
-        name: d.input.name,
-        identifier: d.input.identifier,
-        type: d.input.type,
-        organizationActorId: d.input.organizationActorId,
-        organizationActorOid,
-        resourceActorId: d.input.resourceActorId,
-        resourceActorIdentifier: d.input.resourceActorIdentifier,
-        ...(d.tenant.projectOid != null ? { projectOid: d.tenant.projectOid } : {})
-      },
-      create: {
-        ...getId('tenantActor'),
-        name: d.input.name,
-        identifier: d.input.identifier,
-        type: d.input.type,
-        tenantOid: d.tenant.oid,
-        projectOid: d.tenant.projectOid,
-        organizationActorId: d.input.organizationActorId,
-        organizationActorOid,
-        resourceActorId: d.input.resourceActorId,
-        resourceActorIdentifier: d.input.resourceActorIdentifier
-      },
-      include
-    });
+          : {
+              tenantOid_identifier: {
+                identifier: d.input.identifier,
+                tenantOid: d.tenant.oid
+              }
+            },
+        update,
+        create: {
+          ...getId('tenantActor'),
+          ...(d.input.id ? { id: d.input.id } : {}),
+          name: d.input.name,
+          identifier: d.input.identifier,
+          type: d.input.type,
+          tenantOid: d.tenant.oid,
+          projectOid: d.tenant.projectOid,
+          organizationActorId: d.input.organizationActorId,
+          organizationActorOid,
+          resourceActorId: d.input.resourceActorId,
+          resourceActorIdentifier: d.input.resourceActorIdentifier
+        },
+        include
+      });
+    } catch (error: any) {
+      if (error?.code !== 'P2002') throw error;
+
+      let actor = await db.tenantActor.findFirst({
+        where: {
+          tenantOid: d.tenant.oid,
+          OR: [
+            ...(d.input.id ? [{ id: d.input.id }] : []),
+            { identifier: d.input.identifier },
+            ...(organizationActorOid != null ? [{ organizationActorOid }] : [])
+          ]
+        },
+        include
+      });
+      if (!actor) throw error;
+
+      try {
+        return await db.tenantActor.update({
+          where: { id: actor.id },
+          data: update,
+          include
+        });
+      } catch (updateError: any) {
+        if (updateError?.code !== 'P2002') throw updateError;
+        return actor;
+      }
+    }
   }
 
   async getActorById(d: { tenant: Tenant; id: string }) {
