@@ -1,6 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { storeVersionService } from '@metorial/cargo-module-store';
+import { storeVersionService } from '@metorial/module-store';
 import { db, withTransaction } from '@metorial/db';
 import { enqueueDocumentLifecycle } from '../queues/lifecycle';
 import { documentInclude } from '../services/document';

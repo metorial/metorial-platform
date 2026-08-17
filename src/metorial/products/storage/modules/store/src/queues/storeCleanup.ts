@@ -1,4 +1,4 @@
-import { fileReferenceService } from '@metorial/cargo-module-file';
+import { fileReferenceService } from '@metorial/module-file';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 let batchSize = 100;
 

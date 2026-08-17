@@ -1,5 +1,5 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { storeVersionService } from '@metorial/cargo-module-store';
+import { storeVersionService } from '@metorial/module-store';
 import { createCron } from '@metorial/cron';
 import { withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';

@@ -8,6 +8,24 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  internalDocumentContentStoreService,
+  internalDocumentDraftService
+} from '@metorial/module-documents';
+import {
+  storeAccessService,
+  storeItemMutationService,
+  storeReadPermission,
+  storeWritePermission
+} from '@metorial/module-store';
+import type {
+  File,
+  Instance,
+  Prisma,
+  Project,
+  StoreParticipantPermissions
+} from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
+import {
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
@@ -17,32 +35,14 @@ import {
   resolveFiles,
   resolveResourceActors,
   resolveStores
-} from '@metorial/cargo-list-utils';
+} from '@metorial/list-utils';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
-import {
-  internalDocumentContentStoreService,
-  internalDocumentDraftService
-} from '@metorial/cargo-module-doc';
-import {
-  storeAccessService,
-  storeItemMutationService,
-  storeReadPermission,
-  storeWritePermission
-} from '@metorial/cargo-module-store';
-import type {
-  File,
-  Instance,
-  Prisma,
-  Project,
-  StoreParticipantPermissions
-} from '@metorial/db';
-import { db, ID, withTransaction } from '@metorial/db';
 import { requireInstanceScope } from '../lib/instanceScope';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
-import type { ResourceAuthorization } from '@metorial/module-access';
 
 let include = {
   purpose: true,

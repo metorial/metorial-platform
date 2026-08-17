@@ -7,13 +7,13 @@ import {
   documentService,
   internalDocumentDraftService,
   internalDocumentVersioningService
-} from '@metorial/cargo-module-doc';
+} from '@metorial/module-documents';
 import {
   filePurposeService,
   fileService,
   getCargoFilesBucketName,
   getStorage
-} from '@metorial/cargo-module-file';
+} from '@metorial/module-file';
 import type {
   Instance,
   Prisma,

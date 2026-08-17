@@ -1,5 +1,5 @@
 import { Service } from '@lowerdeck/service';
-import { storeAccessService } from '@metorial/cargo-module-store';
+import { storeAccessService } from '@metorial/module-store';
 import type { Document, ResourceActor } from '@metorial/db';
 import { ID, withTransaction } from '@metorial/db';
 

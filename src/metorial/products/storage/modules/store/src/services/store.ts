@@ -3,23 +3,16 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  normalizeDateFilter,
-  resolveResourceActors,
-  resolveStores,
-  resolveStoreTemplates,
-  type DateFilter
-} from '@metorial/cargo-list-utils';
-import {
   documentInclude,
   documentService,
   rewriteDocumentMarkdownTitle
-} from '@metorial/cargo-module-doc';
+} from '@metorial/module-documents';
 import {
   filePurposeService,
   fileService,
   getCargoFilesBucketName,
   getStorage
-} from '@metorial/cargo-module-file';
+} from '@metorial/module-file';
 import type {
   Instance,
   Project,
@@ -29,6 +22,13 @@ import type {
   StoreCloneType
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import {
+  normalizeDateFilter,
+  resolveResourceActors,
+  resolveStores,
+  resolveStoreTemplates,
+  type DateFilter
+} from '@metorial/list-utils';
 import { assertResourceActorScope } from '@metorial/module-access';
 import { posix as pathPosix } from 'node:path';
 import { normalizeStorePath } from '../lib/storePath';

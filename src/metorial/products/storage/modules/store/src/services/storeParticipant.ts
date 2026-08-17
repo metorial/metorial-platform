@@ -1,19 +1,19 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { Instance, Prisma, Project } from '@metorial/db';
+import { db } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveResourceActors,
   resolveStoreParticipants,
   resolveStores
-} from '@metorial/cargo-list-utils';
+} from '@metorial/list-utils';
 import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
 } from '@metorial/module-resource-actor';
-import type { Instance, Prisma, Project } from '@metorial/db';
-import { db } from '@metorial/db';
 
 export let storeParticipantInclude = {
   store: true,

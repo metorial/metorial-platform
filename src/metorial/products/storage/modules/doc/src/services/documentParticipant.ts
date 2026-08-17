@@ -1,21 +1,21 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { storeAccessService, storeReadPermission } from '@metorial/module-store';
+import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
+import { db } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveDocumentParticipants,
   resolveDocuments,
   resolveResourceActors
-} from '@metorial/cargo-list-utils';
+} from '@metorial/list-utils';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
 } from '@metorial/module-resource-actor';
-import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
-import type { ResourceAuthorization } from '@metorial/module-access';
-import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
-import { db } from '@metorial/db';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 
 export let documentParticipantInclude = {

@@ -1,14 +1,14 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { Instance, Prisma, Project, Store } from '@metorial/db';
+import { addAfterTransactionHook, db, ID, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveStores,
   resolveStoreTemplates
-} from '@metorial/cargo-list-utils';
-import type { Instance, Prisma, Project, Store } from '@metorial/db';
-import { addAfterTransactionHook, db, ID, withTransaction } from '@metorial/db';
+} from '@metorial/list-utils';
 import { normalizeStorePath } from '../lib/storePath';
 import {
   storeTemplateItemsUpdatedQueue,

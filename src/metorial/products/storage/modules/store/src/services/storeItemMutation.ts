@@ -1,6 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
+import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import type {
   Instance,
   Project,

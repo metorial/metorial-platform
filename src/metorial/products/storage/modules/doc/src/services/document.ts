@@ -6,21 +6,13 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveDocuments,
-  resolveFiles,
-  resolveResourceActors,
-  resolveStores
-} from '@metorial/cargo-list-utils';
-import { filePurposeService, fileService } from '@metorial/cargo-module-file';
+import { filePurposeService, fileService } from '@metorial/module-file';
 import {
   storeAccessService,
   storeItemMutationService,
   storeReadPermission,
   storeWritePermission
-} from '@metorial/cargo-module-store';
+} from '@metorial/module-store';
 import type {
   Instance,
   Prisma,
@@ -30,6 +22,14 @@ import type {
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveDocuments,
+  resolveFiles,
+  resolveResourceActors,
+  resolveStores
+} from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { internalDocumentContentService } from '../internal/documentContent';

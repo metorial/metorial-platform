@@ -1,13 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { Instance, Prisma, Project } from '@metorial/db';
+import { db, ID, withTransaction, type TransactionDB } from '@metorial/db';
 import {
   normalizeDateFilter,
   resolveStoreVersions,
   type DateFilter
-} from '@metorial/cargo-list-utils';
-import type { Instance, Prisma, Project } from '@metorial/db';
-import { db, ID, withTransaction, type TransactionDB } from '@metorial/db';
+} from '@metorial/list-utils';
 import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
 
 let currentStoreVersionItemInclude = {

@@ -1,5 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
-import { documentService } from '@metorial/cargo-module-doc';
+import { documentService } from '@metorial/module-documents';
 import { fileDownloadService } from '../services/fileDownload';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 

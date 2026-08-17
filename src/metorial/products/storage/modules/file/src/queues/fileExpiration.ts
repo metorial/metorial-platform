@@ -1,4 +1,4 @@
-import { internalDocumentDraftService } from '@metorial/cargo-module-doc';
+import { internalDocumentDraftService } from '@metorial/module-documents';
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
