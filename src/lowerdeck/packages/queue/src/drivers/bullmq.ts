@@ -1,10 +1,10 @@
 import { delay } from '@lowerdeck/delay';
+import type { ExecutionContext } from '@lowerdeck/execution-context';
 import {
   createExecutionContext,
   provideExecutionContext,
   withExecutionContextOptional
 } from '@lowerdeck/execution-context';
-import type { ExecutionContext } from '@lowerdeck/execution-context';
 import { generateSnowflakeId } from '@lowerdeck/id';
 import { memo } from '@lowerdeck/memo';
 import { parseRedisUrl } from '@lowerdeck/redis';
@@ -16,8 +16,14 @@ import {
   SpanStatusCode,
   trace
 } from '@lowerdeck/telemetry';
+import type {
+  DeduplicationOptions,
+  Job,
+  JobsOptions,
+  QueueOptions,
+  WorkerOptions
+} from 'bullmq';
 import { Queue, QueueEvents, Worker } from 'bullmq';
-import type { DeduplicationOptions, JobsOptions, QueueOptions, WorkerOptions } from 'bullmq';
 import { QueueRetryError } from '../lib/queueRetryError';
 import type { IQueue } from '../types';
 
@@ -258,65 +264,74 @@ export let createBullMqQueue = <JobData>(
           staredRef.started = true;
           anyQueueStartedRef.started = true;
 
+          let runJob = async (job: Job<JobData>) => {
+            try {
+              let data = job.data as any;
+
+              let payload: any;
+
+              try {
+                payload = SuperJson.deserialize(data.payload);
+              } catch (e: any) {
+                payload = data.payload;
+              }
+
+              let parentExecutionContext = (data as any)
+                .$$execution_context$$ as ExecutionContext;
+              while (
+                parentExecutionContext &&
+                parentExecutionContext.type == 'job' &&
+                parentExecutionContext.parent
+              )
+                parentExecutionContext = parentExecutionContext.parent;
+
+              let jobExecutionContext = createExecutionContext({
+                type: 'job',
+                contextId: job.id ?? generateSnowflakeId(),
+                queue: opts.name,
+                parent: parentExecutionContext
+              });
+
+              await provideExecutionContext(
+                jobExecutionContext,
+                async () =>
+                  await withQueueSpan(
+                    {
+                      name: `queue process: ${opts.name}`,
+                      kind: SpanKind.CONSUMER,
+                      queueName: opts.name,
+                      operation: 'process',
+                      createSpan: true,
+                      attributes: {
+                        'messaging.message.id': job.id ? String(job.id) : undefined,
+                        'messaging.message.retry.count': job.attemptsMade
+                      }
+                    },
+                    async () => await cb(payload as any, job)
+                  )
+              );
+            } catch (e: any) {
+              if (e instanceof QueueRetryError) {
+                await delay(1000);
+                throw e;
+              } else {
+                Sentry.captureException(e);
+                console.error(e);
+                throw e;
+              }
+            }
+          };
+
           let worker = new Worker<JobData>(
             opts.name,
-            async job => {
-              try {
-                let data = job.data as any;
+            async job =>
+              await Sentry.withIsolationScope(async scope => {
+                scope.setTransactionName(`queue process: ${opts.name}`);
+                scope.setTag('queue', opts.name);
+                if (job.id) scope.setTag('queue.job_id', String(job.id));
 
-                let payload: any;
-
-                try {
-                  payload = SuperJson.deserialize(data.payload);
-                } catch (e: any) {
-                  payload = data.payload;
-                }
-
-                let parentExecutionContext = (data as any)
-                  .$$execution_context$$ as ExecutionContext;
-                while (
-                  parentExecutionContext &&
-                  parentExecutionContext.type == 'job' &&
-                  parentExecutionContext.parent
-                )
-                  parentExecutionContext = parentExecutionContext.parent;
-
-                let jobExecutionContext = createExecutionContext({
-                  type: 'job',
-                  contextId: job.id ?? generateSnowflakeId(),
-                  queue: opts.name,
-                  parent: parentExecutionContext
-                });
-
-                await provideExecutionContext(
-                  jobExecutionContext,
-                  async () =>
-                    await withQueueSpan(
-                      {
-                        name: `queue process: ${opts.name}`,
-                        kind: SpanKind.CONSUMER,
-                        queueName: opts.name,
-                        operation: 'process',
-                        createSpan: true,
-                        attributes: {
-                          'messaging.message.id': job.id ? String(job.id) : undefined,
-                          'messaging.message.retry.count': job.attemptsMade
-                        }
-                      },
-                      async () => await cb(payload as any, job)
-                    )
-                );
-              } catch (e: any) {
-                if (e instanceof QueueRetryError) {
-                  await delay(1000);
-                  throw e;
-                } else {
-                  Sentry.captureException(e);
-                  console.error(e);
-                  throw e;
-                }
-              }
-            },
+                return await runJob(job);
+              }),
             {
               concurrency: 50,
               ...opts.workerOpts,
