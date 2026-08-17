@@ -6,7 +6,7 @@ import {
   filePurposeService,
   fileReferenceService,
   fileService
-} from '@metorial/cargo-module-file';
+} from '@metorial/module-file';
 import { assertResourceActorScope } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';

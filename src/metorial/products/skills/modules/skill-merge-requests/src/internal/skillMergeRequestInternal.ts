@@ -2,21 +2,15 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveResourceActors,
-  resolveSkills
-} from '@metorial/cargo-list-utils';
-import {
   flushDocumentCollaborationState,
   flushDocumentDraft
-} from '@metorial/cargo-module-doc';
+} from '@metorial/module-documents';
 import {
   storeAccessService,
   storeReadPermission,
   storeVersionService,
   storeWritePermission
-} from '@metorial/cargo-module-store';
+} from '@metorial/module-store';
 import type {
   Instance,
   Project,
@@ -27,6 +21,12 @@ import type {
   SkillMergeRequestStatus
 } from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveResourceActors,
+  resolveSkills
+} from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import {

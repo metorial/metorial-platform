@@ -5,7 +5,7 @@ import {
   storeAccessService,
   storeReadPermission,
   storeWritePermission
-} from '@metorial/cargo-module-store';
+} from '@metorial/module-store';
 import { db, ID, Prisma } from '@metorial/db';
 import type { Project, Instance } from '@metorial/db';
 import {

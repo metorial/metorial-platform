@@ -27,13 +27,13 @@ vi.mock('@metorial/db', () => ({
   withTransaction: vi.fn(async (fn: any) => await fn(db))
 }));
 
-vi.mock('@metorial/cargo-list-utils', () => ({
+vi.mock('@metorial/list-utils', () => ({
   normalizeDateFilter: vi.fn(),
   resolveResourceActors: vi.fn(),
   resolveSkillParticipants: vi.fn()
 }));
 
-vi.mock('@metorial/cargo-module-store', () => ({
+vi.mock('@metorial/module-store', () => ({
   storeReadPermission: 'content_read',
   storeWritePermission: 'content_write'
 }));

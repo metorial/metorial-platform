@@ -1,6 +1,5 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { DateFilter } from '@metorial/cargo-list-utils';
 import type {
   Instance,
   Project,
@@ -8,6 +7,7 @@ import type {
   SkillMergeRequestStatus
 } from '@metorial/db';
 import { db, Prisma, withTransaction } from '@metorial/db';
+import type { DateFilter } from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { skillMergeRequestApplyInternalService } from '../internal/skillMergeRequestApplyInternal';
 import {

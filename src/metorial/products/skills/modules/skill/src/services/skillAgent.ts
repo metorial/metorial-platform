@@ -2,21 +2,21 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
+import { documentService } from '@metorial/module-documents';
+import {
+  storeAccessService,
+  storeService,
+  storeWritePermission
+} from '@metorial/module-store';
+import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveDocuments,
   resolveSkillAgents,
   resolveStoreItems
-} from '@metorial/cargo-list-utils';
-import { documentService } from '@metorial/cargo-module-doc';
-import {
-  storeAccessService,
-  storeService,
-  storeWritePermission
-} from '@metorial/cargo-module-store';
-import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+} from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import type { SkillRecord } from './skill';
 

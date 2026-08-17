@@ -1,14 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { Instance, Prisma, Project, SkillDestinationSyncStatus } from '@metorial/db';
+import { db, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillMarketplaces,
   resolveSkillPlugins
-} from '@metorial/cargo-list-utils';
-import type { Instance, Prisma, Project, SkillDestinationSyncStatus } from '@metorial/db';
-import { db, withTransaction } from '@metorial/db';
+} from '@metorial/list-utils';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { isRepositorySyncRetrying } from '../lib/repositorySyncStatus';
 

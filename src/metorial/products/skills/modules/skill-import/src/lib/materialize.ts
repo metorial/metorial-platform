@@ -1,7 +1,7 @@
-import { documentService } from '@metorial/cargo-module-doc';
-import { filePurposeService, fileService } from '@metorial/cargo-module-file';
+import { documentService } from '@metorial/module-documents';
+import { filePurposeService, fileService } from '@metorial/module-file';
 import { skillService } from '@metorial/module-skill';
-import { storeItemMutationService } from '@metorial/cargo-module-store';
+import { storeItemMutationService } from '@metorial/module-store';
 import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { parseSkillDocumentFrontmatter } from '@metorial/module-skill-marketplace';

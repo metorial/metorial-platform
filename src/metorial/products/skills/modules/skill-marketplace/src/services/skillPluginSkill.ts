@@ -2,17 +2,17 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
+import type { Instance, Prisma, Project, SkillPluginSkillStatus } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillConfigurations,
   resolveSkillPluginSkills,
   resolveSkills
-} from '@metorial/cargo-list-utils';
+} from '@metorial/list-utils';
 import { skillService } from '@metorial/module-skill';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
-import type { Instance, Prisma, Project, SkillPluginSkillStatus } from '@metorial/db';
-import { db, ID, withTransaction } from '@metorial/db';
 import {
   assertSkillMarketplaceSkillLimit,
   assertSkillPluginSkillLimit,

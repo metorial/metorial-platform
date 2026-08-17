@@ -34,7 +34,7 @@ vi.mock('@metorial/skills-search', () => ({
   voyagerSource: Promise.resolve({})
 }));
 
-vi.mock('@metorial/cargo-list-utils', () => ({
+vi.mock('@metorial/list-utils', () => ({
   normalizeDateFilter: vi.fn(value => value)
 }));
 

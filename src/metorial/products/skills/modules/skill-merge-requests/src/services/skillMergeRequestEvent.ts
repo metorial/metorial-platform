@@ -1,10 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { type DateFilter, normalizeDateFilter } from '@metorial/cargo-list-utils';
-import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
-import type { ResourceAuthorization } from '@metorial/module-access';
-import { storeAccessService, storeReadPermission } from '@metorial/cargo-module-store';
+import { storeAccessService, storeReadPermission } from '@metorial/module-store';
 import type {
   Instance,
   Project,
@@ -12,6 +9,9 @@ import type {
   TransactionDB
 } from '@metorial/db';
 import { db, ID, type Prisma } from '@metorial/db';
+import { type DateFilter, normalizeDateFilter } from '@metorial/list-utils';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import type { SkillMergeRequestRecord } from '../internal/skillMergeRequestInternal';
 
 export let skillMergeRequestEventInclude = {

@@ -3,29 +3,29 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveSkillTemplates,
-  resolveStoreTemplates
-} from '@metorial/cargo-list-utils';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import type {
   RequiredStoreTemplateScope,
   StoreTemplateCreateInput,
   StoreTemplateScope,
   StoreTemplateUpdateInput
-} from '@metorial/cargo-module-store';
-import { storeService, storeTemplateService } from '@metorial/cargo-module-store';
+} from '@metorial/module-store';
+import { storeService, storeTemplateService } from '@metorial/module-store';
 import type { Prisma } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveSkillTemplates,
+  resolveStoreTemplates
+} from '@metorial/list-utils';
 import {
   accessTagService,
   type AnyAccessTagSelector,
   consumerSkillReadRoles
 } from '@metorial/module-access';
-import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { skillResourceService, skillService } from '@metorial/module-skill';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle';
 
 let skillTemplateSummaryInclude = {

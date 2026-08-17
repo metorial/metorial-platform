@@ -1,6 +1,6 @@
 import { skillService, type SkillRecord } from '@metorial/module-skill';
 import { db } from '@metorial/db';
-import { consumerSkillService } from '@metorial/module-consumer';
+import { consumerSkillService } from '@metorial/module-consumer-entities';
 import { createQueue } from '@metorial/queue';
 import { materializeImportedSkill } from '../lib/materialize';
 import { skillImportFinishQueue } from './finish';

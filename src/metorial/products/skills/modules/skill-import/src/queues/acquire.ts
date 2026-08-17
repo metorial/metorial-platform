@@ -1,4 +1,4 @@
-import { fileReferenceService } from '@metorial/cargo-module-file';
+import { fileReferenceService } from '@metorial/module-file';
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import {

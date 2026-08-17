@@ -3,8 +3,8 @@ import { Service } from '@lowerdeck/service';
 import {
   documentAuthoritativeWriteService,
   documentService
-} from '@metorial/cargo-module-doc';
-import { storeItemMutationService } from '@metorial/cargo-module-store';
+} from '@metorial/module-documents';
+import { storeItemMutationService } from '@metorial/module-store';
 import type { Instance, Project, ResourceActor, Store } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';

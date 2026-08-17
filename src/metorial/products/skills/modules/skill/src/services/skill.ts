@@ -10,21 +10,12 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
 import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveResourceActors,
-  resolveSkills,
-  resolveSkillTemplates,
-  resolveStores
-} from '@metorial/cargo-list-utils';
-import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
-import {
   storeAccessService,
   storeReadPermission,
   storeService,
   storeVersionService,
   storeWritePermission
-} from '@metorial/cargo-module-store';
+} from '@metorial/module-store';
 import type {
   EntityImage,
   Instance,
@@ -35,6 +26,14 @@ import type {
 } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveResourceActors,
+  resolveSkills,
+  resolveSkillTemplates,
+  resolveStores
+} from '@metorial/list-utils';
+import {
   accessTagService,
   type AnyAccessTagSelector,
   assertResourceActorScope,
@@ -42,13 +41,14 @@ import {
   consumerSkillReadRoles,
   type ResourceAuthorization
 } from '@metorial/module-access';
+import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillResourceService } from './resource';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
 import { skillParticipantService } from './skillParticipant';
-import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 
 let skillInclude = {
   store: true,

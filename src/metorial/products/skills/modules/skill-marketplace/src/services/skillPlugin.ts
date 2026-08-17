@@ -4,15 +4,6 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { slugify } from '@lowerdeck/slugify';
-import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveSkillConfigurations,
-  resolveSkillMarketplacePlugins,
-  resolveSkillMarketplaces,
-  resolveSkillPlugins
-} from '@metorial/cargo-list-utils';
-import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import type {
   EntityImage,
   Instance,
@@ -22,6 +13,15 @@ import type {
   SkillPluginStatus
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveSkillConfigurations,
+  resolveSkillMarketplacePlugins,
+  resolveSkillMarketplaces,
+  resolveSkillPlugins
+} from '@metorial/list-utils';
+import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
 import {

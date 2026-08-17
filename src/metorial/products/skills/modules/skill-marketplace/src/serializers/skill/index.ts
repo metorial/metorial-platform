@@ -1,7 +1,7 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { slugify } from '@lowerdeck/slugify';
-import { fileService } from '@metorial/cargo-module-file';
+import { fileService } from '@metorial/module-file';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
 import PQueue from 'p-queue';

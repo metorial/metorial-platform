@@ -1,14 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { Instance, Prisma, Project } from '@metorial/db';
+import { db } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
   resolveSkillVersions,
   resolveStoreVersions
-} from '@metorial/cargo-list-utils';
-import type { Instance, Prisma, Project } from '@metorial/db';
-import { db } from '@metorial/db';
+} from '@metorial/list-utils';
 import type { SkillRecord } from './skill';
 
 let skillVersionInclude = {

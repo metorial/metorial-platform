@@ -1,6 +1,6 @@
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { fileLinkService, fileReferenceService } from '@metorial/cargo-module-file';
+import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import { getConfig } from '@metorial/config';
 import type {
   EntityImage,

@@ -40,7 +40,7 @@ vi.mock('@metorial/skills-search', () => ({
   voyagerSource: Promise.resolve({})
 }));
 
-vi.mock('@metorial/cargo-list-utils', () => ({
+vi.mock('@metorial/list-utils', () => ({
   normalizeDateFilter: vi.fn(),
   resolveSkillTemplates: vi.fn(),
   resolveStoreTemplates: vi.fn()
@@ -62,7 +62,7 @@ vi.mock('@metorial/module-skill', () => ({
   skillService: {}
 }));
 
-vi.mock('@metorial/cargo-module-store', () => ({
+vi.mock('@metorial/module-store', () => ({
   storeService: {
     createStoreFromTemplate: mocks.createStoreFromTemplate
   },

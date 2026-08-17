@@ -6,11 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  fileLinkService,
-  fileReferenceService,
-  fileService
-} from '@metorial/cargo-module-file';
+import { fileLinkService, fileReferenceService, fileService } from '@metorial/module-file';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { assertResourceActorScope } from '@metorial/module-access';
 import type {

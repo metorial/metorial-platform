@@ -1,12 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  type DateFilter,
-  normalizeDateFilter,
-  resolveResourceActors,
-  resolveSkillParticipants
-} from '@metorial/cargo-list-utils';
 import type {
   Instance,
   Prisma,
@@ -16,6 +10,12 @@ import type {
   SkillParticipantRole
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveResourceActors,
+  resolveSkillParticipants
+} from '@metorial/list-utils';
 import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
