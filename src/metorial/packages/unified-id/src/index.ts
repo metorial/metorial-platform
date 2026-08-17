@@ -1,8 +1,6 @@
 import { base62 } from '@lowerdeck/base62';
-import type { SessionMessageType } from '@metorial/db';
-import { MCP_IDS } from '@metorial/mcp-utils';
 
-let PREFIX = MCP_IDS.UNIFIED;
+let PREFIX = 'metorial-unified-id:';
 
 export type Participant =
   | {
@@ -89,7 +87,7 @@ export let getUnifiedIdIfNeeded = (
     senderType: 'client' | 'server';
     originalId?: string | number | null;
     unifiedId?: string | null;
-    type: SessionMessageType;
+    type: any;
   }
 ) => {
   if (

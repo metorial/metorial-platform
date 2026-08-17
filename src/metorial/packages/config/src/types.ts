@@ -1,0 +1,45 @@
+export interface MetorialConfig {
+  redisUrl: string;
+  rabbitmqUrl?: string;
+
+  env: 'development' | 'production' | 'staging';
+
+  email: (
+    | {
+        type: 'ses';
+        aws?: {
+          accessKeyId: string;
+          secretAccessKey: string;
+          region: string;
+        };
+      }
+    | {
+        type: 'smtp';
+        host: string;
+        port: number;
+        secure: boolean;
+        auth: {
+          user: string;
+          pass: string;
+        };
+      }
+  ) & {
+    fromEmail: string;
+    fromName: string;
+  };
+
+  urls: {
+    getInviteUrl: (invite: {
+      key: string;
+      email?: string | null;
+      enterpriseId?: string | null;
+      type: 'email' | 'link' | 'enterprise';
+    }) => string;
+    apiUrl: string;
+    appUrl: string;
+    filesUrl: string;
+    portalsUrl: string;
+  };
+
+  encryptionSecret: string;
+}
