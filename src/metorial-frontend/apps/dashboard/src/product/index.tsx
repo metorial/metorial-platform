@@ -62,9 +62,6 @@ let IntegrationsListLayout = dynamicPage(() =>
 let IntegrationsPage = dynamicPage(() =>
   import('./pages/(integrations)/(list)/integrations').then(c => c.IntegrationsPage)
 );
-let SkillsListLayout = dynamicPage(() =>
-  import('./pages/(skills)/(list)/_layout').then(c => c.SkillsListLayout)
-);
 let SkillsPage = dynamicPage(() =>
   import('./pages/(skills)/(list)/skills').then(c => c.SkillsPage)
 );
@@ -586,25 +583,19 @@ export let productSkillsSlice = createSlice([
         children: [
           {
             path: 'skills',
-            element: <SkillsListLayout />,
-            children: [
-              {
-                path: '',
-                element: <SkillsPage />
-              },
-              {
-                path: 'templates',
-                element: <SkillTemplatesPage />
-              },
-              {
-                path: 'groups',
-                element: <SkillGroupsPage />
-              },
-              {
-                path: 'marketplaces',
-                element: <SkillMarketplacesPage />
-              }
-            ]
+            element: <SkillsPage />
+          },
+          {
+            path: 'skills/templates',
+            element: <SkillTemplatesPage />
+          },
+          {
+            path: 'skills/groups',
+            element: <SkillGroupsPage />
+          },
+          {
+            path: 'skills/marketplaces',
+            element: <SkillMarketplacesPage />
           },
 
           {

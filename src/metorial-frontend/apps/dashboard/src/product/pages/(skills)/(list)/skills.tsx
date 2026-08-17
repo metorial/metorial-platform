@@ -4,6 +4,9 @@ import type {
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
+import { ContentLayout, PageHeader } from '@metorial/layout';
+import { showScmRepositoryPicker } from '@metorial/scene-scm';
+import { useSkillImportActions } from '@metorial/scene-skills';
 import {
   useCurrentInstance,
   useCurrentOrganization,
@@ -11,7 +14,7 @@ import {
   useDuplicateSkill,
   useSkills
 } from '@metorial/state';
-import { Avatar, Badge, RenderDate, Text } from '@metorial/ui';
+import { Avatar, Badge, Button, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiFileCopyLine } from '@remixicon/react';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +33,7 @@ import {
 import { useSkillFilters } from '../../../scenes/skills/filters';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
 import { showSkillFormModal } from '../../../scenes/skills/modal';
+import { showSkillTemplateFormModal } from '../../../scenes/skills/templateModal';
 
 type Skill = DashboardInstanceSkillsListOutput['items'][number];
 
@@ -261,37 +265,109 @@ export let SkillsPage = () => {
   let project = useCurrentProject();
   let navigate = useNavigate();
   let { filters } = useSkillFilters({ search: '', filterState: [] });
+  let listPathParams = [organization.data, project.data, currentInstance.data] as const;
+  let skillImport = useSkillImportActions({
+    instanceId: currentInstance.data?.id ?? '',
+    getSkillPath: skillId => Paths.instance.skill(...listPathParams, skillId)
+  });
 
-  return renderWithLoader({ instance: currentInstance })(({ instance }) =>
-    skillsTable({
-      instanceId: instance.data.id,
-      organization,
-      project,
-      instance: currentInstance,
-      tableFilters: filters as TableFilter<Skill>[],
-      emptyState: () => (
-        <EmptyState
-          extra="Skills"
-          title="Create your first skill"
-          description="Skills let you extend integrations with documents, custom logic, and resources to create advanced agent workflows."
-          action={{
-            label: 'Create Skill',
-            onClick: () =>
+  return renderWithLoader({ instance: currentInstance })(({ instance }) => (
+    <ContentLayout>
+      <PageHeader
+        title="Skills"
+        description="Create reusable skills that extend integrations with documents, custom logic, and resources."
+        actions={
+          <Button
+            size="2"
+            onClick={() =>
               showSkillFormModal({
                 instanceId: instance.data.id,
-                onCreate: skill =>
-                  navigate(
-                    Paths.instance.skill(
-                      organization.data,
-                      project.data,
-                      currentInstance.data,
-                      skill.id
-                    )
-                  )
+                onCreate: skill => {
+                  navigate(Paths.instance.skill(...listPathParams, skill.id));
+                }
               })
-          }}
-        />
-      )
-    })
-  );
+            }
+            menu={[
+              {
+                label: 'Import Skill',
+                onClick: () => {
+                  showScmRepositoryPicker({
+                    instanceId: instance.data.id,
+                    allowPublicUrl: true,
+                    title: 'Import skills',
+                    description:
+                      'Select a connected repository or enter a public GitHub, GitLab, or Bitbucket repository URL.',
+                    onManageSourceControl: () => {
+                      if (!organization.data || !project.data) return;
+                      window.location.href = `/o/${organization.data.slug}/project/${project.data.slug}/scm`;
+                    },
+                    onSelect: async repository => {
+                      return skillImport.createImport({
+                        type: 'origin',
+                        repositoryId: repository.id
+                      });
+                    },
+                    onSelectPublicUrl: async repositoryUrl => {
+                      return skillImport.createImport({
+                        type: 'public',
+                        repositoryUrl
+                      });
+                    },
+                    selectionError: <skillImport.RenderError />
+                  });
+                }
+              },
+              {
+                label: 'Upload Skill',
+                onClick: skillImport.uploadSkill
+              },
+              {
+                label: 'Create Template',
+                onClick: () =>
+                  showSkillTemplateFormModal({
+                    instanceId: instance.data.id,
+                    onCreate: skillTemplate => {
+                      navigate(Paths.instance.skillTemplate(...listPathParams, skillTemplate.id));
+                    }
+                  })
+              }
+            ]}
+          >
+            Create Skill
+          </Button>
+        }
+      />
+
+      {skillsTable({
+        instanceId: instance.data.id,
+        organization,
+        project,
+        instance: currentInstance,
+        tableFilters: filters as TableFilter<Skill>[],
+        emptyState: () => (
+          <EmptyState
+            extra="Skills"
+            title="Create your first skill"
+            description="Skills let you extend integrations with documents, custom logic, and resources to create advanced agent workflows."
+            action={{
+              label: 'Create Skill',
+              onClick: () =>
+                showSkillFormModal({
+                  instanceId: instance.data.id,
+                  onCreate: skill =>
+                    navigate(
+                      Paths.instance.skill(
+                        organization.data,
+                        project.data,
+                        currentInstance.data,
+                        skill.id
+                      )
+                    )
+                })
+            }}
+          />
+        )
+      })}
+    </ContentLayout>
+  ));
 };
