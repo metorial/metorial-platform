@@ -118,7 +118,9 @@ export let skillController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
-        let items = await skillResourceService.hydrateSkills(list.items);
+        let items = await skillResourceService.hydrateSkills(list.items, {
+          instance: access.instance
+        });
 
         return Paginator.present({ ...list, items }, skill =>
           skillPresenter.present({ skill })

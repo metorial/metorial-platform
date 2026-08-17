@@ -335,52 +335,11 @@ class SkillServiceImpl {
     let accessWhere = await getConsumerSkillAccessWhere(d);
     let delegatedResourceSkillIds: string[] | undefined;
     if (d.integrationIds?.length || d.providerIds?.length) {
-      let instance = await db.instance.findFirst({
-        where: {
-          oid: d.instance.oid
-        }
+      delegatedResourceSkillIds = await skillResourceService.listDelegatedSkillIdsByResources({
+        instance: d.instance,
+        integrationIds: d.integrationIds,
+        providerIds: d.providerIds
       });
-      if (instance) {
-        let candidates = await db.skill.findMany({
-          where: {
-            projectOid: d.project.oid,
-            instanceOid: d.instance.oid,
-            status: d.accessTags
-              ? 'active'
-              : d.statuses?.length
-                ? { in: d.statuses }
-                : d.allowDeleted
-                  ? undefined
-                  : 'active',
-            AND: accessWhere ? [accessWhere] : undefined
-          },
-          select: { id: true }
-        });
-        let hydrated = [];
-        for (let offset = 0; offset < candidates.length; offset += 100) {
-          hydrated.push(
-            ...(await skillResourceService.hydrateDelegatedSkillResources({
-              instance,
-              skillIds: candidates.slice(offset, offset + 100).map(skill => skill.id)
-            }))
-          );
-        }
-        delegatedResourceSkillIds = hydrated
-          .filter(resource => {
-            let integrationMatch =
-              !d.integrationIds?.length ||
-              resource.integrations.some(integration =>
-                d.integrationIds!.includes(integration.id)
-              );
-            let providerMatch =
-              !d.providerIds?.length ||
-              resource.providers.some(provider => d.providerIds!.includes(provider.id));
-            return integrationMatch && providerMatch;
-          })
-          .map(resource => resource.skillId);
-      } else {
-        delegatedResourceSkillIds = [];
-      }
     }
     let normalizedSearch = d.search?.trim() || undefined;
     let search = normalizedSearch
@@ -436,7 +395,7 @@ class SkillServiceImpl {
                     : 'active',
               AND: andFilters
             },
-            include: skillInclude
+            select: { id: true }
           })
       )
     );
