@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer';
+import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer-access';
 import { magicMcpServerBackingService } from '@metorial-subspace/module-integration';
 import { createQueue } from '@metorial/queue';
 import {

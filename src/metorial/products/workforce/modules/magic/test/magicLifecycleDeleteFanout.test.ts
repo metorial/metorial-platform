@@ -66,7 +66,7 @@ vi.mock('@metorial-subspace/module-integration', () => ({
   }
 }));
 
-vi.mock('@metorial/module-consumer', () => ({
+vi.mock('@metorial/module-consumer-access', () => ({
   enqueueConsumerTargetAccessCleanup: vi.fn()
 }));
 
@@ -91,7 +91,7 @@ vi.mock('../src/queues/lifecycle/providerTemplate', () => ({
 }));
 
 import { db } from '@metorial/db';
-import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer';
+import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer-access';
 import {
   magicMcpEndpointBackingService,
   magicMcpServerBackingService

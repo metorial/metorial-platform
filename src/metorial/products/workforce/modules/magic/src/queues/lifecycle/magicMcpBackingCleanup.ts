@@ -1,6 +1,6 @@
 import { db, type Prisma, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer';
+import { enqueueConsumerTargetAccessCleanup } from '@metorial/module-consumer-access';
 import { magicMcpServerBackingService } from '@metorial-subspace/module-integration';
 import { createQueue } from '@metorial/queue';
 import { magicMcpServerDeletedQueue } from './magicMcpServer';
