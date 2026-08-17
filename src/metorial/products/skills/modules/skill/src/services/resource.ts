@@ -15,30 +15,78 @@ import {
 import { reconcileSkillProviderLinksQueue } from '../queues/reconcileSkillProviderLinks';
 import type { SkillGroupItemRecord, SkillGroupRecord } from '@metorial/module-skill-groups';
 
+let subspaceIntegrationPreviewSelect = {
+  oid: true,
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  metadata: true,
+  canAttachCustomToolFilters: true,
+  canAttachCustomProviderConfig: true,
+  canOverrideToolFilters: true,
+  useIntegrationNameForSessionProviderNameTemplatesOverride: true,
+  createdAt: true,
+  updatedAt: true,
+  archivedAt: true
+} satisfies SubspacePrisma.IntegrationSelect;
+
+let subspaceProviderPreviewSelect = {
+  oid: true,
+  id: true,
+  name: true,
+  description: true,
+  slug: true,
+  createdAt: true,
+  updatedAt: true
+} satisfies SubspacePrisma.ProviderSelect;
+
 let subspaceSkillItemInclude = {
-  skill: true,
+  skill: {
+    select: { id: true }
+  },
   integration: {
     include: {
-      integration: true
+      integration: {
+        select: subspaceIntegrationPreviewSelect
+      }
     }
   },
   provider: {
     include: {
       provider: {
-        include: { listing: true }
+        select: subspaceProviderPreviewSelect
       }
     }
   }
 } satisfies SubspacePrisma.SkillItemInclude;
 
 let subspaceSkillTemplateItemInclude = {
-  integration: true,
+  integration: {
+    select: subspaceIntegrationPreviewSelect
+  },
   provider: {
-    include: {
-      listing: true
-    }
+    select: subspaceProviderPreviewSelect
   }
 } satisfies SubspacePrisma.SkillTemplateItemInclude;
+
+let subspaceSkillPreviewInclude = {
+  skillIntegrations: {
+    where: { status: 'active' as const },
+    include: {
+      integration: {
+        select: subspaceIntegrationPreviewSelect
+      }
+    }
+  },
+  skillProviderLinks: {
+    include: {
+      provider: {
+        select: subspaceProviderPreviewSelect
+      }
+    }
+  }
+} satisfies SubspacePrisma.SkillInclude;
 
 type SubspaceSkillItemRecord = SubspacePrisma.SkillItemGetPayload<{
   include: typeof subspaceSkillItemInclude;
@@ -48,12 +96,12 @@ type SubspaceSkillTemplateItemRecord = SubspacePrisma.SkillTemplateItemGetPayloa
   include: typeof subspaceSkillTemplateItemInclude;
 }>;
 
-export type SubspaceIntegrationPreview = NonNullable<
-  SubspaceSkillItemRecord['integration']
->['integration'];
-export type SubspaceProviderPreview = NonNullable<
-  SubspaceSkillItemRecord['provider']
->['provider'];
+export type SubspaceIntegrationPreview = SubspacePrisma.IntegrationGetPayload<{
+  select: typeof subspaceIntegrationPreviewSelect;
+}>;
+export type SubspaceProviderPreview = SubspacePrisma.ProviderGetPayload<{
+  select: typeof subspaceProviderPreviewSelect;
+}>;
 
 let skillResourceInclude = {
   store: true,
@@ -80,8 +128,7 @@ let skillResourceInclude = {
   },
   createdByResourceActor: {
     include: resourceActorPresentationInclude
-  },
-  instance: true
+  }
 } satisfies Prisma.SkillInclude;
 
 export type SkillResourceBase = Prisma.SkillGetPayload<{
@@ -329,50 +376,110 @@ class SkillResourceServiceImpl {
   async hydrateDelegatedSkillResources(d: {
     instance: Prisma.InstanceGetPayload<{}>;
     skillIds: string[];
+    includeItems?: boolean;
   }) {
     if (!d.skillIds.length) return [];
     let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
       d.instance
     );
-    let skills = await subspaceDb.skill.findMany({
-      where: {
-        id: { in: d.skillIds },
-        tenantOid: tenant.oid,
-        solutionOid: solution.oid,
-        environmentOid: environment.oid
-      },
-      include: {
-        skillIntegrations: {
-          where: { status: 'active' },
-          include: { integration: true }
-        },
-        skillProviderLinks: {
-          include: {
-            provider: {
-              include: { listing: true }
-            }
+    let where = {
+      id: { in: d.skillIds },
+      tenantOid: tenant.oid,
+      solutionOid: solution.oid,
+      environmentOid: environment.oid
+    };
+
+    if (d.includeItems) {
+      let skills = await subspaceDb.skill.findMany({
+        where,
+        include: {
+          ...subspaceSkillPreviewInclude,
+          skillItems: {
+            where: { status: 'active' },
+            include: subspaceSkillItemInclude
           }
-        },
-        skillItems: {
-          where: { status: 'active' },
-          include: subspaceSkillItemInclude
         }
-      }
+      });
+      let byId = new Map(skills.map(skill => [skill.id, skill]));
+      return d.skillIds.flatMap(skillId => {
+        let skill = byId.get(skillId);
+        if (!skill) return [];
+        return [
+          {
+            skillId: skill.id,
+            items: skill.skillItems.map(presentSkillItemResource),
+            integrations: skill.skillIntegrations.map(item => item.integration),
+            providers: skill.skillProviderLinks.map(link => link.provider)
+          }
+        ];
+      });
+    }
+
+    let skills = await subspaceDb.skill.findMany({
+      where,
+      include: subspaceSkillPreviewInclude
     });
     let byId = new Map(skills.map(skill => [skill.id, skill]));
-
     return d.skillIds.flatMap(skillId => {
       let skill = byId.get(skillId);
       if (!skill) return [];
       return [
         {
           skillId: skill.id,
-          items: skill.skillItems.map(presentSkillItemResource),
+          items: [],
           integrations: skill.skillIntegrations.map(item => item.integration),
           providers: skill.skillProviderLinks.map(link => link.provider)
         }
       ];
     });
+  }
+
+  async listDelegatedSkillIdsByResources(d: {
+    instance: Prisma.InstanceGetPayload<{}>;
+    integrationIds?: string[];
+    providerIds?: string[];
+  }) {
+    if (!d.integrationIds?.length && !d.providerIds?.length) return [];
+    let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
+      d.instance
+    );
+    let skillScope = {
+      tenantOid: tenant.oid,
+      solutionOid: solution.oid,
+      environmentOid: environment.oid
+    };
+
+    let [integrationSkillIds, providerSkillIds] = await Promise.all([
+      d.integrationIds?.length
+        ? subspaceDb.skillIntegration
+            .findMany({
+              where: {
+                status: 'active',
+                integration: { id: { in: d.integrationIds } },
+                skill: skillScope
+              },
+              select: { skill: { select: { id: true } } }
+            })
+            .then(rows => new Set(rows.map(row => row.skill.id)))
+        : Promise.resolve(null as Set<string> | null),
+      d.providerIds?.length
+        ? subspaceDb.skillProviderLink
+            .findMany({
+              where: {
+                provider: { id: { in: d.providerIds } },
+                skill: skillScope
+              },
+              select: { skill: { select: { id: true } } }
+            })
+            .then(rows => new Set(rows.map(row => row.skill.id)))
+        : Promise.resolve(null as Set<string> | null)
+    ]);
+
+    if (integrationSkillIds && providerSkillIds) {
+      return [...integrationSkillIds].filter(id => providerSkillIds.has(id));
+    }
+
+    return [...(integrationSkillIds ?? providerSkillIds ?? [])];
   }
 
   async hydrateDelegatedSkillTemplateResources(d: {
@@ -481,7 +588,8 @@ class SkillResourceServiceImpl {
     if (!target?.instance) return;
     let [resources] = await this.hydrateDelegatedSkillResources({
       instance: target.instance,
-      skillIds: [d.sourceSkill.id]
+      skillIds: [d.sourceSkill.id],
+      includeItems: true
     });
     if (!resources) return;
     let targetSkill = await subspaceDb.skill.findUniqueOrThrow({
@@ -610,7 +718,10 @@ class SkillResourceServiceImpl {
     await reconcileSkillProviderLinksQueue.add({ skillId: skill.id });
   }
 
-  async hydrateSkills(skills: Array<{ id: string }>): Promise<SkillResource[]> {
+  async hydrateSkills(
+    skills: Array<{ id: string }>,
+    opts?: { instance?: Prisma.InstanceGetPayload<{}> }
+  ): Promise<SkillResource[]> {
     if (!skills.length) return [];
     let records = await db.skill.findMany({
       where: { id: { in: skills.map(skill => skill.id) } },
@@ -620,41 +731,62 @@ class SkillResourceServiceImpl {
     let ordered = skills
       .map(skill => byId.get(skill.id))
       .filter((skill): skill is SkillResourceBase => !!skill);
+    if (!ordered.length) return [];
+
     let entityIds = [...new Set(ordered.map(skill => skill.skillEntityId))];
-    let entities = await db.skill.findMany({
-      where: { id: { in: entityIds } },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        parentSkill: { select: { id: true } },
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-    let entityById = new Map(entities.map(entity => [entity.id, entity]));
-    let hydrationBySkillId = new Map<
-      string,
-      {
-        integrations: SubspaceIntegrationPreview[];
-        providers: SubspaceProviderPreview[];
-      }
-    >();
-    for (let skill of ordered) {
-      if (!skill.instance || hydrationBySkillId.has(skill.id)) continue;
-      let instanceSkills = ordered.filter(item => item.instance?.id === skill.instance!.id);
-      let hydrated = await this.hydrateDelegatedSkillResources({
-        instance: skill.instance,
-        skillIds: instanceSkills.map(item => item.id)
-      });
-      for (let item of hydrated) {
-        hydrationBySkillId.set(item.skillId, {
-          integrations: item.integrations,
-          providers: item.providers
+    let hydrateDelegated = async () => {
+      if (opts?.instance) {
+        return await this.hydrateDelegatedSkillResources({
+          instance: opts.instance,
+          skillIds: ordered.map(skill => skill.id)
         });
       }
-    }
+
+      let instanceOids = [...new Set(ordered.map(skill => skill.instanceOid))];
+      let instances = await db.instance.findMany({
+        where: { oid: { in: instanceOids } }
+      });
+      let instanceByOid = new Map(instances.map(instance => [instance.oid, instance]));
+      let groups = await Promise.all(
+        instanceOids.map(instanceOid => {
+          let instance = instanceByOid.get(instanceOid);
+          if (!instance) return Promise.resolve([]);
+          return this.hydrateDelegatedSkillResources({
+            instance,
+            skillIds: ordered
+              .filter(skill => skill.instanceOid === instanceOid)
+              .map(skill => skill.id)
+          });
+        })
+      );
+      return groups.flat();
+    };
+
+    let [entities, hydrated] = await Promise.all([
+      db.skill.findMany({
+        where: { id: { in: entityIds } },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          parentSkill: { select: { id: true } },
+          createdAt: true,
+          updatedAt: true
+        }
+      }),
+      hydrateDelegated()
+    ]);
+    let entityById = new Map(entities.map(entity => [entity.id, entity]));
+    let hydrationBySkillId = new Map(
+      hydrated.map(item => [
+        item.skillId,
+        {
+          integrations: item.integrations,
+          providers: item.providers
+        }
+      ])
+    );
 
     return ordered.map(skill => {
       let entity = entityById.get(skill.skillEntityId) ?? skill;
@@ -695,8 +827,11 @@ class SkillResourceServiceImpl {
     });
   }
 
-  async hydrateSkill(skill: { id: string }) {
-    let [hydrated] = await this.hydrateSkills([skill]);
+  async hydrateSkill(
+    skill: { id: string },
+    opts?: { instance?: Prisma.InstanceGetPayload<{}> }
+  ) {
+    let [hydrated] = await this.hydrateSkills([skill], opts);
     return hydrated!;
   }
 
