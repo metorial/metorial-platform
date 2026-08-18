@@ -247,7 +247,10 @@ class PortalServiceImpl {
         type: 'portal'
       });
 
-      await Fabric.fire('portal.created:before', d);
+      await Fabric.fire('portal.created:before', {
+        ...d,
+        isDefaultPortal: !!d.isDefaultPortal
+      });
 
       let portal = await db.portal.create({
         data: {

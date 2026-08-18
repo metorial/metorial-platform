@@ -31,7 +31,7 @@ class ConsumerGroupServiceImpl {
       ssoGroupIds?: string[];
       isDefault?: boolean;
 
-      specialType: 'default_everyone';
+      specialType?: 'default_everyone';
     };
   }) {
     let consumerGroup = await withTransaction(async db => {
