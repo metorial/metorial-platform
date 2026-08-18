@@ -127,6 +127,7 @@ export interface InitProps {
   mcpProtocolVersion?: string;
   mcpTransport: SessionConnectionMcpConnectionTransport;
   agentInstance?: AgentInstance | null;
+  systemIdentifier?: string;
 }
 
 export interface CallToolProps {
@@ -256,6 +257,7 @@ export class SenderManager {
                       data: {
                         ...getId('sessionConnection'),
                         token: oldToken,
+                        systemIdentifier: lockedConnection.systemIdentifier,
                         isEphemeral: lockedCurrentSession.isEphemeral,
                         isInternal: lockedCurrentSession.isInternal,
                         adapterGlobalOid: lockedCurrentSession.adapterGlobalOid,
@@ -1773,7 +1775,8 @@ export class SenderManager {
       lastActiveAt: new Date(),
       disconnectedAt: null,
 
-      transport: this.transport
+      transport: this.transport,
+      ...(d.systemIdentifier === undefined ? {} : { systemIdentifier: d.systemIdentifier })
     };
 
     let connection: SessionConnection;

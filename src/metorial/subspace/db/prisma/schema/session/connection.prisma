@@ -33,6 +33,8 @@ model SessionConnection {
 
   token String @unique
 
+  systemIdentifier String? @unique
+
   isEphemeral Boolean
   isInternal  Boolean @default(false)
 
