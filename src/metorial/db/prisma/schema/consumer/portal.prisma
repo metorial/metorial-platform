@@ -17,6 +17,8 @@ model Portal {
   /// [PortalAllowedRedirectUrlFilters]
   allowedRedirectUrlFilters Json?
 
+  isDefaultPortal Boolean @default(false)
+
   organizationOid BigInt
   organization    Organization @relation(fields: [organizationOid], references: [oid], onDelete: Cascade)
 

@@ -8,8 +8,10 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
+import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
+  addAfterTransactionHook,
   addAwaitedAfterTransactionHook,
   db,
   ID,
@@ -25,8 +27,8 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCode } from '@metorial/id';
-import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { differenceInMinutes } from 'date-fns';
+import { instancePortalSetupQueue } from '../queues/instancePortalSetup';
 
 let getInstanceSlug = createSlugGenerator(async slug => {
   let instance = await db.instance.findFirst({
@@ -341,6 +343,10 @@ class InstanceService {
         instance,
         auditScope: d.auditScope
       });
+
+      await addAfterTransactionHook(() =>
+        instancePortalSetupQueue.add({ instance: instance.id, context: d.auditScope.context })
+      );
 
       await Fabric.fire('organization.project.instance.created:after', {
         organization: d.organization,

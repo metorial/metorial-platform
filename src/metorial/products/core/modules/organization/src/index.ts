@@ -4,6 +4,7 @@ import {
   createOrganizationNotificationProcessor
 } from './queues/createNotification';
 import { organizationNotificationDigestProcessors } from './queues/createNotificationDigest';
+import { instancePortalSetupQueueProcessor } from './queues/instancePortalSetup';
 import { reconcileAuthVersionProcessors } from './queues/reconcileAuthVersion';
 import { reconcileDefaultPoliciesProcessors } from './queues/reconcileDefaultPolicies';
 import { reconcileProjectInstancesProcessors } from './queues/reconcileProjectInstances';
@@ -36,5 +37,7 @@ export let organizationQueueProcessor = combineQueueProcessors([
   reconcileDefaultPoliciesProcessors,
   reconcileProjectInstancesProcessors,
 
-  syncSubspaceTenantProcessors
+  syncSubspaceTenantProcessors,
+
+  instancePortalSetupQueueProcessor
 ]);

@@ -225,6 +225,7 @@ class PortalServiceImpl {
       allowConsumerSkillAuthoring?: boolean;
       allowConsumerSkillPublishing?: boolean;
     };
+    isDefaultPortal?: boolean;
   }) {
     let portalId = await ID.generateId('portal');
     let slug = await getPortalSlug({
@@ -260,7 +261,8 @@ class PortalServiceImpl {
           ),
           organizationOid: d.organization.oid,
           surfaceOid: surface.oid,
-          instanceOid: d.instance.oid
+          instanceOid: d.instance.oid,
+          isDefaultPortal: !!d.isDefaultPortal
         },
         include
       });

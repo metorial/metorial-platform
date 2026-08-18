@@ -556,7 +556,7 @@ export interface FabricEvents {
   'machine_access.service_account_credential.created:before': { serviceAccount: ServiceAccount; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
   'machine_access.service_account_credential.created:after': { serviceAccount: ServiceAccount; serviceAccountCredential: ServiceAccountCredential; oauthApplication: OAuthApplication; oauthInstallation: OAuthInstallation; oauthAuthorization: OAuthAuthorization; organization: Organization; appActor: OrganizationActor | null; auditScope?: AuditScope };
 
-  'portal.created:before': { organization: Organization; instance: Instance; context: Context; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
+  'portal.created:before': { organization: Organization; instance: Instance; context: Context; isDefaultPortal: boolean; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.created:after': { organization: Organization; instance: Instance; portal: Portal; context: Context; input: { name: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.updated:before': { portal: Portal; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
   'portal.updated:after': { portal: Portal; input: { name?: string; description?: string; sessionExpiryTimeInSeconds?: number; } };
