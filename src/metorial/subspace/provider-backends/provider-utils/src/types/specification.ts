@@ -87,6 +87,8 @@ export interface SpecificationTool {
   authMethods?: string[] | null;
 
   metadata: Record<string, any>;
+
+  adapterIdentifier?: string | null;
 }
 
 export interface SpecificationAuthMethod {
@@ -148,6 +150,8 @@ export interface SpecificationTrigger {
   scopes?: SpecificationActionScopes | null;
 
   metadata: Record<string, any>;
+
+  adapterIdentifier?: string | null;
 }
 
 export interface Specification {

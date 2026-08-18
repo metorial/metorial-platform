@@ -120,7 +120,8 @@ export class ProviderCapabilities extends IProviderCapabilities {
                       autoUnregistration: invocation.autoUnregistration
                     },
               capabilities: t.capabilities ?? {},
-              metadata: t.metadata ?? {}
+              metadata: t.metadata ?? {},
+              adapterIdentifier: t.adapter?.slateIdentifier ?? null
             };
           })
           .filter((t): t is NonNullable<typeof t> => t !== null),
@@ -142,6 +143,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
             outputJsonSchema: t.outputSchema,
             capabilities: t.capabilities ?? {},
             metadata: t.metadata ?? {},
+            adapterIdentifier: t.adapter?.slateIdentifier ?? null,
             scopes: t.scopes ?? null,
             invocation:
               invocation.type === 'polling'
@@ -191,7 +193,8 @@ export class ProviderCapabilities extends IProviderCapabilities {
           scopes: t.scopes ?? null,
           authMethods: tool.authMethods ?? null,
           tags: t.tags,
-          metadata: {}
+          metadata: {},
+          adapterIdentifier: t.adapter?.slateIdentifier ?? null
         };
       })
     };
