@@ -170,7 +170,9 @@ class PortalServiceImpl {
                   type: 'portal' as const,
                   namespace: {
                     value: d.namespace.value,
-                    purposes: { has: 'metorial_portal' as const },
+                    purposes: {
+                      hasSome: ['metorial_portal', 'metorial_portal_single'] as const
+                    },
                     compartment: { value: d.namespace.compartmentValue }
                   }
                 }

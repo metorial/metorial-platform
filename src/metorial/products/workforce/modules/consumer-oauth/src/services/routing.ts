@@ -115,7 +115,9 @@ class ConsumerOAuthRoutingService {
                   type: 'portal' as const,
                   namespace: {
                     value: namespace.value,
-                    purposes: { has: 'metorial_portal' as const },
+                    purposes: {
+                      hasSome: ['metorial_portal', 'metorial_portal_single'] as const
+                    },
                     compartment: { value: namespace.compartmentValue }
                   }
                 }

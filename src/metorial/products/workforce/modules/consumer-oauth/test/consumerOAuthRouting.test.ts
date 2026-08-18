@@ -105,7 +105,9 @@ describe('consumerOAuthRoutingService', () => {
               type: 'portal',
               namespace: {
                 value: 'test',
-                purposes: { has: 'metorial_portal' },
+                purposes: {
+                  hasSome: ['metorial_portal', 'metorial_portal_single']
+                },
                 compartment: { value: 'metorial.com' }
               }
             }
