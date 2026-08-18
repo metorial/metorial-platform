@@ -5,11 +5,14 @@ let textExtensions = new Set([
   'cs',
   'csv',
   'css',
+  'scss',
+  'less',
   'env',
   'go',
   'graphql',
   'h',
   'html',
+  'htm',
   'java',
   'js',
   'json',
@@ -23,6 +26,8 @@ let textExtensions = new Set([
   'rb',
   'rs',
   'sh',
+  'bash',
+  'zsh',
   'sql',
   'swift',
   'toml',
@@ -60,12 +65,12 @@ export let getSkillCodeEditorLanguage = (fileName: string) => {
     return 'javascript';
   }
   if (extension == 'json') return 'json';
-  if (extension == 'css') return 'css';
-  if (extension == 'html') return 'html';
+  if (extension == 'css' || extension == 'scss' || extension == 'less') return 'css';
+  if (extension == 'html' || extension == 'htm') return 'html';
   if (extension == 'md' || extension == 'mdx') return 'markdown';
   if (extension == 'py') return 'python';
   if (extension == 'rs') return 'rust';
-  if (extension == 'sh') return 'shell';
+  if (extension == 'sh' || extension == 'bash' || extension == 'zsh') return 'shell';
   if (extension == 'sql') return 'sql';
   if (extension == 'xml') return 'xml';
   if (extension == 'yaml' || extension == 'yml') return 'yaml';

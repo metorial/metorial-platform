@@ -303,6 +303,7 @@ let SkillTextFileEditorInner = (p: {
       <EditorWrap>
         <MonacoCodeEditor
           ariaLabel={`${fileName} editor`}
+          fileName={fileName}
           language={language}
           onChange={setContent}
           readOnly={p.readOnly}
