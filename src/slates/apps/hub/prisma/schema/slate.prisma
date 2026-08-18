@@ -46,6 +46,7 @@ model Slate {
   slateTriggerEventInputs   SlateTriggerEventInput[]
   changeNotifications       ChangeNotification[]
   slateErrors               SlateError[]
+  slateAdapters             SlateAdapter[]
 
   @@unique([registryOid, slateIdOnRegistry])
   @@unique([registryOid, slateFullIdentifierOnRegistry])
@@ -109,6 +110,7 @@ model SlateVersion {
   slateSessionToolCalls      SlateSessionToolCall[]
   changeNotifications        ChangeNotification[]
   slateErrors                SlateError[]
+  slateVersionAdapters       SlateVersionAdapter[]
 
   @@unique([slateOid, version])
 }
@@ -222,6 +224,9 @@ model SlateAction {
 
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  slateAdapterOid BigInt?
+  slateAdapter    SlateAdapter? @relation(fields: [slateAdapterOid], references: [oid])
 
   mostRecentSpecificationOid BigInt
   mostRecentSpecification    SlateSpecification @relation(fields: [mostRecentSpecificationOid], references: [oid])
