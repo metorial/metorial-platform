@@ -190,7 +190,7 @@ class ConsumerProviderSetupSessionServiceImpl {
         }),
         configuration: {
           ui: {
-            layout: 'box'
+            layout: 'light'
           }
         }
       },

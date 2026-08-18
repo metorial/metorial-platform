@@ -1329,7 +1329,7 @@ class ConsumerProfileServiceImpl {
     });
   }
 
-  async getConsumersForUser(d: { user: User }) {
+  async getConsumersForUser(d: { user: User; consumerSurface?: ConsumerSurface }) {
     let consumers = await this.getConsumersForUserInternal(d);
 
     let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
