@@ -32,15 +32,6 @@ import type {
   ProviderVariantEnrichment,
   ProviderVersionEnrichment
 } from '@metorial-subspace/provider-utils';
-import type {
-  SkillGroupItemResource,
-  SkillGroupResource,
-  SkillItemResource,
-  SkillResource,
-  SkillTemplateItemResource,
-  SkillTemplateResource
-} from '@metorial/module-skill';
-import type { SkillSyncRepositoryCheck } from '@metorial/module-skill-marketplace';
 import {
   AccessPolicy,
   AccessPolicyAssignment,
@@ -145,12 +136,12 @@ import {
   UserType
 } from '@metorial/db';
 import type { AuditLog } from '@metorial/module-audit-log';
+import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
   ConsumerProviderCatalogEntry
 } from '@metorial/module-consumer-entities';
-import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import { Flags } from '@metorial/module-flags';
 import type {
   OAuthAuthorizationLogWithRelations,
@@ -167,6 +158,15 @@ import {
   resourceActorPresentationInclude,
   type ResourceActorPresentationRecord
 } from '@metorial/module-resource-actor';
+import type {
+  SkillGroupItemResource,
+  SkillGroupResource,
+  SkillItemResource,
+  SkillResource,
+  SkillTemplateItemResource,
+  SkillTemplateResource
+} from '@metorial/module-skill';
+import type { SkillSyncRepositoryCheck } from '@metorial/module-skill-marketplace';
 import { PresentableType } from '@metorial/presenter';
 
 type RawProvider = SubspacePrisma.ProviderGetPayload<{

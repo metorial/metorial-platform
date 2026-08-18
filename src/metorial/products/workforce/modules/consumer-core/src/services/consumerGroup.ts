@@ -1,4 +1,9 @@
-import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -25,31 +30,36 @@ class ConsumerGroupServiceImpl {
       description?: string;
       ssoGroupIds?: string[];
       isDefault?: boolean;
+
+      specialType: 'default_everyone';
     };
   }) {
-    let consumerGroup = await withTransaction(async tx => {
+    let consumerGroup = await withTransaction(async db => {
       await Fabric.fire('consumer.group.created:before', {
         consumerSurface: d.consumerSurface,
         input: d.input
       });
 
-      let accessTag = await tx.accessTag.create({
+      let accessTag = await db.accessTag.create({
         data: {
           instanceOid: d.consumerSurface.instanceOid
         }
       });
 
-      let consumerGroup = await tx.consumerGroup.create({
+      let consumerGroup = await db.consumerGroup.create({
         data: {
           id: await ID.generateId('consumerGroup'),
           status: 'active',
           type: 'default',
-          isDefault: !!d.input.isDefault,
+          isDefault: !!(d.input.isDefault || d.input.specialType === 'default_everyone'),
           ssoGroupIds: d.input.ssoGroupIds ?? [],
           name: d.input.name,
           description: d.input.description,
           surfaceOid: d.consumerSurface.oid,
-          accessTagOid: accessTag.oid
+          accessTagOid: accessTag.oid,
+
+          isDefaultEveryoneGroup: d.input.specialType === 'default_everyone',
+          isManaged: d.input.specialType === 'default_everyone'
         }
       });
 
@@ -163,8 +173,8 @@ class ConsumerGroupServiceImpl {
         data: {
           name: d.input.name,
           description: d.input.description,
-          ssoGroupIds: d.input.ssoGroupIds,
-          isDefault: d.input.isDefault
+          ssoGroupIds: d.consumerGroup.isDefaultEveryoneGroup ? [] : d.input.ssoGroupIds,
+          isDefault: d.input.isDefault || d.consumerGroup.isDefaultEveryoneGroup
         }
       });
 
@@ -192,6 +202,14 @@ class ConsumerGroupServiceImpl {
 
     if (d.consumerGroup.type != 'default') {
       throw new ServiceError(notFoundError('consumer.group'));
+    }
+
+    if (d.consumerGroup.isDefaultEveryoneGroup) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot delete the default everyone group.'
+        })
+      );
     }
 
     let consumerGroup = await withTransaction(async tx => {

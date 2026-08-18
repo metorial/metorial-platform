@@ -2,10 +2,10 @@ import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
-import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import { Context } from '@metorial/context';
 import {
   ConsumerSurface,
+  ConsumerSurfaceType,
   db,
   ID,
   Instance,
@@ -14,10 +14,10 @@ import {
   SkillConfiguration,
   withTransaction
 } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { apiKeyService } from '@metorial/module-machine-access';
 import { organizationActorService } from '@metorial/module-organization';
+import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import { normalizeConsumerSurfaceEmailWhitelist } from '../lib/consumerSurfaceEmailWhitelist';
 import {
   consumerSurfaceArchivedQueue,
@@ -25,9 +25,11 @@ import {
   consumerSurfaceDeletedQueue,
   consumerSurfaceUpdatedQueue
 } from '../queues/lifecycle/consumerSurface';
+import { consumerGroupService } from './consumerGroup';
 
 export let consumerSurfaceInclude = {
   consumerAuthTenant: true,
+  managedEveryoneGroup: true,
   publishableApiKey: {
     include: {
       secrets: true
@@ -52,25 +54,6 @@ export type EnrichedConsumerSurface = ConsumerSurfaceWithPublishableApiKey & {
 let internalCreateLock = createLock({
   name: 'cons/consumer-surface/internal-create'
 });
-
-let fireConsumerAuthTenantLifecycleEvent = async (
-  event: 'consumer.auth_tenant.archived:after' | 'consumer.auth_tenant.deleted:after',
-  consumerSurface: ConsumerSurfaceWithPublishableApiKey
-) => {
-  if (!consumerSurface.consumerAuthTenant) return;
-
-  let organization = await db.organization.findUniqueOrThrow({
-    where: {
-      oid: consumerSurface.organizationOid
-    }
-  });
-
-  await Fabric.fire(event, {
-    organization,
-    consumerAuthTenant: consumerSurface.consumerAuthTenant,
-    consumerSurface
-  });
-};
 
 class ConsumerSurfaceServiceImpl {
   private async getSurfaceCargoScope(d: {
@@ -240,11 +223,11 @@ class ConsumerSurfaceServiceImpl {
     publishableApiKeyOid: bigint;
     consumerSurfaceOid?: bigint;
   }) {
-    return await withTransaction(async tx => {
+    return await withTransaction(async db => {
       let now = new Date();
 
       if (d.consumerSurfaceOid) {
-        await tx.consumerSession.updateMany({
+        await db.consumerSession.updateMany({
           where: {
             loggedOutAt: null,
             consumerProfile: {
@@ -257,7 +240,7 @@ class ConsumerSurfaceServiceImpl {
         });
       }
 
-      let apiKey = await tx.apiKey.findUnique({
+      let apiKey = await db.apiKey.findUnique({
         where: {
           oid: d.publishableApiKeyOid
         },
@@ -266,7 +249,7 @@ class ConsumerSurfaceServiceImpl {
         }
       });
 
-      await tx.apiKey.update({
+      await db.apiKey.update({
         where: {
           oid: d.publishableApiKeyOid
         },
@@ -277,7 +260,7 @@ class ConsumerSurfaceServiceImpl {
       });
 
       if (apiKey) {
-        await tx.machineAccess.update({
+        await db.machineAccess.update({
           where: {
             oid: apiKey.machineAccessOid
           },
@@ -303,10 +286,12 @@ class ConsumerSurfaceServiceImpl {
       allowConsumerSkillPublishing?: boolean;
     };
     internalSurfaceUniqueIdentifier?: string;
+    type: ConsumerSurfaceType;
   }) {
     let systemActor = await organizationActorService.getSystemActor({
       organization: d.organization
     });
+
     let { apiKey } = await apiKeyService.createApiKey({
       kind: 'system_internal',
       organization: d.organization,
@@ -324,22 +309,18 @@ class ConsumerSurfaceServiceImpl {
     });
 
     try {
-      await Fabric.fire('consumer.auth_tenant.created:before', {
-        organization: d.organization,
-        instance: d.instance
-      });
-
-      let consumerSurface = await withTransaction(async tx => {
-        let consumerAuthTenant = await tx.consumerAuthTenant.create({
+      let consumerSurface = await withTransaction(async db => {
+        let consumerAuthTenant = await db.consumerAuthTenant.create({
           data: {
             id: await ID.generateId('consumerAuthTenant'),
             organizationOid: d.organization.oid
           }
         });
 
-        let consumerSurface = await tx.consumerSurface.create({
+        let consumerSurface = await db.consumerSurface.create({
           data: {
             id: await ID.generateId('consumerSurface'),
+            type: d.type,
             status: 'active',
             name: d.input.name,
             description: d.input.description,
@@ -353,16 +334,32 @@ class ConsumerSurfaceServiceImpl {
             instanceOid: d.instance.oid,
             consumerAuthTenantOid: consumerAuthTenant.oid,
             publishableApiKeyOid: apiKey.oid,
-            internalSurfaceUniqueIdentifier: d.internalSurfaceUniqueIdentifier
+            internalSurfaceUniqueIdentifier: d.internalSurfaceUniqueIdentifier,
+            isInternal:
+              !!d.internalSurfaceUniqueIdentifier || d.type === 'organization_members'
           },
           include: consumerSurfaceInclude
         });
 
-        await Fabric.fire('consumer.auth_tenant.created:after', {
-          organization: d.organization,
-          consumerAuthTenant,
-          consumerSurface
-        });
+        if (d.type === 'portal') {
+          let group = await consumerGroupService.createConsumerGroup({
+            consumerSurface,
+            input: {
+              name: 'Everyone',
+              isDefault: true,
+              specialType: 'default_everyone'
+            }
+          });
+
+          await db.consumerSurface.update({
+            where: {
+              oid: consumerSurface.oid
+            },
+            data: {
+              managedEveryoneGroupOid: group.oid
+            }
+          });
+        }
 
         return consumerSurface;
       });
@@ -383,6 +380,7 @@ class ConsumerSurfaceServiceImpl {
     instance: Instance;
     identifier: string;
     name: string;
+    type: ConsumerSurfaceType;
   }) {
     let consumerSurface = await db.consumerSurface.findUnique({
       where: {
@@ -417,7 +415,8 @@ class ConsumerSurfaceServiceImpl {
             name: d.name,
             sessionExpiryTimeInSeconds: 3600
           },
-          internalSurfaceUniqueIdentifier: d.identifier
+          internalSurfaceUniqueIdentifier: d.identifier,
+          type: 'organization_members'
         });
       });
     }
@@ -501,10 +500,6 @@ class ConsumerSurfaceServiceImpl {
     });
 
     await consumerSurfaceArchivedQueue.add({ consumerSurfaceId: consumerSurface.id });
-    await fireConsumerAuthTenantLifecycleEvent(
-      'consumer.auth_tenant.archived:after',
-      consumerSurface
-    );
 
     return consumerSurface;
   }
@@ -527,10 +522,6 @@ class ConsumerSurfaceServiceImpl {
     });
 
     await consumerSurfaceDeletedQueue.add({ consumerSurfaceId: consumerSurface.id });
-    await fireConsumerAuthTenantLifecycleEvent(
-      'consumer.auth_tenant.deleted:after',
-      consumerSurface
-    );
 
     return consumerSurface;
   }

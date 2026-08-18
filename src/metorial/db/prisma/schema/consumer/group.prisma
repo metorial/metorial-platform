@@ -16,6 +16,9 @@ model ConsumerGroup {
   status ConsumerGroupStatus
   type   ConsumerGroupType   @default(default)
 
+  isManaged              Boolean @default(false)
+  isDefaultEveryoneGroup Boolean @default(false)
+
   isDefault   Boolean  @default(false)
   ssoGroupIds String[]
 
@@ -36,4 +39,5 @@ model ConsumerGroup {
   profiles         ConsumerProfileGroup[]
   consumerAccesses ConsumerAccess[]
   personalOwner    ConsumerProfile?       @relation("ConsumerProfilePersonalGroup")
+  consumerSurfaces ConsumerSurface[]      @relation("PortalManagedEveryoneGroup")
 }

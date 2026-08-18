@@ -26,3 +26,25 @@ export let v1ConsumerGroupPresenter = Presenter.create(consumerGroupType)
     })
   )
   .build();
+
+export let dashboardConsumerGroupPresenter = Presenter.create(consumerGroupType)
+  .presenter(async ({ consumerGroup }, opts) => {
+    let inner = await v1ConsumerGroupPresenter.present({ consumerGroup }, opts).run({});
+
+    return {
+      ...inner,
+
+      is_managed: consumerGroup.isManaged,
+      is_default_everyone_group: consumerGroup.isDefaultEveryoneGroup
+    };
+  })
+  .schema(
+    v.intersection([
+      v1ConsumerGroupPresenter.schema,
+      v.object({
+        is_managed: v.boolean(),
+        is_default_everyone_group: v.boolean()
+      })
+    ])
+  )
+  .build();

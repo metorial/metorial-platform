@@ -74,3 +74,25 @@ export let v1PortalPresenter = Presenter.create(portalType)
     })
   )
   .build();
+
+export let dashboardPortalPresenter = Presenter.create(portalType)
+  .presenter(async ({ portal, portalUrl, namespaces }, opts) => {
+    let inner = await v1PortalPresenter
+      .present({ portal, portalUrl, namespaces }, opts)
+      .run({});
+
+    return {
+      ...inner,
+
+      managed_everyone_group_id: portal.surface.managedEveryoneGroup?.id ?? null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1PortalPresenter.schema,
+      v.object({
+        managed_everyone_group_id: v.nullable(v.string())
+      })
+    ])
+  )
+  .build();

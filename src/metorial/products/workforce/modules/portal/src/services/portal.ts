@@ -3,35 +3,36 @@ import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { Context } from '@metorial/context';
-import { db, ID, Instance, Organization, Portal, Prisma, withTransaction } from '@metorial/db';
-import { Fabric } from '@metorial/fabric';
-import { type NamespacePropertyWithNamespace } from '@metorial/module-organization';
 import {
   getPortalAllowedRedirectUrlFilters,
   portalAllowedRedirectUrlFiltersEqual,
   validatePortalAllowedRedirectUrlFilters,
   type PortalAllowedRedirectUrlFilter
 } from '@metorial/consumer-oauth-utils';
-import {
-  getPortalHost as resolvePortalHost,
-  getPortalUrlForOrigin as resolvePortalUrlForOrigin,
-  getPortalUrls as resolvePortalUrls,
-  getPrimaryPortalUrl as resolvePrimaryPortalUrl,
-  getPrimaryPortalUrls as resolvePrimaryPortalUrls,
-  parsePortalIdFromHost as resolvePortalIdFromHost
-} from '@metorial/portal-url';
+import { Context } from '@metorial/context';
+import { db, ID, Instance, Organization, Portal, Prisma, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   consumerSurfaceService,
   type ConsumerSurfaceSkillConfigurationInput,
   type ConsumerSurfaceWithPublishableApiKey,
   type EnrichedConsumerSurface
 } from '@metorial/module-consumer-core';
+import { type NamespacePropertyWithNamespace } from '@metorial/module-organization';
+import {
+  getPortalHost as resolvePortalHost,
+  parsePortalIdFromHost as resolvePortalIdFromHost,
+  getPortalUrlForOrigin as resolvePortalUrlForOrigin,
+  getPortalUrls as resolvePortalUrls,
+  getPrimaryPortalUrl as resolvePrimaryPortalUrl,
+  getPrimaryPortalUrls as resolvePrimaryPortalUrls
+} from '@metorial/portal-url';
 
 let include = {
   surface: {
     include: {
       consumerAuthTenant: true,
+      managedEveryoneGroup: true,
       publishableApiKey: {
         include: {
           secrets: true
@@ -241,7 +242,8 @@ class PortalServiceImpl {
           sessionExpiryTimeInSeconds: d.input.sessionExpiryTimeInSeconds ?? 60 * 60 * 24 * 7,
           allowConsumerSkillAuthoring: d.input.allowConsumerSkillAuthoring,
           allowConsumerSkillPublishing: d.input.allowConsumerSkillPublishing
-        }
+        },
+        type: 'portal'
       });
 
       await Fabric.fire('portal.created:before', d);

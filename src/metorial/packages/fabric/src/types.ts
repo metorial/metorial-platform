@@ -1,5 +1,33 @@
-import { Context } from '@metorial/context';
+import type {
+  Callback as SubspaceCallback,
+  CallbackDestination as SubspaceCallbackDestination,
+  CallbackInstance as SubspaceCallbackInstance,
+  CustomProvider as SubspaceCustomProvider,
+  CustomProviderCommit as SubspaceCustomProviderCommit,
+  CustomProviderVersion as SubspaceCustomProviderVersion,
+  Firewall as SubspaceFirewall,
+  FirewallBinding as SubspaceFirewallBinding,
+  Integration as SubspaceIntegration,
+  IntegrationInstance as SubspaceIntegrationInstance,
+  IntegrationSetupSession as SubspaceIntegrationSetupSession,
+  NetworkPolicy as SubspaceNetworkPolicy,
+  ProviderAuthConfig as SubspaceProviderAuthConfig,
+  ProviderAuthCredentials as SubspaceProviderAuthCredentials,
+  ProviderAuthExport as SubspaceProviderAuthExport,
+  ProviderAuthImport as SubspaceProviderAuthImport,
+  ProviderConfig as SubspaceProviderConfig,
+  ProviderConfigVault as SubspaceProviderConfigVault,
+  ProviderDeployment as SubspaceProviderDeployment,
+  ProviderListingGroup as SubspaceProviderListingGroup,
+  ProviderSetupSession as SubspaceProviderSetupSession,
+  Session as SubspaceSession,
+  SessionProvider as SubspaceSessionProvider,
+  SessionTemplate as SubspaceSessionTemplate,
+  SessionTemplateProvider as SubspaceSessionTemplateProvider,
+  ToolCall as SubspaceToolCall
+} from '@metorial-subspace/db';
 import type { AuditScope } from '@metorial/audit-scope';
+import { Context } from '@metorial/context';
 import {
   AccessPolicy,
   AccessPolicyAssignment,
@@ -9,7 +37,6 @@ import {
   AccessRole,
   ApiKey,
   AuditLogStream,
-  ConsumerAuthTenant,
   Consumer,
   ConsumerGroup,
   ConsumerInvite,
@@ -56,34 +83,6 @@ import {
   WorkspaceProfile
 } from '@metorial/db';
 import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
-import type {
-  Callback as SubspaceCallback,
-  CallbackDestination as SubspaceCallbackDestination,
-  CallbackInstance as SubspaceCallbackInstance,
-  CustomProvider as SubspaceCustomProvider,
-  CustomProviderCommit as SubspaceCustomProviderCommit,
-  CustomProviderVersion as SubspaceCustomProviderVersion,
-  Firewall as SubspaceFirewall,
-  FirewallBinding as SubspaceFirewallBinding,
-  Integration as SubspaceIntegration,
-  IntegrationInstance as SubspaceIntegrationInstance,
-  IntegrationSetupSession as SubspaceIntegrationSetupSession,
-  NetworkPolicy as SubspaceNetworkPolicy,
-  ProviderAuthConfig as SubspaceProviderAuthConfig,
-  ProviderAuthCredentials as SubspaceProviderAuthCredentials,
-  ProviderAuthExport as SubspaceProviderAuthExport,
-  ProviderAuthImport as SubspaceProviderAuthImport,
-  ProviderConfig as SubspaceProviderConfig,
-  ProviderConfigVault as SubspaceProviderConfigVault,
-  ProviderDeployment as SubspaceProviderDeployment,
-  ProviderListingGroup as SubspaceProviderListingGroup,
-  ProviderSetupSession as SubspaceProviderSetupSession,
-  Session as SubspaceSession,
-  SessionProvider as SubspaceSessionProvider,
-  SessionTemplate as SubspaceSessionTemplate,
-  SessionTemplateProvider as SubspaceSessionTemplateProvider,
-  ToolCall as SubspaceToolCall
-} from '@metorial-subspace/db';
 
 export type MachineAccessInput =
   | {
@@ -712,10 +711,6 @@ export interface FabricEvents {
     | { workspaceInvite: WorkspaceInvite; organizationInvite: OrganizationInvite }
     | { workspaceInvite: WorkspaceInvite; enterpriseInvite: FabricEnterpriseInvite };
 
-  'consumer.auth_tenant.created:before': { organization: Organization; instance: Instance };
-  'consumer.auth_tenant.created:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };
-  'consumer.auth_tenant.archived:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };
-  'consumer.auth_tenant.deleted:after': { organization: Organization, consumerAuthTenant: ConsumerAuthTenant, consumerSurface: ConsumerSurface };
 
   'consumer.integration_setup_session.created:before': { instance: Instance };
   'consumer.integration_setup_session.created:after': { instance: Instance; setupSession: SubspaceIntegrationSetupSession };

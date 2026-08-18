@@ -1,20 +1,22 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { portalService } from '@metorial/module-portal';
 import { namespaceService } from '@metorial/module-organization';
+import { portalService } from '@metorial/module-portal';
+import { portalPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
-import { portalPresenter } from '@metorial/presenters';
 
 let portalAllowedRedirectUrlFilterValidator = v.object({
   url: v.string()
 });
 
-let presentPortal = async (portal: Parameters<typeof portalPresenter.present>[0]['portal']) => {
+let presentPortal = async (
+  portal: Parameters<typeof portalPresenter.present>[0]['portal']
+) => {
   let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
     portals: [portal]
   });

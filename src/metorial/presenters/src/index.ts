@@ -6,6 +6,7 @@ import {
   consumerMagicMcpTokenPresenter,
   dashboardApiKeyPresenter,
   dashboardAuditLogStreamPresenter,
+  dashboardConsumerGroupPresenter,
   dashboardConsumerPresenter,
   dashboardConsumerProfilePresenter,
   dashboardCustomProviderDeploymentPresenter,
@@ -21,6 +22,7 @@ import {
   dashboardIntegrationSetupSessionPresenter,
   dashboardMagicMcpServerPresenter,
   dashboardMagicMcpServerProviderPresenter,
+  dashboardPortalPresenter,
   dashboardProviderListingPresenter,
   dashboardProviderPresenter,
   v1AccessPolicyPresenter,
@@ -919,7 +921,7 @@ export let oauthScopePermissionsPresenter = declarePresenter(oauthScopePermissio
 });
 
 export let consumerGroupPresenter = declarePresenter(consumerGroupType, {
-  mt_2025_01_01_dashboard: v1ConsumerGroupPresenter,
+  mt_2025_01_01_dashboard: dashboardConsumerGroupPresenter,
   mt_2026_01_01_magnetar: v1ConsumerGroupPresenter,
   mt_2026_04_01_consumer: v1ConsumerGroupPresenter
 });
@@ -1015,7 +1017,7 @@ export let portalOAuthAuthorizationPresenter = declarePresenter(portalOAuthAutho
 });
 
 export let portalPresenter = declarePresenter(portalType, {
-  mt_2025_01_01_dashboard: v1PortalPresenter,
+  mt_2025_01_01_dashboard: dashboardPortalPresenter,
   mt_2026_01_01_magnetar: v1PortalPresenter
 });
 
