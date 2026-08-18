@@ -485,6 +485,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         id: string;
         path: string;
       };
+      storeReplace?: boolean;
     }) => {
       let body = new FormData();
       body.append('file', input.file);
@@ -495,6 +496,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
         body.append('store_id', input.store.id);
         body.append('path', input.store.path);
       }
+      if (input.storeReplace) body.append('store_replace', 'true');
 
       console.log('Uploading file with body:', Object.fromEntries(body.entries()));
 

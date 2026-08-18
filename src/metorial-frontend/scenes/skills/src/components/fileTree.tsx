@@ -838,7 +838,7 @@ let SkillFileTreeRow = (p: {
 
     if (!isOpen) p.onToggle(p.node.path);
 
-    if (itemId == 'file') {
+    if (itemId == 'upload') {
       setFileError(null);
       fileInputRef.current?.click();
       return;
@@ -849,8 +849,12 @@ let SkillFileTreeRow = (p: {
   let directoryContextMenuItems = p.canWrite
     ? [
         {
-          id: 'file',
+          id: 'upload',
           label: 'Upload File'
+        },
+        {
+          id: 'file',
+          label: 'Create File'
         },
         {
           id: 'document',
@@ -959,8 +963,12 @@ let SkillFileTreeRow = (p: {
             label={`Add item to ${getDisplayName(p.node)}`}
             items={[
               {
-                id: 'file',
+                id: 'upload',
                 label: 'Upload File'
+              },
+              {
+                id: 'file',
+                label: 'Create File'
               },
               {
                 id: 'document',

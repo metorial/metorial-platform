@@ -27,6 +27,7 @@ export let useUploadFile = filesLoader.createExternalMutator(
       id: string;
       path: string;
     };
+    storeReplace?: boolean;
   }) => withAuth(sdk => sdk.files.upload(i))
 );
 
