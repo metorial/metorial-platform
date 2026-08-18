@@ -858,7 +858,7 @@ export class SenderManager {
 
     let tools = specificationOid
       ? await db.providerTool.findMany({
-          where: { specificationOid }
+          where: { specificationOid, adapterOid: null }
         })
       : [];
 
@@ -1065,7 +1065,8 @@ export class SenderManager {
     let tool = await db.providerTool.findFirst({
       where: {
         key: d.originalToolName,
-        specificationOid
+        specificationOid,
+        adapterOid: null
       }
     });
     if (!tool) return null;
