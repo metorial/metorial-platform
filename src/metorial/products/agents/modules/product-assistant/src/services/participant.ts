@@ -22,10 +22,6 @@ export type ProductAssistantConversationParticipantWithRelations =
   }>;
 
 class ProductAssistantConversationParticipantServiceImpl {
-  private getClient(client?: DbClient) {
-    return client ?? db;
-  }
-
   assertProjectInstanceScope(d: {
     project: Project;
     instance: Instance;
@@ -81,16 +77,20 @@ class ProductAssistantConversationParticipantServiceImpl {
     if (!d.actor) return true;
     if (d.conversation.createdByResourceActorOid === d.actor.oid) return true;
 
-    let client = this.getClient(d.client);
-    let participant = await client.productAssistantConversationParticipant.findUnique({
-      where: {
-        conversationOid_resourceActorOid: {
-          conversationOid: d.conversation.oid,
-          resourceActorOid: d.actor.oid
-        }
+    let where = {
+      conversationOid_resourceActorOid: {
+        conversationOid: d.conversation.oid,
+        resourceActorOid: d.actor.oid
       }
-    });
+    };
+    if (d.client) {
+      let participant = await (
+        d.client as Prisma.TransactionClient
+      ).productAssistantConversationParticipant.findUnique({ where });
+      return !!participant;
+    }
 
+    let participant = await db.productAssistantConversationParticipant.findUnique({ where });
     return !!participant;
   }
 
@@ -115,9 +115,7 @@ class ProductAssistantConversationParticipantServiceImpl {
     actor: ResourceActor;
     client?: DbClient;
   }): Promise<ProductAssistantConversationParticipant> {
-    let client = this.getClient(d.client);
-
-    return await client.productAssistantConversationParticipant.upsert({
+    let input = {
       where: {
         conversationOid_resourceActorOid: {
           conversationOid: d.conversation.oid,
@@ -130,7 +128,15 @@ class ProductAssistantConversationParticipantServiceImpl {
         conversationOid: d.conversation.oid,
         resourceActorOid: d.actor.oid
       }
-    });
+    };
+
+    if (d.client) {
+      return await (
+        d.client as Prisma.TransactionClient
+      ).productAssistantConversationParticipant.upsert(input);
+    }
+
+    return await db.productAssistantConversationParticipant.upsert(input);
   }
 }
 
