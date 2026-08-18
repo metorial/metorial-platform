@@ -71,6 +71,11 @@ export let ID = createIdGenerator({
   providerAuthMethodGlobal: idType.sorted('pamg'),
   providerTrigger: idType.sorted('ptr'),
   providerTriggerGlobal: idType.sorted('ptrg'),
+  providerAdapterGlobal: idType.sorted('padg'),
+  providerAdapter: idType.sorted('pad'),
+  providerAdapterCapability: idType.sorted('padc'),
+  providerVersionAdapter: idType.sorted('pva'),
+  providerVersionAdapterCapability: idType.sorted('pvac'),
 
   providerAuthCredentials: idType.sorted('par'),
   managedProviderAuthCredentials: idType.sorted('pmac'),

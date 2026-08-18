@@ -90,6 +90,11 @@ declare global {
 
     type ProviderTriggerValue = SpecificationTrigger;
 
+    type ProviderAdapterCapabilities = {
+      id: string;
+      value: any;
+    }[];
+
     type ActionScopes = {
       AND: {
         OR: string[];
