@@ -76,7 +76,7 @@ export let acquirePublicRepository = async (d: {
 
 export let acquireUploadedSkillFile = async (d: {
   project: { oid: bigint };
-  file: Pick<File, 'status' | 'storeId'>;
+  file: Pick<File, 'oid' | 'status' | 'storeId'>;
   format: SkillImportFileFormat;
 }) => {
   let content = await fileService.downloadFileContent({ file: d.file });
