@@ -453,6 +453,7 @@ class toolCallServiceImpl {
           },
           mcpTransport: 'none',
           isManualConnection: true,
+          allowReservedClientIdentifier: true,
           agentInstance
         });
 

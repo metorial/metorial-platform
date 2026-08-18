@@ -103,7 +103,8 @@ class internalToolCallServiceImpl {
           },
           systemIdentifier: getSystemIdentifier(d),
           mcpTransport: 'none',
-          isManualConnection: true
+          isManualConnection: true,
+          allowReservedClientIdentifier: true
         });
       }
     );

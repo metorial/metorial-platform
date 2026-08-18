@@ -56,6 +56,7 @@ describe('internalToolCallService', () => {
     manager.create.mockResolvedValue(manager);
     manager.initialize.mockResolvedValue({ id: 'scn_1' });
     manager.callTool.mockResolvedValue({
+      status: 'succeeded',
       output: { type: 'tool.result', data: { result: 'ok' } },
       message: {
         id: 'smg_1',
@@ -75,7 +76,10 @@ describe('internalToolCallService', () => {
 
   it('uses a system-participant direct connection and returns basic telemetry', async () => {
     await expect(internalToolCallService.call(input as any)).resolves.toEqual({
-      output: { result: 'ok' },
+      result: {
+        status: 'success',
+        output: { result: 'ok' }
+      },
       message: {
         id: 'smg_1',
         oid: 5n,
@@ -83,8 +87,7 @@ describe('internalToolCallService', () => {
         createdAt: new Date('2026-01-01'),
         completedAt: new Date('2026-01-01')
       },
-      connection: { id: 'scn_1' },
-      toolCall: { id: 'tcl_1', toolKey: 'provider_search' }
+      connection: { id: 'scn_1' }
     });
 
     expect(assertSessionInternalAdapter).toHaveBeenCalledWith({
@@ -93,15 +96,14 @@ describe('internalToolCallService', () => {
     });
     expect(manager.initialize).toHaveBeenCalledWith({
       client: {
-        identifier: 'metorial#internal-tool-call:worker',
+        identifier: 'metorial#worker',
         name: 'Worker',
         privateMetadata: { source: 'test' }
       },
       mcpTransport: 'none',
       isManualConnection: true,
-      systemIdentifier: expect.stringMatching(
-        /^internal-tool-call:ses_1:worker:\d{4}-\d{2}-\d{2}$/
-      )
+      allowReservedClientIdentifier: true,
+      systemIdentifier: expect.stringMatching(/^int-tc:ses_1:worker:\d{4}-\d{2}-\d{2}$/)
     });
     expect(manager.callTool).toHaveBeenCalledWith({
       toolId: 'provider_search',
@@ -111,9 +113,7 @@ describe('internalToolCallService', () => {
     });
     expect(db.sessionConnection.findFirst).toHaveBeenCalledWith({
       where: {
-        systemIdentifier: expect.stringMatching(
-          /^internal-tool-call:ses_1:worker:\d{4}-\d{2}-\d{2}$/
-        ),
+        systemIdentifier: expect.stringMatching(/^int-tc:ses_1:worker:\d{4}-\d{2}-\d{2}$/),
         state: 'connected',
         status: 'active'
       },

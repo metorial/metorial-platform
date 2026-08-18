@@ -79,9 +79,9 @@ import {
   buildConnectionStatusTool,
   CONNECTION_STATUS_TOOL_KEY
 } from '../lib/connectionStatusTool';
+import { getProviderActionAdapterWhere } from '../lib/internalSession';
 import { broadcastNats } from '../lib/nats';
 import { isSyntheticTool } from '../lib/syntheticTool';
-import { getProviderActionAdapterWhere } from '../lib/internalSession';
 import {
   CONNECTION_DIAGNOSTICS_TIMEOUT_MS,
   CONNECTION_TOOL_DISCOVERY_TIMEOUT_MS
@@ -128,6 +128,7 @@ export interface InitProps {
   mcpTransport: SessionConnectionMcpConnectionTransport;
   agentInstance?: AgentInstance | null;
   systemIdentifier?: string;
+  allowReservedClientIdentifier?: boolean;
 }
 
 export interface CallToolProps {
@@ -1718,7 +1719,7 @@ export class SenderManager {
     // Ignore if already initialized
     if (this.connection?.initState === 'completed') return this.connection;
 
-    if (d.client.identifier.startsWith('metorial#') && !d.isManualConnection) {
+    if (d.client.identifier.startsWith('metorial#') && !d.allowReservedClientIdentifier) {
       throw new ServiceError(
         badRequestError({
           message: 'Client identifier cannot start with reserved prefix metorial#'
