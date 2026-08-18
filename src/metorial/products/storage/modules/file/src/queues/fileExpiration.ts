@@ -99,6 +99,10 @@ export let fileExpirationSingleProcessor = fileExpirationSingleQueue.process(asy
         }
       })
     ).map(item => item.storeOid);
+    let pendingContent = await db.filePendingContent.findUnique({
+      where: { fileOid: file.oid },
+      select: { oid: true }
+    });
 
     let updated = await db.file.updateMany({
       where: {
@@ -109,10 +113,17 @@ export let fileExpirationSingleProcessor = fileExpirationSingleQueue.process(asy
         }
       },
       data: {
-        status: 'deleted'
+        status: 'deleted',
+        storeId: pendingContent ? '' : undefined
       }
     });
     if (updated.count === 0) return null;
+
+    await db.filePendingContent.deleteMany({
+      where: {
+        fileOid: file.oid
+      }
+    });
 
     await db.fileReference.deleteMany({
       where: {

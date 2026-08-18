@@ -40,6 +40,13 @@ import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { requireInstanceScope } from '../lib/instanceScope';
+import { canDeleteDisplacedFile } from '../lib/fileReplacement';
+import {
+  getPendingFileContentFlushAfter,
+  getStoredFileContent,
+  shouldBufferFileContent
+} from '../lib/pendingFileContent';
+import { fileCleanupSingleQueue } from '../queues/fileCleanup';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
@@ -66,6 +73,111 @@ type FileAccessInput = {
 };
 
 class FileServiceImpl {
+  private async persistFileContent(
+    fileOid: bigint,
+    persistence:
+      | { type: 'database'; content: Uint8Array<ArrayBuffer>; flushAfter: Date }
+      | { type: 'object' }
+      | undefined
+  ) {
+    if (!persistence) return;
+
+    await withTransaction(async db => {
+      if (persistence.type === 'object') {
+        await db.filePendingContent.deleteMany({ where: { fileOid } });
+        return;
+      }
+
+      await db.filePendingContent.upsert({
+        where: { fileOid },
+        create: {
+          fileOid,
+          content: persistence.content,
+          flushAfter: persistence.flushAfter
+        },
+        update: {
+          content: persistence.content,
+          flushAfter: persistence.flushAfter,
+          revision: { increment: 1 }
+        }
+      });
+    });
+  }
+
+  private async deleteFileIfUnreferenced(d: { fileId: string; replacementFileOid: bigint }) {
+    return await withTransaction(async db => {
+      let file = await db.file.findUnique({
+        where: { id: d.fileId },
+        select: {
+          oid: true,
+          id: true,
+          status: true,
+          isInternal: true,
+          isReadOnly: true,
+          isTemplateBacking: true,
+          document: { select: { id: true } },
+          links: {
+            select: {
+              _count: {
+                select: {
+                  references: true
+                }
+              }
+            }
+          },
+          pendingContent: { select: { oid: true } },
+          _count: {
+            select: {
+              storeItems: true,
+              storeVersionItems: true,
+              skillExports: true,
+              skillExportRefs: true,
+              skillImports: true,
+              mergeRequestItemsAsBaseFile: true,
+              mergeRequestItemsAsSourceFile: true,
+              mergeRequestItemsAsTargetFile: true
+            }
+          }
+        }
+      });
+
+      if (!file) return null;
+      if (
+        !canDeleteDisplacedFile({
+          isSameFile: file.oid === d.replacementFileOid,
+          status: file.status,
+          isInternal: file.isInternal,
+          isReadOnly: file.isReadOnly,
+          isTemplateBacking: file.isTemplateBacking,
+          hasDocument: !!file.document,
+          fileLinkCount: file.links.length,
+          hasFileReferences: file.links.some(link => link._count.references > 0),
+          referenceCounts: file._count
+        })
+      )
+        return null;
+
+      let hadPendingContent = !!file.pendingContent;
+      let deleted = await db.file.updateMany({
+        where: {
+          oid: file.oid,
+          status: 'active'
+        },
+        data: {
+          status: 'deleted',
+          storeId: hadPendingContent ? '' : undefined
+        }
+      });
+      if (deleted.count === 0) return null;
+
+      await db.filePendingContent.deleteMany({
+        where: { fileOid: file.oid }
+      });
+
+      return hadPendingContent ? null : file.id;
+    });
+  }
+
   private assertFileWritable(file: Pick<File, 'id' | 'isReadOnly'>) {
     if (file.isReadOnly) {
       throw new ServiceError(
@@ -126,6 +238,9 @@ class FileServiceImpl {
         isReadOnly?: boolean;
         isTemplateBacking?: boolean;
         allowReadOnlyStore?: boolean;
+        contentPersistence?:
+          | { type: 'database'; content: Uint8Array<ArrayBuffer>; flushAfter: Date }
+          | { type: 'object' };
       };
       input: {
         id?: string;
@@ -138,13 +253,15 @@ class FileServiceImpl {
         store?: {
           id: string;
           path: string;
+          replace?: boolean;
         };
         defaultPermissions?: StoreParticipantPermissions[];
         overridePermissions?: boolean;
       };
     }
   ): Promise<FileRecord> {
-    return await withTransaction(async db => {
+    let cleanupFileId: string | null = null;
+    let result = await withTransaction(async db => {
       let fileName = d.input.name?.trim();
       if (!fileName) {
         throw new ServiceError(
@@ -196,6 +313,7 @@ class FileServiceImpl {
           },
           include
         });
+        await this.persistFileContent(updatedFile.oid, d.internal?.contentPersistence);
 
         if (d.input.store) {
           let scope = requireInstanceScope(d, 'Attaching a file to a store');
@@ -214,7 +332,7 @@ class FileServiceImpl {
             requiredPermission: storeWritePermission
           });
 
-          await storeItemMutationService.attachTargetToStore({
+          let attached = await storeItemMutationService.attachTargetToStore({
             ...scope,
             store,
             path: d.input.store.path,
@@ -225,6 +343,12 @@ class FileServiceImpl {
             actor,
             allowReadOnly: d.internal?.allowReadOnlyStore
           });
+          if (d.input.store.replace && attached.previousFile) {
+            cleanupFileId = await this.deleteFileIfUnreferenced({
+              fileId: attached.previousFile.id,
+              replacementFileOid: updatedFile.oid
+            });
+          }
         }
 
         return await this.withEffectiveStoreId(updatedFile);
@@ -247,6 +371,7 @@ class FileServiceImpl {
         },
         include
       });
+      await this.persistFileContent(createdFile.oid, d.internal?.contentPersistence);
 
       if (d.input.store) {
         let scope = requireInstanceScope(d, 'Attaching a file to a store');
@@ -265,7 +390,7 @@ class FileServiceImpl {
           requiredPermission: storeWritePermission
         });
 
-        await storeItemMutationService.attachTargetToStore({
+        let attached = await storeItemMutationService.attachTargetToStore({
           ...scope,
           store,
           path: d.input.store.path,
@@ -276,10 +401,25 @@ class FileServiceImpl {
           actor,
           allowReadOnly: d.internal?.allowReadOnlyStore
         });
+        if (d.input.store.replace && attached.previousFile) {
+          cleanupFileId = await this.deleteFileIfUnreferenced({
+            fileId: attached.previousFile.id,
+            replacementFileOid: createdFile.oid
+          });
+        }
       }
 
       return await this.withEffectiveStoreId(createdFile);
     });
+
+    if (cleanupFileId) {
+      await fileCleanupSingleQueue.add(
+        { fileId: cleanupFileId },
+        { id: `file-cleanup:${cleanupFileId}` }
+      );
+    }
+
+    return result;
   }
 
   async getFileById(
@@ -313,14 +453,16 @@ class FileServiceImpl {
   }
 
   async downloadFileContent(d: {
-    file: Pick<File, 'status' | 'storeId'> & { effectiveStoreId?: string };
+    file: Pick<File, 'oid' | 'status' | 'storeId'> & { effectiveStoreId?: string };
   }) {
     await this.ensureFileActive(d.file);
 
-    let object = await getStorage().getObject(
-      getCargoFilesBucketName(),
-      d.file.effectiveStoreId ?? d.file.storeId
-    );
+    let object = await getStoredFileContent({
+      file: {
+        oid: d.file.oid,
+        storeId: d.file.effectiveStoreId ?? d.file.storeId
+      }
+    });
 
     return await this.objectDataToBuffer(object.data);
   }
@@ -341,8 +483,14 @@ class FileServiceImpl {
   ) {
     let mimeType = d.input.mimeType ?? d.file.type ?? 'application/octet-stream';
     let storeId = generatePlainId(20);
+    let bufferContent = shouldBufferFileContent({
+      fileName: d.input.name,
+      size: d.file.size
+    });
 
-    await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
+    if (!bufferContent) {
+      await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
+    }
 
     let { file, input, ...scope } = d;
 
@@ -350,7 +498,14 @@ class FileServiceImpl {
       ...scope,
       storeId,
       internal: {
-        isReadOnly: true
+        isReadOnly: true,
+        contentPersistence: bufferContent
+          ? {
+              type: 'database',
+              content: new Uint8Array(await d.file.arrayBuffer()),
+              flushAfter: getPendingFileContentFlushAfter()
+            }
+          : { type: 'object' }
       },
       input: {
         id: d.input.id,
@@ -388,12 +543,14 @@ class FileServiceImpl {
       size += chunk.byteLength;
     }
 
-    await getStorage().putObject(
-      getCargoFilesBucketName(),
-      storeId,
-      new Blob(chunks as any[]),
-      mimeType
-    );
+    let blob = new Blob(chunks as any[]);
+    let bufferContent = shouldBufferFileContent({
+      fileName: d.input.name,
+      size
+    });
+    if (!bufferContent) {
+      await getStorage().putObject(getCargoFilesBucketName(), storeId, blob, mimeType);
+    }
 
     let { content, input, ...scope } = d;
 
@@ -401,7 +558,14 @@ class FileServiceImpl {
       ...scope,
       storeId,
       internal: {
-        isReadOnly: true
+        isReadOnly: true,
+        contentPersistence: bufferContent
+          ? {
+              type: 'database',
+              content: new Uint8Array(await blob.arrayBuffer()),
+              flushAfter: getPendingFileContentFlushAfter()
+            }
+          : { type: 'object' }
       },
       input: {
         id: d.input.id,
@@ -521,15 +685,23 @@ class FileServiceImpl {
           id: true
         }
       });
+      let pendingContent = await db.filePendingContent.findUnique({
+        where: { fileOid: d.file.oid },
+        select: { oid: true }
+      });
 
       let deletedFile = await db.file.update({
         where: {
           id: d.file.id
         },
         data: {
-          status: 'deleted'
+          status: 'deleted',
+          storeId: pendingContent ? '' : undefined
         },
         include
+      });
+      await db.filePendingContent.deleteMany({
+        where: { fileOid: d.file.oid }
       });
 
       return {

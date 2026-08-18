@@ -1029,7 +1029,8 @@ class StoreItemMutationServiceImpl {
             target: d.target,
             actor: d.actor
           }),
-          created: false
+          created: false,
+          previousItem: existingItem
         };
       }
 
@@ -1062,6 +1063,7 @@ class StoreItemMutationServiceImpl {
       if (createResult.count === 1) {
         return {
           created: true,
+          previousItem: null,
           item: (await client.storeItem.findUnique({
             where: {
               id: itemId
@@ -1104,7 +1106,8 @@ class StoreItemMutationServiceImpl {
           target: d.target,
           actor: d.actor
         }),
-        created: false
+        created: false,
+        previousItem: conflictingItem
       };
     });
   }
@@ -1414,11 +1417,14 @@ class StoreItemMutationServiceImpl {
 
       await this.syncSkillAgentForStoreItemTransition({
         skill,
-        previousItem: null,
+        previousItem: result.previousItem,
         nextItem: result.item
       });
 
-      return result.item;
+      return {
+        item: result.item,
+        previousFile: result.previousItem?.file ?? null
+      };
     });
   }
 

@@ -35,7 +35,7 @@ export let listDeletedFilesWithStorage = async (d: { cursor?: string; limit: num
     take: d.limit
   });
 
-export let cleanupDeletedFileStorage = async (d: { fileId: string }) => {
+export let cleanupDeletedFileStorage = async (d: { fileId: string; storeId?: string }) => {
   let file = await db.file.findUnique({
     where: {
       id: d.fileId
@@ -45,17 +45,18 @@ export let cleanupDeletedFileStorage = async (d: { fileId: string }) => {
       storeId: true
     }
   });
-  if (!file || file.status !== 'deleted' || file.storeId === '') return false;
+  let storeId = d.storeId ?? file?.storeId;
+  if (!file || file.status !== 'deleted' || !storeId) return false;
 
   let activeFileCount = await db.file.count({
     where: {
       status: 'active',
-      storeId: file.storeId
+      storeId
     }
   });
   if (activeFileCount > 0) return false;
 
-  await getStorage().deleteObject(getCargoFilesBucketName(), file.storeId);
+  await getStorage().deleteObject(getCargoFilesBucketName(), storeId);
 
   return true;
 };
