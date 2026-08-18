@@ -144,6 +144,10 @@ export class ProviderRunConnection extends IProviderRunConnection {
   override async handleToolInvocation(
     data: ToolInvocationCreateParam
   ): Promise<ToolInvocationCreateRes> {
+    if (data.tool.adapterOid) {
+      throw new Error('Adapter-linked tools cannot be invoked through provider connections');
+    }
+
     if (this.providerAuthConfigVersion && !this.providerAuthConfigVersion.slateAuthConfigOid) {
       throw new Error('Provider auth config is missing slate auth config association');
     }

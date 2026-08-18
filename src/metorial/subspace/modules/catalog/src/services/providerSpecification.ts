@@ -107,9 +107,9 @@ class providerSpecificationServiceImpl {
 
             include: {
               provider: true,
-              providerTools: true,
+              providerTools: { where: { adapterOid: null } },
               providerAuthMethods: true,
-              providerTriggers: true
+              providerTriggers: { where: { adapterOid: null } }
             }
           })
       )

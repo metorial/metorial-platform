@@ -320,7 +320,9 @@ export let startReceiver = () => {
       ) => {
         let [backend, tool] = await Promise.all([
           connectBackend(),
-          db.providerTool.findFirstOrThrow({ where: { id: data.toolId } })
+          db.providerTool.findFirstOrThrow({
+            where: { id: data.toolId, adapterOid: null }
+          })
         ]);
 
         return await backend.sendToolInvocation({

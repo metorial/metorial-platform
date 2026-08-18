@@ -1,0 +1,93 @@
+model ProviderAdapterGlobal {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+  name       String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerAdapters ProviderAdapter[]
+}
+
+model ProviderAdapter {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String
+
+  globalOid BigInt
+  global    ProviderAdapterGlobal @relation(fields: [globalOid], references: [oid])
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  capabilities    ProviderAdapterCapability[]
+  providerVersions ProviderVersionAdapter[]
+  tools           ProviderTool[]
+  triggers        ProviderTrigger[]
+
+  @@unique([providerOid, identifier])
+  @@unique([providerOid, globalOid])
+  @@index([identifier])
+}
+
+model ProviderAdapterCapability {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String
+
+  adapterOid BigInt
+  adapter    ProviderAdapter @relation(fields: [adapterOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerVersionAdapterCapabilities ProviderVersionAdapterCapability[]
+
+  @@unique([adapterOid, identifier])
+}
+
+model ProviderVersionAdapter {
+  oid BigInt @id
+  id  String @unique
+
+  /// [ProviderAdapterCapabilities]
+  capabilities Json @default("[]")
+
+  providerVersionOid BigInt
+  providerVersion    ProviderVersion @relation(fields: [providerVersionOid], references: [oid])
+
+  adapterOid BigInt
+  adapter    ProviderAdapter @relation(fields: [adapterOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  capabilityValues ProviderVersionAdapterCapability[]
+
+  @@unique([providerVersionOid, adapterOid])
+}
+
+model ProviderVersionAdapterCapability {
+  oid BigInt @id
+  id  String @unique
+
+  providerVersionAdapterOid BigInt
+  providerVersionAdapter    ProviderVersionAdapter @relation(fields: [providerVersionAdapterOid], references: [oid], onDelete: Cascade)
+
+  adapterCapabilityOid BigInt
+  adapterCapability    ProviderAdapterCapability @relation(fields: [adapterCapabilityOid], references: [oid])
+
+  value Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([providerVersionAdapterOid, adapterCapabilityOid])
+}

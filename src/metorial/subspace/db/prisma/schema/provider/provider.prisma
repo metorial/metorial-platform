@@ -84,6 +84,7 @@ model Provider {
   providerOAuthSetups            ProviderOAuthSetup[]
   providerAuthConfigs            ProviderAuthConfig[]
   providerTriggers               ProviderTrigger[]
+  providerAdapters               ProviderAdapter[]
   providerToolGlobals            ProviderToolGlobal[]
   providerAuthMethodGlobals      ProviderAuthMethodGlobal[]
   providerTriggerGlobals         ProviderTriggerGlobal[]

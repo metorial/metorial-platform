@@ -237,13 +237,15 @@ export let syncCallbackInstance = async (d: {
   if (!callbackInstance) return;
 
   let callback = callbackInstance.callback;
-  let providerTriggerInputs = callback.callbackProviderTriggers.map(trigger => ({
-    triggerId: trigger.providerTrigger.specId,
-    ...(callback.pollIntervalSecondsOverride !== null &&
-    callback.pollIntervalSecondsOverride !== undefined
-      ? { pollIntervalSeconds: callback.pollIntervalSecondsOverride }
-      : {})
-  }));
+  let providerTriggerInputs = callback.callbackProviderTriggers
+    .filter(trigger => !trigger.providerTrigger.adapterOid)
+    .map(trigger => ({
+      triggerId: trigger.providerTrigger.specId,
+      ...(callback.pollIntervalSecondsOverride !== null &&
+      callback.pollIntervalSecondsOverride !== undefined
+        ? { pollIntervalSeconds: callback.pollIntervalSecondsOverride }
+        : {})
+    }));
   let eventTypes = [
     ...new Set(callback.callbackProviderTriggers.flatMap(trigger => trigger.eventTypes))
   ];

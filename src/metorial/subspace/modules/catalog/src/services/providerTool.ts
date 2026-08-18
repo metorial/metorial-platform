@@ -47,8 +47,12 @@ let buildToolsWhere = (ctx: ListToolsContext) => ({
   ],
   providerOid: ctx.providerVersion.providerOid,
   ...(ctx.version?.specificationOid
-    ? { providerTools: { some: { specificationOid: ctx.version.specificationOid } } }
-    : { currentInstance: { isNot: null } })
+    ? {
+        providerTools: {
+          some: { specificationOid: ctx.version.specificationOid, adapterOid: null }
+        }
+      }
+    : { currentInstance: { is: { adapterOid: null } } })
 });
 
 let buildToolsInclude = (ctx: ListToolsContext) => ({
@@ -58,16 +62,13 @@ let buildToolsInclude = (ctx: ListToolsContext) => ({
     : { include: { specification: { omit: { value: true } } } },
   providerTools: ctx.version?.specificationOid
     ? {
-        where: { specificationOid: ctx.version.specificationOid },
+        where: { specificationOid: ctx.version.specificationOid, adapterOid: null },
         include: { specification: { omit: { value: true } } }
       }
     : false
 });
 
-let patchGlobalCursor = async (
-  ctx: ListToolsContext,
-  cursor?: { id: string }
-) => {
+let patchGlobalCursor = async (ctx: ListToolsContext, cursor?: { id: string }) => {
   if (!cursor?.id) return cursor;
 
   let tool = await db.providerTool.findFirst({
@@ -209,7 +210,9 @@ let mapAuthMethodToolFilter = (
 
   return {
     authMethods,
-    scopeSets: authMethods.map(authMethod => authMethod.value.scopes?.map(scope => scope.id) ?? [])
+    scopeSets: authMethods.map(
+      authMethod => authMethod.value.scopes?.map(scope => scope.id) ?? []
+    )
   };
 };
 
@@ -266,7 +269,9 @@ let resolveProviderAuthMethodsForToolFilter = async (
 type ListProviderToolsParams = {
   providerVersion: ProviderVersion;
 
-  providerAuthConfig?: (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null }) | null;
+  providerAuthConfig?:
+    | (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null })
+    | null;
   providerAuthCredentials?: ProviderAuthCredentials | null;
   providerAuthMethodIds?: string[];
 };
@@ -336,10 +341,7 @@ class providerToolServiceImpl {
     return Paginator.create(() => async input => {
       let allTools = await queryTools(ctx);
       let filtered = allTools.filter(tool => {
-        if (
-          d.providerAuthConfig &&
-          !checkToolAuthMethodSatisfied(tool, authMethod).allowed
-        ) {
+        if (d.providerAuthConfig && !checkToolAuthMethodSatisfied(tool, authMethod).allowed) {
           return false;
         }
 

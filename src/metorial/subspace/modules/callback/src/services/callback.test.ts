@@ -137,6 +137,10 @@ describe('Callback creation double-writes the mirrored scoping columns', () => {
   it('writes projectOid and instanceOid next to the legacy oids', async () => {
     await callbackService.createCallbackInternal(createParams(linkedScope));
 
+    expect(mocks.providerTriggerFindMany).toHaveBeenCalledWith({
+      where: { specificationOid: 40n, adapterOid: null }
+    });
+
     expect(mocks.callbackCreate).toHaveBeenCalledTimes(1);
     expect(mocks.callbackCreate.mock.calls[0]![0].data).toMatchObject({
       tenantOid: 10n,

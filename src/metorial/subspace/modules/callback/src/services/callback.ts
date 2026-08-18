@@ -283,7 +283,7 @@ class callbackServiceImpl {
     }
 
     let providerTriggers = await db.providerTrigger.findMany({
-      where: { specificationOid: version.specificationOid }
+      where: { specificationOid: version.specificationOid, adapterOid: null }
     });
 
     let byMatcher = new Map<string, (typeof providerTriggers)[number]>();

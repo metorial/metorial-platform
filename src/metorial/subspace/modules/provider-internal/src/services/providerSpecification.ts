@@ -86,6 +86,34 @@ class providerSpecificationInternalServiceImpl {
       providerVersionId: d.providerVersion.id
     });
 
+    let adapterIdentifiers = [
+      ...new Set(
+        [...tools, ...triggers].flatMap(action =>
+          action.adapterIdentifier ? [action.adapterIdentifier] : []
+        )
+      )
+    ];
+    let providerAdapters = adapterIdentifiers.length
+      ? await db.providerAdapter.findMany({
+          where: {
+            providerOid: d.provider.oid,
+            identifier: { in: adapterIdentifiers }
+          },
+          select: { oid: true, identifier: true }
+        })
+      : [];
+    let adapterByIdentifier = new Map(
+      providerAdapters.map(adapter => [adapter.identifier, adapter])
+    );
+    let missingAdapterIdentifier = adapterIdentifiers.find(
+      identifier => !adapterByIdentifier.has(identifier)
+    );
+    if (missingAdapterIdentifier) {
+      throw new Error(
+        `Provider adapter not found for specification action: ${missingAdapterIdentifier}`
+      );
+    }
+
     let specHash = await Hash.sha256(
       canonicalize({
         type: d.type,
@@ -226,6 +254,9 @@ class providerSpecificationInternalServiceImpl {
 
                     providerOid: d.provider.oid,
                     globalOid: globalToolsMap.get(t.key)!.oid,
+                    adapterOid: t.adapterIdentifier
+                      ? adapterByIdentifier.get(t.adapterIdentifier)!.oid
+                      : null,
                     hash: await Hash.sha256(canonicalize([d.provider.id, t]))
                   }))
                 )
@@ -247,6 +278,9 @@ class providerSpecificationInternalServiceImpl {
 
                     providerOid: d.provider.oid,
                     globalOid: globalTriggersMap.get(t.key)!.oid,
+                    adapterOid: t.adapterIdentifier
+                      ? adapterByIdentifier.get(t.adapterIdentifier)!.oid
+                      : null,
                     hash: await Hash.sha256(canonicalize([d.provider.id, t]))
                   }))
                 )

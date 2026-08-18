@@ -44,6 +44,9 @@ model ProviderTool {
   globalOid BigInt
   global    ProviderToolGlobal @relation(fields: [globalOid], references: [oid])
 
+  adapterOid BigInt?
+  adapter    ProviderAdapter? @relation(fields: [adapterOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -53,6 +56,7 @@ model ProviderTool {
 
   @@unique([providerOid, specificationOid, hash])
   @@unique([specificationOid, key])
+  @@index([specificationOid, adapterOid])
 }
 
 model ProviderAuthMethodGlobal {
@@ -222,6 +226,9 @@ model ProviderTrigger {
   globalOid BigInt
   global    ProviderTriggerGlobal @relation(fields: [globalOid], references: [oid])
 
+  adapterOid BigInt?
+  adapter    ProviderAdapter? @relation(fields: [adapterOid], references: [oid])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -230,4 +237,5 @@ model ProviderTrigger {
 
   @@unique([providerOid, specificationOid, hash])
   @@unique([specificationOid, key])
+  @@index([specificationOid, adapterOid])
 }
