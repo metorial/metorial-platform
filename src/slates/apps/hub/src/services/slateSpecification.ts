@@ -9,7 +9,7 @@ let include = {
     include: { authMethod: true }
   },
   slateActions: {
-    include: { action: true }
+    include: { action: { include: { slateAdapter: { include: { adapter: true } } } } }
   },
   slateConfigSchemas: {
     include: { configSchema: true }
