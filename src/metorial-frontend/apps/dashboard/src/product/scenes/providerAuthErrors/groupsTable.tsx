@@ -1,14 +1,14 @@
 import { DashboardInstanceProviderAuthConfigErrorsGroupsListOutput } from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
 import { useCurrentInstance, useProviderAuthConfigErrorGroups } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
 import {
+  Table as DashboardTable,
   TableStateProvider,
   TableStateProviderResult,
   getStringFilterValue
 } from '@metorial/table';
+import { Badge, RenderDate, Text } from '@metorial/ui';
+import { ID } from '@metorial/ui-product';
 import { getErrorLabel } from '../errorGroupLabel';
 
 type ErrorGroup = DashboardInstanceProviderAuthConfigErrorsGroupsListOutput['items'][number];
@@ -43,6 +43,11 @@ let errorGroupsTableState: TableStateProvider<
   };
 };
 
+let truncate = (str: string, maxLength: number) => {
+  if (str.length <= maxLength) return str;
+  return str.slice(0, maxLength) + '...';
+};
+
 let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, ErrorGroup>(
   'provider-auth-error-groups'
 )
@@ -63,7 +68,7 @@ let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps
       id: 'message',
       isDefault: true,
       header: 'Details',
-      render: group => <Text size="2">{group.message}</Text>
+      render: group => <Text size="2">{truncate(group.message, 100)}</Text>
     },
     {
       id: 'occurrenceCount',
