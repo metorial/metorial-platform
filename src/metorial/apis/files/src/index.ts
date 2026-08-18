@@ -58,6 +58,27 @@ let createFileUploadHandler =
           );
         }
 
+        let fileNameFromStorePath =
+          typeof attachedStorePath == 'string'
+            ? attachedStorePath.split('/').filter(Boolean).at(-1)?.trim()
+            : undefined;
+        let fileName =
+          typeof file.name == 'string' && file.name.trim()
+            ? file.name.trim()
+            : fileNameFromStorePath
+              ? fileNameFromStorePath
+              : typeof title == 'string' && title.trim()
+                ? title.trim()
+                : null;
+
+        if (!fileName) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Missing file name'
+            })
+          );
+        }
+
         if (!purposeSlugs.includes(purpose as (typeof purposeSlugs)[number])) {
           throw new ServiceError(
             badRequestError({
@@ -97,7 +118,7 @@ let createFileUploadHandler =
           purpose,
           file,
           title,
-          fileName: file.name,
+          fileName,
           authorization: access.authorization,
           defaultPermissions: access.defaultPermissions,
           overridePermissions: access.overridePermissions,

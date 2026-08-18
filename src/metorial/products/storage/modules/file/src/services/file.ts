@@ -145,6 +145,15 @@ class FileServiceImpl {
     }
   ): Promise<FileRecord> {
     return await withTransaction(async db => {
+      let fileName = d.input.name?.trim();
+      if (!fileName) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'File name is required'
+          })
+        );
+      }
+
       let purpose = await filePurposeService.getFilePurposeById({
         id: d.purpose
       });
@@ -174,7 +183,7 @@ class FileServiceImpl {
           },
           data: {
             storeId: d.storeId,
-            fileName: d.input.name,
+            fileName,
             fileSize: d.input.size,
             fileType: d.input.mimeType,
             title: d.input.title,
@@ -227,7 +236,7 @@ class FileServiceImpl {
           ...cargoFileScope(d),
           purposeOid: purpose.oid,
           storeId: d.storeId,
-          fileName: d.input.name,
+          fileName,
           fileSize: d.input.size,
           fileType: d.input.mimeType,
           title: d.input.title,
