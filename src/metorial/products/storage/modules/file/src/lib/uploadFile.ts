@@ -3,6 +3,10 @@ import type { StoreParticipantPermissions } from '@metorial/db';
 import type { CargoOwnerScope } from '../internal/ownerScope';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { fileService } from '../services/file';
+import {
+  getPendingFileContentFlushAfter,
+  shouldBufferFileContent
+} from './pendingFileContent';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 
 export let uploadCargoFile = async (
@@ -20,19 +24,37 @@ export let uploadCargoFile = async (
     store?: {
       id: string;
       path: string;
+      replace?: boolean;
     };
   }
 ) => {
   let storeId = d.storeId ?? generatePlainId(20);
   let mimeType = d.mimeType || d.file.type || 'application/octet-stream';
 
-  await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
+  let bufferContent = shouldBufferFileContent({
+    fileName: d.fileName,
+    size: d.file.size
+  });
+  let contentPersistence: Parameters<typeof fileService.createFile>[0]['internal'] = {
+    contentPersistence: bufferContent
+      ? {
+          type: 'database',
+          content: new Uint8Array(await d.file.arrayBuffer()),
+          flushAfter: getPendingFileContentFlushAfter()
+        }
+      : { type: 'object' }
+  };
+
+  if (!bufferContent) {
+    await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
+  }
 
   let { file, ...scope } = d;
 
   return await fileService.createFile({
     ...scope,
     storeId,
+    internal: contentPersistence,
     input: {
       id: d.fileId,
       name: d.fileName,

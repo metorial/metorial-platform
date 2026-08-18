@@ -1,7 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { documentService } from '@metorial/module-documents';
 import { fileDownloadService } from '../services/fileDownload';
-import { getCargoFilesBucketName, getStorage } from '../storage';
+import { getStoredFileContent } from './pendingFileContent';
 
 export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
   let { link, file } = await fileDownloadService.getFileByDownloadKey(d);
@@ -29,15 +29,15 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
     };
   }
 
-  let object = await getStorage().getObject(getCargoFilesBucketName(), file.storeId);
+  let stored = await getStoredFileContent({ file });
 
   return {
     file,
     link,
-    content: object.data,
+    content: stored.data,
     metadata: {
-      contentType: object.metadata.content_type ?? file.fileType,
-      source: 'object' as const
+      contentType: stored.contentType ?? file.fileType,
+      source: stored.source
     }
   };
 };

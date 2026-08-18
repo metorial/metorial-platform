@@ -14,6 +14,7 @@ import { generatePlainId } from '@metorial/id';
 import { websocket } from 'hono/bun';
 import { resolveDocumentsLiveToken } from './documentsLiveAuth';
 import { resolveUploadTarget } from './uploadAccess';
+import { parseStoreReplace } from './uploadForm';
 
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
 
@@ -48,6 +49,7 @@ let createFileUploadHandler =
         let instanceId = body.get('instance_id');
         let attachedStoreId = body.get('store_id');
         let attachedStorePath = body.get('path');
+        let storeReplaceValue = body.get('store_replace');
         let title = (body.get('title') || undefined) as string | undefined;
 
         if (!file || !purpose) {
@@ -95,6 +97,11 @@ let createFileUploadHandler =
           );
         }
 
+        let storeReplace = parseStoreReplace(
+          storeReplaceValue,
+          !!attachedStoreId && !!attachedStorePath
+        );
+
         let target = await resolveUploadTarget({
           auth,
           instanceId: typeof instanceId == 'string' ? instanceId : null,
@@ -126,7 +133,8 @@ let createFileUploadHandler =
             typeof attachedStoreId == 'string' && typeof attachedStorePath == 'string'
               ? {
                   id: attachedStoreId,
-                  path: attachedStorePath
+                  path: attachedStorePath,
+                  replace: storeReplace
                 }
               : undefined
         });
@@ -197,7 +205,7 @@ let getFileContentHandler = async (c: Context) => {
           ? getDocumentContentType(metadata.contentType)
           : getServedContentType(metadata.contentType),
       'Cache-Control':
-        metadata.source === 'document' || link.expiresAt
+        metadata.source === 'document' || metadata.source === 'database' || link.expiresAt
           ? 'private, no-store'
           : 'public, max-age=31536000, immutable',
       'X-Content-Type-Options': 'nosniff',

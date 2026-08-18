@@ -66,6 +66,7 @@ model File {
   expiresAt DateTime?
 
   links                         FileLink[]
+  pendingContent                FilePendingContent?
   document                      Document?
   storeItems                    StoreItem[]
   storeVersionItems             StoreVersionItem[]
@@ -78,6 +79,22 @@ model File {
 
   @@index([storeId, status])
   @@index([status, expiresAt, oid])
+}
+
+model FilePendingContent {
+  oid BigInt @id @default(autoincrement())
+
+  fileOid BigInt @unique
+  file    File   @relation(fields: [fileOid], references: [oid], onDelete: Cascade)
+
+  content    Bytes
+  revision   Int      @default(1)
+  flushAfter DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([flushAfter])
 }
 
 model FileLink {
