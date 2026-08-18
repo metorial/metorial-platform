@@ -20,6 +20,11 @@ export let ID = createIdGenerator({
   slateSpecification: idType.sorted('shspe'),
   slateSpecificationChange: idType.sorted('shspc'),
   slateAction: idType.sorted('shac'),
+  adapter: idType.sorted('shad'),
+  adapterCapability: idType.sorted('shadc'),
+  slateAdapter: idType.sorted('shsad'),
+  slateVersionAdapter: idType.sorted('shsvad'),
+  slateVersionAdapterCapability: idType.sorted('shsvac'),
   slateConfigSchema: idType.sorted('shcs'),
   slateAuthMethod: idType.sorted('sham'),
 

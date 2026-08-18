@@ -1,5 +1,7 @@
 import type {
   Slate,
+  Adapter,
+  SlateAdapter,
   SlateAction,
   SlateAuthMethod,
   SlateSpecification,
@@ -19,11 +21,15 @@ export let slateSpecificationChangePresenter = (
 
     fromSpecification: SlateSpecification & {
       slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
-      slateActions: (SlateSpecificationAction & { action: SlateAction })[];
+      slateActions: (SlateSpecificationAction & {
+        action: SlateAction & { slateAdapter: (SlateAdapter & { adapter: Adapter }) | null };
+      })[];
     };
     toSpecification: SlateSpecification & {
       slateAuthMethods: (SlateSpecificationAuthMethod & { authMethod: SlateAuthMethod })[];
-      slateActions: (SlateSpecificationAction & { action: SlateAction })[];
+      slateActions: (SlateSpecificationAction & {
+        action: SlateAction & { slateAdapter: (SlateAdapter & { adapter: Adapter }) | null };
+      })[];
     };
   }
 ) => ({

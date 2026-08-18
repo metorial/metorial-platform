@@ -1,0 +1,92 @@
+model Adapter {
+  oid BigInt @id
+  id  String @unique
+
+  name       String
+  identifier String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  slateAdapters        SlateAdapter[]
+  slateVersionAdapters SlateVersionAdapter[]
+  adapterCapabilities  AdapterCapability[]
+}
+
+model AdapterCapability {
+  oid BigInt @id
+  id  String @unique
+
+  adapterOid BigInt
+  adapter    Adapter @relation(fields: [adapterOid], references: [oid])
+
+  identifier String
+
+  createdAt DateTime @default(now())
+
+  slateVersionAdapterCapabilities SlateVersionAdapterCapability[]
+
+  @@unique([adapterOid, identifier])
+}
+
+model SlateAdapter {
+  oid BigInt @id
+  id  String @unique
+
+  identifier String @unique
+
+  slateOid BigInt
+  slate    Slate  @relation(fields: [slateOid], references: [oid])
+
+  adapterOid BigInt
+  adapter    Adapter @relation(fields: [adapterOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  slateVersionAdapters SlateVersionAdapter[]
+  slateActions         SlateAction[]
+
+  @@unique([slateOid, adapterOid])
+}
+
+model SlateVersionAdapter {
+  oid BigInt @id
+  id  String @unique
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid])
+
+  adapterOid BigInt
+  adapter    Adapter @relation(fields: [adapterOid], references: [oid])
+
+  slateAdapterOid BigInt
+  slateAdapter    SlateAdapter @relation(fields: [slateAdapterOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  slateVersionAdapterCapabilities SlateVersionAdapterCapability[]
+
+  @@unique([slateVersionOid, adapterOid])
+  @@unique([slateVersionOid, slateAdapterOid])
+}
+
+model SlateVersionAdapterCapability {
+  oid BigInt @id
+  id  String @unique
+
+  slateVersionAdapterOid BigInt
+  slateVersionAdapter    SlateVersionAdapter @relation(fields: [slateVersionAdapterOid], references: [oid])
+
+  adapterCapabilityOid BigInt
+  adapterCapability    AdapterCapability @relation(fields: [adapterCapabilityOid], references: [oid])
+
+  /// [SlateAdapterCapabilityValue]
+  value Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([slateVersionAdapterOid, adapterCapabilityOid])
+}

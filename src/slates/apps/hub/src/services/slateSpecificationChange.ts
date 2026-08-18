@@ -10,13 +10,13 @@ let include = {
   fromSpecification: {
     include: {
       slateAuthMethods: { include: { authMethod: true } },
-      slateActions: { include: { action: true } }
+      slateActions: { include: { action: { include: { slateAdapter: { include: { adapter: true } } } } } }
     }
   },
   toSpecification: {
     include: {
       slateAuthMethods: { include: { authMethod: true } },
-      slateActions: { include: { action: true } }
+      slateActions: { include: { action: { include: { slateAdapter: { include: { adapter: true } } } } } }
     }
   }
 };
