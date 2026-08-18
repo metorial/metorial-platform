@@ -18,7 +18,10 @@ vi.mock('@lowerdeck/slugify', () => ({
 
 let config = {
   env: 'production' as 'production' | 'development',
-  urls: { portalsUrl: 'http://localhost:4300' }
+  urls: {
+    apiUrl: 'https://api.metorial.test',
+    portalsUrl: 'http://localhost:4300'
+  }
 };
 
 vi.hoisted(() => {
@@ -168,6 +171,28 @@ describe('portalService.getPrimaryPortalUrls', () => {
     let urls = await portalService.getPrimaryPortalUrls({ portals: [portal] });
 
     expect(urls.get(portal.oid)).toBe('https://portals.metorial.test/acme');
+  });
+
+  it('builds the connect URL from the primary namespace origin', async () => {
+    mockNamespaces([
+      namespaceProperty({
+        value: 'acme',
+        compartment: 'portals.metorial.com',
+        purposes: ['metorial_portal']
+      })
+    ]);
+
+    expect(await portalService.getPrimaryPortalConnectUrl({ portal })).toBe(
+      'https://acme.portals.metorial.com/connect/portal/acme'
+    );
+  });
+
+  it('uses the API connect URL when the portal has no namespace', async () => {
+    mockNamespaces([]);
+
+    expect(await portalService.getPrimaryPortalConnectUrl({ portal })).toBe(
+      'https://api.metorial.test/connect/portal/acme'
+    );
   });
 
   it('resolves every portal in one namespace lookup', async () => {

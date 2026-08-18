@@ -91,6 +91,30 @@ export let getPrimaryPortalUrl = async (d: { portal: Pick<Portal, 'oid' | 'slug'
   return urls.get(d.portal.oid) ?? getPortalHost({ portal: d.portal }).host;
 };
 
+export let getPortalConnectUrl = (d: {
+  portal: Pick<Portal, 'slug'>;
+  namespaces: NamespacePropertyWithNamespace[];
+}) => {
+  let origin = d.namespaces.length
+    ? new URL(getPortalUrls(d)[0]!.url).origin
+    : getConfig().urls.apiUrl.replace(/\/+$/, '');
+
+  return `${origin}/connect/portal/${d.portal.slug}`;
+};
+
+export let getPrimaryPortalConnectUrl = async (d: {
+  portal: Pick<Portal, 'oid' | 'slug'>;
+}) => {
+  let namespacesByPortalOid = await namespaceService.getNamespacePropertiesByPortalOid({
+    portals: [d.portal]
+  });
+
+  return getPortalConnectUrl({
+    portal: d.portal,
+    namespaces: namespacesByPortalOid.get(d.portal.oid) ?? []
+  });
+};
+
 export let getPortalUrlForOrigin = async (d: {
   portal: Pick<Portal, 'oid' | 'slug'>;
   origin?: string | null;

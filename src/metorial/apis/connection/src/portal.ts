@@ -1,4 +1,5 @@
 import { Context, useRequestContext, useValidatedBody } from '@lowerdeck/hono';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { AuthInfo } from '@metorial/module-access';
@@ -22,6 +23,21 @@ import {
 import { getClientCredentials, getString, parseOAuthBody } from './oauth/utils';
 
 export { createPluginOAuthServers, createPortalOAuthServers } from './oauth/skeleton';
+
+let getNamespaceHost = (c: Context) => {
+  let host = c.req.header('Metorial-Namespace-Host')?.trim().toLowerCase();
+  if (!host) return undefined;
+
+  if (
+    host.length > 253 ||
+    !host.includes('.') ||
+    host.split('.').some(label => !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label))
+  ) {
+    throw new ServiceError(notFoundError('namespace'));
+  }
+
+  return host;
+};
 
 let buildOAuthClientRegistration = (d: {
   registration: {
@@ -100,16 +116,18 @@ export let createPortalHandler = (d: {
   connectPortalServer: ReturnType<typeof createPortalOAuthServers>['connectPortalServer'];
 } => {
   return createPortalOAuthServers({
-    resolveRoute: async ({ portalId, magicMcpTargetId }) => {
+    resolveRoute: async ({ portalId, magicMcpTargetId }, c) => {
       return await consumerOAuthRoutingService.resolvePortalRoute({
         portalId,
-        magicMcpTargetId
+        magicMcpTargetId,
+        namespaceHost: getNamespaceHost(c)
       });
     },
-    resolveConnectRoute: async ({ portalId, magicMcpTargetId }) => {
+    resolveConnectRoute: async ({ portalId, magicMcpTargetId }, c) => {
       return await consumerOAuthRoutingService.resolvePortalMcpRoute({
         portalId,
-        magicMcpTargetId
+        magicMcpTargetId,
+        namespaceHost: getNamespaceHost(c)
       });
     },
 

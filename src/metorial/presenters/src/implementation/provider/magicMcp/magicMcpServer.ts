@@ -8,6 +8,7 @@ import {
   dashboardMagicMcpServerProviderPresenter,
   v1MagicMcpServerProviderPresenter
 } from './magicMcpServerProvider';
+import { getCachedPortalConnectUrl } from './portalConnectUrl';
 
 let magicMcpServerSchema = v.object({
   object: v.literal('magic_mcp.server'),
@@ -124,6 +125,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
           : magicMcpServer.ownerType === 'integration'
             ? ('inherited_from_integration' as const)
             : ('manual' as const);
+      let portalConnectUrl = portal ? await getCachedPortalConnectUrl(portal) : null;
 
       return {
         object: 'magic_mcp.server' as const,
@@ -136,8 +138,8 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         endpoints: magicMcpServer.aliases.map(a => ({
           id: shadowId('mgsea_', [magicMcpServer.id], [a.slug]),
           alias: a.slug,
-          url: portal?.id
-            ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${a.slug}`
+          url: portalConnectUrl
+            ? `${portalConnectUrl}/${a.slug}`
             : `${getConfig().urls.apiUrl}/connect/magic/${a.slug}`
         })),
 

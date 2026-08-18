@@ -35,7 +35,7 @@ export let buildOAuthClientConfig = (base: string) => ({
 });
 
 type OAuthRouteHandlers<TInput, TRoute> = {
-  resolveRoute: (route: TInput) => Promise<TRoute>;
+  resolveRoute: (route: TInput, c: Context) => Promise<TRoute>;
   resolveConnectRoute?: (route: TInput, c: Context) => Promise<TRoute>;
   metadata: (d: { route: TRoute }, c: Context) => Promise<Response>;
   portal: (d: { route: TRoute }, c: Context) => Promise<Response>;
@@ -114,14 +114,15 @@ let createOAuthRouteServers = <TInput, TRoute>(d: {
   parseRouteInput: (c: Context) => TInput;
   handlers: OAuthRouteHandlers<TInput, TRoute>;
 }) => {
-  let resolveRoute = async (c: Context) => await d.handlers.resolveRoute(d.parseRouteInput(c));
+  let resolveRoute = async (c: Context) =>
+    await d.handlers.resolveRoute(d.parseRouteInput(c), c);
   let resolveConnectRoute = async (c: Context) => {
     let input = d.parseRouteInput(c);
     if (d.handlers.resolveConnectRoute) {
       return await d.handlers.resolveConnectRoute(input, c);
     }
 
-    return await d.handlers.resolveRoute(input);
+    return await d.handlers.resolveRoute(input, c);
   };
 
   let withResolvedRoute =

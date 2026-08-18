@@ -7,13 +7,33 @@ import { portalService } from '@metorial/module-portal';
 import { DashboardConsumerSurface } from './_types';
 
 class ConsumerOAuthRoutingService {
-  private portalBase(d: { portalId: string; magicMcpTargetId?: string }) {
-    return `${getConfig().urls.apiUrl}/connect/portal/${d.portalId}${
+  private portalBase(d: {
+    portalId: string;
+    magicMcpTargetId?: string;
+    namespaceHost?: string;
+  }) {
+    let origin = d.namespaceHost ? `https://${d.namespaceHost}` : getConfig().urls.apiUrl;
+
+    return `${origin}/connect/portal/${d.portalId}${
       d.magicMcpTargetId ? `/${d.magicMcpTargetId}` : ''
     }`;
   }
 
-  async resolvePortalRoute(d: { portalId: string; magicMcpTargetId?: string }) {
+  private parseNamespaceHost(namespaceHost?: string) {
+    if (!namespaceHost) return undefined;
+
+    let [value, ...compartmentParts] = namespaceHost.split('.');
+    let compartmentValue = compartmentParts.join('.');
+    if (!value || !compartmentValue) return undefined;
+
+    return { value, compartmentValue };
+  }
+
+  async resolvePortalRoute(d: {
+    portalId: string;
+    magicMcpTargetId?: string;
+    namespaceHost?: string;
+  }) {
     let portal: Awaited<ReturnType<typeof portalService.getPortalPublic>> | null = null;
     let consumerSurface:
       | (DashboardConsumerSurface & {
@@ -23,8 +43,15 @@ class ConsumerOAuthRoutingService {
       | null = null;
 
     try {
-      portal = await portalService.getPortalPublic({ portalId: d.portalId });
+      portal = await portalService.getPortalPublic({
+        portalId: d.portalId,
+        namespace: this.parseNamespaceHost(d.namespaceHost)
+      });
     } catch {
+      if (d.namespaceHost) {
+        throw new ServiceError(notFoundError('portal'));
+      }
+
       let surface = await db.consumerSurface.findFirst({
         where: {
           id: d.portalId,
@@ -68,14 +95,33 @@ class ConsumerOAuthRoutingService {
     };
   }
 
-  async resolvePortalMcpRoute(d: { portalId: string; magicMcpTargetId?: string }) {
+  async resolvePortalMcpRoute(d: {
+    portalId: string;
+    magicMcpTargetId?: string;
+    namespaceHost?: string;
+  }) {
+    let namespace = this.parseNamespaceHost(d.namespaceHost);
     let portal = await db.portal.findFirst({
       where: {
         status: 'active',
         surface: {
           status: 'active'
         },
-        OR: [{ id: d.portalId }, { slug: d.portalId }]
+        ...(namespace
+          ? {
+              slug: d.portalId,
+              namespaceProperties: {
+                some: {
+                  type: 'portal' as const,
+                  namespace: {
+                    value: namespace.value,
+                    purposes: { has: 'metorial_portal' as const },
+                    compartment: { value: namespace.compartmentValue }
+                  }
+                }
+              }
+            }
+          : { OR: [{ id: d.portalId }, { slug: d.portalId }] })
       },
       include: {
         instance: {
@@ -87,22 +133,23 @@ class ConsumerOAuthRoutingService {
       }
     });
 
-    let consumerSurface = portal
-      ? null
-      : await db.consumerSurface.findFirst({
-          where: {
-            id: d.portalId,
-            status: 'active'
-          },
-          include: {
-            instance: {
-              include: {
-                project: true,
-                organization: true
+    let consumerSurface =
+      portal || d.namespaceHost
+        ? null
+        : await db.consumerSurface.findFirst({
+            where: {
+              id: d.portalId,
+              status: 'active'
+            },
+            include: {
+              instance: {
+                include: {
+                  project: true,
+                  organization: true
+                }
               }
             }
-          }
-        });
+          });
 
     if (!portal && !consumerSurface) {
       throw new ServiceError(notFoundError('portal'));

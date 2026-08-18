@@ -3,6 +3,7 @@ import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpEndpointType } from '../../../types';
 import { v1ConsumerIntegrationEndpointPresenter } from './consumerOwnership';
+import { getCachedPortalConnectUrl } from './portalConnectUrl';
 import { v1MagicMcpServerPreview } from './magicMcpServerPreview';
 
 let endpointToolFilterSchema = v.union([
@@ -44,24 +45,28 @@ let endpointServerSchema = v.intersection([
 ]);
 
 export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
-  .presenter(async ({ magicMcpEndpoint, portal }) => ({
-    object: 'magic_mcp.endpoint' as const,
-    id: magicMcpEndpoint.id,
-    status: magicMcpEndpoint.status,
-    slug: magicMcpEndpoint.slug,
-    url: portal?.id
-      ? `${getConfig().urls.apiUrl}/connect/portal/${portal.slug}/${magicMcpEndpoint.slug}`
-      : `${getConfig().urls.apiUrl}/connect/magic/${magicMcpEndpoint.slug}`,
-    servers: magicMcpEndpoint.servers.map(server => ({
-      ...v1MagicMcpServerPreview(server.magicMcpServer),
-      tool_filters: server.toolFilters ?? null
-    })),
-    name: magicMcpEndpoint.name,
-    description: magicMcpEndpoint.description,
-    metadata: magicMcpEndpoint.metadata,
-    created_at: magicMcpEndpoint.createdAt,
-    updated_at: magicMcpEndpoint.updatedAt
-  }))
+  .presenter(async ({ magicMcpEndpoint, portal }) => {
+    let portalConnectUrl = portal ? await getCachedPortalConnectUrl(portal) : null;
+
+    return {
+      object: 'magic_mcp.endpoint' as const,
+      id: magicMcpEndpoint.id,
+      status: magicMcpEndpoint.status,
+      slug: magicMcpEndpoint.slug,
+      url: portalConnectUrl
+        ? `${portalConnectUrl}/${magicMcpEndpoint.slug}`
+        : `${getConfig().urls.apiUrl}/connect/magic/${magicMcpEndpoint.slug}`,
+      servers: magicMcpEndpoint.servers.map(server => ({
+        ...v1MagicMcpServerPreview(server.magicMcpServer),
+        tool_filters: server.toolFilters ?? null
+      })),
+      name: magicMcpEndpoint.name,
+      description: magicMcpEndpoint.description,
+      metadata: magicMcpEndpoint.metadata,
+      created_at: magicMcpEndpoint.createdAt,
+      updated_at: magicMcpEndpoint.updatedAt
+    };
+  })
   .schema(
     v.object({
       object: v.literal('magic_mcp.endpoint'),

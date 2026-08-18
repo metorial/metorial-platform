@@ -24,6 +24,7 @@ import {
   parsePortalIdFromHost as resolvePortalIdFromHost,
   getPortalUrlForOrigin as resolvePortalUrlForOrigin,
   getPortalUrls as resolvePortalUrls,
+  getPrimaryPortalConnectUrl as resolvePrimaryPortalConnectUrl,
   getPrimaryPortalUrl as resolvePrimaryPortalUrl,
   getPrimaryPortalUrls as resolvePrimaryPortalUrls
 } from '@metorial/portal-url';
@@ -151,14 +152,31 @@ class PortalServiceImpl {
     });
   }
 
-  async getPortalPublic(d: { portalId: string }) {
+  async getPortalPublic(d: {
+    portalId: string;
+    namespace?: { value: string; compartmentValue: string };
+  }) {
     let portal = await db.portal.findFirst({
       where: {
         status: 'active',
         surface: {
           status: 'active'
         },
-        OR: [{ id: d.portalId }, { slug: d.portalId }]
+        ...(d.namespace
+          ? {
+              slug: d.portalId,
+              namespaceProperties: {
+                some: {
+                  type: 'portal' as const,
+                  namespace: {
+                    value: d.namespace.value,
+                    purposes: { has: 'metorial_portal' as const },
+                    compartment: { value: d.namespace.compartmentValue }
+                  }
+                }
+              }
+            }
+          : { OR: [{ id: d.portalId }, { slug: d.portalId }] })
       },
       include
     });
@@ -423,6 +441,10 @@ class PortalServiceImpl {
 
   async getPrimaryPortalUrl(d: { portal: Pick<Portal, 'oid' | 'slug'> }) {
     return await resolvePrimaryPortalUrl(d);
+  }
+
+  async getPrimaryPortalConnectUrl(d: { portal: Pick<Portal, 'oid' | 'slug'> }) {
+    return await resolvePrimaryPortalConnectUrl(d);
   }
 
   async getPortalUrlForOrigin(d: {
