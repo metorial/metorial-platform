@@ -51,7 +51,7 @@ export type AuthenticatedConsumerContext = {
   consumerSurface: ConsumerSurface;
   consumerSession: ConsumerSession;
   consumerProfile: ConsumerProfile & {
-    consumer: Consumer;
+    consumer: Consumer & { user: User | null };
     resourceActors: ResourceActor[];
   };
   consumerGroups: Awaited<

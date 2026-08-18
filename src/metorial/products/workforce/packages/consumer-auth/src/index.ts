@@ -19,7 +19,11 @@ let consumerTokens = new Tokens({
 export let consumerSessionInclude = {
   consumerProfile: {
     include: {
-      consumer: true,
+      consumer: {
+        include: {
+          user: true
+        }
+      },
       resourceActors: true,
       surface: {
         include: {

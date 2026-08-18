@@ -486,7 +486,7 @@ class OrganizationService {
     };
   }
 
-  async bootConsumer(d: { consumerProfile: ConsumerProfile }) {
+  async bootConsumer(d: { consumerProfile: ConsumerProfile; user: User }) {
     let instance = await db.instance.findUniqueOrThrow({
       where: { oid: d.consumerProfile.instanceOid },
       include: {
@@ -499,9 +499,36 @@ class OrganizationService {
     });
 
     let org = instance.project.organization;
+
+    let member = await db.organizationMember.findFirst({
+      where: {
+        organizationOid: org.oid,
+        userOid: d.user.oid,
+        status: 'active'
+      },
+      include: {
+        actor: {
+          include: {
+            teams: {
+              include: {
+                team: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    let namespacesByOrganizationOid =
+      await namespaceService.getNamespacePropertiesByOrganizationOid({
+        organizations: [org]
+      });
+
     let orgsWithProjectAndInstances = [
       {
         ...org,
+        member: member ?? undefined,
+        namespaces: namespacesByOrganizationOid.get(org.oid) ?? [],
         projects: [
           {
             ...instance.project,
@@ -513,22 +540,8 @@ class OrganizationService {
       }
     ];
 
-    let [firstName, ...rest] = d.consumerProfile.name.split(' ');
-    let lastName = rest.join(' ');
-
     return {
-      user: {
-        id: d.consumerProfile.id,
-        status: 'active' as const,
-        type: 'consumer' as const,
-        email: d.consumerProfile.email,
-        name: d.consumerProfile.name,
-        firstName: firstName,
-        lastName: lastName,
-        image: { type: 'default' as const },
-        createdAt: d.consumerProfile.createdAt,
-        updatedAt: d.consumerProfile.updatedAt
-      },
+      user: d.user,
       organizations: orgsWithProjectAndInstances,
       projects: orgsWithProjectAndInstances.flatMap(org =>
         org.projects.map(project => ({ ...project, organization: org }))

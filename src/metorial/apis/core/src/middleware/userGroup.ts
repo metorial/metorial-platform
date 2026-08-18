@@ -15,30 +15,41 @@ export let userGroup = apiGroup.use(async ctx => {
   };
 });
 
-// export let userOrConsumerGroup = apiGroup.use(async ctx => {
-//   if (
-//     ctx.auth.type === 'machine' &&
-//     ctx.auth.restrictions.type === 'instance' &&
-//     ctx.auth.restrictions.consumer
-//   ) {
-//     return {
-//       user: undefined,
-//       consumerProfile: ctx.auth.restrictions.consumer.consumerProfile,
-//       consumerSurface: ctx.auth.restrictions.consumer.consumerSurface
-//     };
-//   }
+export let userOrConsumerGroup = apiGroup.use(async ctx => {
+  if (
+    ctx.auth.type === 'machine' &&
+    ctx.auth.restrictions.type === 'instance' &&
+    ctx.auth.restrictions.consumer
+  ) {
+    let user = ctx.auth.restrictions.consumer.consumerProfile.consumer.user;
+    if (!user) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'This endpoint is only available for user authentication'
+        })
+      );
+    }
 
-//   if (ctx.auth.type != 'user') {
-//     throw new ServiceError(
-//       forbiddenError({
-//         message: 'This endpoint is only available for user authentication'
-//       })
-//     );
-//   }
+    return {
+      user,
+      consumerProfile: ctx.auth.restrictions.consumer.consumerProfile,
+      consumerSurface: ctx.auth.restrictions.consumer.consumerSurface,
+      organization: ctx.auth.restrictions.organization
+    };
+  }
 
-//   return {
-//     user: ctx.auth.user,
-//     consumerProfile: undefined,
-//     consumerSurface: undefined
-//   };
-// });
+  if (ctx.auth.type != 'user') {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'This endpoint is only available for user authentication'
+      })
+    );
+  }
+
+  return {
+    user: ctx.auth.user,
+    consumerProfile: undefined,
+    consumerSurface: undefined,
+    organization: undefined
+  };
+});
