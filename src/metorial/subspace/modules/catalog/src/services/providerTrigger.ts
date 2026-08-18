@@ -97,11 +97,11 @@ class providerTriggerServiceImpl {
             ...(version?.specificationOid
               ? {
                   providerTriggers: {
-                    some: { specificationOid: version.specificationOid }
+                    some: { specificationOid: version.specificationOid, adapterOid: null }
                   }
                 }
               : {
-                  currentInstance: { isNot: null }
+                  currentInstance: { is: { adapterOid: null } }
                 })
           },
 
@@ -112,7 +112,7 @@ class providerTriggerServiceImpl {
               : { include: { specification: { omit: { value: true } } } },
             providerTriggers: version?.specificationOid
               ? {
-                  where: { specificationOid: version.specificationOid },
+                  where: { specificationOid: version.specificationOid, adapterOid: null },
                   include: { specification: { omit: { value: true } } }
                 }
               : false
