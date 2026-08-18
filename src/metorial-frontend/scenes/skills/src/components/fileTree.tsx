@@ -866,6 +866,40 @@ let SkillFileTreeRow = (p: {
         }
       ]
     : [];
+  let selectFilesForUpload = async (files: File[]) => {
+    if (files.length > 50) {
+      setFileError('You can upload up to 50 files at a time.');
+      return;
+    }
+
+    let existingNames = new Set(p.node.children.map(child => child.name.trim().toLowerCase()));
+    let acceptedFiles: File[] = [];
+    let rejectedCount = 0;
+
+    for (let file of files) {
+      let normalizedName = file.name.trim().toLowerCase();
+      if (existingNames.has(normalizedName)) {
+        rejectedCount++;
+        continue;
+      }
+
+      existingNames.add(normalizedName);
+      acceptedFiles.push(file);
+    }
+
+    if (rejectedCount > 0) {
+      setFileError(
+        rejectedCount == 1
+          ? 'A file with this name already exists.'
+          : `${rejectedCount} files already exist in this directory.`
+      );
+    } else {
+      setFileError(null);
+    }
+
+    if (acceptedFiles.length == 0) return;
+    await p.onFilesDrop(p.node.path, acceptedFiles);
+  };
   let directoryRow = (
     <TreeRowShell
       $dropTarget={isDropTarget}
@@ -910,36 +944,8 @@ let SkillFileTreeRow = (p: {
 
         let files = Array.from(e.dataTransfer.files);
         if (files.length == 0) return;
-        let existingNames = new Set(
-          p.node.children.map(child => child.name.trim().toLowerCase())
-        );
-        let acceptedFiles: File[] = [];
-        let rejectedCount = 0;
-
-        for (let file of files) {
-          let normalizedName = file.name.trim().toLowerCase();
-          if (existingNames.has(normalizedName)) {
-            rejectedCount++;
-            continue;
-          }
-
-          existingNames.add(normalizedName);
-          acceptedFiles.push(file);
-        }
-
-        if (rejectedCount > 0) {
-          setFileError(
-            rejectedCount == 1
-              ? 'A file with this name already exists.'
-              : `${rejectedCount} files already exist in this directory.`
-          );
-        } else {
-          setFileError(null);
-        }
-
-        if (acceptedFiles.length == 0) return;
         if (!isOpen) p.onToggle(p.node.path);
-        await p.onFilesDrop(p.node.path, acceptedFiles);
+        await selectFilesForUpload(files);
       }}
     >
       <TreeRowButton
@@ -987,23 +993,13 @@ let SkillFileTreeRow = (p: {
           </Menu>
           <HiddenFileInput
             ref={fileInputRef}
+            multiple
             type="file"
             onChange={async e => {
-              let file = e.currentTarget.files?.[0];
+              let files = Array.from(e.currentTarget.files ?? []);
               e.currentTarget.value = '';
-              if (!file) return;
-
-              let alreadyExists = p.node.children.some(
-                child => child.name.trim().toLowerCase() == file.name.trim().toLowerCase()
-              );
-
-              if (alreadyExists) {
-                setFileError('A file with this name already exists.');
-                return;
-              }
-
-              setFileError(null);
-              await p.onFileSelect(p.node.path, file);
+              if (files.length == 0) return;
+              await selectFilesForUpload(files);
             }}
           />
         </>

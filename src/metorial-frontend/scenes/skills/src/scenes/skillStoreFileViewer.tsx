@@ -8,6 +8,7 @@ import {
   useUploadFile
 } from '@metorial/state';
 import { Box } from '@metorial/ui-product';
+import PQueue from 'p-queue';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -330,7 +331,7 @@ export let SkillStoreFileTree = (p: {
     }
   };
 
-  let createStoreFile = async (parentPath: string, file: File) => {
+  let createStoreFile = async (parentPath: string, file: File, refetch = true) => {
     if (!p.instanceId || !p.storeId) return;
 
     let path = joinStorePath(parentPath, file.name);
@@ -374,15 +375,18 @@ export let SkillStoreFileTree = (p: {
         });
       }
 
-      await storeItems.refetch();
+      if (refetch) await storeItems.refetch();
     } finally {
       removeOptimisticItem(optimisticId);
     }
   };
 
   let createStoreFiles = async (parentPath: string, files: File[]) => {
-    for (let file of files) {
-      await createStoreFile(parentPath, file);
+    let queue = new PQueue({ concurrency: 10 });
+    try {
+      await queue.addAll(files.map(file => () => createStoreFile(parentPath, file, false)));
+    } finally {
+      await storeItems.refetch();
     }
   };
 
