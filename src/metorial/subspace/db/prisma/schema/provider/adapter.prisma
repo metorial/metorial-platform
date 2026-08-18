@@ -8,7 +8,11 @@ model ProviderAdapterGlobal {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providerAdapters ProviderAdapter[]
+  providerAdapters          ProviderAdapter[]
+  sessions                  Session[]
+  sessionConnections        SessionConnection[]
+  ephemeralManagedSessions  EphemeralManagedSession[]
+  callbacks                 Callback[]
 }
 
 model ProviderAdapter {

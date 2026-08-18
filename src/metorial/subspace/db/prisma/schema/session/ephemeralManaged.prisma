@@ -15,6 +15,10 @@ model EphemeralManagedSession {
   templateHash                String?
   willRotateAt                DateTime?
   isReconciling               Boolean   @default(false)
+  markSessionsAsInternal      Boolean   @default(false)
+
+  adapterGlobalOid BigInt?
+  adapterGlobal    ProviderAdapterGlobal? @relation(fields: [adapterGlobalOid], references: [oid])
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
@@ -57,6 +61,7 @@ model EphemeralManagedSession {
   @@index([status, archivedAt])
   @@index([sessionTemplateOid])
   @@index([identityOid])
+  @@index([adapterGlobalOid])
   @@index([currentSessionOid, status])
   @@index([projectOid])
   @@index([instanceOid])

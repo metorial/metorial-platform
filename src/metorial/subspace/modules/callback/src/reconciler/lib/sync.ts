@@ -6,9 +6,9 @@ import {
   getTenantForSlatesCached,
   isCallbackSupported,
   loadCallback,
+  loadCallbackInstance,
   loadFreshCallback,
   loadFreshCallbackInstance,
-  loadCallbackInstance,
   TRIGGER_PAGE_SIZE
 } from './state';
 
@@ -238,7 +238,11 @@ export let syncCallbackInstance = async (d: {
 
   let callback = callbackInstance.callback;
   let providerTriggerInputs = callback.callbackProviderTriggers
-    .filter(trigger => !trigger.providerTrigger.adapterOid)
+    .filter(trigger =>
+      callback.isInternal
+        ? trigger.providerTrigger.adapter?.globalOid === callback.adapterGlobalOid
+        : !trigger.providerTrigger.adapterOid
+    )
     .map(trigger => ({
       triggerId: trigger.providerTrigger.specId,
       ...(callback.pollIntervalSecondsOverride !== null &&

@@ -81,6 +81,37 @@ describe('alertService', () => {
         })
       })
     );
+
+    let and = monitorAlertFindMany.mock.calls[0]![0].where.AND;
+    expect(and).toContainEqual({
+      OR: [
+        { protoGuardAlertOid: null },
+        { protoGuardAlert: { session: { isInternal: false } } }
+      ]
+    });
+  });
+
+  it('allows internal alerts only through an explicit session filter', async () => {
+    let shared = await import('./_shared');
+    vi.mocked(shared.resolveSessionOids).mockResolvedValue([44n] as any);
+    let { alertService } = await import('./alert');
+
+    let paginator = await alertService.listAlertsInternal({
+      tenant: { oid: 1n },
+      environment: { oid: 2n },
+      sessionIds: ['session_internal']
+    } as any);
+
+    await paginator.run({});
+
+    let and = monitorAlertFindMany.mock.calls[0]![0].where.AND;
+    expect(and).not.toContainEqual({
+      OR: [
+        { protoGuardAlertOid: null },
+        { protoGuardAlert: { session: { isInternal: false } } }
+      ]
+    });
+    expect(and).toContainEqual({ protoGuardAlert: { sessionOid: { in: [44n] } } });
   });
 
   it('passes the resolved actor through every Metorial-facing alert action', async () => {

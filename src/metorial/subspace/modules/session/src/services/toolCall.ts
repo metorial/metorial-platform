@@ -26,6 +26,7 @@ import {
   resolveProviderDeployments,
   resolveProviders,
   resolveProviderTools,
+  resolveSessions,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { agentInstanceService, agentService } from '@metorial-subspace/module-agent';
@@ -59,8 +60,10 @@ let connectionInitLock = createLock({
 export type ListToolCallsParams = {
   status?: SessionMessageStatus[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
+  sessionIds?: string[];
   agentIds?: string[];
   actorIds?: string[];
   identityIds?: string[];
@@ -92,6 +95,10 @@ export type CreateToolCallParams = {
     rationale?: string;
     operation?: string;
   };
+};
+
+export type CreateInternalToolCallParams = CreateToolCallParams & {
+  adapter?: { identifier: string };
 };
 
 class toolCallServiceImpl {
@@ -149,7 +156,9 @@ class toolCallServiceImpl {
     });
   }
 
-  async listToolCallsInternal(d: { tenant: Tenant; environment: Environment } & ListToolCallsParams) {
+  async listToolCallsInternal(
+    d: { tenant: Tenant; environment: Environment } & ListToolCallsParams
+  ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
@@ -163,6 +172,7 @@ class toolCallServiceImpl {
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
     let tools = await resolveProviderTools(d.toolIds);
+    let sessions = await resolveSessions(ts, d.sessionIds);
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -176,7 +186,11 @@ class toolCallServiceImpl {
             message: normalizeStatusForList(d).onlyParent,
 
             AND: [
+              !d.includeInternal && !d.sessionIds?.length
+                ? { session: { isInternal: false } }
+                : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
+              sessions ? { sessionOid: sessions.in } : undefined!,
               d.agentInstanceIds
                 ? {
                     message: {
@@ -308,7 +322,9 @@ class toolCallServiceImpl {
         toolCall.message.responderParticipant
       ].filter((participant): participant is NonNullable<typeof participant> => !!participant)
     });
-    let participantMap = new Map(participants.map(participant => [participant.id, participant]));
+    let participantMap = new Map(
+      participants.map(participant => [participant.id, participant])
+    );
 
     return {
       ...toolCall,
@@ -364,7 +380,7 @@ class toolCallServiceImpl {
   }
 
   async createToolCallInternal(
-    d: { tenant: Tenant; environment: Environment } & CreateToolCallParams
+    d: { tenant: Tenant; environment: Environment } & CreateInternalToolCallParams
   ) {
     let solution = await getMetorialSolution();
 
@@ -401,7 +417,8 @@ class toolCallServiceImpl {
       sessionId: d.session.id,
       solutionId: solution.id,
       tenantId: d.tenant.id,
-      transport: 'tool_call'
+      transport: 'tool_call',
+      adapter: d.adapter
     });
 
     let connection = await db.sessionConnection.findFirst({

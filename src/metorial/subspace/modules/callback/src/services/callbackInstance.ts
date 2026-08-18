@@ -1,4 +1,9 @@
-import { internalServerError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  internalServerError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -28,12 +33,12 @@ import {
 } from '@metorial-subspace/module-provider-internal';
 import {
   getMetorialSolution,
-  type MetorialFacing,
   resolveMetorialFacing,
-  toProviderEventBase
+  toProviderEventBase,
+  type MetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { Fabric } from '@metorial/fabric';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { Fabric } from '@metorial/fabric';
 import { callbackService } from './callback';
 import { callbackRegistrationService } from './callbackRegistration';
 
@@ -74,6 +79,7 @@ export type ListCallbackInstancesParams = {
   ids?: string[];
   status?: ('attached' | 'detached')[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
   providerConfigIds?: string[];
   providerAuthConfigIds?: string[];
   createdAt?: DateFilter;
@@ -89,10 +95,12 @@ export type AttachCallbackInstanceParams = {
   };
   config: ProviderConfig;
   authConfig?: ProviderAuthConfig;
+  _allowInternalAttach?: boolean;
 };
 
 export type DetachCallbackInstanceParams = {
   callbackInstance: CallbackInstance;
+  _allowInternalDetach?: boolean;
 };
 
 class callbackInstanceServiceImpl {
@@ -107,7 +115,9 @@ class callbackInstanceServiceImpl {
     });
   }
 
-  async getInternal(d: { tenant: Tenant; environment: Environment } & GetCallbackInstanceParams) {
+  async getInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCallbackInstanceParams
+  ) {
     let callback = await callbackService.getCallbackByIdInternal({
       tenant: d.tenant,
       environment: d.environment,
@@ -164,6 +174,9 @@ class callbackInstanceServiceImpl {
             ...normalizeStatusForList(d).onlyParent,
 
             AND: [
+              !d.includeInternal && !d.callbackIds?.length
+                ? { callback: { isInternal: false } }
+                : undefined!,
               callbacks ? { callbackOid: callbacks.in } : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               d.status?.length ? { status: { in: d.status } } : undefined!,
@@ -219,6 +232,15 @@ class callbackInstanceServiceImpl {
   async attachInternal(
     d: { tenant: Tenant; environment: Environment } & AttachCallbackInstanceParams
   ) {
+    if (d.callback.isInternal && !d._allowInternalAttach) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'internal_callback_readonly',
+          message: 'Internal callback instances cannot be attached by customers.'
+        })
+      );
+    }
+
     if (d.callback.providerDeployment.status !== 'active') {
       throw new ServiceError(
         notFoundError('provider.deployment', d.callback.providerDeployment.id)
@@ -237,11 +259,13 @@ class callbackInstanceServiceImpl {
       ]
     });
 
-    let pairRes = await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair({
-      deployment: d.callback.providerDeployment,
-      config: combination.config,
-      authConfig: combination.authConfig
-    });
+    let pairRes = await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair(
+      {
+        deployment: d.callback.providerDeployment,
+        config: combination.config,
+        authConfig: combination.authConfig
+      }
+    );
 
     let callbackInstance = await db.callbackInstance.findFirst({
       where: {
@@ -311,6 +335,18 @@ class callbackInstanceServiceImpl {
   async detachInternal(
     d: { tenant: Tenant; environment: Environment } & DetachCallbackInstanceParams
   ) {
+    let callback = await db.callback.findUniqueOrThrow({
+      where: { oid: d.callbackInstance.callbackOid }
+    });
+    if (callback.isInternal && !d._allowInternalDetach) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'internal_callback_readonly',
+          message: 'Internal callback instances cannot be detached by customers.'
+        })
+      );
+    }
+
     if (d.callbackInstance.slateTriggerReceiverId) {
       let slatesTenant = await getTenantForSlates(d.tenant);
       try {

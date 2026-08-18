@@ -144,8 +144,27 @@ export class ProviderRunConnection extends IProviderRunConnection {
   override async handleToolInvocation(
     data: ToolInvocationCreateParam
   ): Promise<ToolInvocationCreateRes> {
-    if (data.tool.adapterOid) {
-      throw new Error('Adapter-linked tools cannot be invoked through provider connections');
+    if (this.params.session.isInternal) {
+      if (
+        !data.tool.adapterOid ||
+        !this.params.session.adapterGlobalOid ||
+        !this.params.adapter
+      ) {
+        throw new Error('Internal sessions may only invoke tools from their adapter');
+      }
+      let adapter = await db.providerAdapter.findFirst({
+        where: {
+          oid: data.tool.adapterOid,
+          globalOid: this.params.session.adapterGlobalOid,
+          global: { identifier: this.params.adapter.identifier }
+        },
+        select: { oid: true }
+      });
+      if (!adapter) {
+        throw new Error('Tool adapter does not match the internal session adapter');
+      }
+    } else if (data.tool.adapterOid || this.params.adapter) {
+      throw new Error('Adapter-linked tools require an internal session');
     }
 
     if (this.providerAuthConfigVersion && !this.providerAuthConfigVersion.slateAuthConfigOid) {

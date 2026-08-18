@@ -190,6 +190,7 @@ let getAlertById = async (d: Scope & { alertId: string; actor?: TenantActor | nu
 };
 
 export type ListAlertsParams = Scope & {
+  includeInternal?: boolean;
   ids?: string[];
   monitorIds?: string[];
   statuses?: MonitorAlertStatus[];
@@ -257,6 +258,14 @@ class alertServiceImpl {
             environmentOid: d.environment.oid,
             solutionOid: solution.oid,
             AND: [
+              !d.includeInternal && !d.sessionIds?.length
+                ? {
+                    OR: [
+                      { protoGuardAlertOid: null },
+                      { protoGuardAlert: { session: { isInternal: false } } }
+                    ]
+                  }
+                : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               monitorOids ? { monitorOid: { in: monitorOids } } : undefined!,
               d.statuses ? { status: { in: d.statuses } } : undefined!,

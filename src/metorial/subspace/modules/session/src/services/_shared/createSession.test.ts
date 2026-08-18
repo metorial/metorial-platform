@@ -110,6 +110,24 @@ describe('createSessionRecord double writes', () => {
     expect(data.sessionEvents.create.instanceOid).toBeNull();
   });
 
+  it('stores an explicit internal adapter binding without consulting the template', async () => {
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: true,
+      isInternal: true,
+      adapterGlobalOid: 55n,
+      input: { providers: [{ deploymentId: 'pd_1' }] }
+    });
+
+    expect(createdData()).toMatchObject({
+      isEphemeral: true,
+      isInternal: true,
+      adapterGlobalOid: 55n
+    });
+    expect(mocks.sessionTemplateFindFirst).not.toHaveBeenCalled();
+  });
+
   it('does not add the mirrored references to any read filter', async () => {
     mocks.sessionTemplateFindFirst.mockResolvedValue(null);
 

@@ -99,6 +99,11 @@ export interface ProviderRunCreateParam {
   session: Session;
   connection: SessionConnection;
   participant: SessionParticipant;
+  adapter: {
+    id: string;
+    identifier: string;
+    name: string;
+  } | null;
 
   mcp: {
     clientInfo: InitializeRequest['params']['clientInfo'];

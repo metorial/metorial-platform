@@ -12,6 +12,10 @@ model Session {
   archivedAt DateTime?
 
   isEphemeral Boolean
+  isInternal  Boolean @default(false)
+
+  adapterGlobalOid BigInt?
+  adapterGlobal    ProviderAdapterGlobal? @relation(fields: [adapterGlobalOid], references: [oid])
 
   connectionState SessionConnectionState @default(disconnected)
   isStarted       Boolean                @default(false)
@@ -84,6 +88,9 @@ model Session {
   @@index([identityActorOid])
   @@index([identityOid])
   @@index([isEphemeral])
+  @@index([isInternal])
+  @@index([adapterGlobalOid])
+  @@index([tenantOid, environmentOid, isInternal, createdAt])
   @@index([ephemeralManagedSessionOid])
   @@index([projectOid])
   @@index([instanceOid])

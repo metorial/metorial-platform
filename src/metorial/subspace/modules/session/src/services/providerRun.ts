@@ -1,7 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type ProviderRunStatus, type Tenant } from '@metorial-subspace/db';
+import {
+  db,
+  type Environment,
+  type ProviderRunStatus,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   type DateFilter,
   mergeRetentionWithDateFilter,
@@ -31,6 +36,7 @@ export let providerRunInclude = include;
 export type ListProviderRunsParams = {
   status?: ProviderRunStatus[];
   allowDeleted?: boolean;
+  includeInternal?: boolean;
 
   ids?: string[];
   sessionIds?: string[];
@@ -84,6 +90,9 @@ class providerRunServiceImpl {
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
+                !d.includeInternal && !d.sessionIds?.length
+                  ? { session: { isInternal: false } }
+                  : undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
 
                 sessions ? { sessionOid: sessions.in } : undefined!,

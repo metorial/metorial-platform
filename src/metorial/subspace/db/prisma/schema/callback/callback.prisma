@@ -74,6 +74,10 @@ model Callback {
   status        CallbackStatus
   mode          CallbackMode
   isCallbacksV2 Boolean        @default(false)
+  isInternal    Boolean        @default(false)
+
+  adapterGlobalOid BigInt?
+  adapterGlobal    ProviderAdapterGlobal? @relation(fields: [adapterGlobalOid], references: [oid])
 
   name                        String
   description                 String?
@@ -91,6 +95,8 @@ model Callback {
 
   @@index([tenantOid, environmentOid, solutionOid, status])
   @@index([providerDeploymentOid, status])
+  @@index([adapterGlobalOid])
+  @@index([tenantOid, environmentOid, isInternal, createdAt])
   @@index([projectOid])
   @@index([instanceOid])
 }

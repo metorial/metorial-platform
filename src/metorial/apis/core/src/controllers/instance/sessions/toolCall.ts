@@ -2,12 +2,12 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { sessionService, toolCallService } from '@metorial-subspace/module-session';
+import { toolCallPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { toolCallPresenter } from '@metorial/presenters';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 
 let toolCallGroup = instanceGroup.use(async ctx => {
@@ -46,6 +46,9 @@ export let toolCallController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            session_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by session ID(s)'
+            }),
             session_template_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by session template ID(s)'
             }),
@@ -99,6 +102,7 @@ export let toolCallController = Controller.create(
           instance: ctx.instance,
           allowDeleted: false,
           actorIds,
+          sessionIds: normalizeArrayParam(ctx.query.session_id),
           agentIds: normalizeArrayParam(ctx.query.agent_id),
           agentInstanceIds: normalizeArrayParam(ctx.query.agent_instance_id),
           sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),

@@ -48,6 +48,7 @@ let getProtoGuardAlertById = async (d: Scope & { alertId: string }) => {
 };
 
 export type ListProtoGuardAlertsParams = Scope & {
+  includeInternal?: boolean;
   ids?: string[];
   runIds?: string[];
   filterIds?: string[];
@@ -95,6 +96,9 @@ class protoGuardAlertServiceImpl {
             environmentOid: d.environment.oid,
             solutionOid: solution.oid,
             AND: [
+              !d.includeInternal && !d.sessionIds?.length
+                ? { session: { isInternal: false } }
+                : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               runOids ? { runOid: { in: runOids } } : undefined!,
               filterOids
