@@ -1396,7 +1396,6 @@ let DocumentEditorLoaded = (p: {
           <Shell>
             <Header>
               <HeaderLeft>
-                {p.onBack && <BackButton onClick={p.onBack} />}
                 <TitleButton
                   title={title}
                   readOnly={readOnly}

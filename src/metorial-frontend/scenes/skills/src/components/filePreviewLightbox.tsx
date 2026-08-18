@@ -6,6 +6,7 @@ import { RiCloseLine } from '@remixicon/react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { ReactNode, Ref, useEffect, useMemo, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { getSkillFileExtension, isSkillTextFile } from './textFile';
 
 type PreviewKind = 'image' | 'pdf' | 'video' | 'audio' | 'text' | 'fallback';
 
@@ -17,31 +18,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 let imageExtensions = new Set(['avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp']);
 let videoExtensions = new Set(['mp4', 'mov', 'm4v', 'webm', 'ogv']);
 let audioExtensions = new Set(['aac', 'flac', 'm4a', 'mp3', 'oga', 'ogg', 'wav', 'weba']);
-let textExtensions = new Set([
-  'csv',
-  'css',
-  'env',
-  'graphql',
-  'html',
-  'js',
-  'json',
-  'jsx',
-  'log',
-  'md',
-  'mdx',
-  'py',
-  'rs',
-  'sql',
-  'svg',
-  'toml',
-  'ts',
-  'tsx',
-  'txt',
-  'xml',
-  'yaml',
-  'yml'
-]);
-
 let fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -363,10 +339,8 @@ let TriggerButton = styled.button`
   cursor: pointer;
 `;
 
-let getExtension = (fileName: string) => fileName.split('.').pop()?.toLowerCase() ?? '';
-
 let getCodeLanguage = (fileName: string) => {
-  let extension = getExtension(fileName);
+  let extension = getSkillFileExtension(fileName);
 
   if (extension == 'tsx') return 'tsx';
   if (extension == 'ts') return 'typescript';
@@ -389,19 +363,14 @@ let getCodeLanguage = (fileName: string) => {
 let getPreviewKind = (file: ManagedFile | null | undefined): PreviewKind => {
   if (!file) return 'fallback';
 
-  let extension = getExtension(file.fileName || file.title);
+  let extension = getSkillFileExtension(file.fileName || file.title);
   let fileType = file.fileType?.toLowerCase() ?? '';
 
   if (fileType.startsWith('image/') || imageExtensions.has(extension)) return 'image';
   if (fileType == 'application/pdf' || extension == 'pdf') return 'pdf';
   if (fileType.startsWith('video/') || videoExtensions.has(extension)) return 'video';
   if (fileType.startsWith('audio/') || audioExtensions.has(extension)) return 'audio';
-  if (
-    fileType.startsWith('text/') ||
-    fileType.includes('json') ||
-    fileType.includes('xml') ||
-    textExtensions.has(extension)
-  ) {
+  if (isSkillTextFile({ fileName: file.fileName || file.title, fileType })) {
     return 'text';
   }
 

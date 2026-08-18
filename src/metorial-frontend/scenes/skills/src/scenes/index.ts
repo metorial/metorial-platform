@@ -48,6 +48,7 @@ import type {
 } from './skillStoreFileViewer';
 import type { SkillVersionsScene as _SkillVersionsScene } from './skillVersions';
 import type { SkillWorkspaceLayout as _SkillWorkspaceLayout } from './skillWorkspaceLayout';
+import type { SkillTextFileEditorScene as _SkillTextFileEditorScene } from './skillTextFileEditor';
 
 export type { SkillWorkspaceLayoutProps, SkillWorkspaceRoutes } from './skillWorkspaceLayout';
 
@@ -134,3 +135,7 @@ export let StoreFileViewerScene = dynamicComponent<Parameters<typeof _StoreFileV
 export let SkillWorkspaceLayout = dynamicComponent<Parameters<typeof _SkillWorkspaceLayout>>(
   () => import('./skillWorkspaceLayout').then(m => m.SkillWorkspaceLayout)
 );
+
+export let SkillTextFileEditorScene = dynamicComponent<
+  Parameters<typeof _SkillTextFileEditorScene>
+>(() => import('./skillTextFileEditor').then(m => m.SkillTextFileEditorScene));

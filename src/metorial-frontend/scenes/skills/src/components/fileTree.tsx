@@ -15,6 +15,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SkillFilePreviewLightbox } from './filePreviewLightbox';
 import type { SkillSharePanelContext } from './skillSharePanel';
+import { isSkillTextFile } from './textFile';
 
 export type SkillFileTreeNode = {
   id: string;
@@ -597,9 +598,12 @@ let SkillFileTreeRow = (p: {
   let documentPath =
     p.node.kind == 'document' && p.node.documentId && p.node.itemId
       ? p.getDocumentPath(p.node.documentId, p.node.itemId)
-      : null;
-  let isActive =
-    p.node.kind == 'document' && documentPath?.split(/[?#]/)[0] == location.pathname;
+      : p.node.kind == 'file' &&
+          p.node.itemId &&
+          isSkillTextFile({ fileName: p.node.name, fileType: p.node.fileType })
+        ? p.getDocumentPath('', p.node.itemId)
+        : null;
+  let isActive = documentPath?.split(/[?#]/)[0] == location.pathname;
   let fileInputRef = useRef<HTMLInputElement | null>(null);
   let previewTriggerRef = useRef<HTMLButtonElement | null>(null);
   let [fileError, setFileError] = useState<string | null>(null);
