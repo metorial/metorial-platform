@@ -28,6 +28,7 @@ import { conduit } from '../lib/conduit';
 import { broadcastNats } from '../lib/nats';
 import { CONDUIT_CONNECTION_MAX_PROCESSING_MS } from '../lib/timeouts';
 import { topics } from '../lib/topic';
+import { getProviderActionAdapterWhere } from '../lib/internalSession';
 import { completeMessage } from '../shared/completeMessage';
 import { setConnectionProviderSpecification } from '../shared/connectionSpecification';
 import { createMessage } from '../shared/createMessage';
@@ -321,7 +322,10 @@ export let startReceiver = () => {
         let [backend, tool] = await Promise.all([
           connectBackend(),
           db.providerTool.findFirstOrThrow({
-            where: { id: data.toolId, adapterOid: null }
+            where: {
+              id: data.toolId,
+              ...getProviderActionAdapterWhere(state.session)
+            }
           })
         ]);
 
