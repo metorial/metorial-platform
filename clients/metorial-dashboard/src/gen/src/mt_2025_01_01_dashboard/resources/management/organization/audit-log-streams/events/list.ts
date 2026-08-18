@@ -11,7 +11,8 @@ export type ManagementOrganizationAuditLogStreamsEventsListOutput = {
       | 'error'
       | 'error_paused'
       | 'recovered'
-      | 'disabled';
+      | 'disabled'
+      | 'enabled';
     message: string | null;
     errorDetails: {
       provider: 'datadog' | 'splunk';

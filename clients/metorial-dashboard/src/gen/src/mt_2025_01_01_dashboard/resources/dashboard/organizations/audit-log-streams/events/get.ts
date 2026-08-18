@@ -10,7 +10,8 @@ export type DashboardOrganizationsAuditLogStreamsEventsGetOutput = {
     | 'error'
     | 'error_paused'
     | 'recovered'
-    | 'disabled';
+    | 'disabled'
+    | 'enabled';
   message: string | null;
   errorDetails: {
     provider: 'datadog' | 'splunk';
