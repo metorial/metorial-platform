@@ -1,5 +1,6 @@
 import type { DashboardInstanceSkillsMarketplacesListQuery } from '@metorial/dashboard-sdk';
 import { renderWithPagination } from '@metorial/data-hooks';
+import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
@@ -11,7 +12,6 @@ import { Avatar, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { EmptyState } from '@metorial/empty-state';
 import { showSkillMarketplaceFormModal } from './marketplaceModal';
 
 let Count = styled.div`
@@ -107,44 +107,48 @@ export let SkillMarketplacesGrid = (
     <>
       {marketplaces.data.items.length > 0 && (
         <ItemGrid.Root width="300px">
-          {marketplaces.data.items.map(marketplace => (
-            <ItemGrid.Item
-              key={marketplace.id}
-              href={Paths.instance.skillMarketplace(
-                organization.data,
-                project.data,
-                instance.data,
-                marketplace.id
-              )}
-              entity={{ id: marketplace.id, hasUsage: true }}
-              title={marketplace.name}
-              description={
-                <Description>
-                  {marketplace.description || 'No description provided yet.'}
-                </Description>
-              }
-              height={200}
-              icon={
-                <Avatar
-                  entity={{
-                    name: marketplace.name,
-                    photoUrl: marketplace.imageUrl ?? undefined,
-                    imageUrl: `https://avatar-cdn.metorial.com/${marketplace.id}`
-                  }}
-                  size={30}
-                  imageFit="contain"
-                />
-              }
-              bottom={
-                <div style={{ display: 'flex' }}>
-                  <Count>
-                    {marketplace.plugins.length} plugin
-                    {marketplace.plugins.length === 1 ? '' : 's'}
-                  </Count>
-                </div>
-              }
-            />
-          ))}
+          {marketplaces.data.items.map(marketplace => {
+            let plugins = marketplace.plugins.filter(plugin => plugin.status === 'active');
+            let skills = plugins
+              .flatMap(plugin => plugin.skillPlugin?.skills ?? [])
+              .filter(skill => skill.status === 'active');
+
+            return (
+              <ItemGrid.Item
+                key={marketplace.id}
+                href={Paths.instance.skillMarketplace(
+                  organization.data,
+                  project.data,
+                  instance.data,
+                  marketplace.id
+                )}
+                entity={{ id: marketplace.id, hasUsage: true }}
+                title={marketplace.name}
+                description={<Description>{marketplace.description}</Description>}
+                height={200}
+                icon={
+                  <Avatar
+                    entity={{
+                      name: marketplace.name,
+                      photoUrl: marketplace.imageUrl ?? undefined,
+                      imageUrl: `https://avatar-cdn.metorial.com/${marketplace.id}`
+                    }}
+                    size={30}
+                    imageFit="contain"
+                  />
+                }
+                bottom={
+                  <div style={{ display: 'flex' }}>
+                    <Count>
+                      {plugins.length} plugin
+                      {plugins.length === 1 ? '' : 's'} • {skills.length} skill
+                      {skills.length === 1 ? '' : 's'}
+                    </Count>
+                  </div>
+                }
+              />
+            );
+          })}
         </ItemGrid.Root>
       )}
     </>

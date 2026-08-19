@@ -239,6 +239,7 @@ let PickerCheckbox = styled.div`
   width: 100%;
   display: flex;
   justify-content: flex-end;
+  width: 24px;
 `;
 
 let FormStack = styled.div`
@@ -456,7 +457,7 @@ let PluginPickerPanel = (p: {
                 <Text size="2" color="gray600">
                   {search.trim()
                     ? 'No available plugins match your search.'
-                    : 'All plugins on this page are already in this marketplace.'}
+                    : 'No additional plugins to add to this marketplace.'}
                 </Text>
               );
 

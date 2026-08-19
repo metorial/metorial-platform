@@ -1280,6 +1280,26 @@
         "vitest": "^4.1.10",
       },
     },
+    "src/metorial-frontend/packages/avatar-uploader": {
+      "name": "@metorial/avatar-uploader",
+      "version": "1.0.0",
+      "dependencies": {
+        "@metorial/ui": "^1.0.0",
+        "@remixicon/react": "^4.6.0",
+        "clsx": "^2.1.1",
+        "react": "19.1.1",
+        "react-avatar-editor": "^13.0.2",
+        "react-dropzone": "^14.3.8",
+        "react-use": "^17.6.0",
+        "styled-components": "^6.1.13",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/react-avatar-editor": "^13.0.4",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
     "src/metorial-frontend/packages/chart": {
       "name": "@metorial/chart",
       "version": "1.0.0",
@@ -6416,6 +6436,8 @@
     "@metorial/audit-scope": ["@metorial/audit-scope@workspace:src/metorial/products/auditing/packages/audit-scope"],
 
     "@metorial/auth": ["@metorial/auth@workspace:src/metorial/packages/oss/auth"],
+
+    "@metorial/avatar-uploader": ["@metorial/avatar-uploader@workspace:src/metorial-frontend/packages/avatar-uploader"],
 
     "@metorial/bearer": ["@metorial/bearer@workspace:src/metorial/packages/bearer"],
 
