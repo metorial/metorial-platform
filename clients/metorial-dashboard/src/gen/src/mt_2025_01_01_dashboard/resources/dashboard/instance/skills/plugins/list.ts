@@ -1,7 +1,7 @@
 import { mtMap } from '@metorial/util-resource-mapper';
 
 export type DashboardInstanceSkillsPluginsListOutput = {
-  items: {
+  items: ({
     object: 'skill.plugin';
     id: string;
     status: 'active' | 'archived' | 'deleted';
@@ -47,7 +47,7 @@ export type DashboardInstanceSkillsPluginsListOutput = {
     }[];
     createdAt: Date;
     updatedAt: Date;
-  }[];
+  } & { canUpdate: boolean; canDelete: boolean })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -56,73 +56,41 @@ export let mapDashboardInstanceSkillsPluginsListOutput =
     items: mtMap.objectField(
       'items',
       mtMap.array(
-        mtMap.object({
-          object: mtMap.objectField('object', mtMap.passthrough()),
-          id: mtMap.objectField('id', mtMap.passthrough()),
-          status: mtMap.objectField('status', mtMap.passthrough()),
-          syncStatus: mtMap.objectField('sync_status', mtMap.passthrough()),
-          imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
-          name: mtMap.objectField('name', mtMap.passthrough()),
-          description: mtMap.objectField('description', mtMap.passthrough()),
-          longDescription: mtMap.objectField(
-            'long_description',
-            mtMap.passthrough()
-          ),
-          category: mtMap.objectField('category', mtMap.passthrough()),
-          slug: mtMap.objectField('slug', mtMap.passthrough()),
-          skillConfigurationId: mtMap.objectField(
-            'skill_configuration_id',
-            mtMap.passthrough()
-          ),
-          skills: mtMap.objectField(
-            'skills',
-            mtMap.array(
-              mtMap.object({
-                object: mtMap.objectField('object', mtMap.passthrough()),
-                id: mtMap.objectField('id', mtMap.passthrough()),
-                identifier: mtMap.objectField(
-                  'identifier',
-                  mtMap.passthrough()
-                ),
-                status: mtMap.objectField('status', mtMap.passthrough()),
-                clientName: mtMap.objectField(
-                  'client_name',
-                  mtMap.passthrough()
-                ),
-                clientDescription: mtMap.objectField(
-                  'client_description',
-                  mtMap.passthrough()
-                ),
-                clientMetadata: mtMap.objectField(
-                  'client_metadata',
-                  mtMap.passthrough()
-                ),
-                license: mtMap.objectField('license', mtMap.passthrough()),
-                compatibility: mtMap.objectField(
-                  'compatibility',
-                  mtMap.passthrough()
-                ),
-                skillConfigurationId: mtMap.objectField(
-                  'skill_configuration_id',
-                  mtMap.passthrough()
-                ),
-                skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
-                skill: mtMap.objectField(
-                  'skill',
+        mtMap.union([
+          mtMap.unionOption(
+            'object',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              status: mtMap.objectField('status', mtMap.passthrough()),
+              syncStatus: mtMap.objectField('sync_status', mtMap.passthrough()),
+              imageUrl: mtMap.objectField('image_url', mtMap.passthrough()),
+              name: mtMap.objectField('name', mtMap.passthrough()),
+              description: mtMap.objectField(
+                'description',
+                mtMap.passthrough()
+              ),
+              longDescription: mtMap.objectField(
+                'long_description',
+                mtMap.passthrough()
+              ),
+              category: mtMap.objectField('category', mtMap.passthrough()),
+              slug: mtMap.objectField('slug', mtMap.passthrough()),
+              skillConfigurationId: mtMap.objectField(
+                'skill_configuration_id',
+                mtMap.passthrough()
+              ),
+              skills: mtMap.objectField(
+                'skills',
+                mtMap.array(
                   mtMap.object({
                     object: mtMap.objectField('object', mtMap.passthrough()),
                     id: mtMap.objectField('id', mtMap.passthrough()),
+                    identifier: mtMap.objectField(
+                      'identifier',
+                      mtMap.passthrough()
+                    ),
                     status: mtMap.objectField('status', mtMap.passthrough()),
-                    slug: mtMap.objectField('slug', mtMap.passthrough()),
-                    name: mtMap.objectField('name', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    ),
-                    imageUrl: mtMap.objectField(
-                      'image_url',
-                      mtMap.passthrough()
-                    ),
                     clientName: mtMap.objectField(
                       'client_name',
                       mtMap.passthrough()
@@ -140,22 +108,76 @@ export let mapDashboardInstanceSkillsPluginsListOutput =
                       'compatibility',
                       mtMap.passthrough()
                     ),
-                    metadata: mtMap.objectField(
-                      'metadata',
+                    skillConfigurationId: mtMap.objectField(
+                      'skill_configuration_id',
                       mtMap.passthrough()
+                    ),
+                    skillId: mtMap.objectField('skill_id', mtMap.passthrough()),
+                    skill: mtMap.objectField(
+                      'skill',
+                      mtMap.object({
+                        object: mtMap.objectField(
+                          'object',
+                          mtMap.passthrough()
+                        ),
+                        id: mtMap.objectField('id', mtMap.passthrough()),
+                        status: mtMap.objectField(
+                          'status',
+                          mtMap.passthrough()
+                        ),
+                        slug: mtMap.objectField('slug', mtMap.passthrough()),
+                        name: mtMap.objectField('name', mtMap.passthrough()),
+                        description: mtMap.objectField(
+                          'description',
+                          mtMap.passthrough()
+                        ),
+                        imageUrl: mtMap.objectField(
+                          'image_url',
+                          mtMap.passthrough()
+                        ),
+                        clientName: mtMap.objectField(
+                          'client_name',
+                          mtMap.passthrough()
+                        ),
+                        clientDescription: mtMap.objectField(
+                          'client_description',
+                          mtMap.passthrough()
+                        ),
+                        clientMetadata: mtMap.objectField(
+                          'client_metadata',
+                          mtMap.passthrough()
+                        ),
+                        license: mtMap.objectField(
+                          'license',
+                          mtMap.passthrough()
+                        ),
+                        compatibility: mtMap.objectField(
+                          'compatibility',
+                          mtMap.passthrough()
+                        ),
+                        metadata: mtMap.objectField(
+                          'metadata',
+                          mtMap.passthrough()
+                        ),
+                        createdAt: mtMap.objectField(
+                          'created_at',
+                          mtMap.date()
+                        ),
+                        updatedAt: mtMap.objectField('updated_at', mtMap.date())
+                      })
                     ),
                     createdAt: mtMap.objectField('created_at', mtMap.date()),
                     updatedAt: mtMap.objectField('updated_at', mtMap.date())
                   })
-                ),
-                createdAt: mtMap.objectField('created_at', mtMap.date()),
-                updatedAt: mtMap.objectField('updated_at', mtMap.date())
-              })
-            )
-          ),
-          createdAt: mtMap.objectField('created_at', mtMap.date()),
-          updatedAt: mtMap.objectField('updated_at', mtMap.date())
-        })
+                )
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date()),
+              updatedAt: mtMap.objectField('updated_at', mtMap.date()),
+              canUpdate: mtMap.objectField('can_update', mtMap.passthrough()),
+              canDelete: mtMap.objectField('can_delete', mtMap.passthrough())
+            })
+          )
+        ])
       )
     ),
     pagination: mtMap.objectField(
