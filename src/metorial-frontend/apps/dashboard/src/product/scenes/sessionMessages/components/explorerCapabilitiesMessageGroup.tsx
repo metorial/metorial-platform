@@ -17,10 +17,13 @@ import { Message } from './message';
 export let ExplorerCapabilitiesMessageGroup = ({
   aggregatedMessages,
   clientName,
+  deferMessageMount = true,
   messages
 }: {
   aggregatedMessages: Map<string, AggregatedMessages>;
   clientName: string;
+  /** Set to false when an outer container already gates mounting (e.g. row virtualization). */
+  deferMessageMount?: boolean;
   messages: DashboardInstanceSessionsMessagesGetOutput[];
 }) => {
   let [isOpen, setIsOpen] = useState(false);
@@ -66,6 +69,7 @@ export let ExplorerCapabilitiesMessageGroup = ({
                 <Message
                   key={message.id}
                   aggregatedMessages={aggregatedMessages}
+                  deferMount={deferMessageMount}
                   message={message}
                 />
               ))}
