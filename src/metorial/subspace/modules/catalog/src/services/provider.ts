@@ -146,7 +146,7 @@ export let getProviderAuthMethodFilter = (values?: string[]) => {
 
 export let getProviderAuthSetupFilter = (
   values: ProviderAuthSetupFilter[] | undefined,
-  d: { tenantOid?: bigint; environmentOid?: bigint }
+  d: { tenantOid?: bigint; environmentOid?: bigint; solutionOid?: number }
 ) => {
   if (!values?.length) return undefined;
 
@@ -157,13 +157,25 @@ export let getProviderAuthSetupFilter = (
   };
 
   let hasAuthCredentials =
-    d.tenantOid && d.environmentOid
+    d.tenantOid && d.environmentOid && d.solutionOid !== undefined
       ? {
           providerAuthCredentials: {
             some: {
-              tenantOid: d.tenantOid,
-              environmentOid: d.environmentOid,
-              status: 'active' as const
+              isEphemeral: false,
+              status: 'active' as const,
+              OR: [
+                {
+                  origin: 'tenant_created' as const,
+                  tenantOid: d.tenantOid,
+                  solutionOid: d.solutionOid,
+                  environmentOid: d.environmentOid
+                },
+                {
+                  origin: 'managed_backing' as const,
+                  tenantOid: d.tenantOid,
+                  solutionOid: d.solutionOid
+                }
+              ]
             }
           }
         }
@@ -274,7 +286,8 @@ class providerServiceImpl {
     let authMethodFilter = getProviderAuthMethodFilter(d.authMethods);
     let authSetupFilter = getProviderAuthSetupFilter(d.authSetup, {
       tenantOid: d.tenant?.oid,
-      environmentOid: d.environment?.oid
+      environmentOid: d.environment?.oid,
+      solutionOid: solution.oid
     });
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
