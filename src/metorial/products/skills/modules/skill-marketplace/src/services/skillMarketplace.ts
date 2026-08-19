@@ -20,6 +20,7 @@ import {
   resolveSkillMarketplaces
 } from '@metorial/list-utils';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
+import { consumerAccessService } from '@metorial/module-consumer-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
 import {
@@ -409,6 +410,27 @@ class SkillMarketplaceServiceImpl {
         event: 'archived'
       });
     });
+
+    let memberships = await db.skillMarketplacePlugin.findMany({
+      where: {
+        skillMarketplaceOid: d.skillMarketplace.oid
+      },
+      select: {
+        skillPlugin: {
+          select: {
+            oid: true,
+            organizationOid: true
+          }
+        }
+      }
+    });
+
+    for (let membership of memberships) {
+      await consumerAccessService.reconcileSkillPluginConsumerAccess({
+        skillPlugin: membership.skillPlugin,
+        unlinkFromSkillMarketplaceOid: d.skillMarketplace.oid
+      });
+    }
 
     return await this.getSkillMarketplaceRecord({
       project: d.project,

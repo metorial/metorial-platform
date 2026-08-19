@@ -22,6 +22,7 @@ import {
   resolveSkillPlugins
 } from '@metorial/list-utils';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
+import { consumerAccessService } from '@metorial/module-consumer-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
 import {
@@ -31,10 +32,21 @@ import {
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
+  assertSkillMarketplacePluginLimit,
+  CargoSkillLimitError,
+  toCargoSkillLimitServiceError
+} from '../lib/limits';
+import {
+  assertSkillMarketplaceWriteAccess,
+  assertSkillPluginArchiveAccess,
+  assertSkillPluginWriteAccess,
   getSkillMarketplaceAccessWhere,
   type SkillMarketplaceAccessInput
 } from '../lib/skillMarketplaceAccess';
-import { enqueueSkillPluginLifecycle } from '../queues/lifecycle';
+import {
+  enqueueSkillMarketplacePluginLifecycle,
+  enqueueSkillPluginLifecycle
+} from '../queues/lifecycle';
 
 let skillInclude = {
   store: true,
@@ -281,6 +293,8 @@ class SkillPluginServiceImpl {
   async createSkillPlugin(d: {
     project: Project;
     instance: Instance;
+    skillMarketplaceId?: string;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: {
       name: string;
       description?: string | null;
@@ -293,6 +307,50 @@ class SkillPluginServiceImpl {
     };
   }) {
     this.assertName(d.input.name);
+
+    if (d.accessTags && !d.skillMarketplaceId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'skill_marketplace_id is required to create a skill plugin.'
+        })
+      );
+    }
+
+    let marketplaceAccessWhere = d.accessTags
+      ? await getSkillMarketplaceAccessWhere(d)
+      : undefined;
+    let skillMarketplace = d.skillMarketplaceId
+      ? await db.skillMarketplace.findFirst({
+          where: {
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
+            id: d.skillMarketplaceId,
+            status: 'active',
+            AND: marketplaceAccessWhere ? [marketplaceAccessWhere] : undefined
+          }
+        })
+      : null;
+    if (d.skillMarketplaceId && !skillMarketplace) {
+      throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplaceId));
+    }
+    if (skillMarketplace) {
+      await assertSkillMarketplaceWriteAccess({
+        skillMarketplace,
+        accessTags: d.accessTags
+      });
+      try {
+        await assertSkillMarketplacePluginLimit({
+          skillMarketplaceOid: skillMarketplace.oid,
+          additionalCount: 1
+        });
+      } catch (error) {
+        if (error instanceof CargoSkillLimitError) {
+          throw toCargoSkillLimitServiceError(error);
+        }
+
+        throw error;
+      }
+    }
 
     let skillConfigurationOid =
       d.input.skillConfigurationId === undefined
@@ -351,6 +409,22 @@ class SkillPluginServiceImpl {
 
       await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
 
+      if (skillMarketplace) {
+        let skillMarketplacePlugin = await db.skillMarketplacePlugin.create({
+          data: {
+            id: await ID.generateId('skillMarketplacePlugin'),
+            status: 'active',
+            pluginSlug: skillPlugin.slug!,
+            skillMarketplaceOid: skillMarketplace.oid,
+            skillPluginOid: skillPlugin.oid
+          }
+        });
+        await enqueueSkillMarketplacePluginLifecycle({
+          skillMarketplacePluginId: skillMarketplacePlugin.id,
+          event: 'created'
+        });
+      }
+
       return skillPlugin;
     });
   }
@@ -359,9 +433,14 @@ class SkillPluginServiceImpl {
     project: Project;
     instance: Instance;
     skillPlugin: SkillPluginRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: SkillPluginInput;
   }) {
     assertPluginIsNotManaged(d.skillPlugin);
+    await assertSkillPluginWriteAccess({
+      skillPlugin: d.skillPlugin,
+      accessTags: d.accessTags
+    });
 
     if (!this.hasUpdate(d.input)) {
       throw new ServiceError(
@@ -437,8 +516,13 @@ class SkillPluginServiceImpl {
     project: Project;
     instance: Instance;
     skillPlugin: SkillPluginRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
   }) {
     assertPluginIsNotManaged(d.skillPlugin);
+    await assertSkillPluginArchiveAccess({
+      skillPlugin: d.skillPlugin,
+      accessTags: d.accessTags
+    });
 
     await withTransaction(async db => {
       await db.skillPluginSkill.updateMany({
@@ -481,6 +565,10 @@ class SkillPluginServiceImpl {
         skillPluginId: d.skillPlugin.id,
         event: 'archived'
       });
+    });
+
+    await consumerAccessService.reconcileSkillPluginConsumerAccess({
+      skillPlugin: d.skillPlugin
     });
 
     return await this.getSkillPluginRecord({

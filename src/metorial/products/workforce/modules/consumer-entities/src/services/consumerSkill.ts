@@ -33,7 +33,10 @@ import {
   createResourceAuthorization
 } from '@metorial/module-access';
 import { resourceActorService } from '@metorial/module-resource-actor';
-import { consumerAccessPolicyService, consumerAccessService } from '@metorial/module-consumer-access';
+import {
+  consumerAccessPolicyService,
+  consumerAccessService
+} from '@metorial/module-consumer-access';
 
 export type ConsumerProfileForSkill = ConsumerProfile & {
   consumer: Consumer;
@@ -324,6 +327,7 @@ class ConsumerSkillServiceImpl {
         skillTemplate: true,
         skillGroup: true,
         skillMarketplace: true,
+        skillPlugin: true,
         listing: true
       }
     });
