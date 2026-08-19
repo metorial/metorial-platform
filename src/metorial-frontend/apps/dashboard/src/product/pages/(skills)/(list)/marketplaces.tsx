@@ -40,7 +40,7 @@ export let SkillMarketplacesPage = () => {
     <ContentLayout>
       <PageHeader
         title="Skill Marketplaces"
-        description="Marketplaces let you publish selected plugins and skills to your users."
+        description="Marketplaces let you publish selected plugins and skills for your team."
         actions={
           <Button
             size="2"

@@ -1279,7 +1279,7 @@ export let SkillMarketplacePluginsScene = (p: {
     ({ marketplace, marketplacePlugins }) => (
       <PageHeaderSection
         title="Plugins and Skills"
-        description="Add and manage plugins and skills for this marketplace. Use plugins to group related skills together, or add individual skills directly to the marketplace."
+        description="Manage plugins and skills for this marketplace. Use plugins to group related skills or add individual skills to the marketplace directly."
       >
         <DndContext
           sensors={sensors}

@@ -88,7 +88,7 @@ export let SkillMarketplacesGrid = (
           <EmptyState
             extra="Skill Marketplaces"
             title="Create your first marketplace"
-            description="Marketplaces let you publish selected plugins and skills to your users."
+            description="Marketplaces let you publish selected plugins and skills for your team."
             action={{
               label: 'Create Marketplace',
               onClick: showCreateModal
