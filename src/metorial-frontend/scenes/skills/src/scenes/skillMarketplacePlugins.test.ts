@@ -231,7 +231,7 @@ describe('sortMarketplacePluginHierarchy', () => {
     ]);
   });
 
-  it('puts matching single-skill plugins first and sorts them by skill name', () => {
+  it('sorts all items alphabetically by displayed name', () => {
     let multiSkill = makeItem({
       pluginName: 'Able Plugin',
       skills: [
@@ -260,10 +260,10 @@ describe('sortMarketplacePluginHierarchy', () => {
     ]);
 
     expect(result.map(item => item.skillPlugin!.name)).toEqual([
-      'Alpha Skill',
-      'Zulu Skill',
       'Aardvark Wrapper',
-      'Able Plugin'
+      'Able Plugin',
+      'Alpha Skill',
+      'Zulu Skill'
     ]);
   });
 });

@@ -61,6 +61,9 @@ model SkillPlugin {
   skillDestinationItems          SkillDestinationItem[]
   repositories                   SkillPluginRepository[]
   skillExportRefs                SkillExportRef[]
+  accessTagEntities              AccessTagEntity[]
+  consumerAccesses               ConsumerAccess[]                @relation("ConsumerAccessSkillPlugin")
+  consumerAccessListings         ConsumerAccessListing[]
 
   @@index([instanceOid, status])
   @@index([slug])

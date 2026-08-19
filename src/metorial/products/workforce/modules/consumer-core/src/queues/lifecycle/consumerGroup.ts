@@ -1,6 +1,6 @@
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
 import { consumerAccessService } from '@metorial/module-consumer-access';
+import { createQueue } from '@metorial/queue';
 import { indexConsumerGroupSearchQueue } from '../search/consumerGroup';
 
 export let consumerGroupCreatedQueue = createQueue<{ consumerGroupId: string }>({
@@ -60,6 +60,7 @@ export let consumerGroupArchivedQueueProcessor = consumerGroupArchivedQueue.proc
         skillTemplate: true,
         skillGroup: true,
         skillMarketplace: true,
+        skillPlugin: true,
         listing: true,
         surface: { include: { organization: true } }
       }

@@ -36,6 +36,7 @@
     "@metorial/cron": "^1.0.0",
     "@metorial/db": "^1.0.0",
     "@metorial/module-access": "^1.0.0",
+    "@metorial/module-consumer-access": "1.0.0",
     "@metorial/module-resource-actor": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/skills-common": "^1.0.0",

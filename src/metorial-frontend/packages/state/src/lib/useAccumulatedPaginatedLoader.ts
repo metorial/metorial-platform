@@ -58,9 +58,17 @@ export let useAccumulatedPaginatedLoader = <
     if (!firstItems.length && !cursorItems.length) return;
 
     setItemsMap(current => {
-      let next = new Map(current);
-      for (let item of firstItems) next.set(item.id, item);
-      for (let item of cursorItems) next.set(item.id, item);
+      let next = current;
+
+      for (let item of [...firstItems, ...cursorItems]) {
+        let existing = current.get(item.id);
+        if (existing === item) continue;
+        if (existing && JSON.stringify(existing) === JSON.stringify(item)) continue;
+
+        if (next === current) next = new Map(current);
+        next.set(item.id, item);
+      }
+
       return next;
     });
   }, [firstPage.data?.items, cursorPage.data?.items]);

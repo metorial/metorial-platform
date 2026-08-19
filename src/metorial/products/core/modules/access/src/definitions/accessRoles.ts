@@ -22,6 +22,14 @@ export let consumerAssistantConversationWriteRoles = [
 export let consumerSkillReadRoles = ['consumer#instance.skill:read'] as const;
 export let consumerSkillWriteRoles = ['consumer#instance.skill:write'] as const;
 export let consumerSkillManageAccessRoles = ['consumer#instance.skill:manage_access'] as const;
+export let consumerSkillMarketplaceReadRoles = [
+  'consumer#instance.skill_marketplace:read'
+] as const;
+export let consumerSkillMarketplaceWriteRoles = [
+  'consumer#instance.skill_marketplace:write'
+] as const;
+export let consumerSkillPluginReadRoles = ['consumer#instance.skill_plugin:read'] as const;
+export let consumerSkillPluginWriteRoles = ['consumer#instance.skill_plugin:write'] as const;
 export let consumerMagicMcpReadRoles = ['consumer#instance.magic_mcp:read'] as const;
 export let consumerMagicMcpConnectRoles = ['consumer#instance.magic_mcp:connect'] as const;
 export let consumerMagicMcpWriteRoles = ['consumer#instance.magic_mcp:write'] as const;
@@ -59,6 +67,14 @@ export let consumerSkillAccessRoles = [
   ...consumerSkillReadRoles,
   ...consumerSkillWriteRoles,
   ...consumerSkillManageAccessRoles
+] as const;
+export let consumerSkillMarketplaceAccessRoles = [
+  ...consumerSkillMarketplaceReadRoles,
+  ...consumerSkillMarketplaceWriteRoles
+] as const;
+export let consumerSkillPluginAccessRoles = [
+  ...consumerSkillPluginReadRoles,
+  ...consumerSkillPluginWriteRoles
 ] as const;
 export let consumerMagicMcpAccessRoles = [
   ...consumerMagicMcpReadRoles,

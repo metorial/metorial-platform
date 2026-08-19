@@ -19,6 +19,11 @@ import {
   CargoSkillLimitError,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
+import {
+  assertConsumerCanAttachSkillToPlugin,
+  assertSkillPluginWriteAccess,
+  type SkillMarketplaceAccessInput
+} from '../lib/skillMarketplaceAccess';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle';
 import type { SkillPluginRecord } from './skillPlugin';
 import { assertPluginIsNotManaged, skillPluginInclude } from './skillPlugin';
@@ -183,18 +188,30 @@ class SkillPluginSkillServiceImpl {
     project: Project;
     instance: Instance;
     skillPlugin: SkillPluginRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: {
       skillId: string;
       pluginSkillSlug?: string;
     } & SkillPluginSkillInput;
   }) {
     assertPluginIsNotManaged(d.skillPlugin);
+    await assertSkillPluginWriteAccess({
+      skillPlugin: d.skillPlugin,
+      accessTags: d.accessTags
+    });
 
     let skill = await skillService.getSkillById({
       project: d.project,
       instance: d.instance,
       skillId: d.input.skillId
     });
+    if (d.accessTags) {
+      await assertConsumerCanAttachSkillToPlugin({
+        skill,
+        skillPlugin: d.skillPlugin,
+        accessTags: d.accessTags
+      });
+    }
     let existingSkillPluginSkill = await db.skillPluginSkill.findFirst({
       where: {
         skillPluginOid: d.skillPlugin.oid,
@@ -338,9 +355,14 @@ class SkillPluginSkillServiceImpl {
     project: Project;
     instance: Instance;
     skillPluginSkill: SkillPluginSkillRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: SkillPluginSkillInput;
   }) {
     assertPluginIsNotManaged(d.skillPluginSkill.skillPlugin);
+    await assertSkillPluginWriteAccess({
+      skillPlugin: d.skillPluginSkill.skillPlugin,
+      accessTags: d.accessTags
+    });
 
     if (!this.hasUpdate(d.input)) {
       throw new ServiceError(
@@ -390,8 +412,13 @@ class SkillPluginSkillServiceImpl {
     project: Project;
     instance: Instance;
     skillPluginSkill: SkillPluginSkillRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
   }) {
     assertPluginIsNotManaged(d.skillPluginSkill.skillPlugin);
+    await assertSkillPluginWriteAccess({
+      skillPlugin: d.skillPluginSkill.skillPlugin,
+      accessTags: d.accessTags
+    });
 
     let skillPluginSkill = await db.skillPluginSkill.update({
       where: {

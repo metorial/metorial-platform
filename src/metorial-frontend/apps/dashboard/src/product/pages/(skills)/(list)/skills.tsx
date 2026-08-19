@@ -322,6 +322,10 @@ export let SkillsPage = () => {
                 onClick: skillImport.uploadSkill
               },
               {
+                label: 'Upload Folder',
+                onClick: skillImport.uploadSkillDirectory
+              },
+              {
                 label: 'Create Template',
                 onClick: () =>
                   showSkillTemplateFormModal({

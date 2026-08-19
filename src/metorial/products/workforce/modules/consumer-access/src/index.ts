@@ -1,4 +1,6 @@
 import { combineQueueProcessors } from '@metorial/queue';
+import { backfillConsumerAccessLevelCron } from './cron/backfillAccessLevel';
+import { cleanupOrphanedSkillPluginAccessCron } from './cron/cleanupOrphanedSkillPluginAccess';
 import { sendApprovedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendApprovedConsumerAccessRequestEmail';
 import { sendRejectedConsumerAccessRequestEmailQueueProcessor } from './queues/accessRequest/sendRejectedConsumerAccessRequestEmail';
 import {
@@ -23,5 +25,7 @@ export let consumerAccessQueueProcessor = combineQueueProcessors([
   consumerAccessListingDeleteQueueProcessor,
   consumerAccessDeleteQueueProcessor,
   consumerAccessRequestCreatedQueueProcessor,
-  consumerAccessRequestUpdatedQueueProcessor
+  consumerAccessRequestUpdatedQueueProcessor,
+  backfillConsumerAccessLevelCron,
+  cleanupOrphanedSkillPluginAccessCron
 ]);

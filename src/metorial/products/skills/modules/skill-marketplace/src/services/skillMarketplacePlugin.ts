@@ -11,6 +11,7 @@ import {
   resolveSkillMarketplacePlugins,
   resolveSkillPlugins
 } from '@metorial/list-utils';
+import { consumerAccessService } from '@metorial/module-consumer-access';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import {
   assertSkillMarketplacePluginLimit,
@@ -18,6 +19,10 @@ import {
   CargoSkillLimitError,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
+import {
+  assertSkillMarketplaceWriteAccess,
+  type SkillMarketplaceAccessInput
+} from '../lib/skillMarketplaceAccess';
 import { enqueueSkillMarketplacePluginLifecycle } from '../queues/lifecycle';
 import type { SkillMarketplaceRecord } from './skillMarketplace';
 import {
@@ -160,12 +165,18 @@ class SkillMarketplacePluginServiceImpl {
     project: Project;
     instance: Instance;
     skillMarketplace: SkillMarketplaceRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: {
       skillPluginId: string;
       pluginSlug?: string;
       skillConfigurationId?: string | null;
     };
   }) {
+    await assertSkillMarketplaceWriteAccess({
+      skillMarketplace: d.skillMarketplace,
+      accessTags: d.accessTags
+    });
+
     let skillPlugin = await skillPluginService.getSkillPluginById({
       project: d.project,
       instance: d.instance,
@@ -293,7 +304,12 @@ class SkillMarketplacePluginServiceImpl {
     project: Project;
     instance: Instance;
     skillMarketplacePlugin: SkillMarketplacePluginRecord;
+    accessTags?: SkillMarketplaceAccessInput['accessTags'];
   }) {
+    await assertSkillMarketplaceWriteAccess({
+      skillMarketplace: { oid: d.skillMarketplacePlugin.skillMarketplaceOid },
+      accessTags: d.accessTags
+    });
     assertPluginIsNotManaged(d.skillMarketplacePlugin.skillPlugin);
 
     let skillMarketplacePlugin = await db.skillMarketplacePlugin.update({
@@ -310,6 +326,11 @@ class SkillMarketplacePluginServiceImpl {
     await enqueueSkillMarketplacePluginLifecycle({
       skillMarketplacePluginId: skillMarketplacePlugin.id,
       event: 'archived'
+    });
+
+    await consumerAccessService.reconcileSkillPluginConsumerAccess({
+      skillPlugin: d.skillMarketplacePlugin.skillPlugin,
+      unlinkFromSkillMarketplaceOid: d.skillMarketplacePlugin.skillMarketplaceOid
     });
 
     return skillMarketplacePlugin;
