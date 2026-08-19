@@ -203,12 +203,76 @@ export let useSkillImportActions = (p: {
     return true;
   };
 
+  let importUploadedFile = async (file: File) => {
+    let [uploadedFile, uploadError] = await uploadFile.mutate({
+      instanceId: p.instanceId,
+      file,
+      title: file.name,
+      purpose: 'generic'
+    });
+    if (uploadError) throw uploadError;
+    if (!uploadedFile) throw new Error('Upload completed without a file');
+
+    if (
+      !(await createImport({
+        type: 'file',
+        fileId: uploadedFile.id
+      }))
+    ) {
+      throw new Error('Failed to start the skill import');
+    }
+  };
+
+  let uploadWithToast = (run: () => Promise<void>) => {
+    toast.promise(run, {
+      loading: 'Uploading skill...',
+      success: 'Skill uploaded',
+      error: error => error?.data?.message ?? error?.message ?? 'Failed to upload skill'
+    });
+  };
+
+  let uploadSelectedFile = (file: File) => {
+    uploadWithToast(() => importUploadedFile(file));
+  };
+
+  let uploadSkillDirectory = () => {
+    let input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.webkitdirectory = true;
+    input.setAttribute('webkitdirectory', '');
+    input.setAttribute('directory', '');
+    input.onchange = async () => {
+      let files = Array.from(input.files ?? []);
+      if (!files.length) return;
+
+      let { createSkillImportZipFromDirectory, validateSkillImportDirectory } = await import(
+        './skillImportZip'
+      );
+
+      let validationError = validateSkillImportDirectory(files);
+      if (validationError) {
+        showSkillImportFileError(validationError);
+        return;
+      }
+
+      uploadWithToast(async () => {
+        let zipFile = await createSkillImportZipFromDirectory(files);
+        let zipValidationError = validateSkillImportFile(zipFile);
+        if (zipValidationError) throw new Error(zipValidationError);
+        await importUploadedFile(zipFile);
+      });
+    };
+    input.click();
+    void import('./skillImportZip');
+  };
+
   let uploadSkill = () => {
     let input = document.createElement('input');
     input.type = 'file';
     input.accept = '.zip,.md,.markdown,application/zip,text/markdown,text/plain';
     input.multiple = false;
-    input.onchange = async () => {
+    input.onchange = () => {
       let file = input.files?.[0];
       if (!file) return;
 
@@ -218,32 +282,7 @@ export let useSkillImportActions = (p: {
         return;
       }
 
-      toast.promise(
-        async () => {
-          let [uploadedFile, uploadError] = await uploadFile.mutate({
-            instanceId: p.instanceId,
-            file,
-            title: file.name,
-            purpose: 'generic'
-          });
-          if (uploadError) throw uploadError;
-          if (!uploadedFile) throw new Error('Upload completed without a file');
-
-          if (
-            !(await createImport({
-              type: 'file',
-              fileId: uploadedFile.id
-            }))
-          ) {
-            throw new Error('Failed to start the skill import');
-          }
-        },
-        {
-          loading: 'Uploading skill...',
-          success: 'Skill uploaded',
-          error: error => error?.data?.message ?? error?.message ?? 'Failed to upload skill'
-        }
-      );
+      uploadSelectedFile(file);
     };
     input.click();
   };
@@ -251,6 +290,7 @@ export let useSkillImportActions = (p: {
   return {
     createImport,
     uploadSkill,
+    uploadSkillDirectory,
     isLoading: uploadFile.isLoading || createSkillImport.isLoading,
     RenderError: () => (
       <>
