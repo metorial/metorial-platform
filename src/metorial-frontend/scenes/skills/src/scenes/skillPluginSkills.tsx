@@ -24,6 +24,7 @@ import {
   theme
 } from '@metorial/ui';
 import { Box, ItemGrid, Table } from '@metorial/ui-product';
+import { useSearchFilter } from '@metorial/use-search-filter';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
@@ -65,6 +66,8 @@ let PickerScroll = styled.div`
   padding-right: 2px;
 `;
 
+let paginationOpts = { hidePaginationWhenUnavailable: true };
+
 let Slug = styled.div`
   background: ${theme.colors.gray300};
   min-height: 24px;
@@ -102,20 +105,71 @@ let truncate = (value: string | null | undefined, length = 100) => {
   return `${value.slice(0, length)}...`;
 };
 
+let SkillPickerResults = (p: {
+  skills: ReturnType<typeof useSkills>;
+  excludedSkillIds: Set<string>;
+  search: string;
+  selectedId: string | null;
+  onSelect: (skill: Skill) => void;
+}) =>
+  renderWithPagination(p.skills, paginationOpts)(skills => {
+    let items = skills.data.items.filter(skill => !p.excludedSkillIds.has(skill.id));
+
+    if (items.length === 0) {
+      return (
+        <Text size="2" color="gray600">
+          {p.search.trim()
+            ? 'No skills match your search.'
+            : 'All active skills are already linked to this plugin.'}
+        </Text>
+      );
+    }
+
+    return (
+      <ItemGrid.Root width="270px">
+        {items.map(skill => (
+          <ItemGrid.Item
+            key={skill.id}
+            title={skill.name}
+            description={truncate(skill.description)}
+            height={200}
+            onClick={() => !p.selectedId && p.onSelect(skill)}
+            icon={
+              <Avatar
+                entity={{
+                  name: skill.name,
+                  imageUrl: `https://avatar-cdn.metorial.com/${skill.id}`
+                }}
+                size={30}
+              />
+            }
+            bottom={
+              <div style={{ display: 'flex' }}>
+                <Slug>{skill.slug}</Slug>
+              </div>
+            }
+          />
+        ))}
+      </ItemGrid.Root>
+    );
+  });
+
 let SkillPickerPanel = (p: {
   instanceId: string;
   excludeSkillIds: string[];
   close: () => void;
   onSelect: (skill: Skill) => Promise<void> | void;
 }) => {
-  let [search, setSearch] = useState('');
+  let { search, setSearch, searchQuery } = useSearchFilter(500, {
+    updateSearchParams: false
+  });
   let [selectedId, setSelectedId] = useState<string | null>(null);
   let excludedSkillIds = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
   let skills = useSkills(p.instanceId, {
     order: 'desc',
     status: ['active'],
     limit: 30,
-    ...(search.trim() ? { search: search.trim() } : {})
+    ...(searchQuery ? { search: searchQuery } : {})
   });
 
   let selectSkill = async (skill: Skill) => {
@@ -147,47 +201,13 @@ let SkillPickerPanel = (p: {
           />
 
           <PickerScroll>
-            {renderWithPagination(skills, { hidePaginationWhenUnavailable: true })(skills => {
-              let items = skills.data.items.filter(skill => !excludedSkillIds.has(skill.id));
-
-              if (items.length === 0) {
-                return (
-                  <Text size="2" color="gray600">
-                    {search.trim()
-                      ? 'No skills match your search.'
-                      : 'All active skills are already linked to this plugin.'}
-                  </Text>
-                );
-              }
-
-              return (
-                <ItemGrid.Root width="270px">
-                  {items.map(skill => (
-                    <ItemGrid.Item
-                      key={skill.id}
-                      title={skill.name}
-                      description={truncate(skill.description)}
-                      height={200}
-                      onClick={() => selectSkill(skill)}
-                      icon={
-                        <Avatar
-                          entity={{
-                            name: skill.name,
-                            imageUrl: `https://avatar-cdn.metorial.com/${skill.id}`
-                          }}
-                          size={30}
-                        />
-                      }
-                      bottom={
-                        <div style={{ display: 'flex' }}>
-                          <Slug>{skill.slug}</Slug>
-                        </div>
-                      }
-                    />
-                  ))}
-                </ItemGrid.Root>
-              );
-            })}
+            <SkillPickerResults
+              skills={skills}
+              excludedSkillIds={excludedSkillIds}
+              search={search}
+              selectedId={selectedId}
+              onSelect={selectSkill}
+            />
           </PickerScroll>
         </PickerStack>
       </Panel.Content>

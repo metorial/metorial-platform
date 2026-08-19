@@ -44,6 +44,7 @@ import {
   theme
 } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { useSearchFilter } from '@metorial/use-search-filter';
 import {
   RiAddLine,
   RiDraggable,
@@ -51,7 +52,8 @@ import {
   RiPuzzle2Line
 } from '@remixicon/react';
 import PQueue from 'p-queue';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import styled from 'styled-components';
 
 type EmbeddedPluginSkill = SkillPlugin['skills'][number];
@@ -77,7 +79,7 @@ let Tree = styled.div`
   flex-direction: column;
 `;
 
-let TreeRow = styled.div<{ $dropTarget?: boolean; $dragging?: boolean }>`
+let TreeRow = styled.div<{ $dropTarget?: boolean; $dragging?: boolean; $muted?: boolean }>`
   min-height: 38px;
   padding: 3px 6px;
   display: flex;
@@ -88,7 +90,8 @@ let TreeRow = styled.div<{ $dropTarget?: boolean; $dragging?: boolean }>`
   border: 1px solid
     ${({ $dropTarget }) => ($dropTarget ? theme.colors.blue600 : 'transparent')};
   border-radius: 8px;
-  opacity: ${({ $dragging }) => ($dragging ? 0.45 : 1)};
+  opacity: ${({ $dragging, $muted }) => ($dragging ? 0.45 : $muted ? 0.5 : 1)};
+  color: ${({ $muted }) => ($muted ? theme.colors.gray600 : 'inherit')};
   transition: 120ms ease;
 `;
 
@@ -250,16 +253,18 @@ let FormStack = styled.div`
 
 let normalizeName = (value: string | null | undefined) => value?.trim().toLowerCase();
 
-let useDebouncedSearch = (value: string, delay = 500) => {
-  let [debouncedValue, setDebouncedValue] = useState(value);
+let paginationOpts = { hidePaginationWhenUnavailable: true };
 
-  useEffect(() => {
-    let timeout = window.setTimeout(() => setDebouncedValue(value), delay);
-    return () => window.clearTimeout(timeout);
-  }, [value, delay]);
+let marketplaceCanCreatePlugins = (marketplace: {
+  status: string;
+  canCreatePlugins?: boolean;
+}) => marketplace.canCreatePlugins ?? marketplace.status == 'active';
 
-  return debouncedValue.trim() || undefined;
-};
+let pluginCanUpdate = (plugin: { status: string; canUpdate?: boolean }) =>
+  plugin.canUpdate ?? plugin.status == 'active';
+
+let pluginCanDelete = (plugin: { status: string; canDelete?: boolean }) =>
+  plugin.canDelete === true;
 
 export let isCollapsedMarketplacePlugin = (item: SkillMarketplacePlugin) => {
   let plugin = item.skillPlugin;
@@ -294,14 +299,18 @@ export let moveSkillOptimistically = (
   items: SkillMarketplacePlugin[],
   sourcePluginId: string,
   destinationPluginId: string,
-  skill: EmbeddedPluginSkill
+  skill: EmbeddedPluginSkill,
+  removeEmptySource = true
 ) =>
   items.flatMap(item => {
     let plugin = item.skillPlugin;
     if (!plugin) return [item];
 
     if (plugin.id === sourcePluginId) {
-      if (plugin.skills.length === 1) return [];
+      if (plugin.skills.length === 1) {
+        if (removeEmptySource) return [];
+        return [{ ...item, skillPlugin: { ...plugin, skills: [] } }];
+      }
       return [
         {
           ...item,
@@ -329,12 +338,16 @@ export let moveSkillToStandaloneOptimistically = (
   items: SkillMarketplacePlugin[],
   sourcePluginId: string,
   skill: EmbeddedPluginSkill,
-  standalonePlugin: SkillMarketplacePlugin
+  standalonePlugin: SkillMarketplacePlugin,
+  removeEmptySource = true
 ) => [
   ...items.flatMap(item => {
     let plugin = item.skillPlugin;
     if (!plugin || plugin.id !== sourcePluginId) return [item];
-    if (plugin.skills.length === 1) return [];
+    if (plugin.skills.length === 1) {
+      if (removeEmptySource) return [];
+      return [{ ...item, skillPlugin: { ...plugin, skills: [] } }];
+    }
 
     return [
       {
@@ -348,6 +361,43 @@ export let moveSkillToStandaloneOptimistically = (
   }),
   standalonePlugin
 ];
+
+let asStandaloneMarketplacePlugin = (d: {
+  plugin: SkillPlugin;
+  skill: EmbeddedPluginSkill;
+  skillMarketplaceId: string;
+}): SkillMarketplacePlugin => ({
+  object: 'skill.marketplace_plugin',
+  id: `optimistic:${d.plugin.id}`,
+  status: 'active',
+  identifier: d.plugin.slug,
+  skillConfigurationId: d.plugin.skillConfigurationId,
+  skillMarketplaceId: d.skillMarketplaceId,
+  skillPlugin: {
+    ...d.plugin,
+    skills: [d.skill]
+  },
+  createdAt: d.plugin.createdAt,
+  updatedAt: d.plugin.updatedAt
+});
+
+let asOptimisticStandaloneMarketplacePlugin = (d: {
+  sourcePlugin: SkillPlugin;
+  skill: EmbeddedPluginSkill;
+  skillMarketplaceId: string;
+}) =>
+  asStandaloneMarketplacePlugin({
+    plugin: {
+      ...d.sourcePlugin,
+      id: `optimistic-plugin:${d.skill.id}`,
+      name: d.skill.skill.name,
+      slug: d.skill.skill.slug,
+      description: d.skill.skill.description,
+      skills: [d.skill]
+    },
+    skill: d.skill,
+    skillMarketplaceId: d.skillMarketplaceId
+  });
 
 let compareNames = (
   aName: string | null | undefined,
@@ -376,14 +426,10 @@ export let sortMarketplacePluginHierarchy = (items: SkillMarketplacePlugin[]) =>
         : null
     }))
     .sort((a, b) => {
-      let aIsStandalone = isCollapsedMarketplacePlugin(a);
-      let bIsStandalone = isCollapsedMarketplacePlugin(b);
-      if (aIsStandalone !== bIsStandalone) return aIsStandalone ? -1 : 1;
-
-      let aName = aIsStandalone
+      let aName = isCollapsedMarketplacePlugin(a)
         ? a.skillPlugin!.skills[0].skill.name
         : (a.skillPlugin?.name ?? a.identifier);
-      let bName = bIsStandalone
+      let bName = isCollapsedMarketplacePlugin(b)
         ? b.skillPlugin!.skills[0].skill.name
         : (b.skillPlugin?.name ?? b.identifier);
       return compareNames(aName, bName, a.id, b.id);
@@ -404,14 +450,64 @@ let addSelectedItems = async <T,>(items: T[], onSelect: (item: T) => Promise<boo
   return results.every(Boolean);
 };
 
+let PluginPickerResults = (p: {
+  plugins: ReturnType<typeof useSkillPlugins>;
+  excluded: Set<string>;
+  selectedIds: Set<string>;
+  search: string;
+  isAdding: boolean;
+  onToggle: (plugin: SkillPlugin, checked: boolean) => void;
+}) =>
+  renderWithPagination(
+    p.plugins,
+    paginationOpts
+  )(plugins => {
+    let items = plugins.data.items.filter(plugin => !p.excluded.has(plugin.id));
+
+    if (!items.length)
+      return (
+        <Text size="2" color="gray600">
+          {p.search.trim()
+            ? 'No available plugins match your search.'
+            : 'No additional plugins to add to this marketplace.'}
+        </Text>
+      );
+
+    return (
+      <Table
+        headers={['Name', 'Identifier']}
+        data={items.map(plugin => ({
+          data: [
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <PickerCheckbox key={plugin.id} onClick={event => event.stopPropagation()}>
+                <Checkbox
+                  label={`Select ${plugin.name}`}
+                  hideLabel
+                  checked={p.selectedIds.has(plugin.id)}
+                  disabled={p.isAdding}
+                  onCheckedChange={checked => p.onToggle(plugin, checked)}
+                />
+              </PickerCheckbox>
+
+              <span>{plugin.name}</span>
+            </div>,
+            plugin.slug
+          ],
+          onClick: () => !p.isAdding && p.onToggle(plugin, !p.selectedIds.has(plugin.id))
+        }))}
+      />
+    );
+  });
+
 let PluginPickerPanel = (p: {
   instanceId: string;
   excludePluginIds: string[];
   close: () => void;
   onSelect: (plugin: SkillPlugin) => Promise<boolean>;
 }) => {
-  let [search, setSearch] = useState('');
-  let searchQuery = useDebouncedSearch(search);
+  let { search, setSearch, searchQuery } = useSearchFilter(500, {
+    updateSearchParams: false
+  });
   let [selectedPlugins, setSelectedPlugins] = useState<SkillPlugin[]>([]);
   let [isAdding, setIsAdding] = useState(false);
   let plugins = useSkillPlugins(p.instanceId, {
@@ -421,6 +517,10 @@ let PluginPickerPanel = (p: {
     ...(searchQuery ? { search: searchQuery } : {})
   });
   let excluded = useMemo(() => new Set(p.excludePluginIds), [p.excludePluginIds]);
+  let selectedIds = useMemo(
+    () => new Set(selectedPlugins.map(plugin => plugin.id)),
+    [selectedPlugins]
+  );
 
   let toggleSelected = (plugin: SkillPlugin, checked: boolean) =>
     setSelectedPlugins(current =>
@@ -448,47 +548,14 @@ let PluginPickerPanel = (p: {
             value={search}
             onInput={setSearch}
           />
-          {renderWithPagination(plugins, { hidePaginationWhenUnavailable: true })(plugins => {
-            let items = plugins.data.items.filter(plugin => !excluded.has(plugin.id));
-            let selected = new Set(selectedPlugins.map(plugin => plugin.id));
-
-            if (!items.length)
-              return (
-                <Text size="2" color="gray600">
-                  {search.trim()
-                    ? 'No available plugins match your search.'
-                    : 'No additional plugins to add to this marketplace.'}
-                </Text>
-              );
-
-            return (
-              <Table
-                headers={['Name', 'Identifier']}
-                data={items.map(plugin => ({
-                  data: [
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <PickerCheckbox
-                        key={plugin.id}
-                        onClick={event => event.stopPropagation()}
-                      >
-                        <Checkbox
-                          label={`Select ${plugin.name}`}
-                          hideLabel
-                          checked={selected.has(plugin.id)}
-                          disabled={isAdding}
-                          onCheckedChange={checked => toggleSelected(plugin, checked)}
-                        />
-                      </PickerCheckbox>
-
-                      <span>{plugin.name}</span>
-                    </div>,
-                    plugin.slug
-                  ],
-                  onClick: () => !isAdding && toggleSelected(plugin, !selected.has(plugin.id))
-                }))}
-              />
-            );
-          })}
+          <PluginPickerResults
+            plugins={plugins}
+            excluded={excluded}
+            selectedIds={selectedIds}
+            search={search}
+            isAdding={isAdding}
+            onToggle={toggleSelected}
+          />
           <PickerActions>
             <Button
               loading={isAdding}
@@ -511,14 +578,65 @@ let PluginPickerPanel = (p: {
   );
 };
 
+let SkillPickerResults = (p: {
+  skills: ReturnType<typeof useSkills>;
+  linked: Set<string>;
+  selectedIds: Set<string>;
+  search: string;
+  isAdding: boolean;
+  onToggle: (skill: Skill, checked: boolean) => void;
+}) =>
+  renderWithPagination(
+    p.skills,
+    paginationOpts
+  )(skills => {
+    let items = skills.data.items.filter(skill => !p.linked.has(skill.id));
+
+    if (!items.length)
+      return (
+        <Text size="2" color="gray600">
+          {p.search.trim()
+            ? 'No available skills match your search.'
+            : 'All skills on this page are already in this marketplace.'}
+        </Text>
+      );
+
+    return (
+      <Table
+        headers={['Name', 'Identifier']}
+        data={items.map(skill => ({
+          data: [
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <PickerCheckbox key={skill.id} onClick={event => event.stopPropagation()}>
+                <Checkbox
+                  label={`Select ${skill.name}`}
+                  hideLabel
+                  checked={p.selectedIds.has(skill.id)}
+                  disabled={p.isAdding}
+                  onCheckedChange={checked => p.onToggle(skill, checked)}
+                />
+              </PickerCheckbox>
+
+              <span>{skill.name}</span>
+            </div>,
+
+            skill.slug
+          ],
+          onClick: () => !p.isAdding && p.onToggle(skill, !p.selectedIds.has(skill.id))
+        }))}
+      />
+    );
+  });
+
 let SkillPickerPanel = (p: {
   instanceId: string;
   linkedSkillIds: string[];
   close: () => void;
   onSelect: (skill: Skill) => Promise<boolean>;
 }) => {
-  let [search, setSearch] = useState('');
-  let searchQuery = useDebouncedSearch(search);
+  let { search, setSearch, searchQuery } = useSearchFilter(500, {
+    updateSearchParams: false
+  });
   let [selectedSkills, setSelectedSkills] = useState<Skill[]>([]);
   let [isAdding, setIsAdding] = useState(false);
   let skills = useSkills(p.instanceId, {
@@ -528,6 +646,10 @@ let SkillPickerPanel = (p: {
     ...(searchQuery ? { search: searchQuery } : {})
   });
   let linked = useMemo(() => new Set(p.linkedSkillIds), [p.linkedSkillIds]);
+  let selectedIds = useMemo(
+    () => new Set(selectedSkills.map(skill => skill.id)),
+    [selectedSkills]
+  );
 
   let toggleSelected = (skill: Skill, checked: boolean) =>
     setSelectedSkills(current =>
@@ -553,48 +675,14 @@ let SkillPickerPanel = (p: {
             value={search}
             onInput={setSearch}
           />
-          {renderWithPagination(skills, { hidePaginationWhenUnavailable: true })(skills => {
-            let items = skills.data.items.filter(skill => !linked.has(skill.id));
-            let selected = new Set(selectedSkills.map(skill => skill.id));
-
-            if (!items.length)
-              return (
-                <Text size="2" color="gray600">
-                  {search.trim()
-                    ? 'No available skills match your search.'
-                    : 'All skills on this page are already in this marketplace.'}
-                </Text>
-              );
-
-            return (
-              <Table
-                headers={['Name', 'Identifier']}
-                data={items.map(skill => ({
-                  data: [
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <PickerCheckbox
-                        key={skill.id}
-                        onClick={event => event.stopPropagation()}
-                      >
-                        <Checkbox
-                          label={`Select ${skill.name}`}
-                          hideLabel
-                          checked={selected.has(skill.id)}
-                          disabled={isAdding}
-                          onCheckedChange={checked => toggleSelected(skill, checked)}
-                        />
-                      </PickerCheckbox>
-
-                      <span>{skill.name}</span>
-                    </div>,
-
-                    skill.slug
-                  ],
-                  onClick: () => !isAdding && toggleSelected(skill, !selected.has(skill.id))
-                }))}
-              />
-            );
-          })}
+          <SkillPickerResults
+            skills={skills}
+            linked={linked}
+            selectedIds={selectedIds}
+            search={search}
+            isAdding={isAdding}
+            onToggle={toggleSelected}
+          />
           <PickerActions>
             <Button
               loading={isAdding}
@@ -640,7 +728,6 @@ let PluginForm = (p: {
 }) => {
   let createPlugin = useCreateSkillPlugin();
   let updatePlugin = useUpdateSkillPlugin();
-  let addMarketplacePlugin = useCreateSkillMarketplacePlugin();
   let form = useForm({
     initialValues: { name: p.plugin?.name ?? '', description: p.plugin?.description ?? '' },
     onSubmit: async values => {
@@ -655,16 +742,11 @@ let PluginForm = (p: {
       } else {
         let [plugin] = await createPlugin.mutate({
           instanceId: p.instanceId,
+          skillMarketplaceId: p.skillMarketplaceId,
           name: values.name.trim(),
           description: values.description.trim() || undefined
         });
         if (!plugin) return;
-        let [added] = await addMarketplacePlugin.mutate({
-          instanceId: p.instanceId,
-          skillMarketplaceId: p.skillMarketplaceId,
-          skillPluginId: plugin.id
-        });
-        if (!added) return;
       }
       await p.onChanged();
       p.close();
@@ -675,8 +757,7 @@ let PluginForm = (p: {
         description: yup.string()
       })
   });
-  let loading =
-    createPlugin.isLoading || updatePlugin.isLoading || addMarketplacePlugin.isLoading;
+  let loading = createPlugin.isLoading || updatePlugin.isLoading;
   return (
     <form onSubmit={form.handleSubmit}>
       <FormStack>
@@ -699,7 +780,6 @@ let PluginForm = (p: {
         </Dialog.Actions>
         <createPlugin.RenderError />
         <updatePlugin.RenderError />
-        <addMarketplacePlugin.RenderError />
       </FormStack>
     </form>
   );
@@ -721,33 +801,42 @@ let showPluginForm = (p: Omit<Parameters<typeof PluginForm>[0], 'close'>) =>
 let PluginMenu = (p: {
   plugin: SkillPlugin;
   disabled: boolean;
+  canUpdate: boolean;
+  canAddSkill: boolean;
+  canRemove: boolean;
   onAddSkill: () => void;
   onEdit: () => void;
   onRemove: () => void;
-}) => (
-  <Menu
-    items={[
-      { label: 'Add Skill', onClick: p.onAddSkill },
-      { label: 'Edit Plugin', onClick: p.onEdit },
-      { label: 'Remove from Marketplace', onClick: p.onRemove }
-    ]}
-  >
-    <Button
-      aria-label={`${p.plugin.name} options`}
-      title="Plugin options"
-      size="1"
-      variant="ghost"
-      iconRight={<RiMoreVerticalLine />}
-      disabled={p.disabled}
-    />
-  </Menu>
-);
+  variant?: 'ghost' | 'outline';
+}) => {
+  let items = [
+    ...(p.canAddSkill ? [{ label: 'Add Skill', onClick: p.onAddSkill }] : []),
+    ...(p.canUpdate ? [{ label: 'Edit Plugin', onClick: p.onEdit }] : []),
+    ...(p.canRemove ? [{ label: 'Remove from Marketplace', onClick: p.onRemove }] : [])
+  ];
+  if (!items.length) return null;
+
+  return (
+    <Menu items={items}>
+      <Button
+        aria-label={`${p.plugin.name} options`}
+        title="Plugin options"
+        size="1"
+        variant={p.variant ?? 'ghost'}
+        iconRight={<RiMoreVerticalLine />}
+        disabled={p.disabled}
+      />
+    </Menu>
+  );
+};
 
 let SkillRow = (p: {
   skill: EmbeddedPluginSkill;
   pluginId: string;
   href?: string;
   disabled: boolean;
+  showDragHandle: boolean;
+  muted?: boolean;
   combined?: boolean;
   dropTarget?: boolean;
   actions?: React.ReactNode;
@@ -765,17 +854,24 @@ let SkillRow = (p: {
     </RowMain>
   );
   return (
-    <TreeRow ref={drag.setNodeRef} $dragging={drag.isDragging} $dropTarget={p.dropTarget}>
-      <DragHandle
-        ref={drag.setActivatorNodeRef}
-        {...drag.listeners}
-        {...drag.attributes}
-        data-skill-drag-handle
-        disabled={p.disabled}
-        aria-label={`Move ${p.skill.skill.name}`}
-      >
-        <RiDraggable size={17} />
-      </DragHandle>
+    <TreeRow
+      ref={drag.setNodeRef}
+      $dragging={drag.isDragging}
+      $dropTarget={p.dropTarget}
+      $muted={p.muted}
+    >
+      {p.showDragHandle && (
+        <DragHandle
+          ref={drag.setActivatorNodeRef}
+          {...drag.listeners}
+          {...drag.attributes}
+          data-skill-drag-handle
+          disabled={p.disabled}
+          aria-label={`Move ${p.skill.skill.name}`}
+        >
+          <RiDraggable size={17} />
+        </DragHandle>
+      )}
       {p.href ? (
         <SkillLink
           href={p.href}
@@ -825,52 +921,82 @@ let PluginTreeItem = (p: {
   getSkillPath?: (skillId: string) => string;
   actionsDisabled: boolean;
   dragDisabled: boolean;
+  canCreatePlugins: boolean;
   onAddSkill: () => void;
   onEdit: () => void;
   onRemove: () => void;
 }) => {
   let plugin = p.item.skillPlugin!;
+  let canUpdate = pluginCanUpdate(plugin);
+  let muted = !canUpdate;
+  let showInlineAddSkill = canUpdate && !p.canCreatePlugins;
   let drop = useDroppable({
     id: `plugin:${plugin.id}`,
-    disabled: p.dragDisabled,
+    disabled: p.dragDisabled || !canUpdate,
     data: { pluginId: plugin.id }
   });
-  let menu = (
-    <PluginMenu
-      plugin={plugin}
-      disabled={p.actionsDisabled}
-      onAddSkill={p.onAddSkill}
-      onEdit={p.onEdit}
-      onRemove={p.onRemove}
-    />
+
+  let actions = (
+    <RowActions>
+      <PluginMenu
+        plugin={plugin}
+        disabled={p.actionsDisabled}
+        canUpdate={canUpdate}
+        canAddSkill={canUpdate && !showInlineAddSkill}
+        canRemove={p.canCreatePlugins}
+        onAddSkill={p.onAddSkill}
+        onEdit={p.onEdit}
+        onRemove={p.onRemove}
+        variant={showInlineAddSkill ? 'outline' : 'ghost'}
+      />
+
+      {showInlineAddSkill && (
+        <Button
+          size="1"
+          iconLeft={<RiAddLine />}
+          disabled={p.actionsDisabled}
+          onClick={p.onAddSkill}
+        >
+          Add Skill
+        </Button>
+      )}
+    </RowActions>
   );
+
   let collapsed = isCollapsedMarketplacePlugin(p.item);
+
   return (
     <PluginBranch ref={drop.setNodeRef}>
       <BranchConnector />
+
       {collapsed ? (
         <SkillRow
           skill={plugin.skills[0]}
           pluginId={plugin.id}
           href={p.getSkillPath?.(plugin.skills[0].skillId)}
-          disabled={p.dragDisabled}
+          disabled={p.dragDisabled || !canUpdate}
+          showDragHandle={canUpdate}
+          muted={muted}
           combined
           dropTarget={drop.isOver}
-          actions={menu}
+          actions={actions}
         />
       ) : (
         <>
-          <TreeRow $dropTarget={drop.isOver}>
+          <TreeRow $dropTarget={drop.isOver} $muted={muted}>
             <RowMain>
               <Text size="2" weight="strong">
                 {plugin.name}
               </Text>
             </RowMain>
+
             <Badge size="1" color="gray">
               {p.item.identifier}
             </Badge>
-            {menu}
+
+            {actions}
           </TreeRow>
+
           {plugin.skills.length > 0 && (
             <SkillBranches>
               {plugin.skills.map(skill => (
@@ -879,7 +1005,9 @@ let PluginTreeItem = (p: {
                     skill={skill}
                     pluginId={plugin.id}
                     href={p.getSkillPath?.(skill.skillId)}
-                    disabled={p.dragDisabled}
+                    disabled={p.dragDisabled || !canUpdate}
+                    showDragHandle={canUpdate}
+                    muted={muted}
                   />
                 </SkillRowWrap>
               ))}
@@ -896,6 +1024,8 @@ export let SkillMarketplacePluginsScene = (p: {
   skillMarketplaceId: string | null | undefined;
   getSkillPluginPath?: (skillPluginId: string) => string;
   getSkillPath?: (skillId: string) => string;
+  showHeader?: boolean;
+  showImportPlugin?: boolean;
 }) => {
   let marketplace = useSkillMarketplace(p.instanceId, p.skillMarketplaceId);
   let marketplacePlugins = useAllSkillMarketplacePlugins(p.instanceId, p.skillMarketplaceId, {
@@ -942,6 +1072,29 @@ export let SkillMarketplacePluginsScene = (p: {
     void refresh().finally(() => {
       if (moveVersionRef.current === version) setOptimisticPlugins(null);
     });
+  };
+  let cleanupEmptySourcePlugin = async (sourceItem: SkillMarketplacePlugin) => {
+    if (!shouldDeleteSourcePluginAfterMove(sourceItem) || !p.instanceId) return;
+
+    if (pluginCanDelete(sourceItem.skillPlugin!)) {
+      await deletePlugin.mutate({
+        instanceId: p.instanceId,
+        skillPluginId: sourceItem.skillPlugin!.id
+      });
+      return;
+    }
+
+    if (
+      marketplace.data &&
+      marketplaceCanCreatePlugins(marketplace.data) &&
+      p.skillMarketplaceId
+    ) {
+      await removeMarketplacePlugin.mutate({
+        instanceId: p.instanceId,
+        skillMarketplaceId: p.skillMarketplaceId,
+        skillMarketplacePluginId: sourceItem.id
+      });
+    }
   };
   let actionsDisabled =
     movePending ||
@@ -992,6 +1145,7 @@ export let SkillMarketplacePluginsScene = (p: {
       onSelect: async skill => {
         let [plugin] = await createPlugin.mutate({
           instanceId: p.instanceId!,
+          skillMarketplaceId: p.skillMarketplaceId!,
           name: skill.name,
           description: skill.description ?? undefined
         });
@@ -1001,14 +1155,8 @@ export let SkillMarketplacePluginsScene = (p: {
           skillPluginId: plugin.id,
           ...getNewSkillInput(skill)
         });
-        if (!membership) return false;
-        let [added] = await addMarketplacePlugin.mutate({
-          instanceId: p.instanceId!,
-          skillMarketplaceId: p.skillMarketplaceId!,
-          skillPluginId: plugin.id
-        });
-        if (added) await refresh();
-        return Boolean(added);
+        if (membership) await refresh();
+        return Boolean(membership);
       }
     });
   };
@@ -1041,6 +1189,7 @@ export let SkillMarketplacePluginsScene = (p: {
     let sourcePluginId = p2.sourceItem.skillPlugin!.id;
     let [plugin] = await createPlugin.mutate({
       instanceId: p.instanceId,
+      skillMarketplaceId: p.skillMarketplaceId,
       name: p2.skill.skill.name,
       description: p2.skill.skill.description ?? undefined
     });
@@ -1056,22 +1205,12 @@ export let SkillMarketplacePluginsScene = (p: {
       return;
     }
 
-    let [marketplaceMembership] = await addMarketplacePlugin.mutate({
-      instanceId: p.instanceId,
-      skillMarketplaceId: p.skillMarketplaceId,
-      skillPluginId: plugin.id
+    let marketplaceMembership = asStandaloneMarketplacePlugin({
+      plugin,
+      skill: p2.skill,
+      skillMarketplaceId: p.skillMarketplaceId
     });
-    if (!marketplaceMembership) {
-      await deletePlugin.mutate({ instanceId: p.instanceId, skillPluginId: plugin.id });
-      return;
-    }
-
     let rollbackStandalonePlugin = async () => {
-      await removeMarketplacePlugin.mutate({
-        instanceId: p.instanceId!,
-        skillMarketplaceId: p.skillMarketplaceId!,
-        skillMarketplacePluginId: marketplaceMembership.id
-      });
       await deletePlugin.mutate({
         instanceId: p.instanceId!,
         skillPluginId: plugin.id
@@ -1088,43 +1227,7 @@ export let SkillMarketplacePluginsScene = (p: {
       return;
     }
 
-    if (shouldDeleteSourcePluginAfterMove(p2.sourceItem)) {
-      let [sourceMarketplaceMembershipRemoved] = await removeMarketplacePlugin.mutate({
-        instanceId: p.instanceId,
-        skillMarketplaceId: p.skillMarketplaceId,
-        skillMarketplacePluginId: p2.sourceItem.id
-      });
-      if (!sourceMarketplaceMembershipRemoved) {
-        await addPluginSkill.mutate({
-          instanceId: p.instanceId,
-          skillPluginId: sourcePluginId,
-          ...getMoveSkillInput(p2.skill)
-        });
-        await rollbackStandalonePlugin();
-        await refresh();
-        return;
-      }
-
-      let [sourcePluginDeleted] = await deletePlugin.mutate({
-        instanceId: p.instanceId,
-        skillPluginId: sourcePluginId
-      });
-      if (!sourcePluginDeleted) {
-        await addPluginSkill.mutate({
-          instanceId: p.instanceId,
-          skillPluginId: sourcePluginId,
-          ...getMoveSkillInput(p2.skill)
-        });
-        await addMarketplacePlugin.mutate({
-          instanceId: p.instanceId,
-          skillMarketplaceId: p.skillMarketplaceId,
-          skillPluginId: sourcePluginId
-        });
-        await rollbackStandalonePlugin();
-        await refresh();
-        return;
-      }
-    }
+    await cleanupEmptySourcePlugin(p2.sourceItem);
 
     return marketplaceMembership;
   };
@@ -1135,22 +1238,53 @@ export let SkillMarketplacePluginsScene = (p: {
       | undefined;
     let destinationId = event.over?.data.current?.pluginId as string | undefined;
     let createStandalonePlugin = Boolean(event.over?.data.current?.createStandalonePlugin);
-    setMovingSkill(null);
+    let clearOverlay = () => setMovingSkill(null);
     if (
       !p.instanceId ||
       !data?.pluginId ||
       !data.skill ||
       (!destinationId && !createStandalonePlugin)
-    )
+    ) {
+      clearOverlay();
       return;
+    }
     let sourceItem = displayedPlugins.find(item => item.skillPlugin?.id === data.pluginId);
-    if (!sourceItem?.skillPlugin) return;
+    if (!sourceItem?.skillPlugin || !pluginCanUpdate(sourceItem.skillPlugin)) {
+      clearOverlay();
+      return;
+    }
+    let canCreatePlugins = marketplace.data
+      ? marketplaceCanCreatePlugins(marketplace.data)
+      : false;
+    let removeEmptySource = canCreatePlugins;
 
     if (createStandalonePlugin) {
-      if (isCollapsedMarketplacePlugin(sourceItem)) return;
+      if (
+        !canCreatePlugins ||
+        isCollapsedMarketplacePlugin(sourceItem) ||
+        !p.skillMarketplaceId
+      ) {
+        clearOverlay();
+        return;
+      }
       let moveVersion = ++moveVersionRef.current;
+      let nextPlugins = moveSkillToStandaloneOptimistically(
+        displayedPlugins,
+        data.pluginId,
+        data.skill,
+        asOptimisticStandaloneMarketplacePlugin({
+          sourcePlugin: sourceItem.skillPlugin,
+          skill: data.skill,
+          skillMarketplaceId: p.skillMarketplaceId
+        }),
+        removeEmptySource
+      );
+      flushSync(() => {
+        setOptimisticPlugins(nextPlugins);
+        setMovePending(true);
+      });
+      clearOverlay();
       let moveCompleted = false;
-      setMovePending(true);
       try {
         let standalonePlugin = await moveSkillToStandalonePlugin({
           sourceItem,
@@ -1158,15 +1292,7 @@ export let SkillMarketplacePluginsScene = (p: {
         });
         if (!standalonePlugin) return;
         moveCompleted = true;
-        finishMove(
-          moveVersion,
-          moveSkillToStandaloneOptimistically(
-            displayedPlugins,
-            data.pluginId,
-            data.skill,
-            standalonePlugin
-          )
-        );
+        finishMove(moveVersion, nextPlugins);
       } finally {
         if (!moveCompleted && moveVersionRef.current === moveVersion) {
           setOptimisticPlugins(null);
@@ -1176,24 +1302,34 @@ export let SkillMarketplacePluginsScene = (p: {
       return;
     }
 
-    if (!destinationId || destinationId === data.pluginId) return;
+    if (!destinationId || destinationId === data.pluginId) {
+      clearOverlay();
+      return;
+    }
     let destination = displayedPlugins.find(
       item => item.skillPlugin?.id === destinationId
     )?.skillPlugin;
     if (
       !destination ||
+      !pluginCanUpdate(destination) ||
       destination.skills.some(skill => skill.skillId === data.skill!.skillId)
-    )
+    ) {
+      clearOverlay();
       return;
+    }
     let moveVersion = ++moveVersionRef.current;
     let nextPlugins = moveSkillOptimistically(
       displayedPlugins,
       data.pluginId,
       destinationId,
-      data.skill
+      data.skill,
+      removeEmptySource
     );
-    setOptimisticPlugins(nextPlugins);
-    setMovePending(true);
+    flushSync(() => {
+      setOptimisticPlugins(nextPlugins);
+      setMovePending(true);
+    });
+    clearOverlay();
     let moveCompleted = false;
     try {
       let [created] = await addPluginSkill.mutate({
@@ -1217,53 +1353,7 @@ export let SkillMarketplacePluginsScene = (p: {
         return;
       }
 
-      if (shouldDeleteSourcePluginAfterMove(sourceItem)) {
-        let [marketplaceMembershipRemoved] = await removeMarketplacePlugin.mutate({
-          instanceId: p.instanceId,
-          skillMarketplaceId: p.skillMarketplaceId!,
-          skillMarketplacePluginId: sourceItem.id
-        });
-
-        if (!marketplaceMembershipRemoved) {
-          await addPluginSkill.mutate({
-            instanceId: p.instanceId,
-            skillPluginId: data.pluginId,
-            ...getMoveSkillInput(data.skill)
-          });
-          await removePluginSkill.mutate({
-            instanceId: p.instanceId,
-            skillPluginId: destinationId,
-            skillPluginSkillId: created.id
-          });
-          await refresh();
-          return;
-        }
-
-        let [pluginDeleted] = await deletePlugin.mutate({
-          instanceId: p.instanceId,
-          skillPluginId: data.pluginId
-        });
-
-        if (!pluginDeleted) {
-          await addPluginSkill.mutate({
-            instanceId: p.instanceId,
-            skillPluginId: data.pluginId,
-            ...getMoveSkillInput(data.skill)
-          });
-          await addMarketplacePlugin.mutate({
-            instanceId: p.instanceId,
-            skillMarketplaceId: p.skillMarketplaceId!,
-            skillPluginId: data.pluginId
-          });
-          await removePluginSkill.mutate({
-            instanceId: p.instanceId,
-            skillPluginId: destinationId,
-            skillPluginSkillId: created.id
-          });
-          await refresh();
-          return;
-        }
-      }
+      await cleanupEmptySourcePlugin(sourceItem);
       moveCompleted = true;
       finishMove(moveVersion, nextPlugins);
     } finally {
@@ -1276,106 +1366,124 @@ export let SkillMarketplacePluginsScene = (p: {
 
   let sensors = useSensors(useSensor(SkillPointerSensor), useSensor(KeyboardSensor));
   return renderWithLoader({ marketplace, marketplacePlugins })(
-    ({ marketplace, marketplacePlugins }) => (
-      <PageHeaderSection
-        title="Plugins and Skills"
-        description="Manage plugins and skills for this marketplace. Use plugins to group related skills or add individual skills to the marketplace directly."
-      >
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragCancel={() => setMovingSkill(null)}
-          onDragEnd={onDragEnd}
+    ({ marketplace, marketplacePlugins }) => {
+      let canCreatePlugins = marketplaceCanCreatePlugins(marketplace.data);
+      let body = (
+        <>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={onDragStart}
+            onDragCancel={() => setMovingSkill(null)}
+            onDragEnd={onDragEnd}
+          >
+            <Tree>
+              <MarketplaceHeader
+                marketplaceId={marketplace.data.id}
+                name={marketplace.data.name}
+                disabled={actionsDisabled || !canCreatePlugins}
+                actions={
+                  canCreatePlugins ? (
+                    <RootActions>
+                      <Button
+                        size="2"
+                        variant="outline"
+                        iconLeft={<RiAddLine />}
+                        onClick={addSingleSkill}
+                        disabled={actionsDisabled}
+                      >
+                        Add Skill
+                      </Button>
+                      <Button
+                        size="2"
+                        iconLeft={<RiPuzzle2Line />}
+                        disabled={actionsDisabled}
+                        onClick={() =>
+                          p.instanceId &&
+                          p.skillMarketplaceId &&
+                          showPluginForm({
+                            instanceId: p.instanceId,
+                            skillMarketplaceId: p.skillMarketplaceId,
+                            onChanged: refresh
+                          })
+                        }
+                        menu={
+                          p.showImportPlugin === false
+                            ? undefined
+                            : [{ label: 'Import Plugin', onClick: addExistingPlugin }]
+                        }
+                      >
+                        Add Plugin
+                      </Button>
+                    </RootActions>
+                  ) : null
+                }
+              />
+              {displayedPlugins.length ? (
+                <Branches>
+                  {displayedPlugins
+                    .filter(item => item.skillPlugin)
+                    .map(item => (
+                      <PluginTreeItem
+                        key={item.id}
+                        item={item}
+                        getSkillPath={p.getSkillPath}
+                        actionsDisabled={actionsDisabled}
+                        dragDisabled={movePending}
+                        canCreatePlugins={canCreatePlugins}
+                        onAddSkill={() => addSkillToPlugin(item.skillPlugin!)}
+                        onEdit={() =>
+                          p.instanceId &&
+                          p.skillMarketplaceId &&
+                          showPluginForm({
+                            instanceId: p.instanceId,
+                            skillMarketplaceId: p.skillMarketplaceId,
+                            plugin: item.skillPlugin!,
+                            onChanged: refresh
+                          })
+                        }
+                        onRemove={() => removePlugin(item)}
+                      />
+                    ))}
+                </Branches>
+              ) : (
+                <EmptyState>
+                  <Text color="gray600" size="2">
+                    This marketplace does not include any plugins yet.
+                  </Text>
+                </EmptyState>
+              )}
+            </Tree>
+            <DragOverlay>
+              {movingSkill && (
+                <TreeRow>
+                  <RiDraggable />
+                  <Text size="2" weight="strong">
+                    {movingSkill.skill.name}
+                  </Text>
+                </TreeRow>
+              )}
+            </DragOverlay>
+          </DndContext>
+          <addMarketplacePlugin.RenderError />
+          <removeMarketplacePlugin.RenderError />
+          <createPlugin.RenderError />
+          <addPluginSkill.RenderError />
+          <removePluginSkill.RenderError />
+          <deletePlugin.RenderError />
+        </>
+      );
+
+      if (p.showHeader === false) return body;
+
+      return (
+        <PageHeaderSection
+          title="Plugins and Skills"
+          description="Manage plugins and skills for this marketplace. Use plugins to group related skills or add individual skills to the marketplace directly."
         >
-          <Tree>
-            <MarketplaceHeader
-              marketplaceId={marketplace.data.id}
-              name={marketplace.data.name}
-              disabled={actionsDisabled}
-              actions={
-                <RootActions>
-                  <Button
-                    size="2"
-                    variant="outline"
-                    iconLeft={<RiAddLine />}
-                    onClick={addSingleSkill}
-                    disabled={actionsDisabled}
-                  >
-                    Add Skill
-                  </Button>
-                  <Button
-                    size="2"
-                    iconLeft={<RiPuzzle2Line />}
-                    disabled={actionsDisabled}
-                    onClick={() =>
-                      p.instanceId &&
-                      p.skillMarketplaceId &&
-                      showPluginForm({
-                        instanceId: p.instanceId,
-                        skillMarketplaceId: p.skillMarketplaceId,
-                        onChanged: refresh
-                      })
-                    }
-                    menu={[{ label: 'Import Plugin', onClick: addExistingPlugin }]}
-                  >
-                    Add Plugin
-                  </Button>
-                </RootActions>
-              }
-            />
-            {displayedPlugins.length ? (
-              <Branches>
-                {displayedPlugins
-                  .filter(item => item.skillPlugin)
-                  .map(item => (
-                    <PluginTreeItem
-                      key={item.id}
-                      item={item}
-                      getSkillPath={p.getSkillPath}
-                      actionsDisabled={actionsDisabled}
-                      dragDisabled={movePending}
-                      onAddSkill={() => addSkillToPlugin(item.skillPlugin!)}
-                      onEdit={() =>
-                        p.instanceId &&
-                        p.skillMarketplaceId &&
-                        showPluginForm({
-                          instanceId: p.instanceId,
-                          skillMarketplaceId: p.skillMarketplaceId,
-                          plugin: item.skillPlugin!,
-                          onChanged: refresh
-                        })
-                      }
-                      onRemove={() => removePlugin(item)}
-                    />
-                  ))}
-              </Branches>
-            ) : (
-              <EmptyState>
-                <Text color="gray600" size="2">
-                  This marketplace does not include any plugins yet.
-                </Text>
-              </EmptyState>
-            )}
-          </Tree>
-          <DragOverlay>
-            {movingSkill && (
-              <TreeRow>
-                <RiDraggable />
-                <Text size="2" weight="strong">
-                  {movingSkill.skill.name}
-                </Text>
-              </TreeRow>
-            )}
-          </DragOverlay>
-        </DndContext>
-        <addMarketplacePlugin.RenderError />
-        <removeMarketplacePlugin.RenderError />
-        <createPlugin.RenderError />
-        <addPluginSkill.RenderError />
-        <removePluginSkill.RenderError />
-        <deletePlugin.RenderError />
-      </PageHeaderSection>
-    )
+          {body}
+        </PageHeaderSection>
+      );
+    }
   );
 };

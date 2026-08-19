@@ -34,12 +34,16 @@ let Description = styled.span`
 `;
 
 export let SkillMarketplacesGrid = (
-  p: { instanceId: string } & Omit<
+  p: {
+    instanceId: string;
+    getHref?: (marketplaceId: string) => string;
+    hideCreate?: boolean;
+  } & Omit<
     DashboardInstanceSkillsMarketplacesListQuery,
     'after' | 'before' | 'cursor' | 'limit'
   >
 ) => {
-  let { instanceId, ...query } = p;
+  let { instanceId, getHref, hideCreate, ...query } = p;
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
@@ -57,20 +61,22 @@ export let SkillMarketplacesGrid = (
     (Array.isArray(query.status) ? query.status.length > 0 : query.status)
   );
 
+  let marketplaceHref = (marketplaceId: string) =>
+    getHref?.(marketplaceId) ??
+    Paths.instance.skillMarketplace(
+      organization.data,
+      project.data,
+      instance.data,
+      marketplaceId
+    );
+
   let showCreateModal = () => {
-    if (!instance.data) return;
+    if (!instance.data || hideCreate) return;
 
     showSkillMarketplaceFormModal({
       instanceId: instance.data.id,
       onCreate: marketplace => {
-        navigate(
-          Paths.instance.skillMarketplace(
-            organization.data,
-            project.data,
-            instance.data,
-            marketplace.id
-          )
-        );
+        navigate(marketplaceHref(marketplace.id));
       }
     });
   };
@@ -84,7 +90,7 @@ export let SkillMarketplacesGrid = (
           </Text>
         )}
 
-        {!hasActiveFilters && (
+        {!hasActiveFilters && !hideCreate && (
           <EmptyState
             extra="Skill Marketplaces"
             title="Create your first marketplace"
@@ -94,6 +100,12 @@ export let SkillMarketplacesGrid = (
               onClick: showCreateModal
             }}
           />
+        )}
+
+        {!hasActiveFilters && hideCreate && (
+          <Text size="2" color="gray600">
+            No skill marketplaces yet.
+          </Text>
         )}
 
         {!query.search && hasActiveFilters && (
@@ -116,12 +128,7 @@ export let SkillMarketplacesGrid = (
             return (
               <ItemGrid.Item
                 key={marketplace.id}
-                href={Paths.instance.skillMarketplace(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  marketplace.id
-                )}
+                href={marketplaceHref(marketplace.id)}
                 entity={{ id: marketplace.id, hasUsage: true }}
                 title={marketplace.name}
                 description={<Description>{marketplace.description}</Description>}

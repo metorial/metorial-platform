@@ -121,6 +121,10 @@ export let SkillMarketplaceLayout = () => {
                   to: Paths.instance.skillMarketplace(...marketplacePathParams)
                 },
                 {
+                  label: 'Managers & Access',
+                  to: Paths.instance.skillMarketplace(...marketplacePathParams, 'access')
+                },
+                {
                   label: 'Settings',
                   to: Paths.instance.skillMarketplace(...marketplacePathParams, 'settings')
                 }
