@@ -4,10 +4,11 @@ import type {
   ProviderListingsGetOutput
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
+import { Explainer } from '@metorial/explainer';
 import { Paths } from '@metorial/frontend-config';
 import {
-  useCreateProviderDeployment,
   useCreateProviderConfig,
+  useCreateProviderDeployment,
   useCreateSession,
   useCurrentInstance,
   useProvider,
@@ -36,11 +37,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { Explainer } from '@metorial/explainer';
-import {
-  OpenExplorerButton,
-  type OpenExplorerMode
-} from '../../components/openExplorer';
+import { OpenExplorerButton, type OpenExplorerMode } from '../../components/openExplorer';
 import {
   emptyConfigurationSelection,
   type ConfigurationSelection
@@ -168,8 +165,7 @@ export let ExplorerPage = () => {
   let sessionIdParam = search.get('session_id');
   let modeParam = search.get('mode');
   let hasExplorerModeParam = modeParam == 'manual' || modeParam == 'assistant';
-  let initialExplorerMode: ExplorerTabMode =
-    modeParam == 'assistant' ? 'assistant' : 'manual';
+  let initialExplorerMode: ExplorerTabMode = modeParam == 'assistant' ? 'assistant' : 'manual';
   let sessionTemplateIdFromState =
     (location.state as { sessionTemplateId?: string } | null)?.sessionTemplateId ?? null;
   let magicMcpServerIdFromState =
@@ -349,7 +345,9 @@ export let ExplorerPage = () => {
     [resetSessionSetupSelections]
   );
   let providerIdToResolve =
-    !isSessionFirstMode && !providerDeploymentId ? (selectedProvider?.id ?? providerIdParam) : null;
+    !isSessionFirstMode && !providerDeploymentId
+      ? (selectedProvider?.id ?? providerIdParam)
+      : null;
   let deploymentsFilter = useMemo(
     () => (providerIdToResolve ? { providerId: providerIdToResolve } : undefined),
     [providerIdToResolve]
@@ -408,19 +406,14 @@ export let ExplorerPage = () => {
 
     let matchingDeployments = (deployments.data?.items ?? [])
       .filter(deployment => deployment.providerId === providerIdToResolve)
-      .sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (matchingDeployments[0]) {
       selectDeployment(matchingDeployments[0].id);
       return;
     }
 
-    if (
-      createMutation.isPending ||
-      resolvingProviderIdRef.current === providerIdToResolve
-    ) {
+    if (createMutation.isPending || resolvingProviderIdRef.current === providerIdToResolve) {
       return;
     }
 
@@ -532,10 +525,7 @@ export let ExplorerPage = () => {
       resolvingProviderIdRef.current === providerIdToResolve);
 
   let createSessionWithSelectedSetup = useCallback(
-    async (
-      deploymentId: string,
-      options?: { name?: string; mode?: OpenExplorerMode }
-    ) => {
+    async (deploymentId: string, options?: { name?: string; mode?: OpenExplorerMode }) => {
       let providerConfigId =
         selectedConfiguration.kind === 'config' ? selectedConfiguration.id : undefined;
       let providerConfigVaultId =
@@ -856,7 +846,10 @@ export let ExplorerPage = () => {
 
                 {!isSessionFirstMode && (
                   <>
-                    {(providerDeploymentId || selectedProvider || providerIdParam || sessionId) && (
+                    {(providerDeploymentId ||
+                      selectedProvider ||
+                      providerIdParam ||
+                      sessionId) && (
                       <>
                         <Flex justify="space-between" align="center">
                           <Button
@@ -911,7 +904,7 @@ export let ExplorerPage = () => {
             {isResolvingProviderDeployment ? (
               <CenteredSpinner />
             ) : (
-              <p>Click on a provider to start</p>
+              <p>Choose a provider to continue</p>
             )}
           </MainEmpty>
         )}
