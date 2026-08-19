@@ -5,12 +5,15 @@ import {
   db,
   type EntityImage,
   type Environment,
+  type Prisma,
+  ProviderAuthMethodType,
   type Provider,
   type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import type { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -113,6 +116,76 @@ export let getProviderCapabilityFilter = (d: ProviderCapabilityFilter) => {
   };
 };
 
+let configuredAuthMethodTypes = [ProviderAuthMethodType.token, ProviderAuthMethodType.custom];
+
+export type ProviderAuthSetupFilter = 'configured' | 'not_configured';
+
+export let getProviderAuthMethodFilter = (values?: string[]) => {
+  if (!values?.length) return undefined;
+
+  let validTypes = new Set<string>(Object.values(ProviderAuthMethodType));
+
+  return {
+    providerAuthMethodGlobals: {
+      some: {
+        OR: values.flatMap(value =>
+          [
+            { id: value },
+            { key: value },
+            { providerAuthMethods: { some: { id: value } } },
+            { currentInstance: { name: { contains: value, mode: 'insensitive' as const } } },
+            validTypes.has(value)
+              ? { currentInstance: { type: value as ProviderAuthMethodType } }
+              : undefined!
+          ].filter(Boolean)
+        )
+      }
+    }
+  };
+};
+
+export let getProviderAuthSetupFilter = (
+  values: ProviderAuthSetupFilter[] | undefined,
+  d: { tenantOid?: bigint; environmentOid?: bigint }
+) => {
+  if (!values?.length) return undefined;
+
+  let hasConfiguredAuthMethod = {
+    providerAuthMethodGlobals: {
+      some: { currentInstance: { type: { in: configuredAuthMethodTypes } } }
+    }
+  };
+
+  let hasAuthCredentials =
+    d.tenantOid && d.environmentOid
+      ? {
+          providerAuthCredentials: {
+            some: {
+              tenantOid: d.tenantOid,
+              environmentOid: d.environmentOid,
+              status: 'active' as const
+            }
+          }
+        }
+      : undefined;
+
+  let clauses = [
+    values.includes('configured')
+      ? { OR: [hasConfiguredAuthMethod, hasAuthCredentials ?? undefined!].filter(Boolean) }
+      : undefined!,
+    values.includes('not_configured')
+      ? {
+          AND: [
+            { NOT: hasConfiguredAuthMethod },
+            hasAuthCredentials ? { NOT: hasAuthCredentials } : undefined!
+          ].filter(Boolean)
+        }
+      : undefined!
+  ].filter(Boolean);
+
+  return clauses.length ? { OR: clauses } : undefined;
+};
+
 type GetProviderByIdParams = {
   providerId: string;
   includeDeprecated?: boolean;
@@ -121,6 +194,8 @@ type GetProviderByIdParams = {
 type ListProvidersParams = {
   search?: string;
   ids?: string[];
+  authMethods?: string[];
+  authSetup?: ProviderAuthSetupFilter[];
   capabilities?: ProviderCapabilityFilter;
   includeDeprecated?: boolean;
 };
@@ -196,44 +271,64 @@ class providerServiceImpl {
     let solution = await getMetorialSolution();
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
+    let authMethodFilter = getProviderAuthMethodFilter(d.authMethods);
+    let authSetupFilter = getProviderAuthSetupFilter(d.authSetup, {
+      tenantOid: d.tenant?.oid,
+      environmentOid: d.environment?.oid
+    });
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
+    let search = d.search?.trim();
+
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.provider.findMany({
-            ...opts,
-            where: {
-              AND: [
-                { status: 'active' },
-                getProviderTenantFilter({
-                  ...d,
-                  solution,
-                  includeDeprecated
-                }),
-                {
-                  AND: [
-                    d.ids
-                      ? {
-                          OR: [
-                            { id: { in: d.ids } },
-                            { slug: { in: d.ids } },
-                            { globalIdentifier: { in: d.ids } },
-                            { listing: { id: { in: d.ids } } },
-                            { listing: { slug: { in: d.ids } } },
-                            { listing: { prettySlug: { in: d.ids } } },
-                            { listing: { aliases: { hasSome: d.ids } } }
-                          ]
-                        }
-                      : undefined!,
-                    capFilters ? { type: capFilters } : undefined!
-                  ].filter(Boolean)
-                }
-              ]
-            },
-            include
-          })
-      )
+      prisma(async opts => {
+        let searchResults = search
+          ? await voyager.record.search({
+              tenantId: d.tenant?.id,
+              sourceId: (await voyagerSource).id,
+              indexId: voyagerIndex.providerListing.id,
+              query: search
+            })
+          : null;
+
+        let and: Prisma.ProviderWhereInput[] = [
+          { status: 'active' as const },
+          getProviderTenantFilter({
+            ...d,
+            solution,
+            includeDeprecated
+          }),
+          searchResults
+            ? { listing: { id: { in: searchResults.map(r => r.documentId) } } }
+            : undefined!,
+          {
+            AND: [
+              d.ids
+                ? {
+                    OR: [
+                      { id: { in: d.ids } },
+                      { slug: { in: d.ids } },
+                      { globalIdentifier: { in: d.ids } },
+                      { listing: { id: { in: d.ids } } },
+                      { listing: { slug: { in: d.ids } } },
+                      { listing: { prettySlug: { in: d.ids } } },
+                      { listing: { aliases: { hasSome: d.ids } } }
+                    ]
+                  }
+                : undefined!,
+              capFilters ? { type: capFilters } : undefined!,
+              authMethodFilter ?? undefined!,
+              authSetupFilter ?? undefined!
+            ].filter(Boolean)
+          }
+        ].filter(Boolean);
+
+        return db.provider.findMany({
+          ...opts,
+          where: { AND: and },
+          include
+        });
+      })
     );
   }
 
