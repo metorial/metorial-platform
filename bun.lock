@@ -21,6 +21,7 @@
         "@metorial/fetch": "^1.0.0-rc.5",
         "@metorial/generated": "^1.0.0-rc.5",
         "@metorial/util-endpoint": "^1.0.0-rc.5",
+        "@types/cookie": "^1.0.0",
       },
       "devDependencies": {
         "@types/isomorphic-fetch": "^0.0.39",
@@ -1929,6 +1930,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@dnd-kit/core": "^6.3.1",
+        "@metorial/avatar-uploader": "^1.0.0",
         "@metorial/code": "^1.0.0",
         "@metorial/code-editor": "workspace:*",
         "@metorial/code-editor-monaco": "workspace:*",
@@ -1942,6 +1944,7 @@
         "@metorial/state": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
+        "@metorial/use-search-filter": "^1.0.0",
         "@radix-ui/react-dialog": "^1.1.11",
         "@radix-ui/react-popover": "^1.1.13",
         "@remixicon/react": "^4.6.0",
@@ -1950,16 +1953,12 @@
         "p-queue": "^8.1.0",
         "pdfjs-dist": "^5.7.284",
         "react": "19.1.1",
-        "react-avatar-editor": "^13.0.2",
-        "react-dropzone": "^14.3.8",
         "react-router-dom": "^6.26.1",
         "react-textarea-autosize": "^8.5.9",
-        "react-use": "^17.6.0",
         "styled-components": "^6.1.13",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
-        "@types/react-avatar-editor": "^13.0.4",
         "typescript": "5.8.2",
         "vitest": "^3.1.2",
       },
@@ -7233,9 +7232,9 @@
 
     "@svgdotjs/svg.select.js": ["@svgdotjs/svg.select.js@4.0.3", "", { "peerDependencies": { "@svgdotjs/svg.js": "^3.2.4" } }, "sha512-qkMgso1sd2hXKd1FZ1weO7ANq12sNmQJeGDjs46QwDVsxSRcHmvWKL2NDF7Yimpwf3sl5esOLkPqtV2bQ3v/Jg=="],
 
-    "@tanstack/react-virtual": ["@tanstack/react-virtual@3.14.3", "", { "dependencies": { "@tanstack/virtual-core": "3.17.1" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-k/cnHPVaOfn46hSbiY6n4Dzf4QjCGWSF40zR5QIIYUqPAjpA6TN7InfYmcMiDVQGP2iUn9xsRbAl8u1v3UmeVQ=="],
+    "@tanstack/react-virtual": ["@tanstack/react-virtual@3.14.9", "", { "dependencies": { "@tanstack/virtual-core": "3.17.7" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-qZyr0FZDP8rDC4WBhsryIZmAd9bveJvFGUJJtskWaew6/0dTRS6wZxnR6VQ5bY2KwL3LjerrHqQLk3a0GKcPXQ=="],
 
-    "@tanstack/virtual-core": ["@tanstack/virtual-core@3.17.1", "", {}, "sha512-VZyW2Uiml5tmBZwPGrSD3Sz73OxzljQMCmzYHsUTPEuTsERf5xwa+uWb01xEzkz3ZSYTjj8NEb/mKHvgKxyZdA=="],
+    "@tanstack/virtual-core": ["@tanstack/virtual-core@3.17.7", "", {}, "sha512-bp+v10y65sp2H7WpWfIMyxTNfl8ZVfxFTLRjPIFRryi6FV/J33z4IS53WO4pTk36KlvJ4iLiQz+oaydDC1xbcA=="],
 
     "@tediousjs/connection-string": ["@tediousjs/connection-string@0.5.0", "", {}, "sha512-7qSgZbincDDDFyRweCIEvZULFAw5iz/DeunhvuxpL31nfntX3P4Yd4HkHBRg9H8CdqY1e5WFN1PZIz/REL9MVQ=="],
 
@@ -7380,6 +7379,8 @@
     "@types/chai-subset": ["@types/chai-subset@1.3.6", "", { "peerDependencies": { "@types/chai": "<5.2.0" } }, "sha512-m8lERkkQj+uek18hXOZuec3W/fCRTrU4hrnXjH3qhHy96ytuPaPiWGgu7sJb7tZxZonO75vYAjCvpe/e4VUwRw=="],
 
     "@types/connect": ["@types/connect@3.4.38", "", { "dependencies": { "@types/node": "*" } }, "sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug=="],
+
+    "@types/cookie": ["@types/cookie@1.0.0", "", { "dependencies": { "cookie": "*" } }, "sha512-mGFXbkDQJ6kAXByHS7QAggRXgols0mAdP4MuXgloGY1tXokvzaFFM4SMqWvf7AH0oafI7zlFJwoGWzmhDqTZ9w=="],
 
     "@types/cors": ["@types/cors@2.8.19", "", { "dependencies": { "@types/node": "*" } }, "sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg=="],
 
