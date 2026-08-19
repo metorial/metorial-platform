@@ -152,4 +152,16 @@ describe('createSessionRecord double writes', () => {
       })
     );
   });
+
+  it('does not create a session-created event for internal sessions', async () => {
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: true,
+      isInternal: true,
+      input: { providers: [{ deploymentId: 'pd_1' }] }
+    });
+
+    expect(createdData().sessionEvents).toBeUndefined();
+  });
 });

@@ -87,13 +87,13 @@ class internalToolCallServiceImpl {
 
   private async getOrCreateConnection(d: CallInternalToolParams & { manager: SenderManager }) {
     let existing = await this.findConnection(d);
-    if (existing) return existing;
+    if (existing) return await this.ensureConnectionConnected(existing, d.session);
 
     return await connectionInitLock.usingLock(
       `${d.session.id}:${d.client.identifier}`,
       async () => {
         let current = await this.findConnection(d);
-        if (current) return current;
+        if (current) return await this.ensureConnectionConnected(current, d.session);
 
         return await d.manager.initialize({
           client: {
@@ -114,11 +114,34 @@ class internalToolCallServiceImpl {
     return await db.sessionConnection.findFirst({
       where: {
         systemIdentifier: getSystemIdentifier(d),
-        state: 'connected',
-        status: 'active'
+        status: 'active',
+        isManuallyDisabled: false
       },
       include: { participant: true }
     });
+  }
+
+  private async ensureConnectionConnected(connection: any, session: Session) {
+    if (connection.state === 'connected') return connection;
+
+    let now = new Date();
+    let updated = await db.sessionConnection.update({
+      where: { oid: connection.oid },
+      data: {
+        state: 'connected',
+        lastActiveAt: now,
+        lastPingAt: now,
+        disconnectedAt: null
+      },
+      include: { participant: true }
+    });
+
+    await db.session.updateMany({
+      where: { oid: session.oid },
+      data: { connectionState: 'connected', lastActiveAt: now }
+    });
+
+    return updated;
   }
 }
 

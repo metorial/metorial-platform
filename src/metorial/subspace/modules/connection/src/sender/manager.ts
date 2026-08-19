@@ -494,19 +494,21 @@ export class SenderManager {
             }
           });
 
-          await db.sessionEvent.createMany({
-            data: {
-              ...getId('sessionEvent'),
-              type: 'connection_connected',
-              sessionOid: session.oid,
-              connectionOid: connection.oid,
-              tenantOid: session.tenantOid,
-              projectOid: session.projectOid,
-              solutionOid: session.solutionOid,
-              environmentOid: session.environmentOid,
-              instanceOid: session.instanceOid
-            }
-          });
+          if (!session.isInternal) {
+            await db.sessionEvent.createMany({
+              data: {
+                ...getId('sessionEvent'),
+                type: 'connection_connected',
+                sessionOid: session.oid,
+                connectionOid: connection.oid,
+                tenantOid: session.tenantOid,
+                projectOid: session.projectOid,
+                solutionOid: session.solutionOid,
+                environmentOid: session.environmentOid,
+                instanceOid: session.instanceOid
+              }
+            });
+          }
         })().catch(() => {});
       }
     }
@@ -1698,19 +1700,21 @@ export class SenderManager {
       include: { participant: true }
     });
 
-    await db.sessionEvent.createMany({
-      data: {
-        ...getId('sessionEvent'),
-        type: 'connection_disabled',
-        sessionOid: this.session.oid,
-        connectionOid: this.connection.oid,
-        tenantOid: this.session.tenantOid,
-        projectOid: this.session.projectOid,
-        solutionOid: this.session.solutionOid,
-        environmentOid: this.session.environmentOid,
-        instanceOid: this.session.instanceOid
-      }
-    });
+    if (!this.session.isInternal) {
+      await db.sessionEvent.createMany({
+        data: {
+          ...getId('sessionEvent'),
+          type: 'connection_disabled',
+          sessionOid: this.session.oid,
+          connectionOid: this.connection.oid,
+          tenantOid: this.session.tenantOid,
+          projectOid: this.session.projectOid,
+          solutionOid: this.session.solutionOid,
+          environmentOid: this.session.environmentOid,
+          instanceOid: this.session.instanceOid
+        }
+      });
+    }
   }
 
   async initialize(d: InitProps & { isManualConnection?: boolean }) {
@@ -1827,39 +1831,42 @@ export class SenderManager {
       }
     });
 
-    await db.sessionEvent.createMany({
-      data: [
-        {
-          ...getId('sessionEvent'),
-          type: 'connection_created',
-          sessionOid: this.session.oid,
-          connectionOid: connection.oid,
-          tenantOid: this.session.tenantOid,
-          projectOid: this.session.projectOid,
-          solutionOid: this.session.solutionOid,
-          environmentOid: this.session.environmentOid,
-          instanceOid: this.session.instanceOid
-        },
-        {
-          ...getId('sessionEvent'),
-          type: 'connection_connected',
-          sessionOid: this.session.oid,
-          connectionOid: connection.oid,
-          tenantOid: this.session.tenantOid,
-          projectOid: this.session.projectOid,
-          solutionOid: this.session.solutionOid,
-          environmentOid: this.session.environmentOid,
-          instanceOid: this.session.instanceOid
-        }
-      ]
-    });
+    let connectionEvents = !this.session.isInternal
+      ? [
+          {
+            ...getId('sessionEvent'),
+            type: 'connection_created' as const,
+            sessionOid: this.session.oid,
+            connectionOid: connection.oid,
+            tenantOid: this.session.tenantOid,
+            projectOid: this.session.projectOid,
+            solutionOid: this.session.solutionOid,
+            environmentOid: this.session.environmentOid,
+            instanceOid: this.session.instanceOid
+          },
+          {
+            ...getId('sessionEvent'),
+            type: 'connection_connected' as const,
+            sessionOid: this.session.oid,
+            connectionOid: connection.oid,
+            tenantOid: this.session.tenantOid,
+            projectOid: this.session.projectOid,
+            solutionOid: this.session.solutionOid,
+            environmentOid: this.session.environmentOid,
+            instanceOid: this.session.instanceOid
+          }
+        ]
+      : [];
+    if (connectionEvents.length) {
+      await db.sessionEvent.createMany({ data: connectionEvents });
+    }
 
     (async () => {
       let res = await db.session.updateMany({
         where: { oid: this.session.oid, isStarted: false },
         data: { isStarted: true }
       });
-      if (res.count > 0) {
+      if (res.count > 0 && !this.session.isInternal) {
         await db.sessionEvent.createMany({
           data: {
             ...getId('sessionEvent'),

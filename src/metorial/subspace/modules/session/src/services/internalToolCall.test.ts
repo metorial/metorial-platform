@@ -12,7 +12,9 @@ let { createLock, manager, db, messageOutputToToolCall, assertSessionInternalAda
       callTool: vi.fn()
     },
     db: {
-      sessionConnection: { findFirst: vi.fn() },
+      sessionConnection: { findFirst: vi.fn(), update: vi.fn() },
+      session: { updateMany: vi.fn() },
+      sessionEvent: { create: vi.fn() },
       toolCall: { findFirstOrThrow: vi.fn() }
     },
     messageOutputToToolCall: vi.fn(),
@@ -20,7 +22,11 @@ let { createLock, manager, db, messageOutputToToolCall, assertSessionInternalAda
   }));
 
 vi.mock('@lowerdeck/lock', () => ({ createLock }));
-vi.mock('@metorial-subspace/db', () => ({ db, messageOutputToToolCall }));
+vi.mock('@metorial-subspace/db', () => ({
+  db,
+  getId: vi.fn(() => ({ oid: 6n, id: 'sev_1' })),
+  messageOutputToToolCall
+}));
 vi.mock('@metorial-subspace/module-connection', () => ({ SenderManager: manager }));
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
@@ -114,15 +120,18 @@ describe('internalToolCallService', () => {
     expect(db.sessionConnection.findFirst).toHaveBeenCalledWith({
       where: {
         systemIdentifier: expect.stringMatching(/^int-tc:ses_1:worker:\d{4}-\d{2}-\d{2}$/),
-        state: 'connected',
-        status: 'active'
+        status: 'active',
+        isManuallyDisabled: false
       },
       include: { participant: true }
     });
   });
 
   it('reuses the connection belonging to the same caller', async () => {
-    db.sessionConnection.findFirst.mockResolvedValue({ id: 'scn_existing' });
+    db.sessionConnection.findFirst.mockResolvedValue({
+      id: 'scn_existing',
+      state: 'connected'
+    });
 
     await internalToolCallService.call(input as any);
 
@@ -130,6 +139,25 @@ describe('internalToolCallService', () => {
     expect(manager.setConnection).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'scn_existing' })
     );
+  });
+
+  it('reconnects a disconnected connection with the same identifier', async () => {
+    let disconnected = { oid: 7n, id: 'scn_disconnected', state: 'disconnected' };
+    db.sessionConnection.findFirst.mockResolvedValue(disconnected);
+    db.sessionConnection.update.mockResolvedValue({
+      ...disconnected,
+      state: 'connected'
+    });
+
+    await internalToolCallService.call(input as any);
+
+    expect(db.sessionConnection.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { oid: 7n },
+        data: expect.objectContaining({ state: 'connected' })
+      })
+    );
+    expect(db.sessionEvent.create).not.toHaveBeenCalled();
   });
 
   it('does not initialize a connection when the internal adapter is rejected', async () => {

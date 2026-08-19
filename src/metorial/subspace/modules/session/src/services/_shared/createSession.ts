@@ -86,17 +86,21 @@ export let createSessionRecord = async (d: {
         identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
         ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
 
-        sessionEvents: {
-          create: {
-            ...getId('sessionEvent'),
-            type: 'session_created',
-            tenantOid: d.tenant.oid,
-            projectOid: d.tenant.projectOid,
-            solutionOid: solution.oid,
-            environmentOid: d.environment.oid,
-            instanceOid: d.environment.instanceOid
-          }
-        }
+        ...(d.isInternal
+          ? {}
+          : {
+              sessionEvents: {
+                create: {
+                  ...getId('sessionEvent'),
+                  type: 'session_created',
+                  tenantOid: d.tenant.oid,
+                  projectOid: d.tenant.projectOid,
+                  solutionOid: solution.oid,
+                  environmentOid: d.environment.oid,
+                  instanceOid: d.environment.instanceOid
+                }
+              }
+            })
       },
       include: sessionInclude
     });
