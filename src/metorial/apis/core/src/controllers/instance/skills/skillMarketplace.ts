@@ -98,7 +98,10 @@ export let skillMarketplaceController = Controller.create(
         let list = await paginator.run(ctx.query);
 
         return Paginator.present(list, skillMarketplace =>
-          skillMarketplacePresenter.present({ skillMarketplace })
+          skillMarketplacePresenter.present({
+            skillMarketplace,
+            ...getSkillMarketplaceAccessInput(ctx)
+          })
         );
       }),
 
@@ -112,7 +115,10 @@ export let skillMarketplaceController = Controller.create(
       .use(requireConsumerTokenForPublishableKey())
       .output(skillMarketplacePresenter)
       .do(async ctx =>
-        skillMarketplacePresenter.present({ skillMarketplace: ctx.skillMarketplace })
+        skillMarketplacePresenter.present({
+          skillMarketplace: ctx.skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        })
       ),
 
     create: instanceGroup
@@ -144,7 +150,10 @@ export let skillMarketplaceController = Controller.create(
           }
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     update: skillMarketplaceGroup
@@ -174,7 +183,10 @@ export let skillMarketplaceController = Controller.create(
           }
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     archive: skillMarketplaceGroup
@@ -194,7 +206,10 @@ export let skillMarketplaceController = Controller.create(
           skillMarketplace: ctx.skillMarketplace
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       }),
 
     sync: skillMarketplaceGroup
@@ -218,7 +233,10 @@ export let skillMarketplaceController = Controller.create(
           skillMarketplace: ctx.skillMarketplace
         });
 
-        return skillMarketplacePresenter.present({ skillMarketplace });
+        return skillMarketplacePresenter.present({
+          skillMarketplace,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
       })
   }
 );

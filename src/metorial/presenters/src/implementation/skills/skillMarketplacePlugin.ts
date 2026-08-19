@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { skillMarketplacePluginType } from '../../types';
-import { v1SkillPluginPresenter } from './skillPlugin';
+import { dashboardSkillPluginPresenter, v1SkillPluginPresenter } from './skillPlugin';
 
 export let v1SkillMarketplacePluginPresenter = Presenter.create(skillMarketplacePluginType)
   .presenter(async ({ skillMarketplacePlugin }, opts) => ({
@@ -31,5 +31,37 @@ export let v1SkillMarketplacePluginPresenter = Presenter.create(skillMarketplace
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let dashboardSkillMarketplacePluginPresenter = Presenter.create(
+  skillMarketplacePluginType
+)
+  .presenter(async (input, opts) => {
+    let inner = await v1SkillMarketplacePluginPresenter.present(input, opts).run();
+
+    return {
+      ...inner,
+      skill_plugin: input.skillMarketplacePlugin.skillPlugin
+        ? await dashboardSkillPluginPresenter
+            .present(
+              {
+                skillPlugin: input.skillMarketplacePlugin.skillPlugin,
+                accessTags: input.accessTags,
+                pluginAccess: input.pluginAccess
+              },
+              opts
+            )
+            .run()
+        : null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1SkillMarketplacePluginPresenter.schema,
+      v.object({
+        skill_plugin: v.nullable(dashboardSkillPluginPresenter.schema)
+      })
+    ])
   )
   .build();

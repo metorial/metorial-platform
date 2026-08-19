@@ -25,6 +25,9 @@ import {
   dashboardPortalPresenter,
   dashboardProviderListingPresenter,
   dashboardProviderPresenter,
+  dashboardSkillMarketplacePluginPresenter,
+  dashboardSkillMarketplacePresenter,
+  dashboardSkillPluginPresenter,
   v1AccessPolicyPresenter,
   v1AccessPolicyVersionPresenter,
   v1AccessRolePresenter,
@@ -760,12 +763,12 @@ export let skillForkSyncPresenter = declarePresenter(skillForkSyncType, {
 });
 
 export let skillMarketplacePresenter = declarePresenter(skillMarketplaceType, {
-  mt_2025_01_01_dashboard: v1SkillMarketplacePresenter,
+  mt_2025_01_01_dashboard: dashboardSkillMarketplacePresenter,
   mt_2026_01_01_magnetar: v1SkillMarketplacePresenter
 });
 
 export let skillMarketplacePluginPresenter = declarePresenter(skillMarketplacePluginType, {
-  mt_2025_01_01_dashboard: v1SkillMarketplacePluginPresenter,
+  mt_2025_01_01_dashboard: dashboardSkillMarketplacePluginPresenter,
   mt_2026_01_01_magnetar: v1SkillMarketplacePluginPresenter
 });
 
@@ -778,7 +781,7 @@ export let skillMarketplaceRepositoryPresenter = declarePresenter(
 );
 
 export let skillPluginPresenter = declarePresenter(skillPluginType, {
-  mt_2025_01_01_dashboard: v1SkillPluginPresenter,
+  mt_2025_01_01_dashboard: dashboardSkillPluginPresenter,
   mt_2026_01_01_magnetar: v1SkillPluginPresenter
 });
 

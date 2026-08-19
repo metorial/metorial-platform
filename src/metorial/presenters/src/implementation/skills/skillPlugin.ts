@@ -1,5 +1,9 @@
 import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
+import {
+  hasSkillPluginArchiveAccess,
+  hasSkillPluginWriteAccess
+} from '@metorial/module-skill-marketplace';
 import { Presenter } from '@metorial/presenter';
 import { skillPluginType } from '../../types';
 import { skillDestinationSyncStatusPresenter } from './skillDestination';
@@ -20,9 +24,7 @@ export let v1SkillPluginPresenter = Presenter.create(skillPluginType)
     skill_configuration_id: skillPlugin.skillConfiguration?.id ?? null,
     skills: await Promise.all(
       skillPlugin.skillPluginSkills.map(skillPluginSkill =>
-        v1SkillPluginSkillPresenter
-          .present({ skillPluginSkill }, opts)
-          .run()
+        v1SkillPluginSkillPresenter.present({ skillPluginSkill }, opts).run()
       )
     ),
     created_at: skillPlugin.createdAt,
@@ -45,5 +47,41 @@ export let v1SkillPluginPresenter = Presenter.create(skillPluginType)
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let dashboardSkillPluginPresenter = Presenter.create(skillPluginType)
+  .presenter(async (input, opts) => {
+    let inner = await v1SkillPluginPresenter.present(input, opts).run();
+    let isMutable = input.skillPlugin.status == 'active' && !input.skillPlugin.isManaged;
+    let canUpdate = isMutable
+      ? (input.pluginAccess?.canUpdate ??
+        (await hasSkillPluginWriteAccess({
+          skillPlugin: input.skillPlugin,
+          accessTags: input.accessTags
+        })))
+      : false;
+    let canDelete = isMutable
+      ? (input.pluginAccess?.canDelete ??
+        (await hasSkillPluginArchiveAccess({
+          skillPlugin: input.skillPlugin,
+          accessTags: input.accessTags
+        })))
+      : false;
+
+    return {
+      ...inner,
+      can_update: canUpdate,
+      can_delete: canDelete
+    };
+  })
+  .schema(
+    v.intersection([
+      v1SkillPluginPresenter.schema,
+      v.object({
+        can_update: v.boolean(),
+        can_delete: v.boolean()
+      })
+    ])
   )
   .build();

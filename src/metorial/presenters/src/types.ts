@@ -135,6 +135,7 @@ import {
   UserStatus,
   UserType
 } from '@metorial/db';
+import type { AnyAccessTagSelector } from '@metorial/module-access';
 import type { AuditLog } from '@metorial/module-audit-log';
 import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import {
@@ -1659,6 +1660,7 @@ export let skillMarketplaceType = PresentableType.create<{
       };
     };
   }>;
+  accessTags?: AnyAccessTagSelector;
 }>()('skillMarketplace');
 
 export let skillMarketplacePluginType = PresentableType.create<{
@@ -1693,6 +1695,11 @@ export let skillMarketplacePluginType = PresentableType.create<{
         };
       };
     }> | null;
+  };
+  accessTags?: AnyAccessTagSelector;
+  pluginAccess?: {
+    canUpdate?: boolean;
+    canDelete?: boolean;
   };
 }>()('skillMarketplacePlugin');
 
@@ -1742,6 +1749,11 @@ export let skillPluginType = PresentableType.create<{
       };
     };
   }>;
+  accessTags?: AnyAccessTagSelector;
+  pluginAccess?: {
+    canUpdate?: boolean;
+    canDelete?: boolean;
+  };
 }>()('skillPlugin');
 
 export let skillPluginRepositoryType = PresentableType.create<{
@@ -2169,6 +2181,7 @@ export let consumerAccessType = PresentableType.create<{
     skillTemplate: SkillTemplate | null;
     skillGroup: SkillGroup | null;
     skillMarketplace: SkillMarketplace | null;
+    skillPlugin: SkillPlugin | null;
     listing: ConsumerAccessListing | null;
   };
 }>()('consumer.access');
@@ -2181,6 +2194,7 @@ export let consumerAccessListingType = PresentableType.create<{
     skillTemplate: SkillTemplate | null;
     skillGroup: SkillGroup | null;
     skillMarketplace: SkillMarketplace | null;
+    skillPlugin: SkillPlugin | null;
     consumerSurfaceProviderGroups: {
       consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
     }[];

@@ -87,6 +87,27 @@ let localSkillMarketplacePreview = Object.assign(
   }
 );
 
+let localSkillPluginPreview = Object.assign(
+  (skillPlugin: {
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    name: string | null;
+  }) => ({
+    object: 'skill.plugin' as const,
+    id: skillPlugin.id,
+    status: skillPlugin.status,
+    name: skillPlugin.name
+  }),
+  {
+    schema: v.object({
+      object: v.literal('skill.plugin'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      name: v.nullable(v.string())
+    })
+  }
+);
+
 let consumerSurfaceProviderGroupPreviewSchema = v.object({
   id: v.string(),
   name: v.string(),
@@ -132,12 +153,19 @@ export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessLis
                         type: 'skill_group' as const,
                         skill_group: localSkillGroupPreview(consumerAccessListing.skillGroup)
                       }
-                    : {
-                        type: 'skill_marketplace' as const,
-                        skill_marketplace: localSkillMarketplacePreview(
-                          consumerAccessListing.skillMarketplace!
-                        )
-                      })
+                    : consumerAccessListing.skillPlugin != null
+                      ? {
+                          type: 'skill_plugin' as const,
+                          skill_plugin: localSkillPluginPreview(
+                            consumerAccessListing.skillPlugin
+                          )
+                        }
+                      : {
+                          type: 'skill_marketplace' as const,
+                          skill_marketplace: localSkillMarketplacePreview(
+                            consumerAccessListing.skillMarketplace!
+                          )
+                        })
                 },
     groups: consumerAccessListing.consumerSurfaceProviderGroups
       .map(membership => membership.consumerSurfaceProviderGroup)
@@ -182,6 +210,10 @@ export let v1ConsumerAccessListingPresenter = Presenter.create(consumerAccessLis
         v.object({
           type: v.literal('skill_marketplace'),
           skill_marketplace: localSkillMarketplacePreview.schema
+        }),
+        v.object({
+          type: v.literal('skill_plugin'),
+          skill_plugin: localSkillPluginPreview.schema
         })
       ]),
       groups: v.array(consumerSurfaceProviderGroupPreviewSchema),

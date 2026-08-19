@@ -1,9 +1,17 @@
 import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
+import {
+  getArchivableSkillPluginIds,
+  getWritableSkillPluginIds,
+  hasSkillMarketplaceWriteAccess
+} from '@metorial/module-skill-marketplace';
 import { Presenter } from '@metorial/presenter';
 import { skillMarketplaceType } from '../../types';
 import { skillDestinationSyncStatusPresenter } from './skillDestination';
-import { v1SkillMarketplacePluginPresenter } from './skillMarketplacePlugin';
+import {
+  dashboardSkillMarketplacePluginPresenter,
+  v1SkillMarketplacePluginPresenter
+} from './skillMarketplacePlugin';
 
 export let v1SkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
   .presenter(async ({ skillMarketplace }, opts) => ({
@@ -57,5 +65,68 @@ export let v1SkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
       created_at: v.date(),
       updated_at: v.date()
     })
+  )
+  .build();
+
+export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplaceType)
+  .presenter(async (input, opts) => {
+    let inner = await v1SkillMarketplacePresenter.present(input, opts).run();
+    let nestedPlugins = input.skillMarketplace.plugins.flatMap(plugin =>
+      plugin.skillPlugin ? [plugin.skillPlugin] : []
+    );
+    let [canCreatePlugins, writablePluginIds, archivablePluginIds] = await Promise.all([
+      input.skillMarketplace.status == 'active'
+        ? hasSkillMarketplaceWriteAccess({
+            skillMarketplace: input.skillMarketplace,
+            accessTags: input.accessTags
+          })
+        : false,
+      getWritableSkillPluginIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      }),
+      getArchivableSkillPluginIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      })
+    ]);
+
+    return {
+      ...inner,
+      can_create_plugins: canCreatePlugins,
+      plugins: await Promise.all(
+        input.skillMarketplace.plugins.map(skillMarketplacePlugin =>
+          dashboardSkillMarketplacePluginPresenter
+            .present(
+              {
+                accessTags: input.accessTags,
+                pluginAccess: skillMarketplacePlugin.skillPlugin
+                  ? {
+                      canUpdate: writablePluginIds.has(skillMarketplacePlugin.skillPlugin.id),
+                      canDelete: archivablePluginIds.has(skillMarketplacePlugin.skillPlugin.id)
+                    }
+                  : undefined,
+                skillMarketplacePlugin: {
+                  ...skillMarketplacePlugin,
+                  skillMarketplace: {
+                    id: input.skillMarketplace.id
+                  }
+                }
+              },
+              opts
+            )
+            .run()
+        )
+      )
+    };
+  })
+  .schema(
+    v.intersection([
+      v1SkillMarketplacePresenter.schema,
+      v.object({
+        can_create_plugins: v.boolean(),
+        plugins: v.array(dashboardSkillMarketplacePluginPresenter.schema)
+      })
+    ])
   )
   .build();
