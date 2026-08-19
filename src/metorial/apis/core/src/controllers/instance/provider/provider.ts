@@ -46,7 +46,27 @@ export let providerController = Controller.create(
           v.object({
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
-            })
+            }),
+
+            search: v.optional(v.string(), {
+              description: 'Search providers by name, description, or readme'
+            }),
+
+            auth_method: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Filter by auth method — matches an auth method ID, auth method global ID, key, name, or type (oauth, token, service_account, custom)'
+            }),
+
+            auth_setup: v.optional(
+              v.union([
+                v.enumOf(['configured', 'not_configured']),
+                v.array(v.enumOf(['configured', 'not_configured']))
+              ]),
+              {
+                description:
+                  'Filter by auth setup status. "configured" matches providers with a token or custom auth method, or with auth credentials already configured. "not_configured" matches providers with only OAuth auth methods and no auth credentials configured.'
+              }
+            )
           })
         ),
         v => v
