@@ -232,6 +232,7 @@ class SsoDelegationServiceImpl {
     delegation: SsoExportedDelegation;
     redirectUri: string;
   }) {
+    if (d.delegation.redirectUri === d.redirectUri) return;
     await db.ssoExportedDelegation.update({
       where: { oid: d.delegation.oid },
       data: { redirectUri: d.redirectUri }

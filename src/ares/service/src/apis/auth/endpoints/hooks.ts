@@ -14,6 +14,7 @@ import { env } from '../../../env';
 import { getRequestContext } from '../../../lib/context';
 import {
   createDelegationCodeChallenge,
+  getDelegationCallbackUri,
   getDelegationResponseMode,
   getIdpInitiatedConsumerLoginRedirect
 } from '../../../lib/ssoDelegationProtocol';
@@ -56,8 +57,8 @@ let getAccountLoginUrl = (d: {
 
 let createCodeVerifier = () => randomBytes(32).toString('base64url');
 
-let getDelegationCallbackUri = () =>
-  `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-delegation-response`;
+let getLocalDelegationCallbackUri = () =>
+  getDelegationCallbackUri(env.service.ARES_AUTH_URL);
 
 let importedDelegationInclude = {
   remoteInstance: true,
@@ -376,7 +377,7 @@ export let authHooksApp = createHono()
         );
         authorizationUrl.searchParams.set(
           'redirect_uri',
-          `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-delegation-response`
+          getLocalDelegationCallbackUri()
         );
         authorizationUrl.searchParams.set('state', ssoAuth.state);
         authorizationUrl.searchParams.set(
@@ -410,7 +411,7 @@ export let authHooksApp = createHono()
         );
       }
 
-      let redirectUri = getDelegationCallbackUri();
+      let redirectUri = getLocalDelegationCallbackUri();
       let context = getRequestContext(ctx);
 
       if (mode.type === 'sp_initiated') {

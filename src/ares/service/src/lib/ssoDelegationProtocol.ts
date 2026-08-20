@@ -30,6 +30,31 @@ export let getEffectiveDelegationTokenUrl = (d: {
   return remote.toString();
 };
 
+export let allowHttpDelegationRedirect =
+  process.env.NODE_ENV === 'development' ||
+  process.env.METORIAL_ENV === 'development';
+
+export let getDelegationCallbackUri = (authBaseUrl: string) =>
+  new URL('/metorial-ares/hooks/sso-delegation-response', authBaseUrl).toString();
+
+export let createDelegationMetadataTokenBody = (d: { redirectUri: string }) =>
+  new URLSearchParams({
+    grant_type: 'client_credentials',
+    scope: 'urn:metorial.com:ares:sso-delegation:metadata',
+    redirect_uri: d.redirectUri
+  });
+
+export let parseDelegationMetadataRedirectUri = (d: {
+  redirectUri?: string;
+  allowHttpLocalhost: boolean;
+}) => {
+  if (!d.redirectUri) return null;
+  return validateDelegationRedirectUri({
+    redirectUri: d.redirectUri,
+    allowHttpLocalhost: d.allowHttpLocalhost
+  });
+};
+
 export let validateDelegationRedirectUri = (d: {
   redirectUri: string;
   allowHttpLocalhost: boolean;

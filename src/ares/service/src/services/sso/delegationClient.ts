@@ -3,8 +3,9 @@ import type {
   SsoExportedDelegation,
   RemoteAresInstance
 } from '../../../prisma/generated/client';
-import { getEffectiveDelegationTokenUrl } from '../../lib/ssoDelegationProtocol';
+import { getEffectiveDelegationTokenUrl, createDelegationMetadataTokenBody, getDelegationCallbackUri } from '../../lib/ssoDelegationProtocol';
 import { aresPorts } from '../../ports';
+import { env } from '../../env';
 import type {
   DelegationDescriptor,
   DelegationSnapshot
@@ -19,6 +20,8 @@ type ImportedWithRemote = SsoImportedDelegation & {
 };
 
 let localSsoUrl = `http://localhost:${aresPorts.sso}`;
+let localDelegationCallbackUri = () =>
+  getDelegationCallbackUri(env.service.ARES_AUTH_URL);
 
 let isRecord = (value: unknown): value is Record<string, any> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
@@ -152,9 +155,8 @@ export let ssoDelegationClient = {
       tokenUrl,
       clientId: descriptor.clientId,
       clientSecret: descriptor.clientSecret,
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        scope: 'urn:metorial.com:ares:sso-delegation:metadata'
+      body: createDelegationMetadataTokenBody({
+        redirectUri: localDelegationCallbackUri()
       })
     });
     return await introspect({
@@ -171,9 +173,8 @@ export let ssoDelegationClient = {
       tokenUrl,
       clientId: imported.clientId,
       clientSecret: imported.clientSecret,
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        scope: 'urn:metorial.com:ares:sso-delegation:metadata'
+      body: createDelegationMetadataTokenBody({
+        redirectUri: localDelegationCallbackUri()
       })
     });
     return await introspect({

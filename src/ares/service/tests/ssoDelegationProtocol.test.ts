@@ -3,7 +3,9 @@ import {
   assertDelegationAuthorizationGrant,
   buildIdpInitiatedDelegationRedirect,
   createDelegationCodeChallenge,
+  createDelegationMetadataTokenBody,
   FALLBACK_DELEGATION_REDIRECT_URI,
+  getDelegationCallbackUri,
   getDelegationResponseMode,
   getEffectiveDelegationTokenUrl,
   getExportedDelegationRedirectUri,
@@ -11,6 +13,7 @@ import {
   hashDelegationSecret,
   normalizeDelegationAuthorizationEndpoint,
   normalizeDelegationRedirectUri,
+  parseDelegationMetadataRedirectUri,
   pickLatestExportedDelegation,
   resolveIdpInitiatedSamlCompletion,
   validateDelegationRedirectUri
@@ -80,6 +83,46 @@ describe('SSO delegation protocol', () => {
     expect(
       normalizeDelegationRedirectUri('https://GLOBAL.example:443/callback')
     ).toBe('https://global.example/callback');
+  });
+
+  it('builds the consumer delegation callback from the local auth origin', () => {
+    expect(getDelegationCallbackUri('https://id.metorial.com')).toBe(
+      'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response'
+    );
+    expect(getDelegationCallbackUri('https://id.metorial.com/')).toBe(
+      'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response'
+    );
+  });
+
+  it('includes the consumer callback when discovering delegation metadata', () => {
+    let body = createDelegationMetadataTokenBody({
+      redirectUri: getDelegationCallbackUri('https://id.metorial.com')
+    });
+    expect(body.get('grant_type')).toBe('client_credentials');
+    expect(body.get('scope')).toBe('urn:metorial.com:ares:sso-delegation:metadata');
+    expect(body.get('redirect_uri')).toBe(
+      'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response'
+    );
+  });
+
+  it('accepts a metadata redirect_uri during discovery and ignores a missing one', () => {
+    expect(
+      parseDelegationMetadataRedirectUri({
+        allowHttpLocalhost: false
+      })
+    ).toBeNull();
+    expect(
+      parseDelegationMetadataRedirectUri({
+        redirectUri: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
+        allowHttpLocalhost: false
+      })
+    ).toBe('https://id.metorial.com/metorial-ares/hooks/sso-delegation-response');
+    expect(() =>
+      parseDelegationMetadataRedirectUri({
+        redirectUri: 'http://ares:52123/metorial-ares/hooks/sso-delegation-response',
+        allowHttpLocalhost: false
+      })
+    ).toThrow('must use HTTPS');
   });
 
   it('falls back to the dashboard delegation callback when an export has no stored URI', () => {

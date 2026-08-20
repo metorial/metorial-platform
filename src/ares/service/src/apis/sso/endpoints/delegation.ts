@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { getId } from '../../../id';
-import { validateDelegationRedirectUri } from '../../../lib/ssoDelegationProtocol';
+import { validateDelegationRedirectUri, allowHttpDelegationRedirect, parseDelegationMetadataRedirectUri } from '../../../lib/ssoDelegationProtocol';
 import { ssoAuthService } from '../../../services/sso/auth';
 import { ssoDelegationService } from '../../../services/sso/delegation';
 
@@ -51,9 +51,7 @@ export let ssoDelegationApp = createHono()
     }
     let redirectUri = validateDelegationRedirectUri({
       redirectUri: input.redirect_uri,
-      allowHttpLocalhost:
-        process.env.NODE_ENV === 'development' ||
-        process.env.METORIAL_ENV === 'development'
+      allowHttpLocalhost: allowHttpDelegationRedirect
     });
     await ssoDelegationService.storeExportRedirectUri({
       delegation,
@@ -149,6 +147,20 @@ export let ssoDelegationApp = createHono()
       body.grant_type === 'client_credentials' &&
       body.scope === 'urn:metorial.com:ares:sso-delegation:metadata'
     ) {
+      try {
+        let redirectUri = parseDelegationMetadataRedirectUri({
+          redirectUri: body.redirect_uri,
+          allowHttpLocalhost: allowHttpDelegationRedirect
+        });
+        if (redirectUri) {
+          await ssoDelegationService.storeExportRedirectUri({
+            delegation,
+            redirectUri
+          });
+        }
+      } catch {
+        return c.json({ error: 'invalid_request' }, 400);
+      }
       let token = await ssoDelegationService.createToken({
         delegation,
         type: 'metadata'
