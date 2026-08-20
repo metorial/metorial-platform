@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   organizationFindMany: vi.fn(),
+  organizationFindFirst: vi.fn(),
+  organizationFindUnique: vi.fn(),
+  organizationUpdate: vi.fn(),
   organizationUpsert: vi.fn(),
   projectFindMany: vi.fn(),
   projectFindUnique: vi.fn(),
@@ -26,6 +29,9 @@ vi.mock('@metorial-subspace/db', () => ({
   db: {
     organization: {
       findMany: mocks.organizationFindMany,
+      findFirst: mocks.organizationFindFirst,
+      findUnique: mocks.organizationFindUnique,
+      update: mocks.organizationUpdate,
       upsert: mocks.organizationUpsert
     },
     project: {
@@ -64,7 +70,8 @@ import {
   ensureOrganizationActorMirror,
   ensureProjectMirror,
   linkEnvironmentToInstanceMirror,
-  linkTenantToProjectMirror
+  linkTenantToProjectMirror,
+  upsertOrganizationMirror
 } from './mirrorRecords';
 
 let createdAt = new Date('2026-01-01T00:00:00.000Z');
@@ -376,5 +383,75 @@ describe('Mirror record creation', () => {
       })
     ).rejects.toThrow('the instance mirror could not be created');
     expect(mocks.environmentUpdate).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a stale organization mirror that still holds the claimed slug', async () => {
+    let conflict = { oid: 9n, id: 'org_old', slug: 'acme' };
+    mocks.organizationUpsert
+      .mockRejectedValueOnce({ code: 'P2002' })
+      .mockResolvedValueOnce(organization);
+    mocks.organizationFindFirst.mockResolvedValue(conflict);
+    mocks.metorialOrganizationFindUnique.mockResolvedValue({
+      ...organization,
+      oid: 9n,
+      id: 'org_old',
+      slug: 'acme-renamed'
+    });
+
+    await expect(upsertOrganizationMirror(organization as any)).resolves.toEqual(organization);
+
+    expect(mocks.organizationUpdate).toHaveBeenCalledWith({
+      where: { oid: 9n },
+      data: expect.objectContaining({ slug: 'acme-renamed' })
+    });
+    expect(mocks.organizationUpsert).toHaveBeenCalledTimes(2);
+  });
+
+  it('parks the occupant slug when Metorial no longer owns it', async () => {
+    let conflict = { oid: 9n, id: 'org_old', slug: 'acme' };
+    mocks.organizationUpsert
+      .mockRejectedValueOnce({ code: 'P2002' })
+      .mockResolvedValueOnce(organization);
+    mocks.organizationFindFirst.mockResolvedValue(conflict);
+    mocks.metorialOrganizationFindUnique.mockResolvedValue(null);
+
+    await expect(upsertOrganizationMirror(organization as any)).resolves.toEqual(organization);
+
+    expect(mocks.organizationUpdate).toHaveBeenCalledWith({
+      where: { oid: 9n },
+      data: { slug: 'acme--org_old' }
+    });
+  });
+
+  it('updates the existing organization when the slug conflict is a create/update race', async () => {
+    mocks.organizationUpsert.mockRejectedValue({ code: 'P2002' });
+    mocks.organizationFindFirst.mockResolvedValue(null);
+    mocks.organizationUpdate.mockResolvedValue(organization);
+
+    await expect(upsertOrganizationMirror(organization as any)).resolves.toEqual(organization);
+
+    expect(mocks.organizationUpdate).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: expect.objectContaining({ slug: 'acme', name: 'Acme' })
+    });
+  });
+
+  it('returns the existing organization when the follow-up update still conflicts', async () => {
+    mocks.organizationUpsert.mockRejectedValue({ code: 'P2002' });
+    mocks.organizationFindFirst.mockResolvedValue(null);
+    mocks.organizationUpdate.mockRejectedValue({ code: 'P2002' });
+    mocks.organizationFindUnique.mockResolvedValue(organization);
+
+    await expect(upsertOrganizationMirror(organization as any)).resolves.toEqual(organization);
+  });
+
+  it('rethrows unique conflicts when the organization cannot be recovered', async () => {
+    let error = { code: 'P2002' };
+    mocks.organizationUpsert.mockRejectedValue(error);
+    mocks.organizationFindFirst.mockResolvedValue(null);
+    mocks.organizationUpdate.mockRejectedValue({ code: 'P2002' });
+    mocks.organizationFindUnique.mockResolvedValue(null);
+
+    await expect(upsertOrganizationMirror(organization as any)).rejects.toBe(error);
   });
 });
