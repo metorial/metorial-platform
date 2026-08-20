@@ -57,6 +57,7 @@ class ConsumerOAuthAuthorizationService {
   async createConsumerAuthAuthorization(d: {
     portal?: Awaited<ReturnType<typeof portalService.getPortalPublic>>;
     consumerSurface?: DashboardConsumerSurface;
+    skillPlugin?: Pick<SkillPlugin, 'oid'>;
     magicMcpTarget: MagicMcpResolvedTarget | null;
     input: {
       responseType?: string;
@@ -77,7 +78,7 @@ class ConsumerOAuthAuthorizationService {
     let client = await getConsumerAuthClient({
       clientId: d.input.clientId!,
       consumerSurfaceOid: consumerSurface.oid,
-      skillPluginOid: undefined,
+      skillPluginOid: d.skillPlugin?.oid,
       magicMcpServerOid:
         d.magicMcpTarget?.type === 'server' ? d.magicMcpTarget.target.oid : undefined,
       magicMcpEndpointOid:
@@ -236,6 +237,7 @@ class ConsumerOAuthAuthorizationService {
     let publicPortal = await portalService.getPortalPublic({ portalId: portal.id });
     let authorization = await this.createConsumerAuthAuthorization({
       portal: publicPortal,
+      skillPlugin: d.skillPlugin,
       magicMcpTarget: null,
       input: d.input
     });
