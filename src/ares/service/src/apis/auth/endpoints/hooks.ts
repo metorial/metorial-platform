@@ -4,15 +4,25 @@ import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
 import * as Cookies from 'cookie';
 import { randomBytes } from 'crypto';
+import type {
+  Account,
+  SsoImportedDelegation,
+  SsoTenant
+} from '../../../../prisma/generated/client';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { getRequestContext } from '../../../lib/context';
-import { createDelegationCodeChallenge } from '../../../lib/ssoDelegationProtocol';
+import {
+  createDelegationCodeChallenge,
+  getDelegationResponseMode,
+  getIdpInitiatedConsumerLoginRedirect
+} from '../../../lib/ssoDelegationProtocol';
 import { tickets } from '../../../lib/tickets';
 import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoAuthService } from '../../../services/sso/auth';
+import type { DelegationSnapshot } from '../../../services/sso/delegation';
 import { ssoDelegationClient } from '../../../services/sso/delegationClient';
 import {
   SsoDomainNotAllowedError,
@@ -23,7 +33,12 @@ import { ssoLoginService } from '../../../services/sso/login';
 import { ssoDomainNotAllowedHtml } from '../../sso/pages/domain-not-allowed';
 import { errorHtml } from '../../sso/pages/error';
 import { resolveClient } from '../lib/resolveApp';
-import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
+import {
+  baseCookieOpts,
+  DEVICE_TOKEN_COOKIE_NAME,
+  parseDeviceToken,
+  SESSION_ID_COOKIE_NAME
+} from '../middleware/device';
 
 let getAccountLoginUrl = (d: {
   accountClientId: string;
@@ -40,6 +55,86 @@ let getAccountLoginUrl = (d: {
 };
 
 let createCodeVerifier = () => randomBytes(32).toString('base64url');
+
+let getDelegationCallbackUri = () =>
+  `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-delegation-response`;
+
+let importedDelegationInclude = {
+  remoteInstance: true,
+  localExportedDelegation: true
+} as const;
+
+let materializeDelegatedIdentity = async (d: {
+  imported: SsoImportedDelegation;
+  snapshot: DelegationSnapshot;
+  tenant: SsoTenant;
+  account?: Account | null;
+  context: { ip: string; ua: string };
+}) => {
+  if (
+    d.snapshot.type !== 'identity' ||
+    d.snapshot.delegation.id !== d.imported.sourceDelegationId ||
+    d.snapshot.delegation.clientId !== d.imported.clientId ||
+    d.snapshot.tenant.id !== d.imported.sourceTenantId ||
+    !d.snapshot.connection ||
+    !d.snapshot.userProfile
+  ) {
+    throw new ServiceError(
+      badRequestError({ message: 'Delegation identity did not match the import' })
+    );
+  }
+
+  let connection = await db.ssoConnection.findFirst({
+    where: {
+      importedDelegationOid: d.imported.oid,
+      sourceId: d.snapshot.connection.id,
+      tenantOid: d.tenant.oid,
+      status: 'active'
+    }
+  });
+  if (!connection) {
+    throw new ServiceError(
+      badRequestError({ message: 'Delegated SSO connection is unavailable' })
+    );
+  }
+
+  let profileData = d.snapshot.userProfile;
+
+  // The delegated instance authenticated against its own IdP and has no
+  // account domains of its own, so the asserted email is only checked here.
+  await ssoDomainPolicyService.assertEmailAllowed({
+    tenant: d.tenant,
+    connection,
+    account: d.account,
+    email: profileData.email,
+    context: d.context
+  });
+
+  let user = await ssoIdentityService.upsertUser({
+    tenant: d.tenant,
+    email: profileData.email,
+    firstName: profileData.firstName,
+    lastName: profileData.lastName
+  });
+  let profile = await ssoIdentityService.upsertUserProfile({
+    tenant: d.tenant,
+    connection,
+    user,
+    data: {
+      email: profileData.email,
+      uid: profileData.uid,
+      uidHash: profileData.uidHash,
+      sub: profileData.sub ?? undefined,
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
+      roles: profileData.roles,
+      groups: profileData.groups,
+      raw: profileData.raw
+    }
+  });
+
+  return { connection, user, profile };
+};
 
 // Hono hands downstream errors to the app-level handler, which answers JSON.
 // These hooks are reached by a browser redirect, so failures have to be caught
@@ -307,122 +402,135 @@ export let authHooksApp = createHono()
     try {
       let code = ctx.req.query('code');
       let state = ctx.req.query('state');
-      if (!code || !state) {
+      let clientId = ctx.req.query('client_id');
+      let mode = getDelegationResponseMode({ code, state, clientId });
+      if (mode.type === 'invalid') {
         throw new ServiceError(
           badRequestError({ message: 'Missing delegation code or state' })
         );
       }
 
-      let auth = await db.ssoAuth.findUnique({
-        where: { state },
-        include: {
-          account: true,
-          tenant: {
-            include: {
-              importedDelegation: {
-                include: {
-                  remoteInstance: true,
-                  localExportedDelegation: true
+      let redirectUri = getDelegationCallbackUri();
+      let context = getRequestContext(ctx);
+
+      if (mode.type === 'sp_initiated') {
+        let auth = await db.ssoAuth.findUnique({
+          where: { state: state! },
+          include: {
+            account: true,
+            tenant: {
+              include: {
+                importedDelegation: {
+                  include: importedDelegationInclude
                 }
               }
             }
           }
+        });
+        let imported = auth?.tenant.importedDelegation;
+        if (
+          auth &&
+          imported &&
+          imported.status === 'active' &&
+          auth.status === 'pending' &&
+          !(auth.expiresAt && auth.expiresAt <= new Date()) &&
+          auth.codeVerifier
+        ) {
+          let snapshot = await ssoDelegationClient.exchangeCode({
+            imported,
+            code: code!,
+            redirectUri,
+            codeVerifier: auth.codeVerifier
+          });
+          let { connection, user, profile } = await materializeDelegatedIdentity({
+            imported,
+            snapshot,
+            tenant: auth.tenant,
+            account: auth.account,
+            context
+          });
+          await db.ssoAuth.update({
+            where: { oid: auth.oid },
+            data: {
+              status: 'completed',
+              connectionOid: connection.oid,
+              userOid: user.oid,
+              userProfileOid: profile.oid
+            }
+          });
+
+          let next = new URL(`${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`);
+          next.searchParams.set('tenant_id', auth.tenant.id);
+          next.searchParams.set('auth_id', auth.id);
+          return ctx.redirect(next.toString());
+        }
+
+        if (!clientId) {
+          throw new ServiceError(badRequestError({ message: 'Invalid delegation state' }));
+        }
+      }
+
+      let imported = await db.ssoImportedDelegation.findUnique({
+        where: { clientId: clientId! },
+        include: {
+          ...importedDelegationInclude,
+          tenant: true,
+          app: true
         }
       });
-      let imported = auth?.tenant.importedDelegation;
-      if (
-        !auth ||
-        !imported ||
-        imported.status !== 'active' ||
-        auth.status !== 'pending' ||
-        (auth.expiresAt && auth.expiresAt <= new Date()) ||
-        !auth.codeVerifier
-      ) {
+      if (!imported || imported.status !== 'active' || !imported.tenant) {
         throw new ServiceError(badRequestError({ message: 'Invalid delegation state' }));
       }
 
-      let redirectUri = `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-delegation-response`;
       let snapshot = await ssoDelegationClient.exchangeCode({
         imported,
-        code,
-        redirectUri,
-        codeVerifier: auth.codeVerifier
+        code: code!,
+        redirectUri
       });
-      if (
-        snapshot.type !== 'identity' ||
-        snapshot.delegation.id !== imported.sourceDelegationId ||
-        snapshot.delegation.clientId !== imported.clientId ||
-        snapshot.tenant.id !== imported.sourceTenantId ||
-        !snapshot.connection ||
-        !snapshot.userProfile
-      ) {
-        throw new ServiceError(
-          badRequestError({ message: 'Delegation identity did not match the import' })
-        );
-      }
-
-      let connection = await db.ssoConnection.findFirst({
-        where: {
-          importedDelegationOid: imported.oid,
-          sourceId: snapshot.connection.id,
-          tenantOid: auth.tenantOid,
-          status: 'active'
-        }
+      let { connection, profile } = await materializeDelegatedIdentity({
+        imported,
+        snapshot,
+        tenant: imported.tenant,
+        context
       });
-      if (!connection) {
-        throw new ServiceError(
-          badRequestError({ message: 'Delegated SSO connection is unavailable' })
-        );
-      }
 
-      let profileData = snapshot.userProfile;
+      let cookieHeader = ctx.req.header('cookie') ?? '';
+      let deviceToken = Cookies.parse(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
+      let deviceInfo = deviceToken ? parseDeviceToken(deviceToken) : null;
+      let device = await deviceService.ensureDevice({
+        deviceId: deviceInfo?.deviceId,
+        deviceClientSecret: deviceInfo?.deviceClientSecret,
+        context
+      });
 
-      // The delegated instance authenticated against its own IdP and has no
-      // account domains of its own, so the asserted email is only checked here.
-      await ssoDomainPolicyService.assertEmailAllowed({
-        tenant: auth.tenant,
+      let { authAttempt, session } = await ssoLoginService.completeLogin({
+        tenant: imported.tenant,
         connection,
-        account: auth.account,
-        email: profileData.email,
-        context: getRequestContext(ctx)
+        userProfile: profile,
+        app: imported.app,
+        device,
+        context,
+        redirectUrl: imported.app.defaultRedirectUrl
       });
 
-      let user = await ssoIdentityService.upsertUser({
-        tenant: auth.tenant,
-        email: profileData.email,
-        firstName: profileData.firstName,
-        lastName: profileData.lastName
-      });
-      let profile = await ssoIdentityService.upsertUserProfile({
-        tenant: auth.tenant,
-        connection,
-        user,
-        data: {
-          email: profileData.email,
-          uid: profileData.uid,
-          uidHash: profileData.uidHash,
-          sub: profileData.sub ?? undefined,
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          roles: profileData.roles,
-          groups: profileData.groups,
-          raw: profileData.raw
-        }
-      });
-      await db.ssoAuth.update({
-        where: { oid: auth.oid },
-        data: {
-          status: 'completed',
-          connectionOid: connection.oid,
-          userOid: user.oid,
-          userProfileOid: profile.oid
-        }
-      });
+      ctx.res.headers.append(
+        'Set-Cookie',
+        Cookies.serialize(
+          DEVICE_TOKEN_COOKIE_NAME,
+          `${device.id}:${device.clientSecret}`,
+          baseCookieOpts
+        )
+      );
+      ctx.res.headers.append(
+        'Set-Cookie',
+        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+      );
 
-      let next = new URL(`${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`);
-      next.searchParams.set('tenant_id', auth.tenant.id);
-      next.searchParams.set('auth_id', auth.id);
-      return ctx.redirect(next.toString());
+      let completedRedirect = getIdpInitiatedConsumerLoginRedirect({
+        defaultRedirectUrl: authAttempt.redirectUrl,
+        authorizationCode: session.authorizationCode
+      });
+      return ctx.redirect(completedRedirect);
     } catch (error) {
       return renderSsoError(ctx, error);
     }

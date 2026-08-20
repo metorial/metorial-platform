@@ -9,16 +9,18 @@ import type {
   SsoConnection,
   SsoExportedDelegation,
   SsoImportedDelegation,
-  SsoTenant
+  SsoTenant,
+  SsoUserProfile
 } from '../../../prisma/generated/client';
 import { db, type TransactionDB, withTransaction } from '../../db';
 import { env } from '../../env';
 import { getId, ID } from '../../id';
 import {
-  createDelegationCodeChallenge,
+  assertDelegationAuthorizationGrant,
+  getExportedDelegationRedirectUri,
   hashDelegationSecret,
-  normalizeDelegationRedirectUri,
-  normalizeDelegationAuthorizationEndpoint
+  normalizeDelegationAuthorizationEndpoint,
+  pickLatestExportedDelegation
 } from '../../lib/ssoDelegationProtocol';
 
 export type DelegationDescriptor = {
@@ -226,35 +228,50 @@ class SsoDelegationServiceImpl {
     return token;
   }
 
+  async storeExportRedirectUri(d: {
+    delegation: SsoExportedDelegation;
+    redirectUri: string;
+  }) {
+    await db.ssoExportedDelegation.update({
+      where: { oid: d.delegation.oid },
+      data: { redirectUri: d.redirectUri }
+    });
+  }
+
   async exchangeAuthorizationCode(d: {
     delegation: SsoExportedDelegation;
     code: string;
     redirectUri: string;
-    codeVerifier: string;
+    codeVerifier?: string;
   }) {
-    let redirectUri: string;
-    try {
-      redirectUri = normalizeDelegationRedirectUri(d.redirectUri);
-    } catch {
-      throw new ServiceError(badRequestError({ message: 'Invalid authorization code' }));
-    }
-
     let code = await db.ssoDelegationAuthorizationCode.findUnique({
       where: { codeHash: hashDelegationSecret(d.code) }
     });
     if (
       !code ||
       code.exportedDelegationOid !== d.delegation.oid ||
-      code.redirectUri !== redirectUri ||
       code.expiresAt <= new Date() ||
       code.consumedAt
     ) {
       throw new ServiceError(badRequestError({ message: 'Invalid authorization code' }));
     }
 
-    let actualChallenge = createDelegationCodeChallenge(d.codeVerifier);
-    if (actualChallenge !== code.codeChallenge) {
-      throw new ServiceError(badRequestError({ message: 'Invalid PKCE verifier' }));
+    try {
+      assertDelegationAuthorizationGrant({
+        storedRedirectUri: code.redirectUri,
+        presentedRedirectUri: d.redirectUri,
+        codeChallenge: code.codeChallenge,
+        codeVerifier: d.codeVerifier
+      });
+    } catch (error) {
+      throw new ServiceError(
+        badRequestError({
+          message:
+            error instanceof Error && error.message === 'Invalid PKCE verifier'
+              ? 'Invalid PKCE verifier'
+              : 'Invalid authorization code'
+        })
+      );
     }
 
     let consumed = await db.ssoDelegationAuthorizationCode.updateMany({
@@ -386,6 +403,35 @@ class SsoDelegationServiceImpl {
     });
 
     return { code, state: request.state, redirectUri: request.redirectUri };
+  }
+
+  async completeIdpInitiatedExport(d: {
+    tenant: SsoTenant;
+    connection: SsoConnection;
+    userProfile: SsoUserProfile;
+  }) {
+    let exportedDelegations = await db.ssoExportedDelegation.findMany({
+      where: { tenantOid: d.tenant.oid }
+    });
+    let delegation = pickLatestExportedDelegation(exportedDelegations);
+    if (!delegation) throw new ServiceError(notFoundError('sso.delegation'));
+
+    let redirectUri = getExportedDelegationRedirectUri(delegation.redirectUri);
+    let code = createOpaqueSecret();
+    await db.ssoDelegationAuthorizationCode.create({
+      data: {
+        ...getId('ssoDelegationAuthorizationCode'),
+        codeHash: hashDelegationSecret(code),
+        redirectUri,
+        codeChallenge: null,
+        exportedDelegationOid: delegation.oid,
+        connectionOid: d.connection.oid,
+        userProfileOid: d.userProfile.oid,
+        expiresAt: new Date(Date.now() + 60_000)
+      }
+    });
+
+    return { code, redirectUri, clientId: delegation.clientId };
   }
 
   async storeImport(d: {

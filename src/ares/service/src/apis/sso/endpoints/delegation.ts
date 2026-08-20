@@ -55,6 +55,10 @@ export let ssoDelegationApp = createHono()
         process.env.NODE_ENV === 'development' ||
         process.env.METORIAL_ENV === 'development'
     });
+    await ssoDelegationService.storeExportRedirectUri({
+      delegation,
+      redirectUri
+    });
     let connection = input.connection_id
       ? await db.ssoConnection.findFirst({
           where: {
@@ -159,8 +163,7 @@ export let ssoDelegationApp = createHono()
     if (
       body.grant_type === 'authorization_code' &&
       body.code &&
-      body.redirect_uri &&
-      body.code_verifier
+      body.redirect_uri
     ) {
       try {
         let token = await ssoDelegationService.exchangeAuthorizationCode({

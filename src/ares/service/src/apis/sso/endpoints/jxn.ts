@@ -3,6 +3,10 @@ import * as Cookies from 'cookie';
 import { db } from '../../../db';
 import { getRequestContext } from '../../../lib/context';
 import { getSamlConnectionDefaultRedirectUrl } from '../../../lib/ssoRedirect';
+import {
+  buildIdpInitiatedDelegationRedirect,
+  resolveIdpInitiatedSamlCompletion
+} from '../../../lib/ssoDelegationProtocol';
 import { deviceService } from '../../../services/device';
 import {
   SsoDomainNotAllowedError,
@@ -10,6 +14,7 @@ import {
 } from '../../../services/sso/domainPolicy';
 import { ssoIdentityService } from '../../../services/sso/identity';
 import { ssoLoginService } from '../../../services/sso/login';
+import { ssoDelegationService } from '../../../services/sso/delegation';
 import { jackson } from '../../../lib/jackson';
 import {
   baseCookieOpts,
@@ -76,7 +81,10 @@ export let jxnApp = createHono()
         },
         include: {
           tenant: {
-            include: { app: true }
+            include: {
+              app: true,
+              exportedDelegations: true
+            }
           }
         }
       });
@@ -162,6 +170,24 @@ export let jxnApp = createHono()
           raw: userInfo.raw
         }
       });
+
+      let delegatedCompletion = resolveIdpInitiatedSamlCompletion({
+        exportedDelegations: connection.tenant.exportedDelegations
+      });
+      if (delegatedCompletion.type === 'delegated') {
+        let result = await ssoDelegationService.completeIdpInitiatedExport({
+          tenant: connection.tenant,
+          connection,
+          userProfile
+        });
+        return c.redirect(
+          buildIdpInitiatedDelegationRedirect({
+            redirectUri: result.redirectUri,
+            code: result.code,
+            clientId: result.clientId
+          })
+        );
+      }
 
       let cookieHeader = c.req.header('cookie') ?? '';
       let deviceToken = Cookies.parse(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];

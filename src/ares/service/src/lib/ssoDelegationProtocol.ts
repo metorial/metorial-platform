@@ -53,3 +53,88 @@ export let validateDelegationRedirectUri = (d: {
 
 export let normalizeDelegationRedirectUri = (redirectUri: string) =>
   new URL(redirectUri).toString();
+
+export let FALLBACK_DELEGATION_REDIRECT_URI =
+  'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response';
+
+export let getExportedDelegationRedirectUri = (stored?: string | null) =>
+  stored ?? FALLBACK_DELEGATION_REDIRECT_URI;
+
+export let pickLatestExportedDelegation = <T extends { updatedAt: Date }>(exports: T[]) => {
+  if (exports.length === 0) return null;
+  return [...exports].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0]!;
+};
+
+export let buildIdpInitiatedDelegationRedirect = (d: {
+  redirectUri: string;
+  code: string;
+  clientId: string;
+}) => {
+  let redirect = new URL(d.redirectUri);
+  redirect.searchParams.set('code', d.code);
+  redirect.searchParams.set('client_id', d.clientId);
+  return redirect.toString();
+};
+
+export let resolveIdpInitiatedSamlCompletion = (d: {
+  exportedDelegations: { updatedAt: Date; redirectUri: string | null; clientId: string }[];
+}) => {
+  let exported = pickLatestExportedDelegation(d.exportedDelegations);
+  if (!exported) return { type: 'local' as const };
+  return {
+    type: 'delegated' as const,
+    clientId: exported.clientId,
+    redirectUri: getExportedDelegationRedirectUri(exported.redirectUri)
+  };
+};
+
+export let getDelegationResponseMode = (d: {
+  code?: string | null;
+  state?: string | null;
+  clientId?: string | null;
+}) => {
+  if (!d.code) return { type: 'invalid' as const, reason: 'missing_code' as const };
+  if (d.state) return { type: 'sp_initiated' as const };
+  if (d.clientId) return { type: 'idp_initiated' as const };
+  return { type: 'invalid' as const, reason: 'missing_state_or_client_id' as const };
+};
+
+export let getIdpInitiatedConsumerLoginRedirect = (d: {
+  defaultRedirectUrl: string;
+  authorizationCode: string;
+}) => {
+  let redirect = new URL(d.defaultRedirectUrl);
+  redirect.searchParams.set('code', d.authorizationCode);
+  return redirect.toString();
+};
+
+export let assertDelegationAuthorizationCodeVerifier = (d: {
+  codeChallenge: string | null;
+  codeVerifier?: string;
+}) => {
+  if (!d.codeChallenge) return;
+  if (!d.codeVerifier || createDelegationCodeChallenge(d.codeVerifier) !== d.codeChallenge) {
+    throw new Error('Invalid PKCE verifier');
+  }
+};
+
+export let assertDelegationAuthorizationGrant = (d: {
+  storedRedirectUri: string;
+  presentedRedirectUri: string;
+  codeChallenge: string | null;
+  codeVerifier?: string;
+}) => {
+  let presented: string;
+  try {
+    presented = normalizeDelegationRedirectUri(d.presentedRedirectUri);
+  } catch {
+    throw new Error('Invalid authorization code');
+  }
+  if (d.storedRedirectUri !== presented) {
+    throw new Error('Invalid authorization code');
+  }
+  assertDelegationAuthorizationCodeVerifier({
+    codeChallenge: d.codeChallenge,
+    codeVerifier: d.codeVerifier
+  });
+};

@@ -188,19 +188,20 @@ export let ssoDelegationClient = {
     imported: ImportedWithRemote;
     code: string;
     redirectUri: string;
-    codeVerifier: string;
+    codeVerifier?: string;
   }) {
     let tokenUrl = effectiveTokenUrl(d.imported);
+    let body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: d.code,
+      redirect_uri: d.redirectUri
+    });
+    if (d.codeVerifier) body.set('code_verifier', d.codeVerifier);
     let tokenResult = await requestToken({
       tokenUrl,
       clientId: d.imported.clientId,
       clientSecret: d.imported.clientSecret,
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: d.code,
-        redirect_uri: d.redirectUri,
-        code_verifier: d.codeVerifier
-      })
+      body
     });
     return await introspect({
       tokenUrl,
