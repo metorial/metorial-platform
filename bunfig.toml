@@ -1,4 +1,4 @@
 [install]
 minimumReleaseAge = 604800
-minimumReleaseAgeExcludes = ["@codemirror/view", "resend", "@slates/proto"]
+minimumReleaseAgeExcludes = ["@codemirror/view", "resend", "@slates/proto", "@slates/adapter", "@slates/adapter-chat", "@slates/provider"]
 linker = "hoisted"
