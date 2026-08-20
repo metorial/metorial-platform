@@ -20,6 +20,22 @@ import type {
 import { IProviderRun, IProviderRunConnection } from '@metorial-subspace/provider-utils';
 import PQueue from 'p-queue';
 import { getTenantForSlates, slates } from '../client';
+import { resolveReceiverBoundToolSelectorFromAuthority } from './receiverBoundToolSelector';
+
+export let resolveReceiverBoundToolSelector = async (d: {
+  tenantOid: bigint;
+  providerConfigVersionOid: bigint;
+  providerAuthConfigVersionOid: bigint | null;
+  input: unknown;
+}) => {
+  return resolveReceiverBoundToolSelectorFromAuthority({
+    ...d,
+    findMany: query =>
+      db.callbackInstance.findMany({
+        ...(query as Parameters<typeof db.callbackInstance.findMany>[0])
+      }) as Promise<{ slateTriggerReceiverId: string | null }[]>
+  });
+};
 
 export class ProviderRun extends IProviderRun {
   override async createProviderRun(
@@ -156,6 +172,30 @@ export class ProviderRunConnection extends IProviderRunConnection {
         })
       : null;
     let input = await messageInputToToolCall(data.input, data.message);
+    let toolCapabilities =
+      typeof data.tool.value === 'object' &&
+      data.tool.value !== null &&
+      !Array.isArray(data.tool.value)
+        ? (data.tool.value as Record<string, any>).capabilities
+        : undefined;
+    let receiverBoundTool = Boolean(toolCapabilities?.receiverBoundToolContextV1);
+    let receiverCallbackSelector = receiverBoundTool
+      ? await resolveReceiverBoundToolSelector({
+          tenantOid: this.tenant.oid,
+          providerConfigVersionOid: this.params.providerConfigVersion.oid,
+          providerAuthConfigVersionOid: this.providerAuthConfigVersion?.oid ?? null,
+          input
+        })
+      : undefined;
+    if (!receiverBoundTool && data.receiverCallbackSelector) {
+      throw new Error('Receiver callback selector is not allowed for this tool');
+    }
+    if (
+      data.receiverCallbackSelector &&
+      data.receiverCallbackSelector !== receiverCallbackSelector
+    ) {
+      throw new Error('Caller-supplied receiver callback selector does not match authority');
+    }
 
     let res = await slates.slateSessionToolCall.call({
       tenantId: tenant.id,
@@ -164,6 +204,7 @@ export class ProviderRunConnection extends IProviderRunConnection {
       authConfigId: slateAuthConfig?.id,
 
       input,
+      receiverCallbackSelector,
 
       participants: [
         {

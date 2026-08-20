@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateSignature } from '../signature';
+import { generateSignature, generateSignatures, verifyMetorialSignature } from '../signature';
 
 describe('Signature verification', () => {
   const format = /^t=\d+,v1=[a-f0-9]{64}$/;
@@ -50,5 +50,25 @@ describe('Signature verification', () => {
     const sig1 = await generateSignature(payload, secret, { timestamp: 1704067200 });
     const sig2 = await generateSignature(payload, secret, { timestamp: 1704067201 });
     expect(sig1).not.toBe(sig2);
+  });
+
+  it('accepts any duplicate v1 field and rejects when none match', async () => {
+    let signature = await generateSignatures('payload', ['active', 'retiring'], { timestamp });
+    await expect(
+      verifyMetorialSignature({
+        header: signature,
+        body: 'payload',
+        signingSecrets: ['retiring'],
+        options: { nowSeconds: timestamp }
+      })
+    ).resolves.toBe(true);
+    await expect(
+      verifyMetorialSignature({
+        header: signature,
+        body: 'payload',
+        signingSecrets: ['other'],
+        options: { nowSeconds: timestamp }
+      })
+    ).resolves.toBe(false);
   });
 });

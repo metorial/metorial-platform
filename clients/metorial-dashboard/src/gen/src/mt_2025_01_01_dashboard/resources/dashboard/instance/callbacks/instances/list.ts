@@ -1,10 +1,26 @@
 import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  type DashboardCallbackInstanceSecurityFields,
+  type DashboardCallbackRegistrationFields,
+  type DashboardCallbackVerificationFields,
+  mapDashboardCallbackInstanceSecurityFields,
+  mapDashboardCallbackRegistrationFields,
+  mapDashboardCallbackVerificationFields
+} from './security';
 
 export type DashboardInstanceCallbacksInstancesListOutput = {
-  items: {
+  items: ({
     object: 'callback.instance';
     id: string;
     status: 'attached' | 'detached';
+    registrationStatus:
+      | 'pending'
+      | 'registering'
+      | 'registered'
+      | 'renewing'
+      | 'failed'
+      | 'unregistering'
+      | 'unregistered';
     deployment: {
       object: 'provider.deployment#preview';
       id: string;
@@ -38,8 +54,7 @@ export type DashboardInstanceCallbacksInstancesListOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    webhookUrl: string | null;
-    triggers: {
+    triggers: ({
       object: 'callback.instance.trigger';
       id: string;
       source: 'polling' | 'webhook';
@@ -48,6 +63,14 @@ export type DashboardInstanceCallbacksInstancesListOutput = {
       lastPolledAt: Date | null;
       webhookUrl: string | null;
       isWebhookRegistered: boolean | null;
+      registrationStatus:
+        | 'pending'
+        | 'registering'
+        | 'registered'
+        | 'renewing'
+        | 'failed'
+        | 'unregistering'
+        | 'unregistered';
       providerTrigger: {
         object: 'provider.capabilities.trigger';
         id: string;
@@ -74,10 +97,11 @@ export type DashboardInstanceCallbacksInstancesListOutput = {
         createdAt: Date;
         updatedAt: Date;
       } | null;
-    }[];
+    } & DashboardCallbackRegistrationFields &
+      DashboardCallbackVerificationFields)[];
     createdAt: Date;
     updatedAt: Date;
-  }[];
+  } & DashboardCallbackInstanceSecurityFields)[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -87,9 +111,11 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
       'items',
       mtMap.array(
         mtMap.object({
+          ...mapDashboardCallbackInstanceSecurityFields,
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           status: mtMap.objectField('status', mtMap.passthrough()),
+          registrationStatus: mtMap.objectField('registration_status', mtMap.passthrough()),
           deployment: mtMap.objectField(
             'deployment',
             mtMap.object({
@@ -97,10 +123,7 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -114,10 +137,7 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
@@ -131,21 +151,19 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               isDefault: mtMap.objectField('is_default', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
               createdAt: mtMap.objectField('created_at', mtMap.date()),
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
           ),
-          webhookUrl: mtMap.objectField('webhook_url', mtMap.passthrough()),
           triggers: mtMap.objectField(
             'triggers',
             mtMap.array(
               mtMap.object({
+                ...mapDashboardCallbackRegistrationFields,
+                ...mapDashboardCallbackVerificationFields,
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 source: mtMap.objectField('source', mtMap.passthrough()),
@@ -155,12 +173,13 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
                 ),
                 nextPollAt: mtMap.objectField('next_poll_at', mtMap.date()),
                 lastPolledAt: mtMap.objectField('last_polled_at', mtMap.date()),
-                webhookUrl: mtMap.objectField(
-                  'webhook_url',
-                  mtMap.passthrough()
-                ),
+                webhookUrl: mtMap.objectField('webhook_url', mtMap.passthrough()),
                 isWebhookRegistered: mtMap.objectField(
                   'is_webhook_registered',
+                  mtMap.passthrough()
+                ),
+                registrationStatus: mtMap.objectField(
+                  'registration_status',
                   mtMap.passthrough()
                 ),
                 providerTrigger: mtMap.objectField(
@@ -170,10 +189,7 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
                     id: mtMap.objectField('id', mtMap.passthrough()),
                     key: mtMap.objectField('key', mtMap.passthrough()),
                     name: mtMap.objectField('name', mtMap.passthrough()),
-                    description: mtMap.objectField(
-                      'description',
-                      mtMap.passthrough()
-                    ),
+                    description: mtMap.objectField('description', mtMap.passthrough()),
                     inputSchema: mtMap.objectField(
                       'input_schema',
                       mtMap.object({
@@ -194,10 +210,7 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
                         mtMap.unionOption(
                           'object',
                           mtMap.object({
-                            type: mtMap.objectField(
-                              'type',
-                              mtMap.passthrough()
-                            ),
+                            type: mtMap.objectField('type', mtMap.passthrough()),
                             intervalSeconds: mtMap.objectField(
                               'interval_seconds',
                               mtMap.passthrough()
@@ -205,29 +218,20 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
                             autoRegistration: mtMap.objectField(
                               'auto_registration',
                               mtMap.object({
-                                status: mtMap.objectField(
-                                  'status',
-                                  mtMap.passthrough()
-                                )
+                                status: mtMap.objectField('status', mtMap.passthrough())
                               })
                             ),
                             autoUnregistration: mtMap.objectField(
                               'auto_unregistration',
                               mtMap.object({
-                                status: mtMap.objectField(
-                                  'status',
-                                  mtMap.passthrough()
-                                )
+                                status: mtMap.objectField('status', mtMap.passthrough())
                               })
                             )
                           })
                         )
                       ])
                     ),
-                    providerId: mtMap.objectField(
-                      'provider_id',
-                      mtMap.passthrough()
-                    ),
+                    providerId: mtMap.objectField('provider_id', mtMap.passthrough()),
                     providerSpecificationId: mtMap.objectField(
                       'provider_specification_id',
                       mtMap.passthrough()
@@ -247,10 +251,7 @@ export let mapDashboardInstanceCallbacksInstancesListOutput =
     pagination: mtMap.objectField(
       'pagination',
       mtMap.object({
-        hasMoreBefore: mtMap.objectField(
-          'has_more_before',
-          mtMap.passthrough()
-        ),
+        hasMoreBefore: mtMap.objectField('has_more_before', mtMap.passthrough()),
         hasMoreAfter: mtMap.objectField('has_more_after', mtMap.passthrough())
       })
     )
@@ -331,4 +332,3 @@ export let mapDashboardInstanceCallbacksInstancesListQuery = mtMap.union([
     })
   )
 ]);
-

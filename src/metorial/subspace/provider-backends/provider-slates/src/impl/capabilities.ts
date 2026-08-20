@@ -2,15 +2,16 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { db } from '@metorial-subspace/db';
 import {
   IProviderCapabilities,
-  type ConnectionSpecificationBehavior,
   type ProviderConnectionSpecificationBehaviorParam,
   type ProviderSpecificationBehaviorParam,
   type ProviderSpecificationBehaviorRes,
   type ProviderSpecificationGetForPairParam,
   type ProviderSpecificationGetForProviderParam,
   type ProviderSpecificationGetRes
-} from '@metorial-subspace/provider-utils';
+} from '@metorial-subspace/provider-utils/src/interfaces/providerCapabilities';
+import type { ConnectionSpecificationBehavior } from '@metorial-subspace/provider-utils/src/types/connection';
 import { slates } from '../client';
+import { mapSlatesSpecificationTriggers } from './capabilitiesTrigger';
 
 export class ProviderCapabilities extends IProviderCapabilities {
   override async getSpecificationBehavior(
@@ -77,6 +78,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
     let specRecord = await slates.slateSpecification.get({
       slateSpecificationId: slateVersionRecord.specification?.specificationId
     });
+    let triggers = mapSlatesSpecificationTriggers(specRecord.triggers);
 
     return {
       status: 'success',
@@ -94,69 +96,10 @@ export class ProviderCapabilities extends IProviderCapabilities {
         metadata: specRecord.providerInfo.metadata ?? {},
         configJsonSchema: specRecord.configSchema,
         configVisibility: 'plain',
-        triggers: specRecord.triggers
-          .map(t => {
-            let invocation = t.invocation;
-            if (!invocation) return null;
-
-            return {
-              specId: t.id,
-              specUniqueIdentifier: t.identifier,
-              callableId: t.key,
-              key: t.key,
-              name: t.name,
-              description: t.description,
-              inputJsonSchema: t.inputSchema,
-              outputJsonSchema: t.outputSchema,
-              invocation:
-                invocation.type === 'polling'
-                  ? {
-                      type: 'polling' as const,
-                      intervalSeconds: invocation.intervalSeconds
-                    }
-                  : {
-                      type: 'webhook' as const,
-                      autoRegistration: invocation.autoRegistration,
-                      autoUnregistration: invocation.autoUnregistration
-                    },
-              capabilities: t.capabilities ?? {},
-              metadata: t.metadata ?? {}
-            };
-          })
-          .filter((t): t is NonNullable<typeof t> => t !== null),
+        triggers,
         mcp: null
       },
-      triggers: specRecord.triggers
-        .map(t => {
-          let invocation = t.invocation;
-          if (!invocation) return null;
-
-          return {
-            specId: t.id,
-            specUniqueIdentifier: t.identifier,
-            callableId: t.key,
-            key: t.key,
-            name: t.name,
-            description: t.description,
-            inputJsonSchema: t.inputSchema,
-            outputJsonSchema: t.outputSchema,
-            capabilities: t.capabilities ?? {},
-            metadata: t.metadata ?? {},
-            scopes: t.scopes ?? null,
-            invocation:
-              invocation.type === 'polling'
-                ? {
-                    type: 'polling' as const,
-                    intervalSeconds: invocation.intervalSeconds
-                  }
-                : {
-                    type: 'webhook' as const,
-                    autoRegistration: invocation.autoRegistration,
-                    autoUnregistration: invocation.autoUnregistration
-                  }
-          };
-        })
-        .filter((t): t is NonNullable<typeof t> => t !== null),
+      triggers,
       authMethods: specRecord.authMethods.map(am => ({
         specId: am.id,
         specUniqueIdentifier: am.identifier,

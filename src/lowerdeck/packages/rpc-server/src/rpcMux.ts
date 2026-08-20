@@ -28,6 +28,18 @@ let verbose = process.env.NODE_ENV !== 'production';
 let Sentry = getSentry();
 let tracer = trace.getTracer('lowerdeck.rpc-server');
 
+type RpcMuxTelemetryObservation = {
+  path: 'attachment' | 'exception';
+  body: unknown;
+};
+let telemetryObserverForTest: ((observation: RpcMuxTelemetryObservation) => void) | null =
+  null;
+export let configureRpcMuxTelemetryObserverForTest = (
+  observer: ((observation: RpcMuxTelemetryObservation) => void) | null
+) => {
+  telemetryObserverForTest = observer;
+};
+
 let validation = v.object({
   calls: v.array(
     v.object({
@@ -86,6 +98,38 @@ let getDirectRouteHandlerName = (url: URL, rpcPath: string) => {
   return normalizeHandlerName(rawName);
 };
 
+export let redactRpcTelemetryBody = (
+  value: unknown,
+  sensitiveFields: readonly string[] = []
+): unknown => {
+  if (sensitiveFields.length === 0) return value;
+  let normalizedFields = new Set(sensitiveFields.map(field => field.toLowerCase()));
+  let redact = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(redact);
+    if (!item || typeof item !== 'object') return item;
+    return Object.fromEntries(
+      Object.entries(item).map(([key, nested]) => [
+        key,
+        normalizedFields.has(key.toLowerCase()) ? '[REDACTED]' : redact(nested)
+      ])
+    );
+  };
+  return redact(value);
+};
+
+export let createRpcExceptionTelemetry = (d: {
+  url: string;
+  method: string;
+  ip?: string;
+  body: unknown;
+  sensitiveFields?: readonly string[];
+}) => ({
+  url: d.url,
+  method: d.method,
+  ip: d.ip,
+  body: redactRpcTelemetryBody(d.body, d.sensitiveFields)
+});
+
 export let rpcMux = (
   opts: {
     path: string;
@@ -96,6 +140,11 @@ export let rpcMux = (
       | Promise<string | { secret: string; context?: Record<string, any> }>
       | string
       | { secret: string; context?: Record<string, any> };
+    onVerifiedSignature?: (
+      request: Request,
+      context: Record<string, any> | undefined
+    ) => Promise<void> | void;
+    sensitiveRequestFields?: readonly string[];
     cors?: {
       headers?: string[];
     } & ({ domains: string[] } | { check: (origin: string) => boolean });
@@ -246,12 +295,21 @@ export let rpcMux = (
         return new Response('Unauthorized', { status: 401, headers: corsHeaders });
       }
 
+      if (opts.getSignatureToken && opts.onVerifiedSignature) {
+        try {
+          await opts.onVerifiedSignature(req, signatureContext);
+        } catch {
+          return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+        }
+      }
+
       let sentryTraceHeaders = req.headers.get('sentry-trace');
       let sentryTrace =
         (Array.isArray(sentryTraceHeaders)
           ? sentryTraceHeaders.join(',')
           : sentryTraceHeaders) ?? undefined;
       let baggage = req.headers.get('baggage');
+      let telemetryBody = redactRpcTelemetryBody(body, opts.sensitiveRequestFields);
 
       let ip = parseForwardedFor(
         req.headers.get('cf-connecting-ip') ??
@@ -352,9 +410,10 @@ export let rpcMux = (
 
                       Sentry.getCurrentScope().addAttachment({
                         filename: 'rpc.request.body.json',
-                        data: body,
+                        data: serialize.encode(telemetryBody),
                         contentType: 'application/json'
                       });
+                      telemetryObserverForTest?.({ path: 'attachment', body: telemetryBody });
 
                       return provideExecutionContext(
                         createExecutionContext({
@@ -474,8 +533,14 @@ export let rpcMux = (
                     } catch (e) {
                       if (verbose) console.error(e);
 
+                      telemetryObserverForTest?.({ path: 'exception', body: telemetryBody });
                       Sentry.captureException(e, {
-                        extra: { url: req.url, method: req.method, ip, body }
+                        extra: createRpcExceptionTelemetry({
+                          url: req.url,
+                          method: req.method,
+                          ip,
+                          body: telemetryBody
+                        })
                       });
 
                       return new Response(

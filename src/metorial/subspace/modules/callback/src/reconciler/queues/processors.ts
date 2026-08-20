@@ -1,11 +1,18 @@
 import { db } from '@metorial-subspace/db';
 import { callbackRegistrationReconcileQueue } from '@metorial-subspace/module-provider-internal/src/queues/lifecycle/deploymentConfigPair';
-import { syncCallback, syncCallbackInstance } from '../lib/sync';
+import { syncCallback } from '../lib/sync';
+import { loadFreshCallbackInstance } from '../lib/state';
 import {
+  callbackReconcileCallbackQueue,
   callbackReconcileInstanceQueue,
   callbackV2MigrationCallbackQueue,
   callbackV2MigrationScanQueue
 } from './definitions';
+export { reconcileCallbackRegistrationQueueProcessor } from './reconcileCallbackRegistration';
+export {
+  repairCallbackRegistrationsCron,
+  repairCallbackRegistrationsQueueProcessor
+} from './repairCallbackRegistrations';
 
 let CALLBACK_MIGRATION_PAGE_SIZE = 100;
 
@@ -43,7 +50,23 @@ export let callbackReconcileQueueProcessor = callbackRegistrationReconcileQueue.
 
 export let callbackReconcileInstanceQueueProcessor = callbackReconcileInstanceQueue.process(
   async data => {
-    await syncCallbackInstance(data);
+    let callbackInstance = await loadFreshCallbackInstance(data.callbackInstanceId);
+    if (!callbackInstance) return;
+
+    await callbackReconcileCallbackQueue.add(
+      { callbackId: callbackInstance.callback.id },
+      { id: callbackInstance.callback.id }
+    );
+  }
+);
+
+export let callbackReconcileCallbackQueueProcessor = callbackReconcileCallbackQueue.process(
+  async data => {
+    await syncCallback({
+      callbackId: data.callbackId,
+      fresh: true,
+      throwOnError: true
+    });
   }
 );
 
@@ -78,7 +101,7 @@ export let callbackV2MigrationScanQueueProcessor = callbackV2MigrationScanQueue.
 
 export let callbackV2MigrationCallbackQueueProcessor =
   callbackV2MigrationCallbackQueue.process(async data => {
-    await syncCallback({ callbackId: data.callbackId });
+    await syncCallback({ callbackId: data.callbackId, fresh: true });
   });
 
 await callbackV2MigrationScanQueue.add({}, { id: 'callbacks-v2-migration' });

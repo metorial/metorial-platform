@@ -36,11 +36,13 @@ export let pairInclude = {
   },
   providerConfigVersion: {
     include: {
+      config: true,
       slateInstance: true
     }
   },
   providerAuthConfigVersion: {
     include: {
+      authConfig: true,
       slateAuthConfig: true
     }
   }
@@ -75,8 +77,7 @@ let loadCallbackInstanceUncached = async (callbackInstanceId: string) =>
       },
       providerDeploymentConfigPair: {
         include: pairInclude
-      },
-      activeRegistration: true
+      }
     }
   });
 
@@ -107,3 +108,15 @@ export let isCallbackSupported = (
   callback.status === 'active' &&
   callback.providerDeployment.provider.type.attributes.backend === 'slates' &&
   callback.providerDeployment.provider.type.attributes.triggers.status === 'enabled';
+
+// A pair whose deployment, config, or auth config is archived or deleted must not
+// keep a live registration.
+export let isPairUsable = (
+  pair: NonNullable<
+    Awaited<ReturnType<typeof loadCallbackInstance>>
+  >['providerDeploymentConfigPair']
+) =>
+  pair.providerDeploymentVersion.deployment.status === 'active' &&
+  pair.providerConfigVersion.config.status === 'active' &&
+  (!pair.providerAuthConfigVersion ||
+    pair.providerAuthConfigVersion.authConfig.status === 'active');

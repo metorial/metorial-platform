@@ -8,14 +8,21 @@ type SlatePackageJson = {
   main?: string;
   dependencies?: Record<string, any>;
   scripts?: Record<string, string | undefined>;
+  slatesRuntime?: {
+    wrapper?: unknown;
+  };
 };
 
 let logoFiles = ['png', 'jpg', 'jpeg', 'svg'].map(ext => `logo.${ext}`);
+let baseWrapperDependencies = {
+  '@lowerdeck/serialize': 'latest',
+  '@lowerdeck/rpc-client': 'latest'
+};
 let wrapperDependencies = {
-  '@slates/provider-handler': 'latest',
-  '@slates/proto': 'latest',
-  slates: 'latest',
-  '@lowerdeck/serialize': 'latest'
+  '@slates/provider-handler': '1.0.0-rc.22',
+  '@slates/proto': '1.0.0-rc.17',
+  slates: '1.0.0-rc.19',
+  ...baseWrapperDependencies
 };
 let entrypointExtensions = ['.ts', '.js', '.cjs', '.mjs'];
 let fallbackEntrypoints = [
@@ -82,8 +89,10 @@ let getSlateEntrypoint = (
 
 let getProviderImportPath = (
   files: DeploymentArchiveFile[],
-  slateEntrypoint: string
+  slateEntrypoint: string,
+  useBundledWrapper: boolean
 ): string => {
+  if (useBundledWrapper) return slateEntrypoint;
   if (!slateEntrypoint.startsWith('dist/')) return slateEntrypoint;
 
   for (let candidate of sourceProviderImportCandidates) {
@@ -113,15 +122,64 @@ let isPrebuiltNccArtifact = (filePath: string) => {
 let stripSourcemapRegisterImport = (content: string) =>
   content.replace(/^import\s+['"]\.\/?sourcemap-register\.cjs['"];?\s*/m, '');
 
-let getMergedPackageJson = (packageJson: SlatePackageJson | null) => {
+let hasBundledWrapper = (packageJson: SlatePackageJson | null) =>
+  packageJson?.slatesRuntime?.wrapper === 'bundled';
+
+let internalWrapperDependencyNames = [
+  '@slates/provider-handler',
+  '@slates/proto',
+  'slates'
+] as const;
+let installableDependencySections = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies'
+] as const;
+
+let withoutInternalWrapperDependencies = (packageJson: SlatePackageJson) => {
+  let sanitized = { ...packageJson };
+
+  for (let section of installableDependencySections) {
+    let dependencies = packageJson[section];
+    if (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies)) {
+      continue;
+    }
+
+    let nextDependencies = { ...dependencies };
+    for (let dependencyName of internalWrapperDependencyNames) {
+      delete nextDependencies[dependencyName];
+    }
+    sanitized[section] = nextDependencies;
+  }
+
+  for (let section of ['bundledDependencies', 'bundleDependencies'] as const) {
+    let dependencies = packageJson[section];
+    if (!Array.isArray(dependencies)) continue;
+    sanitized[section] = dependencies.filter(
+      dependency => !internalWrapperDependencyNames.includes(dependency)
+    );
+  }
+
+  return sanitized;
+};
+
+let getMergedPackageJson = (
+  packageJson: SlatePackageJson | null,
+  useBundledWrapper: boolean
+) => {
+  let sourcePackageJson =
+    packageJson && useBundledWrapper
+      ? withoutInternalWrapperDependencies(packageJson)
+      : packageJson;
   let mergedPackageJson: SlatePackageJson = {
-    ...(packageJson ?? {
+    ...(sourcePackageJson ?? {
       name: 'slate-version-function',
       version: '1.0.0'
     }),
     dependencies: {
-      ...(packageJson?.dependencies ?? {}),
-      ...wrapperDependencies
+      ...(sourcePackageJson?.dependencies ?? {}),
+      ...(useBundledWrapper ? baseWrapperDependencies : wrapperDependencies)
     }
   };
 
@@ -167,8 +225,9 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
     }
   }
 
+  let useBundledWrapper = hasBundledWrapper(packageJson);
   let slateEntrypoint = getSlateEntrypoint(files, packageJson);
-  let providerImportPath = getProviderImportPath(files, slateEntrypoint);
+  let providerImportPath = getProviderImportPath(files, slateEntrypoint, useBundledWrapper);
   let usePrebuiltDist = providerImportPath.startsWith('dist/');
 
   console.log(`[Deployment]: Using slate entrypoint: ${slateEntrypoint}`);
@@ -179,7 +238,7 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
   let generatedFiles = [
     {
       filename: 'package.json',
-      content: JSON.stringify(getMergedPackageJson(packageJson), null, 2)
+      content: JSON.stringify(getMergedPackageJson(packageJson, useBundledWrapper), null, 2)
     },
     {
       filename: 'function-bay.json',
@@ -189,14 +248,15 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
       filename: 'slates_entry_point.js',
       content: `
           import { createRequire } from 'node:module';
-          import { provider } from './${providerImportPath}';
+          ${
+            useBundledWrapper
+              ? `import { provider, createProviderHandler, SlatesProviderProtoHandlerManager } from './${providerImportPath}';`
+              : `import { provider } from './${providerImportPath}';
           import { createProviderHandler } from '@slates/provider-handler';
-          import { SlatesProviderProtoHandlerManager } from '@slates/proto';
+          import { SlatesProviderProtoHandlerManager } from '@slates/proto';`
+          }
           import { serialize } from '@lowerdeck/serialize';
-
-          let handler = createProviderHandler(provider, [
-            e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))
-          ]);
+          import { createClient } from '@lowerdeck/rpc-client';
 
           let initialGlobals = {}
           for (let key of Object.getOwnPropertyNames(globalThis)) {
@@ -233,6 +293,45 @@ export let buildSlateDeploymentFiles = (files: DeploymentArchiveFile[]) => {
             if (input._encoded) {
               input = serialize.decode(input._encoded);
             }
+
+            let secretRpcEndpoint = process.env.SLATES_HUB_SECRET_RPC_URL;
+            let secretRpcToken = process.env.SLATES_HUB_RUNTIME_IDENTITY_SECRET;
+            let runtimeIdentityId = process.env.SLATES_HUB_RUNTIME_IDENTITY_ID;
+            let runtimeIdentityGeneration = Number(process.env.SLATES_HUB_RUNTIME_IDENTITY_GENERATION);
+            let deploymentId = process.env.SLATES_HUB_DEPLOYMENT_ID;
+            let handler = createProviderHandler(provider, [
+              e => e.forEach(e => console.log(e.type.toUpperCase(), e.message))
+            ], {
+              redeemScopedInvocationGrant: async ({ envelope, expected }) => {
+                if (!secretRpcEndpoint || !secretRpcToken || !runtimeIdentityId || !deploymentId || !Number.isInteger(runtimeIdentityGeneration) || runtimeIdentityGeneration <= 0) {
+                  throw new Error('Authenticated scoped invocation redemption is unavailable');
+                }
+                let secretRpc = createClient({
+                  endpoint: secretRpcEndpoint,
+                  disableBatching: true,
+                  getSignatureToken: () => ({
+                    secret: secretRpcToken,
+                    headers: { 'x-slates-runtime-identity-id': runtimeIdentityId }
+                  })
+                });
+                let redemption = await secretRpc.redeemScopedToolInvocationGrant({
+                  caller: {
+                    deploymentId,
+                    runtimeIdentityId,
+                    runtimeIdentityGeneration,
+                    hubInvocationId: input.invocationId
+                  },
+                  envelope,
+                  expected
+                });
+                let secrets = redemption.secrets;
+                let clear = () => {
+                  for (let secret of Object.values(secrets)) secret.value = '';
+                  secrets = {};
+                };
+                return { bindings: redemption.bindings, secrets, clear };
+              }
+            });
 
             let manager = await handler.run();
 

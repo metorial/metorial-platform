@@ -236,7 +236,16 @@ export let providerConfigController = Controller.create(
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
           }),
-          tool_filters: toolFiltersValidator
+          tool_filters: toolFiltersValidator,
+          config_patch: v.optional(
+            v.object({
+              set: v.optional(v.record(v.any())),
+              remove: v.optional(v.array(v.string()))
+            })
+          ),
+          expected_config_generation: v.optional(
+            v.number({ modifiers: [v.integer(), v.positive()] })
+          )
         })
       )
       .output(providerConfigPresenter)
@@ -247,7 +256,9 @@ export let providerConfigController = Controller.create(
           name: ctx.body.name,
           description: ctx.body.description,
           metadata: ctx.body.metadata,
-          toolFilters: ctx.body.tool_filters
+          toolFilters: ctx.body.tool_filters,
+          configPatch: ctx.body.config_patch,
+          expectedConfigGeneration: ctx.body.expected_config_generation
         });
 
         return providerConfigPresenter.present({ config });

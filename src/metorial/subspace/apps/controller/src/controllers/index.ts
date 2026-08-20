@@ -12,6 +12,11 @@ import { authConfigEventController } from './authConfigEvent';
 import { brandController } from './brand';
 import { bucketController } from './bucket';
 import { callbackController } from './callback';
+import { callbackSecurityController } from './callbackSecurity';
+import {
+  claimCoreCallbackSecurityRequest,
+  getCoreCallbackSecuritySignatureToken
+} from './callbackSecurityRpcAuth';
 import { callbackDeliveryController } from './callbackDelivery';
 import { callbackDeliveryAttemptController } from './callbackDeliveryAttempt';
 import { callbackDestinationController } from './callbackDestination';
@@ -74,6 +79,7 @@ import { providerToolController } from './providerTool';
 import { providerTriggerController } from './providerTrigger';
 import { providerVariantController } from './providerVariant';
 import { providerVersionController } from './providerVersion';
+import { provisionedTenantAppController } from './provisionedTenantApp';
 import { protoGuardAlertController } from './protoGuardAlert';
 import { protoGuardConfigController } from './protoGuardConfig';
 import { publisherController } from './publisher';
@@ -191,7 +197,8 @@ let providerControllers = {
   providerVariant: providerVariantController,
   providerVersion: providerVersionController,
   resourceCount: resourceCountController,
-  providerRun: providerRunController
+  providerRun: providerRunController,
+  provisionedTenantApp: provisionedTenantAppController
 };
 
 let sessionControllers = {
@@ -275,12 +282,26 @@ export type SubspaceControllerRoot = RootController;
 let rootController: SubspaceControllerRoot = createRootController();
 
 export let subspaceControllerRPC = createServer({})(rootController);
+export let subspaceCallbackSecurityRPC = createServer({})(callbackSecurityController);
 export let subspaceControllerApi = apiMux([
   {
     endpoint: rpcMux({ path: '/subspace-controller', allowRootSpan: true }, [
       subspaceControllerRPC
     ])
+  },
+  {
+    endpoint: rpcMux(
+      {
+        path: '/subspace-controller-callback-security',
+        allowRootSpan: true,
+        getSignatureToken: getCoreCallbackSecuritySignatureToken,
+        onVerifiedSignature: claimCoreCallbackSecurityRequest,
+        sensitiveRequestFields: ['receiptToken', 'receipt_token']
+      },
+      [subspaceCallbackSecurityRPC]
+    )
   }
 ]);
 
 export type SubspaceControllerClient = InferClient<typeof rootController>;
+export type SubspaceCallbackSecurityClient = InferClient<typeof callbackSecurityController>;

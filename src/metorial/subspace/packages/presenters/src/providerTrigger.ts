@@ -1,4 +1,5 @@
 import type { Provider, ProviderSpecification, ProviderTrigger } from '@metorial-subspace/db';
+import { projectStoredSpecificationTriggerWebhookHttp } from '@metorial-subspace/provider-utils/src/types/webhookVerification';
 
 export let providerTriggerPresenter = (
   providerTrigger: ProviderTrigger & {
@@ -16,6 +17,7 @@ export let providerTriggerPresenter = (
 
   inputJsonSchema: providerTrigger.value.inputJsonSchema,
   outputJsonSchema: providerTrigger.value.outputJsonSchema,
+  eventTypes: providerTrigger.value.eventTypes,
   scopes: providerTrigger.value.scopes ?? null,
   invocation:
     providerTrigger.value.invocation.type === 'polling'
@@ -34,7 +36,10 @@ export let providerTriggerPresenter = (
             status: providerTrigger.value.invocation.autoUnregistration
               ? 'supported'
               : 'unsupported'
-          }
+          },
+          http: projectStoredSpecificationTriggerWebhookHttp(
+            (providerTrigger.value.invocation as { http?: unknown }).http
+          )
         },
 
   specificationId: providerTrigger.specification.id,

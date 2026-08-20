@@ -5,3 +5,4 @@ export * from './eventDeliveryIntent';
 export * from './eventDestination';
 export * from './sender';
 export * from './tenant';
+export * from './webhookDestinationSigningSecret';

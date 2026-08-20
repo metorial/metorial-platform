@@ -7,7 +7,11 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { callbackDestinationPresenter } from '../../../presenters';
+import {
+  callbackDestinationPresenter,
+  callbackSecretConsumptionPresenter,
+  callbackSecretMutationPresenter
+} from '../../../presenters';
 
 let callbackDestinationGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.callbackDestinationId) {
@@ -188,6 +192,102 @@ export let callbackDestinationController = Controller.create(
         });
 
         return callbackDestinationPresenter.present({ callbackDestination });
+      }),
+
+    rotateSigningSecret: callbackDestinationGroup
+      .post(
+        instancePath(
+          'callback-destinations/:callbackDestinationId/security/signing-secret/rotate',
+          'callbacks.destinations.rotateSigningSecret'
+        ),
+        {
+          name: 'Rotate callback destination signing secret',
+          description:
+            'Creates a new outbound signing secret and returns an expiring one-time receipt for revealing it.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .body(
+        'default',
+        v.object({
+          grace_period_seconds: v.optional(
+            v.number({
+              description:
+                'How long the previous signing secret remains valid. Zero revokes it immediately.',
+              modifiers: [v.integer(), v.minValue(0), v.maxValue(7 * 86_400)]
+            })
+          )
+        })
+      )
+      .output(callbackSecretMutationPresenter)
+      .do(async ctx => {
+        let callbackSecretMutation =
+          await subspaceCallbackDestinationService.rotateSigningSecret({
+            instance: ctx.instance,
+            callbackDestinationId: ctx.callbackDestination.id,
+            graceMs:
+              ctx.body.grace_period_seconds === undefined
+                ? undefined
+                : ctx.body.grace_period_seconds * 1000
+          });
+        return callbackSecretMutationPresenter.present({ callbackSecretMutation });
+      }),
+
+    revokeSigningSecret: callbackDestinationGroup
+      .delete(
+        instancePath(
+          'callback-destinations/:callbackDestinationId/security/signing-secret/:secretId',
+          'callbacks.destinations.revokeSigningSecret'
+        ),
+        {
+          name: 'Revoke callback destination signing secret',
+          description: 'Immediately revokes one exact outbound callback signing secret.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .output(callbackSecretMutationPresenter)
+      .do(async ctx => {
+        let callbackSecretMutation =
+          await subspaceCallbackDestinationService.revokeSigningSecret({
+            instance: ctx.instance,
+            callbackDestinationId: ctx.callbackDestination.id,
+            secretId: ctx.params.secretId
+          });
+        return callbackSecretMutationPresenter.present({ callbackSecretMutation });
+      }),
+
+    consumeSigningSecretReceipt: callbackDestinationGroup
+      .post(
+        instancePath(
+          'callback-destinations/:callbackDestinationId/security/signing-secret/receipts/:receiptId/consume',
+          'callbacks.destinations.consumeSigningSecretReceipt'
+        ),
+        {
+          name: 'Reveal a callback destination signing secret once',
+          description:
+            'Consumes an eligible expiring issuance receipt exactly once. Ordinary destination reads never return plaintext.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .body(
+        'default',
+        v.object({
+          receipt_token: v.string({ modifiers: [v.minLength(1), v.maxLength(256)] })
+        })
+      )
+      .output(callbackSecretConsumptionPresenter)
+      .do(async ctx => {
+        let callbackSecretConsumption =
+          await subspaceCallbackDestinationService.consumeSigningSecretReceipt({
+            instance: ctx.instance,
+            callbackDestinationId: ctx.callbackDestination.id,
+            receiptId: ctx.params.receiptId,
+            receiptToken: ctx.body.receipt_token
+          });
+        return callbackSecretConsumptionPresenter.present({ callbackSecretConsumption });
       }),
 
     delete: callbackDestinationGroup

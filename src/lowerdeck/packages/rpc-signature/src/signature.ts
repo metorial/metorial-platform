@@ -53,6 +53,16 @@ let bufferToHex = (buffer: ArrayBuffer) =>
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 
+export let deriveBoundRpcSignatureToken = async (rootToken: string, binding: string) => {
+  let key = await importHmacKey(rootToken);
+  let signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(`metorial.rpc.bound-token\0v1\0${binding}`)
+  );
+  return bufferToHex(signatureBuffer);
+};
+
 let parseRpcSignatureHeader = (signatureHeader: string | null | undefined) => {
   if (!signatureHeader) return null;
 

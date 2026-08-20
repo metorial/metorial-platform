@@ -1,7 +1,6 @@
 import type { createSlatesHubInternalClient } from '@metorial-platform-systems/slates-client';
 import type {
   CallbackInstance,
-  CallbackReceiverRegistration,
   Provider,
   ProviderAuthConfig,
   ProviderAuthConfigVersion,
@@ -25,7 +24,16 @@ export type CallbackInstanceReceiverTrigger = Awaited<
 >['triggers'][number];
 
 export type CallbackInstanceReceiver = {
+  receiverId: string;
   receiverWebhookUrl: string | null;
+  receiverPathSecrets: Array<{
+    id: string;
+    status: string;
+    secretVersion: number;
+    validFrom: Date;
+    validUntil: Date | null;
+    rotatedAt: Date | null;
+  }>;
   triggers: EnrichedCallbackInstanceTrigger[];
 };
 
@@ -38,7 +46,7 @@ export type EnrichedCallbackInstanceTrigger = CallbackInstanceReceiverTrigger & 
     | null;
 };
 
-let callbackInstanceTriggerPresenter = (trigger: EnrichedCallbackInstanceTrigger) => ({
+export let callbackInstanceTriggerPresenter = (trigger: EnrichedCallbackInstanceTrigger) => ({
   object: 'callback.instance.trigger',
 
   id: trigger.id,
@@ -50,6 +58,12 @@ let callbackInstanceTriggerPresenter = (trigger: EnrichedCallbackInstanceTrigger
 
   webhookUrl: trigger.webhookUrl,
   isWebhookRegistered: trigger.isWebhookRegistered,
+  registrationStatus: (trigger as any).registrationStatus,
+  registrationGeneration: (trigger as any).registrationGeneration,
+  registrationTransitionVersion: (trigger as any).registrationTransitionVersion,
+  registrationError: (trigger as any).registrationError ?? null,
+  verificationMechanism: (trigger as any).verificationMechanism,
+  verificationSpecHash: (trigger as any).verificationSpecHash ?? null,
 
   providerTrigger: trigger.providerTrigger
     ? providerTriggerPresenter(trigger.providerTrigger)
@@ -74,7 +88,17 @@ export let callbackInstancePresenter = (
         | null;
     };
     slateTriggerReceiverId?: string | null;
-    activeRegistration?: CallbackReceiverRegistration | null;
+    provisionedTenantApps?: Array<{
+      id: string;
+      generation: number;
+      vendor: string;
+      credentialOwnerType: 'managed' | 'byo';
+      status: string;
+      externalAppId: string | null;
+      githubManifestStateExpiresAt: Date | null;
+      githubManifestCompletedAt: Date | null;
+      githubInstallationCompletedAt: Date | null;
+    }>;
   },
   receiver?: CallbackInstanceReceiver
 ) => ({
@@ -84,6 +108,25 @@ export let callbackInstancePresenter = (
   status: callbackInstance.status,
 
   registrationStatus: callbackInstance.registrationStatus,
+  registrationGeneration: callbackInstance.registrationGeneration,
+  registrationTransitionVersion: callbackInstance.registrationTransitionVersion,
+  registrationError: callbackInstance.registrationErrorCode
+    ? {
+        code: callbackInstance.registrationErrorCode,
+        message: callbackInstance.registrationErrorMessage,
+        metadata: callbackInstance.registrationErrorMetadata,
+        at: callbackInstance.registrationErrorAt
+      }
+    : null,
+  lastRegistrationSyncError: callbackInstance.lastRegistrationSyncErrorCode
+    ? {
+        code: callbackInstance.lastRegistrationSyncErrorCode,
+        message: callbackInstance.lastRegistrationSyncErrorMessage,
+        at: callbackInstance.lastRegistrationSyncErrorAt
+      }
+    : null,
+  verificationMechanism: callbackInstance.verificationMechanism,
+  verificationSpecHash: callbackInstance.verificationSpecHash,
 
   deployment: providerDeploymentPreviewPresenter({
     ...callbackInstance.providerDeploymentConfigPair.providerDeploymentVersion.deployment,
@@ -108,10 +151,33 @@ export let callbackInstancePresenter = (
       })
     : null,
 
-  webhookUrl: receiver?.receiverWebhookUrl ?? null,
-  receiverWebhookUrl: receiver?.receiverWebhookUrl ?? null,
+  security: {
+    receiverId: receiver?.receiverId ?? callbackInstance.slateTriggerReceiverId ?? null,
+    receiverUrl: receiver?.receiverWebhookUrl ?? null,
+    pathSecrets: (receiver?.receiverPathSecrets ?? []).map(secret => ({
+      id: secret.id,
+      status: secret.status,
+      secretVersion: secret.secretVersion,
+      validFrom: secret.validFrom,
+      validUntil: secret.validUntil,
+      rotatedAt: secret.rotatedAt
+    })),
+    provisionedApps: (callbackInstance.provisionedTenantApps ?? []).map(app => ({
+      id: app.id,
+      generation: app.generation,
+      vendor: app.vendor,
+      credentialOwnerType: app.credentialOwnerType,
+      status: app.status,
+      externalAppId: app.externalAppId,
+      githubManifestStateExpiresAt: app.githubManifestStateExpiresAt,
+      githubManifestCompletedAt: app.githubManifestCompletedAt,
+      githubInstallationCompletedAt: app.githubInstallationCompletedAt
+    }))
+  },
 
-  triggers: (receiver?.triggers ?? []).map(callbackInstanceTriggerPresenter),
+  triggers: (receiver?.triggers ?? [])
+    .filter(trigger => (trigger as any).active !== false)
+    .map(callbackInstanceTriggerPresenter),
 
   createdAt: callbackInstance.createdAt,
   updatedAt: callbackInstance.updatedAt

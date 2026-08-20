@@ -4,7 +4,16 @@ import { subspace } from '../subspace';
 
 export let subspaceCallbackDestinationService = createSubspaceService(
   subspace.callbackDestination,
-  ['get', 'list', 'create', 'update', 'archive'],
+  [
+    'get',
+    'list',
+    'create',
+    'update',
+    'archive',
+    'rotateSigningSecret',
+    'revokeSigningSecret',
+    'consumeSigningSecretReceipt'
+  ],
   inner => ({
     create: async (...params: Parameters<typeof inner.create>) => {
       let eventBase = toEventBase(params[0]);

@@ -114,6 +114,33 @@ let ensureLocalProviderEnabled = () => {
   }
 };
 
+let isMissingObjectError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'statusCode' in error &&
+  error.statusCode === 404;
+
+let loadFunctionBundle = async (d: FunctionInvocationParams) => {
+  try {
+    return await storage.getObject(d.providerData.bucket, d.providerData.storageKey);
+  } catch (error) {
+    let fallback = d.functionBundle;
+    let fallbackBucket = fallback?.bucket;
+    let fallbackStorageKey = fallback?.storageKey;
+    if (
+      !isMissingObjectError(error) ||
+      !fallbackBucket ||
+      !fallbackStorageKey ||
+      (fallbackBucket === d.providerData.bucket &&
+        fallbackStorageKey === d.providerData.storageKey)
+    ) {
+      throw error;
+    }
+
+    return await storage.getObject(fallbackBucket, fallbackStorageKey);
+  }
+};
+
 let ensurePathWithin = (basePath: string, targetPath: string) => {
   let resolvedBasePath = resolve(basePath);
   let resolvedTargetPath = resolve(basePath, targetPath);
@@ -214,7 +241,7 @@ export let invokeFunction = async (d: FunctionInvocationParams) => {
   let resultPath = join(tempDirectory, 'result.json');
 
   try {
-    let bundle = await storage.getObject(d.providerData.bucket, d.providerData.storageKey);
+    let bundle = await loadFunctionBundle(d);
     await fs.mkdir(bundleDirectory, { recursive: true });
     await extractZipToDirectory(bundle.data, bundleDirectory);
     await fs.writeFile(runnerPath, LOCAL_RUNNER_SCRIPT, 'utf-8');

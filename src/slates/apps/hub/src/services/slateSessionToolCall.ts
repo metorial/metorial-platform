@@ -4,15 +4,22 @@ import { Service } from '@lowerdeck/service';
 import type { SlatesParticipant } from '@slates/proto';
 import { addDays, differenceInMinutes } from 'date-fns';
 import { PublicUrlPurpose } from 'object-storage-client';
+import { randomUUID } from 'node:crypto';
 import type { SlateInvocation, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
-import { getId } from '../id';
+import { getId, ID } from '../id';
 import { getStoredAttachmentsStorageKey } from '../lib/invocation/store';
+import {
+  assertCanonicalStoredSlateConfigSchema,
+  projectSlateConfigPresence,
+  resolveStoredSlateConfigFieldDescriptors
+} from '../lib/configPatch';
 import { invocationsBucketRecord, storage } from '../storage';
 import { slateErrorService } from './slateError';
 import { slateAuthHandlerService } from './slateInstanceAuthHandler';
 import { slateInvocationService } from './slateInvocation';
 import { slateSessionService } from './slateSession';
+import { slateTriggerReceiverProductionSecurity } from './slateTriggerReceiverSecurity';
 
 let include = {
   action: true,
@@ -65,6 +72,7 @@ class slateSessionToolCallServiceImpl {
       enclaveId?: string;
       egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
       input: Record<string, any>;
+      receiverCallbackSelector?: string;
       participants: SlatesParticipant[];
     };
   }) {
@@ -75,7 +83,9 @@ class slateSessionToolCallServiceImpl {
       },
       include: {
         slate: true,
-        slateInstance: { include: { currentConfig: true } },
+        slateInstance: {
+          include: { currentConfig: { include: { schema: true, secrets: true } } }
+        },
         slateVersion: { include: { specification: true } },
         instanceConfiguration: true,
         tenant: true
@@ -123,7 +133,8 @@ class slateSessionToolCallServiceImpl {
     if (
       version.status !== 'active' ||
       !version.specification ||
-      !version.providerDeploymentInfo
+      !version.providerDeploymentInfo ||
+      !version.activeDeploymentOid
     ) {
       throw new ServiceError(
         badRequestError({
@@ -131,7 +142,6 @@ class slateSessionToolCallServiceImpl {
         })
       );
     }
-
     if (d.input.authConfigId && !version.specification.authMethods.length) {
       throw new ServiceError(
         badRequestError({
@@ -149,12 +159,11 @@ class slateSessionToolCallServiceImpl {
       );
     }
 
-    let authConfig = d.input.authConfigId
-      ? await slateAuthHandlerService.getSlateInstanceAuth({
+    let authConfigMetadata = d.input.authConfigId
+      ? await slateAuthHandlerService.getSlateInstanceAuthMetadata({
           tenant: session.tenant,
           slateInstance: session.slateInstance,
-          authConfigId: d.input.authConfigId,
-          minExpirationBuffer: 30 * 1000
+          authConfigId: d.input.authConfigId
         })
       : undefined;
 
@@ -175,33 +184,303 @@ class slateSessionToolCallServiceImpl {
       );
     }
 
+    let actionCapabilities =
+      typeof action.spec === 'object' && action.spec !== null && !Array.isArray(action.spec)
+        ? (action.spec as Record<string, any>).capabilities
+        : undefined;
+    let receiverCapability = actionCapabilities?.receiverBoundToolContextV1 as
+      | { secretNames?: unknown }
+      | undefined;
+    let receiverSecretNames = Array.isArray(receiverCapability?.secretNames)
+      ? receiverCapability.secretNames.filter(
+          (name): name is string => typeof name === 'string' && name.length > 0
+        )
+      : [];
+    if (
+      receiverCapability &&
+      (!Array.isArray(receiverCapability.secretNames) ||
+        receiverSecretNames.length !== receiverCapability.secretNames.length)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'receiver_bound_tool_capability_invalid',
+          message: 'The tool receiver-bound capability declaration is invalid.'
+        })
+      );
+    }
+    if (receiverCapability && !d.input.receiverCallbackSelector) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'receiver_bound_tool_selector_required',
+          message: 'The tool requires an authoritative callback receiver binding.'
+        })
+      );
+    }
+    if (!receiverCapability && d.input.receiverCallbackSelector) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'receiver_bound_tool_selector_unexpected',
+          message: 'The selected tool does not accept a callback receiver binding.'
+        })
+      );
+    }
+
+    let receiverCallbackBinding:
+      | {
+          receiverId: string;
+          receiverTriggerId: string;
+          triggerActionId: string;
+          specHash: string;
+          registrationGeneration: number;
+          registrationVersion: number;
+          projectedSecretVersions: Record<string, number>;
+        }
+      | undefined;
+    if (receiverCapability) {
+      let receivers = await db.slateTriggerReceiver.findMany({
+        where: {
+          id: d.input.receiverCallbackSelector,
+          tenantOid: session.tenantOid,
+          slateInstanceOid: session.slateInstanceOid,
+          slateOid: session.slateOid,
+          status: 'active',
+          tombstonedAt: null
+        },
+        include: {
+          triggers: {
+            where: {
+              action: { key: 'agent_status_change' },
+              registrationStatus: 'registered',
+              tombstonedAt: null,
+              ingressDisabledAt: null
+            },
+            include: { action: true, boundSecrets: true }
+          }
+        },
+        take: 2
+      });
+      if (receivers.length !== 1 || receivers[0]!.triggers.length !== 1) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'receiver_bound_tool_selector_ineligible',
+            message: 'The callback receiver binding is missing, ambiguous, or ineligible.'
+          })
+        );
+      }
+      let receiver = receivers[0]!;
+      let trigger = receiver.triggers[0]!;
+      let triggerSpec = trigger.action.spec as Record<string, unknown>;
+      let specHash = triggerSpec.specHash;
+      if (typeof specHash !== 'string' || trigger.verificationSpecHash !== specHash) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'receiver_bound_tool_selector_stale',
+            message: 'The callback receiver specification or generation is stale.'
+          })
+        );
+      }
+      let projectedSecretVersions: Record<string, number> = {};
+      for (let name of receiverSecretNames) {
+        let matches = trigger.boundSecrets.filter(
+          secret =>
+            secret.name === name && secret.specHash === specHash && secret.status === 'active'
+        );
+        if (matches.length !== 1) {
+          throw new ServiceError(
+            badRequestError({
+              code: 'receiver_bound_tool_secret_unavailable',
+              message: 'The callback receiver secret projection is unavailable.'
+            })
+          );
+        }
+        projectedSecretVersions[name] = matches[0]!.secretVersion;
+      }
+      receiverCallbackBinding = {
+        receiverId: receiver.id,
+        receiverTriggerId: trigger.id,
+        triggerActionId: trigger.action.key,
+        specHash,
+        registrationGeneration: trigger.registrationGeneration,
+        registrationVersion: trigger.registrationVersion,
+        projectedSecretVersions
+      };
+    }
+
     let startTime = Date.now();
 
-    let stack = await slateInvocationService.createInvocationWithState({
-      tenant: session.tenant,
-      participants: d.input.participants,
-      slateVersion: session.slateVersion,
-      enclaveId: d.input.enclaveId ?? session.instanceConfiguration?.enclaveId,
-      egressPolicy:
-        d.input.egressPolicy ??
-        (session.instanceConfiguration
-          ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ??
-        undefined,
-
-      config: session.slateInstance.currentConfig.value ?? {},
-      session: { id: session.id, state: {} },
-      auth: authConfig
-        ? {
-            authenticationMethodId: authConfig.authMethod.key,
-            data: authConfig.output ?? {}
+    let currentConfig = session.slateInstance.currentConfig;
+    let canonicalConfigSchema =
+      currentConfig.schema.version === 2
+        ? assertCanonicalStoredSlateConfigSchema(currentConfig.schema)
+        : undefined;
+    let fields = resolveStoredSlateConfigFieldDescriptors({
+      schemaVersion: currentConfig.schema.version,
+      fields: currentConfig.schema.fields,
+      value: currentConfig.value
+    });
+    let configuredSecretKeys = Object.entries(fields)
+      .filter(
+        ([key, descriptor]) =>
+          descriptor.visibility === 'secret' &&
+          typeof currentConfig.value === 'object' &&
+          currentConfig.value !== null &&
+          !Array.isArray(currentConfig.value) &&
+          key in currentConfig.value
+      )
+      .map(([key]) => key);
+    let hasClassifiedValues =
+      configuredSecretKeys.length > 0 ||
+      authConfigMetadata !== undefined ||
+      receiverCallbackBinding !== undefined;
+    let capabilities =
+      typeof version.specification.providerInfo === 'object' &&
+      version.specification.providerInfo !== null &&
+      !Array.isArray(version.specification.providerInfo)
+        ? (version.specification.providerInfo as Record<string, any>).capabilities
+        : undefined;
+    if (receiverCallbackBinding && capabilities?.receiverBoundToolContextV1 !== true) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'receiver_bound_tool_capability_unavailable',
+          message: 'The provider does not support receiver-bound tool context.'
+        })
+      );
+    }
+    if (
+      hasClassifiedValues &&
+      (currentConfig.schema.version !== 2 ||
+        !currentConfig.schema.descriptorHash ||
+        capabilities?.configSchemaV2 !== true ||
+        capabilities?.scopedInvocationGrantV1 !== true)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'scoped_config_invocation_unavailable',
+          message:
+            'Secret-bearing provider invocation requires config schema v2 and a scoped invocation grant.'
+        })
+      );
+    }
+    let runtimeDeployment = hasClassifiedValues
+      ? await db.slateDeployment.findFirst({
+          where: {
+            oid: version.activeDeploymentOid,
+            status: 'succeeded',
+            runtimeIdentityRevokedAt: null
+          },
+          select: {
+            id: true,
+            runtimeIdentityId: true,
+            runtimeIdentityGeneration: true
           }
-        : null
+        })
+      : null;
+    if (hasClassifiedValues && !runtimeDeployment?.runtimeIdentityId) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'scoped_runtime_identity_unavailable',
+          message: 'The active provider deployment does not have a valid runtime identity.'
+        })
+      );
+    }
+
+    let activeConfigSecrets = await db.slateInstanceConfigSecret.findMany({
+      where: {
+        instanceConfigOid: currentConfig.oid,
+        key: { in: configuredSecretKeys },
+        status: 'active'
+      },
+      select: { key: true, secretVersion: true }
     });
-    let callRes = await slateInvocationService.invokeToolAction({
-      stack,
-      actionId: action.key,
-      input: d.input.input
+    let configSecretVersions = Object.fromEntries(
+      activeConfigSecrets.map(secret => [`config:${secret.key}`, secret.secretVersion])
+    );
+    for (let key of configuredSecretKeys) {
+      if (configSecretVersions[`config:${key}`] === undefined) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'provider_config_secret_unavailable',
+            message: `Provider config secret ${key} is unavailable.`
+          })
+        );
+      }
+    }
+    let authSecretVersion = authConfigMetadata
+      ? Math.max(1, authConfigMetadata.authConfig.updatedAt.getTime())
+      : 1;
+    let authSecretVersions: Record<string, number> = authConfigMetadata
+      ? { 'auth:$output': authSecretVersion }
+      : {};
+    let invocationId = await ID.generateId('slateInvocation');
+    let requestId = randomUUID();
+    let envelope = hasClassifiedValues
+      ? await slateTriggerReceiverProductionSecurity.issueToolGrant({
+          deploymentId: runtimeDeployment!.id,
+          runtimeIdentityId: runtimeDeployment!.runtimeIdentityId!,
+          runtimeIdentityGeneration: runtimeDeployment!.runtimeIdentityGeneration,
+          tenantId: session.tenant.id,
+          slateInstanceId: session.slateInstance.id,
+          configSchemaVersion: currentConfig.schema.version,
+          configSchemaHash: currentConfig.schema.descriptorHash!,
+          hubInvocationId: invocationId,
+          requestId,
+          actionId: action.key,
+          operation: 'tool_invoke',
+          configSecretVersions,
+          authConfigId: authConfigMetadata?.authConfig.id ?? null,
+          authSecretVersions,
+          ...(receiverCallbackBinding ? { receiverCallback: receiverCallbackBinding } : {})
+        })
+      : undefined;
+    let safeConfig = projectSlateConfigPresence({
+      value: currentConfig.value,
+      fields
     });
+    let safeAuth = authConfigMetadata ? { $output: { configured: true } } : {};
+
+    let stack: Awaited<
+      ReturnType<typeof slateInvocationService.createInvocationWithState>
+    > | null = null;
+    let callRes;
+    try {
+      stack = await slateInvocationService.createInvocationWithState({
+        tenant: session.tenant,
+        participants: d.input.participants,
+        slateVersion: session.slateVersion,
+        enclaveId: d.input.enclaveId ?? session.instanceConfiguration?.enclaveId,
+        egressPolicy:
+          d.input.egressPolicy ??
+          (session.instanceConfiguration
+            ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null) ??
+          undefined,
+
+        invocationId,
+        canonicalConfigSchema,
+        artifactSecurity: envelope
+          ? {
+              redactionSentinels: [],
+              forbiddenValues: [envelope.grantId, envelope.token]
+            }
+          : undefined,
+        config: safeConfig,
+        session: { id: session.id, state: {} },
+        auth: authConfigMetadata
+          ? {
+              authenticationMethodId: authConfigMetadata.authMethod.key,
+              data: safeAuth
+            }
+          : null
+      });
+      callRes = await slateInvocationService.invokeToolAction({
+        stack,
+        actionId: action.key,
+        input: d.input.input,
+        invocation: envelope
+      });
+    } finally {
+      stack?.clearClassifiedInvocation();
+      if (envelope) await slateTriggerReceiverProductionSecurity.grants.revoke(envelope);
+    }
 
     let durationMs = Date.now() - startTime;
 

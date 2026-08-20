@@ -121,6 +121,12 @@ export interface BullMqCreateOptions {
   redisUrl: string;
 }
 
+export let isQueueAttemptExhausted = (attemptNumber: number, maxAttempts: number) =>
+  Number.isInteger(attemptNumber) &&
+  Number.isInteger(maxAttempts) &&
+  maxAttempts > 0 &&
+  attemptNumber >= maxAttempts;
+
 export let createBullMqQueue = <JobData>(
   opts: BullMqCreateOptions
 ): IQueue<JobData, BullMqQueueOptions> => {
@@ -243,7 +249,7 @@ export let createBullMqQueue = <JobData>(
       await publishMany(payloads.map(payload => ({ data: payload.data, opts: payload.opts })));
     },
 
-    process: cb => {
+    process: (cb, hooks) => {
       let staredRef = { started: false };
 
       setTimeout(() => {
@@ -261,15 +267,14 @@ export let createBullMqQueue = <JobData>(
           let worker = new Worker<JobData>(
             opts.name,
             async job => {
+              let payload: JobData | undefined;
               try {
                 let data = job.data as any;
 
-                let payload: any;
-
                 try {
-                  payload = SuperJson.deserialize(data.payload);
+                  payload = SuperJson.deserialize(data.payload) as JobData;
                 } catch (e: any) {
-                  payload = data.payload;
+                  payload = data.payload as JobData;
                 }
 
                 let parentExecutionContext = (data as any)
@@ -307,6 +312,28 @@ export let createBullMqQueue = <JobData>(
                     )
                 );
               } catch (e: any) {
+                let maxAttempts = Number(job.opts.attempts ?? 1);
+                let attemptNumber = job.attemptsMade + 1;
+                if (
+                  hooks?.onFinalFailure &&
+                  isQueueAttemptExhausted(attemptNumber, maxAttempts)
+                ) {
+                  try {
+                    if (payload === undefined) throw new Error('Queue payload is unavailable');
+                    await hooks.onFinalFailure({
+                      payload,
+                      error: e,
+                      attemptNumber,
+                      maxAttempts,
+                      job
+                    });
+                  } catch (terminalError) {
+                    Sentry.captureException(terminalError, {
+                      tags: { queueName: opts.name, queueOperation: 'final-failure' }
+                    });
+                    throw terminalError;
+                  }
+                }
                 if (e instanceof QueueRetryError) {
                   await delay(1000);
                   throw e;

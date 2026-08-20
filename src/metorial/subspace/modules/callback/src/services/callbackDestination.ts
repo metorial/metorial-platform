@@ -19,6 +19,25 @@ type EnrichedCallbackDestination = CallbackDestination & {
 };
 
 class callbackDestinationServiceImpl {
+  private async getSignalDestination(d: {
+    tenant: Tenant;
+    callbackDestination: CallbackDestination;
+  }) {
+    let eventDestinationId = d.callbackDestination.signalEventDestinationId;
+    if (!eventDestinationId) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_destination_signing_unavailable',
+          message:
+            'The destination must be attached to a synchronized callback before its signing secret can be managed.'
+        })
+      );
+    }
+
+    let signalTenant = await getTenantForSignal(d.tenant);
+    return { eventDestinationId, signalTenant };
+  }
+
   async enrichCallbackDestination(d: {
     tenant: Tenant;
     callbackDestination: CallbackDestination;
@@ -96,10 +115,7 @@ class callbackDestinationServiceImpl {
             tenantOid: d.tenant.oid,
             solutionOid: d.solution.oid,
             status: {
-              notIn: [
-                CallbackDestinationStatus.archived,
-                CallbackDestinationStatus.deleted
-              ]
+              notIn: [CallbackDestinationStatus.archived, CallbackDestinationStatus.deleted]
             },
             AND: [
               d.callbackIds?.length
@@ -250,6 +266,70 @@ class callbackDestinationServiceImpl {
     return await db.callbackDestination.findFirstOrThrow({
       where: { oid: archived.oid }
     });
+  }
+
+  async rotateSigningSecret(d: {
+    tenant: Tenant;
+    callbackDestination: CallbackDestination;
+    graceMs?: number;
+  }) {
+    if (
+      d.graceMs !== undefined &&
+      (!Number.isInteger(d.graceMs) ||
+        (d.graceMs !== 0 && (d.graceMs < 60_000 || d.graceMs > 7 * 86_400_000)))
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_secret_grace_invalid',
+          message:
+            'The signing-secret grace period must be zero or between one minute and seven days.'
+        })
+      );
+    }
+
+    let { eventDestinationId, signalTenant } = await this.getSignalDestination(d);
+    return await signal.eventDestination.rotateSigningSecret({
+      tenantId: signalTenant.id,
+      eventDestinationId,
+      graceMs: d.graceMs
+    });
+  }
+
+  async revokeSigningSecret(d: {
+    tenant: Tenant;
+    callbackDestination: CallbackDestination;
+    secretId: string;
+  }) {
+    let { eventDestinationId, signalTenant } = await this.getSignalDestination(d);
+    return await signal.eventDestination.revokeSigningSecret({
+      tenantId: signalTenant.id,
+      eventDestinationId,
+      secretId: d.secretId
+    });
+  }
+
+  async consumeSigningSecretReceipt(d: {
+    tenant: Tenant;
+    callbackDestination: CallbackDestination;
+    receiptId: string;
+    receiptToken: string;
+  }) {
+    let { eventDestinationId, signalTenant } = await this.getSignalDestination(d);
+    try {
+      return await signal.eventDestination.consumeSigningSecretReceipt({
+        tenantId: signalTenant.id,
+        eventDestinationId,
+        receiptId: d.receiptId,
+        receiptToken: d.receiptToken
+      });
+    } catch {
+      throw new ServiceError(
+        badRequestError({
+          code: 'secret_issuance_receipt_denied',
+          message: 'The one-time secret receipt is invalid, expired, or already consumed.'
+        })
+      );
+    }
   }
 }
 

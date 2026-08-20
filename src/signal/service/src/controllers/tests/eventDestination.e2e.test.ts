@@ -37,18 +37,28 @@ describe('eventDestination.e2e', () => {
       eventTypes: null,
       webhook: { url: 'https://example.com/webhook' }
     });
+    expect(created.secretIssuanceReceipt).toBeDefined();
+    expect(JSON.stringify(created)).not.toMatch(
+      /signingSecret|encryptedValue|encryptionKeyVersion/
+    );
 
     const fetched = await signalClient.eventDestination.get({
       tenantId: tenant.id,
       eventDestinationId: created.id
     });
     expect(fetched.id).toBe(created.id);
+    expect(JSON.stringify(fetched)).not.toMatch(
+      /secretIssuanceReceipt|signingSecret|encryptedValue|encryptionKeyVersion/
+    );
 
     const listed = await signalClient.eventDestination.list({
       tenantId: tenant.id,
       limit: 10
     });
     expect(listed.items).toHaveLength(1);
+    expect(JSON.stringify(listed)).not.toMatch(
+      /secretIssuanceReceipt|signingSecret|encryptedValue|encryptionKeyVersion/
+    );
 
     const updated = await signalClient.eventDestination.update({
       tenantId: tenant.id,
@@ -61,6 +71,9 @@ describe('eventDestination.e2e', () => {
       name: 'Updated Webhook',
       eventTypes: ['user.created']
     });
+    expect(JSON.stringify(updated)).not.toMatch(
+      /secretIssuanceReceipt|signingSecret|encryptedValue|encryptionKeyVersion/
+    );
 
     await signalClient.eventDestination.delete({
       tenantId: tenant.id,

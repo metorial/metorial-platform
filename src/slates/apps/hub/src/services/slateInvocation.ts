@@ -2,7 +2,28 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db } from '../db';
 import { SlateInvocationStack } from '../lib/invocation/stack';
-import type { SlateInvocationBaseParams, SlatesRequest } from '../lib/invocation/types';
+import type {
+  SlateInvocationBaseParams,
+  SlatesRequest,
+  SlatesScopedInvocationGrantEnvelope
+} from '../lib/invocation/types';
+
+export interface WebhookVerifyInput {
+  actionId: string;
+  specHash: string;
+  ruleId: string;
+  requestId: string;
+  originalRequest: unknown;
+  originalRequestHash: string;
+  itemAdapter?: unknown;
+}
+
+export interface WebhookBootstrapCaptureInput extends WebhookVerifyInput {
+  phase: 'bootstrap';
+  receiverTriggerId: string;
+  registrationVersion: number;
+  acceptedCandidateIds: string[];
+}
 
 let include = {
   deployment: {
@@ -220,11 +241,16 @@ class slateInvocationServiceImpl {
     stack: SlateInvocationStack;
     actionId: string;
     input: Record<string, any>;
+    invocation?: SlatesScopedInvocationGrantEnvelope;
   }) {
-    return await d.stack.invoke('slates/action.tool.invoke', {
-      actionId: d.actionId,
-      input: d.input
-    });
+    return await d.stack.invoke(
+      'slates/action.tool.invoke',
+      {
+        actionId: d.actionId,
+        input: d.input
+      },
+      d.invocation
+    );
   }
 
   async invokeTriggerMapper(d: {
@@ -270,14 +296,75 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async handleVerifiedWebhookRequest(d: {
+    stack: SlateInvocationStack;
+    invocation: SlatesScopedInvocationGrantEnvelope;
+    input: {
+      actionId: string;
+      request: unknown;
+      specHash: string;
+      ruleId: string;
+      triggerId: string;
+      originalRequestHash: string;
+      dispatchRequestHash: string;
+      itemAdapterId?: 'graph.body_value.v1';
+      selectedItems?: Array<{
+        candidateId: string;
+        index: number;
+        bindingHash: string;
+        deliveryIds: string[];
+      }>;
+    };
+  }) {
+    return await (d.stack.invoke as any)(
+      'slates/action.trigger.webhook_handle',
+      d.input,
+      d.invocation
+    );
+  }
+
+  async verifyWebhookRequest(d: {
+    stack: SlateInvocationStack;
+    input: WebhookVerifyInput;
+    invocation: SlatesScopedInvocationGrantEnvelope;
+  }) {
+    if (d.input.requestId !== d.invocation.requestId) {
+      throw new ServiceError(notFoundError('scoped_invocation_grant', d.invocation.grantId));
+    }
+    return await (d.stack.invoke as any)(
+      'slates/action.trigger.webhook_verify',
+      d.input,
+      d.invocation
+    );
+  }
+
+  async captureWebhookBootstrap(d: {
+    stack: SlateInvocationStack;
+    input: WebhookBootstrapCaptureInput;
+    invocation: SlatesScopedInvocationGrantEnvelope;
+  }) {
+    if (d.input.requestId !== d.invocation.requestId) {
+      throw new ServiceError(notFoundError('scoped_invocation_grant', d.invocation.grantId));
+    }
+    return await (d.stack.invoke as any)(
+      'slates/action.trigger.webhook_bootstrap_capture',
+      d.input,
+      d.invocation
+    );
+  }
+
   async registerWebhook(d: {
     stack: SlateInvocationStack;
     actionId: string;
     webhookBaseUrl: string;
+    registrationDetails?: unknown;
+    capturedSecretVersions?: Readonly<Record<string, number>>;
   }) {
     return await d.stack.invoke('slates/action.trigger.webhook_register', {
       actionId: d.actionId,
-      webhookBaseUrl: d.webhookBaseUrl
+      webhookBaseUrl: d.webhookBaseUrl,
+      registrationDetails: d.registrationDetails,
+      capturedSecretVersions: d.capturedSecretVersions ?? {}
     });
   }
 

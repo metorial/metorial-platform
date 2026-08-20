@@ -38,7 +38,6 @@ export type CallbacksInstancesListOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-    webhookUrl: string | null;
     triggers: {
       object: 'callback.instance.trigger';
       id: string;
@@ -141,7 +140,6 @@ export let mapCallbacksInstancesListOutput =
               updatedAt: mtMap.objectField('updated_at', mtMap.date())
             })
           ),
-          webhookUrl: mtMap.objectField('webhook_url', mtMap.passthrough()),
           triggers: mtMap.objectField(
             'triggers',
             mtMap.array(

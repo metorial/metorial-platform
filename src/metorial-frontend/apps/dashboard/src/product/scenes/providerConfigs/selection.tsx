@@ -11,10 +11,11 @@ import {
 } from '@metorial/state';
 import { Button, Callout, Combobox, Flex, Text, Tooltip } from '@metorial/ui';
 import { RiAddLine, RiSafeLine } from '@remixicon/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ConfigurationSelection,
   decodeConfigurationSelection,
+  emptyConfigurationSelection,
   encodeConfigurationSelection
 } from '../../lib/configSelection';
 import { getProviderConfigSchemaCapabilities } from '../../lib/providerCreationCapabilities';
@@ -41,6 +42,8 @@ export let ProviderConfigurationSelection = ({
   createConfigButtonLabel,
   showExistingOptions = true,
   filterAvailableResources = false,
+  autoSelectDefault = true,
+  excludeConfigIds = [],
   disabled = false,
   inlineCreateConfig = false,
   defaultConfigName,
@@ -56,6 +59,8 @@ export let ProviderConfigurationSelection = ({
   createConfigButtonLabel?: string;
   showExistingOptions?: boolean;
   filterAvailableResources?: boolean;
+  autoSelectDefault?: boolean;
+  excludeConfigIds?: readonly string[];
   disabled?: boolean;
   inlineCreateConfig?: boolean;
   defaultConfigName?: string;
@@ -90,7 +95,12 @@ export let ProviderConfigurationSelection = ({
     hasVaults: (vaults.data?.items?.length ?? 0) > 0,
     isLoading: configSchema.isLoading || vaults.isLoading
   });
-  let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
+  let excludedConfigIdSet = useMemo(() => new Set(excludeConfigIds), [excludeConfigIds]);
+  let availableConfigs = useMemo(
+    () => (configs.data?.items ?? []).filter(config => !excludedConfigIdSet.has(config.id)),
+    [configs.data?.items, excludedConfigIdSet]
+  );
+  let defaultConfig = availableConfigs.find(config => config.isDefault);
   let selectedConfig = useProviderConfig(
     instanceId,
     value.kind === 'config' ? value.id : defaultConfig?.id
@@ -110,6 +120,7 @@ export let ProviderConfigurationSelection = ({
   }, [scopeKey]);
 
   useEffect(() => {
+    if (!autoSelectDefault) return;
     if (value.kind !== 'none') {
       handledAutoSelectionRef.current = scopeKey;
       return;
@@ -117,15 +128,23 @@ export let ProviderConfigurationSelection = ({
 
     if (configs.isLoading || handledAutoSelectionRef.current === scopeKey) return;
 
-    let defaultConfig = (configs.data?.items ?? []).find(config => config.isDefault);
+    let defaultConfig = availableConfigs.find(config => config.isDefault);
     if (!defaultConfig) return;
 
     handledAutoSelectionRef.current = scopeKey;
     onChange({ kind: 'config', id: defaultConfig.id });
-  }, [configs.data?.items, configs.isLoading, onChange, scopeKey, value.kind]);
+  }, [autoSelectDefault, availableConfigs, configs.isLoading, onChange, scopeKey, value.kind]);
+
+  let selectedConfigId = value.kind === 'config' ? value.id : null;
+  useEffect(() => {
+    if (!selectedConfigId || !excludedConfigIdSet.has(selectedConfigId)) return;
+    onChange(emptyConfigurationSelection());
+  }, [excludedConfigIdSet, onChange, selectedConfigId]);
 
   let effectiveValue: ConfigurationSelection =
-    value.kind === 'none' && defaultConfig ? { kind: 'config', id: defaultConfig.id } : value;
+    autoSelectDefault && value.kind === 'none' && defaultConfig
+      ? { kind: 'config', id: defaultConfig.id }
+      : value;
   let effectiveSelectionId = effectiveValue.kind === 'none' ? null : effectiveValue.id;
 
   useEffect(() => {
@@ -216,10 +235,12 @@ export let ProviderConfigurationSelection = ({
                     ...(!defaultConfig && !hasSearchQuery
                       ? [{ id: '__none__', label: 'None' }]
                       : []),
-                    ...(comboboxConfigs.data?.items ?? []).map((config: ConfigItem) => ({
-                      id: `config:${config.id}`,
-                      label: config.name ?? config.id
-                    })),
+                    ...(comboboxConfigs.data?.items ?? [])
+                      .filter((config: ConfigItem) => !excludedConfigIdSet.has(config.id))
+                      .map((config: ConfigItem) => ({
+                        id: `config:${config.id}`,
+                        label: config.name ?? config.id
+                      })),
                     ...(includeVaults
                       ? (comboboxVaults.data?.items ?? []).map((vault: VaultItem) => ({
                           id: `vault:${vault.id}`,

@@ -3,6 +3,10 @@ import { v } from '@lowerdeck/validation';
 import { managedProviderAuthCredentialsService } from '@metorial-subspace/module-auth';
 import { managedProviderAuthCredentialsPresenter } from '@metorial-subspace/presenters';
 import { app } from './_app';
+import {
+  presentManagedProviderAuthCredentialsControllerResponse,
+  resolveManagedProviderAuthCredentialsControllerRecord
+} from './managedProviderAuthCredentialsBoundary';
 
 export let managedProviderAuthCredentialsApp = app.use(async ctx => {
   let managedProviderAuthCredentialsId = ctx.body.managedProviderAuthCredentialsId;
@@ -11,7 +15,7 @@ export let managedProviderAuthCredentialsApp = app.use(async ctx => {
   }
 
   let managedProviderAuthCredentials =
-    await managedProviderAuthCredentialsService.getManagedProviderAuthCredentialsById({
+    await resolveManagedProviderAuthCredentialsControllerRecord({
       solution: ctx.solution,
       managedProviderAuthCredentialsId
     });
@@ -55,7 +59,9 @@ export let managedProviderAuthCredentialsController = app.controller({
       })
     )
     .do(async ctx =>
-      managedProviderAuthCredentialsPresenter(ctx.managedProviderAuthCredentials)
+      presentManagedProviderAuthCredentialsControllerResponse(
+        ctx.managedProviderAuthCredentials
+      )
     ),
 
   create: app
@@ -141,6 +147,50 @@ export let managedProviderAuthCredentialsController = app.controller({
         })
       )
     ),
+
+  rotateSecret: managedProviderAuthCredentialsApp
+    .handler()
+    .input(
+      v.object({
+        managedProviderAuthCredentialsId: v.string(),
+        clientSecret: v.string({
+          transformers: [v.trim],
+          modifiers: [v.minLength(1)]
+        })
+      })
+    )
+    .do(async ctx =>
+      managedProviderAuthCredentialsPresenter(
+        await managedProviderAuthCredentialsService.updateManagedProviderAuthCredentials({
+          solution: ctx.solution,
+          managedProviderAuthCredentials: ctx.managedProviderAuthCredentials,
+          input: { clientSecret: ctx.input.clientSecret }
+        })
+      )
+    ),
+
+  revokeSecretVersion: managedProviderAuthCredentialsApp
+    .handler()
+    .input(
+      v.object({
+        managedProviderAuthCredentialsId: v.string(),
+        sourceSecretId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let source =
+        await managedProviderAuthCredentialsService.revokeManagedProviderAuthCredentialSource({
+          solution: ctx.solution,
+          managedProviderAuthCredentials: ctx.managedProviderAuthCredentials,
+          sourceSecretId: ctx.input.sourceSecretId
+        });
+      return {
+        id: source.id,
+        secretVersion: source.secretVersion,
+        status: source.status,
+        revokedAt: source.revokedAt
+      };
+    }),
 
   archive: managedProviderAuthCredentialsApp
     .handler()

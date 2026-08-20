@@ -152,6 +152,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       OBJECT_STORAGE_URL: http://object-storage:52010
       LOGS_BUCKET_NAME: bundles
+      HUB_SERVICE_CREDENTIAL: ${HUB_SERVICE_CREDENTIAL:?set HUB_SERVICE_CREDENTIAL}
+      SUBSPACE_SERVICE_CREDENTIAL: ${SUBSPACE_SERVICE_CREDENTIAL:?set SUBSPACE_SERVICE_CREDENTIAL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -222,7 +224,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52040/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52040/ping'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s
@@ -257,7 +259,10 @@ services:
       INVOCATIONS_BUCKET_NAME: subspace-invocations
       INITIAL_REGISTRIES: 'http://slates-registry:52040'
       SIGNAL_API_URL: http://signal:52050/metorial-signal
+      SIGNAL_SERVICE_CREDENTIAL: ${HUB_SERVICE_CREDENTIAL:?set HUB_SERVICE_CREDENTIAL}
       SIGNAL_SENDER_IDENTIFIER: subspace-slates-hub
+      SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT: ${SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT:?set SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT}
+      SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_PREVIOUS: ${SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_PREVIOUS:?set SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_PREVIOUS}
       SLATES_HUB_INSTANCE_IDENTIFIER: dev-subspace
       SERVICE_PUBLIC_URL: http://localhost:52045
     depends_on:
@@ -279,7 +284,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52045/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52045/'').then(()=>process.exit(0)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s
@@ -292,8 +297,8 @@ services:
     container_name: subspace-shuttle
     restart: unless-stopped
     ports:
-      - "52080:52080"
-      - "52081:52081"
+      - '52080:52080'
+      - '52081:52081'
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/shuttle
       REDIS_URL: redis://redis:6379/0
@@ -307,8 +312,8 @@ services:
       FUNCTION_BAY_TENANT_IDENTIFIER: dev-tenant
       FUNCTION_BAY_DEFAULT_MEMORY_MB: 512
       FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS: 15
-      SHUTTLE_ALLOW_PRIVATE_URLS: "true"
-      SHUTTLE_UNSAFE_SSRF_BYPASS: "true"
+      SHUTTLE_ALLOW_PRIVATE_URLS: 'true'
+      SHUTTLE_UNSAFE_SSRF_BYPASS: 'true'
 
     depends_on:
       postgres:
@@ -325,7 +330,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52080/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52080/'').then(()=>process.exit(0)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s
@@ -338,8 +343,8 @@ services:
     container_name: subspace-origin-code-bucket
     restart: unless-stopped
     ports:
-      - '52091:52091'  # HTTP API
-      - '52092:52092'  # VSCode Workspace
+      - '52091:52091' # HTTP API
+      - '52092:52092' # VSCode Workspace
     environment:
       CODE_BUCKET_JWT_SECRET: dev-secret-change-in-production
       CODE_BUCKET_OBJECT_STORAGE_BUCKET: code-bucket
@@ -355,7 +360,7 @@ services:
     networks:
       - subspace-network
 
-  origin:  
+  origin:
     image: ghcr.io/metorial/origin-service:latest
     container_name: subspace-origin
     restart: unless-stopped
@@ -409,6 +414,8 @@ services:
       OTEL_DEBUG: ${OTEL_DEBUG:-false}
       PUBLIC_SERVICE_URL: http://localhost:52071
       SLATES_HUB_URL: http://slates-hub:52046/slates-hub
+      SLATES_HUB_SECRET_RPC_URL: http://slates-hub:52046/slates-hub-secrets
+      SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT: ${SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT:?set SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT}
       VOYAGER_URL: http://voyager:52060/metorial-voyager
       OBJECT_STORAGE_URL: http://object-storage:52010
       MESSAGE_BUCKET_NAME: messages
@@ -418,6 +425,10 @@ services:
       SLATES_HUB_PUBLIC_URL: http://localhost:52045
       ORIGIN_URL: http://origin:52090/metorial-origin
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
+      SIGNAL_API_URL: http://signal:52050/metorial-signal
+      SIGNAL_SERVICE_CREDENTIAL: ${SUBSPACE_SERVICE_CREDENTIAL:?set SUBSPACE_SERVICE_CREDENTIAL}
+      SUBSPACE_CORE_RPC_TOKEN_CURRENT: ${SUBSPACE_CORE_RPC_TOKEN_CURRENT:?set SUBSPACE_CORE_RPC_TOKEN_CURRENT}
+      SUBSPACE_CORE_RPC_TOKEN_PREVIOUS: ${SUBSPACE_CORE_RPC_TOKEN_PREVIOUS:?set SUBSPACE_CORE_RPC_TOKEN_PREVIOUS}
       FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
 
     volumes:
@@ -457,7 +468,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52070/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52070/ping'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s
@@ -478,7 +489,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52198/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52198/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s
@@ -576,6 +587,7 @@ services:
       SLATES_HUB_PUBLIC_URL: http://localhost:52045
       ORIGIN_URL: http://origin:52090/metorial-origin
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
+      SIGNAL_API_URL: http://signal:52050/metorial-signal
 
     volumes:
       - ./apps/public/src:/app/src/metorial/subspace/apps/public/src:ro
@@ -637,6 +649,8 @@ services:
       OTEL_DEBUG: ${OTEL_DEBUG:-false}
       PUBLIC_SERVICE_URL: http://localhost:52071
       SLATES_HUB_URL: http://slates-hub:52046/slates-hub
+      SLATES_HUB_SECRET_RPC_URL: http://slates-hub:52046/slates-hub-secrets
+      SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT: ${SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT:?set SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT}
       VOYAGER_URL: http://voyager:52060/metorial-voyager
       OBJECT_STORAGE_URL: http://object-storage:52010
       MESSAGE_BUCKET_NAME: messages
@@ -648,6 +662,7 @@ services:
       REGISTRY_URL: https://metorial-saas-staging.registry.metorial-enterprise.com/metorial-registry-root
       FUNCTION_BAY_API_URL: http://function-bay:52030/metorial-function-bay
       PROVIDER_TELEMETRY_ERROR_GROUPS_BUCKET_NAME: provider-telemetry-error-groups
+      SIGNAL_API_URL: http://signal:52050/metorial-signal
 
     volumes:
       - ./apps/worker:/app/src/metorial/subspace/apps/worker:ro

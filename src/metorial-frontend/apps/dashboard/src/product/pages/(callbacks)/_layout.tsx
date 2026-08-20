@@ -68,6 +68,10 @@ export let CallbackLayout = () => {
           {
             label: 'Destinations',
             to: Paths.instance.callback(...callbackPathParams, 'destinations')
+          },
+          {
+            label: 'Settings',
+            to: Paths.instance.callback(...callbackPathParams, 'settings')
           }
         ]}
       />

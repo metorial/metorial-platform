@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { tenantPresenter } from '../presenters/tenant';
 import { tenantService } from '../services';
-import { app } from './_app';
+import { app, internalApp, subspaceInternalApp } from './_app';
 
 export let tenantApp = app.use(async ctx => {
   let tenantId = ctx.body.tenantId;
@@ -9,6 +9,20 @@ export let tenantApp = app.use(async ctx => {
 
   let tenant = await tenantService.getTenantById({ id: tenantId });
 
+  return { tenant };
+});
+
+export let internalTenantApp = internalApp.use(async ctx => {
+  let tenantId = ctx.body.tenantId;
+  if (!tenantId) throw new Error('Tenant ID is required');
+  let tenant = await tenantService.getTenantById({ id: tenantId });
+  return { tenant };
+});
+
+export let subspaceInternalTenantApp = subspaceInternalApp.use(async ctx => {
+  let tenantId = ctx.body.tenantId;
+  if (!tenantId) throw new Error('Tenant ID is required');
+  let tenant = await tenantService.getTenantById({ id: tenantId });
   return { tenant };
 });
 

@@ -30,6 +30,7 @@
     "@metorial-subspace/module-catalog": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/provider-utils": "^1.0.0",
+    "@slates/proto": "1.0.0-rc.17",
     "p-queue": "^9.1.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/case": "workspace:2.0.0"

@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/db', () => ({
+  db: {
+    metorialConfig: {
+      findFirst: vi.fn(),
+      upsert: vi.fn(async () => ({}))
+    }
+  },
   getImageUrl: vi.fn(async () => 'https://example.com/image.png')
 }));
 

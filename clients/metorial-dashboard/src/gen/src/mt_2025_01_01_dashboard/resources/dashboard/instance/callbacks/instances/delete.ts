@@ -37,7 +37,6 @@ export type DashboardInstanceCallbacksInstancesDeleteOutput = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
-  webhookUrl: string | null;
   triggers: {
     object: 'callback.instance.trigger';
     id: string;
@@ -119,7 +118,6 @@ export let mapDashboardInstanceCallbacksInstancesDeleteOutput =
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     ),
-    webhookUrl: mtMap.objectField('webhook_url', mtMap.passthrough()),
     triggers: mtMap.objectField(
       'triggers',
       mtMap.array(

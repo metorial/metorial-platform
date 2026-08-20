@@ -5,7 +5,9 @@ import { slateTriggerReceiverPresenter } from '../../presenters';
 import {
   slateAuthConfigService,
   slateInstanceService,
-  slateTriggerReceiverService
+  slateTriggerReceiverSecretService,
+  slateTriggerReceiverService,
+  slateTriggerRegistrationLifecycleService
 } from '../../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
@@ -32,7 +34,242 @@ export let slateTriggerReceiverApp = tenantApp.use(async ctx => {
   return { receiver };
 });
 
+let deniedLegacyTenantSecretApp = tenantApp.use(async (): Promise<{}> => {
+  throw new Error('Secret lifecycle calls require authenticated service RPC');
+});
+let deniedLegacyReceiverSecretApp = slateTriggerReceiverApp.use(async (): Promise<{}> => {
+  throw new Error('Secret lifecycle calls require authenticated service RPC');
+});
+let deniedLegacyProvisionedProjectionApp = app.use(async (): Promise<{}> => {
+  throw new Error('Provisioned-app projections require authenticated service RPC');
+});
+
 export let slateTriggerReceiverController = app.controller({
+  projectProvisionedAppRoute: deniedLegacyProvisionedProjectionApp
+    .handler()
+    .input(v.record(v.any()))
+    .do(async () => {
+      throw new Error('Provisioned-app projections require authenticated service RPC');
+    }),
+  projectProvisionedTenantApp: deniedLegacyProvisionedProjectionApp
+    .handler()
+    .input(v.record(v.any()))
+    .do(async () => {
+      throw new Error('Provisioned-app projections require authenticated service RPC');
+    }),
+  validateProvisionedTenantCredentialSecret: deniedLegacyProvisionedProjectionApp
+    .handler()
+    .input(v.record(v.any()))
+    .do(async () => {
+      throw new Error(
+        'Provisioned-app credential validation requires authenticated service RPC'
+      );
+    }),
+  createOrRotateProvisionedTenantCredentialSecret: deniedLegacyProvisionedProjectionApp
+    .handler()
+    .input(v.record(v.any()))
+    .do(async () => {
+      throw new Error('Provisioned-app credential writes require authenticated service RPC');
+    }),
+  revokeProvisionedTenantCredentialSecret: deniedLegacyProvisionedProjectionApp
+    .handler()
+    .input(v.record(v.any()))
+    .do(async () => {
+      throw new Error('Provisioned-app credential writes require authenticated service RPC');
+    }),
+  upsertInstanceConfigSecret: deniedLegacyTenantSecretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateInstanceConfigId: v.string(),
+        key: v.string(),
+        value: v.string(),
+        trustedActorId: v.string(),
+        requestId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let result = await slateTriggerReceiverSecretService.upsertInstanceConfigSecret({
+        tenant: ctx.tenant,
+        instanceConfigId: ctx.input.slateInstanceConfigId,
+        key: ctx.input.key,
+        plaintext: ctx.input.value,
+        actor: { actorId: ctx.input.trustedActorId, requestId: ctx.input.requestId }
+      });
+      return {
+        secret: {
+          id: result.secret.id,
+          secretVersion: result.secret.secretVersion,
+          status: result.secret.status
+        },
+        marker: result.marker,
+        auditCorrelationId: result.auditCorrelationId
+      };
+    }),
+
+  revokeInstanceConfigSecret: deniedLegacyTenantSecretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateInstanceConfigId: v.string(),
+        key: v.string(),
+        trustedActorId: v.string(),
+        requestId: v.string()
+      })
+    )
+    .do(
+      async ctx =>
+        await slateTriggerReceiverSecretService.revokeInstanceConfigSecret({
+          tenant: ctx.tenant,
+          instanceConfigId: ctx.input.slateInstanceConfigId,
+          key: ctx.input.key,
+          actor: { actorId: ctx.input.trustedActorId, requestId: ctx.input.requestId }
+        })
+    ),
+
+  createInitialPathSecret: deniedLegacyReceiverSecretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateTriggerReceiverId: v.string(),
+        trustedActorId: v.string(),
+        requestId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let result = await slateTriggerReceiverSecretService.createInitialPathSecret({
+        tenant: ctx.tenant,
+        receiverId: ctx.receiver.id,
+        actor: { actorId: ctx.input.trustedActorId, requestId: ctx.input.requestId }
+      });
+      return {
+        secret: {
+          id: result.secret.id,
+          secretVersion: result.secret.secretVersion,
+          status: result.secret.status,
+          validFrom: result.secret.validFrom
+        },
+        receipt: result.receipt,
+        auditCorrelationId: result.auditCorrelationId
+      };
+    }),
+
+  rotatePathSecret: deniedLegacyReceiverSecretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateTriggerReceiverId: v.string(),
+        trustedActorId: v.string(),
+        requestId: v.string(),
+        graceMs: v.optional(v.number())
+      })
+    )
+    .do(async ctx => {
+      let result = await slateTriggerReceiverSecretService.rotatePathSecret({
+        tenant: ctx.tenant,
+        receiverId: ctx.receiver.id,
+        actor: { actorId: ctx.input.trustedActorId, requestId: ctx.input.requestId },
+        graceMs: ctx.input.graceMs
+      });
+      return {
+        secret: {
+          id: result.secret.id,
+          secretVersion: result.secret.secretVersion,
+          status: result.secret.status,
+          validFrom: result.secret.validFrom
+        },
+        receipt: result.receipt,
+        auditCorrelationId: result.auditCorrelationId
+      };
+    }),
+
+  revokePathSecret: deniedLegacyReceiverSecretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateTriggerReceiverId: v.string(),
+        secretId: v.string(),
+        trustedActorId: v.string(),
+        requestId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let result = await slateTriggerReceiverSecretService.revokePathSecret({
+        tenant: ctx.tenant,
+        receiverId: ctx.receiver.id,
+        secretId: ctx.input.secretId,
+        actor: { actorId: ctx.input.trustedActorId, requestId: ctx.input.requestId }
+      });
+      return {
+        secret: {
+          id: result.secret.id,
+          secretVersion: result.secret.secretVersion,
+          status: result.secret.status
+        },
+        auditCorrelationId: result.auditCorrelationId
+      };
+    }),
+
+  upsertBoundVendorSecret: deniedLegacyReceiverSecretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateTriggerReceiverId: v.string(),
+        receiverTriggerId: v.string(),
+        specHash: v.string(),
+        sourceBindingType: v.enumOf([
+          'registration',
+          'provider_config',
+          'provisioned_app',
+          'generated'
+        ]),
+        sourceBindingId: v.string(),
+        name: v.string(),
+        kind: v.string(),
+        encoding: v.string(),
+        value: v.string(),
+        trustedActorId: v.string(),
+        requestId: v.string()
+      })
+    )
+    .do(async () => {
+      throw new Error('Secret lifecycle calls require authenticated service RPC');
+    }),
+
+  consumePathSecretReceipt: deniedLegacyReceiverSecretApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateTriggerReceiverId: v.string(),
+        receiptId: v.string(),
+        receiptToken: v.string(),
+        trustedActorId: v.string(),
+        requestId: v.string()
+      })
+    )
+    .do(
+      async ctx =>
+        await slateTriggerReceiverSecretService.consumePathReceipt({
+          callbackReceiverOwner: {
+            tenantId: ctx.tenant.id,
+            receiverId: ctx.receiver.id,
+            callbackId: ctx.receiver.callbackId!,
+            callbackInstanceId: ctx.receiver.callbackInstanceId!,
+            receiverAuthorityVersion: ctx.receiver.callbackOwnerVersion
+          },
+          receiptId: ctx.input.receiptId,
+          token: ctx.input.receiptToken,
+          actor: { actorId: ctx.input.trustedActorId, requestId: ctx.input.requestId }
+        })
+    ),
+
   list: tenantApp
     .handler()
     .input(
@@ -113,6 +350,25 @@ export let slateTriggerReceiverController = app.controller({
       })
     )
     .do(async ctx => slateTriggerReceiverPresenter(ctx.receiver)),
+
+  renewRegistration: slateTriggerReceiverApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateTriggerReceiverId: v.string(),
+        receiverTriggerId: v.string()
+      })
+    )
+    .do(async ctx => {
+      if (!ctx.receiver.triggers.some(trigger => trigger.id === ctx.input.receiverTriggerId)) {
+        throw new Error('Receiver trigger does not belong to this receiver');
+      }
+      return await slateTriggerReceiverService.renewWebhookRegistration({
+        tenant: ctx.tenant,
+        receiverTriggerId: ctx.input.receiverTriggerId
+      });
+    }),
 
   update: slateTriggerReceiverApp
     .handler()

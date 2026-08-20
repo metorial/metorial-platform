@@ -1,8 +1,13 @@
 import { createRpcSignatureHeader, rpcSignatureHeader } from '@lowerdeck/rpc-signature';
 import { serialize } from '@lowerdeck/serialize';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import { Group } from './controller';
-import { rpcMux } from './rpcMux';
+import {
+  configureRpcMuxTelemetryObserverForTest,
+  createRpcExceptionTelemetry,
+  redactRpcTelemetryBody,
+  rpcMux
+} from './rpcMux';
 import { createServer } from './server';
 
 let createTestRpc = (
@@ -12,6 +17,7 @@ let createTestRpc = (
           request: Request
         ) => Promise<string | { secret: string; context?: Record<string, any> }>)
       | ((request: Request) => string | { secret: string; context?: Record<string, any> });
+    sensitiveRequestFields?: readonly string[];
   } = {}
 ) => {
   let app = new Group<{ auth?: string }>().controller({
@@ -20,9 +26,14 @@ let createTestRpc = (
       .do(async ctx => ({ ok: true, input: ctx.input, rawBody: ctx.rawBody, auth: ctx.auth }))
   });
 
-  return rpcMux({ path: '/', getSignatureToken: opts.getSignatureToken }, [
-    createServer({})(app)
-  ]);
+  return rpcMux(
+    {
+      path: '/',
+      getSignatureToken: opts.getSignatureToken,
+      sensitiveRequestFields: opts.sensitiveRequestFields
+    },
+    [createServer({})(app)]
+  );
 };
 
 let createRpcBody = () =>
@@ -249,5 +260,73 @@ describe('rpcMux signatures', () => {
 
     expect(response.status).toBe(200);
     expect(responseBody.calls[0].result.auth).toBe('verified');
+  });
+});
+
+describe('rpcMux sensitive request telemetry', () => {
+  afterEach(() => configureRpcMuxTelemetryObserverForTest(null));
+
+  test('recursively redacts configured fields while preserving operational context', () => {
+    expect(
+      redactRpcTelemetryBody(
+        {
+          calls: [
+            {
+              name: 'consume',
+              payload: {
+                receiptToken: 'raw-camel-secret',
+                nested: { RECEIPT_TOKEN: 'raw-snake-secret', receiptId: 'receipt-1' }
+              }
+            }
+          ]
+        },
+        ['receiptToken', 'receipt_token']
+      )
+    ).toEqual({
+      calls: [
+        {
+          name: 'consume',
+          payload: {
+            receiptToken: '[REDACTED]',
+            nested: { RECEIPT_TOKEN: '[REDACTED]', receiptId: 'receipt-1' }
+          }
+        }
+      ]
+    });
+  });
+
+  test('omits receipt material from normal request attachments', async () => {
+    let observations: Array<{ path: string; body: unknown }> = [];
+    configureRpcMuxTelemetryObserverForTest(observation => observations.push(observation));
+    let rpc = createTestRpc({ sensitiveRequestFields: ['receiptToken'] });
+    let body = serialize.encode({ receiptToken: 'raw-receipt-token', receiptId: 'receipt-1' });
+
+    let response = await rpc.fetch(createDirectRpcRequest({ path: 'ping', body }));
+
+    expect(response.status).toBe(200);
+    let captured = observations.find(observation => observation.path === 'attachment')?.body;
+    expect(JSON.stringify(captured)).not.toContain('raw-receipt-token');
+    expect(captured).toMatchObject({
+      receiptToken: '[REDACTED]',
+      receiptId: 'receipt-1'
+    });
+  });
+
+  test('omits receipt material from the exception telemetry object used by capture', () => {
+    let telemetry = createRpcExceptionTelemetry({
+      url: 'https://example.test/rpc/fail',
+      method: 'POST',
+      ip: '192.0.2.10',
+      body: {
+        receiptToken: 'raw-receipt-token',
+        nested: { receipt_token: 'raw-snake-token' }
+      },
+      sensitiveFields: ['receiptToken', 'receipt_token']
+    }).body;
+    expect(JSON.stringify(telemetry)).not.toMatch(/raw-receipt-token|raw-snake-token/);
+    expect(telemetry).toMatchObject({
+      receiptToken: '[REDACTED]',
+      nested: { receipt_token: '[REDACTED]' }
+    });
   });
 });

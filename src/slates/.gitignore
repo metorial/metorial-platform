@@ -61,6 +61,7 @@ web_modules/
 
 # Output of 'npm pack'
 *.tgz
+!vendor/slates-proto-1.0.0-rc.17.tgz
 
 # Yarn Integrity file
 .yarn-integrity

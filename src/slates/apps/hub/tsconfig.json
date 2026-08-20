@@ -8,6 +8,7 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "moduleResolution": "bundler",
+    "baseUrl": ".",
     "verbatimModuleSyntax": true,
     "noEmit": true,
     "strict": true,

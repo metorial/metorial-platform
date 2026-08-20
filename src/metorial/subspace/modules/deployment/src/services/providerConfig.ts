@@ -56,6 +56,10 @@ import {
   providerConfigCreatedQueue,
   providerConfigUpdatedQueue
 } from '../queues/lifecycle/providerConfig';
+import {
+  assertProviderConfigPatchGeneration,
+  prepareProviderConfigBackingPatch
+} from './providerConfigUpdate';
 
 let include = {
   provider: true,
@@ -589,11 +593,45 @@ class providerConfigServiceImpl {
       metadata?: Record<string, any>;
       privateMetadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
+      configPatch?: { set?: Record<string, unknown>; remove?: string[] };
+      expectedConfigGeneration?: number;
     };
   }) {
     await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'update');
+
+    assertProviderConfigPatchGeneration({
+      patch: d.input.configPatch,
+      expectedGeneration: d.input.expectedConfigGeneration
+    });
+
+    if (d.input.configPatch) {
+      let ownedConfig = await db.providerConfig.findFirstOrThrow({
+        where: {
+          oid: d.providerConfig.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: d.solution.oid,
+          environmentOid: d.environment.oid
+        },
+        include: {
+          provider: { include: { defaultVariant: true } },
+          currentVersion: true
+        }
+      });
+      let backingPatch = prepareProviderConfigBackingPatch({
+        patch: d.input.configPatch,
+        expectedGeneration: d.input.expectedConfigGeneration,
+        fromVaultOid: ownedConfig.fromVaultOid,
+        hasProviderVariant: !!ownedConfig.provider.defaultVariant,
+        currentVersion: ownedConfig.currentVersion
+      });
+      let backend = await getBackend({ entity: ownedConfig.provider.defaultVariant! });
+      await backend.deployment.updateProviderConfig({
+        tenant: d.tenant,
+        ...backingPatch
+      });
+    }
 
     return withTransaction(async db => {
       let config = await db.providerConfig.update({

@@ -59,6 +59,7 @@ let parseResourceAttributes = (attrs: string | undefined): Record<string, string
 
 export {
   context as otelContext,
+  metrics,
   propagation,
   SpanKind,
   SpanStatusCode,

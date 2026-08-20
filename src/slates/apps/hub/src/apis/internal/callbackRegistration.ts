@@ -27,15 +27,17 @@ export let callbackRegistrationController = app.controller({
         tenantId: v.string(),
         callbackId: v.string(),
         callbackInstanceId: v.string(),
-        slateTriggerReceiverId: v.optional(v.nullable(v.string())),
+        expectedSlateTriggerReceiverId: v.nullable(v.string()),
+        expectedOwnerVersion: v.number(),
+        ownerMutationId: v.string(),
         slateInstanceId: v.string(),
         authConfigId: v.optional(v.nullable(v.string())),
         name: v.optional(v.nullable(v.string())),
         description: v.optional(v.nullable(v.string())),
-        eventTypes: v.optional(v.array(v.string())),
         triggers: v.array(
           v.object({
             triggerId: v.string(),
+            eventTypes: v.optional(v.array(v.string())),
             state: v.optional(v.nullable(v.record(v.any()))),
             pollIntervalSeconds: v.optional(v.nullable(v.number()))
           })
@@ -56,10 +58,11 @@ export let callbackRegistrationController = app.controller({
         input: {
           callbackId: ctx.input.callbackId,
           callbackInstanceId: ctx.input.callbackInstanceId,
-          slateTriggerReceiverId: ctx.input.slateTriggerReceiverId,
+          expectedSlateTriggerReceiverId: ctx.input.expectedSlateTriggerReceiverId,
+          expectedOwnerVersion: ctx.input.expectedOwnerVersion,
+          ownerMutationId: ctx.input.ownerMutationId,
           name: ctx.input.name,
           description: ctx.input.description,
-          eventTypes: ctx.input.eventTypes,
           triggers: ctx.input.triggers
         }
       });
@@ -72,13 +75,23 @@ export let callbackRegistrationController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
-        slateTriggerReceiverId: v.string()
+        callbackId: v.string(),
+        callbackInstanceId: v.string(),
+        slateTriggerReceiverId: v.string(),
+        expectedOwnerVersion: v.number(),
+        ownerMutationId: v.string()
       })
     )
     .do(async ctx => {
       let receiver = await slateTriggerReceiverService.deleteTriggerReceiver({
         tenant: ctx.tenant,
-        receiverId: ctx.input.slateTriggerReceiverId
+        receiverId: ctx.input.slateTriggerReceiverId,
+        callbackOwner: {
+          callbackId: ctx.input.callbackId,
+          callbackInstanceId: ctx.input.callbackInstanceId,
+          expectedOwnerVersion: ctx.input.expectedOwnerVersion,
+          ownerMutationId: ctx.input.ownerMutationId
+        }
       });
 
       return slateTriggerReceiverPresenter(receiver);

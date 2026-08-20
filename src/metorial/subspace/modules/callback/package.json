@@ -5,7 +5,7 @@
   "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
@@ -13,10 +13,13 @@
     "@lowerdeck/cron": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/lock": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
     "@metorial-subspace/db": "^1.0.0",
+    "@metorial-subspace/module-auth": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
     "@metorial-platform-systems/signal-client": "workspace:*",

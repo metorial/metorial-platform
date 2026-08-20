@@ -7,15 +7,14 @@ type EnrichedCallbackDestination = CallbackDestination & {
       id: string;
       url: string;
       method: string;
-      signingSecret: string;
+      signingSecretConfigured: boolean;
       createdAt: Date;
     } | null;
   } | null;
 };
 
 export let callbackDestinationPresenter = (
-  callbackDestination: EnrichedCallbackDestination,
-  opts?: { includeSignatureToken?: boolean }
+  callbackDestination: EnrichedCallbackDestination
 ) => ({
   object: 'callback.destination',
 
@@ -34,10 +33,8 @@ export let callbackDestinationPresenter = (
         id: callbackDestination.signalDestination.webhook.id,
         url: callbackDestination.signalDestination.webhook.url,
         method: callbackDestination.signalDestination.webhook.method,
-        signatureToken:
-          opts?.includeSignatureToken === false
-            ? undefined
-            : callbackDestination.signalDestination.webhook.signingSecret,
+        signingSecretConfigured:
+          callbackDestination.signalDestination.webhook.signingSecretConfigured,
         createdAt: callbackDestination.signalDestination.webhook.createdAt
       }
     : null,

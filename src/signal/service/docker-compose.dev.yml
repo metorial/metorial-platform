@@ -78,6 +78,9 @@ services:
       REDIS_URL: ${REDIS_URL}
       OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL}
       LOGS_BUCKET_NAME: ${LOGS_BUCKET_NAME}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY}
+      HUB_SERVICE_CREDENTIAL: ${HUB_SERVICE_CREDENTIAL:?set HUB_SERVICE_CREDENTIAL}
+      SUBSPACE_SERVICE_CREDENTIAL: ${SUBSPACE_SERVICE_CREDENTIAL:?set SUBSPACE_SERVICE_CREDENTIAL}
     volumes:
       - ./src:/app/src/signal/service/src:ro
       - ./package.json:/app/src/signal/service/package.json:ro

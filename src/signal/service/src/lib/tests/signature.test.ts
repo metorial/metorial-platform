@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { generateSignature } from '../signature';
+import {
+  generateSignature,
+  generateSignatures,
+  parseMetorialSignature,
+  verifyMetorialSignature
+} from '../signature';
 
 describe('generateSignature', () => {
   const secret = 'test_secret';
@@ -25,9 +30,21 @@ describe('generateSignature', () => {
   });
 
   it.concurrent.each([
-    ['secret', { payload: 'test payload', secret: 'secret1', timestamp }, { payload: 'test payload', secret: 'secret2', timestamp }],
-    ['timestamp', { payload: 'test payload', secret, timestamp: 1704067200 }, { payload: 'test payload', secret, timestamp: 1704067201 }],
-    ['payload', { payload: 'payload1', secret, timestamp }, { payload: 'payload2', secret, timestamp }]
+    [
+      'secret',
+      { payload: 'test payload', secret: 'secret1', timestamp },
+      { payload: 'test payload', secret: 'secret2', timestamp }
+    ],
+    [
+      'timestamp',
+      { payload: 'test payload', secret, timestamp: 1704067200 },
+      { payload: 'test payload', secret, timestamp: 1704067201 }
+    ],
+    [
+      'payload',
+      { payload: 'payload1', secret, timestamp },
+      { payload: 'payload2', secret, timestamp }
+    ]
   ])('changes when %s changes', async (_label, a, b) => {
     const sig1 = await generateSignature(a.payload, a.secret, { timestamp: a.timestamp });
     const sig2 = await generateSignature(b.payload, b.secret, { timestamp: b.timestamp });
@@ -42,5 +59,36 @@ describe('generateSignature', () => {
     const now = Math.floor(Date.now() / 1000);
     const signatureTimestamp = parseInt(timestampMatch[1]);
     expect(Math.abs(signatureTimestamp - now)).toBeLessThanOrEqual(1);
+  });
+
+  it('emits active first followed by every retiring signature in caller order', async () => {
+    let signature = await generateSignatures('body', ['active', 'retiring-3', 'retiring-2'], {
+      timestamp
+    });
+    let parsed = parseMetorialSignature(signature);
+    expect(parsed.timestamp).toBe(timestamp);
+    expect(parsed.signatures).toHaveLength(3);
+    expect(signature).toMatch(
+      /^t=1704067200,v1=[a-f0-9]{64},v1=[a-f0-9]{64},v1=[a-f0-9]{64}$/
+    );
+    expect(
+      await verifyMetorialSignature({
+        header: signature,
+        body: 'body',
+        signingSecrets: ['retiring-2'],
+        options: { nowSeconds: timestamp }
+      })
+    ).toBe(true);
+  });
+
+  it.each([
+    'v1=' + 'a'.repeat(64),
+    't=1,t=2,v1=' + 'a'.repeat(64),
+    't=1,v2=' + 'a'.repeat(64),
+    't=1,v1=' + 'A'.repeat(64),
+    't=1,v1=short',
+    't=-1,v1=' + 'a'.repeat(64)
+  ])('rejects malformed grammar: %s', header => {
+    expect(() => parseMetorialSignature(header)).toThrow();
   });
 });

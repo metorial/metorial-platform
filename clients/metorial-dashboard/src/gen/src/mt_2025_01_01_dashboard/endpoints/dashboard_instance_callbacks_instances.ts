@@ -1,22 +1,38 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceCallbacksInstancesCreateBody,
   mapDashboardInstanceCallbacksInstancesCreateOutput,
+  mapDashboardInstanceCallbacksInstancesConsumeReceiverPathSecretReceiptBody,
   mapDashboardInstanceCallbacksInstancesDeleteOutput,
   mapDashboardInstanceCallbacksInstancesGetOutput,
+  mapDashboardInstanceCallbacksInstancesGithubManifestSetupOutput,
   mapDashboardInstanceCallbacksInstancesListOutput,
   mapDashboardInstanceCallbacksInstancesListQuery,
+  mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretBody,
+  mapDashboardInstanceCallbacksInstancesSecretBulkRevocationOutput,
+  mapDashboardInstanceCallbacksInstancesSecretConsumptionOutput,
+  mapDashboardInstanceCallbacksInstancesSecretMutationOutput,
+  mapDashboardInstanceCallbacksEventsGetOutput,
+  type DashboardInstanceCallbacksEventsGetOutput,
   type DashboardInstanceCallbacksInstancesCreateBody,
   type DashboardInstanceCallbacksInstancesCreateOutput,
+  type DashboardInstanceCallbacksInstancesConsumeReceiverPathSecretReceiptBody,
   type DashboardInstanceCallbacksInstancesDeleteOutput,
   type DashboardInstanceCallbacksInstancesGetOutput,
+  type DashboardInstanceCallbacksInstancesGithubManifestSetupOutput,
   type DashboardInstanceCallbacksInstancesListOutput,
-  type DashboardInstanceCallbacksInstancesListQuery
+  type DashboardInstanceCallbacksInstancesListQuery,
+  type DashboardInstanceCallbacksInstancesRotateReceiverPathSecretBody,
+  type DashboardInstanceCallbacksInstancesSecretBulkRevocationOutput,
+  type DashboardInstanceCallbacksInstancesSecretConsumptionOutput,
+  type DashboardInstanceCallbacksInstancesSecretMutationOutput
 } from '../resources';
+
+export type DashboardInstanceCallbacksInstancesSendTestEventBody = {
+  eventType: string;
+  payload: Record<string, unknown>;
+};
 
 /**
  * @name Callback Instances controller
@@ -74,9 +90,7 @@ export class MetorialDashboardInstanceCallbacksInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceCallbacksInstancesListOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceCallbacksInstancesListOutput);
   }
 
   /**
@@ -105,9 +119,7 @@ export class MetorialDashboardInstanceCallbacksInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceCallbacksInstancesGetOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceCallbacksInstancesGetOutput);
   }
 
   /**
@@ -137,8 +149,131 @@ export class MetorialDashboardInstanceCallbacksInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
+    return this._post(request).transform(mapDashboardInstanceCallbacksInstancesCreateOutput);
+  }
+
+  /**
+   * Queues an authenticated synthetic event for a callback instance.
+   */
+  sendTestEvent(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    body: DashboardInstanceCallbacksInstancesSendTestEventBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksEventsGetOutput> {
+    let path = `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/test-event`;
+
+    let request = {
+      path,
+      body: {
+        event_type: body.eventType,
+        payload: body.payload
+      },
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(mapDashboardInstanceCallbacksEventsGetOutput);
+  }
+
+  createReceiverPathSecret(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesSecretMutationOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret`,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
     return this._post(request).transform(
-      mapDashboardInstanceCallbacksInstancesCreateOutput
+      mapDashboardInstanceCallbacksInstancesSecretMutationOutput
+    );
+  }
+
+  rotateReceiverPathSecret(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    body: DashboardInstanceCallbacksInstancesRotateReceiverPathSecretBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesSecretMutationOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret/rotate`,
+      body: mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretBody.transformTo(
+        body
+      ),
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksInstancesSecretMutationOutput
+    );
+  }
+
+  revokeReceiverPathSecret(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    secretId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesSecretMutationOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret/${secretId}`,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._delete(request).transform(
+      mapDashboardInstanceCallbacksInstancesSecretMutationOutput
+    );
+  }
+
+  revokeAllReceiverPathSecrets(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesSecretBulkRevocationOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret`,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._delete(request).transform(
+      mapDashboardInstanceCallbacksInstancesSecretBulkRevocationOutput
+    );
+  }
+
+  consumeReceiverPathSecretReceipt(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    receiptId: string,
+    body: DashboardInstanceCallbacksInstancesConsumeReceiverPathSecretReceiptBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesSecretConsumptionOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret/receipts/${receiptId}/consume`,
+      body: mapDashboardInstanceCallbacksInstancesConsumeReceiverPathSecretReceiptBody.transformTo(
+        body
+      ),
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksInstancesSecretConsumptionOutput
+    );
+  }
+
+  beginGithubManifest(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    provisionedTenantAppId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesGithubManifestSetupOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/provisioned-apps/${provisionedTenantAppId}/github-manifest`,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksInstancesGithubManifestSetupOutput
     );
   }
 
@@ -168,8 +303,6 @@ export class MetorialDashboardInstanceCallbacksInstancesEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._delete(request).transform(
-      mapDashboardInstanceCallbacksInstancesDeleteOutput
-    );
+    return this._delete(request).transform(mapDashboardInstanceCallbacksInstancesDeleteOutput);
   }
 }

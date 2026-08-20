@@ -17,6 +17,7 @@ import type {
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId, snowflake } from '../id';
+import { webhookDestinationSigningSecretService } from './webhookDestinationSigningSecret';
 
 let include = {
   currentInstance: {
@@ -52,18 +53,14 @@ class eventDestinationServiceImpl {
   }) {
     return db.$transaction(async db => {
       let destinationId = getId('eventDestination');
-      let webhook = await db.webhookDestinationWebhook.create({
-        data: {
-          ...getId('eventDestinationWebhook'),
-
+      let generated =
+        await webhookDestinationSigningSecretService.createGeneratedWebhookInTransaction({
+          tx: db,
+          tenant: d.tenant,
           url: d.input.variant.url,
-          method: d.input.variant.method,
-
-          signingSecret: generateCustomId('metorial_whsec_', 50),
-
-          tenantOid: d.tenant.oid
-        }
-      });
+          method: d.input.variant.method
+        });
+      let webhook = generated.webhook;
 
       let destination = await db.eventDestination.create({
         data: {
@@ -99,11 +96,12 @@ class eventDestinationServiceImpl {
         }
       });
 
-      return await db.eventDestination.update({
+      let eventDestination = await db.eventDestination.update({
         where: { oid: destination.oid },
         data: { currentInstanceOid: instance.oid },
         include
       });
+      return { eventDestination, secretIssuanceReceipt: generated.receipt };
     });
   }
 
@@ -177,71 +175,95 @@ class eventDestinationServiceImpl {
       );
     }
 
-    let instance: EventDestinationInstance | null = null;
+    return await db.$transaction(async tx => {
+      let instance: EventDestinationInstance | null = null;
 
-    if (d.input.variant) {
-      if (d.eventDestination.type != d.input.variant.type) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Cannot change event destination variant type'
-          })
-        );
+      if (d.input.variant) {
+        if (d.eventDestination.type != d.input.variant.type) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot change event destination variant type'
+            })
+          );
+        }
+
+        let anyCurrentInstance = await tx.eventDestinationInstance.findFirst({
+          where: {
+            destinationOid: d.eventDestination.oid,
+            type: d.input.variant.type
+          },
+          include: { webhook: true },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        let tenant = await tx.tenant.findUniqueOrThrow({
+          where: { oid: d.eventDestination.tenantOid }
+        });
+        let webhook;
+        if (anyCurrentInstance?.webhook) {
+          let signingSecret = (
+            await webhookDestinationSigningSecretService.resolveActiveAndRetiring({
+              tenantOid: tenant.oid,
+              webhookOid: anyCurrentInstance.webhook.oid
+            })
+          ).find(secret => secret.status === 'active')!.plaintext;
+          webhook = await tx.webhookDestinationWebhook.create({
+            data: {
+              ...getId('eventDestinationWebhook'),
+              url: d.input.variant.url,
+              method: d.input.variant.method,
+              signingSecret,
+              tenantOid: d.eventDestination.tenantOid
+            }
+          });
+          await webhookDestinationSigningSecretService.createImportedInitialInTransaction({
+            tx,
+            tenant,
+            webhook,
+            plaintext: signingSecret
+          });
+        } else {
+          webhook = (
+            await webhookDestinationSigningSecretService.createGeneratedWebhookInTransaction({
+              tx,
+              tenant,
+              url: d.input.variant.url,
+              method: d.input.variant.method
+            })
+          ).webhook;
+        }
+
+        instance = await tx.eventDestinationInstance.create({
+          data: {
+            oid: snowflake.nextId(),
+            type: d.input.variant.type,
+            webhookOid: webhook.oid,
+            destinationOid: d.eventDestination.oid
+          }
+        });
       }
 
-      let anyCurrentInstance = await db.eventDestinationInstance.findFirst({
-        where: {
-          destinationOid: d.eventDestination.oid,
-          type: d.input.variant.type
+      return await tx.eventDestination.update({
+        where: { oid: d.eventDestination.oid },
+        data: {
+          name: d.input.name,
+          description: d.input.description,
+          isCallbackDestination: d.input.isCallbackDestination,
+
+          ...(d.input.eventTypes
+            ? {
+                eventTypes: d.input.eventTypes,
+                hasEventTypesFilter: !!d.input.eventTypes.length
+              }
+            : {}),
+
+          retryType: d.input.retry?.type,
+          retryDelaySeconds: d.input.retry?.delaySeconds,
+          retryMaxAttempts: d.input.retry?.maxAttempts,
+          currentInstanceOid: instance?.oid
         },
-        include: { webhook: true },
-        orderBy: { createdAt: 'desc' }
+        include
       });
-
-      let webhook = await db.webhookDestinationWebhook.create({
-        data: {
-          ...getId('eventDestinationWebhook'),
-
-          url: d.input.variant.url,
-          method: d.input.variant.method,
-
-          signingSecret:
-            anyCurrentInstance?.webhook?.signingSecret ??
-            generateCustomId('metorial_whsec_', 50),
-
-          tenantOid: d.eventDestination.tenantOid
-        }
-      });
-
-      instance = await db.eventDestinationInstance.create({
-        data: {
-          oid: snowflake.nextId(),
-          type: d.input.variant.type,
-          webhookOid: webhook.oid,
-          destinationOid: d.eventDestination.oid
-        }
-      });
-    }
-
-    return await db.eventDestination.update({
-      where: { oid: d.eventDestination.oid },
-      data: {
-        name: d.input.name,
-        description: d.input.description,
-        isCallbackDestination: d.input.isCallbackDestination,
-
-        ...(d.input.eventTypes
-          ? {
-              eventTypes: d.input.eventTypes,
-              hasEventTypesFilter: !!d.input.eventTypes.length
-            }
-          : {}),
-
-        retryType: d.input.retry?.type,
-        retryDelaySeconds: d.input.retry?.delaySeconds,
-        retryMaxAttempts: d.input.retry?.maxAttempts,
-        currentInstanceOid: instance?.oid
-      },
-      include
     });
   }
 

@@ -5,11 +5,13 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
 import { calculateRetryDelaySeconds } from '../../lib/retry';
-import { generateSignature } from '../../lib/signature';
+import { generateSignatures } from '../../lib/signature';
 import { getAxiosSsrfFilter } from '../../lib/ssrf';
 import { storageKey } from '../../lib/storageKey';
+import { buildWebhookDeliveryHeaders } from '../../lib/webhookDeliveryHeaders';
 import { storage } from '../../storage';
 import { intentFailedQueue, intentSucceededQueue } from './intent';
+import { webhookDestinationSigningSecretService } from '../../services/webhookDestinationSigningSecret';
 
 export let createDeliveryQueue = createQueue<{
   eventId: string;
@@ -34,14 +36,21 @@ export let createDeliveryQueueProcessor = createDeliveryQueue.process(async data
   });
   if (!destination) throw new QueueRetryError();
 
-  let intent = await db.eventDeliveryIntent.create({
-    data: {
+  let intent = await db.eventDeliveryIntent.upsert({
+    where: {
+      eventOid_destinationOid: {
+        eventOid: event.oid,
+        destinationOid: destination.oid
+      }
+    },
+    create: {
       ...getId('eventDeliveryIntent'),
       status: 'pending',
       eventOid: event.oid,
       destinationOid: destination.oid,
       nextAttemptAt: new Date()
-    }
+    },
+    update: {}
   });
 
   await attemptDeliveryQueue.add({ intentId: intent.id }, { id: intent.id });
@@ -96,7 +105,17 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
   let responseHeaders: [string, string][] = [];
 
   let body = intent.event.payloadJson!;
-  let signature = await generateSignature(body, instance.webhook!.signingSecret!);
+  let signingTimestampSeconds = Math.floor(Date.now() / 1000);
+  let signingSecrets = await webhookDestinationSigningSecretService.resolveActiveAndRetiring({
+    tenantOid: intent.destination.tenantOid,
+    webhookOid: instance.webhook!.oid,
+    signingTimestampSeconds
+  });
+  let signature = await generateSignatures(
+    body,
+    signingSecrets.map(secret => secret.plaintext),
+    { timestamp: signingTimestampSeconds }
+  );
 
   let start = Date.now();
 
@@ -108,19 +127,15 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
         timeout: 10000,
         validateStatus: () => true,
         maxRedirects: 5,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Metorial (https://metorial.com)',
-          'Metorial-Webhook-Id': instance.webhook.id,
-          'Metorial-Notification-Id': intent.id,
-          'Metorial-Event-Id': event.id,
-          'Metorial-Signature': signature,
-          'Metorial-Version': '2025-01-01',
-          'Metorial-Delivery-Attempt': String(intent.attemptCount + 1),
-          'Metorial-Sender': `${event.sender.name} (${event.sender.id})`,
-
-          ...Object.fromEntries(event.headers as [string, string][])
-        }
+        headers: buildWebhookDeliveryHeaders({
+          eventHeaders: event.headers as [string, string][],
+          webhookId: instance.webhook.id,
+          notificationId: intent.id,
+          eventId: event.id,
+          signature,
+          attemptNumber: intent.attemptCount + 1,
+          sender: `${event.sender.name} (${event.sender.id})`
+        })
       });
 
       status = res.status >= 200 && res.status < 300 ? 'succeeded' : 'failed';

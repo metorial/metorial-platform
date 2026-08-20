@@ -1,4 +1,4 @@
-import { internalServerError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -27,7 +27,8 @@ import {
   providerCombinationService,
   providerDeploymentConfigPairInternalService
 } from '@metorial-subspace/module-provider-internal';
-import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { getTenantForSlates } from '@metorial-subspace/provider-slates/src/client';
+import { tombstoneProvisionedTenantAppsForCallbackInTransaction } from '@metorial-subspace/module-auth';
 import { callbackService } from './callback';
 import { callbackRegistrationService } from './callbackRegistration';
 
@@ -55,7 +56,19 @@ let callbackInstanceInclude = {
       }
     }
   },
-  activeRegistration: true
+  provisionedTenantApps: {
+    select: {
+      id: true,
+      generation: true,
+      vendor: true,
+      credentialOwnerType: true,
+      status: true,
+      externalAppId: true,
+      githubManifestStateExpiresAt: true,
+      githubManifestCompletedAt: true,
+      githubInstallationCompletedAt: true
+    }
+  }
 };
 
 class callbackInstanceServiceImpl {
@@ -164,6 +177,15 @@ class callbackInstanceServiceImpl {
     config: ProviderConfig;
     authConfig?: ProviderAuthConfig;
   }) {
+    if (d.callback.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_archived',
+          message: 'Instances cannot be attached to an archived callback.'
+        })
+      );
+    }
+
     if (d.callback.providerDeployment.status !== 'active') {
       throw new ServiceError(
         notFoundError('provider.deployment', d.callback.providerDeployment.id)
@@ -192,39 +214,25 @@ class callbackInstanceServiceImpl {
       }
     );
 
-    let callbackInstance = await db.callbackInstance.findFirst({
+    let callbackInstance = await db.callbackInstance.upsert({
       where: {
+        callbackOid_providerDeploymentConfigPairOid: {
+          callbackOid: d.callback.oid,
+          providerDeploymentConfigPairOid: pairRes.pair.oid
+        }
+      },
+      create: {
+        ...getId('callbackInstance'),
         callbackOid: d.callback.oid,
         providerDeploymentConfigPairOid: pairRes.pair.oid,
-        status: 'detached'
+        status: 'attached',
+        registrationStatus: 'pending'
       },
-      orderBy: {
-        updatedAt: 'desc'
+      update: {
+        status: 'attached'
       },
       include: callbackInstanceInclude
     });
-
-    if (callbackInstance) {
-      callbackInstance = await db.callbackInstance.update({
-        where: { oid: callbackInstance.oid },
-        data: {
-          status: 'attached',
-          registrationStatus: 'pending'
-        },
-        include: callbackInstanceInclude
-      });
-    } else {
-      callbackInstance = await db.callbackInstance.create({
-        data: {
-          ...getId('callbackInstance'),
-          callbackOid: d.callback.oid,
-          providerDeploymentConfigPairOid: pairRes.pair.oid,
-          status: 'attached',
-          registrationStatus: 'pending'
-        },
-        include: callbackInstanceInclude
-      });
-    }
 
     await callbackRegistrationService.syncCallbackInstance({
       callbackInstanceId: callbackInstance.id
@@ -237,31 +245,33 @@ class callbackInstanceServiceImpl {
   }
 
   async detach(d: { tenant: Tenant; callbackInstance: CallbackInstance }) {
-    if (d.callbackInstance.slateTriggerReceiverId) {
-      let slatesTenant = await getTenantForSlates(d.tenant);
-      try {
-        await slates.callbackRegistration.delete({
-          tenantId: slatesTenant.id,
-          slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId
-        });
-      } catch (err: any) {
-        throw new ServiceError(
-          internalServerError({
-            details: err?.data?.message
-          })
-        );
-      }
-    }
+    let slatesTenant = await getTenantForSlates(d.tenant);
+    let callback = await db.callback.findUniqueOrThrow({
+      where: { oid: d.callbackInstance.callbackOid },
+      select: { id: true }
+    });
+    await callbackRegistrationService.detachRegistration({
+      callbackInstanceOid: d.callbackInstance.oid,
+      callbackInstanceId: d.callbackInstance.id,
+      callbackId: callback.id,
+      slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId,
+      expectedReceiverAuthorityVersion:
+        d.callbackInstance.registrationReceiverAuthorityVersion,
+      slatesTenantId: slatesTenant.id
+    });
 
     return await withTransaction(async db => {
+      let now = new Date();
+      await tombstoneProvisionedTenantAppsForCallbackInTransaction(
+        db,
+        d.callbackInstance.oid,
+        now
+      );
       return await db.callbackInstance.update({
         where: { oid: d.callbackInstance.oid },
         data: {
           status: 'detached',
-          registrationStatus: 'pending',
-          activeRegistrationOid: null,
-          slateTriggerReceiverId: null,
-          lastSyncedAt: new Date()
+          lastSyncedAt: now
         },
         include: callbackInstanceInclude
       });

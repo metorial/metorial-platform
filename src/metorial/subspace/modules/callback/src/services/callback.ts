@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   type Callback,
+  type CallbackInstance,
   CallbackDestinationStatus,
   db,
   type Environment,
@@ -24,6 +25,13 @@ import {
 } from '@metorial-subspace/list-utils';
 import { providerDeploymentInternalService } from '@metorial-subspace/module-provider-internal';
 import { callbackRegistrationService } from './callbackRegistration';
+import { getInternalSignal, getTenantForSignal } from '../signal';
+import { callbackSecurityAuditService } from './callbackSecurityAudit';
+import {
+  getCallbackReceiverSecretAuthority,
+  type CallbackReceiverAuthority,
+  type CallbackSecretAuditContext
+} from './callbackReceiverSecret';
 
 const MAX_DESTINATIONS_PER_CALLBACK = 100;
 const MAX_TRIGGERS_PER_CALLBACK = 100;
@@ -52,6 +60,150 @@ let callbackInclude = {
 };
 
 class callbackServiceImpl {
+  private async getCallbackSecretOwner(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+  }) {
+    let callback = await this.getCallbackById(d);
+    let callbackInstance = await db.callbackInstance.findFirst({
+      where: {
+        id: d.callbackInstanceId,
+        callbackOid: callback.oid,
+        status: 'attached',
+        isParentDeleted: false
+      }
+    });
+    if (!callbackInstance) {
+      throw new ServiceError(notFoundError('callback.instance', d.callbackInstanceId));
+    }
+    if (
+      !callbackInstance.slateTriggerReceiverId ||
+      callbackInstance.registrationReceiverAuthorityVersion < 1
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_receiver_binding_unavailable',
+          message: 'The authoritative callback receiver binding is not ready.'
+        })
+      );
+    }
+    let { getTenantForSlates } = await import('@metorial-subspace/provider-slates/src/client');
+    let hubTenant = await getTenantForSlates(d.tenant);
+    return {
+      callback,
+      callbackInstance,
+      hubTenantId: hubTenant.id,
+      authority: {
+        tenantId: hubTenant.id,
+        receiverId: callbackInstance.slateTriggerReceiverId,
+        callbackId: callback.id,
+        callbackInstanceId: callbackInstance.id,
+        receiverAuthorityVersion: callbackInstance.registrationReceiverAuthorityVersion
+      } satisfies CallbackReceiverAuthority
+    };
+  }
+
+  private normalizeAuditContext(d: {
+    trustedActorId: string;
+    requestContext: { requestId: string; ip?: string | null; ua?: string | null };
+  }): CallbackSecretAuditContext {
+    let trustedActorId = d.trustedActorId.trim();
+    let requestId = d.requestContext.requestId.trim();
+    let requestIp = d.requestContext.ip?.trim() || undefined;
+    let requestUserAgent = d.requestContext.ua?.trim() || undefined;
+    if (
+      !trustedActorId ||
+      trustedActorId.length > 160 ||
+      !requestId ||
+      requestId.length > 160 ||
+      (requestIp?.length ?? 0) > 128 ||
+      (requestUserAgent?.length ?? 0) > 512
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_security_audit_context_invalid',
+          message: 'The trusted callback security request context is invalid.'
+        })
+      );
+    }
+    return { trustedActorId, requestId, requestIp, requestUserAgent };
+  }
+
+  private async linkHubSecurityAudit(d: {
+    tenant: Tenant;
+    callback: Callback;
+    callbackInstance: CallbackInstance;
+    hubTenantId: string;
+    authority: CallbackReceiverAuthority;
+    auditContext: CallbackSecretAuditContext;
+    auditCorrelationId: string;
+  }) {
+    try {
+      let client = getCallbackReceiverSecretAuthority();
+      let hubAudit = await client.getReceiverSecretAuditByCorrelation({
+        ...d.authority,
+        ...d.auditContext,
+        auditCorrelationId: d.auditCorrelationId
+      });
+      return await callbackSecurityAuditService.appendLinked({
+        tenant: d.tenant,
+        callback: d.callback,
+        callbackInstance: d.callbackInstance,
+        ownerSnapshot: {
+          tenantId: d.tenant.id,
+          callbackId: d.callback.id,
+          callbackInstanceId: d.callbackInstance.id,
+          receiverId: d.authority.receiverId,
+          receiverAuthorityVersion: d.authority.receiverAuthorityVersion
+        },
+        expectedHubTenantId: d.hubTenantId,
+        hubAudit,
+        expectedContext: d.auditContext
+      });
+    } catch (error) {
+      let { enqueueCallbackSecurityAuditRepair } = await import('../queues/securityAudit');
+      await enqueueCallbackSecurityAuditRepair({
+        tenantId: d.tenant.id,
+        hubTenantId: d.hubTenantId,
+        callbackId: d.callback.id,
+        callbackInstanceId: d.callbackInstance.id,
+        receiverId: d.authority.receiverId,
+        receiverAuthorityVersion: d.authority.receiverAuthorityVersion,
+        auditCorrelationId: d.auditCorrelationId,
+        auditContext: d.auditContext
+      });
+      return null;
+    }
+  }
+
+  private async runReceiverSecretMutation<T extends { auditCorrelationId: string }>(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+    trustedActorId: string;
+    requestContext: { requestId: string; ip?: string | null; ua?: string | null };
+    mutate: (
+      authority: CallbackReceiverAuthority,
+      auditContext: CallbackSecretAuditContext
+    ) => Promise<T>;
+  }) {
+    let auditContext = this.normalizeAuditContext(d);
+    let owner = await this.getCallbackSecretOwner(d);
+    let result = await d.mutate(owner.authority, auditContext);
+    await this.linkHubSecurityAudit({
+      tenant: d.tenant,
+      ...owner,
+      auditContext,
+      auditCorrelationId: result.auditCorrelationId
+    });
+    return result;
+  }
+
   private normalizePollInterval(value?: number | null) {
     if (value === undefined || value === null) return value;
     if (!Number.isInteger(value) || value < 1) {
@@ -463,6 +615,8 @@ class callbackServiceImpl {
       }
     });
 
+    // Signal is reactivated only after every receiver has reconciled, including
+    // metadata-only updates after an earlier failed reconciliation.
     await callbackRegistrationService.syncCallback({ callbackId: d.callback.id });
 
     return await this.getCallbackById({
@@ -471,6 +625,232 @@ class callbackServiceImpl {
       environment: d.environment,
       callbackId: d.callback.id
     });
+  }
+
+  async sendDashboardTestEvent(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+    eventId: string;
+    input: {
+      eventType: string;
+      payloadJson: string;
+    };
+  }) {
+    let eventType = d.input.eventType.trim();
+    if (!eventType) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_type_required',
+          message: 'A callback test event type is required.'
+        })
+      );
+    }
+
+    if (!d.eventId.startsWith('dashboard_test:') || d.eventId.length <= 15) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_id_invalid',
+          message: 'The callback test event ID is invalid.'
+        })
+      );
+    }
+
+    let callback = await this.getCallbackById({
+      tenant: d.tenant,
+      solution: d.solution,
+      environment: d.environment,
+      callbackId: d.callbackId
+    });
+    if (callback.status !== 'active' || !callback.isCallbacksV2) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_unavailable',
+          message: 'Synthetic events are unavailable for this callback.'
+        })
+      );
+    }
+
+    let callbackInstance = await db.callbackInstance.findFirst({
+      where: {
+        id: d.callbackInstanceId,
+        callbackOid: callback.oid,
+        status: 'attached',
+        isParentDeleted: false
+      },
+      select: { id: true }
+    });
+    if (!callbackInstance) {
+      throw new ServiceError(notFoundError('callback.instance', d.callbackInstanceId));
+    }
+
+    try {
+      let payload = JSON.parse(d.input.payloadJson);
+      if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
+        throw new Error('not an object');
+      }
+    } catch {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_payload_invalid',
+          message: 'The callback test payload must be a JSON object.'
+        })
+      );
+    }
+
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let callbackEvent = await getInternalSignal().callback.recordDashboardTestEvent({
+      tenantId: signalTenant.id,
+      callbackId: callback.id,
+      eventId: d.eventId,
+      callbackInstanceId: callbackInstance.id,
+      eventType,
+      payloadJson: d.input.payloadJson
+    });
+    let deliveryStatus: 'pending' | 'failed' | 'sent' | 'skipped' =
+      callbackEvent.deliveryStatus === 'sent' ||
+      callbackEvent.deliveryStatus === 'failed' ||
+      callbackEvent.deliveryStatus === 'pending' ||
+      callbackEvent.deliveryStatus === 'skipped'
+        ? callbackEvent.deliveryStatus
+        : 'pending';
+
+    return {
+      ...callbackEvent,
+      sourceId: 'dashboard_test' as const,
+      triggerKey: 'dashboard_test' as const,
+      deliveryStatus
+    };
+  }
+
+  async createReceiverPathSecret(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+    trustedActorId: string;
+    requestContext: { requestId: string; ip?: string | null; ua?: string | null };
+  }) {
+    return await this.runReceiverSecretMutation({
+      ...d,
+      mutate: async (authority, auditContext) =>
+        await getCallbackReceiverSecretAuthority().createReceiverPath({
+          ...authority,
+          ...auditContext
+        })
+    });
+  }
+
+  async rotateReceiverPathSecret(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+    trustedActorId: string;
+    requestContext: { requestId: string; ip?: string | null; ua?: string | null };
+    graceMs?: number;
+  }) {
+    if (
+      d.graceMs !== undefined &&
+      (!Number.isInteger(d.graceMs) ||
+        (d.graceMs !== 0 && (d.graceMs < 60_000 || d.graceMs > 7 * 86_400_000)))
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_secret_grace_invalid',
+          message:
+            'The receiver secret grace period must be zero (revoke the previous secret immediately) or between one minute and seven days.'
+        })
+      );
+    }
+    return await this.runReceiverSecretMutation({
+      ...d,
+      mutate: async (authority, auditContext) =>
+        await getCallbackReceiverSecretAuthority().rotateReceiverPath({
+          ...authority,
+          ...auditContext,
+          graceMs: d.graceMs
+        })
+    });
+  }
+
+  async revokeReceiverPathSecret(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+    trustedActorId: string;
+    requestContext: { requestId: string; ip?: string | null; ua?: string | null };
+    secretId: string;
+  }) {
+    return await this.runReceiverSecretMutation({
+      ...d,
+      mutate: async (authority, auditContext) =>
+        await getCallbackReceiverSecretAuthority().revokeReceiverPath({
+          ...authority,
+          ...auditContext,
+          secretId: d.secretId
+        })
+    });
+  }
+
+  async revokeAllReceiverPathSecrets(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+    trustedActorId: string;
+    requestContext: { requestId: string; ip?: string | null; ua?: string | null };
+  }) {
+    return await this.runReceiverSecretMutation({
+      ...d,
+      mutate: async (authority, auditContext) =>
+        await getCallbackReceiverSecretAuthority().revokeAllReceiverPath({
+          ...authority,
+          ...auditContext
+        })
+    });
+  }
+
+  async consumeReceiverPathSecretReceipt(d: {
+    tenant: Tenant;
+    solution: Solution;
+    environment: Environment;
+    callbackId: string;
+    callbackInstanceId: string;
+    trustedActorId: string;
+    requestContext: { requestId: string; ip?: string | null; ua?: string | null };
+    receiptId: string;
+    receiptToken: string;
+  }) {
+    let result = await this.runReceiverSecretMutation({
+      ...d,
+      mutate: async (authority, auditContext) =>
+        await getCallbackReceiverSecretAuthority().consumeReceiverPathReceipt({
+          ...authority,
+          ...auditContext,
+          receiptId: d.receiptId,
+          receiptToken: d.receiptToken
+        })
+    });
+    if (result.outcome === 'denied') {
+      throw new ServiceError(
+        badRequestError({
+          code: 'secret_issuance_receipt_denied',
+          message: 'The one-time secret receipt is invalid, expired, or already consumed.'
+        })
+      );
+    }
+    return {
+      plaintext: result.plaintext,
+      auditCorrelationId: result.auditCorrelationId
+    };
   }
 
   async archiveCallback(d: {
@@ -499,7 +879,11 @@ class callbackServiceImpl {
       return archived;
     });
 
-    await callbackRegistrationService.syncCallback({ callbackId: archived.id });
+    // The archive is already committed; a failed teardown is retried by the
+    // lifecycle sweep cron.
+    try {
+      await callbackRegistrationService.syncCallback({ callbackId: archived.id });
+    } catch {}
 
     return archived;
   }

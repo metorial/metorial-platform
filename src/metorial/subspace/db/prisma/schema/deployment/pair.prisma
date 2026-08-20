@@ -36,7 +36,6 @@ model ProviderDeploymentConfigPair {
   sessionProviderInstances                 SessionProviderInstance[]
   providerDeploymentConfigPairDiscoveries  ProviderDeploymentConfigPairDiscovery[]
   callbackInstances                        CallbackInstance[]
-  callbackReceiverRegistrations            CallbackReceiverRegistration[]
 }
 
 model ProviderDeploymentConfigPairProviderVersion {

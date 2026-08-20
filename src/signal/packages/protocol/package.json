@@ -1,0 +1,26 @@
+{
+  "name": "@metorial-platform-systems/signal-protocol",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./src/index.ts",
+    "require": "./src/index.ts",
+    "import": "./src/index.ts",
+    "default": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "typescript": "^5.8.3",
+    "vitest": "4.0.17"
+  }
+}

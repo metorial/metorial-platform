@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { computeWebhookActionSpecHashV1 } from '@slates/proto';
 import {
   SlateStatus,
   SlateTriggerEventInputStatus,
@@ -43,12 +44,15 @@ const queueMocks = vi.hoisted(() => ({
   processAdd: vi.fn(),
   sendAdd: vi.fn(),
   registerAddMany: vi.fn(),
+  registerAdd: vi.fn(),
+  unregisterAdd: vi.fn(),
   webhookAdd: vi.fn(),
   archiveAdd: vi.fn()
 }));
 
 const invocationMocks = vi.hoisted(() => ({
   handleWebhookRequest: vi.fn(),
+  handleVerifiedWebhookRequest: vi.fn(),
   invokeTriggerMapper: vi.fn(),
   pollTriggerForEvents: vi.fn(),
   registerWebhook: vi.fn(),
@@ -75,10 +79,12 @@ vi.mock('../../../queues/trigger/eventQueues', () => ({
     add: queueMocks.archiveAdd
   },
   slateTriggerWebhookRegisterQueue: {
-    addManyWithOps: queueMocks.registerAddMany
+    addManyWithOps: queueMocks.registerAddMany,
+    add: queueMocks.registerAdd
   },
   slateTriggerWebhookUnregisterQueue: {
-    addManyWithOps: vi.fn()
+    addManyWithOps: vi.fn(),
+    add: queueMocks.unregisterAdd
   }
 }));
 
@@ -92,6 +98,7 @@ vi.mock('../../../services/slateInvocation', () => ({
   slateInvocationService: {
     createInvocationWithState: vi.fn(async () => ({ invoke: vi.fn() })),
     handleWebhookRequest: invocationMocks.handleWebhookRequest,
+    handleVerifiedWebhookRequest: invocationMocks.handleVerifiedWebhookRequest,
     invokeTriggerMapper: invocationMocks.invokeTriggerMapper,
     pollTriggerForEvents: invocationMocks.pollTriggerForEvents,
     registerWebhook: invocationMocks.registerWebhook,
@@ -278,6 +285,9 @@ vi.mock('../../../signal', async () => {
 
 import { slateTriggerInvocationService } from '../../../services/slateTriggerInvocation';
 import { slateTriggerReceiverService } from '../../../services/slateTriggerReceiver';
+import { slateTriggerWebhookRequestService } from '../../../services/slateTriggerWebhookRequest';
+import { adaptWebhookWireRequestForProviderInvocation } from '../../../lib/webhookWire';
+import { resolveWebhookTargetCapturePolicy } from '../../../lib/webhookCapturePolicy';
 import { hubApp } from '../index';
 
 const buildWebhookUrl = (receiverTriggerId: string, suffix?: string) =>
@@ -303,9 +313,12 @@ describe('slate:trigger webhook E2E', () => {
     queueMocks.processAdd.mockClear();
     queueMocks.sendAdd.mockClear();
     queueMocks.registerAddMany.mockClear();
+    queueMocks.registerAdd.mockClear();
+    queueMocks.unregisterAdd.mockClear();
     queueMocks.webhookAdd.mockClear();
     queueMocks.archiveAdd.mockClear();
     invocationMocks.handleWebhookRequest.mockReset();
+    invocationMocks.handleVerifiedWebhookRequest.mockReset();
     invocationMocks.invokeTriggerMapper.mockReset();
     invocationMocks.pollTriggerForEvents.mockReset();
     lockMocks.usingLock.mockClear();
@@ -386,6 +399,7 @@ describe('slate:trigger webhook E2E', () => {
             type: 'action.trigger',
             inputSchema: {},
             outputSchema: {},
+            docs: [],
             capabilities: {},
             invocation: {
               type: 'polling',
@@ -473,17 +487,330 @@ describe('slate:trigger webhook E2E', () => {
     expect(res.status).toBe(200);
 
     const requestRecord = await testDb.slateTriggerWebhookRequest.findFirst({
-      where: { receiverId }
+      where: { receiverId },
+      orderBy: { oid: 'desc' }
     });
     expect(requestRecord).toBeTruthy();
     return requestRecord!;
   };
 
-  const webhookRequestPayload = (requestRecord: Awaited<ReturnType<typeof postWebhook>>) => ({
-    url: requestRecord.url,
-    method: requestRecord.method,
-    headers: requestRecord.headers as Record<string, string>,
-    body: requestRecord.body as { encoding: 'base64'; content: string } | null
+  let webhookRequestPayload = async (requestRecord: Awaited<ReturnType<typeof postWebhook>>) =>
+    adaptWebhookWireRequestForProviderInvocation(
+      await slateTriggerWebhookRequestService.loadDecryptedPayload({
+        webhookRequestId: requestRecord.id
+      })
+    );
+
+  let processTask7CapturedIngress = async (d: {
+    requestRecord: Awaited<ReturnType<typeof postReceiverWebhook>>;
+    receiverId: string;
+  }) => {
+    let wire = await slateTriggerWebhookRequestService.loadDecryptedPayload({
+      webhookRequestId: d.requestRecord.id
+    });
+    return await slateTriggerReceiverService.handleCapturedReceiverWebhook({
+      receiverId: d.receiverId,
+      requestId: d.requestRecord.id,
+      request: wire
+    });
+  };
+
+  let useTask7ProductionMapper = (concurrentCalls = 1) => {
+    let arrived = 0;
+    let release: (() => void) | undefined;
+    let barrier = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    invocationMocks.handleVerifiedWebhookRequest.mockImplementation(async ({ input }) => {
+      arrived += 1;
+      if (arrived === concurrentCalls) release!();
+      await barrier;
+      return {
+        status: 'success',
+        data: {
+          inputs: [
+            {
+              deliveryId: JSON.parse(
+                Buffer.from(input.request.body.base64, 'base64').toString('utf8')
+              ).id
+            }
+          ]
+        }
+      };
+    });
+  };
+
+  let installTask7OutboxInsertFailure = async () => {
+    await removeTask7OutboxInsertFailure();
+    await testDb.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION task7_fail_webhook_outbox_insert()
+      RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        RAISE EXCEPTION 'task7 injected precommit failure';
+      END;
+      $$
+    `);
+    await testDb.$executeRawUnsafe(`
+      CREATE TRIGGER task7_fail_webhook_outbox_insert
+      BEFORE INSERT ON "SlateTriggerWebhookDispatchOutbox"
+      FOR EACH ROW EXECUTE FUNCTION task7_fail_webhook_outbox_insert()
+    `);
+  };
+
+  let removeTask7OutboxInsertFailure = async () => {
+    await testDb.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS task7_fail_webhook_outbox_insert ON "SlateTriggerWebhookDispatchOutbox"'
+    );
+    await testDb.$executeRawUnsafe(
+      'DROP FUNCTION IF EXISTS task7_fail_webhook_outbox_insert()'
+    );
+  };
+
+  it('persists replay claim, event input, retained payload, and outbox from public ingress atomically', async () => {
+    let { receiver, receiverTrigger, triggerAction } = await setupWebhookScenario();
+    let contract: any = {
+      id: triggerAction.key,
+      type: 'action.trigger',
+      inputSchema: {},
+      capabilities: { webhookInboundVerificationV1: true },
+      invocation: {
+        type: 'webhook',
+        autoRegistration: false,
+        autoUnregistration: false,
+        http: {
+          methods: ['POST'],
+          ingress: {
+            kind: 'receiver_route',
+            baseline: 'receiver_path_secret',
+            verification: {
+              mechanism: 'path_secret_only',
+              baseline: 'receiver_path_secret',
+              reason: 'Task 7 database-gated public ingress fixture'
+            }
+          }
+        }
+      }
+    };
+    contract.specHash = computeWebhookActionSpecHashV1(contract);
+    await testDb.slateAction.update({
+      where: { oid: triggerAction.oid },
+      data: { spec: contract }
+    });
+    let requestRecord = await postReceiverWebhook(receiver.id, {
+      id: 'authenticated-delivery-a'
+    });
+    useTask7ProductionMapper();
+
+    await expect(
+      processTask7CapturedIngress({
+        requestRecord,
+        receiverId: receiver.id
+      })
+    ).resolves.toMatchObject({ status: 'committed' });
+    let claim = await testDb.slateTriggerWebhookReplayClaim.findFirstOrThrow({
+      where: { requestOid: requestRecord.oid }
+    });
+    let outbox = await testDb.slateTriggerWebhookDispatchOutbox.findFirstOrThrow({
+      where: { replayClaimOid: claim.oid }
+    });
+    let payload = await testDb.slateTriggerWebhookRequestPayload.findUniqueOrThrow({
+      where: { requestOid: requestRecord.oid }
+    });
+    expect(
+      await testDb.slateTriggerEventInput.count({ where: { oid: claim.eventInputOid! } })
+    ).toBe(1);
+    expect(payload.expiresAt.getTime()).toBeGreaterThanOrEqual(
+      outbox.retentionExpiresAt.getTime()
+    );
+  });
+
+  it('lets one true concurrent Prisma uniqueness transaction win through verification and mapping', async () => {
+    let { receiver, receiverTrigger, triggerAction } = await setupWebhookScenario();
+    let contract: any = {
+      id: triggerAction.key,
+      type: 'action.trigger',
+      inputSchema: {},
+      capabilities: { webhookInboundVerificationV1: true },
+      invocation: {
+        type: 'webhook',
+        autoRegistration: false,
+        autoUnregistration: false,
+        http: {
+          methods: ['POST'],
+          ingress: {
+            kind: 'receiver_route',
+            baseline: 'receiver_path_secret',
+            verification: {
+              mechanism: 'path_secret_only',
+              baseline: 'receiver_path_secret',
+              reason: 'Task 7 duplicate database-gated public ingress fixture'
+            }
+          }
+        }
+      }
+    };
+    contract.specHash = computeWebhookActionSpecHashV1(contract);
+    await testDb.slateAction.update({
+      where: { oid: triggerAction.oid },
+      data: { spec: contract }
+    });
+    let firstRequest = await postReceiverWebhook(receiver.id, {
+      id: 'authenticated-delivery-race'
+    });
+    let secondRequest = await postReceiverWebhook(receiver.id, {
+      id: 'authenticated-delivery-race'
+    });
+    useTask7ProductionMapper(2);
+    let results = await Promise.all([
+      processTask7CapturedIngress({ requestRecord: firstRequest, receiverId: receiver.id }),
+      processTask7CapturedIngress({ requestRecord: secondRequest, receiverId: receiver.id })
+    ]);
+
+    expect(results.map(result => result.status).sort()).toEqual(['committed', 'duplicate']);
+    expect(invocationMocks.handleVerifiedWebhookRequest).toHaveBeenCalledTimes(2);
+    expect(
+      await testDb.slateTriggerWebhookReplayClaim.count({
+        where: { receiverTriggerOid: receiverTrigger.oid, ruleId: 'path_secret_only' }
+      })
+    ).toBe(1);
+    expect(
+      await testDb.slateTriggerWebhookDispatchOutbox.count({
+        where: { receiverTriggerOid: receiverTrigger.oid }
+      })
+    ).toBe(1);
+  });
+
+  it('rolls back a real injected precommit failure and commits cleanly on retry', async () => {
+    let { receiver, receiverTrigger, triggerAction } = await setupWebhookScenario();
+    let contract: any = {
+      id: triggerAction.key,
+      type: 'action.trigger',
+      inputSchema: {},
+      capabilities: { webhookInboundVerificationV1: true },
+      invocation: {
+        type: 'webhook',
+        autoRegistration: false,
+        autoUnregistration: false,
+        http: {
+          methods: ['POST'],
+          ingress: {
+            kind: 'receiver_route',
+            baseline: 'receiver_path_secret',
+            verification: {
+              mechanism: 'path_secret_only',
+              baseline: 'receiver_path_secret',
+              reason: 'Task 7 transaction rollback fixture'
+            }
+          }
+        }
+      }
+    };
+    contract.specHash = computeWebhookActionSpecHashV1(contract);
+    await testDb.slateAction.update({
+      where: { oid: triggerAction.oid },
+      data: { spec: contract }
+    });
+    let requestRecord = await postReceiverWebhook(receiver.id, {
+      id: 'authenticated-delivery-rollback'
+    });
+    let payloadBefore = await testDb.slateTriggerWebhookRequestPayload.findUniqueOrThrow({
+      where: { requestOid: requestRecord.oid }
+    });
+    useTask7ProductionMapper();
+    await installTask7OutboxInsertFailure();
+    try {
+      await expect(
+        processTask7CapturedIngress({ requestRecord, receiverId: receiver.id })
+      ).rejects.toThrow('task7 injected precommit failure');
+      expect(
+        await testDb.slateTriggerWebhookReplayClaim.count({
+          where: { requestOid: requestRecord.oid }
+        })
+      ).toBe(0);
+      expect(
+        await testDb.slateTriggerWebhookDispatchOutbox.count({
+          where: { receiverTriggerOid: receiverTrigger.oid }
+        })
+      ).toBe(0);
+      expect(
+        await testDb.slateTriggerEventInput.count({
+          where: { receiverTriggerOid: receiverTrigger.oid }
+        })
+      ).toBe(0);
+      expect(
+        await testDb.slateTriggerWebhookRequestPayload.findUniqueOrThrow({
+          where: { requestOid: requestRecord.oid }
+        })
+      ).toMatchObject({ expiresAt: payloadBefore.expiresAt });
+    } finally {
+      await removeTask7OutboxInsertFailure();
+    }
+
+    await expect(
+      processTask7CapturedIngress({ requestRecord, receiverId: receiver.id })
+    ).resolves.toMatchObject({ status: 'committed' });
+  });
+
+  it('recovers a duplicate after postcommit enqueue failure and a lost caller return', async () => {
+    let { receiver, receiverTrigger, triggerAction } = await setupWebhookScenario();
+    let contract: any = {
+      id: triggerAction.key,
+      type: 'action.trigger',
+      inputSchema: {},
+      capabilities: { webhookInboundVerificationV1: true },
+      invocation: {
+        type: 'webhook',
+        autoRegistration: false,
+        autoUnregistration: false,
+        http: {
+          methods: ['POST'],
+          ingress: {
+            kind: 'receiver_route',
+            baseline: 'receiver_path_secret',
+            verification: {
+              mechanism: 'path_secret_only',
+              baseline: 'receiver_path_secret',
+              reason: 'Task 7 postcommit recovery fixture'
+            }
+          }
+        }
+      }
+    };
+    contract.specHash = computeWebhookActionSpecHashV1(contract);
+    await testDb.slateAction.update({
+      where: { oid: triggerAction.oid },
+      data: { spec: contract }
+    });
+    let firstRequest = await postReceiverWebhook(receiver.id, {
+      id: 'authenticated-delivery-lost-return'
+    });
+    useTask7ProductionMapper();
+    queueMocks.processAddMany.mockRejectedValueOnce(new Error('task7 queue unavailable'));
+    await expect(
+      (async () => {
+        let committed = await processTask7CapturedIngress({
+          requestRecord: firstRequest,
+          receiverId: receiver.id
+        });
+        expect(committed.status).toBe('committed');
+        throw new Error('task7 caller crashed before observing return');
+      })()
+    ).rejects.toThrow('caller crashed');
+
+    let duplicateRequest = await postReceiverWebhook(receiver.id, {
+      id: 'authenticated-delivery-lost-return'
+    });
+    await expect(
+      processTask7CapturedIngress({
+        requestRecord: duplicateRequest,
+        receiverId: receiver.id
+      })
+    ).resolves.toMatchObject({ status: 'duplicate' });
+    expect(
+      await testDb.slateTriggerWebhookReplayClaim.count({
+        where: { receiverTriggerOid: receiverTrigger.oid }
+      })
+    ).toBe(1);
   });
 
   it('returns a matched receiver webhook response synchronously and finalizes its audit row', async () => {
@@ -829,7 +1156,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleReceiverWebhook({
       receiverId: receiver.id,
-      request: webhookRequestPayload(requestRecord)
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
@@ -1151,12 +1478,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleTriggerWebhook({
       receiverTriggerId,
-      request: {
-        url: requestRecord!.url,
-        method: requestRecord!.method,
-        headers: requestRecord!.headers as Record<string, string>,
-        body: requestRecord!.body as { encoding: 'base64'; content: string } | null
-      }
+      request: await webhookRequestPayload(requestRecord!)
     });
 
     const eventInput = await testDb.slateTriggerEventInput.findFirst({
@@ -1217,7 +1539,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleReceiverWebhook({
       receiverId: receiver.id,
-      request: webhookRequestPayload(requestRecord)
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
@@ -1299,7 +1621,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleReceiverWebhook({
       receiverId: receiver.id,
-      request: webhookRequestPayload(requestRecord)
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(2);
@@ -1317,6 +1639,95 @@ describe('slate:trigger webhook E2E', () => {
       'first',
       'second'
     ]);
+  });
+
+  it('projects receiver capture policy only from the active replacement trigger', async () => {
+    let { receiver, receiverTrigger, slate } = await setupWebhookScenario();
+    let replacementAction = await f.slateSpecification.withTriggerAction({
+      slateOid: slate.oid,
+      specificationOid: slate.currentVersion.specification.oid,
+      identifier: 'trigger.replacement',
+      key: 'trigger.replacement'
+    });
+    await f.slateTriggerReceiver.createTrigger({
+      receiverOid: receiver.oid,
+      actionOid: replacementAction.oid,
+      source: SlateTriggerReceiverTriggerSource.webhook
+    });
+    let replacementContract: any = {
+      id: replacementAction.key,
+      type: 'action.trigger',
+      inputSchema: {},
+      capabilities: { webhookInboundVerificationV1: true },
+      invocation: {
+        type: 'webhook',
+        autoRegistration: false,
+        autoUnregistration: false,
+        http: {
+          methods: ['POST'],
+          ingress: {
+            kind: 'receiver_route',
+            baseline: 'receiver_path_secret',
+            verification: {
+              mechanism: 'path_secret_only',
+              baseline: 'receiver_path_secret',
+              reason: 'Inactive replacement routing fixture'
+            }
+          }
+        }
+      }
+    };
+    replacementContract.specHash = computeWebhookActionSpecHashV1(replacementContract);
+    await testDb.slateAction.update({
+      where: { oid: replacementAction.oid },
+      data: { spec: replacementContract }
+    });
+    let disabledAt = new Date('2030-01-01T00:00:00.000Z');
+    await testDb.slateTriggerReceiverTrigger.update({
+      where: { oid: receiverTrigger.oid },
+      data: { tombstonedAt: disabledAt, ingressDisabledAt: disabledAt }
+    });
+    await testDb.slateAction.update({
+      where: { oid: receiverTrigger.actionOid },
+      data: {
+        spec: {
+          type: 'action.trigger',
+          invocation: { type: 'webhook' }
+        }
+      }
+    });
+
+    await expect(
+      resolveWebhookTargetCapturePolicy({
+        receiverId: receiver.id,
+        method: 'POST'
+      })
+    ).resolves.toMatchObject({ specHashes: [replacementContract.specHash] });
+  });
+
+  it('fails an exact inactive trigger URL closed before webhook capture', async () => {
+    let { receiverTrigger } = await setupWebhookScenario();
+    let disabledAt = new Date('2030-01-01T00:00:00.000Z');
+    await testDb.slateTriggerReceiverTrigger.update({
+      where: { oid: receiverTrigger.oid },
+      data: { tombstonedAt: disabledAt, ingressDisabledAt: disabledAt }
+    });
+
+    let response = await hubApp.fetch(
+      new Request(buildWebhookUrl(receiverTrigger.id, 'events'), { method: 'POST' })
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('routing_projection_unavailable');
+    expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
+    expect(
+      await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+        where: { receiverTriggerId: receiverTrigger.id }
+      })
+    ).toMatchObject({
+      outcome: 'rejected',
+      safeRejectionCode: 'routing_projection_unavailable'
+    });
   });
 
   it('keeps per-trigger webhook requests scoped to one trigger', async () => {
@@ -1354,7 +1765,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleTriggerWebhook({
       receiverTriggerId: receiverTrigger.id,
-      request: webhookRequestPayload(requestRecord)
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).toHaveBeenCalledTimes(1);
@@ -1378,7 +1789,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleReceiverWebhook({
       receiverId: receiver.id,
-      request: webhookRequestPayload(requestRecord)
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
@@ -1393,7 +1804,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleReceiverWebhook({
       receiverId: receiver.id,
-      request: webhookRequestPayload(requestRecord)
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
@@ -1404,24 +1815,102 @@ describe('slate:trigger webhook E2E', () => {
     expect(eventInput).toBeNull();
   });
 
-  it('skips oversized receiver-level webhook invocation payloads', async () => {
-    const { receiver, receiverTrigger } = await setupWebhookScenario();
-
-    const requestRecord = await postReceiverWebhook(receiver.id, {
-      payload: 'x'.repeat(4 * 1024 * 1024)
-    });
-
-    await slateTriggerReceiverService.handleReceiverWebhook({
-      receiverId: receiver.id,
-      request: webhookRequestPayload(requestRecord)
-    });
-
+  it('rejects an oversized receiver-level body before persistence or invocation', async () => {
+    let { receiver } = await setupWebhookScenario();
+    let response = await hubApp.fetch(
+      new Request(buildReceiverWebhookUrl(receiver.id), {
+        method: 'POST',
+        body: 'x'.repeat(1024 * 1024 + 1)
+      })
+    );
+    expect(response.status).toBe(413);
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
-
-    const eventInput = await testDb.slateTriggerEventInput.findFirst({
-      where: { receiverTriggerOid: receiverTrigger.oid }
+    let requestRecord = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+      where: { receiverId: receiver.id }
     });
-    expect(eventInput).toBeNull();
+    expect(requestRecord).toMatchObject({
+      outcome: 'rejected',
+      safeRejectionCode: 'wire_input_oversized',
+      body: null,
+      bodyStorageKey: null
+    });
+    expect(
+      await testDb.slateTriggerWebhookRequestPayload.findUnique({
+        where: { requestOid: requestRecord.oid }
+      })
+    ).toBeNull();
+  });
+
+  it('stores only redacted audit metadata while retaining encrypted lossless secured bytes', async () => {
+    let { receiverTrigger } = await setupWebhookScenario();
+    let pathSecret = 'path-super-secret';
+    let headerSecret = 'header-super-secret';
+    let querySecret = 'query-super-secret';
+    let binary = Uint8Array.from([0, 255, 1, 128]);
+    let request = new Request(
+      `${buildWebhookUrl(receiverTrigger.id, pathSecret)}?token=${querySecret}&token=second-secret`,
+      { method: 'POST', body: binary }
+    );
+    Object.defineProperty(request, 'rawHeaders', {
+      value: [
+        ['Authorization', headerSecret],
+        ['X-Mixed-Case', 'ordinary']
+      ]
+    });
+
+    let response = await hubApp.fetch(request);
+    expect(response.status).toBe(200);
+    let record = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+      where: { receiverTriggerId: receiverTrigger.id }
+    });
+    let persisted = JSON.stringify({
+      url: record.url,
+      headers: record.headers,
+      body: record.body,
+      redactedUrl: record.redactedUrl,
+      redactedHeaders: record.redactedHeaders
+    });
+    expect(persisted).not.toMatch(
+      new RegExp(`${pathSecret}|${headerSecret}|${querySecret}|second-secret`)
+    );
+    expect(record).toMatchObject({ body: null, bodyByteLength: 4, outcome: 'accepted' });
+    let wire = await slateTriggerWebhookRequestService.loadDecryptedPayload({
+      webhookRequestId: record.id
+    });
+    expect(wire.url).toContain(pathSecret);
+    expect(wire.url).toContain(querySecret);
+    expect(wire.headers).toContainEqual(['Authorization', headerSecret]);
+    expect(wire.body).toEqual({
+      present: true,
+      base64: Buffer.from(binary).toString('base64')
+    });
+  });
+
+  it('rejects case-variant duplicate signatures without persisting their values or body', async () => {
+    let { receiverTrigger } = await setupWebhookScenario();
+    let request = new Request(buildWebhookUrl(receiverTrigger.id, 'secured-secret'), {
+      method: 'POST',
+      body: 'rejected-body-secret'
+    });
+    Object.defineProperty(request, 'rawHeaders', {
+      value: [
+        ['X-Signature', 'signature-one'],
+        ['x-signature', 'signature-two']
+      ]
+    });
+    let response = await hubApp.fetch(request);
+    expect(response.status).toBe(400);
+    let record = await testDb.slateTriggerWebhookRequest.findFirstOrThrow({
+      where: { receiverTriggerId: receiverTrigger.id }
+    });
+    expect(record).toMatchObject({
+      outcome: 'rejected',
+      safeRejectionCode: 'security_header_ambiguous',
+      body: null
+    });
+    expect(
+      JSON.stringify({ url: record.url, headers: record.headers, body: record.body })
+    ).not.toMatch(/secured-secret|signature-one|signature-two|rejected-body-secret/);
   });
 
   it('ignores OPTIONS requests', async () => {
@@ -1454,12 +1943,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleTriggerWebhook({
       receiverTriggerId: receiverTrigger.id,
-      request: {
-        url: requestRecord.url,
-        method: requestRecord.method,
-        headers: requestRecord.headers as Record<string, string>,
-        body: requestRecord.body as { encoding: 'base64'; content: string } | null
-      }
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
@@ -1479,12 +1963,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleTriggerWebhook({
       receiverTriggerId: receiverTrigger.id,
-      request: {
-        url: requestRecord.url,
-        method: requestRecord.method,
-        headers: requestRecord.headers as Record<string, string>,
-        body: requestRecord.body as { encoding: 'base64'; content: string } | null
-      }
+      request: await webhookRequestPayload(requestRecord)
     });
 
     expect(invocationMocks.handleWebhookRequest).not.toHaveBeenCalled();
@@ -1514,12 +1993,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleTriggerWebhook({
       receiverTriggerId: receiverTrigger.id,
-      request: {
-        url: requestRecord.url,
-        method: requestRecord.method,
-        headers: requestRecord.headers as Record<string, string>,
-        body: requestRecord.body as { encoding: 'base64'; content: string } | null
-      }
+      request: await webhookRequestPayload(requestRecord)
     });
 
     const eventInput = await testDb.slateTriggerEventInput.findFirst({
@@ -1585,12 +2059,7 @@ describe('slate:trigger webhook E2E', () => {
 
     await slateTriggerReceiverService.handleTriggerWebhook({
       receiverTriggerId: receiverTrigger.id,
-      request: {
-        url: requestRecord.url,
-        method: requestRecord.method,
-        headers: requestRecord.headers as Record<string, string>,
-        body: requestRecord.body as { encoding: 'base64'; content: string } | null
-      }
+      request: await webhookRequestPayload(requestRecord)
     });
 
     const eventInput = await testDb.slateTriggerEventInput.findFirst({

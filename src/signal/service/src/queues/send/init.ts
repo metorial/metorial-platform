@@ -16,6 +16,7 @@ export let newEventQueueProcessor = newEventQueue.process(async data => {
     where: { id: data.eventId }
   });
   if (!event) throw new QueueRetryError();
+  if (event.initializationStatus === 'initialized') return;
 
   let destinations = await db.eventDestination.findMany({
     where: {
@@ -48,14 +49,22 @@ export let newEventQueueProcessor = newEventQueue.process(async data => {
   });
 
   if (!destinations.length) {
-    await eventSucceededQueue.add({ eventId: event.id });
+    await eventSucceededQueue.add({ eventId: event.id }, { id: event.id });
+    await db.event.updateMany({
+      where: { id: event.id, initializationStatus: { not: 'initialized' } },
+      data: { initializationStatus: 'initialized', initializedAt: new Date() }
+    });
     return;
   }
 
-  await createDeliveryQueue.addMany(
-    destinations.map(dest => ({
-      eventId: event.id,
-      destinationId: dest.id
+  await createDeliveryQueue.addManyWithOps(
+    destinations.map(destination => ({
+      data: { eventId: event.id, destinationId: destination.id },
+      opts: { id: `${event.id}:${destination.id}` }
     }))
   );
+  await db.event.updateMany({
+    where: { id: event.id, initializationStatus: { not: 'initialized' } },
+    data: { initializationStatus: 'initialized', initializedAt: new Date() }
+  });
 });

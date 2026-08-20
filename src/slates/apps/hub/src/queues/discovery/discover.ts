@@ -1,7 +1,11 @@
 import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { getSentry } from '@lowerdeck/sentry';
-import type { SlateAuthenticationMethod, SlatesAction } from '@slates/proto';
+import {
+  computeSlateConfigSchemaV2Hash,
+  type SlateAuthenticationMethod,
+  type SlatesAction
+} from '@slates/proto';
 import { differenceInMinutes } from 'date-fns';
 import semver from 'semver';
 import { db } from '../../db';
@@ -16,6 +20,14 @@ import {
 import { slateInvocationService } from '../../services';
 
 let Sentry = getSentry();
+
+let deepFreezeJson = <Value>(value: Value): Value => {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.values(value as Record<string, unknown>).forEach(deepFreezeJson);
+    Object.freeze(value);
+  }
+  return value;
+};
 
 let normalizeDiscoveredDocs = (docs: unknown): PrismaJson.SlateDocReferences => {
   if (!Array.isArray(docs)) return [];
@@ -324,15 +336,42 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
       let providerDocs = normalizeDiscoveredDocs(providerInfo.docs);
       let configSchemaDocs = normalizeDiscoveredDocs(configSchema.docs);
+      let configSchemaWire = deepFreezeJson(configSchema.schema);
+      if (
+        configSchemaWire.version === 2 &&
+        configSchemaWire.hash !== computeSlateConfigSchemaV2Hash(configSchemaWire)
+      ) {
+        throw new Error('Provider returned a stale or fabricated config schema hash');
+      }
+      let providerSupportsConfigV2 = providerInfo.capabilities?.configSchemaV2 === true;
+      if (configSchemaWire.version === 2 && !providerSupportsConfigV2) {
+        throw new Error(
+          'Provider returned config schema v2 without configSchemaV2 capability'
+        );
+      }
+      if (configSchemaWire.version === 1 && providerSupportsConfigV2) {
+        throw new Error('Provider advertised configSchemaV2 but returned config schema v1');
+      }
+      if (
+        configSchemaWire.version === 2 &&
+        Object.values(configSchemaWire.fields).some(field => field.visibility === 'secret') &&
+        providerInfo.capabilities?.scopedInvocationGrantV1 !== true
+      ) {
+        throw new Error('Secret-bearing config schema requires scopedInvocationGrantV1');
+      }
+      let configJsonSchema = configSchemaWire.jsonSchema;
 
       let discoveryHashes = await buildDiscoveredSpecificationHashes({
         providerInfo: {
           protocol: providerInfo.protocol,
-          provider: providerInfo.provider,
+          provider: {
+            ...providerInfo.provider,
+            capabilities: providerInfo.capabilities
+          },
           docs: providerDocs
         },
         configSchema: {
-          schema: configSchema.schema,
+          schema: configSchemaWire,
           docs: configSchemaDocs
         },
         authMethods: discoveredAuthMethods,
@@ -346,9 +385,12 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         key: providerInfo.provider.id,
         protocolVersion: providerInfo.protocol,
 
-        providerInfo: providerInfo.provider,
+        providerInfo: {
+          ...providerInfo.provider,
+          capabilities: providerInfo.capabilities
+        },
         providerDocs,
-        configSchema: configSchema.schema,
+        configSchema: configJsonSchema,
         configSchemaDocs,
         authMethods: discoveredAuthMethods,
         actions: discoveredActions
@@ -434,11 +476,21 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           hash: discoveryHashes.configSchemaHash,
           identifier: configIdentifier,
 
-          schema: configSchema.schema,
+          version: configSchemaWire.version,
+          descriptorHash: configSchemaWire.version === 2 ? configSchemaWire.hash : null,
+          fields: configSchemaWire.version === 2 ? configSchemaWire.fields : {},
+          compatibility:
+            configSchemaWire.version === 1 ? configSchemaWire.compatibility : null,
+          schema: configJsonSchema,
           docs: configSchemaDocs
         },
         update: {
-          schema: configSchema.schema,
+          version: configSchemaWire.version,
+          descriptorHash: configSchemaWire.version === 2 ? configSchemaWire.hash : null,
+          fields: configSchemaWire.version === 2 ? configSchemaWire.fields : {},
+          compatibility:
+            configSchemaWire.version === 1 ? configSchemaWire.compatibility : null,
+          schema: configJsonSchema,
           docs: configSchemaDocs
         }
       });
@@ -499,6 +551,16 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
         (!slate.currentVersion || semver.gt(version.version, slate.currentVersion.version))
       ) {
         await db.$transaction(async db => {
+          if (
+            stagedDeployment &&
+            version.activeDeploymentOid &&
+            version.activeDeploymentOid !== target.activeDeploymentOid
+          ) {
+            await db.slateDeployment.updateMany({
+              where: { oid: version.activeDeploymentOid },
+              data: { runtimeIdentityRevokedAt: new Date() }
+            });
+          }
           await db.slateVersion.updateMany({
             where: { oid: version.oid },
             data: versionUpdateData
@@ -568,9 +630,21 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
           }
         });
       } else {
-        await db.slateVersion.updateMany({
-          where: { oid: version.oid },
-          data: versionUpdateData
+        await db.$transaction(async tx => {
+          if (
+            stagedDeployment &&
+            version.activeDeploymentOid &&
+            version.activeDeploymentOid !== target.activeDeploymentOid
+          ) {
+            await tx.slateDeployment.updateMany({
+              where: { oid: version.activeDeploymentOid },
+              data: { runtimeIdentityRevokedAt: new Date() }
+            });
+          }
+          await tx.slateVersion.updateMany({
+            where: { oid: version.oid },
+            data: versionUpdateData
+          });
         });
       }
 

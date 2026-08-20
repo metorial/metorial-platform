@@ -170,6 +170,35 @@ export let callbackController = app.controller({
       return callbackPresenter(callback);
     }),
 
+  sendDashboardTestEvent: callbackApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        environmentId: v.string(),
+        callbackId: v.string(),
+        callbackInstanceId: v.string(),
+        eventId: v.string(),
+        eventType: v.string(),
+        payloadJson: v.string()
+      })
+    )
+    .do(
+      async ctx =>
+        await callbackService.sendDashboardTestEvent({
+          tenant: ctx.tenant,
+          solution: ctx.solution,
+          environment: ctx.environment,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.input.callbackInstanceId,
+          eventId: ctx.input.eventId,
+          input: {
+            eventType: ctx.input.eventType,
+            payloadJson: ctx.input.payloadJson
+          }
+        })
+    ),
+
   archive: callbackApp
     .handler()
     .input(

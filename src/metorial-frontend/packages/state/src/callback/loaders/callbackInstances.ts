@@ -1,16 +1,29 @@
 import {
   DashboardInstanceCallbacksInstancesCreateBody,
-  DashboardInstanceCallbacksInstancesListQuery
+  DashboardInstanceCallbacksInstancesListQuery,
+  DashboardInstanceCallbacksInstancesSecretMutationOutput
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
+export type CallbackSecretMutationResult =
+  DashboardInstanceCallbacksInstancesSecretMutationOutput;
+
+type CallbackSecretOwnerInput = {
+  instanceId: string;
+  callbackId: string;
+  callbackInstanceId: string;
+};
+
 export let callbackInstancesLoader = createLoader({
   name: 'callbackInstances',
   parents: [],
   fetch: (
-    i: { instanceId: string; callbackId: string } & DashboardInstanceCallbacksInstancesListQuery
+    i: {
+      instanceId: string;
+      callbackId: string;
+    } & DashboardInstanceCallbacksInstancesListQuery
   ) => withAuth(sdk => sdk.callbacks.instances.list(i.instanceId, i.callbackId, i)),
   mutators: {
     delete: (
@@ -26,8 +39,84 @@ export let callbackInstancesLoader = createLoader({
 });
 
 export let useCreateCallbackInstance = callbackInstancesLoader.createExternalMutator(
-  (i: DashboardInstanceCallbacksInstancesCreateBody & { instanceId: string; callbackId: string }) =>
-    withAuth(sdk => sdk.callbacks.instances.create(i.instanceId, i.callbackId, i))
+  (
+    i: DashboardInstanceCallbacksInstancesCreateBody & {
+      instanceId: string;
+      callbackId: string;
+    }
+  ) => withAuth(sdk => sdk.callbacks.instances.create(i.instanceId, i.callbackId, i))
+);
+
+export let useCreateCallbackReceiverPathSecret = callbackInstancesLoader.createExternalMutator(
+  (i: CallbackSecretOwnerInput) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.createReceiverPathSecret(
+        i.instanceId,
+        i.callbackId,
+        i.callbackInstanceId
+      )
+    )
+);
+
+export let useRotateCallbackReceiverPathSecret = callbackInstancesLoader.createExternalMutator(
+  (i: CallbackSecretOwnerInput & { gracePeriodSeconds?: number }) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.rotateReceiverPathSecret(
+        i.instanceId,
+        i.callbackId,
+        i.callbackInstanceId,
+        { gracePeriodSeconds: i.gracePeriodSeconds }
+      )
+    )
+);
+
+export let useRevokeCallbackReceiverPathSecret = callbackInstancesLoader.createExternalMutator(
+  (i: CallbackSecretOwnerInput & { secretId: string }) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.revokeReceiverPathSecret(
+        i.instanceId,
+        i.callbackId,
+        i.callbackInstanceId,
+        i.secretId
+      )
+    )
+);
+
+export let useRevokeAllCallbackReceiverPathSecrets =
+  callbackInstancesLoader.createExternalMutator((i: CallbackSecretOwnerInput) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.revokeAllReceiverPathSecrets(
+        i.instanceId,
+        i.callbackId,
+        i.callbackInstanceId
+      )
+    )
+  );
+
+export let useConsumeCallbackReceiverPathSecretReceipt =
+  callbackInstancesLoader.createExternalMutator(
+    (i: CallbackSecretOwnerInput & { receiptId: string; receiptToken: string }) =>
+      withAuth(sdk =>
+        sdk.callbacks.instances.consumeReceiverPathSecretReceipt(
+          i.instanceId,
+          i.callbackId,
+          i.callbackInstanceId,
+          i.receiptId,
+          { receiptToken: i.receiptToken }
+        )
+      )
+  );
+
+export let useBeginCallbackGithubManifest = callbackInstancesLoader.createExternalMutator(
+  (i: CallbackSecretOwnerInput & { provisionedTenantAppId: string }) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.beginGithubManifest(
+        i.instanceId,
+        i.callbackId,
+        i.callbackInstanceId,
+        i.provisionedTenantAppId
+      )
+    )
 );
 
 export let useCallbackInstances = (

@@ -14,5 +14,16 @@ export interface IQueue<JobData, QueueOptions> {
       opts?: QueueOptions;
     }[]
   ): Promise<void>;
-  process(cb: (payload: JobData, job: Job) => Promise<void>): IQueueProcessor;
+  process(
+    cb: (payload: JobData, job: Job) => Promise<void>,
+    hooks?: {
+      onFinalFailure?: (d: {
+        payload: JobData;
+        error: unknown;
+        attemptNumber: number;
+        maxAttempts: number;
+        job: Job;
+      }) => Promise<void>;
+    }
+  ): IQueueProcessor;
 }

@@ -54,6 +54,7 @@ export let ProviderSelectionStep = (p: {
   selectionMode?: 'default' | 'authCredentialsCreate';
   limit?: number;
   emptyText?: string;
+  searchPlaceholder?: string;
   internalScrollHeight?: string | number;
   providerListingsFilter?: DashboardInstanceProviderListingsListQuery;
   excludeProviderIds?: string[];
@@ -80,7 +81,7 @@ export let ProviderSelectionStep = (p: {
           label="Search"
           hideLabel
           size="2"
-          placeholder="Search providers..."
+          placeholder={p.searchPlaceholder ?? 'Search providers...'}
           value={search}
           onInput={setSearch}
         />
@@ -121,13 +122,7 @@ export let showProviderCreationPanel = (
     let [width, setWidth] = useState(defaultWidth);
 
     return (
-      <Panel.Wrapper
-        {...dialogProps}
-        width={width}
-        style={{
-          transition: 'width 0.42s cubic-bezier(0.22, 1, 0.36, 1)'
-        }}
-      >
+      <Panel.Wrapper {...dialogProps} width={width}>
         {children({ close, setWidth })}
       </Panel.Wrapper>
     );

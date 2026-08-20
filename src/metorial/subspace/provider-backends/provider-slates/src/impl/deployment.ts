@@ -5,12 +5,15 @@ import {
   type ProviderConfigCreateRes,
   type ProviderConfigDeleteParam,
   type ProviderConfigDeleteRes,
+  type ProviderConfigUpdateParam,
+  type ProviderConfigUpdateRes,
   type ProviderDeploymentCreateParam,
   type ProviderDeploymentCreateRes,
   type ProviderDeploymentDeleteParam,
   type ProviderDeploymentDeleteRes
 } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
+import { buildSlateProviderConfigUpdateRequest } from './configUpdate';
 
 export class ProviderDeployment extends IProviderDeployment {
   override async createProviderDeployment(
@@ -88,5 +91,35 @@ export class ProviderDeployment extends IProviderDeployment {
     });
 
     return {};
+  }
+
+  override async updateProviderConfig(
+    data: ProviderConfigUpdateParam
+  ): Promise<ProviderConfigUpdateRes> {
+    if (!data.backing.slateInstanceOid) {
+      throw new Error('Provider config does not have a Slate instance backing');
+    }
+
+    let slateInstance = await db.slateInstance.findFirst({
+      where: {
+        oid: data.backing.slateInstanceOid,
+        tenantOid: data.tenant.oid
+      }
+    });
+    if (!slateInstance) {
+      throw new Error('Provider config Slate instance backing was not found for this tenant');
+    }
+
+    let tenant = await getTenantForSlates(data.tenant);
+    let updated = await slates.slateInstance.updateConfig(
+      buildSlateProviderConfigUpdateRequest({
+        tenantId: tenant.id,
+        slateInstanceId: slateInstance.id,
+        patch: data.patch,
+        expectedGeneration: data.expectedGeneration
+      })
+    );
+
+    return { configGeneration: updated.configGeneration };
   }
 }

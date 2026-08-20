@@ -50,8 +50,7 @@ export let callbackDestinationController = app.controller({
           ...list,
           items: enriched
         },
-        callbackDestination =>
-          callbackDestinationPresenter(callbackDestination, { includeSignatureToken: false })
+        callbackDestination => callbackDestinationPresenter(callbackDestination)
       );
     }),
 
@@ -133,6 +132,62 @@ export let callbackDestinationController = app.controller({
         })
       );
     }),
+
+  rotateSigningSecret: callbackDestinationApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        callbackDestinationId: v.string(),
+        graceMs: v.optional(v.number())
+      })
+    )
+    .do(
+      async ctx =>
+        await callbackDestinationService.rotateSigningSecret({
+          tenant: ctx.tenant,
+          callbackDestination: ctx.callbackDestination,
+          graceMs: ctx.input.graceMs
+        })
+    ),
+
+  revokeSigningSecret: callbackDestinationApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        callbackDestinationId: v.string(),
+        secretId: v.string()
+      })
+    )
+    .do(
+      async ctx =>
+        await callbackDestinationService.revokeSigningSecret({
+          tenant: ctx.tenant,
+          callbackDestination: ctx.callbackDestination,
+          secretId: ctx.input.secretId
+        })
+    ),
+
+  consumeSigningSecretReceipt: callbackDestinationApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        callbackDestinationId: v.string(),
+        receiptId: v.string(),
+        receiptToken: v.string()
+      })
+    )
+    .do(
+      async ctx =>
+        await callbackDestinationService.consumeSigningSecretReceipt({
+          tenant: ctx.tenant,
+          callbackDestination: ctx.callbackDestination,
+          receiptId: ctx.input.receiptId,
+          receiptToken: ctx.input.receiptToken
+        })
+    ),
 
   archive: callbackDestinationApp
     .handler()

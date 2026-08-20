@@ -118,6 +118,10 @@ export interface ToolInvocationCreateParam {
   input: PrismaJson.SessionMessageInput;
   message: SessionMessage;
   sessionProvider: SessionProvider;
+
+  /** Trusted backend-only callback binding. It is derived from authenticated session/config
+   * state and must never be populated from the model or MCP tool input. */
+  receiverCallbackSelector?: string;
 }
 
 export interface ToolInvocationCreateRes {

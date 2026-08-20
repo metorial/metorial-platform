@@ -36,9 +36,13 @@ import {
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
   v1CallbackEventPresenter,
+  v1CallbackGithubManifestSetupPresenter,
   v1CallbackInstancePresenter,
   v1CallbackNotificationPresenter,
   v1CallbackPresenter,
+  v1CallbackSecretBulkRevocationPresenter,
+  v1CallbackSecretConsumptionPresenter,
+  v1CallbackSecretMutationPresenter,
   v1CliDevicePresenter,
   v1ConfigPresenter,
   v1ConsumerAccessListingPresenter,
@@ -249,8 +253,12 @@ import {
   bucketEditorTokenType,
   callbackDestinationType,
   callbackEventType,
+  callbackGithubManifestSetupType,
   callbackInstanceType,
   callbackNotificationType,
+  callbackSecretBulkRevocationType,
+  callbackSecretConsumptionType,
+  callbackSecretMutationType,
   callbackType,
   cliDeviceType,
   configPreviewType,
@@ -898,6 +906,35 @@ export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
   mt_2025_01_01_dashboard: v1CallbackInstancePresenter,
   mt_2026_01_01_magnetar: v1CallbackInstancePresenter
 });
+
+export let callbackSecretMutationPresenter = declarePresenter(callbackSecretMutationType, {
+  mt_2025_01_01_dashboard: v1CallbackSecretMutationPresenter,
+  mt_2026_01_01_magnetar: v1CallbackSecretMutationPresenter
+});
+
+export let callbackSecretBulkRevocationPresenter = declarePresenter(
+  callbackSecretBulkRevocationType,
+  {
+    mt_2025_01_01_dashboard: v1CallbackSecretBulkRevocationPresenter,
+    mt_2026_01_01_magnetar: v1CallbackSecretBulkRevocationPresenter
+  }
+);
+
+export let callbackSecretConsumptionPresenter = declarePresenter(
+  callbackSecretConsumptionType,
+  {
+    mt_2025_01_01_dashboard: v1CallbackSecretConsumptionPresenter,
+    mt_2026_01_01_magnetar: v1CallbackSecretConsumptionPresenter
+  }
+);
+
+export let callbackGithubManifestSetupPresenter = declarePresenter(
+  callbackGithubManifestSetupType,
+  {
+    mt_2025_01_01_dashboard: v1CallbackGithubManifestSetupPresenter,
+    mt_2026_01_01_magnetar: v1CallbackGithubManifestSetupPresenter
+  }
+);
 
 export let teamPresenter = declarePresenter(teamType, {
   mt_2025_01_01_dashboard: v1TeamPresenter,

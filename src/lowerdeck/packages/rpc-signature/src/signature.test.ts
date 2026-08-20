@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { createRpcSignatureHeader, verifyRpcSignature } from './signature';
+import {
+  createRpcSignatureHeader,
+  deriveBoundRpcSignatureToken,
+  verifyRpcSignature
+} from './signature';
 
 let baseInput = {
   token: 'rpc-token-secret',
@@ -21,6 +25,12 @@ let verifyBase = async (overrides: Partial<Parameters<typeof verifyRpcSignature>
   });
 
 describe('rpc signatures', () => {
+  test('derives a deterministic context-bound child token', async () => {
+    let first = await deriveBoundRpcSignatureToken('root-secret', 'context-a');
+    expect(first).toBe(await deriveBoundRpcSignatureToken('root-secret', 'context-a'));
+    expect(first).not.toBe(await deriveBoundRpcSignatureToken('root-secret', 'context-b'));
+    expect(first).not.toBe(await deriveBoundRpcSignatureToken('other-root', 'context-a'));
+  });
   test('creates headers with embedded timestamp and signature', async () => {
     expect(await createRpcSignatureHeader(baseInput)).toMatch(/^t=\d+,v1=[a-f0-9]{64}$/);
   });
@@ -45,7 +55,9 @@ describe('rpc signatures', () => {
     expect(await verifyBase({ signatureHeader: 'v1=abc' })).toBe(false);
     expect(await verifyBase({ signatureHeader: 't=1800000000000' })).toBe(false);
     expect(await verifyBase({ signatureHeader: 't=1800000000000,v1=not-hex' })).toBe(false);
-    expect(await verifyBase({ signatureHeader: 't=not-a-number,v1=' + 'a'.repeat(64) })).toBe(false);
+    expect(await verifyBase({ signatureHeader: 't=not-a-number,v1=' + 'a'.repeat(64) })).toBe(
+      false
+    );
   });
 
   test('rejects unequal-length signatures without throwing', async () => {

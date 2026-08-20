@@ -28,7 +28,7 @@ export type CallbacksDeleteOutput = {
     metadata: Record<string, any> | null;
     url: string;
     method: string;
-    signingSecret: string | null;
+    signingSecretConfigured: boolean;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -85,7 +85,7 @@ export let mapCallbacksDeleteOutput = mtMap.object<CallbacksDeleteOutput>({
         metadata: mtMap.objectField('metadata', mtMap.passthrough()),
         url: mtMap.objectField('url', mtMap.passthrough()),
         method: mtMap.objectField('method', mtMap.passthrough()),
-        signingSecret: mtMap.objectField('signing_secret', mtMap.passthrough()),
+        signingSecretConfigured: mtMap.objectField('signing_secret_configured', mtMap.passthrough()),
         createdAt: mtMap.objectField('created_at', mtMap.date()),
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })

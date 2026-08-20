@@ -23,12 +23,12 @@ let getFunctionData = createLocallyCachedFunction({
       },
       include: {
         currentVersion: {
-          include: { runtime: true }
+          include: { runtime: true, functionBundle: true }
         },
         functionVersions: i.versionId
           ? {
               where: { OR: [{ id: i.versionId }, { identifier: i.versionId }] },
-              include: { runtime: true }
+              include: { runtime: true, functionBundle: true }
             }
           : undefined
       }
@@ -98,6 +98,7 @@ class functionInvocationServiceImpl {
           }
         : undefined,
       providerData: (invocationTarget.version as any).providerData,
+      functionBundle: (invocationTarget.version as any).functionBundle,
       payload: d.payload,
       egressPolicy: d.egressPolicy
     });

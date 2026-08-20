@@ -1,7 +1,4 @@
-import {
-  BaseMetorialEndpoint,
-  MetorialEndpointManager
-} from '@metorial/util-endpoint';
+import { BaseMetorialEndpoint, MetorialEndpointManager } from '@metorial/util-endpoint';
 
 import {
   mapDashboardInstanceCallbacksDestinationsCreateBody,
@@ -10,6 +7,10 @@ import {
   mapDashboardInstanceCallbacksDestinationsGetOutput,
   mapDashboardInstanceCallbacksDestinationsListOutput,
   mapDashboardInstanceCallbacksDestinationsListQuery,
+  mapDashboardInstanceCallbacksDestinationsConsumeSigningSecretReceiptBody,
+  mapDashboardInstanceCallbacksDestinationsRotateSigningSecretBody,
+  mapDashboardInstanceCallbacksDestinationsSecretConsumptionOutput,
+  mapDashboardInstanceCallbacksDestinationsSecretMutationOutput,
   mapDashboardInstanceCallbacksDestinationsUpdateBody,
   mapDashboardInstanceCallbacksDestinationsUpdateOutput,
   type DashboardInstanceCallbacksDestinationsCreateBody,
@@ -18,6 +19,10 @@ import {
   type DashboardInstanceCallbacksDestinationsGetOutput,
   type DashboardInstanceCallbacksDestinationsListOutput,
   type DashboardInstanceCallbacksDestinationsListQuery,
+  type DashboardInstanceCallbacksDestinationsConsumeSigningSecretReceiptBody,
+  type DashboardInstanceCallbacksDestinationsRotateSigningSecretBody,
+  type DashboardInstanceCallbacksDestinationsSecretConsumptionOutput,
+  type DashboardInstanceCallbacksDestinationsSecretMutationOutput,
   type DashboardInstanceCallbacksDestinationsUpdateBody,
   type DashboardInstanceCallbacksDestinationsUpdateOutput
 } from '../resources';
@@ -76,9 +81,7 @@ export class MetorialDashboardInstanceCallbacksDestinationsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceCallbacksDestinationsListOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceCallbacksDestinationsListOutput);
   }
 
   /**
@@ -105,9 +108,7 @@ export class MetorialDashboardInstanceCallbacksDestinationsEndpoint {
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
-    return this._get(request).transform(
-      mapDashboardInstanceCallbacksDestinationsGetOutput
-    );
+    return this._get(request).transform(mapDashboardInstanceCallbacksDestinationsGetOutput);
   }
 
   /**
@@ -130,9 +131,7 @@ export class MetorialDashboardInstanceCallbacksDestinationsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceCallbacksDestinationsCreateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceCallbacksDestinationsCreateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
@@ -164,15 +163,63 @@ export class MetorialDashboardInstanceCallbacksDestinationsEndpoint {
 
     let request = {
       path,
-      body: mapDashboardInstanceCallbacksDestinationsUpdateBody.transformTo(
-        body
-      ),
+      body: mapDashboardInstanceCallbacksDestinationsUpdateBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._patch(request).transform(
       mapDashboardInstanceCallbacksDestinationsUpdateOutput
+    );
+  }
+
+  rotateSigningSecret(
+    instanceId: string,
+    callbackDestinationId: string,
+    body: DashboardInstanceCallbacksDestinationsRotateSigningSecretBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksDestinationsSecretMutationOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callback-destinations/${callbackDestinationId}/security/signing-secret/rotate`,
+      body: mapDashboardInstanceCallbacksDestinationsRotateSigningSecretBody.transformTo(body),
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksDestinationsSecretMutationOutput
+    );
+  }
+
+  revokeSigningSecret(
+    instanceId: string,
+    callbackDestinationId: string,
+    secretId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksDestinationsSecretMutationOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callback-destinations/${callbackDestinationId}/security/signing-secret/${secretId}`,
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._delete(request).transform(
+      mapDashboardInstanceCallbacksDestinationsSecretMutationOutput
+    );
+  }
+
+  consumeSigningSecretReceipt(
+    instanceId: string,
+    callbackDestinationId: string,
+    receiptId: string,
+    body: DashboardInstanceCallbacksDestinationsConsumeSigningSecretReceiptBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksDestinationsSecretConsumptionOutput> {
+    let request = {
+      path: `dashboard/instances/${instanceId}/callback-destinations/${callbackDestinationId}/security/signing-secret/receipts/${receiptId}/consume`,
+      body: mapDashboardInstanceCallbacksDestinationsConsumeSigningSecretReceiptBody.transformTo(
+        body
+      ),
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksDestinationsSecretConsumptionOutput
     );
   }
 

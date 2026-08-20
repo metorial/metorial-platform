@@ -20,6 +20,9 @@ import {
   providerSetupSessionCreatedQueueProcessor,
   providerSetupSessionUpdatedQueueProcessor
 } from './providerSetupSession';
+import { provisionTenantAppLifecycleQueues } from './provisionTenantApp';
+
+export * from './provisionTenantApp';
 
 export let lifecycleQueues = combineQueueProcessors([
   providerAuthCredentialsCreatedQueueProcessor,
@@ -34,5 +37,6 @@ export let lifecycleQueues = combineQueueProcessors([
   providerOAuthSetupCreatedQueueProcessor,
   providerOAuthSetupUpdatedQueueProcessor,
   providerSetupSessionCreatedQueueProcessor,
-  providerSetupSessionUpdatedQueueProcessor
+  providerSetupSessionUpdatedQueueProcessor,
+  provisionTenantAppLifecycleQueues
 ]);

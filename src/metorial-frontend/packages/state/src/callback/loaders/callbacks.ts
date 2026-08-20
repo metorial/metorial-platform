@@ -6,6 +6,8 @@ import {
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
+import { callbackDestinationsLoader } from './callbackDestinations';
+import { callbackInstancesLoader } from './callbackInstances';
 
 export let callbacksLoader = createLoader({
   name: 'callbacks',
@@ -18,6 +20,30 @@ export let callbacksLoader = createLoader({
 export let useCreateCallback = callbacksLoader.createExternalMutator(
   (i: DashboardInstanceCallbacksCreateBody & { instanceId: string }) =>
     withAuth(sdk => sdk.callbacks.create(i.instanceId, i))
+);
+
+// The delete endpoint archives rather than hard-deletes.
+export let useArchiveCallback = callbacksLoader.createExternalMutator(
+  (i: { instanceId: string; callbackId: string }) =>
+    withAuth(sdk => sdk.callbacks.delete(i.instanceId, i.callbackId))
+);
+
+export type SendCallbackTestEventInput = {
+  instanceId: string;
+  callbackId: string;
+  callbackInstanceId: string;
+  eventType: string;
+  payload: Record<string, unknown>;
+};
+
+export let useSendCallbackTestEvent = callbacksLoader.createExternalMutator(
+  (i: SendCallbackTestEventInput) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.sendTestEvent(i.instanceId, i.callbackId, i.callbackInstanceId, {
+        eventType: i.eventType,
+        payload: i.payload
+      })
+    )
 );
 
 export let useCallbacks = (
@@ -33,18 +59,21 @@ export let useCallbacks = (
 
 export let callbackLoader = createLoader({
   name: 'callback',
-  parents: [callbacksLoader],
+  parents: [callbacksLoader, callbackInstancesLoader, callbackDestinationsLoader],
   fetch: (i: { instanceId: string; callbackId: string }) =>
     withAuth(sdk => sdk.callbacks.get(i.instanceId, i.callbackId)),
   mutators: {
     update: (
       body: DashboardInstanceCallbacksUpdateBody,
       { input: { instanceId, callbackId } }
-    ) => withAuth(sdk => sdk.callbacks.update(instanceId, callbackId, body)),
-    delete: (_: void, { input: { instanceId, callbackId } }) =>
-      withAuth(sdk => sdk.callbacks.delete(instanceId, callbackId))
+    ) => withAuth(sdk => sdk.callbacks.update(instanceId, callbackId, body))
   }
 });
+
+// Secret lifecycle mutations live on callback instances. Keeping callback reads as a
+// parent makes a completed setup action refresh both the instance detail and callback
+// overview without ever caching receipt tokens or revealed material in a loader.
+export let callbackSecurityParentLoaders = [callbacksLoader, callbackLoader] as const;
 
 export let useCallback = (
   instanceId: string | null | undefined,
@@ -54,7 +83,6 @@ export let useCallback = (
 
   return {
     ...data,
-    useUpdateMutator: data.useMutator('update'),
-    useDeleteMutator: data.useMutator('delete')
+    useUpdateMutator: data.useMutator('update')
   };
 };

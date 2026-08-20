@@ -377,12 +377,136 @@ pub fn mongo_url(db: &Mongo) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::{fs, path::Path, process::Command};
 
     use tempfile::tempdir;
 
     use super::*;
     use crate::manifest::load;
+
+    const SIGNAL_CREDENTIAL_TEST_CHILD: &str = "CONTROL_SIGNAL_CREDENTIAL_TEST_CHILD";
+    const HUB_CREDENTIAL: &str = "sentinel-hub-service-credential";
+    const SUBSPACE_CREDENTIAL: &str = "sentinel-subspace-service-credential";
+
+    fn enterprise_root() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap()
+    }
+
+    fn load_actual_manifest(root: &Path, relative_path: &str) -> LoadedManifest {
+        load(&root.join(relative_path)).unwrap()
+    }
+
+    fn assert_required_root(
+        loaded: &LoadedManifest,
+        roots: &BTreeMap<String, String>,
+        root_key: &str,
+    ) {
+        let mut missing = roots.clone();
+        missing.remove(root_key);
+        let error = all_for_manifest(loaded, &missing).unwrap_err();
+        assert!(
+            error.to_string().contains(&format!(
+                "required environment variable {root_key} is missing"
+            )),
+            "unexpected resolver error: {error:?}"
+        );
+    }
+
+    #[test]
+    fn actual_signal_service_manifests_resolve_required_credentials() {
+        if env::var_os(SIGNAL_CREDENTIAL_TEST_CHILD).is_none() {
+            let output = Command::new(env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "environment::tests::actual_signal_service_manifests_resolve_required_credentials",
+                    "--nocapture",
+                ])
+                .env(SIGNAL_CREDENTIAL_TEST_CHILD, "1")
+                .env_remove("HUB_SERVICE_CREDENTIAL")
+                .env_remove("SUBSPACE_SERVICE_CREDENTIAL")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "credential resolver child failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+
+        let root = enterprise_root();
+        let signal = load_actual_manifest(&root, "oss/src/signal/service/control.toml");
+        let hub = load_actual_manifest(&root, "oss/src/slates/apps/hub/control.toml");
+        let oss_controller = load_actual_manifest(
+            &root,
+            "oss/src/metorial/subspace/apps/controller/control.toml",
+        );
+        let enterprise_controller = load_actual_manifest(
+            &root,
+            "src/metorial/services/subspace-controller/control.toml",
+        );
+        let no_credential_manifests = [
+            load_actual_manifest(&root, "oss/src/metorial/subspace/apps/public/control.toml"),
+            load_actual_manifest(&root, "oss/src/metorial/subspace/apps/worker/control.toml"),
+            load_actual_manifest(&root, "src/metorial/services/subspace-public/control.toml"),
+            load_actual_manifest(&root, "src/metorial/services/subspace-worker/control.toml"),
+        ];
+        let project = ProjectRoot {
+            kind: RootKind::Enterprise,
+            root: root.clone(),
+            oss: root.join("oss"),
+        };
+        let mut roots = root_environment(&project).unwrap();
+        roots.insert("HUB_SERVICE_CREDENTIAL".into(), HUB_CREDENTIAL.into());
+        roots.insert(
+            "SUBSPACE_SERVICE_CREDENTIAL".into(),
+            SUBSPACE_CREDENTIAL.into(),
+        );
+
+        assert_ne!(HUB_CREDENTIAL, SUBSPACE_CREDENTIAL);
+        let signal_environment = all_for_manifest(&signal, &roots).unwrap();
+        assert_eq!(signal_environment["HUB_SERVICE_CREDENTIAL"], HUB_CREDENTIAL);
+        assert_eq!(
+            signal_environment["SUBSPACE_SERVICE_CREDENTIAL"],
+            SUBSPACE_CREDENTIAL
+        );
+        assert_eq!(
+            all_for_manifest(&hub, &roots).unwrap()["SIGNAL_SERVICE_CREDENTIAL"],
+            HUB_CREDENTIAL
+        );
+        assert_eq!(
+            all_for_manifest(&oss_controller, &roots).unwrap()["SIGNAL_SERVICE_CREDENTIAL"],
+            SUBSPACE_CREDENTIAL
+        );
+        assert_eq!(
+            all_for_manifest(&enterprise_controller, &roots).unwrap()["SIGNAL_SERVICE_CREDENTIAL"],
+            SUBSPACE_CREDENTIAL
+        );
+
+        for loaded in no_credential_manifests {
+            let environment = all_for_manifest(&loaded, &roots).unwrap();
+            assert!(!environment.contains_key("SIGNAL_SERVICE_CREDENTIAL"));
+            assert!(
+                !environment
+                    .values()
+                    .any(|value| value == SUBSPACE_CREDENTIAL)
+            );
+        }
+
+        assert_required_root(&signal, &roots, "HUB_SERVICE_CREDENTIAL");
+        assert_required_root(&signal, &roots, "SUBSPACE_SERVICE_CREDENTIAL");
+        assert_required_root(&hub, &roots, "HUB_SERVICE_CREDENTIAL");
+        assert_required_root(&oss_controller, &roots, "SUBSPACE_SERVICE_CREDENTIAL");
+        assert_required_root(
+            &enterprise_controller,
+            &roots,
+            "SUBSPACE_SERVICE_CREDENTIAL",
+        );
+    }
 
     #[test]
     fn generates_encoded_database_urls() {

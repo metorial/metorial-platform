@@ -4,6 +4,10 @@ import { eventCleanupQueueProcessor } from './cleanup';
 import { attemptDeliveryQueueProcessor, createDeliveryQueueProcessor } from './delivery';
 import { newEventQueueProcessor } from './init';
 import {
+  eventInitializationRepairCron,
+  eventInitializationRepairQueueProcessor
+} from './repair';
+import {
   intentEndedQueueProcessor,
   intentFailedQueueProcessor,
   intentSucceededQueueProcessor
@@ -13,6 +17,8 @@ import { eventFailedQueueProcessor, eventSucceededQueueProcessor } from './lifec
 export let sendQueues = combineQueueProcessors([
   offloadCallbackEventPayloadQueueProcessor,
   newEventQueueProcessor,
+  eventInitializationRepairCron,
+  eventInitializationRepairQueueProcessor,
   createDeliveryQueueProcessor,
   attemptDeliveryQueueProcessor,
   intentSucceededQueueProcessor,

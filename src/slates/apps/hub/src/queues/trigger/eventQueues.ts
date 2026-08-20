@@ -37,18 +37,86 @@ export let slateTriggerEventInputArchiveQueue = createQueue<{ eventInputId: stri
   }
 });
 
-export let slateTriggerWebhookRegisterQueue = createQueue<{ receiverTriggerId: string }>({
-  name: 'shub/trg/reg',
+export let slateTriggerWebhookDispatchOutboxQueue = createQueue<{ outboxId: string }>({
+  name: 'shub/trg/webhook/outbox',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: {
-    concurrency: 5
-  }
+  workerOpts: { concurrency: 10 }
 });
 
-export let slateTriggerWebhookUnregisterQueue = createQueue<{ receiverTriggerId: string }>({
-  name: 'shub/trg/unreg',
+export type SlateTriggerRegistrationQueuePayload = {
+  receiverTriggerId: string;
+  registrationGeneration: number;
+  configGeneration?: number;
+  configSecretVersionBindings?: Readonly<Record<string, number>>;
+};
+
+export let slateTriggerWebhookRegisterQueue =
+  createQueue<SlateTriggerRegistrationQueuePayload>({
+    name: 'shub/trg/reg',
+    redisUrl: env.service.REDIS_URL,
+    workerOpts: {
+      concurrency: 5
+    }
+  });
+
+export let slateTriggerWebhookUnregisterQueue =
+  createQueue<SlateTriggerRegistrationQueuePayload>({
+    name: 'shub/trg/unreg',
+    redisUrl: env.service.REDIS_URL,
+    workerOpts: {
+      concurrency: 5
+    }
+  });
+
+export let slateTriggerWebhookRetiringCleanupQueue = createQueue<{
+  receiverTriggerId: string;
+  registrationGeneration: number;
+  registrationVersion: number;
+}>({
+  name: 'shub/trg/retiring-cleanup',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: {
-    concurrency: 5
-  }
+  workerOpts: { concurrency: 5 }
+});
+
+export let slateTriggerWebhookRegistrationRepairQueue = createQueue<{
+  cursor?: string;
+  batchSize?: number;
+}>({
+  name: 'shub/trg/registration-repair',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
+});
+
+export let slateTriggerReceiverFinalCleanupQueue = createQueue<{
+  batchSize?: number;
+}>({
+  name: 'shub/trg/receiver-final-cleanup',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
+});
+
+export let slateTriggerWebhookPayloadCleanupQueue = createQueue<{
+  before?: string;
+  batchSize?: number;
+}>({
+  name: 'shub/trg/webhook/payload-cleanup',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 2 }
+});
+
+export let slateTriggerWebhookTerminalRepairQueue = createQueue<{
+  repairId: string;
+}>({
+  name: 'shub/trg/webhook/terminal-repair',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 2 }
+});
+
+export let slateTriggerWebhookReplayCleanupQueue = createQueue<{
+  before?: string;
+  batchSize?: number;
+}>({
+  name: 'shub/trg/webhook/replay-cleanup',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 1 }
 });

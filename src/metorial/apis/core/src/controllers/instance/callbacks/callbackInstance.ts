@@ -1,13 +1,48 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { subspaceCallbackInstanceService } from '@metorial/module-subspace';
+import {
+  subspaceCallbackInstanceService,
+  subspaceProvisionedTenantAppService,
+  subspaceCallbackService
+} from '@metorial/module-subspace';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackInstancePresenter } from '../../../presenters';
+import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { isDashboardGroup } from '../../../middleware/isDashboard';
+import {
+  callbackEventPresenter,
+  callbackGithubManifestSetupPresenter,
+  callbackInstancePresenter,
+  callbackSecretBulkRevocationPresenter,
+  callbackSecretConsumptionPresenter,
+  callbackSecretMutationPresenter
+} from '../../../presenters';
 import { callbackGroup } from './callback';
+import {
+  CALLBACK_DASHBOARD_TEST_EVENT,
+  sendDashboardTestCallbackEvent
+} from './callbackInstanceTestEvent';
+
+let dashboardCallbackGroup = instanceGroup.use(isDashboardGroup()).use(async ctx => {
+  if (!ctx.params.callbackId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'callbackId is required',
+        description: 'The callbackId path parameter is required.'
+      })
+    );
+  }
+
+  let callback = await subspaceCallbackService.get({
+    instance: ctx.instance,
+    callbackId: ctx.params.callbackId
+  });
+
+  return { callback };
+});
 
 export let callbackInstanceController = Controller.create(
   {
@@ -125,6 +160,258 @@ export let callbackInstanceController = Controller.create(
         });
 
         return callbackInstancePresenter.present({ callbackInstance });
+      }),
+
+    sendTestEvent: dashboardCallbackGroup
+      .post(
+        instancePath(
+          CALLBACK_DASHBOARD_TEST_EVENT.route,
+          CALLBACK_DASHBOARD_TEST_EVENT.sdkPath
+        ),
+        {
+          name: 'Send callback test event',
+          description:
+            'Queues an authenticated dashboard synthetic event for a callback instance.',
+          confidential: CALLBACK_DASHBOARD_TEST_EVENT.confidential
+        }
+      )
+      .use(checkAccess({ possibleScopes: [CALLBACK_DASHBOARD_TEST_EVENT.scope] }))
+      .body(
+        'default',
+        v.object({
+          event_type: v.string({
+            description: 'Synthetic callback event type',
+            examples: ['dashboard.test']
+          }),
+          payload: v.record(v.any(), {
+            description: 'Synthetic callback event payload'
+          })
+        })
+      )
+      .output(callbackEventPresenter)
+      .do(async ctx => {
+        let callbackEvent = await sendDashboardTestCallbackEvent(
+          {
+            instance: ctx.instance,
+            callbackId: ctx.callback.id,
+            callbackInstanceId: ctx.params.callbackInstanceId,
+            eventType: ctx.body.event_type,
+            payload: ctx.body.payload
+          },
+          subspaceCallbackService
+        );
+
+        return callbackEventPresenter.present({ callbackEvent });
+      }),
+
+    createReceiverPathSecret: dashboardCallbackGroup
+      .post(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/path-secret',
+          'callbacks.instances.createReceiverPathSecret'
+        ),
+        {
+          name: 'Create secure callback URL',
+          description:
+            'Creates the initial generated receiver-path secret and an expiring one-time issuance receipt.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .output(callbackSecretMutationPresenter)
+      .do(async ctx => {
+        let callbackSecretMutation = await subspaceCallbackService.createReceiverPathSecret({
+          instance: ctx.instance,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.params.callbackInstanceId,
+          organizationActor: ctx.actor!,
+          requestId: ctx.requestId,
+          requestIp: ctx.context.ip,
+          requestUserAgent: ctx.context.ua ?? undefined
+        });
+        return callbackSecretMutationPresenter.present({ callbackSecretMutation });
+      }),
+
+    rotateReceiverPathSecret: dashboardCallbackGroup
+      .post(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/path-secret/rotate',
+          'callbacks.instances.rotateReceiverPathSecret'
+        ),
+        {
+          name: 'Rotate secure callback URL',
+          description:
+            'Rotates generated receiver-path material and retains the previous version for a bounded grace period.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .body(
+        'default',
+        v.object({
+          grace_period_seconds: v.optional(
+            v.number({
+              description:
+                'How long the previous secret stays valid after rotation. Zero revokes it immediately.',
+              modifiers: [v.integer(), v.minValue(0), v.maxValue(7 * 86_400)]
+            })
+          )
+        })
+      )
+      .output(callbackSecretMutationPresenter)
+      .do(async ctx => {
+        let callbackSecretMutation = await subspaceCallbackService.rotateReceiverPathSecret({
+          instance: ctx.instance,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.params.callbackInstanceId,
+          organizationActor: ctx.actor!,
+          requestId: ctx.requestId,
+          requestIp: ctx.context.ip,
+          requestUserAgent: ctx.context.ua ?? undefined,
+          graceMs:
+            ctx.body.grace_period_seconds === undefined
+              ? undefined
+              : ctx.body.grace_period_seconds * 1000
+        });
+        return callbackSecretMutationPresenter.present({ callbackSecretMutation });
+      }),
+
+    revokeReceiverPathSecret: dashboardCallbackGroup
+      .delete(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/path-secret/:secretId',
+          'callbacks.instances.revokeReceiverPathSecret'
+        ),
+        {
+          name: 'Revoke secure callback URL',
+          description: 'Revokes one exact generated receiver-path secret.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .output(callbackSecretMutationPresenter)
+      .do(async ctx => {
+        let callbackSecretMutation = await subspaceCallbackService.revokeReceiverPathSecret({
+          instance: ctx.instance,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.params.callbackInstanceId,
+          organizationActor: ctx.actor!,
+          requestId: ctx.requestId,
+          requestIp: ctx.context.ip,
+          requestUserAgent: ctx.context.ua ?? undefined,
+          secretId: ctx.params.secretId
+        });
+        return callbackSecretMutationPresenter.present({ callbackSecretMutation });
+      }),
+
+    revokeAllReceiverPathSecrets: dashboardCallbackGroup
+      .delete(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/path-secret',
+          'callbacks.instances.revokeAllReceiverPathSecrets'
+        ),
+        {
+          name: 'Revoke all secure callback URLs',
+          description:
+            'Immediately revokes every active and retiring receiver-path secret for the callback instance.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .output(callbackSecretBulkRevocationPresenter)
+      .do(async ctx => {
+        let callbackSecretBulkRevocation =
+          await subspaceCallbackService.revokeAllReceiverPathSecrets({
+            instance: ctx.instance,
+            callbackId: ctx.callback.id,
+            callbackInstanceId: ctx.params.callbackInstanceId,
+            organizationActor: ctx.actor!,
+            requestId: ctx.requestId,
+            requestIp: ctx.context.ip,
+            requestUserAgent: ctx.context.ua ?? undefined
+          });
+        return callbackSecretBulkRevocationPresenter.present({ callbackSecretBulkRevocation });
+      }),
+
+    consumeReceiverPathSecretReceipt: dashboardCallbackGroup
+      .post(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/path-secret/receipts/:receiptId/consume',
+          'callbacks.instances.consumeReceiverPathSecretReceipt'
+        ),
+        {
+          name: 'Reveal a newly generated callback secret once',
+          description:
+            'Consumes an eligible expiring issuance receipt exactly once. No ordinary plaintext-read endpoint exists.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .body(
+        'default',
+        v.object({
+          receipt_token: v.string({ modifiers: [v.minLength(1), v.maxLength(256)] })
+        })
+      )
+      .output(callbackSecretConsumptionPresenter)
+      .do(async ctx => {
+        let callbackSecretConsumption =
+          await subspaceCallbackService.consumeReceiverPathSecretReceipt({
+            instance: ctx.instance,
+            callbackId: ctx.callback.id,
+            callbackInstanceId: ctx.params.callbackInstanceId,
+            organizationActor: ctx.actor!,
+            requestId: ctx.requestId,
+            requestIp: ctx.context.ip,
+            requestUserAgent: ctx.context.ua ?? undefined,
+            receiptId: ctx.params.receiptId,
+            receiptToken: ctx.body.receipt_token
+          });
+        return callbackSecretConsumptionPresenter.present({ callbackSecretConsumption });
+      }),
+
+    beginGithubManifest: dashboardCallbackGroup
+      .post(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/provisioned-apps/:provisionedTenantAppId/github-manifest',
+          'callbacks.instances.beginGithubManifest'
+        ),
+        {
+          name: 'Begin GitHub app manifest setup',
+          description:
+            'Creates an expiring, authorized GitHub manifest setup redirect for an owned BYO callback app.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .output(callbackGithubManifestSetupPresenter)
+      .do(async ctx => {
+        let callbackInstance = await subspaceCallbackInstanceService.get({
+          instance: ctx.instance,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.params.callbackInstanceId
+        });
+        let app = callbackInstance.security.provisionedApps.find(
+          candidate => candidate.id === ctx.params.provisionedTenantAppId
+        );
+        if (
+          !app ||
+          app.credentialOwnerType !== 'byo' ||
+          app.vendor.toLowerCase() !== 'github'
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              code: 'github_manifest_setup_unavailable',
+              message: 'GitHub manifest setup is unavailable for this callback instance.'
+            })
+          );
+        }
+        let setup = await subspaceProvisionedTenantAppService.beginGithubManifest({
+          instance: ctx.instance,
+          provisionedTenantAppId: app.id,
+          expectedGeneration: app.generation
+        });
+        return callbackGithubManifestSetupPresenter.present({ setup });
       }),
 
     delete: callbackGroup

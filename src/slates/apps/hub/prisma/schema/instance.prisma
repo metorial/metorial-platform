@@ -20,16 +20,18 @@ model SlateInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  configs                 SlateInstanceConfig[]
-  authConfigs             SlateAuthConfig[]
-  events                  SlateInstanceEvent[]
-  oAuthSetups             SlateInstanceOAuthSetup[]
-  usedAuthConfig          SlateAuthConfigUsedForInstance[]
-  slateSessions           SlateSession[]
-  slateTriggerReceivers   SlateTriggerReceiver[]
-  slateTriggerEvents      SlateTriggerEvent[]
-  slateTriggerEventInputs SlateTriggerEventInput[]
-  slateErrors             SlateError[]
+  configs                         SlateInstanceConfig[]
+  authConfigs                     SlateAuthConfig[]
+  events                          SlateInstanceEvent[]
+  oAuthSetups                     SlateInstanceOAuthSetup[]
+  usedAuthConfig                  SlateAuthConfigUsedForInstance[]
+  slateSessions                   SlateSession[]
+  slateTriggerReceivers           SlateTriggerReceiver[]
+  slateTriggerEvents              SlateTriggerEvent[]
+  slateTriggerEventInputs         SlateTriggerEventInput[]
+  slateTriggerReceiverPathSecrets SlateTriggerReceiverPathSecret[]
+  slateTriggerReceiverSecrets     SlateTriggerReceiverSecret[]
+  slateErrors                     SlateError[]
 }
 
 model SlateInstanceConfiguration {
@@ -94,14 +96,69 @@ model SlateInstanceConfig {
   errorCode         String?
   errorMessage      String?
   errorInvocationId String?
+  generation        Int     @default(1)
 
   /// [AnyRecord]
   value Json
 
   createdAt DateTime @default(now())
 
-  currentConfigForInstances SlateInstance[] @relation(name: "currentConfig")
+  currentConfigForInstances SlateInstance[]             @relation(name: "currentConfig")
   slateErrors               SlateError[]
+  secrets                   SlateInstanceConfigSecret[]
+
+  @@unique([instanceOid, generation], map: "hub_instance_config_generation_key")
+}
+
+model SlateInstanceConfigSecret {
+  oid BigInt @id
+  id  String @unique(map: "hub_config_secret_id_key")
+
+  instanceConfigOid BigInt
+  instanceConfig    SlateInstanceConfig @relation(fields: [instanceConfigOid], references: [oid], onDelete: Cascade, map: "hub_config_secret_config_fk")
+  tenantOid         BigInt
+  tenant            Tenant              @relation(fields: [tenantOid], references: [oid], onDelete: Cascade, map: "hub_config_secret_tenant_fk")
+
+  key                  String
+  encryptedValue       String
+  secretVersion        Int
+  encryptionKeyVersion Int
+  aadVersion           Int
+  status               String
+  validFrom            DateTime
+  validUntil           DateTime?
+  createdAt            DateTime  @default(now())
+  rotatedAt            DateTime?
+  revokedAt            DateTime?
+
+  @@unique([instanceConfigOid, key, secretVersion], map: "hub_config_secret_owner_version_key")
+  @@index([tenantOid, instanceConfigOid], map: "hub_config_secret_owner_idx")
+  @@index([instanceConfigOid, status, validUntil], map: "hub_config_secret_status_idx")
+}
+
+model SlateProvisionedAppRouteSecret {
+  oid BigInt @id
+  id  String @unique(map: "hub_app_route_secret_id_key")
+
+  provisionedRouteId   String
+  routeGeneration      Int
+  vendor               String
+  credentialOwnerRef   String
+  purpose              String
+  encryptedValue       String
+  secretVersion        Int
+  encryptionKeyVersion Int
+  aadVersion           Int
+  status               String
+  validFrom            DateTime
+  validUntil           DateTime?
+  createdAt            DateTime  @default(now())
+  rotatedAt            DateTime?
+  revokedAt            DateTime?
+
+  @@unique([provisionedRouteId, routeGeneration, purpose, secretVersion], map: "hub_app_route_secret_owner_version_key")
+  @@index([provisionedRouteId, routeGeneration, purpose, status, validUntil], map: "hub_app_route_secret_status_idx")
+  @@index([vendor, credentialOwnerRef], map: "hub_app_route_secret_binding_idx")
 }
 
 model SlateOAuthCredentials {

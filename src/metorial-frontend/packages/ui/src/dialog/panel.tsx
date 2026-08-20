@@ -4,11 +4,7 @@ import React, { useRef } from 'react';
 import { styled } from 'styled-components';
 import { Button } from '../button';
 import { theme } from '../theme';
-import {
-  DialogProvider,
-  preventDialogDismissForSelectInteraction,
-  useDialogZIndex
-} from './state';
+import { DialogProvider, preventDialogDismissForSelectInteraction, useDialogZIndex } from './state';
 import { ContentSide, Overlay } from './styles';
 
 let Wrapper = styled(ContentSide)`
@@ -67,7 +63,11 @@ export let Panel = {
     onOpenChange,
     style,
     autoCloseOnSubmit,
-    width
+    width,
+    onEscapeKeyDown,
+    onPointerDownOutside,
+    onInteractOutside,
+    onFocusOutside
   }: {
     children: React.ReactNode;
     isOpen: boolean;
@@ -75,6 +75,10 @@ export let Panel = {
     style?: React.CSSProperties;
     autoCloseOnSubmit?: boolean;
     width?: number | string;
+    onEscapeKeyDown?: RadixDialogDialog.DialogContentProps['onEscapeKeyDown'];
+    onPointerDownOutside?: RadixDialogDialog.DialogContentProps['onPointerDownOutside'];
+    onInteractOutside?: RadixDialogDialog.DialogContentProps['onInteractOutside'];
+    onFocusOutside?: RadixDialogDialog.DialogContentProps['onFocusOutside'];
   }) => {
     let zIndex = useDialogZIndex(isOpen);
     let contentRef = useRef<HTMLDivElement | null>(null);
@@ -87,9 +91,19 @@ export let Panel = {
 
             <Wrapper
               ref={contentRef}
-              onPointerDownOutside={preventDialogDismissForSelectInteraction}
-              onInteractOutside={preventDialogDismissForSelectInteraction}
-              onFocusOutside={preventDialogDismissForSelectInteraction}
+              onEscapeKeyDown={onEscapeKeyDown}
+              onPointerDownOutside={event => {
+                preventDialogDismissForSelectInteraction(event);
+                onPointerDownOutside?.(event);
+              }}
+              onInteractOutside={event => {
+                preventDialogDismissForSelectInteraction(event);
+                onInteractOutside?.(event);
+              }}
+              onFocusOutside={event => {
+                preventDialogDismissForSelectInteraction(event);
+                onFocusOutside?.(event);
+              }}
               style={{
                 ...style,
 

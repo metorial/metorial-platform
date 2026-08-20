@@ -73,6 +73,7 @@ class slateDeploymentServiceImpl {
       data: {
         isCancelledByRedeploy: true,
         status: 'failed',
+        runtimeIdentityRevokedAt: new Date(),
         errorCode: 'cancelled_by_redeploy',
         errorMessage: 'Cancelled by redeploy'
       }

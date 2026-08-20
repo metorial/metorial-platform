@@ -6,10 +6,19 @@ import {
 } from './poll';
 import { slateTriggerEventProcessQueueProcessor } from './process';
 import {
+  slateTriggerReceiverFinalCleanupCron,
+  slateTriggerReceiverFinalCleanupQueueProcessor,
   slateTriggerWebhookRegisterQueueProcessor,
+  slateTriggerWebhookRegistrationRepairCron,
+  slateTriggerWebhookRegistrationRepairQueueProcessor,
+  slateTriggerWebhookRenewalCron,
+  slateTriggerWebhookRetiringCleanupQueueProcessor,
   slateTriggerWebhookUnregisterQueueProcessor
 } from './register';
-import { slateTriggerEventSendQueueProcessor } from './send';
+import {
+  slateTriggerEventSendQueueProcessor,
+  slateTriggerWebhookDispatchOutboxQueueProcessor
+} from './send';
 import { slateTriggerWebhookQueueProcessor } from './webhook';
 import { slateTriggerEventInputArchiveQueueProcessor } from './archive';
 import {
@@ -17,18 +26,43 @@ import {
   slateTriggerCleanupManyQueueProcessor,
   slateTriggerCleanupSingleQueueProcessor
 } from './cleanup';
+import {
+  slateTriggerWebhookPayloadCleanupCron,
+  slateTriggerWebhookPayloadCleanupQueueProcessor
+} from './webhookPayloadCleanup';
+import {
+  slateTriggerWebhookTerminalRepairCron,
+  slateTriggerWebhookTerminalRepairQueueProcessor
+} from './webhookTerminalRepair';
+import {
+  slateTriggerWebhookReplayCleanupCron,
+  slateTriggerWebhookReplayCleanupQueueProcessor
+} from './webhookReplayCleanup';
 
 export let triggerQueues = combineQueueProcessors([
   slateTriggerPollingCron,
   slateTriggerPollingBatchQueueProcessor,
   slateTriggerPollQueueProcessor,
   slateTriggerWebhookQueueProcessor,
+  slateTriggerWebhookPayloadCleanupCron,
+  slateTriggerWebhookPayloadCleanupQueueProcessor,
+  slateTriggerWebhookTerminalRepairCron,
+  slateTriggerWebhookTerminalRepairQueueProcessor,
+  slateTriggerWebhookReplayCleanupCron,
+  slateTriggerWebhookReplayCleanupQueueProcessor,
   slateTriggerEventProcessQueueProcessor,
   slateTriggerEventSendQueueProcessor,
+  slateTriggerWebhookDispatchOutboxQueueProcessor,
   slateTriggerEventInputArchiveQueueProcessor,
   slateTriggerCleanupCron,
   slateTriggerCleanupManyQueueProcessor,
   slateTriggerCleanupSingleQueueProcessor,
   slateTriggerWebhookRegisterQueueProcessor,
-  slateTriggerWebhookUnregisterQueueProcessor
+  slateTriggerWebhookUnregisterQueueProcessor,
+  slateTriggerWebhookRetiringCleanupQueueProcessor,
+  slateTriggerWebhookRegistrationRepairCron,
+  slateTriggerWebhookRegistrationRepairQueueProcessor,
+  slateTriggerWebhookRenewalCron,
+  slateTriggerReceiverFinalCleanupCron,
+  slateTriggerReceiverFinalCleanupQueueProcessor
 ]);

@@ -2,7 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type {
   SlatesWebhookHttp,
   SlatesWebhookHttpResponse,
-  SlatesWebhookRequestMatcher
+  SlateWebhookRequestMatcher
 } from '@slates/proto';
 import { SlateTriggerReceiverTriggerSource } from '../../prisma/generated/client';
 import type {
@@ -11,6 +11,7 @@ import type {
   SlateAuthConfig,
   SlateInstance,
   SlateInstanceConfig,
+  SlateConfigSchema,
   SlateTriggerReceiver,
   SlateTriggerReceiverTrigger,
   Tenant
@@ -18,6 +19,13 @@ import type {
 
 export const normalizeEventTypes = (eventTypes?: string[] | null) =>
   eventTypes && eventTypes.length > 0 ? eventTypes : [];
+
+export let isRoutableWebhookReceiverTrigger = (
+  trigger: Pick<SlateTriggerReceiverTrigger, 'source' | 'tombstonedAt' | 'ingressDisabledAt'>
+) =>
+  trigger.source === SlateTriggerReceiverTriggerSource.webhook &&
+  trigger.tombstonedAt === null &&
+  trigger.ingressDisabledAt === null;
 
 export type TriggerInvocationSpec =
   | {
@@ -33,7 +41,7 @@ export type TriggerInvocationSpec =
 
 export type WebhookHttpCapability = SlatesWebhookHttp;
 export type WebhookHttpMethod = NonNullable<SlatesWebhookHttp['methods']>[number];
-export type WebhookRequestMatcher = SlatesWebhookRequestMatcher;
+export type WebhookRequestMatcher = SlateWebhookRequestMatcher;
 
 export type WebhookHttpResponse = SlatesWebhookHttpResponse;
 
@@ -47,8 +55,9 @@ export type ReceiverTriggerWithRelations = SlateTriggerReceiverTrigger & {
   receiver: SlateTriggerReceiver & {
     tenant: Tenant;
     slate: Slate;
+    triggers: (SlateTriggerReceiverTrigger & { action: SlateAction })[];
     slateInstance: SlateInstance & {
-      currentConfig: SlateInstanceConfig | null;
+      currentConfig: (SlateInstanceConfig & { schema: SlateConfigSchema }) | null;
     };
     authConfig: SlateAuthConfig | null;
   };
@@ -59,12 +68,24 @@ export const receiverInclude = {
   slate: true,
   slateInstance: {
     include: {
-      currentConfig: true
+      currentConfig: { include: { schema: true } }
     }
   },
   triggers: {
     include: {
       action: true
+    }
+  },
+  pathSecrets: {
+    where: { status: { in: ['active', 'retiring'] } },
+    orderBy: { secretVersion: 'desc' as const },
+    select: {
+      id: true,
+      status: true,
+      secretVersion: true,
+      validFrom: true,
+      validUntil: true,
+      rotatedAt: true
     }
   },
   authConfig: true

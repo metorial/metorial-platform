@@ -70,6 +70,7 @@ SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
 AUTH_TICKET_SECRET = "auth-ticket-secret"
 ENCRYPTION_SECRET = "encryption-secret"
+ENCRYPTION_KEY = "encryption-key"
 CONSUMER_TOKEN_SECRET = "consumer-token-secret"
 CONSUMER_SESSION_SECRET = "consumer-token-secret"
 SIGNAL_API_URL = "http://localhost:52050/metorial-signal"

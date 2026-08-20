@@ -314,8 +314,6 @@ let deployToFunctionBayQueueProcessor = deployToFunctionBayQueue.process(async d
     data: { functionVersionOid: version.oid }
   });
 
-  await succeededQueue.add({ deploymentId: deployment.id });
-
   await uploadBundleQueue.add({
     deploymentId: deployment.id,
     bundleId: bundle.id,
@@ -431,6 +429,8 @@ let uploadBundleQueueProcessor = uploadBundleQueue.process(async data => {
         bucket
       }
     });
+
+    await succeededQueue.add({ deploymentId: data.deploymentId });
   } catch (err) {
     await db.functionBundle.updateMany({
       where: { id: data.bundleId },

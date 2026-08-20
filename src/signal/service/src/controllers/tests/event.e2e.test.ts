@@ -2,14 +2,19 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { env } from '../../env';
 import { eventCleanupQueueProcessor } from '../../queues/send/cleanup';
 import { storage } from '../../storage';
-import { signalClient } from '../../test/client';
+import { createTestSignalClient, signalClient } from '../../test/client';
 import { fixtures } from '../../test/fixtures';
 import { cleanDatabase, testDb } from '../../test/setup';
 
 describe('event.e2e', () => {
   const f = fixtures(testDb);
+  let serviceCredential = 'hub-service-test-credential';
+  let internalClient = createTestSignalClient({
+    headers: { 'x-metorial-signal-service-credential': serviceCredential }
+  });
 
   beforeEach(async () => {
+    env.internal.HUB_SERVICE_CREDENTIAL = serviceCredential;
     await cleanDatabase();
   });
 
@@ -110,4 +115,105 @@ describe('event.e2e', () => {
       }
     });
   });
+
+  it('authenticates idempotent create and returns the same committed event', async () => {
+    let tenant = await f.tenant.default();
+    let sender = await f.sender.default();
+    let request = {
+      tenantId: tenant.id,
+      senderId: sender.id,
+      idempotencyKey: 'hub-key-a',
+      topics: ['orders'],
+      eventType: 'order.created',
+      payloadJson: '{"id":"order-a"}',
+      headers: { 'content-type': 'application/json' }
+    };
+    let secondInternalClient = createTestSignalClient({
+      headers: { 'x-metorial-signal-service-credential': serviceCredential }
+    });
+    let [first, duplicate] = await Promise.all([
+      internalClient.event.createIdempotent(request),
+      secondInternalClient.event.createIdempotent(request)
+    ]);
+
+    expect(duplicate).toEqual(first);
+    expect(
+      await testDb.event.count({ where: { idempotencyKey: request.idempotencyKey } })
+    ).toBe(1);
+  });
+
+  it('lets one concurrent mismatched fingerprint win and rejects the other', async () => {
+    let tenant = await f.tenant.default();
+    let sender = await f.sender.default();
+    let request = {
+      tenantId: tenant.id,
+      senderId: sender.id,
+      idempotencyKey: 'hub-key-concurrent-conflict',
+      topics: ['orders'],
+      eventType: 'order.created',
+      payloadJson: '{"id":"order-a"}',
+      headers: {}
+    };
+    let secondInternalClient = createTestSignalClient({
+      headers: { 'x-metorial-signal-service-credential': serviceCredential }
+    });
+    let results = await Promise.allSettled([
+      internalClient.event.createIdempotent(request),
+      secondInternalClient.event.createIdempotent({
+        ...request,
+        payloadJson: '{"id":"order-b"}'
+      })
+    ]);
+
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(result => result.status === 'rejected')).toHaveLength(1);
+    expect(results.find(result => result.status === 'rejected')).toMatchObject({
+      reason: { data: { code: 'idempotency_payload_conflict' } }
+    });
+    expect(
+      await testDb.event.count({ where: { idempotencyKey: request.idempotencyKey } })
+    ).toBe(1);
+  });
+
+  it('fails missing and invalid service credentials before key lookup', async () => {
+    let tenant = await f.tenant.default();
+    let invalidClient = createTestSignalClient({
+      headers: { 'x-metorial-signal-service-credential': 'invalid' }
+    });
+    let lookup = { tenantId: tenant.id, idempotencyKey: 'unknown-key' };
+
+    let missing = signalClient.event.getByIdempotencyKey(lookup).catch(error => error);
+    let invalid = invalidClient.event.getByIdempotencyKey(lookup).catch(error => error);
+    await expect(missing).resolves.toMatchObject({ data: { status: 401 } });
+    await expect(invalid).resolves.toMatchObject({ data: { status: 401 } });
+  });
+
+  it('keeps idempotency lookups tenant-scoped and conflicts on changed fields', async () => {
+    let tenantA = await f.tenant.default();
+    let tenantB = await f.tenant.withIdentifier('tenant-b');
+    let sender = await f.sender.default();
+    let request = {
+      tenantId: tenantA.id,
+      senderId: sender.id,
+      idempotencyKey: 'hub-key-isolated',
+      topics: ['orders'],
+      eventType: 'order.created',
+      payloadJson: '{"id":"order-a"}',
+      headers: {}
+    };
+    await internalClient.event.createIdempotent(request);
+    await expect(
+      internalClient.event.createIdempotent({
+        ...request,
+        payloadJson: '{"id":"order-b"}'
+      })
+    ).rejects.toMatchObject({ data: { code: 'idempotency_payload_conflict' } });
+    await expect(
+      internalClient.event.getByIdempotencyKey({
+        tenantId: tenantB.id,
+        idempotencyKey: request.idempotencyKey
+      })
+    ).rejects.toMatchObject({ data: { status: 404 } });
+  });
+
 });

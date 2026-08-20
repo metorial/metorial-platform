@@ -7,7 +7,7 @@ import {
   useProviderDeployment,
   useProviderTriggers
 } from '@metorial/state';
-import { Badge, Button, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
+import { Badge, Button, Callout, Dialog, Flex, Text, showModal, theme } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
@@ -15,12 +15,23 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { styled } from 'styled-components';
 import { getJsonSchemaObject } from '../../lib/jsonSchema';
+import { CallbackCompactMultiSelect } from './callbackFields';
+import {
+  buildCallbackTriggerUpdateInput,
+  canonicalizeCallbackTriggerInput,
+  normalizeCallbackEventTypes
+} from './overviewLogic';
 
 type ProviderTrigger = DashboardInstanceProvidersTriggersListOutput['items'][number];
 type CallbackTriggerLink = NonNullable<
   ReturnType<typeof useCallback>['data']
 >['providerTriggers'][number];
 type SchemaProperty = JSONSchema7;
+
+let getEventTypes = (eventTypes: unknown) =>
+  Array.isArray(eventTypes)
+    ? eventTypes.filter((eventType): eventType is string => typeof eventType === 'string')
+    : [];
 
 let getInvocationBadge = (
   invocation: ProviderTrigger['invocation']
@@ -97,6 +108,7 @@ let InfoListItem = styled.li`
   color: ${theme.colors.gray700};
   font-size: 16px;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 `;
 
 let SchemaColumn = styled.div`
@@ -105,6 +117,10 @@ let SchemaColumn = styled.div`
   gap: 8px;
   flex: 1;
   min-width: 320px;
+
+  @media (max-width: 520px) {
+    min-width: 0;
+  }
 `;
 
 let SchemaHeading = styled.div`
@@ -399,16 +415,114 @@ let SchemaViewer = ({
   );
 };
 
-let showTriggerDetailsModal = (p: {
+let TriggerEventFilterEditor = (p: {
+  triggerKey: string;
+  availableEventTypes: readonly string[];
+  initialEventTypes: readonly string[];
+  close: () => void;
+  onSave: (eventTypes: string[]) => Promise<boolean>;
+}) => {
+  let getInitialSelection = () =>
+    p.initialEventTypes.length ? [...p.initialEventTypes] : [...p.availableEventTypes];
+  let [eventTypes, setEventTypes] = useState(getInitialSelection);
+  let [isSaving, setIsSaving] = useState(false);
+  let [saveError, setSaveError] = useState(false);
+  let normalizedEventTypes = normalizeCallbackEventTypes(eventTypes);
+  let eventTypesToSave =
+    normalizedEventTypes.length === p.availableEventTypes.length ? [] : normalizedEventTypes;
+  let hasSelection = normalizedEventTypes.length > 0;
+  let hasChanges =
+    canonicalizeCallbackTriggerInput([
+      { triggerId: p.triggerKey, eventTypes: eventTypesToSave }
+    ]) !==
+    canonicalizeCallbackTriggerInput([
+      { triggerId: p.triggerKey, eventTypes: p.initialEventTypes }
+    ]);
+
+  let save = async () => {
+    setIsSaving(true);
+    setSaveError(false);
+
+    try {
+      let didSave = await p.onSave(eventTypesToSave);
+      if (!didSave) {
+        setSaveError(true);
+        return;
+      }
+
+      p.close();
+    } catch {
+      setSaveError(true);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Flex direction="column" gap={10}>
+      <CallbackCompactMultiSelect
+        label="Event types"
+        description="All event types are selected by default. Narrow the selection only if this callback should ignore some events from this trigger."
+        placeholder="Select event types"
+        value={eventTypes}
+        summary={`${normalizedEventTypes.length} of ${p.availableEventTypes.length} selected`}
+        onChange={setEventTypes}
+        items={p.availableEventTypes.map(eventType => ({
+          id: eventType,
+          label: eventType
+        }))}
+      />
+
+      {!hasSelection && (
+        <Callout color="red">
+          Select at least one event type, or remove this trigger from the callback on the
+          Overview tab.
+        </Callout>
+      )}
+
+      {saveError && (
+        <Callout color="red">The event type selection could not be saved. Try again.</Callout>
+      )}
+
+      <Dialog.Actions>
+        <Button
+          size="2"
+          variant="soft"
+          disabled={!hasChanges || isSaving}
+          onClick={() => {
+            setEventTypes(getInitialSelection());
+            setSaveError(false);
+          }}
+        >
+          Reset
+        </Button>
+        <Button
+          size="2"
+          loading={isSaving}
+          disabled={!hasChanges || !hasSelection}
+          onClick={save}
+        >
+          Save Selection
+        </Button>
+      </Dialog.Actions>
+    </Flex>
+  );
+};
+
+let TriggerDetailsContent = (p: {
   trigger: ProviderTrigger;
   callbackTrigger?: CallbackTriggerLink;
+  close: () => void;
+  onSave?: (eventTypes: string[]) => Promise<boolean>;
 }) => {
   let invocationBadge = getInvocationBadge(p.trigger.invocation);
   let inputSchema = getJsonSchemaObject(p.trigger.inputSchema);
   let outputSchema = getJsonSchemaObject(p.trigger.outputSchema);
+  let availableEventTypes = getEventTypes(p.trigger.eventTypes);
+  let selectedEventTypes = getEventTypes(p.callbackTrigger?.eventTypes);
 
-  showModal(({ dialogProps }) => (
-    <Dialog.Wrapper {...dialogProps} width={840}>
+  return (
+    <>
       <Dialog.Title>{p.trigger.name}</Dialog.Title>
       {p.trigger.description && (
         <Dialog.Description>
@@ -438,22 +552,6 @@ let showTriggerDetailsModal = (p: {
             </Badge>
           </Flex>
         </InfoCard>
-
-        {p.callbackTrigger && (
-          <InfoCard>
-            <Text size="2" weight="strong">
-              Callback Settings
-            </Text>
-            <InfoList>
-              <InfoListItem>
-                Event types:{' '}
-                {p.callbackTrigger.eventTypes.length
-                  ? p.callbackTrigger.eventTypes.join(', ')
-                  : 'All'}
-              </InfoListItem>
-            </InfoList>
-          </InfoCard>
-        )}
 
         <InfoCard>
           <Text size="2" weight="strong">
@@ -512,7 +610,63 @@ let showTriggerDetailsModal = (p: {
             )}
           </Flex>
         )}
+
+        {p.callbackTrigger && (
+          <InfoCard style={{ marginTop: 30 }}>
+            <Text size="2" weight="strong" style={{ display: 'block', marginBottom: 10 }}>
+              Events filters (Optional)
+            </Text>
+
+            {p.onSave ? (
+              availableEventTypes.length ? (
+                <TriggerEventFilterEditor
+                  triggerKey={p.trigger.key}
+                  availableEventTypes={availableEventTypes}
+                  initialEventTypes={selectedEventTypes}
+                  close={p.close}
+                  onSave={p.onSave}
+                />
+              ) : (
+                <Callout color="gray">
+                  This integration does not publish event types for this trigger yet. The
+                  callback receives every event from it.
+                </Callout>
+              )
+            ) : (
+              <>
+                <Text size="2" color="gray600">
+                  This callback is archived, so its event type selection is read-only.
+                </Text>
+                <InfoList>
+                  {selectedEventTypes.length ? (
+                    selectedEventTypes.map(eventType => (
+                      <InfoListItem key={eventType}>{eventType}</InfoListItem>
+                    ))
+                  ) : availableEventTypes.length ? (
+                    availableEventTypes.map(eventType => (
+                      <InfoListItem key={eventType}>{eventType}</InfoListItem>
+                    ))
+                  ) : (
+                    <InfoListItem>All provider events</InfoListItem>
+                  )}
+                </InfoList>
+              </>
+            )}
+          </InfoCard>
+        )}
       </Flex>
+    </>
+  );
+};
+
+let showTriggerDetailsModal = (p: {
+  trigger: ProviderTrigger;
+  callbackTrigger?: CallbackTriggerLink;
+  onSave?: (eventTypes: string[]) => Promise<boolean>;
+}) => {
+  showModal(({ close, dialogProps }) => (
+    <Dialog.Wrapper {...dialogProps} width={840}>
+      <TriggerDetailsContent {...p} close={close} />
     </Dialog.Wrapper>
   ));
 };
@@ -520,6 +674,7 @@ let showTriggerDetailsModal = (p: {
 export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
   let callback = useCallback(instance.data?.id, p.callbackId);
+  let updateCallback = callback.useUpdateMutator();
   let deployment = useProviderDeployment(
     instance.data?.id,
     callback.data?.providerDeployment.id
@@ -542,11 +697,19 @@ export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
     );
     let attachedTriggers =
       triggers.data?.items.filter(trigger => callbackTriggerMap.has(trigger.key)) ?? [];
+    let isArchived = callback.data?.status !== 'active';
 
     return (
-      <>
+      <Flex direction="column" gap={12}>
+        {isArchived && (
+          <Callout color="gray">
+            This callback is archived. Its event filters are available for reference but cannot
+            be changed.
+          </Callout>
+        )}
+
         <Table
-          headers={['Name', 'Mode', 'Event Types', '']}
+          headers={['Name', 'Mode', 'Event Filters', 'Actions']}
           data={attachedTriggers.map(trigger => {
             let description =
               trigger.description && trigger.description.length > 110
@@ -554,6 +717,12 @@ export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
                 : (trigger.description ?? '');
             let invocationBadge = getInvocationBadge(trigger.invocation);
             let callbackTrigger = callbackTriggerMap.get(trigger.key);
+            let availableEventTypes = getEventTypes(trigger.eventTypes);
+            let selectedEventTypes = getEventTypes(callbackTrigger?.eventTypes);
+            let selectedEventTypeCount = selectedEventTypes.length
+              ? selectedEventTypes.length
+              : availableEventTypes.length;
+            let canConfigureEventTypes = !isArchived && availableEventTypes.length > 0;
 
             return {
               data: [
@@ -578,15 +747,37 @@ export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
                 <Badge color={invocationBadge.color} size="1">
                   {invocationBadge.label}
                 </Badge>,
-                callbackTrigger?.eventTypes.length
-                  ? callbackTrigger.eventTypes.join(', ')
-                  : 'All',
+                availableEventTypes.length
+                  ? `${selectedEventTypeCount} of ${availableEventTypes.length} event types`
+                  : 'All events',
                 <Button
                   size="1"
                   variant="outline"
-                  onClick={() => showTriggerDetailsModal({ trigger, callbackTrigger })}
+                  aria-label={`${
+                    canConfigureEventTypes ? 'Configure events for' : 'View details for'
+                  } ${trigger.name}`}
+                  onClick={() =>
+                    showTriggerDetailsModal({
+                      trigger,
+                      callbackTrigger,
+                      onSave:
+                        isArchived || !callbackTrigger
+                          ? undefined
+                          : async eventTypes => {
+                              let [result] = await updateCallback.mutate({
+                                triggers: buildCallbackTriggerUpdateInput(
+                                  callbackTriggers.map(current => current.providerTrigger.key),
+                                  callbackTriggers,
+                                  { [trigger.key]: eventTypes }
+                                )
+                              });
+
+                              return Boolean(result);
+                            }
+                    })
+                  }
                 >
-                  View Details
+                  {canConfigureEventTypes ? 'Configure Events' : 'View Details'}
                 </Button>
               ]
             };
@@ -595,10 +786,11 @@ export let CallbackTriggersList = (p: { callbackId: string | undefined }) => {
 
         {attachedTriggers.length === 0 && (
           <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-            No provider triggers have been attached to this callback yet.
+            No provider triggers are attached. Select triggers on the Overview tab to configure
+            their event filters here.
           </Text>
         )}
-      </>
+      </Flex>
     );
   });
 };

@@ -1,6 +1,10 @@
 export {};
 
 async function main() {
+  let { configureProvisionedTenantAppProductionAdapters } = await import(
+    '@metorial-subspace/module-auth'
+  );
+  configureProvisionedTenantAppProductionAdapters();
   await import('./endpoints');
   await import('./connection/server');
 }

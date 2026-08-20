@@ -139,7 +139,8 @@ class enclaveServiceImpl {
           overrideFunction: true,
           overrideFunctionVersion: {
             include: {
-              runtime: true
+              runtime: true,
+              functionBundle: true
             }
           }
         }

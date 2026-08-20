@@ -67,6 +67,7 @@ export const SlateTriggerReceiverFixtures = (db: PrismaClient) => {
         receiverOid: data.receiverOid,
         actionOid: data.actionOid,
         source,
+        eventTypes: [],
         pollIntervalSeconds:
           data.source === SlateTriggerReceiverTriggerSource.polling ? 60 : null,
         state: {},

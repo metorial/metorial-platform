@@ -23,7 +23,15 @@ export abstract class IProviderDeployment extends IProviderFunctionality {
     data: ProviderConfigCreateParam
   ): Promise<ProviderConfigCreateRes>;
 
-  abstract deleteProviderConfig(data: ProviderConfigDeleteParam): Promise<ProviderConfigDeleteRes>;
+  async updateProviderConfig(
+    _data: ProviderConfigUpdateParam
+  ): Promise<ProviderConfigUpdateRes> {
+    throw new Error('Provider backend does not support post-creation config updates');
+  }
+
+  abstract deleteProviderConfig(
+    data: ProviderConfigDeleteParam
+  ): Promise<ProviderConfigDeleteRes>;
 }
 
 export interface ProviderDeploymentCreateParam {
@@ -60,6 +68,22 @@ export interface ProviderConfigCreateParam {
 export interface ProviderConfigCreateRes {
   slateInstance?: SlateInstance | null;
   shuttleServerConfig?: ShuttleServerConfig | null;
+}
+
+export interface ProviderConfigPatch {
+  set?: Record<string, unknown>;
+  remove?: string[];
+}
+
+export interface ProviderConfigUpdateParam {
+  tenant: Tenant;
+  backing: ProviderConfigDeleteBacking;
+  patch: ProviderConfigPatch;
+  expectedGeneration?: number;
+}
+
+export interface ProviderConfigUpdateRes {
+  configGeneration?: number | null;
 }
 
 export interface ProviderConfigDeleteBacking {

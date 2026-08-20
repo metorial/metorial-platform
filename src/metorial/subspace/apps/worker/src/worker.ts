@@ -2,7 +2,8 @@ import { runQueueProcessors } from '@lowerdeck/queue';
 import { agentQueueProcessor } from '@metorial-subspace/module-agent/src/queues';
 import {
   authQueueProcessor,
-  reconcileManagedCredentialProviderManyQueue
+  reconcileManagedCredentialProviderManyQueue,
+  reconcileProvisionedAppProjections
 } from '@metorial-subspace/module-auth/src/queues';
 import { callbackQueueProcessor } from '@metorial-subspace/module-callback/src/queues';
 import { catalogQueueProcessor } from '@metorial-subspace/module-catalog/src/queues';
@@ -53,3 +54,9 @@ setTimeout(() => {
     { id: 'boot-reconcile-managed-provider' }
   );
 }, 10_000);
+
+setTimeout(() => {
+  void reconcileProvisionedAppProjections().catch(error => {
+    console.error('Failed to run provisioned-app projection boot repair', error);
+  });
+}, 15_000);

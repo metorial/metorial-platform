@@ -13,6 +13,7 @@ import {
 import { app } from './_app';
 import { createdAtValidator, updatedAtValidator } from './_dateFilter';
 import { deploymentValidator, resolveDeployment } from './providerResourceValidators';
+import { mapProviderConfigPatchInput } from './providerConfigPatch';
 import { normalizeToolFilters, toolFiltersValidator } from './sessionProvider';
 import { tenantApp } from './tenant';
 
@@ -270,7 +271,16 @@ export let providerConfigController = app.controller({
         description: v.optional(v.string()),
         metadata: v.optional(v.record(v.any())),
         privateMetadata: v.optional(v.record(v.any())),
-        toolFilters: toolFiltersValidator
+        toolFilters: toolFiltersValidator,
+        configPatch: v.optional(
+          v.object({
+            set: v.optional(v.record(v.any())),
+            remove: v.optional(v.array(v.string()))
+          })
+        ),
+        expectedConfigGeneration: v.optional(
+          v.number({ modifiers: [v.integer(), v.positive()] })
+        )
       })
     )
     .do(async ctx => {
@@ -287,7 +297,8 @@ export let providerConfigController = app.controller({
           privateMetadata: ctx.input.privateMetadata,
           ...(ctx.input.toolFilters !== undefined
             ? { toolFilters: normalizeToolFilters(ctx.input.toolFilters as any) }
-            : {})
+            : {}),
+          ...mapProviderConfigPatchInput(ctx.input)
         }
       });
 

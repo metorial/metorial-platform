@@ -29,6 +29,11 @@ import { slateTriggerReceiverController } from './slateTriggerReceiver';
 import { slateVersionController } from './slateVersion';
 import { slateVersionDiscoveryController } from './slateVersionDiscovery';
 import { tenantController } from './tenant';
+import { authenticatedSlateTriggerReceiverSecretController } from './slateTriggerReceiverSecretAuthenticated';
+import {
+  claimSlatesHubSecretRpcRequest,
+  getSlatesHubSecretRpcSignatureToken
+} from './slateTriggerReceiverSecretRpcAuth';
 
 export let rootController = app.controller({
   tenant: tenantController,
@@ -66,8 +71,24 @@ export let rootController = app.controller({
 });
 
 export let slatesHubRPC = createServer({})(rootController);
+export let slatesHubSecretRPC = createServer({})(
+  authenticatedSlateTriggerReceiverSecretController
+);
+export let slatesHubSecretApi = rpcMux(
+  {
+    path: '/slates-hub-secrets',
+    getSignatureToken: getSlatesHubSecretRpcSignatureToken,
+    onVerifiedSignature: claimSlatesHubSecretRpcRequest,
+    sensitiveRequestFields: ['receiptToken', 'receipt_token']
+  },
+  [slatesHubSecretRPC]
+);
 export let slatesHubApi = apiMux([
-  { endpoint: rpcMux({ path: '/slates-hub' }, [slatesHubRPC]) }
+  { endpoint: rpcMux({ path: '/slates-hub' }, [slatesHubRPC]) },
+  { endpoint: slatesHubSecretApi }
 ]);
 
 export type SlatesHubClient = InferClient<typeof rootController>;
+export type SlatesHubSecretClient = InferClient<
+  typeof authenticatedSlateTriggerReceiverSecretController
+>;

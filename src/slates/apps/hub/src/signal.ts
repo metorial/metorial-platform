@@ -6,7 +6,12 @@ import { db } from './db';
 import { env } from './env';
 
 export let signal: ReturnType<typeof createSignalClient> = createSignalClient({
-  endpoint: env.signal.SIGNAL_API_URL
+  endpoint: env.signal.SIGNAL_API_URL,
+  headers: env.signal.SIGNAL_SERVICE_CREDENTIAL
+    ? {
+        'x-metorial-signal-service-credential': env.signal.SIGNAL_SERVICE_CREDENTIAL
+      }
+    : undefined
 });
 
 let signalTriggerSenderPromise = new ProgrammablePromise<

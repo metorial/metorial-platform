@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   processSlateTriggerWebhookQueueRequest,
+  settleExactWebhookQueueResult,
   type PendingWebhookQueueRequest
 } from './triggerWebhookQueueProcessing';
 
@@ -14,10 +15,34 @@ let request = (
   syncOwnerExpiresAt: null,
   syncOwnerCommitStartedAt: null,
   syncCompletedReceiverTriggerIds: [],
+  queueClaimToken: 'claim',
+  queueClaimState: 'owned',
   ...overrides
 });
 
 describe('processSlateTriggerWebhookQueueRequest', () => {
+  it.each([
+    ['success', { status: 'committed' }, 'accepted'],
+    ['rejection', { status: 'rejected', code: 'credential_invalid' }, 'rejected']
+  ] as const)(
+    'routes %s verification to the transaction-owning terminal handler',
+    async (_name, result, expected) => {
+      let calls: string[] = [];
+      await expect(
+        settleExactWebhookQueueResult({
+          result: result as any,
+          onAccepted: async () => {
+            calls.push('accepted');
+          },
+          onRejected: async () => {
+            calls.push('rejected');
+          }
+        })
+      ).resolves.toBe(expected);
+      expect(calls).toEqual([expected]);
+    }
+  );
+
   it('re-checks processed state after held ownership releases and skips late-success work', async () => {
     let pendingRequest: PendingWebhookQueueRequest | null = request({
       syncOwnerToken: 'committing-owner',
@@ -36,7 +61,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
     let finalize = vi.fn();
 
     let processing = processSlateTriggerWebhookQueueRequest(
-      { webhookRequestId: 'wr_test' },
+      { webhookRequestId: 'wr_test', claimToken: 'claim' },
       {
         loadPendingRequest: async () => pendingRequest,
         usingLock: async (_key, callback) => {
@@ -44,7 +69,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
           await released;
           return callback();
         },
-        fenceExpiredOwner: vi.fn(),
+        claimQueueOwnership: async () => 'owned',
         targetExists: async () => true,
         handleTarget,
         checkpointTriggerCompleted: vi.fn(),
@@ -77,15 +102,17 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
       processSlateTriggerWebhookQueueRequest(
         {
           webhookRequestId: 'wr_test',
+          claimToken: 'claim',
           excludeReceiverTriggerIds: ['payload_done']
         },
         {
           loadPendingRequest: async () => pendingRequest,
           usingLock: async (_key, callback) => callback(),
-          fenceExpiredOwner: async value => {
+          claimQueueOwnership: async value => {
             calls.push('fence');
             value.syncOwnerToken = null;
             value.syncOwnerExpiresAt = null;
+            return 'owned';
           },
           targetExists: async () => true,
           handleTarget,
@@ -110,7 +137,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
 
     await expect(
       processSlateTriggerWebhookQueueRequest(
-        { webhookRequestId: 'wr_test' },
+        { webhookRequestId: 'wr_test', claimToken: 'claim' },
         {
           loadPendingRequest: async () =>
             request({
@@ -118,7 +145,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
               syncOwnerExpiresAt: new Date('2026-01-01T00:00:02.000Z')
             }),
           usingLock: async (_key, callback) => callback(),
-          fenceExpiredOwner: vi.fn(),
+          claimQueueOwnership: async () => 'ownerActive',
           targetExists: async () => true,
           handleTarget,
           checkpointTriggerCompleted: vi.fn(),
@@ -128,6 +155,29 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
       )
     ).resolves.toBe('ownerActive');
 
+    expect(handleTarget).not.toHaveBeenCalled();
+    expect(finalize).not.toHaveBeenCalled();
+  });
+
+  it('skips duplicate or swapped queue claims without handling or finalizing', async () => {
+    let handleTarget = vi.fn();
+    let finalize = vi.fn();
+    await expect(
+      processSlateTriggerWebhookQueueRequest(
+        { webhookRequestId: 'wr_test', claimToken: 'swapped-claim' },
+        {
+          loadPendingRequest: async () =>
+            request({ queueClaimToken: 'claim', queueClaimState: 'owned' }),
+          usingLock: async (_key, callback) => callback(),
+          claimQueueOwnership: async (_request, token) =>
+            token === 'claim' ? 'owned' : 'invalid',
+          targetExists: async () => true,
+          handleTarget,
+          checkpointTriggerCompleted: vi.fn(),
+          finalize
+        }
+      )
+    ).resolves.toBe('skipped');
     expect(handleTarget).not.toHaveBeenCalled();
     expect(finalize).not.toHaveBeenCalled();
   });
@@ -142,7 +192,7 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
     let dependencies = {
       loadPendingRequest: async () => pendingRequest,
       usingLock: async <T>(_key: string, callback: () => Promise<T>) => callback(),
-      fenceExpiredOwner: vi.fn(),
+      claimQueueOwnership: async () => 'owned' as const,
       targetExists: async () => true,
       handleTarget: async (
         _request: PendingWebhookQueueRequest,
@@ -170,7 +220,11 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
 
     await expect(
       processSlateTriggerWebhookQueueRequest(
-        { webhookRequestId: 'wr_test', excludeReceiverTriggerIds: ['payload_done'] },
+        {
+          webhookRequestId: 'wr_test',
+          claimToken: 'claim',
+          excludeReceiverTriggerIds: ['payload_done']
+        },
         dependencies
       )
     ).rejects.toThrow('second trigger failed');
@@ -179,7 +233,11 @@ describe('processSlateTriggerWebhookQueueRequest', () => {
 
     await expect(
       processSlateTriggerWebhookQueueRequest(
-        { webhookRequestId: 'wr_test', excludeReceiverTriggerIds: ['payload_done'] },
+        {
+          webhookRequestId: 'wr_test',
+          claimToken: 'claim',
+          excludeReceiverTriggerIds: ['payload_done']
+        },
         dependencies
       )
     ).resolves.toBe('processed');

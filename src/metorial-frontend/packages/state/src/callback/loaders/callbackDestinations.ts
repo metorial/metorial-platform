@@ -1,6 +1,8 @@
 import {
+  DashboardInstanceCallbacksDestinationsConsumeSigningSecretReceiptBody,
   DashboardInstanceCallbacksDestinationsCreateBody,
   DashboardInstanceCallbacksDestinationsListQuery,
+  DashboardInstanceCallbacksDestinationsRotateSigningSecretBody,
   DashboardInstanceCallbacksDestinationsUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -17,19 +19,47 @@ export let callbackDestinationsLoader = createLoader({
       i: { callbackDestinationId: string },
       { input: { instanceId } }: { input: { instanceId: string } }
     ) =>
-      withAuth(sdk =>
-        sdk.callbacks.destinations.delete(
-          instanceId,
-          i.callbackDestinationId
-        )
-      )
+      withAuth(sdk => sdk.callbacks.destinations.delete(instanceId, i.callbackDestinationId))
   }
 });
 
-export let useCreateCallbackDestination =
+export let useCreateCallbackDestination = callbackDestinationsLoader.createExternalMutator(
+  (i: DashboardInstanceCallbacksDestinationsCreateBody & { instanceId: string }) =>
+    withAuth(sdk => sdk.callbacks.destinations.create(i.instanceId, i))
+);
+
+export let useRotateCallbackDestinationSigningSecret =
   callbackDestinationsLoader.createExternalMutator(
-    (i: DashboardInstanceCallbacksDestinationsCreateBody & { instanceId: string }) =>
-      withAuth(sdk => sdk.callbacks.destinations.create(i.instanceId, i))
+    (
+      i: DashboardInstanceCallbacksDestinationsRotateSigningSecretBody & {
+        instanceId: string;
+        callbackDestinationId: string;
+      }
+    ) =>
+      withAuth(sdk =>
+        sdk.callbacks.destinations.rotateSigningSecret(i.instanceId, i.callbackDestinationId, {
+          gracePeriodSeconds: i.gracePeriodSeconds
+        })
+      )
+  );
+
+export let useConsumeCallbackDestinationSigningSecretReceipt =
+  callbackDestinationsLoader.createExternalMutator(
+    (
+      i: DashboardInstanceCallbacksDestinationsConsumeSigningSecretReceiptBody & {
+        instanceId: string;
+        callbackDestinationId: string;
+        receiptId: string;
+      }
+    ) =>
+      withAuth(sdk =>
+        sdk.callbacks.destinations.consumeSigningSecretReceipt(
+          i.instanceId,
+          i.callbackDestinationId,
+          i.receiptId,
+          { receiptToken: i.receiptToken }
+        )
+      )
   );
 
 export let useCallbackDestinations = (

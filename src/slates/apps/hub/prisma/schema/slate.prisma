@@ -167,9 +167,17 @@ model SlateConfigSchema {
 
   identifier String @unique
   hash       String
+  version    Int    @default(1)
+  descriptorHash String?
 
   /// [SlateConfigSchema]
   schema Json
+
+  /// [SlateConfigFieldDescriptors]
+  fields Json @default("{}")
+
+  /// [SlateConfigV1Compatibility]
+  compatibility Json?
 
   /// [SlateDocReferences]
   docs Json @default("[]")
@@ -429,6 +437,12 @@ model SlateDeployment {
 
   /// [SlateDeploymentProviderDeploymentInfo]
   providerDeploymentInfo Json
+
+  /// Per-deployment runtime identity. The bearer secret is derived from the Hub root key and
+  /// never persisted; replacing the ID/generation rotates it and revoked identities fail closed.
+  runtimeIdentityId         String?   @unique
+  runtimeIdentityGeneration Int       @default(0)
+  runtimeIdentityRevokedAt  DateTime?
 
   internalLogs String[]
 

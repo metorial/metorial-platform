@@ -1,15 +1,12 @@
 import { Service } from '@lowerdeck/service';
 import { Consumer, type Instance, type OrganizationActor } from '@metorial/db';
-import type { ProviderEventBase } from '@metorial/fabric';
 import { ensureSubspaceConsumerActor } from '@metorial/internal-clients';
 import { getActorForSubspace, getTenantForSubspace } from '../subspace';
+import { toEventBase } from './eventBase';
+
+export { toEventBase } from './eventBase';
 
 export type Tail<T extends any[]> = T extends [any, ...infer U] ? U : [];
-
-export let toEventBase = (params: Record<string, any>): ProviderEventBase => {
-  let { instance, organizationActor, ...input } = params;
-  return { instance, organizationActor, input };
-};
 
 type PaginatorRunQuery = {
   limit?: number;

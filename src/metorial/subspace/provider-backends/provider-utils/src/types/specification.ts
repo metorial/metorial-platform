@@ -5,6 +5,7 @@ import type {
   ToolAnnotations,
   ToolExecution
 } from '@modelcontextprotocol/sdk/types.js';
+import type { SpecificationTriggerWebhookHttp } from './webhookVerification';
 
 export type SpecificationAuthMethodType = 'oauth' | 'token' | 'service_account' | 'custom';
 
@@ -130,6 +131,8 @@ export interface SpecificationTrigger {
   inputJsonSchema: Record<string, any>;
   outputJsonSchema?: Record<string, any>;
 
+  eventTypes: string[];
+
   invocation:
     | {
         type: 'polling';
@@ -139,6 +142,8 @@ export interface SpecificationTrigger {
         type: 'webhook';
         autoRegistration: boolean;
         autoUnregistration: boolean;
+        /** The provider-published authenticity declaration. */
+        http: SpecificationTriggerWebhookHttp;
       };
 
   capabilities: {

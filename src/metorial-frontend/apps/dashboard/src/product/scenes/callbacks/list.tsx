@@ -4,12 +4,15 @@ import {
 } from '@metorial/dashboard-sdk';
 import { Paths } from '@metorial/frontend-config';
 import {
+  useArchiveCallback,
   useCallbacks,
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  useProvider
 } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
+import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
+import { RiArchiveLine } from '@remixicon/react';
 import { ID } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '@metorial/empty-state';
@@ -46,6 +49,26 @@ let getStatusColor = (status: Callback['status']) => {
   return 'gray';
 };
 
+// The list payload only carries the deployment, so resolve the provider name per row.
+let CallbackProviderCell = (p: { callback: Callback }) => {
+  let instance = useCurrentInstance();
+  let provider = useProvider(instance.data?.id, p.callback.providerDeployment.providerId);
+
+  return (
+    <div>
+      <Text size="2" weight="strong">
+        {provider.data?.name ??
+          p.callback.providerDeployment.name ??
+          p.callback.providerDeployment.id}
+      </Text>
+      <Text size="1" color="gray600">
+        {p.callback.providerTriggers.length}{' '}
+        {p.callback.providerTriggers.length === 1 ? 'trigger' : 'triggers'}
+      </Text>
+    </div>
+  );
+};
+
 let callbacksTableState: TableStateProvider<
   CallbacksTableProps,
   Callback,
@@ -74,8 +97,21 @@ let callbacksTableState: TableStateProvider<
   };
 };
 
+let useCallbacksTableHookState = (
+  _: TableStateProviderResult<Callback>,
+  props: CallbacksTableProps
+) => {
+  let archiveCallback = useArchiveCallback();
+
+  return {
+    archiveCallback,
+    instanceId: props.instanceId
+  };
+};
+
 let callbacksTable = new DashboardTable<CallbacksTableProps, Callback>('callbacks')
   .state(callbacksTableState)
+  .hookState(useCallbacksTableHookState)
   .columns([
     {
       id: 'info',
@@ -97,18 +133,8 @@ let callbacksTable = new DashboardTable<CallbacksTableProps, Callback>('callback
     {
       id: 'deployment',
       isDefault: true,
-      header: 'Deployment',
-      render: callback => (
-        <div>
-          <Text size="2" weight="strong">
-            {callback.providerDeployment.name || callback.providerDeployment.id}
-          </Text>
-          <Text size="1" color="gray600">
-            {callback.providerTriggers.length}{' '}
-            {callback.providerTriggers.length === 1 ? 'trigger' : 'triggers'}
-          </Text>
-        </div>
-      )
+      header: 'Provider',
+      render: callback => <CallbackProviderCell callback={callback} />
     },
     {
       id: 'createdAt',
@@ -138,12 +164,12 @@ let callbacksTable = new DashboardTable<CallbacksTableProps, Callback>('callback
     {
       id: 'pollInterval',
       isDefault: false,
-      header: 'Poll Interval',
+      header: 'Polling Interval Override',
       render: callback => (
         <Text size="2">
           {callback.pollIntervalSecondsOverride
             ? `${callback.pollIntervalSecondsOverride}s`
-            : 'Default'}
+            : 'Provider default'}
         </Text>
       )
     },
@@ -208,6 +234,35 @@ let callbacksTable = new DashboardTable<CallbacksTableProps, Callback>('callback
       type: 'date'
     }
   ])
+  .actions({
+    archive: async (callbacks, state) => {
+      let callback = callbacks[0];
+      if (!callback) return;
+
+      confirm({
+        title: 'Archive callback',
+        description: `No more events will be received or delivered for "${
+          callback.name || callback.id
+        }", and its trigger registrations will be removed. Archiving cannot be undone from the dashboard.`,
+        confirmText: 'Archive',
+        onConfirm: async () => {
+          await state.archiveCallback.mutate({
+            instanceId: state.instanceId,
+            callbackId: callback.id
+          });
+        }
+      });
+    }
+  })
+  .rowActions([
+    {
+      id: 'archive',
+      label: 'Archive',
+      icon: <RiArchiveLine />,
+      disabled: callback => callback.status !== 'active',
+      action: 'archive'
+    }
+  ])
   .link((callback, props) =>
     Paths.instance.callback(
       props.organization.data,
@@ -233,7 +288,7 @@ export let CallbacksList = () => {
       <EmptyState
         extra="Callbacks"
         title="Create your first callback"
-        description="Callbacks let providers notify your application when interesting events happen, like new messages or status changes."
+        description="A callback receives events from one of your providers — like new messages or status changes — so your application can react to them."
         action={{
           label: 'Add Callback',
           onClick: () => {

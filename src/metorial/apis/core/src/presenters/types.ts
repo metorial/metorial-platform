@@ -1544,6 +1544,43 @@ export let callbackInstanceType = PresentableType.create<{
   callbackInstance: SubspaceCallbackInstance;
 }>()('callback.instance');
 
+export let callbackSecretMutationType = PresentableType.create<{
+  callbackSecretMutation: {
+    secret: {
+      id: string;
+      status: string;
+      secretVersion: number;
+      validFrom: Date;
+      validUntil: Date | null;
+    };
+    secretIssuanceReceipt?: { id: string; token: string; expiresAt: Date } | null;
+    graceExpiresAt?: Date | null;
+    auditCorrelationId: string;
+  };
+}>()('callback.secret_mutation');
+
+export let callbackSecretBulkRevocationType = PresentableType.create<{
+  callbackSecretBulkRevocation: {
+    secrets: Array<{
+      id: string;
+      status: string;
+      secretVersion: number;
+      validFrom: Date;
+      validUntil: Date | null;
+    }>;
+    revokedCount: number;
+    auditCorrelationId: string;
+  };
+}>()('callback.secret_bulk_revocation');
+
+export let callbackSecretConsumptionType = PresentableType.create<{
+  callbackSecretConsumption: { plaintext: string; auditCorrelationId: string };
+}>()('callback.secret_consumption');
+
+export let callbackGithubManifestSetupType = PresentableType.create<{
+  setup: { redirectUrl: string; expiresAt: Date; generation: number };
+}>()('callback.github_manifest_setup');
+
 export let portalType = PresentableType.create<{
   portal: Portal & {
     surface: EnrichedConsumerSurface;

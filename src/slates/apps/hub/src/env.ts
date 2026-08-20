@@ -20,7 +20,8 @@ export let env = createValidatedEnv({
 
   signal: {
     SIGNAL_API_URL: v.string(),
-    SIGNAL_SENDER_IDENTIFIER: v.string()
+    SIGNAL_SENDER_IDENTIFIER: v.string(),
+    SIGNAL_SERVICE_CREDENTIAL: v.string()
   },
 
   storage: {
@@ -29,7 +30,11 @@ export let env = createValidatedEnv({
   },
 
   encryption: {
-    ENCRYPTION_KEY: v.string()
+    ENCRYPTION_KEY: v.string(),
+    ENCRYPTION_KEYRING_JSON: v.optional(v.string()),
+    ENCRYPTION_ACTIVE_KEY_VERSION: v.optional(v.number()),
+    ENCRYPTION_ACTIVE_AAD_VERSION: v.optional(v.number()),
+    ENCRYPTION_SUPPORTED_AAD_VERSIONS: v.optional(v.string())
   },
 
   registry: {
@@ -44,7 +49,14 @@ export let env = createValidatedEnv({
 
   slates: {
     SLATES_HUB_INSTANCE_IDENTIFIER: v.string(),
-    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number())
+    SLATES_WEBHOOK_SYNC_TIMEOUT_MS: v.optional(v.number()),
+    SLATES_HUB_SECRET_RPC_TOKEN: v.optional(v.string()),
+    SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_CURRENT: v.optional(v.string()),
+    SLATES_HUB_SUBSPACE_SECRET_RPC_TOKEN_PREVIOUS: v.optional(v.string()),
+    SLATES_WEBHOOK_REPLAY_KEY: v.optional(v.string()),
+    SLATES_CONFIG_SECRET_MIGRATION_MODE: v.optional(
+      v.enumOf(['dual_write_plaintext', 'marker_cutover'])
+    )
   },
 
   nebula: {

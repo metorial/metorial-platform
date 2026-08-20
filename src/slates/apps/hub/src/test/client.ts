@@ -1,17 +1,20 @@
 import { createClient } from '@lowerdeck/rpc-client';
 import { createFetchRouter } from '@lowerdeck/testing-tools';
-import type { SlatesHubClient } from '../apis/internal';
+import type { SlatesHubClient, SlatesHubSecretClient } from '../apis/internal';
 import { slatesHubApi } from '../apis/internal';
 
 type ClientOpts = Parameters<typeof createClient>[0];
 
 export let createSlatesHubInternalClient = (o: ClientOpts): SlatesHubClient =>
   createClient<SlatesHubClient>(o);
+export let createSlatesHubSecretInternalClient = (o: ClientOpts): SlatesHubSecretClient =>
+  createClient<SlatesHubSecretClient>(o);
 
 type ClientOptsLike = {
   endpoint: string;
   headers?: Record<string, string | undefined>;
   getHeaders?: () => Promise<Record<string, string>> | Record<string, string>;
+  getSignatureToken?: () => Promise<string> | string;
   onRequest?: (d: {
     endpoint: string;
     name: string;
@@ -37,6 +40,13 @@ export const createTestHubClient = (opts: Partial<ClientOptsLike> = {}) => {
     ...opts,
     endpoint
   } as ClientOptsLike);
+};
+
+export let createTestHubSecretClient = (opts: Partial<ClientOptsLike> = {}) => {
+  let endpoint = opts.endpoint ?? 'http://slates-hub.test/slates-hub-secrets';
+  registerInMemoryRoute(endpoint);
+  fetchRouter.install();
+  return createSlatesHubSecretInternalClient({ ...opts, endpoint } as ClientOptsLike);
 };
 
 export const slatesHubClient = createTestHubClient();

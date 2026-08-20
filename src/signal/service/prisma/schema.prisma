@@ -26,10 +26,13 @@ model Tenant {
 
   createdAt DateTime @default(now())
 
-  eventDestinations          EventDestination[]
-  webhookDestinationWebhooks WebhookDestinationWebhook[]
-  events                     Event[]
-  callbacks                  Callback[]
+  eventDestinations                EventDestination[]
+  webhookDestinationWebhooks       WebhookDestinationWebhook[]
+  webhookDestinationSigningSecrets WebhookDestinationSigningSecret[]
+  webhookSecretIssuanceReceipts    WebhookSecretIssuanceReceipt[]
+  webhookSecretAuditRecords        WebhookSecretAuditRecord[]
+  events                           Event[]
+  callbacks                        Callback[]
 }
 
 model Sender {
@@ -143,8 +146,8 @@ model Callback {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  destinations CallbackDestinationLink[]
-  events       Event[]
+  destinations   CallbackDestinationLink[]
+  events         Event[]
   callbackEvents CallbackEvent[]
 
   @@index([tenantOid, status])
@@ -174,8 +177,8 @@ model CallbackEvent {
   oid BigInt @id
   id  String @unique
 
-  idempotencyKey String @unique
-  externalId      String?
+  idempotencyKey String              @unique
+  externalId     String?
   status         CallbackEventStatus @default(succeeded)
 
   callbackOid BigInt
@@ -245,6 +248,91 @@ model WebhookDestinationWebhook {
   createdAt DateTime @default(now())
 
   eventDestinationInstances EventDestinationInstance[]
+  signingSecrets            WebhookDestinationSigningSecret[]
+  secretIssuanceReceipts    WebhookSecretIssuanceReceipt[]
+  secretAuditRecords        WebhookSecretAuditRecord[]
+}
+
+model WebhookDestinationSigningSecret {
+  oid BigInt @id
+  id  String @unique(map: "signal_webhook_secret_id_key")
+
+  webhookDestinationWebhookOid BigInt
+  webhookDestinationWebhook    WebhookDestinationWebhook @relation(fields: [webhookDestinationWebhookOid], references: [oid], onDelete: Cascade, map: "signal_webhook_secret_owner_fk")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade, map: "signal_webhook_secret_tenant_fk")
+
+  purpose              String
+  encryptedValue       String
+  secretVersion        Int
+  encryptionKeyVersion Int
+  aadVersion           Int
+  status               String
+  validFrom            DateTime
+  validUntil           DateTime?
+  createdAt            DateTime  @default(now())
+  rotatedAt            DateTime?
+  revokedAt            DateTime?
+
+  @@unique([webhookDestinationWebhookOid, purpose, secretVersion], map: "signal_webhook_secret_owner_version_key")
+  @@index([tenantOid, webhookDestinationWebhookOid], map: "signal_webhook_secret_owner_idx")
+  @@index([webhookDestinationWebhookOid, status, validUntil], map: "signal_webhook_secret_status_idx")
+}
+
+enum WebhookSecretIssuanceReceiptStatus {
+  issued
+  consumed
+  expired
+}
+
+enum WebhookSecretAuditAction {
+  secret_created
+  secret_imported
+  secret_projected
+  secret_rotated
+  secret_revoked
+  secret_issuance_receipt_issued
+  secret_issuance_receipt_consumed
+  secret_issuance_receipt_denied
+}
+
+model WebhookSecretIssuanceReceipt {
+  oid       BigInt @id
+  id        String @unique(map: "signal_webhook_receipt_id_key")
+  tokenHash String @unique(map: "signal_webhook_receipt_token_hash_key")
+
+  tenantOid                    BigInt
+  tenant                       Tenant                    @relation(fields: [tenantOid], references: [oid], onDelete: Cascade, map: "signal_webhook_receipt_tenant_fk")
+  webhookDestinationWebhookOid BigInt
+  webhookDestinationWebhook    WebhookDestinationWebhook @relation(fields: [webhookDestinationWebhookOid], references: [oid], onDelete: Cascade, map: "signal_webhook_receipt_owner_fk")
+
+  secretId          String
+  encryptedMaterial String
+  status            WebhookSecretIssuanceReceiptStatus @default(issued)
+  expiresAt         DateTime
+  consumedAt        DateTime?
+  createdAt         DateTime                           @default(now())
+
+  @@index([tenantOid, webhookDestinationWebhookOid, status, expiresAt], map: "signal_webhook_receipt_status_idx")
+}
+
+model WebhookSecretAuditRecord {
+  oid                BigInt @id
+  id                 String @unique(map: "signal_webhook_audit_id_key")
+  auditCorrelationId String
+
+  tenantOid                    BigInt
+  tenant                       Tenant                    @relation(fields: [tenantOid], references: [oid], onDelete: Cascade, map: "signal_webhook_audit_tenant_fk")
+  webhookDestinationWebhookOid BigInt
+  webhookDestinationWebhook    WebhookDestinationWebhook @relation(fields: [webhookDestinationWebhookOid], references: [oid], onDelete: Cascade, map: "signal_webhook_audit_owner_fk")
+
+  action    WebhookSecretAuditAction
+  metadata  Json
+  createdAt DateTime                 @default(now())
+
+  @@index([auditCorrelationId], map: "signal_webhook_audit_correlation_idx")
+  @@index([tenantOid, webhookDestinationWebhookOid, createdAt], map: "signal_webhook_audit_owner_idx")
 }
 
 enum EventStatus {
@@ -253,11 +341,21 @@ enum EventStatus {
   failed
 }
 
+enum EventInitializationStatus {
+  awaiting_enqueue
+  queued
+  initialized
+}
+
 model Event {
-  oid            BigInt      @id
-  id             String      @unique
-  idempotencyKey String?     @unique
-  status         EventStatus
+  oid                      BigInt                    @id
+  id                       String                    @unique
+  idempotencyKey           String?                   @unique
+  requestFingerprint       String?
+  initializationStatus     EventInitializationStatus @default(awaiting_enqueue)
+  initializationEnqueuedAt DateTime?
+  initializedAt            DateTime?
+  status                   EventStatus
 
   topics String[]
 
@@ -297,6 +395,7 @@ model Event {
   @@index([eventType])
   @@index([callbackOid, createdAt])
   @@index([callbackInstanceId])
+  @@index([initializationStatus, idempotencyKey, createdAt])
 }
 
 enum EventDeliveryIntentStatus {
@@ -329,6 +428,7 @@ model EventDeliveryIntent {
 
   attempts EventDeliveryAttempt[]
 
+  @@unique([eventOid, destinationOid])
   @@index([status])
 }
 

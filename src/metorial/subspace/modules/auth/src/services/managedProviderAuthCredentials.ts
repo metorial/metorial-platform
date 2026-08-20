@@ -14,6 +14,14 @@ import { providerService } from '@metorial-subspace/module-catalog';
 import { getManagedOAuthScopeIds, type ManagedOAuthScopes } from '../lib/managedOAuthScopes';
 import { reconcileAllTenantsManagedBackingsQueue } from '../queues/reconcile';
 import { reconcileManagedCredentialProviderSingleQueue } from '../queues/reconcile/managedCredentialProvider';
+import {
+  activeManagedSecretEncryptionVersions,
+  assertManagedSourceRevocable,
+  createManagedCredentialSourceInTransaction,
+  reencryptManagedSourceInTransaction,
+  resolveManagedCredentialSourcesForProjectionInTransaction,
+  rotateManagedCredentialSourceInTransaction
+} from '../lib/managedProviderAuthCredentialsSecret';
 
 let include = {
   provider: true,
@@ -26,7 +34,8 @@ let include = {
     include: {
       provider: true
     }
-  }
+  },
+  secrets: true
 };
 
 type ManagedProviderAuthCredentialsRecord = Prisma.ManagedProviderAuthCredentialsGetPayload<{
@@ -158,6 +167,19 @@ class managedProviderAuthCredentialsServiceImpl {
         }
       });
 
+      await createManagedCredentialSourceInTransaction({
+        tx: db,
+        owner: {
+          ...managedProviderAuthCredentials,
+          provider,
+          initialProviderAuthMethod: {
+            id: providerAuthMethod.id,
+            provider
+          }
+        },
+        plaintext: d.input.clientSecret
+      });
+
       await addAfterTransactionHook(async () =>
         reconcileManagedCredentialProviderSingleQueue.add(
           { managedProviderAuthCredentialsId: managedProviderAuthCredentials.id },
@@ -234,6 +256,14 @@ class managedProviderAuthCredentialsServiceImpl {
           data: managedProviderAuthCredentialsData
         });
 
+        if (d.input.clientSecret !== undefined) {
+          await rotateManagedCredentialSourceInTransaction({
+            tx: db,
+            owner: d.managedProviderAuthCredentials,
+            plaintext: d.input.clientSecret
+          });
+        }
+
         await addAfterTransactionHook(async () =>
           reconcileManagedCredentialProviderSingleQueue.add(
             {
@@ -299,6 +329,95 @@ class managedProviderAuthCredentialsServiceImpl {
       return await this.getManagedProviderAuthCredentialsByOid(
         d.managedProviderAuthCredentials.oid
       );
+    });
+  }
+
+  async revokeManagedProviderAuthCredentialSource(d: {
+    solution: Solution;
+    managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord;
+    sourceSecretId: string;
+  }) {
+    return await withTransaction(async tx => {
+      let source = await tx.managedProviderAuthCredentialSecret.findFirst({
+        where: {
+          id: d.sourceSecretId,
+          managedCredentialsOid: d.managedProviderAuthCredentials.oid
+        }
+      });
+      if (!source)
+        throw new ServiceError(notFoundError('provider.auth_credentials.managed.secret'));
+      if (source.status !== 'retiring') {
+        throw new Error('Only a prior retiring managed source may be revoked');
+      }
+
+      let activeSource = await tx.managedProviderAuthCredentialSecret.findFirst({
+        where: {
+          managedCredentialsOid: d.managedProviderAuthCredentials.oid,
+          purpose: source.purpose,
+          status: 'active'
+        },
+        orderBy: { secretVersion: 'desc' }
+      });
+      if (!activeSource || activeSource.secretVersion <= source.secretVersion) {
+        throw new Error('Managed source cannot be revoked without an active replacement');
+      }
+      await assertManagedSourceRevocable({
+        tx,
+        managedCredentialsOid: d.managedProviderAuthCredentials.oid,
+        sourceSecretId: activeSource.id,
+        sourceSecretVersion: activeSource.secretVersion
+      });
+      let revoked = await tx.managedProviderAuthCredentialSecret.updateMany({
+        where: { oid: source.oid, status: { not: 'revoked' } },
+        data: { status: 'revoked', revokedAt: new Date() }
+      });
+      if (revoked.count !== 1) throw new Error('Managed source revocation conflict');
+      return await tx.managedProviderAuthCredentialSecret.findUniqueOrThrow({
+        where: { oid: source.oid }
+      });
+    });
+  }
+
+  async resolveManagedProviderAuthCredentialSourcesForProjection(d: {
+    managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord;
+    now?: Date;
+  }) {
+    return await withTransaction(async tx =>
+      resolveManagedCredentialSourcesForProjectionInTransaction({
+        tx,
+        owner: d.managedProviderAuthCredentials,
+        now: d.now
+      })
+    );
+  }
+
+  async reencryptManagedProviderAuthCredentialSource(d: {
+    solution: Solution;
+    managedProviderAuthCredentials: ManagedProviderAuthCredentialsRecord;
+    sourceSecretId: string;
+  }) {
+    return await withTransaction(async tx => {
+      let source = await tx.managedProviderAuthCredentialSecret.findFirst({
+        where: {
+          id: d.sourceSecretId,
+          managedCredentialsOid: d.managedProviderAuthCredentials.oid
+        }
+      });
+      if (!source)
+        throw new ServiceError(notFoundError('provider.auth_credentials.managed.secret'));
+      let reencrypted = await reencryptManagedSourceInTransaction({
+        tx,
+        owner: d.managedProviderAuthCredentials,
+        secret: source,
+        ...activeManagedSecretEncryptionVersions()
+      });
+      await addAfterTransactionHook(async () =>
+        reconcileAllTenantsManagedBackingsQueue.add(
+          { solutionId: d.solution.id },
+          { id: `reencrypt-${d.managedProviderAuthCredentials.id}-${source.id}` }
+        )
+      );
+      return reencrypted;
     });
   }
 

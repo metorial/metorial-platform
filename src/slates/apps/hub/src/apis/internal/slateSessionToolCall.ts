@@ -69,6 +69,7 @@ export let slateSessionToolCallController = app.controller({
             })
           ),
           input: v.record(v.any()),
+          receiverCallbackSelector: v.optional(v.string()),
           participants: v.array(
             v.object({
               type: v.enumOf(['consumer', 'hub']),
@@ -91,6 +92,7 @@ export let slateSessionToolCallController = app.controller({
           enclaveId: ctx.input.enclaveId,
           egressPolicy: ctx.input.egressPolicy,
           input: ctx.input.input,
+          receiverCallbackSelector: ctx.input.receiverCallbackSelector,
           participants: ctx.input.participants
         }
       });

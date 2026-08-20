@@ -110,6 +110,11 @@ export type ProviderPanelSubmitInput = {
       }[];
 };
 
+export type ProviderPanelUnavailableCombination = {
+  providerConfigId: string;
+  providerAuthConfigId: string | null;
+};
+
 type AddProviderPanelFlowProps = {
   close: () => void;
   setPanelWidth: (width: number) => void;
@@ -126,6 +131,9 @@ type AddProviderPanelFlowProps = {
   filterAvailableResources?: boolean;
   showToolFilters?: boolean;
   ensureProviderConfig?: boolean;
+  requireExplicitConfigSelection?: boolean;
+  includeConfigVaults?: boolean;
+  unavailableCombinations?: readonly ProviderPanelUnavailableCombination[];
   autoSubmitWhenReady?: boolean;
   title?: string;
   description?: string;
@@ -351,12 +359,12 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     !selectedConfigSchema.isLoading &&
     selectedConfigCapabilities.canAutoCreateEmptyConfig;
   let showConfigSection =
-    shouldManageProviderConfig &&
-    !selectedConfigSchema.isLoading &&
-    (selectedConfigCapabilities.hasSchemaFields || hasRequiredNonDefaultConfig);
-  let configRequirement: 'required' | 'optional' = hasRequiredNonDefaultConfig
-    ? 'required'
-    : 'optional';
+    !!p.requireExplicitConfigSelection ||
+    (shouldManageProviderConfig &&
+      !selectedConfigSchema.isLoading &&
+      (selectedConfigCapabilities.hasSchemaFields || hasRequiredNonDefaultConfig));
+  let configRequirement: 'required' | 'optional' =
+    p.requireExplicitConfigSelection || hasRequiredNonDefaultConfig ? 'required' : 'optional';
 
   useEffect(() => {
     if (!p.providerId) return;
@@ -550,6 +558,9 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
             submitLabel={p.action || 'Add Provider'}
             filterAvailableResources={p.filterAvailableResources}
             showToolFilters={p.showToolFilters}
+            autoSelectDefaultConfig={!p.requireExplicitConfigSelection}
+            includeConfigVaults={p.includeConfigVaults}
+            unavailableCombinations={p.unavailableCombinations}
             autoSubmitWhenReady={p.autoSubmitWhenReady}
             onBack={p.hideProviderStep ? p.close : () => setStep(0)}
           />
@@ -594,6 +605,9 @@ export let AddProviderPanelFlow = (p: AddProviderPanelFlowProps) => {
     form.handleSubmit,
     p.action,
     p.showToolFilters,
+    p.requireExplicitConfigSelection,
+    p.includeConfigVaults,
+    p.unavailableCombinations,
     p.autoSubmitWhenReady,
     p.hideProviderStep,
     p.close
@@ -840,6 +854,9 @@ export type ProviderSetupSectionsProps = {
   showExistingConfigOptions?: boolean;
   showExistingAuthOptions?: boolean;
   filterAvailableResources?: boolean;
+  autoSelectDefaultConfig?: boolean;
+  includeConfigVaults?: boolean;
+  unavailableCombinations?: readonly ProviderPanelUnavailableCombination[];
   autoStartManagedCredentialSetup?: boolean;
   emptyState?: ReactNode;
   supplementaryContent?: ReactNode;
@@ -912,6 +929,30 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
   let writeTools = normalizedTools.filter(tool => tool.group === 'write');
   let destructiveTools = normalizedTools.filter(tool => tool.group === 'destructive');
   let requiresAuthConfig = showAuthSection && provider.data?.type.auth.status == 'enabled';
+  let selectedProviderConfigId =
+    p.selectedConfiguration.kind === 'config' ? p.selectedConfiguration.id : null;
+  let unavailableConfigIds = useMemo(
+    () =>
+      requiresAuthConfig
+        ? []
+        : (p.unavailableCombinations ?? [])
+            .filter(combination => combination.providerAuthConfigId === null)
+            .map(combination => combination.providerConfigId),
+    [p.unavailableCombinations, requiresAuthConfig]
+  );
+  let unavailableAuthConfigIdSet = useMemo(
+    () =>
+      new Set(
+        (p.unavailableCombinations ?? [])
+          .filter(
+            combination =>
+              combination.providerConfigId === selectedProviderConfigId &&
+              combination.providerAuthConfigId !== null
+          )
+          .map(combination => combination.providerAuthConfigId!)
+      ),
+    [p.unavailableCombinations, selectedProviderConfigId]
+  );
   let pendingCreatedAuthConfigIdRef = useRef<string | null>(null);
   let previousProviderAuthMethodIdRef = useRef<string | undefined>(providerAuthMethodId);
   let isCreatingInlineAuthConfig = !!inlineAuthMethodId;
@@ -958,6 +999,14 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
     p.selectedAuthConfigId,
     p.onSelectedAuthConfigIdChange
   ]);
+
+  useEffect(() => {
+    if (!p.selectedAuthConfigId || !unavailableAuthConfigIdSet.has(p.selectedAuthConfigId)) {
+      return;
+    }
+
+    p.onSelectedAuthConfigIdChange('');
+  }, [p.onSelectedAuthConfigIdChange, p.selectedAuthConfigId, unavailableAuthConfigIdSet]);
 
   useEffect(() => {
     if (!p.selectedAuthConfigId || selectedAuthConfig.isLoading) return;
@@ -1165,6 +1214,9 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             createConfigButtonLabel="Create Config"
             showExistingOptions={showExistingConfigOptions}
             filterAvailableResources={filterAvailableResources}
+            autoSelectDefault={p.autoSelectDefaultConfig}
+            includeVaults={p.includeConfigVaults}
+            excludeConfigIds={unavailableConfigIds}
             inlineCreateConfig
             defaultConfigName={generatedResourceName}
             hideCreateConfigDetails
@@ -1252,10 +1304,12 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                       });
 
                       return {
-                        items: (comboboxAuthConfigs.data?.items ?? []).map(config => ({
-                          id: config.id,
-                          label: config.name ?? config.id
-                        })),
+                        items: (comboboxAuthConfigs.data?.items ?? [])
+                          .filter(config => !unavailableAuthConfigIdSet.has(config.id))
+                          .map(config => ({
+                            id: config.id,
+                            label: config.name ?? config.id
+                          })),
                         isLoading: comboboxAuthConfigs.isLoading,
                         empty: searchQuery
                           ? 'No matching auth configs found.'
@@ -1751,6 +1805,9 @@ let ConfigureStep = (p: {
   filterAvailableResources?: boolean;
   showToolFilters?: boolean;
   autoSubmitWhenReady?: boolean;
+  autoSelectDefaultConfig?: boolean;
+  includeConfigVaults?: boolean;
+  unavailableCombinations?: readonly ProviderPanelUnavailableCombination[];
   onBack: () => void;
 }) => {
   let autoSubmitAttemptedRef = useRef(false);
@@ -1758,6 +1815,15 @@ let ConfigureStep = (p: {
   let requiresAuthConfig = provider.data?.type.auth.status == 'enabled';
   let showToolFilters = p.showToolFilters ?? true;
   let hasVisibleInputs = p.showConfigSection || requiresAuthConfig || showToolFilters;
+  let selectedProviderConfigId =
+    p.form.values.selectedConfiguration.kind === 'config'
+      ? p.form.values.selectedConfiguration.id
+      : null;
+  let selectedCombinationUnavailable = (p.unavailableCombinations ?? []).some(
+    combination =>
+      combination.providerConfigId === selectedProviderConfigId &&
+      combination.providerAuthConfigId === (p.form.values.selectedAuthConfigId || null)
+  );
   let validateRequiredSelections = () => {
     let isValid = true;
 
@@ -1776,13 +1842,21 @@ let ConfigureStep = (p: {
       isValid = false;
     }
 
+    if (selectedCombinationUnavailable) {
+      let field = requiresAuthConfig ? 'selectedAuthConfigId' : 'selectedConfiguration';
+      p.form.setFieldTouched(field, true, false);
+      p.form.setFieldError(field, 'This config and auth config are already attached');
+      isValid = false;
+    }
+
     return isValid;
   };
 
   let canSubmit =
     (p.configRequirement !== 'required' ||
       p.form.values.selectedConfiguration.kind !== 'none') &&
-    (!requiresAuthConfig || Boolean(p.form.values.selectedAuthConfigId));
+    (!requiresAuthConfig || Boolean(p.form.values.selectedAuthConfigId)) &&
+    !selectedCombinationUnavailable;
 
   let handleSubmitClick = async () => {
     if (!canSubmit) return;
@@ -1820,6 +1894,9 @@ let ConfigureStep = (p: {
       providerName={p.providerName}
       providerDeploymentId={p.form.values.selectedDeploymentId || undefined}
       filterAvailableResources={p.filterAvailableResources}
+      autoSelectDefaultConfig={p.autoSelectDefaultConfig}
+      includeConfigVaults={p.includeConfigVaults}
+      unavailableCombinations={p.unavailableCombinations}
       showConfigSection={p.showConfigSection}
       forceConfigSectionVisible={p.showConfigSection}
       showToolFilters={showToolFilters}
@@ -1889,6 +1966,9 @@ export let showAddProviderPanelFlow = (p: {
   filterAvailableResources?: boolean;
   showToolFilters?: boolean;
   ensureProviderConfig?: boolean;
+  requireExplicitConfigSelection?: boolean;
+  includeConfigVaults?: boolean;
+  unavailableCombinations?: readonly ProviderPanelUnavailableCombination[];
   autoSubmitWhenReady?: boolean;
   title?: string;
   description?: string;
@@ -1915,6 +1995,9 @@ export let showAddProviderPanelFlow = (p: {
       filterAvailableResources={p.filterAvailableResources}
       showToolFilters={p.showToolFilters}
       ensureProviderConfig={p.ensureProviderConfig}
+      requireExplicitConfigSelection={p.requireExplicitConfigSelection}
+      includeConfigVaults={p.includeConfigVaults}
+      unavailableCombinations={p.unavailableCombinations}
       autoSubmitWhenReady={p.autoSubmitWhenReady}
       title={p.title}
       description={p.description}

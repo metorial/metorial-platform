@@ -2,6 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
+  Prisma,
   Slate,
   SlateConfigSchema,
   SlateInstance,
@@ -13,8 +14,21 @@ import type {
 import { db } from '../db';
 import { getId } from '../id';
 import { validateJsonSchema } from '../lib/validateJsonSchema';
+import {
+  aggregateSlateConfigLifecycle,
+  assertCanonicalStoredSlateConfigSchema,
+  isConfigRecord as isRecord,
+  parseSlateConfigFieldDescriptors,
+  projectSlateConfigPresence,
+  type SlateConfigFieldDescriptor,
+  type SlateConfigPatch,
+  validateSlateConfigPatch
+} from '../lib/configPatch';
 import { slateInstanceConfigChangedQueue } from '../queues/instance/configChanged';
+import { enqueuePendingRegistrationOutboxes } from './slateTriggerRegistrationOutbox';
 import { secretService } from './secret';
+import { slateTriggerReceiverSecretService } from './slateTriggerReceiverSecret';
+import { beginRegistrationIntentInTransaction } from './slateTriggerRegistrationLifecycle';
 
 let include = {
   lockedSlateVersion: true,
@@ -70,6 +84,20 @@ class slateInstanceServiceImpl {
           value: storedConfig
         }
       });
+      await slateTriggerReceiverSecretService.dualWriteInstanceConfigSecretsInTransaction({
+        tx: db,
+        tenant: d.tenant,
+        instanceConfigId: config.id,
+        schema: this.getSecretAwareConfigSchema({
+          schema: schema.schema,
+          fields: parseSlateConfigFieldDescriptors(schema.fields)
+        }),
+        forceMarkerCutover: schema.version === 2,
+        actor: {
+          actorId: 'slate_instance_config_writer',
+          requestId: `create:${instance.id}:${config.id}`
+        }
+      });
       await db.slateInstanceEvent.createMany({
         data: {
           ...getId('slateInstanceEvent'),
@@ -114,6 +142,9 @@ class slateInstanceServiceImpl {
     });
 
     return await db.$transaction(async db => {
+      let tenant = await db.tenant.findUniqueOrThrow({
+        where: { oid: d.slateInstance.tenantOid }
+      });
       let config = await db.slateInstanceConfig.create({
         data: {
           ...getId('slateInstanceConfig'),
@@ -121,6 +152,20 @@ class slateInstanceServiceImpl {
           schemaOid: schema.oid,
           tenantOid: d.slateInstance.tenantOid,
           value: storedConfig
+        }
+      });
+      await slateTriggerReceiverSecretService.dualWriteInstanceConfigSecretsInTransaction({
+        tx: db,
+        tenant,
+        instanceConfigId: config.id,
+        schema: this.getSecretAwareConfigSchema({
+          schema: schema.schema,
+          fields: parseSlateConfigFieldDescriptors(schema.fields)
+        }),
+        forceMarkerCutover: schema.version === 2,
+        actor: {
+          actorId: 'slate_instance_config_writer',
+          requestId: `update:${d.slateInstance.id}:${config.id}`
         }
       });
       await db.slateInstanceEvent.createMany({
@@ -144,6 +189,232 @@ class slateInstanceServiceImpl {
         include
       });
     });
+  }
+
+  async patchSlateInstanceConfig(d: {
+    tenant: Tenant;
+    slateInstance: SlateInstance;
+    patch: SlateConfigPatch;
+    expectedGeneration?: number;
+    actor?: { actorId: string; requestId: string };
+    now?: Date;
+  }) {
+    let now = d.now ?? new Date();
+    let committed = await db.$transaction(async tx => {
+      let instance = await tx.slateInstance.findFirst({
+        where: { oid: d.slateInstance.oid, tenantOid: d.tenant.oid },
+        include: {
+          slate: true,
+          lockedSlateVersion: true,
+          currentConfig: { include: { schema: true, secrets: true } }
+        }
+      });
+      if (!instance?.currentConfig) {
+        throw new ServiceError(notFoundError('slate.instance.config'));
+      }
+      let current = instance.currentConfig;
+      if (
+        d.expectedGeneration !== undefined &&
+        current.generation !== d.expectedGeneration
+      ) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'config_generation_conflict',
+            message: 'The provider config changed before this patch was committed.'
+          })
+        );
+      }
+      let allowV1Loose = current.schema.version === 1;
+      if (allowV1Loose) {
+        let compatibility = current.schema.compatibility as Record<string, unknown> | null;
+        let cutoffAt = compatibility?.cutoffAt;
+        let expiresAt = compatibility?.expiresAt;
+        if (
+          typeof cutoffAt !== 'string' ||
+          typeof expiresAt !== 'string' ||
+          now >= new Date(cutoffAt) ||
+          now >= new Date(expiresAt)
+        ) {
+          throw new ServiceError(
+            badRequestError({
+              code: 'config_v1_cutoff_expired',
+              message: 'This provider must migrate to config schema v2 before config updates.'
+            })
+          );
+        }
+      } else if (current.schema.version !== 2 || !current.schema.descriptorHash) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'config_schema_v2_required',
+            message: 'Provider config schema v2 is required for post-creation updates.'
+          })
+        );
+      }
+      if (current.schema.version === 2) {
+        assertCanonicalStoredSlateConfigSchema(current.schema);
+      }
+      let declaredFields = parseSlateConfigFieldDescriptors(current.schema.fields);
+      let patch = validateSlateConfigPatch({
+        patch: d.patch,
+        fields: declaredFields,
+        allowV1Loose
+      });
+      let secretAwareSchema = this.getSecretAwareConfigSchema({
+        schema: current.schema.schema,
+        fields: patch.fields
+      });
+      let materializedCurrent = await slateTriggerReceiverSecretService.materializeInstanceConfigRecordInTransaction({
+        tx,
+        tenant: d.tenant,
+        config: current,
+        schema: secretAwareSchema,
+        value: current.value,
+        now
+      });
+      let materializedNext = { ...materializedCurrent } as Record<string, unknown>;
+      for (let [key, value] of Object.entries(patch.set)) materializedNext[key] = value;
+      for (let key of patch.remove) delete materializedNext[key];
+      validateJsonSchema({
+        schema: current.schema.schema,
+        data: materializedNext,
+        entity: 'provider.config',
+        message: 'Invalid provider configuration.'
+      });
+
+      let secretPatch = await slateTriggerReceiverSecretService.applyV2ConfigSecretPatchInTransaction({
+        tx,
+        tenant: d.tenant,
+        config: current,
+        fields: patch.fields,
+        set: patch.set,
+        remove: patch.remove,
+        actor: d.actor ?? {
+          actorId: 'slate_instance_config_patch',
+          requestId: `patch:${instance.id}:${current.generation + 1}`
+        },
+        now
+      });
+      let storedNext = secretPatch.value;
+      for (let [key, value] of Object.entries(patch.set)) {
+        if (patch.fields[key]!.visibility === 'plain') {
+          storedNext[key] = value as Prisma.JsonValue;
+        }
+      }
+      for (let key of patch.remove) {
+        if (patch.fields[key]!.visibility === 'plain') delete storedNext[key];
+      }
+      let generation = current.generation + 1;
+      let updated = await tx.slateInstanceConfig.updateMany({
+        where: {
+          oid: current.oid,
+          tenantOid: d.tenant.oid,
+          generation: current.generation
+        },
+        data: {
+          value: storedNext,
+          generation,
+          errorCode: null,
+          errorMessage: null,
+          errorInvocationId: null
+        }
+      });
+      if (updated.count !== 1) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'config_generation_conflict',
+            message: 'The provider config changed before this patch was committed.'
+          })
+        );
+      }
+      await tx.slateInstanceEvent.create({
+        data: {
+          ...getId('slateInstanceEvent'),
+          instanceOid: instance.oid,
+          tenantOid: d.tenant.oid,
+          type: 'slate_config_set',
+          payload: {
+            configId: current.id,
+            generation,
+            changedKeys: [...Object.keys(patch.set), ...patch.remove].sort()
+          }
+        }
+      });
+
+      let lifecycle = aggregateSlateConfigLifecycle({
+        changedKeys: [...Object.keys(patch.set), ...patch.remove],
+        fields: patch.fields
+      });
+      let actor = d.actor ?? {
+        actorId: 'slate_instance_config_patch',
+        requestId: `patch:${instance.id}:${generation}`
+      };
+      await slateTriggerReceiverSecretService.projectInstanceConfigSecretsToReceiversInTransaction({
+        tx,
+        tenant: d.tenant,
+        instanceOid: instance.oid,
+        config: { ...current, generation },
+        expectedGeneration: generation,
+        configKeys: lifecycle.projectionKeys,
+        actor,
+        now
+      });
+      let outboxIds: string[] = [];
+      if (lifecycle.registrationIntent) {
+        let receiverTriggers = await tx.slateTriggerReceiverTrigger.findMany({
+          where: { receiver: { slateInstanceOid: instance.oid } },
+          select: { id: true }
+        });
+        for (let receiverTrigger of receiverTriggers) {
+          let intent = await beginRegistrationIntentInTransaction({
+            tx,
+            receiverTriggerId: receiverTrigger.id,
+            intent: lifecycle.registrationIntent,
+            configGeneration: generation,
+            configSecretVersionBindings: secretPatch.secretVersionBindings,
+            now
+          });
+          outboxIds.push(intent.outboxId);
+        }
+      }
+      let previousProjected = projectSlateConfigPresence({
+        value: current.value,
+        fields: patch.fields
+      });
+      let nextProjected = projectSlateConfigPresence({
+        value: storedNext,
+        fields: patch.fields
+      });
+      return {
+        instanceId: instance.id,
+        configId: current.id,
+        generation,
+        schemaHash: current.schema.descriptorHash ?? 'v1-compatibility',
+        previousProjected,
+        nextProjected,
+        outboxIds
+      };
+    });
+
+    let versionOwner = await db.slateInstance.findUniqueOrThrow({
+      where: { oid: d.slateInstance.oid },
+      include: { slate: true, lockedSlateVersion: true }
+    });
+    let version = await this.getVersion({
+      slate: versionOwner.slate,
+      lockedVersion: versionOwner.lockedSlateVersion ?? undefined
+    });
+    await slateInstanceConfigChangedQueue.add({
+      newConfigId: committed.configId,
+      versionId: version.id,
+      configGeneration: committed.generation,
+      configSchemaHash: committed.schemaHash,
+      previousConfig: committed.previousProjected,
+      newConfig: committed.nextProjected
+    });
+    if (committed.outboxIds.length > 0) {
+      await enqueuePendingRegistrationOutboxes({ outboxIds: committed.outboxIds });
+    }
+    return await this.getSlateInstanceById({ tenant: d.tenant, id: committed.instanceId });
   }
 
   async getSlateInstanceById(d: { tenant: Tenant; id: string }) {
@@ -250,6 +521,23 @@ class slateInstanceServiceImpl {
     }
 
     return fullVersion;
+  }
+
+  private getSecretAwareConfigSchema(d: {
+    schema: unknown;
+    fields: Record<string, SlateConfigFieldDescriptor>;
+  }) {
+    if (!isRecord(d.schema)) return d.schema;
+    let schema = JSON.parse(JSON.stringify(d.schema)) as Record<string, unknown>;
+    let properties = isRecord(schema.properties)
+      ? (schema.properties as Record<string, unknown>)
+      : {};
+    for (let [key, descriptor] of Object.entries(d.fields)) {
+      if (descriptor.visibility !== 'secret' || !isRecord(properties[key])) continue;
+      properties[key] = { ...properties[key], 'x-metorial-secret': true };
+    }
+    schema.properties = properties;
+    return schema;
   }
 
   private async getConfigSchema(d: {

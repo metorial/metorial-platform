@@ -127,6 +127,28 @@ describe('slateSessionToolCall:get E2E', () => {
       id: toolCall.id
     });
   });
+
+  it('does not expose receiver selectors or scoped grants through tool-call persistence', async () => {
+    let { toolCall, tenant } = await f.slateSessionToolCall.complete({
+      status: SlateSessionToolCallStatus.succeeded
+    });
+
+    let stored = await testDb.slateSessionToolCall.findUniqueOrThrow({
+      where: { oid: toolCall.oid }
+    });
+    let result = await slatesHubClient.slateSessionToolCall.get({
+      tenantId: tenant.id,
+      slateSessionToolCallId: toolCall.id
+    });
+    let serialized = JSON.stringify({ stored, result }, (_key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    );
+
+    expect(serialized).not.toContain('receiverCallbackSelector');
+    expect(serialized).not.toContain('receiverCallback');
+    expect(serialized).not.toContain('scoped_invocation_grant_v1');
+    expect(serialized).not.toContain('grantId');
+  });
 });
 
 describe('slateSessionToolCall:getLogs E2E', () => {

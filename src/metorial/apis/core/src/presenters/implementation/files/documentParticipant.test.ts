@@ -1,12 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 
 let databaseCalls = vi.hoisted(() => ({
+  metorialConfigFindFirst: vi.fn(),
+  metorialConfigUpsert: vi.fn(async () => ({})),
   organizationActorFindUnique: vi.fn(),
   instanceConsumerFindFirst: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
   db: {
+    metorialConfig: {
+      findFirst: databaseCalls.metorialConfigFindFirst,
+      upsert: databaseCalls.metorialConfigUpsert
+    },
     organizationActor: {
       findUnique: databaseCalls.organizationActorFindUnique
     },
@@ -65,7 +71,22 @@ let consumerActor = {
       ]
     }
   },
-  consumer: null
+  consumer: {
+    instanceConsumers: [
+      {
+        id: 'inc_1',
+        name: 'Portal Consumer',
+        email: 'portal@example.com',
+        instanceOid: 5n,
+        createdAt: now,
+        updatedAt: now,
+        consumer: {
+          id: 'con_1'
+        }
+      }
+    ],
+    organizationMember: null
+  }
 } as any;
 
 describe('participant actor presentation', () => {
@@ -88,12 +109,14 @@ describe('participant actor presentation', () => {
       )
       .run();
 
-    expect(result.actor.resource_actor).toEqual({
-      id: 'rac_profile',
-      type: 'external',
-      name: 'Profile Actor'
+    expect(result.actor).toMatchObject({
+      type: 'consumer',
+      name: 'Portal Consumer',
+      email: 'portal@example.com',
+      organization_actor: null
     });
-    expect(result.actor.consumer_profile).toEqual({
+    expect(result.actor.consumer_profile).toMatchObject({
+      object: 'consumer.profile',
       id: 'cpf_1',
       name: 'Portal Profile',
       status: 'active'
@@ -152,15 +175,20 @@ describe('participant actor presentation', () => {
       )
       .run();
 
-    expect(result.actor.resource_actor).toMatchObject({
-      id: 'rac_member',
-      name: 'Organization Member'
+    expect(result.actor).toMatchObject({
+      type: 'organization_actor',
+      name: 'Organization Member',
+      consumer: null,
+      consumer_profile: null
     });
     expect(result.actor.organization_actor).toMatchObject({
       id: 'oac_1',
       organization_id: 'org_1'
     });
-    expect(result.actor.organization_member).toEqual(organizationMember);
+    expect(result.actor.organization_actor?.member).toEqual({
+      object: 'organization.member#preview',
+      ...organizationMember
+    });
     expect(databaseCalls.organizationActorFindUnique).not.toHaveBeenCalled();
     expect(databaseCalls.instanceConsumerFindFirst).not.toHaveBeenCalled();
   });

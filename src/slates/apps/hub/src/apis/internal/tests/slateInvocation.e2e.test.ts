@@ -2,7 +2,10 @@ import { addDays } from 'date-fns';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SlateDeploymentStatus, SlateStatus } from '../../../../prisma/generated/client';
 import { getId } from '../../../id';
-import { getStoredAttachmentsStorageKey } from '../../../lib/invocation/store';
+import {
+  getStoredAttachmentsStorageKey,
+  sanitizeInvocationRequestMessages
+} from '../../../lib/invocation/store';
 import { invocationsBucketRecord, storage } from '../../../storage';
 import { slatesHubClient } from '../../../test/client';
 import { fixtures } from '../../../test/fixtures';
@@ -91,5 +94,36 @@ describe('slateInvocation:DANGEROUSLY_get E2E', () => {
       id: invocation.id,
       status: 'succeeded'
     });
+  });
+});
+
+describe('scoped invocation persistence boundary', () => {
+  it('never persists opaque grant metadata or tokens with invocation requests', () => {
+    let sentinel = 'task3-opaque-grant-sentinel';
+    let sanitized = sanitizeInvocationRequestMessages([
+      {
+        jsonrpc: '2.0',
+        id: 'rpc-1',
+        method: 'slates/action.trigger.webhook_handle',
+        invocation: {
+          version: 'scoped_invocation_grant_v1',
+          grantId: 'grant-1',
+          token: sentinel,
+          requestId: 'rpc-1'
+        },
+        params: {
+          actionId: 'webhook.delivery',
+          url: 'https://hooks.test',
+          method: 'POST',
+          headers: {},
+          body: null,
+          state: null,
+          registrationDetails: null
+        }
+      } as any
+    ]);
+
+    expect(JSON.stringify(sanitized)).not.toContain(sentinel);
+    expect(sanitized[0]).not.toHaveProperty('invocation');
   });
 });

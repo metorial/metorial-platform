@@ -364,6 +364,9 @@ let CallbackTriggersPage = dynamicPage(() =>
 let CallbackDestinationsPage = dynamicPage(() =>
   import('./pages/(callbacks)/destinations').then(c => c.CallbackDestinationsPage)
 );
+let CallbackSettingsPage = dynamicPage(() =>
+  import('./pages/(callbacks)/settings').then(c => c.CallbackSettingsPage)
+);
 let SessionLogsListLayout = dynamicPage(() =>
   import('./pages/(logs)/(list)/_layout').then(c => c.SessionLogsListLayout)
 );
@@ -1170,6 +1173,10 @@ export let productIntegrationsSlice = createSlice([
               {
                 path: 'destinations',
                 element: <CallbackDestinationsPage />
+              },
+              {
+                path: 'settings',
+                element: <CallbackSettingsPage />
               }
             ]
           },

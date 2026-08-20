@@ -8,6 +8,7 @@ export type DashboardInstanceProvidersTriggersGetOutput = {
   description: string | null;
   inputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
   outputSchema: { type: 'json_schema'; schema: Record<string, any> } | null;
+  eventTypes: string[];
   invocation:
     | { type: 'polling'; intervalSeconds: number }
     | {
@@ -41,6 +42,10 @@ export let mapDashboardInstanceProvidersTriggersGetOutput =
         type: mtMap.objectField('type', mtMap.passthrough()),
         schema: mtMap.objectField('schema', mtMap.passthrough())
       })
+    ),
+    eventTypes: mtMap.objectField(
+      'event_types',
+      mtMap.array(mtMap.passthrough())
     ),
     invocation: mtMap.objectField(
       'invocation',
@@ -77,4 +82,3 @@ export let mapDashboardInstanceProvidersTriggersGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

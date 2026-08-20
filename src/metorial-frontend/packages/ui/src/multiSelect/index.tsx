@@ -62,6 +62,8 @@ let Content = styled(RadixPopover.Content)`
   border-radius: 8px;
   gap: 10px;
   width: 100%;
+  max-height: min(400px, var(--radix-popover-content-available-height));
+  overflow-y: auto;
 
   &[data-state='open'] {
     animation: ${fadeIn} 0.15s ease forwards;
@@ -77,12 +79,23 @@ let Value = styled('div')`
   padding: 3px 5px;
   border-radius: 5px;
   box-shadow: ${theme.shadows.small};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 let TriggerValues = styled('div')`
   display: flex;
   gap: 5px;
-  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+`;
+
+let Placeholder = styled('span')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export let MultiSelect = ({
@@ -115,6 +128,8 @@ export let MultiSelect = ({
   let id = useId();
   let sizeStyles = getButtonSize(size);
   let [ref, { width }] = useMeasure();
+  let selectedValues = [...(value ?? [])].sort();
+  let hasValue = selectedValues.length > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
@@ -134,6 +149,7 @@ export let MultiSelect = ({
           id={id}
           disabled={disabled}
           aria-label={label}
+          data-placeholder={hasValue ? undefined : ''}
           style={{
             ...sizeStyles,
             fontSize: 14
@@ -141,22 +157,26 @@ export let MultiSelect = ({
           ref={ref as any}
         >
           <TriggerValues>
-            {[...(value ?? [])].sort().map(v => (
-              <Value>{items.find(i => i.id === v)?.label}</Value>
-            ))}
+            {hasValue ? (
+              selectedValues.map(v => (
+                <Value key={v}>{items.find(i => i.id === v)?.label ?? v}</Value>
+              ))
+            ) : (
+              <Placeholder>{placeholder}</Placeholder>
+            )}
           </TriggerValues>
 
-          <RiArrowDownSLine size={14} style={{ opacity: 0.5 }} />
+          <RiArrowDownSLine size={14} style={{ flexShrink: 0, opacity: 0.5 }} />
         </Trigger>
         <RadixPopover.Portal>
           <Content sideOffset={5} style={{ width: width + 20, zIndex: 9999 }}>
-            {items.map((item, i) => (
-              <Item>
+            {items.map(item => (
+              <Item key={item.id}>
                 <Checkbox
                   checked={value?.includes(item.id)}
                   onCheckedChange={checked => {
                     if (checked) {
-                      onChange?.([...value!, item.id]);
+                      onChange?.([...(value ?? []), item.id]);
                     } else {
                       onChange?.((value || [])?.filter(v => v !== item.id));
                     }

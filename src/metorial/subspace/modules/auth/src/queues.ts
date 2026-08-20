@@ -5,6 +5,8 @@ import { lifecycleQueues } from './queues/lifecycle';
 import { reconcileQueues } from './queues/reconcile';
 import { searchQueues } from './queues/search';
 
+export * from './queues/lifecycle/provisionTenantApp';
+
 export * from './queues/reconcile';
 
 export let authQueueProcessor = combineQueueProcessors([

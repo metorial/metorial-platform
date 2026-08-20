@@ -87,6 +87,33 @@ export let slateInstanceController = app.controller({
     )
     .do(async ctx => slateInstancePresenter(ctx.slateInstance)),
 
+  updateConfig: slateInstanceApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        slateInstanceId: v.string(),
+        patch: v.object({
+          set: v.optional(v.record(v.any())),
+          remove: v.optional(v.array(v.string()))
+        }),
+        expectedGeneration: v.optional(v.number({ modifiers: [v.integer(), v.positive()] }))
+      })
+    )
+    .do(async ctx => {
+      let updated = await slateInstanceService.patchSlateInstanceConfig({
+        tenant: ctx.tenant,
+        slateInstance: ctx.slateInstance,
+        patch: ctx.input.patch,
+        expectedGeneration: ctx.input.expectedGeneration,
+        actor: {
+          actorId: 'metorial_provider_config',
+          requestId: `provider-config:${ctx.tenant.id}:${ctx.slateInstance.id}:${ctx.input.expectedGeneration ?? 'latest'}`
+        }
+      });
+      return slateInstancePresenter(updated);
+    }),
+
   delete: slateInstanceApp
     .handler()
     .input(

@@ -22,6 +22,9 @@ model SlateInvocation {
 
   createdAt DateTime @default(now())
 
+  artifactPurgedAt    DateTime?
+  artifactPurgeReason String?
+
   slateVersionDiscoveries       SlateVersionDiscovery[]
   slateInstanceOAuthSetupEvents SlateInstanceOAuthSetupEvent[]
   slateAuthConfigEvents         SlateAuthConfigEvent[]
@@ -45,4 +48,28 @@ model SlateInvocationAttachment {
   attachments    SlateAttachment @relation(fields: [attachmentsOid], references: [oid])
 
   createdAt DateTime @default(now())
+}
+
+enum SlateScopedInvocationGrantStatus {
+  active
+  consumed
+  revoked
+}
+
+/// Durable, token-hashed one-use authority shared by every Function Bay execution.
+/// Bindings contain only identifiers, versions, hashes and expiry metadata; never plaintext.
+model SlateScopedInvocationGrant {
+  oid BigInt @id
+  id  String @unique
+
+  tokenHash String @unique
+  status    SlateScopedInvocationGrantStatus @default(active)
+  bindings  Json
+  expiresAt DateTime
+  consumedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([status, expiresAt])
 }

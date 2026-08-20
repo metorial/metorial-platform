@@ -1,4 +1,12 @@
 import { mtMap } from '@metorial/util-resource-mapper';
+import {
+  type DashboardCallbackInstanceSecurityFields,
+  type DashboardCallbackRegistrationFields,
+  type DashboardCallbackVerificationFields,
+  mapDashboardCallbackInstanceSecurityFields,
+  mapDashboardCallbackRegistrationFields,
+  mapDashboardCallbackVerificationFields
+} from './security';
 
 export type DashboardInstanceCallbacksInstancesGetOutput = {
   object: 'callback.instance';
@@ -37,8 +45,7 @@ export type DashboardInstanceCallbacksInstancesGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
-  webhookUrl: string | null;
-  triggers: {
+  triggers: ({
     object: 'callback.instance.trigger';
     id: string;
     source: 'polling' | 'webhook';
@@ -67,13 +74,15 @@ export type DashboardInstanceCallbacksInstancesGetOutput = {
       createdAt: Date;
       updatedAt: Date;
     } | null;
-  }[];
+  } & DashboardCallbackRegistrationFields &
+    DashboardCallbackVerificationFields)[];
   createdAt: Date;
   updatedAt: Date;
-};
+} & DashboardCallbackInstanceSecurityFields;
 
 export let mapDashboardInstanceCallbacksInstancesGetOutput =
   mtMap.object<DashboardInstanceCallbacksInstancesGetOutput>({
+    ...mapDashboardCallbackInstanceSecurityFields,
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
     status: mtMap.objectField('status', mtMap.passthrough()),
@@ -119,25 +128,20 @@ export let mapDashboardInstanceCallbacksInstancesGetOutput =
         updatedAt: mtMap.objectField('updated_at', mtMap.date())
       })
     ),
-    webhookUrl: mtMap.objectField('webhook_url', mtMap.passthrough()),
     triggers: mtMap.objectField(
       'triggers',
       mtMap.array(
         mtMap.object({
+          ...mapDashboardCallbackRegistrationFields,
+          ...mapDashboardCallbackVerificationFields,
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
           source: mtMap.objectField('source', mtMap.passthrough()),
-          pollIntervalSeconds: mtMap.objectField(
-            'poll_interval_seconds',
-            mtMap.passthrough()
-          ),
+          pollIntervalSeconds: mtMap.objectField('poll_interval_seconds', mtMap.passthrough()),
           nextPollAt: mtMap.objectField('next_poll_at', mtMap.date()),
           lastPolledAt: mtMap.objectField('last_polled_at', mtMap.date()),
           webhookUrl: mtMap.objectField('webhook_url', mtMap.passthrough()),
-          isWebhookRegistered: mtMap.objectField(
-            'is_webhook_registered',
-            mtMap.passthrough()
-          ),
+          isWebhookRegistered: mtMap.objectField('is_webhook_registered', mtMap.passthrough()),
           providerTrigger: mtMap.objectField(
             'provider_trigger',
             mtMap.object({
@@ -145,10 +149,7 @@ export let mapDashboardInstanceCallbacksInstancesGetOutput =
               id: mtMap.objectField('id', mtMap.passthrough()),
               key: mtMap.objectField('key', mtMap.passthrough()),
               name: mtMap.objectField('name', mtMap.passthrough()),
-              description: mtMap.objectField(
-                'description',
-                mtMap.passthrough()
-              ),
+              description: mtMap.objectField('description', mtMap.passthrough()),
               inputSchema: mtMap.objectField(
                 'input_schema',
                 mtMap.object({
@@ -177,19 +178,13 @@ export let mapDashboardInstanceCallbacksInstancesGetOutput =
                       autoRegistration: mtMap.objectField(
                         'auto_registration',
                         mtMap.object({
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          )
+                          status: mtMap.objectField('status', mtMap.passthrough())
                         })
                       ),
                       autoUnregistration: mtMap.objectField(
                         'auto_unregistration',
                         mtMap.object({
-                          status: mtMap.objectField(
-                            'status',
-                            mtMap.passthrough()
-                          )
+                          status: mtMap.objectField('status', mtMap.passthrough())
                         })
                       )
                     })
@@ -211,4 +206,3 @@ export let mapDashboardInstanceCallbacksInstancesGetOutput =
     createdAt: mtMap.objectField('created_at', mtMap.date()),
     updatedAt: mtMap.objectField('updated_at', mtMap.date())
   });
-

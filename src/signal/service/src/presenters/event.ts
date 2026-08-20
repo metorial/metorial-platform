@@ -65,6 +65,10 @@ export let eventPresenter = async (
     callbackSourceId: event.callbackSourceId,
     callbackTriggerId: event.callbackTriggerId,
 
+    idempotencyKey: event.idempotencyKey,
+    requestFingerprint: event.requestFingerprint,
+    initializationStatus: event.initializationStatus,
+
     createdAt: event.createdAt,
     updatedAt: event.updatedAt
   };

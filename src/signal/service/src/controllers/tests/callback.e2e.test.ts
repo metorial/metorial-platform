@@ -14,6 +14,41 @@ describe('callback.e2e', () => {
     await storage.upsertBucket(env.storage.LOGS_BUCKET_NAME);
   });
 
+  it('issues generated material only on create and redacts reusable callback reads', async () => {
+    let tenant = await f.tenant.default();
+    let input = {
+      tenantId: tenant.id,
+      callbackId: 'callback-secret-boundary',
+      name: 'Callback secret boundary',
+      destinations: [
+        {
+          externalId: 'callback-secret-destination',
+          name: 'Callback endpoint',
+          variant: {
+            type: 'http_endpoint' as const,
+            url: 'https://example.com/callback',
+            method: 'POST' as const
+          }
+        }
+      ]
+    };
+    let created = await signalClient.callback.upsert(input);
+    expect(created.secretIssuanceReceipts).toHaveLength(1);
+    expect(JSON.stringify(created)).not.toMatch(
+      /signingSecret|encryptedValue|encryptionKeyVersion/
+    );
+
+    let updated = await signalClient.callback.upsert(input);
+    expect(updated.secretIssuanceReceipts).toHaveLength(0);
+    let fetched = await signalClient.callback.get({
+      tenantId: tenant.id,
+      callbackId: input.callbackId
+    });
+    expect(JSON.stringify(fetched)).not.toMatch(
+      /secretIssuanceReceipt|signingSecret|encryptedValue|encryptionKeyVersion/
+    );
+  });
+
   it('offloads callback event input and output payloads asynchronously', async () => {
     let tenant = await f.tenant.default();
     let inputJson = JSON.stringify({ stage: 'input', ok: true });

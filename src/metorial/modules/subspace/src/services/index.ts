@@ -65,6 +65,7 @@ export * from './providerTool';
 export * from './providerTrigger';
 export * from './providerVariant';
 export * from './providerVersion';
+export * from './provisionedTenantApp';
 export * from './protoGuardAlert';
 export * from './protoGuardConfig';
 export * from './publisher';

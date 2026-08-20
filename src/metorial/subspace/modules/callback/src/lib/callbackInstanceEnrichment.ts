@@ -1,9 +1,4 @@
-import type {
-  Callback,
-  CallbackInstance,
-  CallbackReceiverRegistration,
-  Tenant
-} from '@metorial-subspace/db';
+import type { Callback, CallbackInstance, Tenant } from '@metorial-subspace/db';
 import { db } from '@metorial-subspace/db';
 import type {
   CallbackInstanceReceiver,
@@ -11,10 +6,6 @@ import type {
   EnrichedCallbackInstanceTrigger
 } from '@metorial-subspace/presenters';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
-
-type CallbackInstanceWithRegistration = CallbackInstance & {
-  activeRegistration?: CallbackReceiverRegistration | null;
-};
 
 let providerTriggerInclude = {
   provider: true,
@@ -52,12 +43,11 @@ export let enrichTriggers = (
 export let enrichCallbackInstanceTriggers = async (
   tenant: Tenant,
   callback: Callback,
-  instances: CallbackInstanceWithRegistration[]
+  instances: CallbackInstance[]
 ): Promise<Map<string, CallbackInstanceReceiver>> => {
   let receiverIdToInstanceIds = new Map<string, string[]>();
   for (let instance of instances) {
-    let receiverId =
-      instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
+    let receiverId = instance.slateTriggerReceiverId;
     if (!receiverId) continue;
     let ids = receiverIdToInstanceIds.get(receiverId);
     if (!ids) {
@@ -76,6 +66,7 @@ export let enrichCallbackInstanceTriggers = async (
   let receivers: {
     id: string;
     receiverWebhookUrl?: string | null;
+    receiverPathSecrets?: CallbackInstanceReceiver['receiverPathSecrets'];
     triggers: CallbackInstanceReceiverTrigger[];
   }[];
   try {
@@ -96,7 +87,9 @@ export let enrichCallbackInstanceTriggers = async (
     let enriched = enrichTriggers(receiver.triggers, providerTriggerMap);
     for (let instanceId of instanceIds) {
       result.set(instanceId, {
+        receiverId: receiver.id,
         receiverWebhookUrl: receiver.receiverWebhookUrl ?? null,
+        receiverPathSecrets: receiver.receiverPathSecrets ?? [],
         triggers: enriched
       });
     }
@@ -108,16 +101,17 @@ export let enrichCallbackInstanceTriggers = async (
 export let enrichSingleCallbackInstanceTriggers = async (
   tenant: Tenant,
   callback: Callback,
-  instance: CallbackInstanceWithRegistration
+  instance: CallbackInstance
 ): Promise<CallbackInstanceReceiver | undefined> => {
-  let receiverId =
-    instance.slateTriggerReceiverId ?? instance.activeRegistration?.slateTriggerReceiverId;
+  let receiverId = instance.slateTriggerReceiverId;
   if (!receiverId) return undefined;
 
   let slatesTenant = await getTenantForSlates(tenant);
   try {
     let receiver: {
+      id: string;
       receiverWebhookUrl?: string | null;
+      receiverPathSecrets?: CallbackInstanceReceiver['receiverPathSecrets'];
       triggers: CallbackInstanceReceiverTrigger[];
     } = await slates.slateTriggerReceiver.get({
       tenantId: slatesTenant.id,
@@ -128,7 +122,9 @@ export let enrichSingleCallbackInstanceTriggers = async (
     let providerTriggerMap = await resolveProviderTriggers(callback.oid, triggerIds);
 
     return {
+      receiverId: receiver.id,
       receiverWebhookUrl: receiver.receiverWebhookUrl ?? null,
+      receiverPathSecrets: receiver.receiverPathSecrets ?? [],
       triggers: enrichTriggers(receiver.triggers, providerTriggerMap)
     };
   } catch {

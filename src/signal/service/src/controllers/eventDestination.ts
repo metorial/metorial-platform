@@ -1,11 +1,110 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { eventDestinationPresenter } from '../presenters';
-import { eventDestinationService, senderService } from '../services';
+import {
+  eventDestinationService,
+  senderService,
+  webhookDestinationSigningSecretService
+} from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
 export let eventDestinationController = app.controller({
+  rotateSigningSecret: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        eventDestinationId: v.string(),
+        graceMs: v.optional(v.number())
+      })
+    )
+    .do(async ctx => {
+      let destination = await eventDestinationService.getEventDestinationById({
+        id: ctx.input.eventDestinationId,
+        tenant: ctx.tenant
+      });
+      let webhook = destination.currentInstance?.webhook;
+      if (!webhook) throw new Error('Event destination has no active webhook');
+      let result = await webhookDestinationSigningSecretService.rotate({
+        tenant: ctx.tenant,
+        webhookId: webhook.id,
+        graceMs: ctx.input.graceMs
+      });
+      return {
+        secret: {
+          id: result.secret.id,
+          secretVersion: result.secret.secretVersion,
+          status: result.secret.status,
+          validFrom: result.secret.validFrom,
+          validUntil: result.secret.validUntil
+        },
+        secretIssuanceReceipt: result.receipt,
+        graceExpiresAt: result.graceExpiresAt,
+        auditCorrelationId: result.auditCorrelationId
+      };
+    }),
+
+  revokeSigningSecret: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        eventDestinationId: v.string(),
+        secretId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let destination = await eventDestinationService.getEventDestinationById({
+        id: ctx.input.eventDestinationId,
+        tenant: ctx.tenant
+      });
+      let webhook = destination.currentInstance?.webhook;
+      if (!webhook) throw new Error('Event destination has no active webhook');
+      let result = await webhookDestinationSigningSecretService.revoke({
+        tenant: ctx.tenant,
+        webhookId: webhook.id,
+        secretId: ctx.input.secretId
+      });
+      return {
+        secret: {
+          id: result.secret.id,
+          secretVersion: result.secret.secretVersion,
+          status: result.secret.status,
+          validFrom: result.secret.validFrom,
+          validUntil: result.secret.validUntil
+        },
+        secretIssuanceReceipt: null,
+        graceExpiresAt: null,
+        auditCorrelationId: result.auditCorrelationId
+      };
+    }),
+
+  consumeSigningSecretReceipt: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        eventDestinationId: v.string(),
+        receiptId: v.string(),
+        receiptToken: v.string()
+      })
+    )
+    .do(async ctx => {
+      let destination = await eventDestinationService.getEventDestinationById({
+        id: ctx.input.eventDestinationId,
+        tenant: ctx.tenant
+      });
+      let webhook = destination.currentInstance?.webhook;
+      if (!webhook) throw new Error('Event destination has no active webhook');
+      return await webhookDestinationSigningSecretService.consumeReceipt({
+        tenant: ctx.tenant,
+        webhookId: webhook.id,
+        receiptId: ctx.input.receiptId,
+        token: ctx.input.receiptToken
+      });
+    }),
+
   create: tenantApp
     .handler()
     .input(
@@ -35,7 +134,7 @@ export let eventDestinationController = app.controller({
     .do(async ctx => {
       let sender = await senderService.getSenderById({ id: ctx.input.senderId });
 
-      let eventDestination = await eventDestinationService.createEventDestination({
+      let created = await eventDestinationService.createEventDestination({
         tenant: ctx.tenant,
         sender,
         input: {
@@ -47,7 +146,10 @@ export let eventDestinationController = app.controller({
         }
       });
 
-      return eventDestinationPresenter(eventDestination);
+      return {
+        ...eventDestinationPresenter(created.eventDestination),
+        secretIssuanceReceipt: created.secretIssuanceReceipt
+      };
     }),
 
   get: tenantApp

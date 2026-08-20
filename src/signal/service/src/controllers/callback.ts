@@ -8,9 +8,21 @@ import {
 } from '../presenters';
 import { callbackService, eventDeliveryAttemptService } from '../services';
 import { app } from './_app';
-import { tenantApp } from './tenant';
+import { subspaceInternalTenantApp, tenantApp } from './tenant';
 
 let callbackApp = tenantApp.use(async ctx => {
+  let callbackId = ctx.body.callbackId;
+  if (!callbackId) throw new Error('Callback ID is required');
+
+  let callback = await callbackService.getCallbackById({
+    tenant: ctx.tenant,
+    id: callbackId
+  });
+
+  return { callback };
+});
+
+let subspaceInternalCallbackApp = subspaceInternalTenantApp.use(async ctx => {
   let callbackId = ctx.body.callbackId;
   if (!callbackId) throw new Error('Callback ID is required');
 
@@ -55,7 +67,7 @@ export let callbackController = app.controller({
       })
     )
     .do(async ctx => {
-      let callback = await callbackService.upsertCallback({
+      let result = await callbackService.upsertCallback({
         tenant: ctx.tenant,
         input: {
           callbackId: ctx.input.callbackId,
@@ -66,7 +78,10 @@ export let callbackController = app.controller({
         }
       });
 
-      return callbackPresenter(callback);
+      return {
+        ...callbackPresenter(result.callback),
+        secretIssuanceReceipts: result.secretIssuanceReceipts
+      };
     }),
 
   get: callbackApp
@@ -133,6 +148,33 @@ export let callbackController = app.controller({
           outputJson: ctx.input.outputJson,
           errorCode: ctx.input.errorCode,
           errorMessage: ctx.input.errorMessage
+        }
+      });
+
+      return callbackEventPresenter(event, { includePayload: true });
+    }),
+
+  recordDashboardTestEvent: subspaceInternalCallbackApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        callbackId: v.string(),
+        eventId: v.string(),
+        callbackInstanceId: v.string(),
+        eventType: v.string(),
+        payloadJson: v.string()
+      })
+    )
+    .do(async ctx => {
+      let event = await callbackService.recordDashboardTestEvent({
+        tenant: ctx.tenant,
+        callback: ctx.callback,
+        input: {
+          eventId: ctx.input.eventId,
+          callbackInstanceId: ctx.input.callbackInstanceId,
+          eventType: ctx.input.eventType,
+          payloadJson: ctx.input.payloadJson
         }
       });
 

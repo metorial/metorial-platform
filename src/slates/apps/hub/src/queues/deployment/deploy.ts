@@ -9,6 +9,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { functionBay, functionBayProvider, functionBayTenant } from '../../functionBay';
 import { getId } from '../../id';
+import { rotateSlateRuntimeIdentity } from '../../lib/invocation/runtimeIdentity';
 import { getRegistrySlatePathParams } from '../../lib/registrySlatePath';
 import { getRegistryClient, getRegistryQuery } from '../../registry';
 import { discoverSlateQueue } from '../discovery/discover';
@@ -183,6 +184,28 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
         defaultTimeoutSeconds: env.functionBay.FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS
       });
 
+      let runtimeIdentity = env.slates.SLATES_HUB_SECRET_RPC_TOKEN
+        ? rotateSlateRuntimeIdentity({
+            deploymentId: deployment.id,
+            previousGeneration: deployment.runtimeIdentityGeneration,
+            rootSecret: env.slates.SLATES_HUB_SECRET_RPC_TOKEN
+          })
+        : null;
+      if (runtimeIdentity) {
+        let rotated = await db.slateDeployment.updateMany({
+          where: {
+            id: deployment.id,
+            runtimeIdentityGeneration: deployment.runtimeIdentityGeneration
+          },
+          data: {
+            runtimeIdentityId: runtimeIdentity.runtimeIdentityId,
+            runtimeIdentityGeneration: runtimeIdentity.runtimeIdentityGeneration,
+            runtimeIdentityRevokedAt: null
+          }
+        });
+        if (rotated.count !== 1) throw new Error('Slate runtime identity rotation lost CAS');
+      }
+
       let functionDeployment = await functionBay.functionDeployment.create({
         functionId: func.id,
         tenantId: (await functionBayTenant).id,
@@ -192,7 +215,19 @@ export let deploySlateVersionStartQueueProcessor = deploySlateVersionStartQueue.
           version: '24.x'
         },
         config,
-        env: {},
+        env: {
+          SLATES_HUB_SECRET_RPC_URL: `${env.service.SERVICE_PUBLIC_URL.replace(/\/$/, '')}/slates-hub-secrets`,
+          ...(runtimeIdentity
+            ? {
+                SLATES_HUB_RUNTIME_IDENTITY_SECRET: runtimeIdentity.secret,
+                SLATES_HUB_RUNTIME_IDENTITY_ID: runtimeIdentity.runtimeIdentityId,
+                SLATES_HUB_RUNTIME_IDENTITY_GENERATION: String(
+                  runtimeIdentity.runtimeIdentityGeneration
+                ),
+                SLATES_HUB_DEPLOYMENT_ID: runtimeIdentity.deploymentId
+              }
+            : {})
+        },
         files: deploymentFiles.files
       });
 
@@ -344,6 +379,8 @@ export let deploySlateVersionFailedQueueProcessor = deploySlateVersionFailedQueu
         where: { id: deployment.id },
         data: {
           status: 'failed',
+
+          runtimeIdentityRevokedAt: new Date(),
 
           errorCode: data.errorCode,
           errorMessage: data.errorMessage
