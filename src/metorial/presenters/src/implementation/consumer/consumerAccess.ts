@@ -88,10 +88,32 @@ let localSkillMarketplacePreview = Object.assign(
   }
 );
 
+let localSkillPluginPreview = Object.assign(
+  (skillPlugin: {
+    id: string;
+    status: 'active' | 'archived' | 'deleted';
+    name: string | null;
+  }) => ({
+    object: 'skill.plugin' as const,
+    id: skillPlugin.id,
+    status: skillPlugin.status,
+    name: skillPlugin.name
+  }),
+  {
+    schema: v.object({
+      object: v.literal('skill.plugin'),
+      id: v.string(),
+      status: v.enumOf(['active', 'archived', 'deleted']),
+      name: v.nullable(v.string())
+    })
+  }
+);
+
 export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
   .presenter(async ({ consumerAccess }, opts) => ({
     object: 'consumer.access' as const,
     id: consumerAccess.id,
+    access_level: consumerAccess.accessLevel,
     name:
       consumerAccess.listing?.name ??
       (consumerAccess.type == 'provider_template'
@@ -104,7 +126,9 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
               ? consumerAccess.skillTemplate!.name
               : consumerAccess.type == 'skill_group'
                 ? consumerAccess.skillGroup!.name
-                : consumerAccess.skillMarketplace!.id),
+                : consumerAccess.type == 'skill_plugin'
+                  ? (consumerAccess.skillPlugin!.name ?? consumerAccess.skillPlugin!.id)
+                  : consumerAccess.skillMarketplace!.id),
     description:
       consumerAccess.listing?.description ??
       (consumerAccess.type == 'provider_template'
@@ -151,12 +175,17 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
                     type: 'skill_group' as const,
                     skill_group: localSkillGroupPreview(consumerAccess.skillGroup!)
                   }
-                : {
-                    type: 'skill_marketplace' as const,
-                    skill_marketplace: localSkillMarketplacePreview(
-                      consumerAccess.skillMarketplace!
-                    )
-                  },
+                : consumerAccess.type == 'skill_plugin'
+                  ? {
+                      type: 'skill_plugin' as const,
+                      skill_plugin: localSkillPluginPreview(consumerAccess.skillPlugin!)
+                    }
+                  : {
+                      type: 'skill_marketplace' as const,
+                      skill_marketplace: localSkillMarketplacePreview(
+                        consumerAccess.skillMarketplace!
+                      )
+                    },
 
     consumer_group: await v1ConsumerGroupPresenter
       .present({ consumerGroup: consumerAccess.consumerGroup }, opts)
@@ -169,6 +198,7 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
     v.object({
       object: v.literal('consumer.access'),
       id: v.string(),
+      access_level: v.nullable(v.enumOf(['read', 'manage'])),
       name: v.string(),
       description: v.nullable(v.string()),
       readme: v.nullable(v.string()),
@@ -203,6 +233,10 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
         v.object({
           type: v.literal('skill_marketplace'),
           skill_marketplace: localSkillMarketplacePreview.schema
+        }),
+        v.object({
+          type: v.literal('skill_plugin'),
+          skill_plugin: localSkillPluginPreview.schema
         })
       ]),
       consumer_group: v1ConsumerGroupPresenter.schema,

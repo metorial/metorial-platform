@@ -18,7 +18,8 @@
   "dependencies": {
     "@metorial/fetch": "^1.0.0-rc.5",
     "@metorial/generated": "^1.0.0-rc.5",
-    "@metorial/util-endpoint": "^1.0.0-rc.5"
+    "@metorial/util-endpoint": "^1.0.0-rc.5",
+    "@types/cookie": "^1.0.0"
   },
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.39",

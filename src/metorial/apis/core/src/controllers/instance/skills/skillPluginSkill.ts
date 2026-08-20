@@ -10,10 +10,11 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { skillPluginSkillPresenter } from '@metorial/presenters';
+import { getSkillMarketplaceAccessInput } from './_marketplaceAccess';
 import { getSkillPluginAccess, skillPluginGroup } from './skillPlugin';
 
 let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
-let writeScopes = ['instance.skill:write'] as const;
+let writeScopes = ['instance.skill:write', 'consumer#instance.skill:write'] as const;
 
 let skillPluginSkillInput = {
   client_name: v.optional(v.nullable(v.string())),
@@ -101,6 +102,7 @@ export let skillPluginSkillController = Controller.create(
       })
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .body(
         'default',
         v.object({
@@ -113,6 +115,7 @@ export let skillPluginSkillController = Controller.create(
       .do(async ctx => {
         let skillPluginSkill = await skillPluginSkillService.addSkillPluginSkill({
           ...(await getSkillPluginAccess(ctx)),
+          ...getSkillMarketplaceAccessInput(ctx),
           skillPlugin: ctx.skillPlugin,
           input: {
             skillId: ctx.body.skill_id,
@@ -161,11 +164,13 @@ export let skillPluginSkillController = Controller.create(
       )
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .body('default', v.object(skillPluginSkillInput))
       .output(skillPluginSkillPresenter)
       .do(async ctx => {
         let skillPluginSkill = await skillPluginSkillService.updateSkillPluginSkill({
           ...(await getSkillPluginAccess(ctx)),
+          ...getSkillMarketplaceAccessInput(ctx),
           skillPluginSkill: ctx.skillPluginSkill,
           input: {
             clientName: ctx.body.client_name,
@@ -193,10 +198,12 @@ export let skillPluginSkillController = Controller.create(
       )
       .use(hasFlags(['skills-enabled']))
       .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .output(skillPluginSkillPresenter)
       .do(async ctx => {
         let skillPluginSkill = await skillPluginSkillService.removeSkillPluginSkill({
           ...(await getSkillPluginAccess(ctx)),
+          ...getSkillMarketplaceAccessInput(ctx),
           skillPluginSkill: ctx.skillPluginSkill
         });
 

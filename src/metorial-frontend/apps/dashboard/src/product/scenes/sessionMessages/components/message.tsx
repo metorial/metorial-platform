@@ -69,6 +69,7 @@ export let useMessagePresentation = ({
 let MessageBody = ({
   date,
   defaultViewMode,
+  deferMount = true,
   error,
   id,
   input,
@@ -80,6 +81,8 @@ let MessageBody = ({
 }: {
   date: Date;
   defaultViewMode?: 'overview' | 'properties' | 'raw';
+  /** Set to false when an outer container already gates mounting (e.g. row virtualization) -- an extra independent defer here just reintroduces a second, uncoordinated pop-in. */
+  deferMount?: boolean;
   error?: DashboardInstanceSessionsMessagesGetOutput['error'];
   id?: string;
   input?: Record<string, any> | null;
@@ -93,11 +96,11 @@ let MessageBody = ({
 }) => {
   let ref = useRef<HTMLDivElement>(null);
   let inView = useInView(ref, { margin: '200px 0px' });
-  let [canRender, setCanRender] = useState(false);
+  let [canRender, setCanRender] = useState(!deferMount);
 
   useEffect(() => {
-    if (inView) setCanRender(true);
-  }, [inView]);
+    if (!deferMount || inView) setCanRender(true);
+  }, [deferMount, inView]);
 
   return (
     <div ref={ref}>
@@ -121,10 +124,13 @@ let MessageBody = ({
 
 export let Message = ({
   aggregatedMessages,
+  deferMount = true,
   message
 }: {
   message: DashboardInstanceSessionsMessagesGetOutput;
   aggregatedMessages: Map<string, AggregatedMessages>;
+  /** Set to false when an outer container already gates mounting (e.g. row virtualization). */
+  deferMount?: boolean;
 }) => {
   let presentationData = useMessagePresentation({ aggregatedMessages, message });
   if (!presentationData) return null;
@@ -160,6 +166,7 @@ export let Message = ({
           position={position}
           overviewSections={presentation.overviewSections}
           defaultViewMode={presentation.defaultViewMode}
+          deferMount={deferMount}
           error={messageError}
           isToolError={isToolError}
         />

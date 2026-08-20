@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "vite --port 3300 --host",
-    "frontend:build": "tsc -b && vite build",
+    "_frontend:build": "tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -49,7 +49,6 @@
     "@radix-ui/react-popover": "^1.1.15",
     "@remixicon/react": "^4.2.0",
     "@sentry/react": "^8.54.0",
-    "@tanstack/react-virtual": "^3.13.12",
     "@tiptap/extension-color": "3.6.1",
     "@tiptap/extension-highlight": "3.6.1",
     "@tiptap/extension-horizontal-rule": "3.6.1",
@@ -82,6 +81,7 @@
     "lodash": "^4.17.21",
     "lodash.throttle": "^4.1.1",
     "nanoid": "^5.0.7",
+    "p-queue": "^8.1.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-helmet": "^6.1.0",

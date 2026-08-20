@@ -1,10 +1,10 @@
+import { db as subspaceDb } from '@metorial-subspace/db';
 import type {
   Instance as MetorialInstance,
   Organization as MetorialOrganization,
   OrganizationActor as MetorialOrganizationActor,
   Project as MetorialProject
 } from '@metorial/db';
-import { db as subspaceDb } from '@metorial-subspace/db';
 import { metorialDb } from './metorialDb';
 
 export let assertMirrorIdentity = (
@@ -26,6 +26,101 @@ export let assertMirrorIdentity = (
   }
 };
 
+let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
+
+let getOrganizationMirrorWrite = (organization: MetorialOrganization) => ({
+  type: organization.type,
+  status: organization.status,
+  slug: organization.slug,
+  name: organization.name,
+  image: organization.image,
+  deletedAt: organization.deletedAt,
+  createdAt: organization.createdAt,
+  updatedAt: organization.updatedAt
+});
+
+let writeOrganizationMirror = async (organization: MetorialOrganization) => {
+  let write = getOrganizationMirrorWrite(organization);
+  return await subspaceDb.organization.upsert({
+    where: { oid: organization.oid },
+    update: write,
+    create: {
+      oid: organization.oid,
+      id: organization.id,
+      ...write
+    }
+  });
+};
+
+let releaseOrganizationMirrorSlug = async (d: {
+  conflict: { oid: bigint; id: string; slug: string };
+  claimedSlug: string;
+}) => {
+  let current = await metorialDb.organization.findUnique({
+    where: { oid: d.conflict.oid }
+  });
+
+  if (current && current.slug !== d.claimedSlug) {
+    try {
+      await subspaceDb.organization.update({
+        where: { oid: d.conflict.oid },
+        data: {
+          type: current.type,
+          status: current.status,
+          slug: current.slug,
+          name: current.name,
+          image: current.image,
+          deletedAt: current.deletedAt,
+          updatedAt: current.updatedAt
+        }
+      });
+      return;
+    } catch (error: any) {
+      if (!isUniqueConstraintError(error)) throw error;
+    }
+  }
+
+  await subspaceDb.organization.update({
+    where: { oid: d.conflict.oid },
+    data: { slug: `${d.conflict.slug}--${d.conflict.id}` }
+  });
+};
+
+let recoverOrganizationMirrorFromSlugConflict = async (
+  organization: MetorialOrganization,
+  error: unknown
+) => {
+  let conflict = await subspaceDb.organization.findFirst({
+    where: {
+      slug: organization.slug,
+      oid: { not: organization.oid }
+    },
+    select: { oid: true, id: true, slug: true }
+  });
+
+  if (conflict) {
+    await releaseOrganizationMirrorSlug({
+      conflict,
+      claimedSlug: organization.slug
+    });
+    return await writeOrganizationMirror(organization);
+  }
+
+  try {
+    return await subspaceDb.organization.update({
+      where: { oid: organization.oid },
+      data: getOrganizationMirrorWrite(organization)
+    });
+  } catch (updateError: any) {
+    if (!isUniqueConstraintError(updateError)) throw updateError;
+    let existing = await subspaceDb.organization.findUnique({
+      where: { oid: organization.oid }
+    });
+    if (existing) return existing;
+    throw error;
+  }
+};
+
 export let upsertOrganizationMirror = async (organization: MetorialOrganization) => {
   let matches = await subspaceDb.organization.findMany({
     where: {
@@ -35,31 +130,12 @@ export let upsertOrganizationMirror = async (organization: MetorialOrganization)
   });
   assertMirrorIdentity('organization', organization, matches);
 
-  return await subspaceDb.organization.upsert({
-    where: { oid: organization.oid },
-    update: {
-      type: organization.type,
-      status: organization.status,
-      slug: organization.slug,
-      name: organization.name,
-      image: organization.image,
-      deletedAt: organization.deletedAt,
-      createdAt: organization.createdAt,
-      updatedAt: organization.updatedAt
-    },
-    create: {
-      oid: organization.oid,
-      id: organization.id,
-      type: organization.type,
-      status: organization.status,
-      slug: organization.slug,
-      name: organization.name,
-      image: organization.image,
-      deletedAt: organization.deletedAt,
-      createdAt: organization.createdAt,
-      updatedAt: organization.updatedAt
-    }
-  });
+  try {
+    return await writeOrganizationMirror(organization);
+  } catch (error: any) {
+    if (!isUniqueConstraintError(error)) throw error;
+    return await recoverOrganizationMirrorFromSlugConflict(organization, error);
+  }
 };
 
 export let upsertProjectMirror = async (d: {

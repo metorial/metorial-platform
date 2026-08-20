@@ -68,6 +68,15 @@ export type PortalsListingsUpdateOutput = {
           id: string;
           status: 'active' | 'archived' | 'deleted';
         };
+      }
+    | {
+        type: 'skill_plugin';
+        skillPlugin: {
+          object: 'skill.plugin';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          name: string | null;
+        };
       };
   groups: {
     id: string;
@@ -168,6 +177,15 @@ export let mapPortalsListingsUpdateOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough())
+              })
+            ),
+            skillPlugin: mtMap.objectField(
+              'skill_plugin',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough())
               })
             )
           })

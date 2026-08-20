@@ -51,6 +51,12 @@ export {
   useSkillTemplateFilters
 } from './product/scenes/skills/filters';
 export { SkillPluginsGrid } from './product/scenes/skills/pluginGrid';
+export { SkillMarketplacesGrid } from './product/scenes/skills/marketplaceGrid';
+export {
+  GroupMarketplaceManagersList,
+  MarketplaceManagersList,
+  showMarketplaceManagerPanel
+} from './product/scenes/skills/marketplaceManagers';
 export { showSkillPluginFormModal } from './product/scenes/skills/pluginModal';
 export { showSkillFormModal } from './product/scenes/skills/modal';
 export { showSkillTemplateFormModal } from './product/scenes/skills/templateModal';

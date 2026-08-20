@@ -100,7 +100,11 @@ export let TimelineItemRow = memo(
         let message = context.messageById.get(item.messageId);
         if (!message) return null;
         return (
-          <Message message={message} aggregatedMessages={context.aggregatedMessages} />
+          <Message
+            message={message}
+            aggregatedMessages={context.aggregatedMessages}
+            deferMount={false}
+          />
         );
       }
 
@@ -114,6 +118,7 @@ export let TimelineItemRow = memo(
             aggregatedMessages={context.aggregatedMessages}
             clientName={context.clientName}
             messages={messages}
+            deferMessageMount={false}
           />
         );
       }
@@ -122,12 +127,12 @@ export let TimelineItemRow = memo(
         return <TimelineEventRow event={item} />;
 
       case 'provider_run_logs':
-        return <ProviderRunLogs providerRunId={item.providerRunId} lazy />;
+        return <ProviderRunLogs providerRunId={item.providerRunId} />;
 
       case 'invocation': {
         let invocation = context.invocationById.get(item.invocationId);
         if (!invocation) return null;
-        return <ProviderInvocationEntry invocation={invocation} deferBody />;
+        return <ProviderInvocationEntry invocation={invocation} />;
       }
 
       default:

@@ -15,6 +15,7 @@ import {
   Skill,
   SkillGroup,
   SkillMarketplace,
+  SkillPlugin,
   SkillTemplate,
   withTransaction
 } from '@metorial/db';
@@ -28,6 +29,7 @@ let include = {
   skillTemplate: true,
   skillGroup: true,
   skillMarketplace: true,
+  skillPlugin: true,
   consumerSurfaceProviderGroups: {
     include: {
       consumerSurfaceProviderGroup: true
@@ -42,6 +44,7 @@ export type ConsumerAccessListingWithRelations = ConsumerAccessListing & {
   skillTemplate: SkillTemplate | null;
   skillGroup: SkillGroup | null;
   skillMarketplace: SkillMarketplace | null;
+  skillPlugin: SkillPlugin | null;
   consumerSurfaceProviderGroups: {
     consumerSurfaceProviderGroup: ConsumerSurfaceProviderGroup;
   }[];
@@ -363,6 +366,9 @@ class ConsumerAccessListingServiceImpl {
           if (d.types.includes('skill_marketplace')) {
             typeFilters.push({ skillMarketplaceOid: { not: null } });
           }
+          if (d.types.includes('skill_plugin')) {
+            typeFilters.push({ skillPluginOid: { not: null } });
+          }
 
           if (typeFilters.length) {
             filters.push({ OR: typeFilters });
@@ -482,6 +488,14 @@ class ConsumerAccessListingServiceImpl {
                 skillMarketplace: {
                   id: { contains: search, mode: 'insensitive' }
                 }
+              },
+              {
+                skillPlugin: {
+                  OR: [
+                    { id: { contains: search, mode: 'insensitive' } },
+                    { name: { contains: search, mode: 'insensitive' } }
+                  ]
+                }
               }
             ]
           });
@@ -516,6 +530,11 @@ class ConsumerAccessListingServiceImpl {
             },
             {
               skillMarketplace: {
+                status: 'active'
+              }
+            },
+            {
+              skillPlugin: {
                 status: 'active'
               }
             }
@@ -567,6 +586,11 @@ class ConsumerAccessListingServiceImpl {
           },
           {
             skillMarketplace: {
+              status: 'active'
+            }
+          },
+          {
+            skillPlugin: {
               status: 'active'
             }
           }
@@ -699,6 +723,7 @@ class ConsumerAccessListingServiceImpl {
         skillTemplate: true,
         skillGroup: true,
         skillMarketplace: true,
+        skillPlugin: true,
         listing: true
       }
     });

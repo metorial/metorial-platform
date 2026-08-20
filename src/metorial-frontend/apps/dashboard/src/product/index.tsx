@@ -140,6 +140,9 @@ let SkillMarketplaceSettingsPage = dynamicPage(() =>
     c => c.SkillMarketplaceSettingsPage
   )
 );
+let SkillMarketplaceAccessPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-marketplace/access').then(c => c.SkillMarketplaceAccessPage)
+);
 let IntegrationLayout = dynamicPage(() =>
   import('./pages/(integrations)/integration/_layout').then(c => c.IntegrationLayout)
 );
@@ -695,6 +698,10 @@ export let productSkillsSlice = createSlice([
               {
                 path: 'settings',
                 element: <SkillMarketplaceSettingsPage />
+              },
+              {
+                path: 'access',
+                element: <SkillMarketplaceAccessPage />
               }
             ]
           }

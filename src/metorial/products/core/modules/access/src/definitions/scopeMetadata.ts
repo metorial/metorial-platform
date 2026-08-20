@@ -325,6 +325,14 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Consumer Skills',
     description: 'These endpoints manage consumer skill access and consumer-owned forks.'
   },
+  'consumer#instance.skill_marketplace': {
+    name: 'Consumer Skill Marketplaces',
+    description: 'These endpoints manage consumer access to skill marketplaces.'
+  },
+  'consumer#instance.skill_plugin': {
+    name: 'Consumer Skill Plugins',
+    description: 'These endpoints manage consumer access to skill plugins.'
+  },
   'consumer#instance.provider_template': {
     name: 'Consumer Provider Templates',
     description: 'These endpoints expose provider template access for consumers.'

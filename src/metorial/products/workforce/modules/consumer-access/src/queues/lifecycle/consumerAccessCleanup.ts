@@ -11,6 +11,7 @@ let consumerAccessInclude = {
   skillTemplate: true,
   skillGroup: true,
   skillMarketplace: true,
+  skillPlugin: true,
   listing: true
 } satisfies Prisma.ConsumerAccessInclude;
 
@@ -21,6 +22,7 @@ let consumerAccessListingInclude = {
   skillTemplate: true,
   skillGroup: true,
   skillMarketplace: true,
+  skillPlugin: true,
   consumerSurfaceProviderGroups: {
     include: {
       consumerSurfaceProviderGroup: true

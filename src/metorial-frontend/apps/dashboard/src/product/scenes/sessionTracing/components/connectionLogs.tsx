@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import { useConnectionTimeline } from '../hooks/useConnectionTimeline';
 import { SessionConnection } from '../types';
 import { ConnectionTraceHeader } from './connectionTraceHeader';
-import { VirtualizedTimelineList } from './virtualizedTimelineList';
+import { TimelineList } from './timelineList';
 
 let DetailContent = styled.div`
   display: flex;
@@ -91,12 +91,12 @@ export let ConnectionLogs = ({
       />
 
       <DetailTimeline>
-        <VirtualizedTimelineList
+        <TimelineList
           context={timelineRowContext}
           focusedItemId={focusedItemId}
           hasMoreAfter={hasMoreAfter}
           isLoadingMore={isLoadingMore}
-          items={timelineItemData}
+          items={sortedTimelineItemData}
           loadMore={loadMore}
           onScrollToIndexReady={handleScrollToIndexReady}
           scrollRef={scrollRef}

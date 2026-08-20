@@ -14,6 +14,7 @@ import {
   Skill,
   SkillGroup,
   SkillMarketplace,
+  SkillPlugin,
   SkillTemplate,
   withTransaction
 } from '@metorial/db';
@@ -23,6 +24,8 @@ import {
   consumerMagicMcpWriteRoles,
   consumerProviderTemplateReadRoles,
   consumerSkillManageAccessRoles,
+  consumerSkillMarketplaceWriteRoles,
+  consumerSkillPluginWriteRoles,
   consumerSkillReadRoles,
   consumerSkillWriteRoles
 } from '@metorial/module-access';
@@ -34,7 +37,9 @@ type ConsumerAccessPermission =
   | 'provider_template_read'
   | 'skill_read'
   | 'skill_write'
-  | 'skill_manage_access';
+  | 'skill_manage_access'
+  | 'skill_marketplace_write'
+  | 'skill_plugin_write';
 
 type ConsumerAccessPolicyScope =
   | {
@@ -56,7 +61,8 @@ type ConsumerAccessResource =
   | { skill: Pick<Skill, 'oid'> }
   | { skillTemplate: Pick<SkillTemplate, 'oid'> }
   | { skillGroup: Pick<SkillGroup, 'oid'> }
-  | { skillMarketplace: Pick<SkillMarketplace, 'oid'> };
+  | { skillMarketplace: Pick<SkillMarketplace, 'oid'> }
+  | { skillPlugin: Pick<SkillPlugin, 'oid'> };
 
 type ConsumerAccessSubject =
   | {
@@ -104,6 +110,16 @@ let consumerAccessPolicies: Record<
     name: 'Metorial Consumer Skill Manage Access',
     systemIdentifier: 'consumer_skill_manage_access',
     roles: [...consumerSkillManageAccessRoles]
+  },
+  skill_marketplace_write: {
+    name: 'Metorial Consumer Skill Marketplace Write',
+    systemIdentifier: 'consumer_skill_marketplace_write',
+    roles: [...consumerSkillMarketplaceWriteRoles]
+  },
+  skill_plugin_write: {
+    name: 'Metorial Consumer Skill Plugin Write',
+    systemIdentifier: 'consumer_skill_plugin_write',
+    roles: [...consumerSkillPluginWriteRoles]
   }
 };
 
@@ -140,6 +156,12 @@ let isSkillPermission = (permission: ConsumerAccessPermission) =>
   permission == 'skill_write' ||
   permission == 'skill_manage_access';
 
+let isSkillMarketplaceWritePermission = (permission: ConsumerAccessPermission) =>
+  permission == 'skill_marketplace_write';
+
+let isSkillPluginWritePermission = (permission: ConsumerAccessPermission) =>
+  permission == 'skill_plugin_write';
+
 let invalidConsumerAccessTargetError = () =>
   new ServiceError(
     preconditionFailedError({
@@ -155,6 +177,7 @@ let getStoredConsumerAccessResource = (
     skillTemplate?: Pick<SkillTemplate, 'oid'> | null;
     skillGroup?: Pick<SkillGroup, 'oid'> | null;
     skillMarketplace?: Pick<SkillMarketplace, 'oid'> | null;
+    skillPlugin?: Pick<SkillPlugin, 'oid'> | null;
   }
 ) => {
   if (consumerAccess.type == 'provider_template') {
@@ -164,7 +187,8 @@ let getStoredConsumerAccessResource = (
       consumerAccess.skill ||
       consumerAccess.skillTemplate ||
       consumerAccess.skillGroup ||
-      consumerAccess.skillMarketplace
+      consumerAccess.skillMarketplace ||
+      consumerAccess.skillPlugin
     ) {
       throw invalidConsumerAccessTargetError();
     }
@@ -182,7 +206,8 @@ let getStoredConsumerAccessResource = (
       consumerAccess.magicMcpServer ||
       consumerAccess.skillTemplate ||
       consumerAccess.skillGroup ||
-      consumerAccess.skillMarketplace
+      consumerAccess.skillMarketplace ||
+      consumerAccess.skillPlugin
     ) {
       throw invalidConsumerAccessTargetError();
     }
@@ -200,7 +225,8 @@ let getStoredConsumerAccessResource = (
       consumerAccess.magicMcpServer ||
       consumerAccess.skill ||
       consumerAccess.skillGroup ||
-      consumerAccess.skillMarketplace
+      consumerAccess.skillMarketplace ||
+      consumerAccess.skillPlugin
     ) {
       throw invalidConsumerAccessTargetError();
     }
@@ -218,7 +244,8 @@ let getStoredConsumerAccessResource = (
       consumerAccess.magicMcpServer ||
       consumerAccess.skill ||
       consumerAccess.skillTemplate ||
-      consumerAccess.skillMarketplace
+      consumerAccess.skillMarketplace ||
+      consumerAccess.skillPlugin
     ) {
       throw invalidConsumerAccessTargetError();
     }
@@ -236,7 +263,8 @@ let getStoredConsumerAccessResource = (
       consumerAccess.magicMcpServer ||
       consumerAccess.skill ||
       consumerAccess.skillTemplate ||
-      consumerAccess.skillGroup
+      consumerAccess.skillGroup ||
+      consumerAccess.skillPlugin
     ) {
       throw invalidConsumerAccessTargetError();
     }
@@ -247,13 +275,33 @@ let getStoredConsumerAccessResource = (
     };
   }
 
+  if (consumerAccess.type == 'skill_plugin') {
+    if (
+      !consumerAccess.skillPlugin ||
+      consumerAccess.providerTemplate ||
+      consumerAccess.magicMcpServer ||
+      consumerAccess.skill ||
+      consumerAccess.skillTemplate ||
+      consumerAccess.skillGroup ||
+      consumerAccess.skillMarketplace
+    ) {
+      throw invalidConsumerAccessTargetError();
+    }
+
+    return {
+      type: 'skill_plugin' as const,
+      skillPlugin: consumerAccess.skillPlugin
+    };
+  }
+
   if (
     !consumerAccess.magicMcpServer ||
     consumerAccess.providerTemplate ||
     consumerAccess.skill ||
     consumerAccess.skillTemplate ||
     consumerAccess.skillGroup ||
-    consumerAccess.skillMarketplace
+    consumerAccess.skillMarketplace ||
+    consumerAccess.skillPlugin
   ) {
     throw invalidConsumerAccessTargetError();
   }
@@ -392,6 +440,12 @@ class ConsumerAccessPolicyServiceImpl {
       };
     }
 
+    if ('skillPlugin' in resource) {
+      return {
+        skillPluginOid: resource.skillPlugin.oid
+      };
+    }
+
     return {
       providerTemplateOid: resource.providerTemplate.oid
     };
@@ -407,6 +461,16 @@ class ConsumerAccessPolicyServiceImpl {
       );
     }
 
+    if (isSkillMarketplaceWritePermission(d.permission) && !('skillMarketplace' in d.resource)) {
+      throw new Error(
+        'Skill marketplace write permissions can only be attached to skill marketplaces'
+      );
+    }
+
+    if (isSkillPluginWritePermission(d.permission) && !('skillPlugin' in d.resource)) {
+      throw new Error('Skill plugin write permissions can only be attached to skill plugins');
+    }
+
     if (
       isSkillPermission(d.permission) &&
       !('skill' in d.resource) &&
@@ -420,6 +484,8 @@ class ConsumerAccessPolicyServiceImpl {
     if (
       !isProviderTemplatePermission(d.permission) &&
       !isSkillPermission(d.permission) &&
+      !isSkillMarketplaceWritePermission(d.permission) &&
+      !isSkillPluginWritePermission(d.permission) &&
       'providerTemplate' in d.resource
     ) {
       throw new Error('Magic MCP permissions can only be attached to Magic MCP resources');
@@ -427,6 +493,7 @@ class ConsumerAccessPolicyServiceImpl {
 
     if (
       !isSkillPermission(d.permission) &&
+      !isSkillMarketplaceWritePermission(d.permission) &&
       ('skill' in d.resource || 'skillTemplate' in d.resource || 'skillGroup' in d.resource)
     ) {
       throw new Error('Non-skill permissions cannot be attached to skill resources');
@@ -522,6 +589,36 @@ class ConsumerAccessPolicyServiceImpl {
     });
   }
 
+  async revokeAccessByPolicyScope(d: {
+    organization: Organization;
+    permission: ConsumerAccessPermission;
+    subject: ConsumerAccessSubject;
+    policyScope: Exclude<ConsumerAccessPolicyScope, undefined>;
+  }) {
+    await withTransaction(async db => {
+      let policy = await this.getPolicy({
+        organization: d.organization,
+        permission: d.permission,
+        policyScope: d.policyScope
+      });
+      if (!policy) {
+        return;
+      }
+      let accessTagOids = await this.getSubjectAccessTagOids({
+        subject: d.subject
+      });
+
+      await db.accessTagEntity.deleteMany({
+        where: {
+          accessTagOid: {
+            in: accessTagOids
+          },
+          accessTagPolicyOid: policy.oid
+        }
+      });
+    });
+  }
+
   async revokeSkillParticipantAccessForPersonalGroup(d: {
     organization: Organization;
     consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
@@ -570,6 +667,7 @@ class ConsumerAccessPolicyServiceImpl {
       skillTemplate?: Pick<SkillTemplate, 'oid'> | null;
       skillGroup?: Pick<SkillGroup, 'oid'> | null;
       skillMarketplace?: Pick<SkillMarketplace, 'oid'> | null;
+      skillPlugin?: Pick<SkillPlugin, 'oid'> | null;
     };
   }) {
     let resource = getStoredConsumerAccessResource(d.consumerAccess);
@@ -653,14 +751,47 @@ class ConsumerAccessPolicyServiceImpl {
     }
 
     if (resource.type == 'skill_marketplace') {
+      for (let permission of ['skill_read', 'skill_marketplace_write'] as const) {
+        await this.revokeAccess({
+          organization: d.organization,
+          permission,
+          subject: {
+            consumerGroup: d.consumerAccess.consumerGroup
+          },
+          resource: {
+            skillMarketplace: resource.skillMarketplace
+          },
+          policyScope: {
+            type: 'consumer_access',
+            consumerAccessId: d.consumerAccess.id
+          }
+        });
+      }
+
+      return;
+    }
+
+    if (resource.type == 'skill_plugin') {
       await this.revokeAccess({
         organization: d.organization,
-        permission: 'skill_read',
+        permission: 'skill_plugin_write',
         subject: {
           consumerGroup: d.consumerAccess.consumerGroup
         },
         resource: {
-          skillMarketplace: resource.skillMarketplace
+          skillPlugin: resource.skillPlugin
+        },
+        policyScope: {
+          type: 'consumer_access',
+          consumerAccessId: d.consumerAccess.id
+        }
+      });
+
+      await this.revokeAccessByPolicyScope({
+        organization: d.organization,
+        permission: 'skill_read',
+        subject: {
+          consumerGroup: d.consumerAccess.consumerGroup
         },
         policyScope: {
           type: 'consumer_access',

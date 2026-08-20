@@ -1,56 +1,6 @@
+import { AvatarUploader } from '@metorial/avatar-uploader';
 import { type Skill, useUploadFile } from '@metorial/state';
-import { Button, CenteredSpinner, theme } from '@metorial/ui';
 import { useState } from 'react';
-import styled from 'styled-components';
-import { ImageUploader } from './imageUploader';
-
-let Wrapper = styled('div')`
-  display: flex;
-  gap: 12px;
-`;
-
-let Image = styled('figure')`
-  width: 60px;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  transition: all 0.3s;
-  cursor: pointer;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .loading {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
-  }
-
-  &:hover {
-    box-shadow: 0 0 0 5px ${theme.colors.primary};
-    background: ${theme.colors.primary};
-  }
-`;
-
-let Actions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
 
 export let ResourceImageUploader = (p: {
   instanceId: string;
@@ -71,68 +21,29 @@ export let ResourceImageUploader = (p: {
   let isCustomImage = !imageUrl.includes('avatar-cdn.metorial.com');
 
   return (
-    <Wrapper>
-      <Image onClick={() => setIsOpen(true)}>
-        <img src={imageUrl} />
+    <AvatarUploader
+      imageUrl={imageUrl}
+      isOpen={isOpen}
+      setIsOpen={setIsOpen}
+      isLoading={p.updateResource.isLoading || createFile.isLoading}
+      title="Upload Image"
+      description={p.description}
+      uploadLabel={isCustomImage ? 'Upload' : 'Upload Image'}
+      onRemove={isCustomImage ? () => p.updateResource.mutate({ imageFileId: null }) : undefined}
+      onUpload={async file => {
+        let [uploadedFile] = await createFile.mutate({
+          instanceId: p.instanceId,
+          file,
+          purpose: 'skill_image'
+        });
 
-        {(p.updateResource.isLoading || createFile.isLoading) && (
-          <div className="loading">
-            <CenteredSpinner />
-          </div>
-        )}
-      </Image>
-
-      <Actions>
-        {isCustomImage ? (
-          <>
-            <Button
-              size="2"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                p.updateResource.mutate({
-                  imageFileId: null
-                });
-              }}
-            >
-              Remove
-            </Button>
-
-            <Button size="2" type="button" variant="outline" onClick={() => setIsOpen(true)}>
-              Upload
-            </Button>
-          </>
-        ) : (
-          <Button size="2" type="button" variant="outline" onClick={() => setIsOpen(true)}>
-            Upload Image
-          </Button>
-        )}
-
-        <ImageUploader
-          isOpen={isOpen}
-          setIsOpen={setIsOpen}
-          photoUrl={imageUrl}
-          label="Upload Image"
-          description={p.description}
-          onReset={
-            isCustomImage ? () => p.updateResource.mutate({ imageFileId: null }) : undefined
-          }
-          onSave={async file => {
-            let [uploadedFile] = await createFile.mutate({
-              instanceId: p.instanceId,
-              file,
-              purpose: 'skill_image'
-            });
-
-            if (uploadedFile) {
-              await p.updateResource.mutate({
-                imageFileId: uploadedFile.id
-              });
-            }
-          }}
-        />
-      </Actions>
-    </Wrapper>
+        if (uploadedFile) {
+          await p.updateResource.mutate({
+            imageFileId: uploadedFile.id
+          });
+        }
+      }}
+    />
   );
 };
 

@@ -3,6 +3,7 @@ import { mtMap } from '@metorial/util-resource-mapper';
 export type PortalsAccessDeleteOutput = {
   object: 'consumer.access';
   id: string;
+  accessLevel: 'read' | 'manage' | null;
   name: string;
   description: string | null;
   readme: string | null;
@@ -69,6 +70,15 @@ export type PortalsAccessDeleteOutput = {
           id: string;
           status: 'active' | 'archived' | 'deleted';
         };
+      }
+    | {
+        type: 'skill_plugin';
+        skillPlugin: {
+          object: 'skill.plugin';
+          id: string;
+          status: 'active' | 'archived' | 'deleted';
+          name: string | null;
+        };
       };
   consumerGroup: {
     object: 'consumer.group';
@@ -88,6 +98,7 @@ export let mapPortalsAccessDeleteOutput =
   mtMap.object<PortalsAccessDeleteOutput>({
     object: mtMap.objectField('object', mtMap.passthrough()),
     id: mtMap.objectField('id', mtMap.passthrough()),
+    accessLevel: mtMap.objectField('access_level', mtMap.passthrough()),
     name: mtMap.objectField('name', mtMap.passthrough()),
     description: mtMap.objectField('description', mtMap.passthrough()),
     readme: mtMap.objectField('readme', mtMap.passthrough()),
@@ -181,6 +192,15 @@ export let mapPortalsAccessDeleteOutput =
                 object: mtMap.objectField('object', mtMap.passthrough()),
                 id: mtMap.objectField('id', mtMap.passthrough()),
                 status: mtMap.objectField('status', mtMap.passthrough())
+              })
+            ),
+            skillPlugin: mtMap.objectField(
+              'skill_plugin',
+              mtMap.object({
+                object: mtMap.objectField('object', mtMap.passthrough()),
+                id: mtMap.objectField('id', mtMap.passthrough()),
+                status: mtMap.objectField('status', mtMap.passthrough()),
+                name: mtMap.objectField('name', mtMap.passthrough())
               })
             )
           })

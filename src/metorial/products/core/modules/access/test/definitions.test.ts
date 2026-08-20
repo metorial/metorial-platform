@@ -86,6 +86,10 @@ describe('definitions', () => {
       expect(scopes).toContain('consumer#instance.skill:read');
       expect(scopes).toContain('consumer#instance.skill:write');
       expect(scopes).toContain('consumer#instance.skill:manage_access');
+      expect(scopes).toContain('consumer#instance.skill_marketplace:read');
+      expect(scopes).toContain('consumer#instance.skill_marketplace:write');
+      expect(scopes).toContain('consumer#instance.skill_plugin:read');
+      expect(scopes).toContain('consumer#instance.skill_plugin:write');
     });
 
     it('should contain instance.session scopes', () => {
@@ -317,6 +321,18 @@ describe('definitions', () => {
       );
       expect(instancePublishableTokenWithConsumerScopes).toContain(
         'consumer#instance.skill:manage_access'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill_marketplace:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill_marketplace:write'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill_plugin:read'
+      );
+      expect(instancePublishableTokenWithConsumerScopes).toContain(
+        'consumer#instance.skill_plugin:write'
       );
     });
   });
