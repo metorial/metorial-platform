@@ -13,6 +13,7 @@ import type {
   SkillPluginStatus
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -113,6 +114,30 @@ export let assertPluginIsNotManaged = (plugin: { isManaged: boolean }) => {
       message: 'This plugin is managed and cannot be deleted'
     })
   );
+};
+
+export let getSkillPluginFabricContext = async (d: {
+  organizationOid: bigint;
+  instance?: Instance;
+  instanceOid?: bigint;
+}) => {
+  let organization = await db.organization.findUnique({
+    where: { oid: d.organizationOid }
+  });
+  if (!organization) throw new ServiceError(notFoundError('organization'));
+
+  let instance = d.instance;
+  if (!instance) {
+    if (d.instanceOid == null) throw new ServiceError(notFoundError('instance'));
+
+    instance =
+      (await db.instance.findUnique({
+        where: { oid: d.instanceOid }
+      })) ?? undefined;
+  }
+  if (!instance) throw new ServiceError(notFoundError('instance'));
+
+  return { organization, instance };
 };
 
 type SkillPluginInput = {
@@ -365,7 +390,17 @@ class SkillPluginServiceImpl {
               })
             ).oid;
 
+    let { organization } = await getSkillPluginFabricContext({
+      organizationOid: d.instance.organizationOid,
+      instance: d.instance
+    });
+
     return await withTransaction(async db => {
+      await Fabric.fire('skill.plugin.created:before', {
+        organization,
+        instance: d.instance
+      });
+
       let destination = await createSkillDestination({ project: d.project });
       let skillPlugin = await db.skillPlugin.create({
         data: {
@@ -406,6 +441,12 @@ class SkillPluginServiceImpl {
           include: skillPluginInclude
         });
       }
+
+      await Fabric.fire('skill.plugin.created:after', {
+        organization,
+        instance: d.instance,
+        skillPlugin
+      });
 
       await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
 
@@ -505,11 +546,23 @@ class SkillPluginServiceImpl {
       event: 'updated'
     });
 
-    return await this.getSkillPluginRecord({
+    let skillPlugin = await this.getSkillPluginRecord({
       project: d.project,
       instance: d.instance,
       skillPluginId: d.skillPlugin.id
     });
+
+    let { organization } = await getSkillPluginFabricContext({
+      organizationOid: d.instance.organizationOid,
+      instance: d.instance
+    });
+    await Fabric.fire('skill.plugin.updated:after', {
+      organization,
+      instance: d.instance,
+      skillPlugin
+    });
+
+    return skillPlugin;
   }
 
   async archiveSkillPlugin(d: {
@@ -522,6 +575,11 @@ class SkillPluginServiceImpl {
     await assertSkillPluginArchiveAccess({
       skillPlugin: d.skillPlugin,
       accessTags: d.accessTags
+    });
+
+    let { organization } = await getSkillPluginFabricContext({
+      organizationOid: d.instance.organizationOid,
+      instance: d.instance
     });
 
     await withTransaction(async db => {
@@ -559,6 +617,12 @@ class SkillPluginServiceImpl {
         data: {
           status: 'archived'
         }
+      });
+
+      await Fabric.fire('skill.plugin.archived:after', {
+        organization,
+        instance: d.instance,
+        skillPlugin: d.skillPlugin
       });
 
       await enqueueSkillPluginLifecycle({
