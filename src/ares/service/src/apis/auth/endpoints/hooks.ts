@@ -474,13 +474,17 @@ export let authHooksApp = createHono()
         where: { clientId: clientId! },
         include: {
           ...importedDelegationInclude,
-          tenant: true,
+          tenant: { include: { account: true, app: true } },
           app: true
         }
       });
       if (!imported || imported.status !== 'active' || !imported.tenant) {
         throw new ServiceError(badRequestError({ message: 'Invalid delegation state' }));
       }
+
+      let tenant = imported.tenant;
+      let app = tenant.app;
+      let account = tenant.account;
 
       let snapshot = await ssoDelegationClient.exchangeCode({
         imported,
@@ -490,7 +494,8 @@ export let authHooksApp = createHono()
       let { connection, profile } = await materializeDelegatedIdentity({
         imported,
         snapshot,
-        tenant: imported.tenant,
+        tenant,
+        account,
         context
       });
 
@@ -504,13 +509,14 @@ export let authHooksApp = createHono()
       });
 
       let { authAttempt, session } = await ssoLoginService.completeLogin({
-        tenant: imported.tenant,
+        tenant,
         connection,
         userProfile: profile,
-        app: imported.app,
+        app,
+        account,
         device,
         context,
-        redirectUrl: imported.app.defaultRedirectUrl
+        redirectUrl: app.defaultRedirectUrl
       });
 
       ctx.res.headers.append(
