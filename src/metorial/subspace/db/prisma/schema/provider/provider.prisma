@@ -110,6 +110,7 @@ model Provider {
   tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
   firewallBindings               FirewallBinding[]
   monitors                       Monitor[]
+  chats                          Chat[]
 
   @@index([status])
   @@index([access])

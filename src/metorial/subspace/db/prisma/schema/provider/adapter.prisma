@@ -8,12 +8,12 @@ model ProviderAdapterGlobal {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  providerAdapters          ProviderAdapter[]
-  adapterIntegrations       AdapterIntegration[]
-  sessions                  Session[]
-  sessionConnections        SessionConnection[]
-  ephemeralManagedSessions  EphemeralManagedSession[]
-  callbacks                 Callback[]
+  providerAdapters         ProviderAdapter[]
+  adapterIntegrations      AdapterIntegration[]
+  sessions                 Session[]
+  sessionConnections       SessionConnection[]
+  ephemeralManagedSessions EphemeralManagedSession[]
+  callbacks                Callback[]
 }
 
 model ProviderAdapter {
@@ -31,10 +31,11 @@ model ProviderAdapter {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  capabilities    ProviderAdapterCapability[]
+  capabilities     ProviderAdapterCapability[]
   providerVersions ProviderVersionAdapter[]
-  tools           ProviderTool[]
-  triggers        ProviderTrigger[]
+  tools            ProviderTool[]
+  triggers         ProviderTrigger[]
+  chats            Chat[]
 
   @@unique([providerOid, identifier])
   @@unique([providerOid, globalOid])

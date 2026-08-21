@@ -1,0 +1,35 @@
+model ChatMessage {
+  oid BigInt @id
+  id  String @unique
+
+  messageId    String
+  providerType String
+
+  replyToMessageId String?
+
+  /// [ChatMessageBody]
+  body Json
+
+  /// [ChatMessageReactions]
+  reactions Json?
+
+  /// [ChatMessageUnfurls]
+  unfurls Json?
+
+  channelOid BigInt
+  channel    ChatChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
+
+  threadOid BigInt?
+  thread    ChatThread? @relation(fields: [threadOid], references: [oid], onDelete: Cascade)
+
+  authorOid BigInt
+  author    ChatAuthor @relation(fields: [authorOid], references: [oid], onDelete: Cascade)
+
+  sentAt   DateTime
+  edited   Boolean   @default(false)
+  editedAt DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+  lastInteractionAt DateTime?
+}
