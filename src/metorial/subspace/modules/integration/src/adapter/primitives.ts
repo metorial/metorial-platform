@@ -37,10 +37,18 @@ import {
   requireLiveAdapterInstance,
   toAdapterInstanceStatus
 } from './helpers';
+import {
+  notifyAdapterInstanceArchived,
+  notifyAdapterInstanceProvidersSynced,
+  notifyAdapterInstanceSynced,
+  notifyAdapterIntegrationArchived,
+  notifyAdapterProvidersSynced,
+  type AdapterListenerCause
+} from './listeners';
 
 export type { SetIntegrationInstanceProviderInput };
 
-export type AdapterCause = 'product' | 'integration';
+export type AdapterCause = AdapterListenerCause;
 
 export type EnsureAdapterIntegrationParams = {
   tenant: Tenant;
@@ -92,7 +100,10 @@ let liveInstanceStatus = (integrationInstance: IntegrationInstance) =>
     ? toAdapterInstanceStatus(integrationInstance.status)
     : ('active' as const);
 
-export let syncAdapterProviders = async (d: { adapterIntegration: AdapterIntegration }) => {
+export let syncAdapterProviders = async (d: {
+  adapterIntegration: AdapterIntegration;
+  cause?: AdapterCause;
+}) => {
   return withTransaction(async db => {
     let adapterIntegration = await loadAdapterIntegration(d.adapterIntegration.oid);
     requireLiveAdapterIntegration(adapterIntegration);
@@ -142,12 +153,35 @@ export let syncAdapterProviders = async (d: { adapterIntegration: AdapterIntegra
       data: { status: 'archived' }
     });
 
+    if (d.cause === 'integration') {
+      let tenant = await db.tenant.findUniqueOrThrow({
+        where: { oid: adapterIntegration.tenantOid }
+      });
+      let environment = await db.environment.findUniqueOrThrow({
+        where: { oid: adapterIntegration.environmentOid }
+      });
+      let providers = await db.adapterIntegrationProvider.findMany({
+        where: {
+          adapterIntegrationOid: adapterIntegration.oid,
+          status: { not: 'deleted' }
+        }
+      });
+      await notifyAdapterProvidersSynced({
+        tenant,
+        environment,
+        cause: d.cause,
+        adapterIntegration,
+        providers
+      });
+    }
+
     return links;
   });
 };
 
 export let syncAdapterInstanceProviders = async (d: {
   adapterIntegrationInstance: AdapterIntegrationInstance;
+  cause?: AdapterCause;
 }) => {
   return withTransaction(async db => {
     let adapterInstance = await loadAdapterInstance(d.adapterIntegrationInstance.oid);
@@ -221,12 +255,36 @@ export let syncAdapterInstanceProviders = async (d: {
       data: { status: 'archived' }
     });
 
+    if (d.cause === 'integration') {
+      let tenant = await db.tenant.findUniqueOrThrow({
+        where: { oid: adapterIntegration.tenantOid }
+      });
+      let environment = await db.environment.findUniqueOrThrow({
+        where: { oid: adapterIntegration.environmentOid }
+      });
+      let providers = await db.adapterIntegrationInstanceProvider.findMany({
+        where: {
+          adapterIntegrationInstanceOid: adapterInstance.oid,
+          status: { not: 'deleted' }
+        }
+      });
+      await notifyAdapterInstanceProvidersSynced({
+        tenant,
+        environment,
+        cause: d.cause,
+        adapterIntegration,
+        adapterInstance,
+        providers
+      });
+    }
+
     return links;
   });
 };
 
 export let syncAdapterInstanceStatus = async (d: {
   adapterInstance: AdapterIntegrationInstance;
+  cause?: AdapterCause;
 }) => {
   return withTransaction(async db => {
     let adapterInstance = await loadAdapterInstance(d.adapterInstance.oid);
@@ -236,10 +294,29 @@ export let syncAdapterInstanceStatus = async (d: {
     if (!isLiveAdapterInstanceStatus(nextStatus)) return adapterInstance;
     if (adapterInstance.status === nextStatus) return adapterInstance;
 
-    return db.adapterIntegrationInstance.update({
+    let updated = await db.adapterIntegrationInstance.update({
       where: { oid: adapterInstance.oid },
       data: { status: nextStatus }
     });
+
+    if (d.cause === 'integration') {
+      let adapterIntegration = adapterInstance.adapterIntegration;
+      let tenant = await db.tenant.findUniqueOrThrow({
+        where: { oid: adapterIntegration.tenantOid }
+      });
+      let environment = await db.environment.findUniqueOrThrow({
+        where: { oid: adapterIntegration.environmentOid }
+      });
+      await notifyAdapterInstanceSynced({
+        tenant,
+        environment,
+        cause: d.cause,
+        adapterIntegration,
+        adapterInstance: updated
+      });
+    }
+
+    return updated;
   });
 };
 
@@ -500,6 +577,16 @@ export let removeAdapterInstance = async (d: {
       });
     }
 
+    if (d.cause === 'integration') {
+      await notifyAdapterInstanceArchived({
+        tenant: d.tenant,
+        environment: d.environment,
+        cause: d.cause,
+        adapterIntegration: adapterInstance.adapterIntegration,
+        adapterInstance: archived
+      });
+    }
+
     return archived;
   });
 };
@@ -548,6 +635,15 @@ export let removeAdapterIntegration = async (d: {
         environment: d.environment,
         integration: adapterIntegration.integration,
         _canModifyAdapterBacking: true
+      });
+    }
+
+    if (d.cause === 'integration') {
+      await notifyAdapterIntegrationArchived({
+        tenant: d.tenant,
+        environment: d.environment,
+        cause: d.cause,
+        adapterIntegration: archived
       });
     }
 

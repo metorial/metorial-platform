@@ -55,7 +55,7 @@ export let adapterCoordinationListener = {
           }
         });
         for (let adapterIntegration of adapters) {
-          await syncAdapterProviders({ adapterIntegration });
+          await syncAdapterProviders({ adapterIntegration, cause: 'integration' });
         }
       });
       return;
@@ -95,7 +95,7 @@ export let adapterCoordinationListener = {
           }
         });
         for (let adapterInstance of adapterInstances) {
-          await syncAdapterInstanceStatus({ adapterInstance });
+          await syncAdapterInstanceStatus({ adapterInstance, cause: 'integration' });
         }
       });
       return;
@@ -113,7 +113,10 @@ export let adapterCoordinationListener = {
           }
         });
         for (let adapterInstance of adapterInstances) {
-          await syncAdapterInstanceProviders({ adapterIntegrationInstance: adapterInstance });
+          await syncAdapterInstanceProviders({
+            adapterIntegrationInstance: adapterInstance,
+            cause: 'integration'
+          });
         }
       });
     }

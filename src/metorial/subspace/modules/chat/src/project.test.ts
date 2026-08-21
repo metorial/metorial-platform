@@ -34,7 +34,7 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-integration', () => ({
-  registerIntegrationTransactionListener: vi.fn(),
+  registerAdapterListener: vi.fn(),
   isLiveAdapterStatus: (status: string) => status === 'active',
   isLiveAdapterInstanceStatus: (status: string) => status === 'draft' || status === 'active'
 }));
