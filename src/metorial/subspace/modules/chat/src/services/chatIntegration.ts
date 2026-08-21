@@ -51,8 +51,8 @@ export type ListChatIntegrationsParams = {
   status?: ChatIntegrationStatus[];
   allowDeleted?: boolean;
   ids?: string[];
-  createdAt?: DateFilter;
   updatedAt?: DateFilter;
+  createdAt?: DateFilter;
 };
 
 export type GetChatIntegrationByIdParams = {
