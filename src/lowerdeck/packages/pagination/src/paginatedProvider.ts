@@ -1,5 +1,6 @@
 import { ServiceError, badRequestError } from '@lowerdeck/error';
 import type { QueryFilter, SortOrder } from 'mongoose';
+import { Cursor } from './cursor';
 import type { PaginatedList } from './types';
 
 export interface PaginatedProviderInput {
@@ -25,6 +26,30 @@ export interface MongoosePaginationOpts<T> {
 export type PaginatedProvider<T> = (
   input: PaginatedProviderInput
 ) => Promise<PaginatedList<T>>;
+
+export type ExternalCursorPageInput = {
+  cursor?: string;
+  limit: number;
+  direction: 'forward' | 'backward';
+};
+
+export type ExternalCursorPageResult<T> = {
+  items: T[];
+  nextCursor?: string;
+  prevCursor?: string;
+};
+
+let resolveExternalCursor = (
+  token: string,
+  fallbackType: 'after' | 'before'
+): { cursor: string; type: 'after' | 'before' } => {
+  if (Cursor.isEncoded(token)) {
+    let decoded = Cursor.fromString(token);
+    return { cursor: decoded.id, type: decoded.type };
+  }
+
+  return { cursor: token, type: fallbackType };
+};
 
 export let paginatedProviderPrisma =
   <T extends { id: string }>(
@@ -164,6 +189,55 @@ export let paginatedProviderMongoose =
       pagination: {
         hasNextPage: hasItemsAfter,
         hasPreviousPage: hasItemsBefore
+      }
+    };
+  };
+
+export let paginatedProviderExternalCursor =
+  <T>(
+    fetch: (page: ExternalCursorPageInput) => Promise<ExternalCursorPageResult<T>>
+  ): PaginatedProvider<T> =>
+  async input => {
+    let { limit, after, before } = input;
+
+    if (after && before) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Cannot use both after and before cursors'
+        })
+      );
+    }
+
+    let cursor: string | undefined;
+    let direction: 'forward' | 'backward' = 'forward';
+
+    if (after) {
+      let resolved = resolveExternalCursor(after, 'after');
+      cursor = resolved.cursor;
+      direction = resolved.type === 'before' ? 'backward' : 'forward';
+    } else if (before) {
+      let resolved = resolveExternalCursor(before, 'before');
+      cursor = resolved.cursor;
+      direction = resolved.type === 'after' ? 'forward' : 'backward';
+    }
+
+    let page = await fetch({
+      cursor,
+      limit,
+      direction
+    });
+
+    return {
+      items: page.items,
+      pagination: {
+        hasNextPage: !!page.nextCursor,
+        hasPreviousPage: !!page.prevCursor,
+        after: page.nextCursor
+          ? Cursor.fromId(page.nextCursor, 'after').toString()
+          : undefined,
+        before: page.prevCursor
+          ? Cursor.fromId(page.prevCursor, 'before').toString()
+          : undefined
       }
     };
   };
