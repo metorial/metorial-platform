@@ -9,15 +9,20 @@ model ChatWorkspace {
 
   raw Json
 
+  syncHash String?
+
   chatOid BigInt @unique
   chat    Chat   @relation(fields: [chatOid], references: [oid], onDelete: Cascade)
+
+  chatIntegrationInstanceProviderOid BigInt
+  chatIntegrationInstanceProvider    ChatIntegrationInstanceProvider @relation(fields: [chatIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "cws_ciip_fkey")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   chatChannels ChatChannel[]
 
-  @@unique([workspaceId, chatOid])
+  @@unique([chatIntegrationInstanceProviderOid, workspaceId], map: "cws_ciip_workspace_key")
 }
 
 enum ChatChannelType {
@@ -49,6 +54,8 @@ model ChatChannel {
   permalink String?
 
   raw Json
+
+  syncHash String?
 
   chatOid BigInt
   chat    Chat   @relation(fields: [chatOid], references: [oid], onDelete: Cascade)
@@ -90,6 +97,8 @@ model ChatThread {
   lastReplyAt   DateTime?
 
   raw Json
+
+  syncHash String?
 
   channelOid BigInt
   channel    ChatChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)

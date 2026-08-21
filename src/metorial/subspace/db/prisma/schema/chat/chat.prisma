@@ -1,6 +1,16 @@
+enum ChatStatus {
+  active
+  archived
+  deleted
+}
+
 model Chat {
   oid BigInt @id
   id  String @unique
+
+  status          ChatStatus @default(active)
+  isParentDeleted Boolean    @default(false)
+  archivedAt      DateTime?
 
   name String
 
@@ -26,4 +36,10 @@ model Chat {
   authors   ChatAuthor[]
   channels  ChatChannel[]
   threads   ChatThread[]
+
+  @@index([chatIntegrationOid, status])
+  @@index([chatIntegrationInstanceOid, status])
+  @@index([chatIntegrationInstanceProviderOid, status])
+  @@index([status, archivedAt])
+  @@index([createdAt])
 }

@@ -16,6 +16,8 @@ model ChatMessage {
   /// [ChatMessageUnfurls]
   unfurls Json?
 
+  syncHash String?
+
   channelOid BigInt
   channel    ChatChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
 

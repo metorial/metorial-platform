@@ -192,6 +192,8 @@ export let ID = createIdGenerator({
   chatIntegrationProvider: idType.sorted('cip'),
   chatIntegrationInstance: idType.sorted('cii'),
   chatIntegrationInstanceProvider: idType.sorted('ciip'),
+  chat: idType.sorted('cht'),
+  chatWorkspace: idType.sorted('cws'),
 
   skillEntity: idType.sorted('ske'),
   skill: idType.sorted('skl'),

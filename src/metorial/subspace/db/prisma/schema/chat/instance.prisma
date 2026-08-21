@@ -114,7 +114,8 @@ model ChatIntegrationInstanceProvider {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  chats Chat[]
+  chats      Chat[]
+  workspaces ChatWorkspace[]
 
   @@unique([chatIntegrationInstanceOid, chatIntegrationProviderOid], map: "ciip_instance_provider_key")
   @@index([tenantOid, solutionOid, environmentOid, status])
