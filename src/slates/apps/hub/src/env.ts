@@ -20,7 +20,8 @@ export let env = createValidatedEnv({
 
   signal: {
     SIGNAL_API_URL: v.string(),
-    SIGNAL_SENDER_IDENTIFIER: v.string()
+    SIGNAL_SENDER_IDENTIFIER: v.string(),
+    SIGNAL_SERVICE_CREDENTIAL: v.string()
   },
 
   storage: {

@@ -6,11 +6,20 @@ import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
+type CallbackSecretOwnerInput = {
+  instanceId: string;
+  callbackId: string;
+  callbackInstanceId: string;
+};
+
 export let callbackInstancesLoader = createLoader({
   name: 'callbackInstances',
   parents: [],
   fetch: (
-    i: { instanceId: string; callbackId: string } & DashboardInstanceCallbacksInstancesListQuery
+    i: {
+      instanceId: string;
+      callbackId: string;
+    } & DashboardInstanceCallbacksInstancesListQuery
   ) => withAuth(sdk => sdk.callbacks.instances.list(i.instanceId, i.callbackId, i)),
   mutators: {
     delete: (
@@ -26,8 +35,34 @@ export let callbackInstancesLoader = createLoader({
 });
 
 export let useCreateCallbackInstance = callbackInstancesLoader.createExternalMutator(
-  (i: DashboardInstanceCallbacksInstancesCreateBody & { instanceId: string; callbackId: string }) =>
-    withAuth(sdk => sdk.callbacks.instances.create(i.instanceId, i.callbackId, i))
+  (
+    i: DashboardInstanceCallbacksInstancesCreateBody & {
+      instanceId: string;
+      callbackId: string;
+    }
+  ) => withAuth(sdk => sdk.callbacks.instances.create(i.instanceId, i.callbackId, i))
+);
+
+export let useCreateCallbackReceiverPathSecret = callbackInstancesLoader.createExternalMutator(
+  (i: CallbackSecretOwnerInput) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.createReceiverPathSecret(
+        i.instanceId,
+        i.callbackId,
+        i.callbackInstanceId
+      )
+    )
+);
+
+export let useRotateCallbackReceiverPathSecret = callbackInstancesLoader.createExternalMutator(
+  (i: CallbackSecretOwnerInput) =>
+    withAuth(sdk =>
+      sdk.callbacks.instances.rotateReceiverPathSecret(
+        i.instanceId,
+        i.callbackId,
+        i.callbackInstanceId
+      )
+    )
 );
 
 export let useCallbackInstances = (

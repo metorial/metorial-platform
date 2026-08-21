@@ -32,7 +32,6 @@ if (replicaClient) {
     readReplicas({ replicas: [replicaClient] })
   ) as any as PrismaClient;
 }
-
 export let db = baseClient;
 
 declare global {
@@ -87,7 +86,9 @@ declare global {
 
     type AnyRecord = Record<string, any>;
 
-    type SlateProviderInfo = SlatesMessageProviderIdentifyResponse['result']['provider'];
+    type SlateProviderInfo = SlatesMessageProviderIdentifyResponse['result']['provider'] & {
+      capabilities?: SlatesMessageProviderIdentifyResponse['result']['capabilities'];
+    };
 
     type AuthProfile = {
       id?: string;

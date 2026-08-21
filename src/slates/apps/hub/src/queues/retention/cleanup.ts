@@ -53,10 +53,7 @@ let cleanupTenantWebhookRequests = async (d: {
 }) => {
   if (d.receiverTriggerIds.length === 0) return;
 
-  await processBatch<{
-    id: string;
-    bodyStorageKey: string | null;
-  }>({
+  await processBatch<{ id: string }>({
     findMany: () =>
       db.slateTriggerWebhookRequest.findMany({
         where: {
@@ -67,15 +64,9 @@ let cleanupTenantWebhookRequests = async (d: {
         orderBy: { createdAt: 'asc' },
         take: RETENTION_BATCH_SIZE,
         select: {
-          id: true,
-          bodyStorageKey: true
+          id: true
         }
       }),
-    beforeDelete: async records => {
-      await enqueueStorageDeletes(
-        records.flatMap(record => (record.bodyStorageKey ? [record.bodyStorageKey] : []))
-      );
-    },
     deleteMany: records =>
       db.slateTriggerWebhookRequest.deleteMany({
         where: { id: { in: records.map(record => record.id) } }

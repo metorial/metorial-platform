@@ -8,15 +8,6 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { getTenantForSignal, signal } from '../signal';
 
-let emptyList = {
-  object: 'list',
-  items: [],
-  pagination: {
-    has_more_after: false,
-    has_more_before: false
-  }
-};
-
 export type ListCallbackDeliveriesParams = {
   callbackId: string;
   input: {
@@ -82,11 +73,17 @@ class callbackDeliveryServiceImpl {
     return {
       callback,
       linkedDestinationIds: callback.callbackDestinationLinks
-        .map(link => link.callbackDestination.signalEventDestinationId ?? link.callbackDestination.id)
+        .map(
+          link =>
+            link.callbackDestination.signalEventDestinationId ?? link.callbackDestination.id
+        )
         .filter(Boolean),
       activeDestinationIds: callback.callbackDestinationLinks
         .filter(link => link.callbackDestination.status === 'active')
-        .map(link => link.callbackDestination.signalEventDestinationId ?? link.callbackDestination.id)
+        .map(
+          link =>
+            link.callbackDestination.signalEventDestinationId ?? link.callbackDestination.id
+        )
         .filter(Boolean)
     };
   }
@@ -107,8 +104,6 @@ class callbackDeliveryServiceImpl {
   ) {
     let solution = await getMetorialSolution();
     let context = await this.resolveContext(d);
-    if (!context.callback.isCallbacksV2) return emptyList;
-
     let destinationIds = d.input.destinationIds?.length
       ? (
           await db.callbackDestination.findMany({
@@ -153,10 +148,6 @@ class callbackDeliveryServiceImpl {
     d: { tenant: Tenant; environment: Environment } & GetCallbackDeliveryParams
   ) {
     let context = await this.resolveContext(d);
-    if (!context.callback.isCallbacksV2) {
-      throw new ServiceError(notFoundError('callback.delivery', d.eventDeliveryIntentId));
-    }
-
     let signalTenant = await getTenantForSignal(d.tenant);
     return await signal.callback.getDelivery({
       tenantId: signalTenant.id,
@@ -181,8 +172,6 @@ class callbackDeliveryServiceImpl {
   ) {
     let solution = await getMetorialSolution();
     let context = await this.resolveContext(d);
-    if (!context.callback.isCallbacksV2) return emptyList;
-
     let destinationIds = d.input.destinationIds?.length
       ? (
           await db.callbackDestination.findMany({
@@ -225,12 +214,6 @@ class callbackDeliveryServiceImpl {
     d: { tenant: Tenant; environment: Environment } & GetCallbackDeliveryAttemptParams
   ) {
     let context = await this.resolveContext(d);
-    if (!context.callback.isCallbacksV2) {
-      throw new ServiceError(
-        notFoundError('callback.delivery_attempt', d.eventDeliveryAttemptId)
-      );
-    }
-
     let signalTenant = await getTenantForSignal(d.tenant);
     return await signal.callback.getDeliveryAttempt({
       tenantId: signalTenant.id,

@@ -71,9 +71,8 @@ model Callback {
   providerDeploymentOid BigInt
   providerDeployment    ProviderDeployment @relation(fields: [providerDeploymentOid], references: [oid], onDelete: Cascade)
 
-  status        CallbackStatus
-  mode          CallbackMode
-  isCallbacksV2 Boolean        @default(false)
+  status CallbackStatus
+  mode   CallbackMode
 
   name                        String
   description                 String?
@@ -84,10 +83,9 @@ model Callback {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  callbackProviderTriggers      CallbackProviderTrigger[]
-  callbackDestinationLinks      CallbackDestinationLink[]
-  callbackInstances             CallbackInstance[]
-  callbackReceiverRegistrations CallbackReceiverRegistration[]
+  callbackProviderTriggers CallbackProviderTrigger[]
+  callbackDestinationLinks CallbackDestinationLink[]
+  callbackInstances        CallbackInstance[]
 
   @@index([tenantOid, environmentOid, solutionOid, status])
   @@index([providerDeploymentOid, status])
@@ -134,7 +132,12 @@ enum CallbackInstanceStatus {
 
 enum CallbackInstanceRegistrationStatus {
   pending
+  registering
   registered
+  renewing
+  failed
+  unregistering
+  unregistered
 }
 
 model CallbackInstance {
@@ -149,58 +152,34 @@ model CallbackInstance {
   providerDeploymentConfigPairOid BigInt
   providerDeploymentConfigPair    ProviderDeploymentConfigPair @relation(fields: [providerDeploymentConfigPairOid], references: [oid], onDelete: Cascade)
 
-  status                 CallbackInstanceStatus
-  registrationStatus     CallbackInstanceRegistrationStatus
-  slateTriggerReceiverId String?
-  lastSyncErrorCode      String?
-  lastSyncErrorMessage   String?
-  lastSyncedAt           DateTime?
+  status                               CallbackInstanceStatus
+  registrationStatus                   CallbackInstanceRegistrationStatus
+  registrationGeneration               Int                                @default(0)
+  registrationTransitionVersion        Int                                @default(0)
+  registrationErrorCode                String?
+  registrationErrorMessage             String?
+  registrationErrorMetadata            Json?
+  registrationErrorAt                  DateTime?
+  registrationPublicSnapshot           Json?
+  registrationMirrorVersion            Int                                @default(0)
+  registrationReceiverAuthorityVersion Int                                @default(0)
+  slateTriggerReceiverId               String?
+  lastSyncErrorCode                    String?
+  lastSyncErrorMessage                 String?
+  lastSyncedAt                         DateTime?
+  lastRegistrationSyncErrorCode        String?
+  lastRegistrationSyncErrorMessage     String?
+  lastRegistrationSyncErrorAt          DateTime?
 
-  activeRegistrationOid BigInt?                       @unique
-  activeRegistration    CallbackReceiverRegistration? @relation("ActiveCallbackInstanceRegistration", fields: [activeRegistrationOid], references: [oid], onDelete: SetNull)
+  verificationMechanism String?
+  verificationSpecHash  String?
 
-  callbackReceiverRegistrations CallbackReceiverRegistration[] @relation("CallbackInstanceRegistrations")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  @@index([callbackOid, status])
-  @@index([providerDeploymentConfigPairOid, status])
-}
-
-enum CallbackReceiverRegistrationStatus {
-  active
-  detached
-  failed
-}
-
-model CallbackReceiverRegistration {
-  oid BigInt @id
-  id  String @unique
-
-  callbackOid BigInt
-  callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
-
-  providerDeploymentConfigPairOid BigInt
-  providerDeploymentConfigPair    ProviderDeploymentConfigPair @relation(fields: [providerDeploymentConfigPairOid], references: [oid], onDelete: Cascade)
-
-  callbackInstanceOid BigInt
-  callbackInstance    CallbackInstance @relation("CallbackInstanceRegistrations", fields: [callbackInstanceOid], references: [oid], onDelete: Cascade)
-
-  slateTriggerReceiverId String
-
-  status CallbackReceiverRegistrationStatus
-
-  lastErrorCode    String?
-  lastErrorMessage String?
-  lastSyncedAt     DateTime?
+  provisionedTenantApps ProvisionedTenantApp[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  activeForCallbackInstance CallbackInstance? @relation("ActiveCallbackInstanceRegistration")
-
+  @@unique([callbackOid, providerDeploymentConfigPairOid], map: "sub_callback_instance_pair_key")
   @@index([callbackOid, status])
   @@index([providerDeploymentConfigPairOid, status])
-  @@index([callbackInstanceOid, status])
 }

@@ -6,12 +6,17 @@ export type PendingWebhookQueueRequest = {
   syncOwnerExpiresAt: Date | null;
   syncOwnerCommitStartedAt: Date | null;
   syncCompletedReceiverTriggerIds: string[];
+  queueClaimToken: string | null;
+  queueClaimState: string | null;
 };
-
 export type WebhookQueueProcessingDependencies<Request extends PendingWebhookQueueRequest> = {
   loadPendingRequest: (webhookRequestId: string) => Promise<Request | null>;
   usingLock: <T>(key: string, callback: () => Promise<T>) => Promise<T>;
-  fenceExpiredOwner: (request: Request) => Promise<void>;
+  claimQueueOwnership: (
+    request: Request,
+    claimToken: string,
+    now: Date
+  ) => Promise<'owned' | 'ownerActive' | 'invalid'>;
   targetExists: (request: Request) => Promise<boolean>;
   handleTarget: (
     request: Request,
@@ -28,7 +33,11 @@ export type WebhookQueueProcessingResult = 'processed' | 'skipped' | 'ownerActiv
 export let processSlateTriggerWebhookQueueRequest = async <
   Request extends PendingWebhookQueueRequest
 >(
-  data: { webhookRequestId: string; excludeReceiverTriggerIds?: string[] },
+  data: {
+    webhookRequestId: string;
+    claimToken: string;
+    excludeReceiverTriggerIds?: string[];
+  },
   dependencies: WebhookQueueProcessingDependencies<Request>
 ): Promise<WebhookQueueProcessingResult> => {
   let request = await dependencies.loadPendingRequest(data.webhookRequestId);
@@ -51,18 +60,13 @@ export let processSlateTriggerWebhookQueueRequest = async <
     if (!lockedRequest) return 'skipped';
 
     let now = (dependencies.now ?? (() => new Date()))();
-    if (
-      lockedRequest.syncOwnerToken &&
-      lockedRequest.syncOwnerExpiresAt &&
-      lockedRequest.syncOwnerExpiresAt.getTime() > now.getTime()
-    ) {
-      return 'ownerActive';
-    }
-
-    if (lockedRequest.syncOwnerToken) {
-      await dependencies.fenceExpiredOwner(lockedRequest);
-    }
-
+    let ownership = await dependencies.claimQueueOwnership(
+      lockedRequest,
+      data.claimToken,
+      now
+    );
+    if (ownership === 'invalid') return 'skipped';
+    if (ownership === 'ownerActive') return 'ownerActive';
     if (!(await dependencies.targetExists(lockedRequest))) {
       await dependencies.finalize(lockedRequest);
       return 'processed';
@@ -89,4 +93,23 @@ export let processSlateTriggerWebhookQueueRequest = async <
     await dependencies.finalize(lockedRequest);
     return 'processed';
   });
+};
+import type { ExactWebhookPipelineResult } from './webhookVerification';
+
+export let settleExactWebhookQueueResult = async (d: {
+  result: ExactWebhookPipelineResult;
+  onAccepted: (
+    result: Extract<ExactWebhookPipelineResult, { status: 'committed' | 'duplicate' }>
+  ) => Promise<void>;
+  onRejected: (
+    code: Extract<ExactWebhookPipelineResult, { status: 'rejected' }>['code'],
+    result: Extract<ExactWebhookPipelineResult, { status: 'rejected' }>
+  ) => Promise<void>;
+}) => {
+  if (d.result.status === 'rejected') {
+    await d.onRejected(d.result.code, d.result);
+    return 'rejected' as const;
+  }
+  await d.onAccepted(d.result);
+  return 'accepted' as const;
 };

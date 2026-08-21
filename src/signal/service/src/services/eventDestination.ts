@@ -260,6 +260,49 @@ class eventDestinationServiceImpl {
       include
     });
   }
+
+  async rotateSigningSecret(d: { eventDestination: EventDestination; tenant: Tenant }) {
+    if (
+      d.eventDestination.status !== 'active' ||
+      d.eventDestination.tenantOid !== d.tenant.oid
+    ) {
+      throw new ServiceError(notFoundError('event_destination'));
+    }
+
+    let signingSecret = generateCustomId('metorial_whsec_', 50);
+    let rotatedAt = new Date();
+    let eventDestination = await db.$transaction(async tx => {
+      let materialized = await tx.eventDestination.findFirst({
+        where: {
+          oid: d.eventDestination.oid,
+          tenantOid: d.tenant.oid,
+          status: 'active'
+        },
+        include
+      });
+      let webhook = materialized?.currentInstance?.webhook;
+      if (!webhook) {
+        throw new ServiceError(
+          preconditionFailedError({
+            code: 'callback_destination_not_materialized',
+            message: 'The callback destination has not been materialized in Signal.'
+          })
+        );
+      }
+
+      await tx.webhookDestinationWebhook.update({
+        where: { oid: webhook.oid },
+        data: { signingSecret }
+      });
+
+      return await tx.eventDestination.findFirstOrThrow({
+        where: { oid: materialized!.oid },
+        include
+      });
+    });
+
+    return { eventDestination, signingSecret, rotatedAt };
+  }
 }
 
 export let eventDestinationService = Service.create(

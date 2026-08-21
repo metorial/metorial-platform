@@ -20,12 +20,18 @@ export let validateJsonSchema = ({
   try {
     valRes = z.fromJSONSchema(schema).safeParse(data);
   } catch (e) {
-    console.error(e);
     Sentry.captureException(e, {
-      extra: { schema, data }
+      extra: { entity, message: 'Invalid persisted JSON schema' }
     });
-
-    return data;
+    throw new ServiceError(
+      validationError({
+        errors: [
+          { code: 'invalid_schema', path: [], message: 'The persisted JSON schema is invalid' }
+        ],
+        entity,
+        message
+      })
+    );
   }
 
   if (!valRes.success) {

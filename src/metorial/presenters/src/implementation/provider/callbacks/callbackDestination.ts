@@ -7,7 +7,7 @@ export let v1CallbackDestinationPresenter = Presenter.create(callbackDestination
     let enriched = callbackDestination as typeof callbackDestination & {
       signalDestination?: {
         webhook?: {
-          signingSecret?: string | null;
+          signingSecretConfigured?: boolean;
         } | null;
       } | null;
     };
@@ -21,7 +21,8 @@ export let v1CallbackDestinationPresenter = Presenter.create(callbackDestination
       metadata: callbackDestination.metadata,
       url: callbackDestination.url,
       method: callbackDestination.method,
-      signing_secret: enriched.signalDestination?.webhook?.signingSecret ?? null,
+      signing_secret_configured:
+        enriched.signalDestination?.webhook?.signingSecretConfigured ?? false,
       created_at: callbackDestination.createdAt,
       updated_at: callbackDestination.updatedAt
     };
@@ -69,14 +70,10 @@ export let v1CallbackDestinationPresenter = Presenter.create(callbackDestination
         description: 'HTTP method used for webhook delivery',
         examples: ['POST']
       }),
-      signing_secret: v.nullable(
-        v.string({
-          name: 'signing_secret',
-          description:
-            'Secret used to verify callback webhook signatures. Populated on detailed destination responses when available.',
-          examples: ['whsec_4dEfGhJkLmNpQrSt']
-        })
-      ),
+      signing_secret_configured: v.boolean({
+        name: 'signing_secret_configured',
+        description: 'Whether the callback destination has an outbound signing secret.'
+      }),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when the callback destination was created',

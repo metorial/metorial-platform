@@ -20,16 +20,18 @@ model SlateInstance {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  configs                 SlateInstanceConfig[]
-  authConfigs             SlateAuthConfig[]
-  events                  SlateInstanceEvent[]
-  oAuthSetups             SlateInstanceOAuthSetup[]
-  usedAuthConfig          SlateAuthConfigUsedForInstance[]
-  slateSessions           SlateSession[]
-  slateTriggerReceivers   SlateTriggerReceiver[]
-  slateTriggerEvents      SlateTriggerEvent[]
-  slateTriggerEventInputs SlateTriggerEventInput[]
-  slateErrors             SlateError[]
+  configs                         SlateInstanceConfig[]
+  authConfigs                     SlateAuthConfig[]
+  events                          SlateInstanceEvent[]
+  oAuthSetups                     SlateInstanceOAuthSetup[]
+  usedAuthConfig                  SlateAuthConfigUsedForInstance[]
+  slateSessions                   SlateSession[]
+  slateTriggerReceivers           SlateTriggerReceiver[]
+  slateTriggerEvents              SlateTriggerEvent[]
+  slateTriggerEventInputs         SlateTriggerEventInput[]
+  slateTriggerReceiverPathSecrets SlateTriggerReceiverPathSecret[]
+  slateTriggerReceiverSecrets     SlateTriggerReceiverSecret[]
+  slateErrors                     SlateError[]
 }
 
 model SlateInstanceConfiguration {
@@ -123,8 +125,9 @@ model SlateOAuthCredentials {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  authConfigs SlateAuthConfig[]
-  oAuthSetups SlateInstanceOAuthSetup[]
+  authConfigs          SlateAuthConfig[]
+  oAuthSetups          SlateInstanceOAuthSetup[]
+  provisionedAppRoutes SlateProvisionedAppRouteProjection[]
 }
 
 enum SlateAuthConfigType {
@@ -175,12 +178,14 @@ model SlateAuthConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  defaultForInstances           SlateInstance[]                  @relation(name: "defaultAuthConfig")
+  defaultForInstances           SlateInstance[]                       @relation(name: "defaultAuthConfig")
   slateInstanceOAuthSetups      SlateInstanceOAuthSetup[]
   usingInstances                SlateAuthConfigUsedForInstance[]
   slateAuthConfigEvents         SlateAuthConfigEvent[]
   slateAuthConfigManualDecrypts SlateAuthConfigManualDecrypt[]
   slateTriggerReceivers         SlateTriggerReceiver[]
+  provisionedAppRoutes          SlateProvisionedAppRouteProjection[]
+  provisionedTenantAppBindings  SlateProvisionedTenantAppProjection[]
   slateErrors                   SlateError[]
 }
 

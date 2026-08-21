@@ -24,7 +24,7 @@ export let CallbacksListLayout = () => {
     <ContentLayout>
       <PageHeader
         title="Callbacks"
-        description="Receive async notifications for events that occur within providers."
+        description="Get notified when something happens in one of your providers, like a new message or a status change."
         actions={
           canCreateCallback ? (
             <Button

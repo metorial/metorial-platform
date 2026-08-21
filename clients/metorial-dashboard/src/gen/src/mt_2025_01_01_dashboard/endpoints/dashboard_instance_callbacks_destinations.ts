@@ -10,6 +10,7 @@ import {
   mapDashboardInstanceCallbacksDestinationsGetOutput,
   mapDashboardInstanceCallbacksDestinationsListOutput,
   mapDashboardInstanceCallbacksDestinationsListQuery,
+  mapDashboardInstanceCallbacksDestinationsRotateSigningSecretOutput,
   mapDashboardInstanceCallbacksDestinationsUpdateBody,
   mapDashboardInstanceCallbacksDestinationsUpdateOutput,
   type DashboardInstanceCallbacksDestinationsCreateBody,
@@ -18,6 +19,7 @@ import {
   type DashboardInstanceCallbacksDestinationsGetOutput,
   type DashboardInstanceCallbacksDestinationsListOutput,
   type DashboardInstanceCallbacksDestinationsListQuery,
+  type DashboardInstanceCallbacksDestinationsRotateSigningSecretOutput,
   type DashboardInstanceCallbacksDestinationsUpdateBody,
   type DashboardInstanceCallbacksDestinationsUpdateOutput
 } from '../resources';
@@ -173,6 +175,35 @@ export class MetorialDashboardInstanceCallbacksDestinationsEndpoint {
 
     return this._patch(request).transform(
       mapDashboardInstanceCallbacksDestinationsUpdateOutput
+    );
+  }
+
+  /**
+   * @name Rotate callback destination signing secret
+   * @description Immediately rotates the outbound callback signing secret and returns it once.
+   *
+   * @param `instanceId` - string
+   * @param `callbackDestinationId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksDestinationsRotateSigningSecretOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  rotateSigningSecret(
+    instanceId: string,
+    callbackDestinationId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksDestinationsRotateSigningSecretOutput> {
+    let path = `dashboard/instances/${instanceId}/callback-destinations/${callbackDestinationId}/security/signing-secret/rotate`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksDestinationsRotateSigningSecretOutput
     );
   }
 

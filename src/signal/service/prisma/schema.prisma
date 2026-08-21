@@ -143,8 +143,8 @@ model Callback {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  destinations CallbackDestinationLink[]
-  events       Event[]
+  destinations   CallbackDestinationLink[]
+  events         Event[]
   callbackEvents CallbackEvent[]
 
   @@index([tenantOid, status])
@@ -174,8 +174,8 @@ model CallbackEvent {
   oid BigInt @id
   id  String @unique
 
-  idempotencyKey String @unique
-  externalId      String?
+  idempotencyKey String              @unique
+  externalId     String?
   status         CallbackEventStatus @default(succeeded)
 
   callbackOid BigInt
@@ -253,11 +253,19 @@ enum EventStatus {
   failed
 }
 
+enum EventInitializationStatus {
+  awaiting_enqueue
+  queued
+  initialized
+}
+
 model Event {
-  oid            BigInt      @id
-  id             String      @unique
-  idempotencyKey String?     @unique
-  status         EventStatus
+  oid                  BigInt                    @id
+  id                   String                    @unique
+  idempotencyKey       String?                   @unique
+  requestFingerprint   String?
+  initializationStatus EventInitializationStatus @default(initialized)
+  status               EventStatus
 
   topics String[]
 
@@ -329,6 +337,7 @@ model EventDeliveryIntent {
 
   attempts EventDeliveryAttempt[]
 
+  @@unique([eventOid, destinationOid])
   @@index([status])
 }
 
@@ -360,5 +369,6 @@ model EventDeliveryAttempt {
 
   createdAt DateTime @default(now())
 
+  @@unique([intentOid, attemptNumber])
   @@index([status])
 }

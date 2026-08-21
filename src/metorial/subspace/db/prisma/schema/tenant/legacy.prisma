@@ -107,6 +107,7 @@ model Tenant {
   providerRunUsageRecords                  ProviderRunUsageRecord[]
   callbackDestinations                     CallbackDestination[]
   callbacks                                Callback[]
+  provisionedTenantApps                    ProvisionedTenantApp[]
   providerUses                             ProviderUse[]
   identityActors                           IdentityActor[]
   agents                                   Agent[]

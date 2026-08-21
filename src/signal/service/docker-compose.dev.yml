@@ -78,6 +78,8 @@ services:
       REDIS_URL: ${REDIS_URL}
       OBJECT_STORAGE_URL: ${OBJECT_STORAGE_URL}
       LOGS_BUCKET_NAME: ${LOGS_BUCKET_NAME}
+      HUB_SERVICE_CREDENTIAL: ${HUB_SERVICE_CREDENTIAL:-local-dev-hub-signal-credential}
+      SUBSPACE_SERVICE_CREDENTIAL: ${SUBSPACE_SERVICE_CREDENTIAL:-local-dev-subspace-signal-credential}
     volumes:
       - ./src:/app/src/signal/service/src:ro
       - ./package.json:/app/src/signal/service/package.json:ro
@@ -93,7 +95,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          "bun -e \"fetch('http://localhost:52050/').then(()=>process.exit(0)).catch(()=>process.exit(1))\""
+          'bun -e "fetch(''http://localhost:52050/'').then(()=>process.exit(0)).catch(()=>process.exit(1))"'
         ]
       interval: 5s
       timeout: 5s

@@ -104,10 +104,25 @@ export type SecretSlateAuthConfig = {
   output?: Record<string, any>;
 };
 
+export type SecretSlateCallbackPath = {
+  value: string;
+};
+
+export type SecretSlateCallbackValue = {
+  value: string;
+};
+
+export type SecretSlateCallbackRegistration = {
+  details: unknown;
+};
+
 export type SecretTypes = {
   slate_oauth_setup: SecretSlateInstanceOauthSetup;
   slate_oauth_credentials: SecretSlateOAuthCredentials;
   slate_authentication_configuration: SecretSlateAuthConfig;
+  slate_callback_path: SecretSlateCallbackPath;
+  slate_callback_value: SecretSlateCallbackValue;
+  slate_callback_registration: SecretSlateCallbackRegistration;
 };
 
 class secretServiceImpl {
@@ -145,14 +160,16 @@ class secretServiceImpl {
     tenant: Tenant;
     purpose: Type;
     secretData: SecretTypes[Type];
+    db?: SecretDbClient;
   }) {
+    let client = d.db ?? db;
     if (!env.secrets.SLATES_DELEGATE_SECRETS_TO_NEBULA) {
       let encrypted = await encryption.encrypt({
         secret: JSON.stringify(d.secretData),
         entityId: String(d.tenant.oid)
       });
 
-      return await db.secret.create({
+      return await client.secret.create({
         data: {
           ...getId('secret'),
           type: d.purpose,
@@ -164,7 +181,7 @@ class secretServiceImpl {
       });
     }
 
-    let secret = await db.secret.create({
+    let secret = await client.secret.create({
       data: {
         ...getId('secret'),
         type: d.purpose,
@@ -183,12 +200,12 @@ class secretServiceImpl {
         secretData: d.secretData
       });
 
-      return await db.secret.update({
+      return await client.secret.update({
         where: { oid: secret.oid },
         data: { nebulaSecretId: nebulaSecret.id }
       });
     } catch (err) {
-      await db.secret.delete({ where: { oid: secret.oid } });
+      await client.secret.delete({ where: { oid: secret.oid } });
       throw err;
     }
   }

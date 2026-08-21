@@ -6,16 +6,24 @@ import {
 import {
   mapDashboardInstanceCallbacksInstancesCreateBody,
   mapDashboardInstanceCallbacksInstancesCreateOutput,
+  mapDashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput,
   mapDashboardInstanceCallbacksInstancesDeleteOutput,
   mapDashboardInstanceCallbacksInstancesGetOutput,
   mapDashboardInstanceCallbacksInstancesListOutput,
   mapDashboardInstanceCallbacksInstancesListQuery,
+  mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput,
+  mapDashboardInstanceCallbacksInstancesSendTestEventBody,
+  mapDashboardInstanceCallbacksInstancesSendTestEventOutput,
   type DashboardInstanceCallbacksInstancesCreateBody,
   type DashboardInstanceCallbacksInstancesCreateOutput,
+  type DashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput,
   type DashboardInstanceCallbacksInstancesDeleteOutput,
   type DashboardInstanceCallbacksInstancesGetOutput,
   type DashboardInstanceCallbacksInstancesListOutput,
-  type DashboardInstanceCallbacksInstancesListQuery
+  type DashboardInstanceCallbacksInstancesListQuery,
+  type DashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput,
+  type DashboardInstanceCallbacksInstancesSendTestEventBody,
+  type DashboardInstanceCallbacksInstancesSendTestEventOutput
 } from '../resources';
 
 /**
@@ -139,6 +147,104 @@ export class MetorialManagementInstanceCallbacksInstancesEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceCallbacksInstancesCreateOutput
+    );
+  }
+
+  /**
+   * @name Send callback test event
+   * @description Queues an authenticated dashboard synthetic event for a callback instance.
+   *
+   * @param `instanceId` - string
+   * @param `callbackId` - string
+   * @param `callbackInstanceId` - string
+   * @param `body` - DashboardInstanceCallbacksInstancesSendTestEventBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksInstancesSendTestEventOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  sendTestEvent(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    body: DashboardInstanceCallbacksInstancesSendTestEventBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesSendTestEventOutput> {
+    let path = `instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/test-event`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceCallbacksInstancesSendTestEventBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksInstancesSendTestEventOutput
+    );
+  }
+
+  /**
+   * @name Create secure callback URL
+   * @description Creates the initial receiver path secret and returns its plaintext once.
+   *
+   * @param `instanceId` - string
+   * @param `callbackId` - string
+   * @param `callbackInstanceId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  createReceiverPathSecret(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput> {
+    let path = `instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput
+    );
+  }
+
+  /**
+   * @name Rotate secure callback URL
+   * @description Immediately rotates the receiver path secret and returns its new plaintext once.
+   *
+   * @param `instanceId` - string
+   * @param `callbackId` - string
+   * @param `callbackInstanceId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  rotateReceiverPathSecret(
+    instanceId: string,
+    callbackId: string,
+    callbackInstanceId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput> {
+    let path = `instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}/security/path-secret/rotate`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput
     );
   }
 

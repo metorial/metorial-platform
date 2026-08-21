@@ -11,14 +11,14 @@ export let eventCleanupQueue = createQueue<{
   redisUrl: env.service.REDIS_URL
 });
 
-export let eventCleanupQueueProcessor = eventCleanupQueue.process(async data => {
+export let cleanupEvent = async (data: { eventId: string }) => {
   let event = await db.event.findFirst({
     where: { id: data.eventId }
   });
   if (!event) throw new QueueRetryError();
 
   await db.eventDeliveryIntent.updateMany({
-    where: { id: data.eventId, status: { notIn: ['delivered', 'failed'] } },
+    where: { eventOid: event.oid, status: { notIn: ['delivered', 'failed'] } },
     data: { status: 'failed' }
   });
 
@@ -47,4 +47,6 @@ export let eventCleanupQueueProcessor = eventCleanupQueue.process(async data => 
       data: { payloadJson: null, headers: [] }
     });
   }
-});
+};
+
+export let eventCleanupQueueProcessor = eventCleanupQueue.process(cleanupEvent);

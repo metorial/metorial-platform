@@ -20,11 +20,13 @@ import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { invocationsBucketRecord } from '../../storage';
 import { storeSlateInvocation } from './store';
+import { runScopedRemoteInvocation, sanitizeScopedInvocationValue } from './types';
 import type {
   InvocationError,
   InvocationResult,
   SlateInvocationBaseParams,
   SlateInvocationDeploymentTarget,
+  SlatesScopedInvocationGrantEnvelope,
   SlatesRequest,
   SlatesResponse
 } from './types';
@@ -45,6 +47,10 @@ export class SlateInvocationStack {
   #tenant?: SlateInvocationBaseParams['tenant'];
   #enclaveId?: string;
   #egressPolicy?: PrismaJson.CompiledEgressNetworkAllowList;
+  #invocationId: Promise<string>;
+  #scopedSecurity?: SlateInvocationBaseParams['scopedSecurity'];
+  #artifactSecurity?: SlateInvocationBaseParams['artifactSecurity'];
+  #canonicalConfigSchema?: SlateInvocationBaseParams['canonicalConfigSchema'];
   #productiveMessages: SlatesRequest[] = [];
   #alreadyInvoked = false;
   #runPromise: ReturnType<typeof this.run>;
@@ -57,6 +63,12 @@ export class SlateInvocationStack {
     this.#tenant = d.tenant;
     this.#enclaveId = d.enclaveId;
     this.#egressPolicy = d.egressPolicy;
+    this.#invocationId = d.invocationId
+      ? Promise.resolve(d.invocationId)
+      : ID.generateId('slateInvocation');
+    this.#scopedSecurity = d.scopedSecurity;
+    this.#artifactSecurity = d.artifactSecurity;
+    this.#canonicalConfigSchema = d.canonicalConfigSchema;
 
     this.#runPromise = this.run();
   }
@@ -93,21 +105,54 @@ export class SlateInvocationStack {
       ...this.#productiveMessages
     ];
 
-    let invocationId = await ID.generateId('slateInvocation');
+    let invocationId = await this.#invocationId;
     let [runtimeTenant, deploymentTenant] = await Promise.all([
       this.#tenant ? getFunctionBayTenantForTenant(this.#tenant) : functionBayTenant,
       functionBayTenant
     ]);
     let [providerInvocation, invocationRecord] = await Promise.all([
-      functionBay.function.invoke({
-        tenantId: runtimeTenant.id,
-        functionTenantId: deploymentTenant.id,
-        functionId: providerDeploymentInfo.functionId,
-        payload: { messages, invocationId },
-        enclave:
-          this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
-        egressPolicy: this.#egressPolicy
-      }),
+      this.#scopedSecurity
+        ? runScopedRemoteInvocation({
+            hubInvocationId: invocationId,
+            control: this.#scopedSecurity.executionControl,
+            invoke: () =>
+              functionBay.function.invoke({
+                tenantId: runtimeTenant.id,
+                functionTenantId: deploymentTenant.id,
+                functionId: providerDeploymentInfo.functionId,
+                payload: {
+                  messages,
+                  invocationId
+                },
+                enclave:
+                  this.#enclaveId && runtimeTenant
+                    ? { identifier: this.#enclaveId }
+                    : undefined,
+                egressPolicy: this.#egressPolicy
+              })
+          }).catch(error => ({
+            id: '',
+            logs: [],
+            computeTimeMs: 0,
+            billedTimeMs: 0,
+            functionVersionId: '',
+            type: 'error' as const,
+            status: 'failed' as const,
+            error: { code: 'scoped_invocation_terminated', message: String(error) },
+            result: undefined
+          }))
+        : functionBay.function.invoke({
+            tenantId: runtimeTenant.id,
+            functionTenantId: deploymentTenant.id,
+            functionId: providerDeploymentInfo.functionId,
+            payload: {
+              messages,
+              invocationId
+            },
+            enclave:
+              this.#enclaveId && runtimeTenant ? { identifier: this.#enclaveId } : undefined,
+            egressPolicy: this.#egressPolicy
+          }),
       db.slateInvocation.create({
         data: {
           oid: snowflake.nextId(),
@@ -123,17 +168,23 @@ export class SlateInvocationStack {
     ]);
 
     if (providerInvocation.type === 'error') {
-      storeSlateInvocation({
+      let sanitizedProviderInvocation = sanitizeScopedInvocationValue(
+        providerInvocation,
+        this.#scopedSecurity ?? this.#artifactSecurity
+      );
+      await storeSlateInvocation({
         slateVersion: this.#slateVersion,
         participants: this.#participants,
         record: invocationRecord,
         requestMessages: messages,
-        invocationResult: providerInvocation
+        invocationResult: sanitizedProviderInvocation,
+        artifactSecurity: this.#scopedSecurity ?? this.#artifactSecurity,
+        canonicalConfigSchema: this.#canonicalConfigSchema
       });
 
       return {
         status: 'error' as const,
-        invocation: providerInvocation,
+        invocation: sanitizedProviderInvocation,
 
         mapMessage: <Key extends keyof typeof slatesResponsesByMethod>(
           _: Key
@@ -146,7 +197,7 @@ export class SlateInvocationStack {
           invocation: invocationRecord,
           error: {
             code: 'invocation_error',
-            message: `An error occurred during invocation: ${providerInvocation.error.message}`
+            message: `An error occurred during invocation: ${sanitizedProviderInvocation.error.message}`
           }
         })
       };
@@ -159,13 +210,15 @@ export class SlateInvocationStack {
 
     let resultMessages = providerInvocation.result.messages as SlatesResponse[];
 
-    storeSlateInvocation({
+    await storeSlateInvocation({
       slateVersion: this.#slateVersion,
       participants: this.#participants,
       record: invocationRecord,
       requestMessages: messages,
       responseMessages: resultMessages,
-      invocationResult: providerInvocation
+      invocationResult: providerInvocation,
+      artifactSecurity: this.#scopedSecurity ?? this.#artifactSecurity,
+      canonicalConfigSchema: this.#canonicalConfigSchema
     });
 
     return {
@@ -288,9 +341,13 @@ export class SlateInvocationStack {
 
   async invoke<Key extends keyof typeof slatesResponsesByMethod>(
     method: Key,
-    params: z.infer<(typeof slatesRequestsByMethod)[Key]>['params']
+    params: z.infer<(typeof slatesRequestsByMethod)[Key]>['params'],
+    invocation?: SlatesScopedInvocationGrantEnvelope
   ): Promise<InvocationResult<Key>> {
     if (this.#alreadyInvoked) {
+      if (this.#scopedSecurity) {
+        throw new Error('Scoped invocation stack cannot be restarted or rebound');
+      }
       Sentry.captureMessage(
         'SlateInvocationStack was already invoked but still received a new message',
         {
@@ -309,18 +366,28 @@ export class SlateInvocationStack {
         enclaveId: this.#enclaveId,
         egressPolicy: this.#egressPolicy,
         initialMessages: this.#initialMessages
-      }).invoke(method, params);
+      }).invoke(method, params, invocation);
     }
 
+    let requestId = invocation?.requestId ?? generatePlainId(10);
     this.#productiveMessages.push({
       jsonrpc: '2.0' as const,
-      id: generatePlainId(10),
+      id: requestId,
       method,
-      params
+      params,
+      ...(invocation ? { invocation } : {})
     } as any);
 
     let run = await this.#runPromise;
 
     return run.mapMessage(method);
+  }
+
+  getInvocationId() {
+    return this.#invocationId;
+  }
+
+  clearClassifiedInvocation() {
+    this.#artifactSecurity = undefined;
   }
 }

@@ -41,6 +41,7 @@ export const SlateTriggerReceiverFixtures = (db: PrismaClient) => {
         status: SlateTriggerReceiverStatus.active,
         name: `receiver-${randomBytes(4).toString('hex')}`,
         eventTypes: ['*'],
+        telegramWebhookAllowedUpdates: [],
         ...data.overrides
       } as SlateTriggerReceiver,
       {
@@ -70,7 +71,7 @@ export const SlateTriggerReceiverFixtures = (db: PrismaClient) => {
         pollIntervalSeconds:
           data.source === SlateTriggerReceiverTriggerSource.polling ? 60 : null,
         state: {},
-        registrationDetails: {},
+        eventTypes: [],
         ...data.overrides
       } as SlateTriggerReceiverTrigger,
       {

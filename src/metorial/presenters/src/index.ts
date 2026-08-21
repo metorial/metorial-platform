@@ -44,10 +44,12 @@ import {
   v1BootPresenter,
   v1BucketEditorTokenPresenter,
   v1CallbackDestinationPresenter,
+  v1CallbackDestinationSigningSecretPresenter,
   v1CallbackEventPresenter,
   v1CallbackInstancePresenter,
   v1CallbackNotificationPresenter,
   v1CallbackPresenter,
+  v1CallbackReceiverPathSecretPresenter,
   v1CliDevicePresenter,
   v1ConfigPresenter,
   v1ConsumerAccessListingPresenter,
@@ -256,9 +258,11 @@ import {
   bootType,
   bucketEditorTokenType,
   callbackDestinationType,
+  callbackDestinationSigningSecretType,
   callbackEventType,
   callbackInstanceType,
   callbackNotificationType,
+  callbackReceiverPathSecretType,
   callbackType,
   cliDeviceType,
   configPreviewType,
@@ -908,10 +912,24 @@ export let callbackDestinationPresenter = declarePresenter(callbackDestinationTy
   mt_2026_01_01_magnetar: v1CallbackDestinationPresenter
 });
 
+export let callbackDestinationSigningSecretPresenter = declarePresenter(
+  callbackDestinationSigningSecretType,
+  {
+    mt_2025_01_01_dashboard: v1CallbackDestinationSigningSecretPresenter
+  }
+);
+
 export let callbackInstancePresenter = declarePresenter(callbackInstanceType, {
   mt_2025_01_01_dashboard: v1CallbackInstancePresenter,
   mt_2026_01_01_magnetar: v1CallbackInstancePresenter
 });
+
+export let callbackReceiverPathSecretPresenter = declarePresenter(
+  callbackReceiverPathSecretType,
+  {
+    mt_2025_01_01_dashboard: v1CallbackReceiverPathSecretPresenter
+  }
+);
 
 export let teamPresenter = declarePresenter(teamType, {
   mt_2025_01_01_dashboard: v1TeamPresenter,
