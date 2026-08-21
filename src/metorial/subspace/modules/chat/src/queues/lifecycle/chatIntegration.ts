@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { addAfterTransactionHook, db } from '@metorial-subspace/db';
 import { env } from '../../env';
+import { archiveChatsWhere } from '../../lib/chatLifecycle';
 import { indexChatIntegrationQueue } from '../search/chatIntegration';
 import { indexChatIntegrationInstanceQueue } from '../search/chatIntegrationInstance';
 
@@ -109,6 +110,10 @@ export let chatIntegrationArchiveInstancesManyQueueProcessor =
       },
       data: { status: 'archived', archivedAt, isParentDeleted: true }
     });
+    await archiveChatsWhere(
+      { chatIntegrationInstanceOid: { in: instances.map(instance => instance.oid) } },
+      archivedAt
+    );
 
     await indexChatIntegrationInstanceQueue.addMany(
       instances.map(instance => ({ chatIntegrationInstanceId: instance.id }))
@@ -253,6 +258,10 @@ export let chatIntegrationInstanceArchivedQueueProcessor =
         archivedAt
       }
     });
+    await archiveChatsWhere(
+      { chatIntegrationInstanceOid: chatIntegrationInstance.oid },
+      archivedAt
+    );
 
     await indexChatIntegrationInstanceQueue.add({
       chatIntegrationInstanceId: data.chatIntegrationInstanceId

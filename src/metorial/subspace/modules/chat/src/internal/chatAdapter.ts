@@ -7,7 +7,6 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import { resolveAdapterInstanceProviderSession } from '@metorial-subspace/module-integration';
-import { type InternalToolCallClient } from '@metorial-subspace/module-session';
 import {
   checkTenant,
   type MetorialFacing,
@@ -16,7 +15,6 @@ import {
 
 export type GetChatAdapterClientParams = {
   chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
-  client: InternalToolCallClient;
 };
 
 class chatAdapterServiceImpl {
@@ -58,11 +56,16 @@ class chatAdapterServiceImpl {
       tenant: d.tenant,
       environment: d.environment,
       session,
-      client: d.client
+      client: {
+        identifier: 'chat_providers',
+        name: 'Metorial - Chat Providers'
+      }
     });
   }
 }
 
+// Ugly as fuck, but I had to since the ChatAdapterInstance type is too large
+// to be inferred from the class. I apologize, Typescript it to blame.
 export let chatAdapterService: {
   getChatAdapterClient(
     d: MetorialFacing<GetChatAdapterClientParams>
