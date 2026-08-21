@@ -32,6 +32,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { archiveChatsWhere } from '../lib/chatLifecycle';
 import { upsertChatInstanceProjection } from '../lib/project';
 import {
   enqueueChatIntegrationInstanceArchived,
@@ -334,17 +335,23 @@ class chatIntegrationInstanceServiceImpl {
     checkDeletedEdit(d.chatIntegrationInstance, 'archive');
 
     return withTransaction(async db => {
+      let archivedAt = new Date();
+
       await db.chatIntegrationInstanceProvider.updateMany({
         where: {
           chatIntegrationInstanceOid: d.chatIntegrationInstance.oid,
           status: { not: 'deleted' }
         },
-        data: { status: 'archived', archivedAt: new Date(), isParentDeleted: true }
+        data: { status: 'archived', archivedAt, isParentDeleted: true }
       });
+      await archiveChatsWhere(
+        { chatIntegrationInstanceOid: d.chatIntegrationInstance.oid },
+        archivedAt
+      );
 
       await db.chatIntegrationInstance.update({
         where: { oid: d.chatIntegrationInstance.oid },
-        data: { status: 'archived', archivedAt: new Date() }
+        data: { status: 'archived', archivedAt }
       });
 
       let adapterInstance = await db.adapterIntegrationInstance.findUniqueOrThrow({
