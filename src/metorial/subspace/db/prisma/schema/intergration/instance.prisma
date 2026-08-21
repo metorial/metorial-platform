@@ -15,6 +15,7 @@ model IntegrationInstance {
   archivedAt      DateTime?
 
   isMagicMcpBacking Boolean @default(false)
+  isAdapterBacking  Boolean @default(false)
 
   name            String
   description     String?
@@ -59,7 +60,9 @@ model IntegrationInstance {
   sessionTemplates                  SessionTemplate[]
   integrationInstanceGroupSources   IntegrationInstanceGroupSource[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
-  magicMcpServerBackings            MagicMcpServerBacking[]
+  magicMcpServerBackings               MagicMcpServerBacking[]
+  adapterIntegrationInstances          AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders  AdapterIntegrationInstanceProvider[]
 
   @@index([tenantOid, solutionOid, environmentOid, status, isHiddenDraft])
   @@index([integrationOid, status])
@@ -127,7 +130,8 @@ model IntegrationInstanceProvider {
   sessionTemplateProviders            SessionTemplateProvider[]
   integrationInstanceGroupProviders   IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders    IntegrationSetupSessionProvider[]
-  magicMcpServerProviders             MagicMcpServerProvider[]
+  magicMcpServerProviders              MagicMcpServerProvider[]
+  adapterIntegrationInstanceProviders  AdapterIntegrationInstanceProvider[]
 
   @@unique([integrationInstanceOid, integrationProviderOid])
   @@index([tenantOid, solutionOid, environmentOid, status])

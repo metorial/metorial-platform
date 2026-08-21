@@ -140,6 +140,14 @@ model Tenant {
   monitors                                 Monitor[]
   monitorAlerts                            MonitorAlert[]
   projects                                 Project[]
+  adapterIntegrations                      AdapterIntegration[]
+  adapterIntegrationProviders              AdapterIntegrationProvider[]
+  adapterIntegrationInstances              AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders      AdapterIntegrationInstanceProvider[]
+  chatIntegrations                         ChatIntegration[]
+  chatIntegrationProviders                 ChatIntegrationProvider[]
+  chatIntegrationInstances                 ChatIntegrationInstance[]
+  chatIntegrationInstanceProviders         ChatIntegrationInstanceProvider[]
 
   @@index([retiredAt])
 }
@@ -240,6 +248,14 @@ model Environment {
   monitors                                 Monitor[]
   monitorAlerts                            MonitorAlert[]
   instances                                Instance[]
+  adapterIntegrations                      AdapterIntegration[]
+  adapterIntegrationProviders              AdapterIntegrationProvider[]
+  adapterIntegrationInstances              AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders      AdapterIntegrationInstanceProvider[]
+  chatIntegrations                         ChatIntegration[]
+  chatIntegrationProviders                 ChatIntegrationProvider[]
+  chatIntegrationInstances                 ChatIntegrationInstance[]
+  chatIntegrationInstanceProviders         ChatIntegrationInstanceProvider[]
 
   @@index([projectOid])
 }

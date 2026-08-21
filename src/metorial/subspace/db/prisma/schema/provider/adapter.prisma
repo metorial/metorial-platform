@@ -9,6 +9,7 @@ model ProviderAdapterGlobal {
   updatedAt DateTime @default(now()) @updatedAt
 
   providerAdapters          ProviderAdapter[]
+  adapterIntegrations       AdapterIntegration[]
   sessions                  Session[]
   sessionConnections        SessionConnection[]
   ephemeralManagedSessions  EphemeralManagedSession[]

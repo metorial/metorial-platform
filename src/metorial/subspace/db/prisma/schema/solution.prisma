@@ -72,4 +72,12 @@ model Solution {
   protoGuardAlerts                         ProtoGuardAlert[]
   monitors                                 Monitor[]
   monitorAlerts                            MonitorAlert[]
+  adapterIntegrations                      AdapterIntegration[]
+  adapterIntegrationProviders              AdapterIntegrationProvider[]
+  adapterIntegrationInstances              AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders      AdapterIntegrationInstanceProvider[]
+  chatIntegrations                         ChatIntegration[]
+  chatIntegrationProviders                 ChatIntegrationProvider[]
+  chatIntegrationInstances                 ChatIntegrationInstance[]
+  chatIntegrationInstanceProviders         ChatIntegrationInstanceProvider[]
 }

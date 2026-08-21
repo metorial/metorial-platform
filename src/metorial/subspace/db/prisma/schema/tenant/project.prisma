@@ -118,4 +118,12 @@ model Project {
   tenantOAuthCallbackUrls                  TenantOAuthCallbackUrl[]
   toolCalls                                ToolCall[]
   upcomingCustomProviders                  UpcomingCustomProvider[]
+  adapterIntegrations                      AdapterIntegration[]
+  adapterIntegrationProviders              AdapterIntegrationProvider[]
+  adapterIntegrationInstances              AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders      AdapterIntegrationInstanceProvider[]
+  chatIntegrations                         ChatIntegration[]
+  chatIntegrationProviders                 ChatIntegrationProvider[]
+  chatIntegrationInstances                 ChatIntegrationInstance[]
+  chatIntegrationInstanceProviders         ChatIntegrationInstanceProvider[]
 }

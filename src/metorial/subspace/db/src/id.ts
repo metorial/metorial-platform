@@ -182,6 +182,16 @@ export let ID = createIdGenerator({
   integrationSetupSessionStep: idType.sorted('isst'),
   integrationSetupSessionEvent: idType.sorted('ise'),
 
+  adapterIntegration: idType.sorted('ain'),
+  adapterIntegrationProvider: idType.sorted('aip'),
+  adapterIntegrationInstance: idType.sorted('aii'),
+  adapterIntegrationInstanceProvider: idType.sorted('aiip'),
+
+  chatIntegration: idType.sorted('cin'),
+  chatIntegrationProvider: idType.sorted('cip'),
+  chatIntegrationInstance: idType.sorted('cii'),
+  chatIntegrationInstanceProvider: idType.sorted('ciip'),
+
   skillEntity: idType.sorted('ske'),
   skill: idType.sorted('skl'),
   skillFork: idType.sorted('skf'),

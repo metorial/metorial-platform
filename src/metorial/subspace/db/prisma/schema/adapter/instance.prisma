@@ -1,0 +1,117 @@
+enum AdapterIntegrationInstanceStatus {
+  draft
+  active
+  archived
+  deleted
+}
+
+model AdapterIntegrationInstance {
+  oid BigInt @id
+  id  String @unique
+
+  status       AdapterIntegrationInstanceStatus
+  isStandalone Boolean
+
+  adapterIntegrationOid BigInt
+  adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade)
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+
+  providers AdapterIntegrationInstanceProvider[]
+
+  chatIntegrationInstance          ChatIntegrationInstance?
+  chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
+
+  @@unique([adapterIntegrationOid, integrationInstanceOid])
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([adapterIntegrationOid, status])
+  @@index([integrationOid, status])
+  @@index([status])
+  @@index([isStandalone])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+enum AdapterIntegrationInstanceProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model AdapterIntegrationInstanceProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status AdapterIntegrationInstanceProviderStatus
+
+  adapterIntegrationInstanceOid BigInt
+  adapterIntegrationInstance    AdapterIntegrationInstance @relation(fields: [adapterIntegrationInstanceOid], references: [oid], onDelete: Cascade, map: "aiip_aii_fkey")
+
+  adapterIntegrationProviderOid BigInt
+  adapterIntegrationProvider    AdapterIntegrationProvider @relation(fields: [adapterIntegrationProviderOid], references: [oid], onDelete: Cascade, map: "aiip_aip_fkey")
+
+  adapterIntegrationOid BigInt
+  adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade, map: "aiip_ain_fkey")
+
+  integrationInstanceProviderOid BigInt
+  integrationInstanceProvider    IntegrationInstanceProvider @relation(fields: [integrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "aiip_iip_fkey")
+
+  integrationInstanceOid BigInt
+  integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade, map: "aiip_ini_fkey")
+
+  integrationProviderOid BigInt
+  integrationProvider    IntegrationProvider @relation(fields: [integrationProviderOid], references: [oid], onDelete: Cascade, map: "aiip_inp_fkey")
+
+  integrationOid BigInt
+  integration    Integration @relation(fields: [integrationOid], references: [oid], onDelete: Cascade, map: "aiip_int_fkey")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
+
+  @@unique([adapterIntegrationInstanceOid, adapterIntegrationProviderOid], map: "aiip_instance_provider_key")
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([adapterIntegrationInstanceOid, status], map: "aiip_aii_status_idx")
+  @@index([adapterIntegrationProviderOid, status], map: "aiip_aip_status_idx")
+  @@index([integrationInstanceProviderOid, status], map: "aiip_iip_status_idx")
+  @@index([integrationProviderOid, status])
+  @@index([status])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

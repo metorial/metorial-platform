@@ -101,4 +101,12 @@ model Instance {
   slateInstanceConfigurations              SlateInstanceConfiguration[]
   toolCalls                                ToolCall[]
   upcomingCustomProviders                  UpcomingCustomProvider[]
+  adapterIntegrations                      AdapterIntegration[]
+  adapterIntegrationProviders              AdapterIntegrationProvider[]
+  adapterIntegrationInstances              AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders      AdapterIntegrationInstanceProvider[]
+  chatIntegrations                         ChatIntegration[]
+  chatIntegrationProviders                 ChatIntegrationProvider[]
+  chatIntegrationInstances                 ChatIntegrationInstance[]
+  chatIntegrationInstanceProviders         ChatIntegrationInstanceProvider[]
 }

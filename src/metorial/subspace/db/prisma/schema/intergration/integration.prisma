@@ -12,6 +12,7 @@ model Integration {
   archivedAt DateTime?
 
   isMagicMcpBacking Boolean @default(false)
+  isAdapterBacking  Boolean @default(false)
 
   slug            String  @unique
   name            String
@@ -57,8 +58,12 @@ model Integration {
   providerTemplateBacking           ProviderTemplateBacking?
   ownerMagicMcpServerBackings       MagicMcpServerBacking[]            @relation("MagicMcpServerOwnerIntegration")
   magicMcpServerBacking             MagicMcpServerBacking?             @relation("MagicMcpServerBackingIntegration")
-  skillIntegrations                 SkillIntegration[]
-  skillTemplateItems                SkillTemplateItem[]
+  skillIntegrations                    SkillIntegration[]
+  skillTemplateItems                   SkillTemplateItem[]
+  adapterIntegrations                  AdapterIntegration[]
+  adapterIntegrationProviders          AdapterIntegrationProvider[]
+  adapterIntegrationInstances          AdapterIntegrationInstance[]
+  adapterIntegrationInstanceProviders  AdapterIntegrationInstanceProvider[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -120,7 +125,9 @@ model IntegrationProvider {
   integrationInstanceProviders      IntegrationInstanceProvider[]
   integrationInstanceGroupProviders IntegrationInstanceGroupProvider[]
   integrationSetupSessionProviders  IntegrationSetupSessionProvider[]
-  magicMcpServerProviders           MagicMcpServerProvider[]
+  magicMcpServerProviders              MagicMcpServerProvider[]
+  adapterIntegrationProviders          AdapterIntegrationProvider[]
+  adapterIntegrationInstanceProviders  AdapterIntegrationInstanceProvider[]
 
   @@unique([integrationOid, providerOid])
   @@index([createdAt])

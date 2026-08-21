@@ -1,0 +1,125 @@
+enum ChatIntegrationInstanceStatus {
+  draft
+  active
+  archived
+  deleted
+}
+
+model ChatIntegrationInstance {
+  oid BigInt @id
+  id  String @unique
+
+  status          ChatIntegrationInstanceStatus
+  isParentDeleted Boolean                       @default(false)
+  archivedAt      DateTime?
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  chatIntegrationOid BigInt
+  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+
+  adapterIntegrationInstanceOid BigInt                     @unique
+  adapterIntegrationInstance    AdapterIntegrationInstance @relation(fields: [adapterIntegrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  adapterIntegrationOid BigInt
+  adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providers ChatIntegrationInstanceProvider[]
+
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([chatIntegrationOid, status])
+  @@index([adapterIntegrationOid, status])
+  @@index([status, archivedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
+
+enum ChatIntegrationInstanceProviderStatus {
+  active
+  archived
+  deleted
+}
+
+model ChatIntegrationInstanceProvider {
+  oid BigInt @id
+  id  String @unique
+
+  status          ChatIntegrationInstanceProviderStatus
+  isParentDeleted Boolean                               @default(false)
+  archivedAt      DateTime?
+
+  name            String
+  description     String?
+  metadata        Json?
+  privateMetadata Json?
+
+  chatIntegrationInstanceOid BigInt
+  chatIntegrationInstance    ChatIntegrationInstance @relation(fields: [chatIntegrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  chatIntegrationProviderOid BigInt
+  chatIntegrationProvider    ChatIntegrationProvider @relation(fields: [chatIntegrationProviderOid], references: [oid], onDelete: Cascade)
+
+  chatIntegrationOid BigInt
+  chatIntegration    ChatIntegration @relation(fields: [chatIntegrationOid], references: [oid], onDelete: Cascade)
+
+  adapterIntegrationInstanceProviderOid BigInt                             @unique
+  adapterIntegrationInstanceProvider    AdapterIntegrationInstanceProvider @relation(fields: [adapterIntegrationInstanceProviderOid], references: [oid], onDelete: Cascade, map: "ciip_aiip_fkey")
+
+  adapterIntegrationInstanceOid BigInt
+  adapterIntegrationInstance    AdapterIntegrationInstance @relation(fields: [adapterIntegrationInstanceOid], references: [oid], onDelete: Cascade, map: "ciip_aii_fkey")
+
+  adapterIntegrationProviderOid BigInt
+  adapterIntegrationProvider    AdapterIntegrationProvider @relation(fields: [adapterIntegrationProviderOid], references: [oid], onDelete: Cascade, map: "ciip_aip_fkey")
+
+  adapterIntegrationOid BigInt
+  adapterIntegration    AdapterIntegration @relation(fields: [adapterIntegrationOid], references: [oid], onDelete: Cascade, map: "ciip_ain_fkey")
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([chatIntegrationInstanceOid, chatIntegrationProviderOid], map: "ciip_instance_provider_key")
+  @@index([tenantOid, solutionOid, environmentOid, status])
+  @@index([chatIntegrationInstanceOid, status], map: "ciip_cii_status_idx")
+  @@index([chatIntegrationProviderOid, status], map: "ciip_cip_status_idx")
+  @@index([adapterIntegrationInstanceProviderOid, status], map: "ciip_aiip_status_idx")
+  @@index([adapterIntegrationProviderOid, status], map: "ciip_aip_status_idx")
+  @@index([status, archivedAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}
