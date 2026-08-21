@@ -1,7 +1,24 @@
 import { AdapterClient, type AdapterClientParams } from '@metorial-subspace/adapter';
 import { ChatAdapter } from '@slates/adapter-chat';
 
-export type { Channel, ChannelType, Thread, ThreadType, Workspace } from '@slates/adapter-chat';
+export type {
+  Author,
+  AuthorRole,
+  AuthorType,
+  Channel,
+  ChannelType,
+  ChatBody,
+  ChatPart,
+  LinkUnfurl,
+  Message,
+  MessageMetadata,
+  MessageResult,
+  ReactionCount,
+  ReplyRef,
+  Thread,
+  ThreadType,
+  Workspace
+} from '@slates/adapter-chat';
 
 export interface ChatAdapterInstance extends AdapterClient<typeof ChatAdapter> {}
 
