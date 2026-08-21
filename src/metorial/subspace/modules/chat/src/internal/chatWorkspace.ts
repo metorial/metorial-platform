@@ -45,45 +45,6 @@ let adapterBindingInclude = {
   }
 } as const;
 
-let workspacePayload = (workspace: Workspace) => ({
-  name: workspace.name?.trim() || null,
-  domain: workspace.domain?.trim() || null,
-  imageUrl: workspace.imageUrl?.trim() || null,
-  raw: (workspace.raw as any) ?? {}
-});
-
-let hashWorkspaceSync = async (payload: ReturnType<typeof workspacePayload>) =>
-  Hash.sha256(canonicalize(payload));
-
-let resolveChatAdapterBinding = async (
-  chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider
-) =>
-  withTransaction(
-    async db => {
-      let loaded = await db.chatIntegrationInstanceProvider.findUniqueOrThrow({
-        where: { oid: chatIntegrationInstanceProvider.oid },
-        include: adapterBindingInclude
-      });
-
-      let integrationProvider = loaded.adapterIntegrationProvider.integrationProvider;
-      let providerAdapter = integrationProvider.provider.providerAdapters[0];
-      if (!providerAdapter) {
-        throw new ServiceError(
-          badRequestError({
-            code: 'provider_does_not_implement_adapter',
-            message: 'The provider does not implement the requested adapter.'
-          })
-        );
-      }
-
-      return {
-        adapterOid: providerAdapter.oid,
-        providerOid: integrationProvider.providerOid
-      };
-    },
-    { ifExists: true }
-  );
-
 class chatWorkspaceInternalServiceImpl {
   async upsertChatWorkspace(d: UpsertChatWorkspaceParams) {
     let [result] = await this.upsertChatWorkspaces({
@@ -115,7 +76,7 @@ class chatWorkspaceInternalServiceImpl {
             workspace => !existingByRemoteId.has(workspace.id)
           );
           let binding = needsCreate
-            ? await resolveChatAdapterBinding(d.chatIntegrationInstanceProvider)
+            ? await this.resolveChatAdapterBinding(d.chatIntegrationInstanceProvider)
             : null;
 
           let results = new Map<string, UpsertedChatWorkspace>();
@@ -127,8 +88,8 @@ class chatWorkspaceInternalServiceImpl {
               continue;
             }
 
-            let payload = workspacePayload(workspace);
-            let workspaceSyncHash = await hashWorkspaceSync(payload);
+            let payload = this.workspacePayload(workspace);
+            let workspaceSyncHash = await this.hashWorkspaceSync(payload);
 
             if (!current) {
               let chat = await db.chat.create({
@@ -197,6 +158,49 @@ class chatWorkspaceInternalServiceImpl {
 
       return await run();
     }
+  }
+
+  private workspacePayload(workspace: Workspace) {
+    return {
+      name: workspace.name?.trim() || null,
+      domain: workspace.domain?.trim() || null,
+      imageUrl: workspace.imageUrl?.trim() || null,
+      raw: (workspace.raw as any) ?? {}
+    };
+  }
+
+  private async hashWorkspaceSync(payload: ReturnType<typeof this.workspacePayload>) {
+    return Hash.sha256(canonicalize(payload));
+  }
+
+  private async resolveChatAdapterBinding(
+    chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider
+  ) {
+    return await withTransaction(
+      async db => {
+        let loaded = await db.chatIntegrationInstanceProvider.findUniqueOrThrow({
+          where: { oid: chatIntegrationInstanceProvider.oid },
+          include: adapterBindingInclude
+        });
+
+        let integrationProvider = loaded.adapterIntegrationProvider.integrationProvider;
+        let providerAdapter = integrationProvider.provider.providerAdapters[0];
+        if (!providerAdapter) {
+          throw new ServiceError(
+            badRequestError({
+              code: 'provider_does_not_implement_adapter',
+              message: 'The provider does not implement the requested adapter.'
+            })
+          );
+        }
+
+        return {
+          adapterOid: providerAdapter.oid,
+          providerOid: integrationProvider.providerOid
+        };
+      },
+      { ifExists: true }
+    );
   }
 }
 
