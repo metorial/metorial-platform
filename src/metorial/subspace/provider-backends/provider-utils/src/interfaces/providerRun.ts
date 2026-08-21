@@ -125,6 +125,12 @@ export interface ToolInvocationCreateParam {
   sessionProvider: SessionProvider;
 }
 
+export interface ProviderInvocationError {
+  code: string;
+  message: string;
+  [key: string]: unknown;
+}
+
 export interface ToolInvocationCreateRes {
   slateToolCall?: SlateToolCall;
   output?:
@@ -134,10 +140,7 @@ export interface ToolInvocationCreateRes {
       }
     | {
         type: 'error';
-        error: {
-          code: string;
-          message: string;
-        };
+        error: ProviderInvocationError;
       };
 }
 
@@ -151,10 +154,7 @@ export interface HandleMcpNotificationOrRequestRes {
   slateToolCall?: SlateToolCall;
   output?: {
     type: 'error';
-    error: {
-      code: string;
-      message: string;
-    };
+    error: ProviderInvocationError;
   };
 }
 

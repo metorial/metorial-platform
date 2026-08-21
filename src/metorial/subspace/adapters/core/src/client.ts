@@ -1,13 +1,4 @@
 import type { ErrorData } from '@lowerdeck/error';
-import {
-  type AdapterActionKey,
-  type AdapterCapabilityKey,
-  type InferClient,
-  isAdapterActionAvailable,
-  isAdapterCapabilityAvailable,
-  type SlateAdapterAdvertisedCapability,
-  type SlateAdapterDefinition
-} from '@slates/adapter';
 import type {
   Environment,
   Session,
@@ -19,6 +10,15 @@ import {
   internalToolCallService,
   type InternalToolCallClient
 } from '@metorial-subspace/module-session';
+import {
+  isAdapterActionAvailable,
+  isAdapterCapabilityAvailable,
+  type AdapterActionKey,
+  type AdapterCapabilityKey,
+  type InferClient,
+  type SlateAdapterAdvertisedCapability,
+  type SlateAdapterDefinition
+} from '@slates/adapter';
 import { loadAdvertisedAdapterCapabilities } from './capabilities';
 
 export type AdapterClientParams = {
@@ -35,7 +35,7 @@ export type AdapterClientCreateParams<T extends SlateAdapterDefinition<any, any,
 
 export type AdapterCallFailureOutput =
   | ErrorData<any, any>
-  | { code: number | string; message: string };
+  | { code: number | string; message: string; [key: string]: unknown };
 
 export type AdapterCallResult<Output> = {
   result:

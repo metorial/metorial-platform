@@ -1,4 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -16,6 +16,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatWorkspaceInternalService } from '../internal/chatWorkspace';
+import { unwrapChatCall } from '../lib/chatError';
 
 export let chatWorkspaceInclude = {
   chat: true
@@ -31,19 +32,6 @@ export type ListChatWorkspacesParams = {
 export type GetChatWorkspaceParams = {
   chatIntegrationInstanceProvider: ChatIntegrationInstanceProvider;
   workspaceId: string;
-};
-
-let adapterErrorMessage = (output: unknown, fallback: string) => {
-  if (
-    output &&
-    typeof output === 'object' &&
-    'message' in output &&
-    typeof output.message === 'string'
-  ) {
-    return output.message;
-  }
-
-  return fallback;
 };
 
 class chatWorkspaceServiceImpl {
@@ -85,27 +73,20 @@ class chatWorkspaceServiceImpl {
           direction: page.direction,
           query: search
         });
-        if (listed.result.type === 'failure') {
-          throw new ServiceError(
-            badRequestError({
-              code: 'chat_workspace_list_failed',
-              message: adapterErrorMessage(
-                listed.result.output,
-                'Failed to list workspaces from the chat provider.'
-              )
-            })
-          );
-        }
+        let listing = unwrapChatCall(listed, {
+          code: 'chat_workspace_list_failed',
+          message: 'Failed to list workspaces from the chat provider.'
+        });
 
         let upserted = await chatWorkspaceInternalService.upsertChatWorkspaces({
           chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider,
-          workspaces: listed.result.output.workspaces
+          workspaces: listing.workspaces
         });
 
         return {
           items: upserted,
-          nextCursor: listed.result.output.nextCursor,
-          prevCursor: listed.result.output.prevCursor
+          nextCursor: listing.nextCursor,
+          prevCursor: listing.prevCursor
         };
       })
     );
@@ -145,13 +126,14 @@ class chatWorkspaceServiceImpl {
     let workspaceId = local?.workspaceId ?? d.workspaceId;
 
     let got = await client.call('metorial_chat$workspace.get', { workspaceId });
-    if (got.result.type === 'failure') {
-      throw new ServiceError(notFoundError('chatWorkspace', d.workspaceId));
-    }
+    let workspace = unwrapChatCall(got, {
+      code: 'chat_workspace_get_failed',
+      message: 'Failed to load the workspace from the chat provider.'
+    });
 
     let upserted = await chatWorkspaceInternalService.upsertChatWorkspace({
       chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider,
-      workspace: got.result.output.workspace
+      workspace: workspace.workspace
     });
 
     return upserted;

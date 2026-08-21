@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Cursor } from '@lowerdeck/pagination';
 import { ServiceError } from '@lowerdeck/error';
+import { chatError } from '@slates/adapter-chat';
 
-let { db, getChatAdapterClientInternal, upsertChatWorkspaces, upsertChatWorkspace } = vi.hoisted(
-  () => {
+let { db, getChatAdapterClientInternal, upsertChatWorkspaces, upsertChatWorkspace } =
+  vi.hoisted(() => {
     let createModel = () => ({
       findFirst: vi.fn()
     });
@@ -16,8 +17,7 @@ let { db, getChatAdapterClientInternal, upsertChatWorkspaces, upsertChatWorkspac
       upsertChatWorkspaces: vi.fn(),
       upsertChatWorkspace: vi.fn()
     };
-  }
-);
+  });
 
 vi.mock('@lowerdeck/service', () => ({
   Service: {
@@ -84,7 +84,7 @@ describe('chatWorkspaceService', () => {
   it('lists from the adapter, upserts, and encodes adapter cursors', async () => {
     let chat = { oid: 500n, name: 'Acme', status: 'active' };
     let workspace = { oid: 8n, id: 'cws_1', workspaceId: 'T123', name: 'Acme' };
-    upsertChatWorkspaces.mockResolvedValue([{ chat, workspace }]);
+    upsertChatWorkspaces.mockResolvedValue([{ ...workspace, chat }]);
 
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => true,
@@ -135,6 +135,80 @@ describe('chatWorkspaceService', () => {
     expect(error).toBeInstanceOf(ServiceError);
   });
 
+  it('maps a typed adapter failure onto its own status', async () => {
+    let failure = (error: unknown) => ({
+      result: { type: 'failure', output: JSON.parse(JSON.stringify(error)) }
+    });
+
+    getChatAdapterClientInternal.mockResolvedValue({
+      isCapabilityAvailable: () => true,
+      call: vi.fn(async () => failure(chatError('chat.auth.missing_scope')))
+    });
+
+    let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
+      tenant,
+      environment,
+      chatIntegrationInstanceProvider: provider
+    });
+
+    let error: any = await paginator.run({}).catch((err: unknown) => err);
+
+    // Previously every adapter failure became one bad request with the raw
+    // provider message; the chat code now picks the status.
+    expect(error).toBeInstanceOf(ServiceError);
+    expect(error.data.status).toBe(403);
+  });
+
+  it('reports a missing workspace as a 404 rather than a bad request', async () => {
+    db.chatWorkspace.findFirst.mockResolvedValue(null);
+    getChatAdapterClientInternal.mockResolvedValue({
+      isCapabilityAvailable: () => true,
+      call: vi.fn(async () => ({
+        result: {
+          type: 'failure',
+          output: JSON.parse(JSON.stringify(chatError('chat.workspace.not_found')))
+        }
+      }))
+    });
+
+    let error: any = await chatWorkspaceService
+      .getChatWorkspaceInternal({
+        tenant,
+        environment,
+        chatIntegrationInstanceProvider: provider,
+        workspaceId: 'T123'
+      })
+      .catch((err: unknown) => err);
+
+    expect(error.data.status).toBe(404);
+  });
+
+  it('does not disguise a rate limit on get as a missing workspace', async () => {
+    db.chatWorkspace.findFirst.mockResolvedValue(null);
+    getChatAdapterClientInternal.mockResolvedValue({
+      isCapabilityAvailable: () => true,
+      call: vi.fn(async () => ({
+        result: {
+          type: 'failure',
+          output: JSON.parse(JSON.stringify(chatError('chat.rate_limit.exceeded')))
+        }
+      }))
+    });
+
+    let error: any = await chatWorkspaceService
+      .getChatWorkspaceInternal({
+        tenant,
+        environment,
+        chatIntegrationInstanceProvider: provider,
+        workspaceId: 'T123'
+      })
+      .catch((err: unknown) => err);
+
+    // This used to be a flat 404 for any get failure, which told the caller the
+    // workspace did not exist when it was really being throttled.
+    expect(error.data.status).toBe(429);
+  });
+
   it('returns 404 when getting a workspace without workspace_read', async () => {
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => false,
@@ -158,7 +232,7 @@ describe('chatWorkspaceService', () => {
     let chat = { oid: 500n, name: 'Acme', status: 'active' };
     let workspace = { oid: 8n, id: 'cws_1', workspaceId: 'T123', name: 'Acme' };
     db.chatWorkspace.findFirst.mockResolvedValue(null);
-    upsertChatWorkspace.mockResolvedValue({ chat, workspace });
+    upsertChatWorkspace.mockResolvedValue({ ...workspace, chat });
 
     let call = vi.fn(async () => ({
       result: {

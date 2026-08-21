@@ -3676,7 +3676,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@metorial-subspace/adapter": "^1.0.0",
-        "@slates/adapter-chat": "1.0.0-rc.3",
+        "@slates/adapter-chat": "1.0.0-rc.4",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -3765,6 +3765,7 @@
         "@metorial-subspace/module-auth": "^1.0.0",
         "@metorial-subspace/module-callback": "^1.0.0",
         "@metorial-subspace/module-catalog": "^1.0.0",
+        "@metorial-subspace/module-chat": "^1.0.0",
         "@metorial-subspace/module-connection": "^1.0.0",
         "@metorial-subspace/module-deployment": "^1.0.0",
         "@metorial-subspace/module-integration": "^1.0.0",
@@ -3921,6 +3922,37 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "date-fns": "^4.1.0",
+      },
+      "devDependencies": {
+        "@metorial-subspace/tsconfig": "^1.0.0",
+        "typescript": "5.8.2",
+        "vitest": "^3.1.2",
+      },
+    },
+    "src/metorial/subspace/modules/chat": {
+      "name": "@metorial-subspace/module-chat",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/canonicalize": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/hash": "workspace:2.0.0",
+        "@lowerdeck/id": "workspace:2.0.0",
+        "@lowerdeck/pagination": "workspace:2.0.0",
+        "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/slugify": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial-subspace/adapter-chat": "^1.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial-subspace/list-utils": "^1.0.0",
+        "@metorial-subspace/module-integration": "^1.0.0",
+        "@metorial-subspace/module-search": "^1.0.0",
+        "@metorial-subspace/module-session": "^1.0.0",
+        "@metorial-subspace/module-tenant": "^1.0.0",
+        "@slates/adapter-chat": "1.0.0-rc.4",
         "date-fns": "^4.1.0",
       },
       "devDependencies": {
@@ -6406,6 +6438,8 @@
 
     "@metorial-subspace/module-catalog": ["@metorial-subspace/module-catalog@workspace:src/metorial/subspace/modules/catalog"],
 
+    "@metorial-subspace/module-chat": ["@metorial-subspace/module-chat@workspace:src/metorial/subspace/modules/chat"],
+
     "@metorial-subspace/module-connection": ["@metorial-subspace/module-connection@workspace:src/metorial/subspace/modules/connection"],
 
     "@metorial-subspace/module-custom-provider": ["@metorial-subspace/module-custom-provider@workspace:src/metorial/subspace/modules/custom-provider"],
@@ -7238,7 +7272,7 @@
 
     "@slates/adapter": ["@slates/adapter@1.0.0-rc.3", "", { "dependencies": { "@slates/provider": "1.0.0-rc.18", "zod": "^4.2.1" } }, "sha512-9IEOaRuEslf2ge5rAe2FpMZUYmFZXYoD+JusS3/NqBGe2hilwgZv3PIxl7ArY0efhYbDnlW2HDjLrICaB41vqg=="],
 
-    "@slates/adapter-chat": ["@slates/adapter-chat@1.0.0-rc.3", "", { "dependencies": { "@slates/adapter": "1.0.0-rc.3", "mdast-util-to-string": "^4.0.0", "remark-gfm": "^4.0.0", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "zod": "^4.2.1" } }, "sha512-jy1NgbySxfeF14S4sVR241RlSBRlAQkfcAWK9IYqJ2iC5wWyXYCDub+b/yyrXrQY2Cef60ZIANQlyfUgez55WA=="],
+    "@slates/adapter-chat": ["@slates/adapter-chat@1.0.0-rc.4", "", { "dependencies": { "@slates/adapter": "1.0.0-rc.3", "@slates/provider": "1.0.0-rc.18", "mdast-util-to-string": "^4.0.0", "remark-gfm": "^4.0.0", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "zod": "^4.2.1" } }, "sha512-yKbFJbX8fHBY/eqI9j2edQBONo8/QdPALzpi5U3mHbtsQ5NQsJgh8vgWJ07GZaa0tiLR7J1TAXQI2oJq7Asoog=="],
 
     "@slates/proto": ["@slates/proto@1.0.0-rc.14", "", { "dependencies": { "@lowerdeck/emitter": "^1.0.4", "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "zod": "^4.2.1" } }, "sha512-wEayhNEw1ZHXpPQ5bxT9PCI6rviDJoO85r2/twEswcd1Ck7Zcbe1uH8/mPg6PpogCp/ned3RP78rQ5rGxIOqJA=="],
 

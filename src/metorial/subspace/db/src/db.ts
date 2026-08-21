@@ -169,7 +169,9 @@ declare global {
       | { type: 'tool.result'; data: any }
       | {
           type: 'error';
-          data: ErrorData<any, any> | { code: number | string; message: string };
+          data:
+            | ErrorData<any, any>
+            | { code: number | string; message: string; [key: string]: unknown };
         }
       | { type: 'mcp'; data: JSONRPCMessage };
 

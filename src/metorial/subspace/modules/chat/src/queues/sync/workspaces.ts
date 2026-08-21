@@ -4,6 +4,7 @@ import { addAfterTransactionHook, db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { chatAdapterService } from '../../internal/chatAdapter';
 import { chatWorkspaceInternalService } from '../../internal/chatWorkspace';
+import { describeChatFailure, shouldRetryChatCall } from '../../lib/chatError';
 
 export let syncChatWorkspacesCron = createCron(
   {
@@ -102,7 +103,18 @@ export let syncChatWorkspacesForProviderQueueProcessor =
       limit: 50,
       direction: 'forward'
     });
-    if (listed.result.type === 'failure') throw new QueueRetryError();
+    if (listed.result.type === 'failure') {
+      let failure = describeChatFailure(listed.result.output);
+
+      if (!shouldRetryChatCall(listed.result.output)) {
+        console.warn(
+          `CHAT.sync.workspaces.terminal providerId=${data.chatIntegrationInstanceProviderId} code=${failure.code} providerCode=${failure.providerCode ?? 'none'}`
+        );
+        return;
+      }
+
+      throw new QueueRetryError();
+    }
 
     let workspaces = listed.result.output.workspaces;
     if (workspaces.length === 0) return;

@@ -47,8 +47,7 @@ describe('chatAdapterService', () => {
         status: 'active',
         adapterIntegrationInstanceProviderOid: 10n,
         tenantOid: 1n
-      } as any,
-      client: { identifier: 'worker', name: 'Worker' }
+      } as any
     });
 
     expect(resolveAdapterInstanceProviderSession).toHaveBeenCalledWith({
@@ -60,7 +59,9 @@ describe('chatAdapterService', () => {
       tenant,
       environment,
       session: { id: 'ses_1', oid: 1000n },
-      client: { identifier: 'worker', name: 'Worker' }
+      // Fixed by the service, not supplied by the caller: every chat tool call
+      // shares one internal connection identity.
+      client: { identifier: 'chat_providers', name: 'Metorial - Chat Providers' }
     });
     expect(client).toEqual({ call: expect.any(Function) });
   });
@@ -75,8 +76,7 @@ describe('chatAdapterService', () => {
           status: 'archived',
           adapterIntegrationInstanceProviderOid: 10n,
           tenantOid: 1n
-        } as any,
-        client: { identifier: 'worker', name: 'Worker' }
+        } as any
       })
       .catch((err: any) => err);
 

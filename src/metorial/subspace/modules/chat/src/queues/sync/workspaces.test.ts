@@ -1,8 +1,11 @@
+import { chatError } from '@slates/adapter-chat';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db, queues, getChatAdapterClientInternal, upsertChatWorkspaces } = vi.hoisted(() => {
-  let queues: Record<string, { add: ReturnType<typeof vi.fn>; addMany: ReturnType<typeof vi.fn> }> =
-    {};
+  let queues: Record<
+    string,
+    { add: ReturnType<typeof vi.fn>; addMany: ReturnType<typeof vi.fn> }
+  > = {};
 
   return {
     db: {
@@ -65,9 +68,10 @@ import {
 
 type JobHandler<T> = (data: T) => Promise<void>;
 
-let processSyncChatWorkspacesMany = syncChatWorkspacesManyQueueProcessor as unknown as JobHandler<{
-  cursor?: string;
-}>;
+let processSyncChatWorkspacesMany =
+  syncChatWorkspacesManyQueueProcessor as unknown as JobHandler<{
+    cursor?: string;
+  }>;
 let processSyncChatWorkspacesForProvider =
   syncChatWorkspacesForProviderQueueProcessor as unknown as JobHandler<{
     chatIntegrationInstanceProviderId: string;
@@ -76,6 +80,27 @@ let processSyncChatWorkspacesForProvider =
 
 let manyQueue = 'sub/cht/sync/workspaces/many';
 let providerQueue = 'sub/cht/sync/workspaces/provider';
+
+let mockActiveProvider = () => {
+  db.chatIntegrationInstanceProvider.findUnique.mockResolvedValue({
+    id: 'ciip_1',
+    oid: 80n,
+    status: 'active',
+    isParentDeleted: false,
+    chatIntegrationInstance: { oid: 20n, status: 'active' },
+    tenant: { oid: 1n },
+    environment: { oid: 3n }
+  });
+};
+
+let mockAdapterFailure = (error: unknown) => {
+  getChatAdapterClientInternal.mockResolvedValue({
+    isCapabilityAvailable: () => true,
+    call: vi.fn(async () => ({
+      result: { type: 'failure', output: JSON.parse(JSON.stringify(error)) }
+    }))
+  });
+};
 
 describe('sync chat workspace queues', () => {
   beforeEach(() => {
@@ -136,6 +161,44 @@ describe('sync chat workspace queues', () => {
       chatIntegrationInstanceProviderId: 'ciip_1',
       cursor: 'cursor-2'
     });
+  });
+
+  it('retries a transient adapter failure', async () => {
+    mockActiveProvider();
+    mockAdapterFailure(chatError('chat.rate_limit.exceeded'));
+
+    await expect(
+      processSyncChatWorkspacesForProvider({ chatIntegrationInstanceProviderId: 'ciip_1' })
+    ).rejects.toBeInstanceOf(Error);
+
+    expect(upsertChatWorkspaces).not.toHaveBeenCalled();
+  });
+
+  it('gives up on a terminal adapter failure instead of retrying', async () => {
+    mockActiveProvider();
+    mockAdapterFailure(chatError('chat.auth.missing_scope'));
+
+    // A revoked token or a missing scope used to throw QueueRetryError like
+    // everything else, burning every attempt before going to the dead letter
+    // queue without ever saying why.
+    await expect(
+      processSyncChatWorkspacesForProvider({ chatIntegrationInstanceProviderId: 'ciip_1' })
+    ).resolves.toBeUndefined();
+
+    expect(upsertChatWorkspaces).not.toHaveBeenCalled();
+    expect(queues[providerQueue]!.add).not.toHaveBeenCalled();
+  });
+
+  it('retries an unclassified failure conservatively', async () => {
+    mockActiveProvider();
+    mockAdapterFailure({ code: 'timeout', message: 'timed out' });
+
+    // A transport level failure carries no chat classification, and it is the
+    // most transient kind there is — treating "unclassified" as terminal would
+    // stop retrying exactly the failures that most deserve it.
+    await expect(
+      processSyncChatWorkspacesForProvider({ chatIntegrationInstanceProviderId: 'ciip_1' })
+    ).rejects.toBeInstanceOf(Error);
   });
 
   it('skips providers that do not advertise workspace_read', async () => {
