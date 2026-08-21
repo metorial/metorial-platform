@@ -6,4 +6,5 @@ export * from './chatIntegrationInstance';
 export * from './chatIntegrationInstanceProvider';
 export * from './chatIntegrationProvider';
 export * from './chatThread';
+export * from './chatTyping';
 export * from './chatWorkspace';

@@ -115,15 +115,15 @@ class chatThreadServiceImpl {
   }
 
   private async listChatThreadsFromDb(d: ListChatThreadsParams) {
+    let localChannel = await db.chatChannel.findFirst({
+      where: {
+        chatOid: d.chat.oid,
+        OR: [{ id: d.channelId }, { channelId: d.channelId }]
+      }
+    });
+
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        let localChannel = await db.chatChannel.findFirst({
-          where: {
-            chatOid: d.chat.oid,
-            OR: [{ id: d.channelId }, { channelId: d.channelId }]
-          }
-        });
-        // No local record of the channel -- there can be no threads for it.
         if (!localChannel) return [];
 
         return db.chatThread.findMany({
