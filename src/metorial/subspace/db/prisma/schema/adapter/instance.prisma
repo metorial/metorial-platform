@@ -40,6 +40,8 @@ model AdapterIntegrationInstance {
 
   providers AdapterIntegrationInstanceProvider[]
 
+  instanceProviderSessions AdapterIntegrationInstanceProviderSession[]
+
   chatIntegrationInstance          ChatIntegrationInstance?
   chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
 
@@ -103,6 +105,14 @@ model AdapterIntegrationInstanceProvider {
 
   createdAt DateTime @default(now())
 
+  currentSessionOid BigInt?  @unique
+  currentSession    Session? @relation("AdapterIntegrationInstanceProviderCurrentSession", fields: [currentSessionOid], references: [oid], map: "aiip_current_session_fkey")
+
+  providerHash        String?
+  willRotateSessionAt DateTime?
+
+  sessions AdapterIntegrationInstanceProviderSession[]
+
   chatIntegrationInstanceProviders ChatIntegrationInstanceProvider[]
 
   @@unique([adapterIntegrationInstanceOid, adapterIntegrationProviderOid], map: "aiip_instance_provider_key")
@@ -112,6 +122,8 @@ model AdapterIntegrationInstanceProvider {
   @@index([integrationInstanceProviderOid, status], map: "aiip_iip_status_idx")
   @@index([integrationProviderOid, status])
   @@index([status])
+  @@index([willRotateSessionAt, status], map: "aiip_rotate_idx")
+  @@index([currentSessionOid, status], map: "aiip_current_session_idx")
   @@index([projectOid])
   @@index([instanceOid])
 }

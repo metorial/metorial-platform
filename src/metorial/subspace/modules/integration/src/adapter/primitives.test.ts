@@ -84,6 +84,12 @@ vi.mock('../services/integrationInstanceProvider', () => ({
   }
 }));
 
+vi.mock('./session', () => ({
+  archiveAdapterInstanceProviderSessions: vi.fn(),
+  archiveAdapterInstanceProviderSessionsForInstance: vi.fn(),
+  resolveAdapterInstanceProviderSession: vi.fn()
+}));
+
 import {
   applyAdapterIntegrationPresentation,
   ensureAdapterInstance,

@@ -8,7 +8,13 @@ import {
   type SlateAdapterAdvertisedCapability,
   type SlateAdapterDefinition
 } from '@slates/adapter';
-import type { Environment, Session, SessionConnection, SessionMessage, Tenant } from '@metorial-subspace/db';
+import type {
+  Environment,
+  Session,
+  SessionConnection,
+  SessionMessage,
+  Tenant
+} from '@metorial-subspace/db';
 import {
   internalToolCallService,
   type InternalToolCallClient
@@ -51,7 +57,7 @@ export class AdapterClient<T extends SlateAdapterDefinition<any, any, any>> {
 
   static async create<T extends SlateAdapterDefinition<any, any, any>>(
     params: AdapterClientCreateParams<T>
-  ) {
+  ): Promise<AdapterClient<T>> {
     let advertised = await loadAdvertisedAdapterCapabilities({
       session: params.session,
       adapterId: params.adapter.id

@@ -39,9 +39,10 @@ model AdapterIntegration {
 
   createdAt DateTime @default(now())
 
-  providers         AdapterIntegrationProvider[]
-  instances         AdapterIntegrationInstance[]
-  instanceProviders AdapterIntegrationInstanceProvider[]
+  providers                AdapterIntegrationProvider[]
+  instances                AdapterIntegrationInstance[]
+  instanceProviders        AdapterIntegrationInstanceProvider[]
+  instanceProviderSessions AdapterIntegrationInstanceProviderSession[]
 
   chatIntegration                  ChatIntegration?
   chatIntegrationProviders         ChatIntegrationProvider[]

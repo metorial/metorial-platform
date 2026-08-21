@@ -1,17 +1,17 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import {
+  getId,
+  withTransaction,
   type AdapterIntegration,
   type AdapterIntegrationInstance,
   type AdapterIntegrationInstanceProvider,
   type AdapterIntegrationProvider,
   type AdapterIntegrationType,
   type Environment,
-  getId,
   type Integration,
   type IntegrationInstance,
   type ProviderAdapterGlobal,
-  type Tenant,
-  withTransaction
+  type Tenant
 } from '@metorial-subspace/db';
 import { integrationService } from '../services/integration';
 import { integrationInstanceService } from '../services/integrationInstance';
@@ -33,8 +33,8 @@ import {
   isLiveAdapterStatus,
   listAdapterCapableIntegrationInstanceProviders,
   listAdapterCapableIntegrationProviders,
-  requireLiveAdapterIntegration,
   requireLiveAdapterInstance,
+  requireLiveAdapterIntegration,
   toAdapterInstanceStatus
 } from './helpers';
 import {
@@ -45,6 +45,7 @@ import {
   notifyAdapterProvidersSynced,
   type AdapterListenerCause
 } from './listeners';
+import { archiveAdapterInstanceProviderSessionsForInstance } from './session';
 
 export type { SetIntegrationInstanceProviderInput };
 
@@ -255,6 +256,10 @@ export let syncAdapterInstanceProviders = async (d: {
       data: { status: 'archived' }
     });
 
+    await archiveAdapterInstanceProviderSessionsForInstance({
+      adapterInstanceOid: adapterInstance.oid
+    });
+
     if (d.cause === 'integration') {
       let tenant = await db.tenant.findUniqueOrThrow({
         where: { oid: adapterIntegration.tenantOid }
@@ -461,12 +466,13 @@ export let ensureAdapterProvider = async (d: {
       });
     }
 
-    let integrationProvider = await integrationProviderService.createIntegrationProviderInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      integration: adapterIntegration.integration,
-      input: d.input
-    });
+    let integrationProvider =
+      await integrationProviderService.createIntegrationProviderInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        integration: adapterIntegration.integration,
+        input: d.input
+      });
 
     let links = await syncAdapterProviders({ adapterIntegration });
     let link = links.find(item => item.integrationProviderOid === integrationProvider.oid);
@@ -561,6 +567,10 @@ export let removeAdapterInstance = async (d: {
         status: { not: 'deleted' }
       },
       data: { status: 'archived' }
+    });
+
+    await archiveAdapterInstanceProviderSessionsForInstance({
+      adapterInstanceOid: adapterInstance.oid
     });
 
     let archived = await db.adapterIntegrationInstance.update({
@@ -663,8 +673,8 @@ export let ensureAdapterInstance = async (d: {
     requireLiveAdapterIntegration(adapterIntegration);
 
     let createHiddenInstance = async (input: CreateStandaloneAdapterInstanceInput) => {
-      let integrationInstance = await integrationInstanceService.createIntegrationInstanceInternal(
-        {
+      let integrationInstance =
+        await integrationInstanceService.createIntegrationInstanceInternal({
           tenant: d.tenant,
           environment: d.environment,
           integration: adapterIntegration.integration,
@@ -675,8 +685,7 @@ export let ensureAdapterInstance = async (d: {
             identityId: input.identity?.identityId,
             providers: input.providers
           }
-        }
-      );
+        });
 
       return { integrationInstance, isStandalone: true as const };
     };
