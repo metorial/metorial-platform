@@ -1,11 +1,75 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { eventPresenter } from '../presenters';
-import { eventService, senderService } from '../services';
+import { callbackService, eventService, senderService } from '../services';
 import { app } from './_app';
-import { tenantApp } from './tenant';
+import { hubInternalTenantApp, tenantApp } from './tenant';
 
 export let eventController = app.controller({
+  createIdempotent: hubInternalTenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        senderId: v.string(),
+        idempotencyKey: v.string(),
+        topics: v.array(v.string()),
+        eventType: v.string(),
+        payloadJson: v.string(),
+        headers: v.record(v.string()),
+        onlyForDestinations: v.optional(v.array(v.string())),
+        callbackId: v.optional(v.string()),
+        callbackInstanceId: v.optional(v.string()),
+        callbackSourceId: v.optional(v.string()),
+        callbackTriggerId: v.optional(v.string())
+      })
+    )
+    .do(async ctx => {
+      let sender = await senderService.getSenderById({ id: ctx.input.senderId });
+      let callback = ctx.input.callbackId
+        ? await callbackService.getCallbackById({
+            id: ctx.input.callbackId,
+            tenant: ctx.tenant
+          })
+        : undefined;
+      let event = await eventService.createIdempotentEvent({
+        tenant: ctx.tenant,
+        sender,
+        callback,
+        input: {
+          idempotencyKey: ctx.input.idempotencyKey,
+          topics: ctx.input.topics,
+          eventType: ctx.input.eventType,
+          payloadJson: ctx.input.payloadJson,
+          headers: ctx.input.headers,
+          onlyForDestinations: ctx.input.onlyForDestinations,
+          callbackInstanceId: ctx.input.callbackInstanceId,
+          callbackSourceId: ctx.input.callbackSourceId,
+          callbackTriggerId: ctx.input.callbackTriggerId
+        }
+      });
+      return {
+        id: event.id,
+        idempotencyKey: event.idempotencyKey!,
+        requestFingerprint: event.requestFingerprint!
+      };
+    }),
+
+  getByIdempotencyKey: hubInternalTenantApp
+    .handler()
+    .input(v.object({ tenantId: v.string(), idempotencyKey: v.string() }))
+    .do(async ctx => {
+      let event = await eventService.getEventByIdempotencyKey({
+        idempotencyKey: ctx.input.idempotencyKey,
+        tenant: ctx.tenant
+      });
+      return {
+        id: event.id,
+        idempotencyKey: event.idempotencyKey!,
+        requestFingerprint: event.requestFingerprint!
+      };
+    }),
+
   create: tenantApp
     .handler()
     .input(

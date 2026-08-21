@@ -2,7 +2,9 @@ import type { SessionWarning, Prisma as SubspacePrisma } from '@metorial-subspac
 import type {
   CallbackInstanceReceiver,
   callbackDeliveryService,
-  callbackEventService
+  callbackDestinationService,
+  callbackEventService,
+  callbackInstanceService
 } from '@metorial-subspace/module-callback';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
@@ -30,7 +32,8 @@ import type {
 } from '@metorial-subspace/module-session';
 import type {
   ProviderVariantEnrichment,
-  ProviderVersionEnrichment
+  ProviderVersionEnrichment,
+  SpecificationTriggerWebhookHttp
 } from '@metorial-subspace/provider-utils';
 import {
   AccessPolicy,
@@ -818,6 +821,7 @@ export type PresentedProviderTrigger = {
   description: string | null;
   inputJsonSchema: Record<string, any> | null;
   outputJsonSchema: Record<string, any> | null;
+  eventTypes: string[];
   invocation:
     | {
         type: 'polling';
@@ -831,6 +835,7 @@ export type PresentedProviderTrigger = {
         autoUnregistration: {
           status: 'supported' | 'unsupported';
         };
+        http?: SpecificationTriggerWebhookHttp;
       };
   providerId: string;
   specificationId: string;
@@ -2360,6 +2365,12 @@ export let callbackDestinationType = PresentableType.create<{
   callbackDestination: SubspacePrisma.CallbackDestinationGetPayload<{}>;
 }>()('callback.destination');
 
+export let callbackDestinationSigningSecretType = PresentableType.create<{
+  callbackDestinationSigningSecret: Awaited<
+    ReturnType<typeof callbackDestinationService.rotateSigningSecret>
+  >;
+}>()('callback.destination_signing_secret');
+
 export let callbackNotificationType = PresentableType.create<{
   callbackNotification: Awaited<
     ReturnType<typeof callbackDeliveryService.getCallbackDelivery>
@@ -2384,11 +2395,16 @@ export let callbackInstanceType = PresentableType.create<{
           };
         };
       };
-      activeRegistration: true;
     };
   }>;
   receiver?: CallbackInstanceReceiver;
 }>()('callback.instance');
+
+export let callbackReceiverPathSecretType = PresentableType.create<{
+  receiverPathSecret: Awaited<
+    ReturnType<typeof callbackInstanceService.createReceiverPathSecret>
+  >;
+}>()('callback.receiver_path_secret');
 
 export let portalType = PresentableType.create<{
   portal: Portal & {

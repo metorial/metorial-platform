@@ -7,6 +7,26 @@ import type {
 } from '../../../prisma/generated/client';
 import { getId, snowflake } from '../../id';
 import { defineFactory } from '@lowerdeck/testing-tools';
+import { computeWebhookActionSpecHashV1 } from '@slates/proto';
+
+let receiverWebhookHttp = (http?: Record<string, unknown>) => ({
+  ...(http ?? {}),
+  methods: (http?.methods as string[] | undefined) ?? ['POST'],
+  ingress: {
+    kind: 'receiver_route' as const,
+    baseline: 'receiver_path_secret' as const,
+    verification: {
+      mechanism: 'path_secret_only' as const,
+      baseline: 'receiver_path_secret' as const,
+      reason: 'Test fixture uses the receiver path as its reviewed authentication boundary.'
+    }
+  }
+});
+
+let withWebhookSpecHash = <T extends Record<string, unknown>>(spec: T) => ({
+  ...spec,
+  specHash: computeWebhookActionSpecHashV1(spec as never)
+});
 
 export const SlateSpecificationFixtures = (db: PrismaClient) => {
   const defaultSpecification = async (data: {
@@ -70,15 +90,16 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
 
     const spec =
       type === 'trigger'
-        ? {
+        ? withWebhookSpecHash({
             ...baseSpec,
             type: 'action.trigger' as const,
             invocation: {
               type: 'webhook' as const,
               autoRegistration: false,
-              autoUnregistration: false
+              autoUnregistration: false,
+              http: receiverWebhookHttp()
             }
-          }
+          })
         : {
             ...baseSpec,
             type: 'action.tool' as const
@@ -139,7 +160,7 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
     };
 
     const { oid, id } = getId('slateAction');
-    const triggerSpec = {
+    const triggerSpec = withWebhookSpecHash({
       id: identifier,
       name: `Test trigger ${identifier}`,
       type: 'action.trigger' as const,
@@ -150,9 +171,9 @@ export const SlateSpecificationFixtures = (db: PrismaClient) => {
         type: 'webhook' as const,
         autoRegistration: webhookConfig.autoRegistration ?? false,
         autoUnregistration: webhookConfig.autoUnregistration ?? false,
-        ...(webhookConfig.http ? { http: webhookConfig.http } : {})
+        http: receiverWebhookHttp(webhookConfig.http)
       }
-    };
+    });
 
     const factory = defineFactory<SlateAction>(
       {

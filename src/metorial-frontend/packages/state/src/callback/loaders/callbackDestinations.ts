@@ -17,19 +17,21 @@ export let callbackDestinationsLoader = createLoader({
       i: { callbackDestinationId: string },
       { input: { instanceId } }: { input: { instanceId: string } }
     ) =>
-      withAuth(sdk =>
-        sdk.callbacks.destinations.delete(
-          instanceId,
-          i.callbackDestinationId
-        )
-      )
+      withAuth(sdk => sdk.callbacks.destinations.delete(instanceId, i.callbackDestinationId))
   }
 });
 
-export let useCreateCallbackDestination =
+export let useCreateCallbackDestination = callbackDestinationsLoader.createExternalMutator(
+  (i: DashboardInstanceCallbacksDestinationsCreateBody & { instanceId: string }) =>
+    withAuth(sdk => sdk.callbacks.destinations.create(i.instanceId, i))
+);
+
+export let useRotateCallbackDestinationSigningSecret =
   callbackDestinationsLoader.createExternalMutator(
-    (i: DashboardInstanceCallbacksDestinationsCreateBody & { instanceId: string }) =>
-      withAuth(sdk => sdk.callbacks.destinations.create(i.instanceId, i))
+    (i: { instanceId: string; callbackDestinationId: string }) =>
+      withAuth(sdk =>
+        sdk.callbacks.destinations.rotateSigningSecret(i.instanceId, i.callbackDestinationId)
+      )
   );
 
 export let useCallbackDestinations = (

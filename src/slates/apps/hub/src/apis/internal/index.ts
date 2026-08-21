@@ -3,6 +3,7 @@ import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
 import { callbackRegistrationController } from './callbackRegistration';
 import { changeNotificationController } from './changeNotification';
+import { provisionedAppProjectionController } from './provisionedAppProjection';
 import { registryController } from './registry';
 import { secretController } from './secret';
 import { slateController } from './slate';
@@ -34,6 +35,7 @@ export let rootController = app.controller({
   tenant: tenantController,
   secret: secretController,
   callbackRegistration: callbackRegistrationController,
+  provisionedAppProjection: provisionedAppProjectionController,
 
   registry: registryController,
 

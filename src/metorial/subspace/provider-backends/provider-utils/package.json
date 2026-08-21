@@ -21,6 +21,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/hash": "workspace:2.0.0",
-    "@lowerdeck/id": "workspace:2.0.0"
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@slates/proto": "1.0.0-rc.17"
   }
 }

@@ -3,9 +3,34 @@ import { v } from '@lowerdeck/validation';
 import { eventDestinationPresenter } from '../presenters';
 import { eventDestinationService, senderService } from '../services';
 import { app } from './_app';
-import { tenantApp } from './tenant';
+import { subspaceInternalTenantApp, tenantApp } from './tenant';
 
 export let eventDestinationController = app.controller({
+  rotateSigningSecret: subspaceInternalTenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        eventDestinationId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let eventDestination = await eventDestinationService.getEventDestinationById({
+        id: ctx.input.eventDestinationId,
+        tenant: ctx.tenant
+      });
+      let rotated = await eventDestinationService.rotateSigningSecret({
+        eventDestination,
+        tenant: ctx.tenant
+      });
+
+      return {
+        eventDestinationId: rotated.eventDestination.id,
+        signingSecret: rotated.signingSecret,
+        rotatedAt: rotated.rotatedAt
+      };
+    }),
+
   create: tenantApp
     .handler()
     .input(

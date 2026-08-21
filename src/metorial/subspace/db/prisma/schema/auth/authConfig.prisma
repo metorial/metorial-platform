@@ -99,6 +99,8 @@ model ProviderAuthConfig {
   authConfigEvents                    ProviderAuthConfigEvent[]
   authConfigErrors                    ProviderAuthConfigError[]
   integrationInstanceProviderVersions IntegrationInstanceProviderVersion[]
+  provisionedVendorAppRoutes          ProvisionedVendorAppRoute[]          @relation("ProvisionedRoutePinnedAuthConfig")
+  provisionedTenantApps               ProvisionedTenantApp[]               @relation("ProvisionedTenantAppPinnedAuthConfig")
 
   @@index([createdAt])
   @@index([updatedAt])

@@ -506,8 +506,8 @@ let Notification = ({
                 content: getNotificationStatusBadge(notification.data.status)
               },
               {
-                label: 'Attempt Count',
-                content: notification.data.attemptCount
+                label: 'Attempts',
+                content: `${attempts.length} / ${notification.data.destination.retry.maxAttempts}`
               },
               {
                 label: 'Notification ID',

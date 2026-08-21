@@ -8,8 +8,10 @@ import { calculateRetryDelaySeconds } from '../../lib/retry';
 import { generateSignature } from '../../lib/signature';
 import { getAxiosSsrfFilter } from '../../lib/ssrf';
 import { storageKey } from '../../lib/storageKey';
+import { buildWebhookDeliveryHeaders } from '../../lib/webhookDeliveryHeaders';
 import { storage } from '../../storage';
 import { intentFailedQueue, intentSucceededQueue } from './intent';
+import { enqueueDeliveryAttempt } from './deliveryRetry';
 
 export let createDeliveryQueue = createQueue<{
   eventId: string;
@@ -34,20 +36,31 @@ export let createDeliveryQueueProcessor = createDeliveryQueue.process(async data
   });
   if (!destination) throw new QueueRetryError();
 
-  let intent = await db.eventDeliveryIntent.create({
-    data: {
+  let intent = await db.eventDeliveryIntent.upsert({
+    where: {
+      eventOid_destinationOid: {
+        eventOid: event.oid,
+        destinationOid: destination.oid
+      }
+    },
+    create: {
       ...getId('eventDeliveryIntent'),
       status: 'pending',
       eventOid: event.oid,
       destinationOid: destination.oid,
       nextAttemptAt: new Date()
-    }
+    },
+    update: {}
   });
 
-  await attemptDeliveryQueue.add({ intentId: intent.id }, { id: intent.id });
+  await enqueueDeliveryAttempt({
+    enqueue: attemptDeliveryQueue.add,
+    intentId: intent.id,
+    attemptNumber: intent.attemptCount + 1
+  });
 });
 
-let attemptDeliveryQueue = createQueue<{
+export let attemptDeliveryQueue = createQueue<{
   intentId: string;
 }>({
   name: 'sgnl/event/att',
@@ -75,16 +88,81 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     }
   });
   if (!intent) throw new QueueRetryError();
+  if (intent.status === 'delivered' || intent.status === 'failed') return;
 
   let instance = intent.destination.currentInstance;
   let event = intent.event;
 
-  if (!instance) {
-    await intentFailedQueue.add({
-      intentId: intent.id,
-      errorCode: 'no_destination',
-      errorMessage: 'No active destination instance found'
+  if (!instance?.webhook) {
+    await intentFailedQueue.add(
+      {
+        intentId: intent.id,
+        errorCode: 'no_destination',
+        errorMessage: 'No active destination instance found'
+      },
+      { id: intent.id }
+    );
+    return;
+  }
+
+  let finalizeAttempt = async (attempt: {
+    attemptNumber: number;
+    status: EventDeliveryAttemptStatus;
+    errorCode: string | null;
+    errorMessage: string | null;
+  }) => {
+    if (attempt.status === 'succeeded') {
+      await intentSucceededQueue.add({ intentId: intent.id }, { id: intent.id });
+      return;
+    }
+
+    if (attempt.attemptNumber >= intent.destination.retryMaxAttempts) {
+      await intentFailedQueue.add(
+        {
+          intentId: intent.id,
+          errorCode: attempt.errorCode ?? 'delivery_failed',
+          errorMessage: attempt.errorMessage ?? 'Webhook delivery failed'
+        },
+        { id: intent.id }
+      );
+      return;
+    }
+
+    let delaySeconds = calculateRetryDelaySeconds({
+      baseDelaySeconds: intent.destination.retryDelaySeconds,
+      attemptNumber: attempt.attemptNumber,
+      retryType: intent.destination.retryType
     });
+    let nextAttemptAt = new Date(Date.now() + delaySeconds * 1000);
+
+    await db.eventDeliveryIntent.updateMany({
+      where: { id: intent.id, status: { notIn: ['delivered', 'failed'] } },
+      data: {
+        status: 'retrying',
+        attemptCount: attempt.attemptNumber,
+        nextAttemptAt
+      }
+    });
+
+    await enqueueDeliveryAttempt({
+      enqueue: attemptDeliveryQueue.add,
+      intentId: intent.id,
+      attemptNumber: attempt.attemptNumber + 1,
+      delayMs: delaySeconds * 1000
+    });
+  };
+
+  let attemptNumber = intent.attemptCount + 1;
+  let existingAttempt = await db.eventDeliveryAttempt.findUnique({
+    where: {
+      intentOid_attemptNumber: {
+        intentOid: intent.oid,
+        attemptNumber
+      }
+    }
+  });
+  if (existingAttempt) {
+    await finalizeAttempt(existingAttempt);
     return;
   }
 
@@ -96,42 +174,40 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
   let responseHeaders: [string, string][] = [];
 
   let body = intent.event.payloadJson!;
-  let signature = await generateSignature(body, instance.webhook!.signingSecret!);
+  let signature = await generateSignature(body, instance.webhook.signingSecret);
 
   let start = Date.now();
 
-  if (instance.webhook) {
-    try {
-      let res = await axios.post(instance.webhook.url, body, {
-        ...getAxiosSsrfFilter(instance.webhook.url),
-        responseType: 'text',
-        timeout: 10000,
-        validateStatus: () => true,
-        maxRedirects: 5,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Metorial (https://metorial.com)',
-          'Metorial-Webhook-Id': instance.webhook.id,
-          'Metorial-Notification-Id': intent.id,
-          'Metorial-Event-Id': event.id,
-          'Metorial-Signature': signature,
-          'Metorial-Version': '2025-01-01',
-          'Metorial-Delivery-Attempt': String(intent.attemptCount + 1),
-          'Metorial-Sender': `${event.sender.name} (${event.sender.id})`,
+  try {
+    let res = await axios.post(instance.webhook.url, body, {
+      ...getAxiosSsrfFilter(instance.webhook.url),
+      responseType: 'text',
+      timeout: 10000,
+      validateStatus: () => true,
+      maxRedirects: 5,
+      headers: buildWebhookDeliveryHeaders({
+        eventHeaders: event.headers as [string, string][],
+        webhookId: instance.webhook.id,
+        notificationId: intent.id,
+        eventId: event.id,
+        signature,
+        attemptNumber: intent.attemptCount + 1,
+        sender: `${event.sender.name} (${event.sender.id})`
+      })
+    });
 
-          ...Object.fromEntries(event.headers as [string, string][])
-        }
-      });
-
-      status = res.status >= 200 && res.status < 300 ? 'succeeded' : 'failed';
-      responseStatusCode = res.status;
-      responseBody = res.data.slice(0, 10_000);
-      responseHeaders = Object.entries(res.headers);
-    } catch (e: any) {
-      status = 'failed';
-      requestErrorCode = 'request_error';
-      requestErrorMessage = e.message;
+    status = res.status >= 200 && res.status < 300 ? 'succeeded' : 'failed';
+    responseStatusCode = res.status;
+    responseBody = String(res.data).slice(0, 10_000);
+    responseHeaders = Object.entries(res.headers);
+    if (status === 'failed') {
+      requestErrorCode = 'http_error';
+      requestErrorMessage = `Destination responded with HTTP status ${res.status}`;
     }
+  } catch (e: any) {
+    status = 'failed';
+    requestErrorCode = 'request_error';
+    requestErrorMessage = e.message;
   }
 
   let end = Date.now();
@@ -143,7 +219,7 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
       status,
       intentOid: intent.oid,
       destinationInstanceOid: instance.oid,
-      attemptNumber: intent.attemptCount + 1,
+      attemptNumber,
       responseStatusCode: responseStatusCode,
       durationMs,
       errorCode: requestErrorCode,
@@ -160,39 +236,5 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
     })
   );
 
-  if (status === 'succeeded') {
-    await intentSucceededQueue.add({
-      intentId: intent.id,
-      errorCode: requestErrorCode!,
-      errorMessage: requestErrorMessage!
-    });
-  } else if (attempt.attemptNumber >= intent.destination.retryMaxAttempts) {
-    await intentFailedQueue.add({
-      intentId: intent.id,
-      errorCode: requestErrorCode!,
-      errorMessage: requestErrorMessage!
-    });
-  } else {
-    const delaySeconds = calculateRetryDelaySeconds({
-      baseDelaySeconds: intent.destination.retryDelaySeconds,
-      attemptNumber: attempt.attemptNumber,
-      retryType: intent.destination.retryType
-    });
-
-    let nextAttemptAt = new Date(Date.now() + delaySeconds * 1000);
-
-    await db.eventDeliveryIntent.updateMany({
-      where: { id: intent.id },
-      data: {
-        status: 'retrying',
-        attemptCount: { increment: 1 },
-        nextAttemptAt
-      }
-    });
-
-    await attemptDeliveryQueue.add(
-      { intentId: intent.id },
-      { delay: delaySeconds * 1000, id: intent.id }
-    );
-  }
+  await finalizeAttempt(attempt);
 });

@@ -29,7 +29,7 @@ export type CallbacksListOutput = {
       metadata: Record<string, any> | null;
       url: string;
       method: string;
-      signingSecret: string | null;
+      signingSecretConfigured: boolean;
       createdAt: Date;
       updatedAt: Date;
     }[];
@@ -95,8 +95,8 @@ export let mapCallbacksListOutput = mtMap.object<CallbacksListOutput>({
               metadata: mtMap.objectField('metadata', mtMap.passthrough()),
               url: mtMap.objectField('url', mtMap.passthrough()),
               method: mtMap.objectField('method', mtMap.passthrough()),
-              signingSecret: mtMap.objectField(
-                'signing_secret',
+              signingSecretConfigured: mtMap.objectField(
+                'signing_secret_configured',
                 mtMap.passthrough()
               ),
               createdAt: mtMap.objectField('created_at', mtMap.date()),

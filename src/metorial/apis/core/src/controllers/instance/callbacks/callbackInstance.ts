@@ -1,8 +1,11 @@
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { providerAuthConfigService } from '@metorial-subspace/module-auth';
 import {
   callbackInstanceService,
+  callbackEventService,
+  callbackService,
   enrichCallbackInstanceTriggers,
   enrichSingleCallbackInstanceTriggers
 } from '@metorial-subspace/module-callback';
@@ -11,9 +14,37 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackInstancePresenter } from '@metorial/presenters';
+import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { isDashboardGroup } from '../../../middleware/isDashboard';
+import {
+  callbackEventPresenter,
+  callbackInstancePresenter,
+  callbackReceiverPathSecretPresenter
+} from '@metorial/presenters';
 import { callbackGroup } from './callback';
+import {
+  CALLBACK_DASHBOARD_TEST_EVENT,
+  sendDashboardTestCallbackEvent
+} from './callbackInstanceTestEvent';
+
+let dashboardCallbackGroup = instanceGroup.use(isDashboardGroup()).use(async ctx => {
+  if (!ctx.params.callbackId) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'callbackId is required',
+        description: 'The callbackId path parameter is required.'
+      })
+    );
+  }
+
+  let callback = await callbackService.getCallbackById({
+    instance: ctx.instance,
+    callbackId: ctx.params.callbackId,
+    allowDeleted: false
+  });
+
+  return { callback };
+});
 
 export let callbackInstanceController = Controller.create(
   {
@@ -159,6 +190,108 @@ export let callbackInstanceController = Controller.create(
         );
 
         return callbackInstancePresenter.present({ callbackInstance, receiver });
+      }),
+
+    sendTestEvent: dashboardCallbackGroup
+      .post(
+        instancePath(
+          CALLBACK_DASHBOARD_TEST_EVENT.route,
+          CALLBACK_DASHBOARD_TEST_EVENT.sdkPath
+        ),
+        {
+          name: 'Send callback test event',
+          description:
+            'Queues an authenticated dashboard synthetic event for a callback instance.',
+          confidential: CALLBACK_DASHBOARD_TEST_EVENT.confidential
+        }
+      )
+      .use(checkAccess({ possibleScopes: [CALLBACK_DASHBOARD_TEST_EVENT.scope] }))
+      .body(
+        'default',
+        v.object({
+          event_type: v.string({
+            description: 'Synthetic callback event type',
+            examples: ['dashboard.test']
+          }),
+          payload: v.record(v.any(), {
+            description: 'Synthetic callback event payload'
+          })
+        })
+      )
+      .output(callbackEventPresenter)
+      .do(async ctx => {
+        let callbackEvent = await sendDashboardTestCallbackEvent(
+          {
+            instance: ctx.instance,
+            callbackId: ctx.callback.id,
+            callbackInstanceId: ctx.params.callbackInstanceId,
+            eventType: ctx.body.event_type,
+            payload: ctx.body.payload
+          },
+          callbackEventService
+        );
+
+        return callbackEventPresenter.present({ callbackEvent });
+      }),
+
+    createReceiverPathSecret: dashboardCallbackGroup
+      .post(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/path-secret',
+          'callbacks.instances.createReceiverPathSecret'
+        ),
+        {
+          name: 'Create secure callback URL',
+          description:
+            'Creates the initial receiver path secret and returns its plaintext once.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .output(callbackReceiverPathSecretPresenter)
+      .do(async ctx => {
+        let callbackInstance = await callbackInstanceService.get({
+          instance: ctx.instance,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.params.callbackInstanceId
+        });
+        let receiverPathSecret = await callbackInstanceService.createReceiverPathSecret({
+          instance: ctx.instance,
+          callback: ctx.callback,
+          callbackInstance
+        });
+
+        return callbackReceiverPathSecretPresenter.present({ receiverPathSecret });
+      }),
+
+    rotateReceiverPathSecret: dashboardCallbackGroup
+      .post(
+        instancePath(
+          'callbacks/:callbackId/instances/:callbackInstanceId/security/path-secret/rotate',
+          'callbacks.instances.rotateReceiverPathSecret'
+        ),
+        {
+          name: 'Rotate secure callback URL',
+          description:
+            'Immediately rotates the receiver path secret and returns its new plaintext once.',
+          confidential: true
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+      .output(callbackReceiverPathSecretPresenter)
+      .do(async ctx => {
+        let callbackInstance = await callbackInstanceService.get({
+          instance: ctx.instance,
+          callbackId: ctx.callback.id,
+          callbackInstanceId: ctx.params.callbackInstanceId
+        });
+        let receiverPathSecret = await callbackInstanceService.rotateReceiverPathSecret({
+          instance: ctx.instance,
+          callback: ctx.callback,
+          callbackInstance
+        });
+
+        return callbackReceiverPathSecretPresenter.present({ receiverPathSecret });
       }),
 
     delete: callbackGroup

@@ -7,7 +7,9 @@ let normalizeOptionalString = (value: string | undefined) => value || undefined;
 
 export let showCallbackDestinationFormModal = (p: {
   instanceId: string;
-  onCreate?: (destination: DashboardInstanceCallbacksDestinationsCreateOutput) => void;
+  onCreate?: (
+    destination: DashboardInstanceCallbacksDestinationsCreateOutput
+  ) => void | Promise<void>;
 }) =>
   showModal(({ dialogProps, close }) => {
     let createDestination = useCreateCallbackDestination();
@@ -27,8 +29,10 @@ export let showCallbackDestinationFormModal = (p: {
 
         if (!result) return;
 
-        p.onCreate?.(result);
+        // Attaching to the callback and refreshing happen in the background;
+        // failures surface through the mutation's toast.
         close();
+        void p.onCreate?.(result);
       },
       schema: yup =>
         yup.object({

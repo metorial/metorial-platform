@@ -6,69 +6,30 @@ import {
   useCallbackDestinations,
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  useRotateCallbackDestinationSigningSecret
 } from '@metorial/state';
 import {
   Button,
+  Callout,
   Copy,
+  Datalist,
+  Dialog,
   Entity,
   Flex,
   Menu,
   Panel,
   RenderDate,
-  Spacer,
-  Text
+  showModal,
+  Spacer
 } from '@metorial/ui';
 import { Box, ID } from '@metorial/ui-product';
-import { RiAddLine, RiEyeLine, RiEyeOffLine, RiMore2Line } from '@remixicon/react';
+import { RiMore2Line } from '@remixicon/react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RouterPanel } from '../routerPanel';
 import { showCallbackDestinationFormModal } from './destinationModal';
 import { CallbackNotificationsTable } from './logs';
-
-let getMaskedSigningSecret = (signingSecret: string) => {
-  let prefix = 'metorial_whsec_';
-  if (signingSecret.startsWith(prefix)) return `${prefix}${'*'.repeat(12)}`;
-  return '*'.repeat(Math.min(Math.max(signingSecret.length, 8), 24));
-};
-
-let SigningSecretFooter = ({ signingSecret }: { signingSecret: string | null }) => {
-  let [revealed, setRevealed] = useState(false);
-
-  return (
-    <Entity.Footer>
-      <div
-        onClick={event => event.stopPropagation()}
-        onKeyDown={event => event.stopPropagation()}
-        style={{ width: '100%' }}
-      >
-        {signingSecret ? (
-          <Flex gap={10} align="end" wrap="wrap">
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <Copy
-                label="Signing Secret"
-                value={revealed ? signingSecret : getMaskedSigningSecret(signingSecret)}
-                copyValue={signingSecret}
-              />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="3"
-              iconLeft={revealed ? <RiEyeOffLine /> : <RiEyeLine />}
-              onClick={() => setRevealed(current => !current)}
-            />
-          </Flex>
-        ) : (
-          <Text size="2" color="gray600">
-            Signing secret is not available for this destination.
-          </Text>
-        )}
-      </div>
-    </Entity.Footer>
-  );
-};
 
 export let CallbackDestinationsList = (p: { callbackId: string | undefined }) => {
   let instance = useCurrentInstance();
@@ -133,8 +94,39 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
         </>
       ))} */}
 
-      {renderWithLoader({ destinations })(({ destinations }) => (
-        <>
+      {renderWithLoader({ destinations, callback })(({ destinations, callback }) => (
+        <Box
+          title="Destinations"
+          description="HTTP endpoints that receive event notifications from this callback."
+          rightActions={
+            instance.data && callback.data.status === 'active' ? (
+              <Button
+                size="1"
+                onClick={() =>
+                  instance.data &&
+                  showCallbackDestinationFormModal({
+                    instanceId: instance.data.id,
+                    onCreate: async destination => {
+                      let nextDestinationIds = [
+                        ...new Set([...selectedDestinationIds, destination.id])
+                      ];
+                      setSelectedDestinationIds(nextDestinationIds);
+                      let [, updateError] = await updateCallback.mutate({
+                        destinationIds: nextDestinationIds
+                      });
+
+                      if (updateError) return;
+
+                      await destinations.refetch();
+                    }
+                  })
+                }
+              >
+                Create Destination
+              </Button>
+            ) : undefined
+          }
+        >
           <Flex direction="column" gap={10}>
             {destinations.data.items.map(destination => (
               <div
@@ -167,36 +159,38 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
                       title="Updated"
                       value={<RenderDate date={destination.updatedAt} />}
                     />
-                    <Entity.Field title="Actions" right>
-                      <div
-                        onClick={event => {
-                          event.stopPropagation();
-                          event.preventDefault();
-                        }}
-                      >
-                        <Menu
-                          items={[{ id: 'delete', label: 'Delete' }]}
-                          onItemClick={async id => {
-                            if (id == 'delete') {
-                              await deleteMutator.mutate({
-                                callbackDestinationId: destination.id
-                              });
-
-                              setSearchParams(params => {
-                                if (params.get('destination_id') == destination.id) {
-                                  params.delete('destination_id');
-                                }
-                                return params;
-                              });
-                              destinations.refetch();
-                              callback.refetch();
-                            }
+                    {callback.data.status === 'active' ? (
+                      <Entity.Field title="Actions" right>
+                        <div
+                          onClick={event => {
+                            event.stopPropagation();
+                            event.preventDefault();
                           }}
                         >
-                          <Button variant="outline" size="1" iconLeft={<RiMore2Line />} />
-                        </Menu>
-                      </div>
-                    </Entity.Field>
+                          <Menu
+                            items={[{ id: 'archive', label: 'Archive' }]}
+                            onItemClick={async id => {
+                              if (id == 'archive') {
+                                await deleteMutator.mutate({
+                                  callbackDestinationId: destination.id
+                                });
+
+                                setSearchParams(params => {
+                                  if (params.get('destination_id') == destination.id) {
+                                    params.delete('destination_id');
+                                  }
+                                  return params;
+                                });
+                                destinations.refetch();
+                                callback.refetch();
+                              }
+                            }}
+                          >
+                            <Button variant="outline" size="1" iconLeft={<RiMore2Line />} />
+                          </Menu>
+                        </div>
+                      </Entity.Field>
+                    ) : null}
                   </Entity.Content>
                 </Entity.Wrapper>
               </div>
@@ -204,37 +198,12 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
           </Flex>
 
           {destinations.data.items.length == 0 && (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No destinations are attached to this callback yet.
-            </Text>
+            <Callout color="gray">
+              No destinations are attached to this callback yet. Create one to deliver its
+              events to your application.
+            </Callout>
           )}
-
-          <Spacer height={15} />
-
-          <Button
-            iconRight={<RiAddLine />}
-            size="2"
-            onClick={() =>
-              instance.data &&
-              showCallbackDestinationFormModal({
-                instanceId: instance.data.id,
-                onCreate: destination => {
-                  let nextDestinationIds = [
-                    ...new Set([...selectedDestinationIds, destination.id])
-                  ];
-                  setSelectedDestinationIds(nextDestinationIds);
-                  updateCallback.mutate({
-                    destinationIds: nextDestinationIds
-                  });
-
-                  destinations.refetch();
-                }
-              })
-            }
-          >
-            Create Destination
-          </Button>
-        </>
+        </Box>
       ))}
 
       <RouterPanel param="destination_id" width={1000}>
@@ -245,7 +214,11 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
             </Panel.Header>
 
             <Panel.Content>
-              <Destination destinationId={destinationId!} callbackId={p.callbackId!} />
+              <Destination
+                destinationId={destinationId!}
+                callbackId={p.callbackId!}
+                readOnly={callback.data?.status !== 'active'}
+              />
             </Panel.Content>
           </>
         )}
@@ -256,10 +229,12 @@ export let CallbackDestinationsList = (p: { callbackId: string | undefined }) =>
 
 let Destination = ({
   destinationId,
-  callbackId
+  callbackId,
+  readOnly
 }: {
   destinationId: string;
   callbackId: string;
+  readOnly: boolean;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
@@ -269,19 +244,50 @@ let Destination = ({
 
   return renderWithLoader({ destination })(({ destination }) => (
     <>
-      <Entity.Wrapper>
-        <Entity.Content>
-          <Entity.Field title="ID" value={<ID id={destination.data.id} />} />
-          <Entity.Field title="Status" value={destination.data.status} />
-          <Entity.Field title="URL" value={<Copy value={destination.data.url} />} />
-          <Entity.Field title="Method" value={destination.data.method} />
-          <Entity.Field
-            title="Created"
-            value={<RenderDate date={destination.data.createdAt} />}
-          />
-        </Entity.Content>
-        <SigningSecretFooter signingSecret={destination.data.signingSecret} />
-      </Entity.Wrapper>
+      <Box
+        title="Destination"
+        description="Where notifications for this callback are delivered."
+        rightActions={
+          !readOnly && destination.data.signingSecretConfigured && instance.data ? (
+            <Button
+              size="1"
+              variant="outline"
+              onClick={() =>
+                showDestinationSigningSecretModal({
+                  instanceId: instance.data!.id,
+                  callbackDestinationId: destination.data.id,
+                  onComplete: destination.refetch
+                })
+              }
+            >
+              Rotate Signing Secret
+            </Button>
+          ) : undefined
+        }
+      >
+        <Datalist
+          items={[
+            { label: 'Name', value: destination.data.name },
+            ...(destination.data.description
+              ? [{ label: 'Description', value: destination.data.description }]
+              : []),
+            { label: 'Status', value: destination.data.status },
+            { label: 'ID', value: <ID id={destination.data.id} /> },
+            { label: 'URL', value: <Copy value={destination.data.url} /> },
+            { label: 'Method', value: destination.data.method },
+            {
+              label: 'Created At',
+              value: <RenderDate date={destination.data.createdAt} />
+            },
+            {
+              label: 'Signing Secret',
+              value: destination.data.signingSecretConfigured
+                ? 'Configured — plaintext is never returned by ordinary reads'
+                : 'Not configured'
+            }
+          ]}
+        />
+      </Box>
 
       <Spacer height={15} />
 
@@ -308,3 +314,80 @@ let Destination = ({
     </>
   ));
 };
+
+export let DestinationSigningSecretModalContent = (p: {
+  instanceId: string;
+  callbackDestinationId: string;
+  close: () => void;
+  onComplete: () => void;
+}) => {
+  let rotateSecret = useRotateCallbackDestinationSigningSecret();
+  let [revealedSecret, setRevealedSecret] = useState<string | null>(null);
+
+  let submit = async () => {
+    let [mutation, mutationError] = await rotateSecret.mutate({
+      instanceId: p.instanceId,
+      callbackDestinationId: p.callbackDestinationId
+    });
+    if (!mutation || mutationError) return;
+
+    setRevealedSecret(mutation.signingSecret);
+    p.onComplete();
+  };
+
+  return (
+    <>
+      <Callout color={revealedSecret ? 'orange' : 'gray'}>
+        {revealedSecret
+          ? 'Copy this signing secret now. It cannot be read again after this dialog closes.'
+          : 'Rotation takes effect immediately. Update your verifier with the newly revealed value before relying on further deliveries.'}
+      </Callout>
+
+      <Spacer height={15} />
+
+      {revealedSecret ? (
+        <>
+          <Copy label="Signing secret" value={revealedSecret} />
+          <Spacer height={10} />
+          <Callout color="gray">
+            The previous signing secret was invalidated immediately.
+          </Callout>
+        </>
+      ) : (
+        <Callout color="orange">
+          Existing signature verification will fail as soon as you rotate this secret.
+        </Callout>
+      )}
+
+      <rotateSecret.RenderError />
+
+      <Spacer height={20} />
+
+      <Dialog.Actions>
+        <Button type="button" variant="outline" onClick={p.close}>
+          {revealedSecret ? 'Done' : 'Cancel'}
+        </Button>
+        {!revealedSecret && (
+          <Button type="button" loading={rotateSecret.isLoading} onClick={submit}>
+            Rotate and reveal once
+          </Button>
+        )}
+      </Dialog.Actions>
+    </>
+  );
+};
+
+let showDestinationSigningSecretModal = (p: {
+  instanceId: string;
+  callbackDestinationId: string;
+  onComplete: () => void;
+}) =>
+  showModal(({ dialogProps, close }) => (
+    <Dialog.Wrapper {...dialogProps} width={720}>
+      <Dialog.Title>Rotate destination signing secret</Dialog.Title>
+      <Dialog.Description>
+        Verify `Metorial-Signature` against the exact raw callback body.
+      </Dialog.Description>
+      <DestinationSigningSecretModalContent {...p} close={close} />
+    </Dialog.Wrapper>
+  ));

@@ -17,7 +17,7 @@ import type {
 import { db } from '../db';
 import { getId, snowflake } from '../id';
 import { offloadCallbackEventPayloadQueue } from '../queues/send/callbackEventPayload';
-import { newEventQueue } from '../queues/send/init';
+import { eventService } from './event';
 import { senderService } from './sender';
 
 let callbackInclude = {
@@ -105,20 +105,7 @@ let CALLBACK_SENDER = {
   name: 'Callbacks'
 };
 
-let callbackSenderPromise: ReturnType<typeof senderService.upsertSender> | null = null;
-
-let getCallbackSender = () => {
-  if (!callbackSenderPromise) {
-    callbackSenderPromise = senderService
-      .upsertSender({ input: CALLBACK_SENDER })
-      .catch(error => {
-        callbackSenderPromise = null;
-        throw error;
-      });
-  }
-
-  return callbackSenderPromise;
-};
+let getCallbackSender = () => senderService.upsertSender({ input: CALLBACK_SENDER });
 
 let prepareCallbackEventPayloadForDb = (
   type: 'input' | 'output',
@@ -170,10 +157,27 @@ class callbackServiceImpl {
       sender: Awaited<ReturnType<typeof senderService.upsertSender>>;
     }
   ) {
+    let ownership = await prisma.eventDestination.findFirst({
+      where: { externalId: d.input.externalId },
+      select: { tenantOid: true, senderOid: true, isCallbackDestination: true }
+    });
+    if (
+      ownership &&
+      (ownership.tenantOid !== d.tenant.oid ||
+        ownership.senderOid !== d.sender.oid ||
+        !ownership.isCallbackDestination)
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'Callback destination ownership is invalid.' })
+      );
+    }
+
     let existing = await prisma.eventDestination.findFirst({
       where: {
         externalId: d.input.externalId,
-        tenantOid: d.tenant.oid
+        tenantOid: d.tenant.oid,
+        senderOid: d.sender.oid,
+        isCallbackDestination: true
       },
       include: {
         currentInstance: {
@@ -309,29 +313,41 @@ class callbackServiceImpl {
       }
 
       let eventTypes = d.input.eventTypes ?? [];
-      let callback = await prisma.callback.upsert({
-        where: { id: d.input.callbackId },
-        update: {
-          status: 'active',
-          name: d.input.name,
-          description: d.input.description ?? null,
-          eventTypes,
-          hasEventTypesFilter: eventTypes.length > 0,
-          senderOid: sender.oid,
-          archivedAt: null
-        },
-        create: {
-          oid: snowflake.nextId(),
-          id: d.input.callbackId,
-          status: 'active',
-          name: d.input.name,
-          description: d.input.description ?? null,
-          eventTypes,
-          hasEventTypesFilter: eventTypes.length > 0,
-          tenantOid: d.tenant.oid,
-          senderOid: sender.oid
-        }
+      let callbackOwner = await prisma.callback.findUnique({
+        where: { id: d.input.callbackId }
       });
+      if (
+        callbackOwner &&
+        (callbackOwner.tenantOid !== d.tenant.oid || callbackOwner.senderOid !== sender.oid)
+      ) {
+        throw new ServiceError(badRequestError({ message: 'Callback ownership is invalid.' }));
+      }
+      let callback = callbackOwner
+        ? await prisma.callback.update({
+            where: { oid: callbackOwner.oid },
+            data: {
+              status: 'active',
+              name: d.input.name,
+              description: d.input.description ?? null,
+              eventTypes,
+              hasEventTypesFilter: eventTypes.length > 0,
+              senderOid: sender.oid,
+              archivedAt: null
+            }
+          })
+        : await prisma.callback.create({
+            data: {
+              oid: snowflake.nextId(),
+              id: d.input.callbackId,
+              status: 'active',
+              name: d.input.name,
+              description: d.input.description ?? null,
+              eventTypes,
+              hasEventTypesFilter: eventTypes.length > 0,
+              tenantOid: d.tenant.oid,
+              senderOid: sender.oid
+            }
+          });
 
       let destinationOids = destinations.map(destination => destination.oid);
 
@@ -461,109 +477,154 @@ class callbackServiceImpl {
     let inputPayload = prepareCallbackEventPayloadForDb('input', d.input.inputJson);
     let outputPayload = prepareCallbackEventPayloadForDb('output', d.input.outputJson);
 
-    let callbackEvent = await db.$transaction(async prisma => {
-      let eventOid = existing?.eventOid ?? null;
-
-      if (status === 'succeeded' && !eventOid) {
-        if (!d.input.deliveryPayloadJson) {
-          throw new ServiceError(
-            badRequestError({
-              code: 'delivery_payload_required',
-              message:
-                'deliveryPayloadJson is required when callback event status is succeeded.'
-            })
-          );
-        }
-
-        let event = await prisma.event.create({
-          data: {
-            ...getId('event'),
-            idempotencyKey,
-
-            status: 'pending',
-
-            topics: [
-              `callback:${d.callback.id}`,
-              ...(d.input.callbackInstanceId
-                ? [`callback_instance:${d.input.callbackInstanceId}`]
-                : []),
-              ...(d.input.triggerId ? [`callback_trigger:${d.input.triggerId}`] : [])
-            ],
-            eventType: d.input.eventType,
-            payloadJson: d.input.deliveryPayloadJson,
-            headers: Object.entries({
-              'metorial-callback-id': d.callback.id,
-              ...(d.input.callbackInstanceId
-                ? { 'metorial-callback-instance-id': d.input.callbackInstanceId }
-                : {})
-            }),
-
-            onlyForDestinations: destinationIds,
-            hasOnlyForDestinationsFilter: !!destinationIds,
-
-            deliveryDestinationCount: -1,
-            deliveryFailureCount: 0,
-            deliverySuccessCount: 0,
-
-            senderOid: sender.oid,
-            tenantOid: d.tenant.oid,
-
-            callbackOid: d.callback.oid,
-            callbackInstanceId: d.input.callbackInstanceId,
-            callbackSourceId: d.input.sourceId,
-            callbackTriggerId: d.input.triggerId
-          }
-        });
-
-        eventOid = event.oid;
+    let event = null;
+    if (status === 'succeeded') {
+      if (!d.input.deliveryPayloadJson) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'delivery_payload_required',
+            message: 'deliveryPayloadJson is required when callback event status is succeeded.'
+          })
+        );
       }
 
-      return await prisma.callbackEvent.upsert({
-        where: { idempotencyKey },
-        update: {
-          id: callbackEventIdentity.id,
-          status,
-          externalId,
-          eventOid,
-          type: d.input.eventType,
-          sourceId: d.input.sourceId,
-          triggerId: d.input.triggerId,
-          triggerKey: d.input.triggerKey,
-          callbackInstanceId: d.input.callbackInstanceId,
-          errorCode: d.input.errorCode ?? null,
-          errorMessage: d.input.errorMessage ?? null,
-          ...inputPayload,
-          ...outputPayload
-        },
-        create: {
-          ...callbackEventIdentity,
+      event = await eventService.createEvent({
+        input: {
           idempotencyKey,
-          externalId,
-          status,
-          callbackOid: d.callback.oid,
-          eventOid,
-          type: d.input.eventType,
-          sourceId: d.input.sourceId,
-          triggerId: d.input.triggerId,
-          triggerKey: d.input.triggerKey,
-          callbackInstanceId: d.input.callbackInstanceId,
-          errorCode: d.input.errorCode,
-          errorMessage: d.input.errorMessage,
-          ...inputPayload,
-          ...outputPayload,
-          createdAt: d.input.createdAt
+          topics: [
+            `callback:${d.callback.id}`,
+            ...(d.input.callbackInstanceId
+              ? [`callback_instance:${d.input.callbackInstanceId}`]
+              : []),
+            ...(d.input.triggerId ? [`callback_trigger:${d.input.triggerId}`] : [])
+          ],
+          eventType: d.input.eventType,
+          payloadJson: d.input.deliveryPayloadJson,
+          headers: {
+            'metorial-callback-id': d.callback.id,
+            ...(d.input.callbackInstanceId
+              ? { 'metorial-callback-instance-id': d.input.callbackInstanceId }
+              : {})
+          },
+          // Empty is deliberate: a filtered/disabled callback has no delivery targets.
+          onlyForDestinations: destinationIds
         },
-        include: callbackEventInclude
+        sender,
+        tenant: d.tenant,
+        callback: d.callback,
+        callbackInstanceId: d.input.callbackInstanceId,
+        callbackSourceId: d.input.sourceId,
+        callbackTriggerId: d.input.triggerId
       });
-    });
-
-    if (status === 'succeeded' && callbackEvent.event) {
-      await newEventQueue.add({ eventId: callbackEvent.event.id });
     }
+
+    let eventOid = event?.oid ?? existing?.eventOid ?? null;
+    let callbackEvent = await db.callbackEvent.upsert({
+      where: { idempotencyKey },
+      update: {
+        id: callbackEventIdentity.id,
+        status,
+        externalId,
+        eventOid,
+        type: d.input.eventType,
+        sourceId: d.input.sourceId,
+        triggerId: d.input.triggerId,
+        triggerKey: d.input.triggerKey,
+        callbackInstanceId: d.input.callbackInstanceId,
+        errorCode: d.input.errorCode ?? null,
+        errorMessage: d.input.errorMessage ?? null,
+        ...inputPayload,
+        ...outputPayload
+      },
+      create: {
+        ...callbackEventIdentity,
+        idempotencyKey,
+        externalId,
+        status,
+        callbackOid: d.callback.oid,
+        eventOid,
+        type: d.input.eventType,
+        sourceId: d.input.sourceId,
+        triggerId: d.input.triggerId,
+        triggerKey: d.input.triggerKey,
+        callbackInstanceId: d.input.callbackInstanceId,
+        errorCode: d.input.errorCode,
+        errorMessage: d.input.errorMessage,
+        ...inputPayload,
+        ...outputPayload,
+        createdAt: d.input.createdAt
+      },
+      include: callbackEventInclude
+    });
 
     await enqueueCallbackEventPayloadOffload(callbackEvent);
 
     return callbackEvent;
+  }
+
+  async recordDashboardTestEvent(d: {
+    callback: Callback & {
+      destinations: {
+        status: 'active' | 'inactive';
+        eventDestination: { id: string; status: 'active' | 'inactive' };
+      }[];
+    };
+    tenant: Tenant;
+    input: {
+      eventId: string;
+      callbackInstanceId: string;
+      eventType: string;
+      payloadJson: string;
+    };
+  }) {
+    if (!d.input.eventId.startsWith('dashboard_test:') || d.input.eventId.length <= 15) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_id_invalid',
+          message: 'The callback test event ID is invalid.'
+        })
+      );
+    }
+
+    let eventType = d.input.eventType.trim();
+    if (!eventType) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_type_required',
+          message: 'A callback test event type is required.'
+        })
+      );
+    }
+
+    try {
+      let payload = JSON.parse(d.input.payloadJson);
+      if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
+        throw new Error('not an object');
+      }
+    } catch {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_payload_invalid',
+          message: 'The callback test payload must be a JSON object.'
+        })
+      );
+    }
+
+    return await this.recordCallbackEvent({
+      tenant: d.tenant,
+      callback: d.callback,
+      input: {
+        eventId: d.input.eventId,
+        callbackInstanceId: d.input.callbackInstanceId,
+        sourceId: 'dashboard_test',
+        triggerKey: 'dashboard_test',
+        status: 'succeeded',
+        eventType,
+        deliveryPayloadJson: d.input.payloadJson,
+        inputJson: d.input.payloadJson,
+        outputJson: d.input.payloadJson
+      }
+    });
   }
 
   async listCallbackEvents(d: {

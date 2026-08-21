@@ -14,14 +14,14 @@
   "license": "FSL 1.1",
   "type": "module",
   "exports": {
-    "types": "./dist/index.d.ts",
+    "types": "./src/index.ts",
     "require": "./dist/index.cjs",
     "import": "./dist/index.js",
     "default": "./dist/index.js"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",

@@ -18,7 +18,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
 import { callbackRegistrationService } from './callbackRegistration';
-import { getTenantForSignal, signal } from '../signal';
+import { getInternalSignal, getTenantForSignal, signal } from '../signal';
 
 type SignalDestination = Awaited<ReturnType<typeof signal.eventDestination.get>>;
 type EnrichedCallbackDestination = CallbackDestination & {
@@ -55,6 +55,10 @@ export type UpdateCallbackDestinationParams = {
 };
 
 export type ArchiveCallbackDestinationParams = {
+  callbackDestination: CallbackDestination;
+};
+
+export type RotateCallbackDestinationSigningSecretParams = {
   callbackDestination: CallbackDestination;
 };
 
@@ -173,10 +177,7 @@ class callbackDestinationServiceImpl {
             tenantOid: d.tenant.oid,
             solutionOid: solution.oid,
             status: {
-              notIn: [
-                CallbackDestinationStatus.archived,
-                CallbackDestinationStatus.deleted
-              ]
+              notIn: [CallbackDestinationStatus.archived, CallbackDestinationStatus.deleted]
             },
             AND: [
               d.callbackIds?.length
@@ -377,6 +378,72 @@ class callbackDestinationServiceImpl {
     return await db.callbackDestination.findFirstOrThrow({
       where: { oid: archived.oid }
     });
+  }
+
+  async rotateSigningSecret(d: MetorialFacing<RotateCallbackDestinationSigningSecretParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return await this.rotateSigningSecretInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async rotateSigningSecretInternal(
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+    } & RotateCallbackDestinationSigningSecretParams
+  ) {
+    let destination = await this.getCallbackDestinationByIdInternal({
+      tenant: d.tenant,
+      environment: d.environment,
+      callbackDestinationId: d.callbackDestination.id
+    });
+
+    if (!destination.signalEventDestinationId) {
+      let links = await db.callbackDestinationLink.findMany({
+        where: {
+          callbackDestinationOid: destination.oid,
+          callback: {
+            tenantOid: d.tenant.oid,
+            environmentOid: d.environment.oid,
+            status: { notIn: ['archived', 'deleted'] }
+          }
+        },
+        select: { callback: { select: { id: true } } }
+      });
+      for (let link of links) {
+        await callbackRegistrationService.syncCallback({ callbackId: link.callback.id });
+      }
+
+      destination = await db.callbackDestination.findFirstOrThrow({
+        where: { oid: destination.oid }
+      });
+    }
+
+    if (!destination.signalEventDestinationId) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_destination_not_materialized',
+          message: 'The callback destination has not been materialized in Signal.'
+        })
+      );
+    }
+
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let rotated = await getInternalSignal().eventDestination.rotateSigningSecret({
+      tenantId: signalTenant.id,
+      eventDestinationId: destination.signalEventDestinationId
+    });
+
+    return {
+      callbackDestinationId: destination.id,
+      signingSecret: rotated.signingSecret,
+      rotatedAt: rotated.rotatedAt
+    };
   }
 }
 

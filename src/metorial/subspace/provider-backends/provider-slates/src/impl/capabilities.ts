@@ -8,7 +8,8 @@ import {
   type ProviderSpecificationBehaviorRes,
   type ProviderSpecificationGetForPairParam,
   type ProviderSpecificationGetForProviderParam,
-  type ProviderSpecificationGetRes
+  type ProviderSpecificationGetRes,
+  projectSlatesSpecificationTriggerWebhookHttp
 } from '@metorial-subspace/provider-utils';
 import { slates } from '../client';
 
@@ -108,6 +109,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
               description: t.description,
               inputJsonSchema: t.inputSchema,
               outputJsonSchema: t.outputSchema,
+              eventTypes: (t as typeof t & { eventTypes?: string[] }).eventTypes ?? [],
               invocation:
                 invocation.type === 'polling'
                   ? {
@@ -117,7 +119,8 @@ export class ProviderCapabilities extends IProviderCapabilities {
                   : {
                       type: 'webhook' as const,
                       autoRegistration: invocation.autoRegistration,
-                      autoUnregistration: invocation.autoUnregistration
+                      autoUnregistration: invocation.autoUnregistration,
+                      http: projectSlatesSpecificationTriggerWebhookHttp(invocation.http)
                     },
               capabilities: t.capabilities ?? {},
               metadata: t.metadata ?? {}
@@ -140,6 +143,7 @@ export class ProviderCapabilities extends IProviderCapabilities {
             description: t.description,
             inputJsonSchema: t.inputSchema,
             outputJsonSchema: t.outputSchema,
+            eventTypes: (t as typeof t & { eventTypes?: string[] }).eventTypes ?? [],
             capabilities: t.capabilities ?? {},
             metadata: t.metadata ?? {},
             scopes: t.scopes ?? null,
@@ -152,7 +156,8 @@ export class ProviderCapabilities extends IProviderCapabilities {
                 : {
                     type: 'webhook' as const,
                     autoRegistration: invocation.autoRegistration,
-                    autoUnregistration: invocation.autoUnregistration
+                    autoUnregistration: invocation.autoUnregistration,
+                    http: projectSlatesSpecificationTriggerWebhookHttp(invocation.http)
                   }
           };
         })

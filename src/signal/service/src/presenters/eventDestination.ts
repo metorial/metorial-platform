@@ -37,7 +37,8 @@ export let eventDestinationPresenter = (
         url: eventDestination.currentInstance.webhook.url,
         method: eventDestination.currentInstance.webhook.method,
 
-        signingSecret: eventDestination.currentInstance.webhook.signingSecret,
+        signingSecretConfigured:
+          eventDestination.currentInstance.webhook.signingSecret.length > 0,
 
         createdAt: eventDestination.currentInstance.webhook.createdAt
       }

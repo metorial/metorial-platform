@@ -1,6 +1,7 @@
-import { internalServerError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { randomUUID } from 'node:crypto';
 import {
   db,
   getId,
@@ -34,6 +35,8 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
 import { getTenantForSlates, slates } from '@metorial-subspace/provider-slates/src/client';
+import { tombstoneProvisionedTenantAppsForCallbackInTransaction } from '@metorial-subspace/module-auth';
+import { applyCallbackRegistrationMirror } from '../reconciler/lib/sync';
 import { callbackService } from './callback';
 import { callbackRegistrationService } from './callbackRegistration';
 
@@ -61,7 +64,18 @@ let callbackInstanceInclude = {
       }
     }
   },
-  activeRegistration: true
+  provisionedTenantApps: {
+    select: {
+      id: true,
+      generation: true,
+      vendor: true,
+      status: true,
+      externalAppId: true,
+      externalAccountId: true,
+      externalInstallationId: true,
+      expiresAt: true
+    }
+  }
 };
 
 export type GetCallbackInstanceParams = {
@@ -95,6 +109,11 @@ export type DetachCallbackInstanceParams = {
   callbackInstance: CallbackInstance;
 };
 
+export type CallbackInstancePathSecretParams = {
+  callback: Callback;
+  callbackInstance: CallbackInstance;
+};
+
 class callbackInstanceServiceImpl {
   async get(d: MetorialFacing<GetCallbackInstanceParams>) {
     let { instance, organizationActor, ...rest } = d;
@@ -107,7 +126,9 @@ class callbackInstanceServiceImpl {
     });
   }
 
-  async getInternal(d: { tenant: Tenant; environment: Environment } & GetCallbackInstanceParams) {
+  async getInternal(
+    d: { tenant: Tenant; environment: Environment } & GetCallbackInstanceParams
+  ) {
     let callback = await callbackService.getCallbackByIdInternal({
       tenant: d.tenant,
       environment: d.environment,
@@ -219,6 +240,15 @@ class callbackInstanceServiceImpl {
   async attachInternal(
     d: { tenant: Tenant; environment: Environment } & AttachCallbackInstanceParams
   ) {
+    if (d.callback.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_archived',
+          message: 'Instances cannot be attached to an archived callback.'
+        })
+      );
+    }
+
     if (d.callback.providerDeployment.status !== 'active') {
       throw new ServiceError(
         notFoundError('provider.deployment', d.callback.providerDeployment.id)
@@ -237,45 +267,33 @@ class callbackInstanceServiceImpl {
       ]
     });
 
-    let pairRes = await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair({
-      deployment: d.callback.providerDeployment,
-      config: combination.config,
-      authConfig: combination.authConfig
-    });
+    let pairRes = await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair(
+      {
+        deployment: d.callback.providerDeployment,
+        config: combination.config,
+        authConfig: combination.authConfig
+      }
+    );
 
-    let callbackInstance = await db.callbackInstance.findFirst({
+    let callbackInstance = await db.callbackInstance.upsert({
       where: {
+        callbackOid_providerDeploymentConfigPairOid: {
+          callbackOid: d.callback.oid,
+          providerDeploymentConfigPairOid: pairRes.pair.oid
+        }
+      },
+      create: {
+        ...getId('callbackInstance'),
         callbackOid: d.callback.oid,
         providerDeploymentConfigPairOid: pairRes.pair.oid,
-        status: 'detached'
+        status: 'attached',
+        registrationStatus: 'pending'
       },
-      orderBy: {
-        updatedAt: 'desc'
+      update: {
+        status: 'attached'
       },
       include: callbackInstanceInclude
     });
-
-    if (callbackInstance) {
-      callbackInstance = await db.callbackInstance.update({
-        where: { oid: callbackInstance.oid },
-        data: {
-          status: 'attached',
-          registrationStatus: 'pending'
-        },
-        include: callbackInstanceInclude
-      });
-    } else {
-      callbackInstance = await db.callbackInstance.create({
-        data: {
-          ...getId('callbackInstance'),
-          callbackOid: d.callback.oid,
-          providerDeploymentConfigPairOid: pairRes.pair.oid,
-          status: 'attached',
-          registrationStatus: 'pending'
-        },
-        include: callbackInstanceInclude
-      });
-    }
 
     await callbackRegistrationService.syncCallbackInstance({
       callbackInstanceId: callbackInstance.id
@@ -311,35 +329,116 @@ class callbackInstanceServiceImpl {
   async detachInternal(
     d: { tenant: Tenant; environment: Environment } & DetachCallbackInstanceParams
   ) {
-    if (d.callbackInstance.slateTriggerReceiverId) {
-      let slatesTenant = await getTenantForSlates(d.tenant);
-      try {
-        await slates.callbackRegistration.delete({
-          tenantId: slatesTenant.id,
-          slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId
-        });
-      } catch (err: any) {
-        throw new ServiceError(
-          internalServerError({
-            details: err?.data?.message
-          })
-        );
-      }
-    }
+    let callback = await db.callback.findUniqueOrThrow({
+      where: { oid: d.callbackInstance.callbackOid },
+      select: { id: true }
+    });
+    let slatesTenant = await getTenantForSlates(d.tenant);
+    await callbackRegistrationService.detachRegistration({
+      callbackInstanceOid: d.callbackInstance.oid,
+      callbackInstanceId: d.callbackInstance.id,
+      callbackId: callback.id,
+      slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId,
+      expectedReceiverAuthorityVersion:
+        d.callbackInstance.registrationReceiverAuthorityVersion,
+      slatesTenantId: slatesTenant.id
+    });
 
     return await withTransaction(async db => {
+      let now = new Date();
+      await tombstoneProvisionedTenantAppsForCallbackInTransaction(
+        db,
+        d.callbackInstance.oid,
+        now
+      );
       return await db.callbackInstance.update({
         where: { oid: d.callbackInstance.oid },
         data: {
           status: 'detached',
-          registrationStatus: 'pending',
-          activeRegistrationOid: null,
-          slateTriggerReceiverId: null,
-          lastSyncedAt: new Date()
+          lastSyncedAt: now
         },
         include: callbackInstanceInclude
       });
     });
+  }
+
+  private assertPathSecretOwner(d: CallbackInstancePathSecretParams) {
+    if (
+      d.callbackInstance.callbackOid !== d.callback.oid ||
+      d.callbackInstance.status !== 'attached' ||
+      !d.callbackInstance.slateTriggerReceiverId ||
+      d.callbackInstance.registrationReceiverAuthorityVersion < 1
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_receiver_unavailable',
+          message: 'The callback instance does not have an active receiver.'
+        })
+      );
+    }
+  }
+
+  private async mutateReceiverPathSecret(
+    d: { tenant: Tenant } & CallbackInstancePathSecretParams,
+    operation: 'create' | 'rotate'
+  ) {
+    this.assertPathSecretOwner(d);
+    let slatesTenant = await getTenantForSlates(d.tenant);
+    let owner = {
+      tenantId: slatesTenant.id,
+      callbackId: d.callback.id,
+      callbackInstanceId: d.callbackInstance.id,
+      slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId!,
+      expectedOwnerVersion: d.callbackInstance.registrationReceiverAuthorityVersion,
+      ownerMutationId: `${operation}-receiver-path:${randomUUID()}`
+    };
+    let result =
+      operation === 'create'
+        ? await slates.callbackRegistration.createPathSecret(owner)
+        : await slates.callbackRegistration.rotatePathSecret(owner);
+
+    let webhookUrl: string | null = null;
+    try {
+      let receiver = await slates.callbackRegistration.get({
+        tenantId: slatesTenant.id,
+        callbackId: d.callback.id,
+        callbackInstanceId: d.callbackInstance.id,
+        slateTriggerReceiverId: d.callbackInstance.slateTriggerReceiverId!,
+        expectedOwnerVersion: d.callbackInstance.registrationReceiverAuthorityVersion
+      });
+      webhookUrl = receiver.receiverWebhookUrl
+        ? `${receiver.receiverWebhookUrl.replace(/\/+$/, '')}/${encodeURIComponent(result.plaintext)}`
+        : null;
+      await applyCallbackRegistrationMirror({
+        callbackInstanceOid: d.callbackInstance.oid,
+        receiver,
+        expectedReceiverId: d.callbackInstance.slateTriggerReceiverId,
+        expectedReceiverAuthorityVersion:
+          d.callbackInstance.registrationReceiverAuthorityVersion
+      });
+    } catch {
+      await callbackRegistrationService.enqueueReconcile({
+        callbackInstanceId: d.callbackInstance.id
+      });
+    }
+
+    return {
+      pathSecret: result.pathSecret,
+      plaintext: result.plaintext,
+      webhookUrl
+    };
+  }
+
+  async createReceiverPathSecret(d: MetorialFacing<CallbackInstancePathSecretParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+    return await this.mutateReceiverPathSecret({ ...rest, tenant: scope.tenant }, 'create');
+  }
+
+  async rotateReceiverPathSecret(d: MetorialFacing<CallbackInstancePathSecretParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+    return await this.mutateReceiverPathSecret({ ...rest, tenant: scope.tenant }, 'rotate');
   }
 }
 

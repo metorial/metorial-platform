@@ -5,8 +5,6 @@ import { eventFailedQueue, eventSucceededQueue } from './lifecycle';
 
 export let intentSucceededQueue = createQueue<{
   intentId: string;
-  errorCode: string;
-  errorMessage: string;
 }>({
   name: 'sgnl/event/intent_succeeded',
   redisUrl: env.service.REDIS_URL
@@ -18,21 +16,20 @@ export let intentSucceededQueueProcessor = intentSucceededQueue.process(async da
   });
   if (!intent) throw new QueueRetryError();
 
-  await db.eventDeliveryIntent.updateMany({
-    where: { id: data.intentId },
-    data: {
-      status: 'delivered'
-    }
+  await db.$transaction(async tx => {
+    let transitioned = await tx.eventDeliveryIntent.updateMany({
+      where: { id: data.intentId, status: { notIn: ['delivered', 'failed'] } },
+      data: { status: 'delivered' }
+    });
+    if (transitioned.count === 0) return;
+
+    await tx.event.update({
+      where: { oid: intent.eventOid },
+      data: { deliverySuccessCount: { increment: 1 } }
+    });
   });
 
-  await db.event.update({
-    where: { oid: intent.eventOid },
-    data: {
-      deliverySuccessCount: { increment: 1 }
-    }
-  });
-
-  await intentEndedQueue.add({ intentId: intent.id });
+  await intentEndedQueue.add({ intentId: intent.id }, { id: intent.id });
 });
 
 export let intentFailedQueue = createQueue<{
@@ -50,23 +47,24 @@ export let intentFailedQueueProcessor = intentFailedQueue.process(async data => 
   });
   if (!intent) throw new QueueRetryError();
 
-  await db.eventDeliveryIntent.updateMany({
-    where: { id: data.intentId },
-    data: {
-      status: 'failed',
-      errorCode: 'no_destination',
-      errorMessage: 'No active destination instance found'
-    }
+  await db.$transaction(async tx => {
+    let transitioned = await tx.eventDeliveryIntent.updateMany({
+      where: { id: data.intentId, status: { notIn: ['delivered', 'failed'] } },
+      data: {
+        status: 'failed',
+        errorCode: data.errorCode,
+        errorMessage: data.errorMessage
+      }
+    });
+    if (transitioned.count === 0) return;
+
+    await tx.event.update({
+      where: { oid: intent.eventOid },
+      data: { deliveryFailureCount: { increment: 1 } }
+    });
   });
 
-  await db.event.update({
-    where: { oid: intent.eventOid },
-    data: {
-      deliveryFailureCount: { increment: 1 }
-    }
-  });
-
-  await intentEndedQueue.add({ intentId: intent.id });
+  await intentEndedQueue.add({ intentId: intent.id }, { id: intent.id });
 });
 
 let intentEndedQueue = createQueue<{
@@ -88,9 +86,9 @@ export let intentEndedQueueProcessor = intentEndedQueue.process(async data => {
   let totalSends = event.deliveryFailureCount + event.deliverySuccessCount;
   if (totalSends >= event.deliveryDestinationCount) {
     if (event.deliveryFailureCount > 0) {
-      await eventFailedQueue.add({ eventId: event.id });
+      await eventFailedQueue.add({ eventId: event.id }, { id: event.id });
     } else {
-      await eventSucceededQueue.add({ eventId: event.id });
+      await eventSucceededQueue.add({ eventId: event.id }, { id: event.id });
     }
   }
 });

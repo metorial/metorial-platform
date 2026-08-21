@@ -1,26 +1,12 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import {
-  CallbackStatus,
-  db,
-  type Environment,
-  type Tenant
-} from '@metorial-subspace/db';
+import { CallbackStatus, db, type Environment, type Tenant } from '@metorial-subspace/db';
 import {
   getMetorialSolution,
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { getTenantForSignal, signal } from '../signal';
-
-let emptyList = {
-  object: 'list',
-  items: [],
-  pagination: {
-    has_more_after: false,
-    has_more_before: false
-  }
-};
+import { getInternalSignal, getTenantForSignal, signal } from '../signal';
 
 let toCallbackEvent = (event: Awaited<ReturnType<typeof signal.callback.getEvent>>) => {
   return {
@@ -60,6 +46,16 @@ export type GetCallbackEventParams = {
 
 type ListCallbackEventSourceIdsParams = {
   callbackEventIds: string[];
+};
+
+export type SendDashboardTestEventParams = {
+  callbackId: string;
+  callbackInstanceId: string;
+  eventId: string;
+  input: {
+    eventType: string;
+    payloadJson: string;
+  };
 };
 
 class callbackEventServiceImpl {
@@ -102,8 +98,6 @@ class callbackEventServiceImpl {
   ) {
     let context = await this.resolveContext(d);
 
-    if (!context.callback.isCallbacksV2) return emptyList;
-
     let signalTenant = await getTenantForSignal(d.tenant);
     let res = await signal.callback.listEvents({
       tenantId: signalTenant.id,
@@ -138,15 +132,94 @@ class callbackEventServiceImpl {
     d: { tenant: Tenant; environment: Environment } & GetCallbackEventParams
   ) {
     let context = await this.resolveContext(d);
-    if (!context.callback.isCallbacksV2) {
-      throw new ServiceError(notFoundError('callback.event', d.slateTriggerEventId));
-    }
-
     let signalTenant = await getTenantForSignal(d.tenant);
     let event = await signal.callback.getEvent({
       tenantId: signalTenant.id,
       callbackId: context.callback.id,
       callbackEventId: d.slateTriggerEventId
+    });
+
+    return toCallbackEvent(event);
+  }
+
+  async sendDashboardTestEvent(d: MetorialFacing<SendDashboardTestEventParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return await this.sendDashboardTestEventInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async sendDashboardTestEventInternal(
+    d: { tenant: Tenant; environment: Environment } & SendDashboardTestEventParams
+  ) {
+    if (!d.eventId.startsWith('dashboard_test:') || d.eventId.length <= 15) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_id_invalid',
+          message: 'The callback test event ID is invalid.'
+        })
+      );
+    }
+
+    let eventType = d.input.eventType.trim();
+    if (!eventType) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_type_required',
+          message: 'A callback test event type is required.'
+        })
+      );
+    }
+
+    try {
+      let payload = JSON.parse(d.input.payloadJson);
+      if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
+        throw new Error('not an object');
+      }
+    } catch {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_payload_invalid',
+          message: 'The callback test payload must be a JSON object.'
+        })
+      );
+    }
+
+    let context = await this.resolveContext(d);
+    if (context.callback.status !== CallbackStatus.active) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_test_event_unavailable',
+          message: 'Synthetic events are unavailable for this callback.'
+        })
+      );
+    }
+
+    let callbackInstance = await db.callbackInstance.findFirst({
+      where: {
+        id: d.callbackInstanceId,
+        callbackOid: context.callback.oid,
+        status: 'attached',
+        isParentDeleted: false
+      },
+      select: { id: true }
+    });
+    if (!callbackInstance) {
+      throw new ServiceError(notFoundError('callback.instance', d.callbackInstanceId));
+    }
+
+    let signalTenant = await getTenantForSignal(d.tenant);
+    let event = await getInternalSignal().callback.recordDashboardTestEvent({
+      tenantId: signalTenant.id,
+      callbackId: context.callback.id,
+      eventId: d.eventId,
+      callbackInstanceId: callbackInstance.id,
+      eventType,
+      payloadJson: d.input.payloadJson
     });
 
     return toCallbackEvent(event);
@@ -162,10 +235,7 @@ class callbackEventServiceImpl {
     });
   }
 
-  async listCallbackEventSourceIdsInternal(d: {
-    tenant: Tenant;
-    callbackEventIds: string[];
-  }) {
+  async listCallbackEventSourceIdsInternal(d: { tenant: Tenant; callbackEventIds: string[] }) {
     if (d.callbackEventIds.length === 0) return [];
 
     let signalTenant = await getTenantForSignal(d.tenant);

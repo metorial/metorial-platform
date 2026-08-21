@@ -7,7 +7,11 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { callbackDestinationPresenter } from '@metorial/presenters';
+import { isDashboardGroup } from '../../../middleware/isDashboard';
+import {
+  callbackDestinationPresenter,
+  callbackDestinationSigningSecretPresenter
+} from '@metorial/presenters';
 
 let callbackDestinationGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.callbackDestinationId) {
@@ -32,6 +36,27 @@ let callbackDestinationGroup = instanceGroup.use(async ctx => {
 
   return { callbackDestination: enrichedCallbackDestination };
 });
+
+let dashboardCallbackDestinationGroup = instanceGroup
+  .use(isDashboardGroup())
+  .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
+  .use(async ctx => {
+    if (!ctx.params.callbackDestinationId) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'callbackDestinationId is required',
+          description: 'The callbackDestinationId path parameter is required.'
+        })
+      );
+    }
+
+    let callbackDestination = await callbackDestinationService.getCallbackDestinationById({
+      instance: ctx.instance,
+      callbackDestinationId: ctx.params.callbackDestinationId
+    });
+
+    return { callbackDestination };
+  });
 
 export let callbackDestinationController = Controller.create(
   {
@@ -213,6 +238,32 @@ export let callbackDestinationController = Controller.create(
         });
 
         return callbackDestinationPresenter.present({ callbackDestination });
+      }),
+
+    rotateSigningSecret: dashboardCallbackDestinationGroup
+      .post(
+        instancePath(
+          'callback-destinations/:callbackDestinationId/security/signing-secret/rotate',
+          'callbacks.destinations.rotateSigningSecret'
+        ),
+        {
+          name: 'Rotate callback destination signing secret',
+          description:
+            'Immediately rotates the outbound callback signing secret and returns it once.',
+          confidential: true
+        }
+      )
+      .output(callbackDestinationSigningSecretPresenter)
+      .do(async ctx => {
+        let callbackDestinationSigningSecret =
+          await callbackDestinationService.rotateSigningSecret({
+            instance: ctx.instance,
+            callbackDestination: ctx.callbackDestination
+          });
+
+        return callbackDestinationSigningSecretPresenter.present({
+          callbackDestinationSigningSecret
+        });
       }),
 
     delete: callbackDestinationGroup

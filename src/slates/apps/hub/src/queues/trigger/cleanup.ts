@@ -129,10 +129,6 @@ let deleteTriggerWebhookRequest = async (webhookRequestId: string) => {
   });
   if (!webhookRequest || !webhookRequest.processedAt) return;
 
-  if (webhookRequest.bodyStorageKey) {
-    await storage.deleteObject(invocationsBucketRecord.bucket, webhookRequest.bodyStorageKey);
-  }
-
   await db.slateTriggerWebhookRequest.delete({
     where: { oid: webhookRequest.oid }
   });
