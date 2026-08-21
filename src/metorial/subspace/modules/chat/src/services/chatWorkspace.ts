@@ -1,6 +1,6 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { type ChatAdapterInstance } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
   type ChatIntegrationInstanceProvider,
@@ -16,6 +16,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatWorkspaceInternalService } from '../internal/chatWorkspace';
+import { requireLocalChatEntity, withChatCapabilityFallback } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
 
 export let chatWorkspaceInclude = {
@@ -56,18 +57,20 @@ class chatWorkspaceServiceImpl {
       chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider
     });
 
-    if (!client.isCapabilityAvailable('workspace_read')) {
-      return Paginator.create(() => async () => ({
-        items: [] as ChatWorkspaceWithChat[],
-        pagination: { hasNextPage: false, hasPreviousPage: false }
-      }));
-    }
+    return withChatCapabilityFallback(client, 'workspace_read', {
+      provider: () => this.listChatWorkspacesFromProvider({ ...d, client }),
+      fallback: () => this.listChatWorkspacesFromDb(d)
+    });
+  }
 
+  private listChatWorkspacesFromProvider(
+    d: ListChatWorkspacesParams & { client: ChatAdapterInstance }
+  ) {
     let search = d.search?.trim() || undefined;
 
     return Paginator.create(({ externalCursor }) =>
       externalCursor(async page => {
-        let listed = await client.call('metorial_chat$workspace.list', {
+        let listed = await d.client.call('metorial_chat$workspace.list', {
           cursor: page.cursor,
           limit: page.limit,
           direction: page.direction,
@@ -84,11 +87,28 @@ class chatWorkspaceServiceImpl {
         });
 
         return {
-          items: upserted,
+          items: upserted.map(({ chat, workspace }) => ({ ...workspace, chat })),
           nextCursor: listing.nextCursor,
           prevCursor: listing.prevCursor
         };
       })
+    );
+  }
+
+  private listChatWorkspacesFromDb(d: ListChatWorkspacesParams) {
+    let search = d.search?.trim() || undefined;
+
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts =>
+        db.chatWorkspace.findMany({
+          ...opts,
+          where: {
+            chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+            ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {})
+          },
+          include: chatWorkspaceInclude
+        })
+      )
     );
   }
 
@@ -113,10 +133,15 @@ class chatWorkspaceServiceImpl {
       chatIntegrationInstanceProvider: d.chatIntegrationInstanceProvider
     });
 
-    if (!client.isCapabilityAvailable('workspace_read')) {
-      throw new ServiceError(notFoundError('chatWorkspace', d.workspaceId));
-    }
+    return withChatCapabilityFallback(client, 'workspace_read', {
+      provider: () => this.getChatWorkspaceFromProvider({ ...d, client }),
+      fallback: () => this.getChatWorkspaceFromDb(d)
+    });
+  }
 
+  private async getChatWorkspaceFromProvider(
+    d: GetChatWorkspaceParams & { client: ChatAdapterInstance }
+  ) {
     let local = await db.chatWorkspace.findFirst({
       where: {
         chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
@@ -125,7 +150,7 @@ class chatWorkspaceServiceImpl {
     });
     let workspaceId = local?.workspaceId ?? d.workspaceId;
 
-    let got = await client.call('metorial_chat$workspace.get', { workspaceId });
+    let got = await d.client.call('metorial_chat$workspace.get', { workspaceId });
     let workspace = unwrapChatCall(got, {
       code: 'chat_workspace_get_failed',
       message: 'Failed to load the workspace from the chat provider.'
@@ -136,7 +161,19 @@ class chatWorkspaceServiceImpl {
       workspace: workspace.workspace
     });
 
-    return upserted;
+    return { ...upserted.workspace, chat: upserted.chat };
+  }
+
+  private async getChatWorkspaceFromDb(d: GetChatWorkspaceParams) {
+    let local = await db.chatWorkspace.findFirst({
+      where: {
+        chatIntegrationInstanceProviderOid: d.chatIntegrationInstanceProvider.oid,
+        OR: [{ id: d.workspaceId }, { workspaceId: d.workspaceId }]
+      },
+      include: chatWorkspaceInclude
+    });
+
+    return requireLocalChatEntity('chatWorkspace', d.workspaceId, local);
   }
 }
 

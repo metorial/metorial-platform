@@ -1,4 +1,3 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { type ChatAdapterInstance } from '@metorial-subspace/adapter-chat';
 import { type Environment, type Tenant } from '@metorial-subspace/db';
@@ -9,6 +8,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatChannelServiceInternal } from '../internal/chatChannel';
+import { assertChatCapability } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
 import { type ChatWithProvider } from './chatChannel';
 
@@ -35,16 +35,10 @@ export type OpenGroupDmParams = {
 let assertDmCapability = (
   client: ChatAdapterInstance,
   capability: 'dm_open_single' | 'dm_open_group'
-) => {
-  if (client.isCapabilityAvailable(capability)) return;
-
-  throw new ServiceError(
-    badRequestError({
-      code: `chat_${capability}_not_supported`,
-      message: 'This chat provider does not support opening direct messages.'
-    })
-  );
-};
+) =>
+  assertChatCapability(client, capability, {
+    message: 'This chat provider does not support opening direct messages.'
+  });
 
 let assertUserIdKindCapability = (
   client: ChatAdapterInstance,
@@ -52,17 +46,14 @@ let assertUserIdKindCapability = (
 ) => {
   let capability: 'user_id_is_email' | 'user_id_is_phone_number' =
     type === 'email' ? 'user_id_is_email' : 'user_id_is_phone_number';
-  if (client.isCapabilityAvailable(capability)) return;
 
-  throw new ServiceError(
-    badRequestError({
-      code: `chat_dm_${type}_not_supported`,
-      message:
-        type === 'email'
-          ? 'This chat provider does not support opening direct messages by email address.'
-          : 'This chat provider does not support opening direct messages by phone number.'
-    })
-  );
+  assertChatCapability(client, capability, {
+    code: `chat_dm_${type}_not_supported`,
+    message:
+      type === 'email'
+        ? 'This chat provider does not support opening direct messages by email address.'
+        : 'This chat provider does not support opening direct messages by phone number.'
+  });
 };
 
 let resolveSingleUserId = (

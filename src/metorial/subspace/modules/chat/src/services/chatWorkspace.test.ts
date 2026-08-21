@@ -6,7 +6,8 @@ import { chatError } from '@slates/adapter-chat';
 let { db, getChatAdapterClientInternal, upsertChatWorkspaces, upsertChatWorkspace } =
   vi.hoisted(() => {
     let createModel = () => ({
-      findFirst: vi.fn()
+      findFirst: vi.fn(),
+      findMany: vi.fn()
     });
 
     return {
@@ -61,12 +62,16 @@ describe('chatWorkspaceService', () => {
     vi.clearAllMocks();
   });
 
-  it('returns an empty list when workspace_read is not advertised', async () => {
+  it('falls back to the local database when workspace_read is not advertised', async () => {
     let call = vi.fn();
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => false,
       call
     });
+
+    let chat = { oid: 500n, name: 'Acme', status: 'active' };
+    let localWorkspace = { oid: 8n, id: 'cws_1', workspaceId: 'T123', name: 'Acme', chat };
+    db.chatWorkspace.findMany.mockResolvedValue([localWorkspace]);
 
     let paginator = await chatWorkspaceService.listChatWorkspacesInternal({
       tenant,
@@ -77,14 +82,20 @@ describe('chatWorkspaceService', () => {
 
     expect(call).not.toHaveBeenCalled();
     expect(upsertChatWorkspaces).not.toHaveBeenCalled();
-    expect(list.items).toEqual([]);
-    expect(list.pagination.hasNextPage).toBe(false);
+    expect(db.chatWorkspace.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          chatIntegrationInstanceProviderOid: provider.oid
+        })
+      })
+    );
+    expect(list.items).toEqual([localWorkspace]);
   });
 
   it('lists from the adapter, upserts, and encodes adapter cursors', async () => {
     let chat = { oid: 500n, name: 'Acme', status: 'active' };
     let workspace = { oid: 8n, id: 'cws_1', workspaceId: 'T123', name: 'Acme' };
-    upsertChatWorkspaces.mockResolvedValue([{ ...workspace, chat }]);
+    upsertChatWorkspaces.mockResolvedValue([{ chat, workspace }]);
 
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => true,
@@ -209,7 +220,8 @@ describe('chatWorkspaceService', () => {
     expect(error.data.status).toBe(429);
   });
 
-  it('returns 404 when getting a workspace without workspace_read', async () => {
+  it('returns 404 when getting a workspace without workspace_read and no local record', async () => {
+    db.chatWorkspace.findFirst.mockResolvedValue(null);
     getChatAdapterClientInternal.mockResolvedValue({
       isCapabilityAvailable: () => false,
       call: vi.fn()
@@ -228,11 +240,33 @@ describe('chatWorkspaceService', () => {
     expect(upsertChatWorkspace).not.toHaveBeenCalled();
   });
 
+  it('falls back to the local database when getting a workspace without workspace_read', async () => {
+    let chat = { oid: 500n, name: 'Acme', status: 'active' };
+    let localWorkspace = { oid: 8n, id: 'cws_1', workspaceId: 'T123', name: 'Acme', chat };
+    db.chatWorkspace.findFirst.mockResolvedValue(localWorkspace);
+    let call = vi.fn();
+    getChatAdapterClientInternal.mockResolvedValue({
+      isCapabilityAvailable: () => false,
+      call
+    });
+
+    let result = await chatWorkspaceService.getChatWorkspaceInternal({
+      tenant,
+      environment,
+      chatIntegrationInstanceProvider: provider,
+      workspaceId: 'T123'
+    });
+
+    expect(call).not.toHaveBeenCalled();
+    expect(upsertChatWorkspace).not.toHaveBeenCalled();
+    expect(result).toEqual(localWorkspace);
+  });
+
   it('passes through get to the adapter and upserts the result', async () => {
     let chat = { oid: 500n, name: 'Acme', status: 'active' };
     let workspace = { oid: 8n, id: 'cws_1', workspaceId: 'T123', name: 'Acme' };
     db.chatWorkspace.findFirst.mockResolvedValue(null);
-    upsertChatWorkspace.mockResolvedValue({ ...workspace, chat });
+    upsertChatWorkspace.mockResolvedValue({ chat, workspace });
 
     let call = vi.fn(async () => ({
       result: {

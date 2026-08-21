@@ -1,10 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { type ThreadType } from '@metorial-subspace/adapter-chat';
+import { type ChatAdapterInstance, type ThreadType } from '@metorial-subspace/adapter-chat';
 import {
   type Chat,
   type ChatThread,
+  type ChatThreadType,
   db,
   type Environment,
   type Tenant
@@ -17,6 +18,7 @@ import {
 import { chatAdapterService } from '../internal/chatAdapter';
 import { chatChannelServiceInternal } from '../internal/chatChannel';
 import { chatThreadServiceInternal } from '../internal/chatThread';
+import { requireLocalChatEntity, withChatCapabilityFallback } from '../lib/chatCapability';
 import { unwrapChatCall } from '../lib/chatError';
 import { type ChatWithProvider } from './chatChannel';
 
@@ -56,13 +58,15 @@ class chatThreadServiceImpl {
       chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
     });
 
-    if (!client.isCapabilityAvailable('thread_read')) {
-      return Paginator.create(() => async () => ({
-        items: [] as ChatThreadWithChat[],
-        pagination: { hasNextPage: false, hasPreviousPage: false }
-      }));
-    }
+    return withChatCapabilityFallback(client, 'thread_read', {
+      provider: () => this.listChatThreadsFromProvider({ ...d, client }),
+      fallback: () => this.listChatThreadsFromDb(d)
+    });
+  }
 
+  private async listChatThreadsFromProvider(
+    d: ListChatThreadsParams & { client: ChatAdapterInstance }
+  ) {
     let localChannel = await db.chatChannel.findFirst({
       where: {
         chatOid: d.chat.oid,
@@ -73,7 +77,7 @@ class chatThreadServiceImpl {
 
     return Paginator.create(({ externalCursor }) =>
       externalCursor(async page => {
-        let listed = await client.call('metorial_chat$thread.list', {
+        let listed = await d.client.call('metorial_chat$thread.list', {
           cursor: page.cursor,
           limit: page.limit,
           direction: page.direction,
@@ -110,6 +114,30 @@ class chatThreadServiceImpl {
     );
   }
 
+  private async listChatThreadsFromDb(d: ListChatThreadsParams) {
+    return Paginator.create(({ prisma }) =>
+      prisma(async opts => {
+        let localChannel = await db.chatChannel.findFirst({
+          where: {
+            chatOid: d.chat.oid,
+            OR: [{ id: d.channelId }, { channelId: d.channelId }]
+          }
+        });
+        // No local record of the channel -- there can be no threads for it.
+        if (!localChannel) return [];
+
+        return db.chatThread.findMany({
+          ...opts,
+          where: {
+            channelOid: localChannel.oid,
+            ...(d.type ? { type: d.type as ChatThreadType } : {})
+          },
+          include: { chat: true }
+        });
+      })
+    );
+  }
+
   async getChatThread(d: MetorialFacing<GetChatThreadParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -131,10 +159,15 @@ class chatThreadServiceImpl {
       chatIntegrationInstanceProvider: d.chat.chatIntegrationInstanceProvider
     });
 
-    if (!client.isCapabilityAvailable('thread_read')) {
-      throw new ServiceError(notFoundError('chatThread', d.threadId));
-    }
+    return withChatCapabilityFallback(client, 'thread_read', {
+      provider: () => this.getChatThreadFromProvider({ ...d, client }),
+      fallback: () => this.getChatThreadFromDb(d)
+    });
+  }
 
+  private async getChatThreadFromProvider(
+    d: GetChatThreadParams & { client: ChatAdapterInstance }
+  ) {
     let localChannel = await db.chatChannel.findFirst({
       where: {
         chatOid: d.chat.oid,
@@ -153,7 +186,7 @@ class chatThreadServiceImpl {
       : null;
     let threadId = localThread?.threadId ?? d.threadId;
 
-    let got = await client.call('metorial_chat$thread.get', { channelId, threadId });
+    let got = await d.client.call('metorial_chat$thread.get', { channelId, threadId });
     let result = unwrapChatCall(got, {
       code: 'chat_thread_get_failed',
       message: 'Failed to load the thread from the chat provider.'
@@ -176,6 +209,26 @@ class chatThreadServiceImpl {
     });
 
     return upserted!;
+  }
+
+  private async getChatThreadFromDb(d: GetChatThreadParams) {
+    let localChannel = await db.chatChannel.findFirst({
+      where: {
+        chatOid: d.chat.oid,
+        OR: [{ id: d.channelId }, { channelId: d.channelId }]
+      }
+    });
+    if (!localChannel) throw new ServiceError(notFoundError('chatThread', d.threadId));
+
+    let local = await db.chatThread.findFirst({
+      where: {
+        channelOid: localChannel.oid,
+        OR: [{ id: d.threadId }, { threadId: d.threadId }]
+      },
+      include: { chat: true }
+    });
+
+    return requireLocalChatEntity('chatThread', d.threadId, local);
   }
 }
 
