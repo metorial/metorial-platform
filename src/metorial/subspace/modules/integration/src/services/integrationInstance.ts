@@ -51,6 +51,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
+import { notifyIntegrationTransaction } from '../listeners';
 import {
   integrationInstanceArchivedQueue,
   integrationInstanceCreatedQueue,
@@ -188,6 +189,7 @@ let resolveIntegrationIdentity = async (d: {
 export type ListIntegrationInstancesParams = {
   search?: string;
   includeMagicMcpBackings?: boolean;
+  includeAdapterBackings?: boolean;
 
   status?: IntegrationInstanceStatus[];
   allowDeleted?: boolean;
@@ -216,6 +218,7 @@ export type GetIntegrationInstanceByIdParams = {
 export type CreateIntegrationInstanceParams = {
   integration: Integration;
   isHiddenDraft?: boolean;
+  isAdapterBacking?: boolean;
   input: {
     name: string;
     description?: string;
@@ -280,6 +283,7 @@ export type CreateSessionForIntegrationInstanceParams = {
 export type ArchiveIntegrationInstanceParams = {
   integrationInstance: IntegrationInstance;
   _canModifyMagicMcpBacking?: boolean;
+  _canModifyAdapterBacking?: boolean;
 };
 
 class integrationInstanceServiceImpl {
@@ -291,6 +295,7 @@ class integrationInstanceServiceImpl {
     id: ReturnType<typeof getId>;
     input: IntegrationInstanceWriteInput;
     isMagicMcpBacking?: boolean;
+    isAdapterBacking?: boolean;
     isHiddenDraft?: boolean;
   }) {
     return {
@@ -298,6 +303,7 @@ class integrationInstanceServiceImpl {
       status: 'draft' as const,
       isHiddenDraft: d.isHiddenDraft ?? false,
       isMagicMcpBacking: !!d.isMagicMcpBacking,
+      isAdapterBacking: !!d.isAdapterBacking,
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
@@ -537,6 +543,7 @@ class integrationInstanceServiceImpl {
               environmentOid: d.environment.oid,
               isMagicMcpBacking:
                 d.includeMagicMcpBackings || integrations?.oids.length ? undefined : false,
+              isAdapterBacking: d.includeAdapterBackings ? undefined : false,
               isHiddenDraft: false,
 
               ...normalizeStatusForList(d).hasParent,
@@ -715,7 +722,8 @@ class integrationInstanceServiceImpl {
           integration: d.integration,
           id: newId,
           input: d.input,
-          isHiddenDraft: d.isHiddenDraft
+          isHiddenDraft: d.isHiddenDraft,
+          isAdapterBacking: d.isAdapterBacking
         }),
         include: integrationInstanceInclude
       });
@@ -738,6 +746,12 @@ class integrationInstanceServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationInstanceCreatedQueue.add({ integrationInstanceId: integrationInstance.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationInstance.created',
+        integration: d.integration,
+        integrationInstance
+      });
 
       return integrationInstance;
     });
@@ -896,6 +910,12 @@ class integrationInstanceServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationInstanceUpdatedQueue.add({ integrationInstanceId: integrationInstance.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationInstance.updated',
+        integration: integrationInstance.integration,
+        integrationInstance
+      });
 
       return integrationInstance;
     });
@@ -1087,6 +1107,14 @@ class integrationInstanceServiceImpl {
         })
       );
     }
+    if (d.integrationInstance.isAdapterBacking && !d._canModifyAdapterBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Adapter backed integration instances cannot be deleted directly.',
+          code: 'adapter_backing_integration_instance_delete_blocked'
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let integrationInstance = await db.integrationInstance.update({
@@ -1106,6 +1134,12 @@ class integrationInstanceServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationInstanceArchivedQueue.add({ integrationInstanceId: integrationInstance.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationInstance.archived',
+        integration: integrationInstance.integration,
+        integrationInstance
+      });
 
       return integrationInstance;
     });

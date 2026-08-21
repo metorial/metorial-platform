@@ -13,6 +13,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import { notifyIntegrationTransaction } from '../listeners';
 import {
   checkDeletedEdit,
   type DateFilter,
@@ -91,6 +92,7 @@ type IntegrationWriteInput = {
 export type ListIntegrationsParams = {
   search?: string;
   includeMagicMcpBackings?: boolean;
+  includeAdapterBackings?: boolean;
 
   status?: IntegrationStatus[];
   allowDeleted?: boolean;
@@ -109,6 +111,8 @@ export type GetIntegrationByIdParams = {
 };
 
 export type CreateIntegrationParams = {
+  slug?: string;
+  isAdapterBacking?: boolean;
   input: {
     name: string;
     description?: string;
@@ -153,6 +157,7 @@ export type UpdateIntegrationParams = {
 export type ArchiveIntegrationParams = {
   integration: Integration;
   _canModifyMagicMcpBacking?: boolean;
+  _canModifyAdapterBacking?: boolean;
 };
 
 class integrationServiceImpl {
@@ -164,6 +169,7 @@ class integrationServiceImpl {
     slug: string;
     input: IntegrationWriteInput;
     isMagicMcpBacking?: boolean;
+    isAdapterBacking?: boolean;
   }) {
     let canOverrideToolFilters = d.input.canOverrideToolFilters ?? false;
 
@@ -171,6 +177,7 @@ class integrationServiceImpl {
       ...d.id,
       status: 'active' as const,
       isMagicMcpBacking: !!d.isMagicMcpBacking,
+      isAdapterBacking: !!d.isAdapterBacking,
       slug: slugify(d.slug),
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
@@ -255,6 +262,7 @@ class integrationServiceImpl {
               OR: d.includeMagicMcpBackings
                 ? undefined
                 : [{ isMagicMcpBacking: false }, { providerTemplateBacking: { isNot: null } }],
+              isAdapterBacking: d.includeAdapterBackings ? undefined : false,
 
               ...normalizeStatusForList(d).noParent,
 
@@ -339,8 +347,9 @@ class integrationServiceImpl {
           solution,
           environment: d.environment,
           id: newId,
-          slug: getSlug(d.input),
-          input: d.input
+          slug: d.slug ?? getSlug(d.input),
+          input: d.input,
+          isAdapterBacking: d.isAdapterBacking
         })
       });
 
@@ -354,6 +363,11 @@ class integrationServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationCreatedQueue.add({ integrationId: res.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integration.created',
+        integration: res
+      });
 
       return res;
     });
@@ -474,6 +488,11 @@ class integrationServiceImpl {
         integrationUpdatedQueue.add({ integrationId: integration.id })
       );
 
+      await notifyIntegrationTransaction({
+        kind: 'integration.updated',
+        integration
+      });
+
       return integration;
     });
   }
@@ -511,6 +530,14 @@ class integrationServiceImpl {
         })
       );
     }
+    if (d.integration.isAdapterBacking && !d._canModifyAdapterBacking) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Adapter backed integrations cannot be deleted directly.',
+          code: 'adapter_backing_integration_delete_blocked'
+        })
+      );
+    }
 
     return await withTransaction(async db => {
       let integration = await db.integration.update({
@@ -530,6 +557,11 @@ class integrationServiceImpl {
       await addAfterTransactionHook(async () =>
         integrationArchivedQueue.add({ integrationId: integration.id })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integration.archived',
+        integration
+      });
 
       return integration;
     });

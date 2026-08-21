@@ -44,6 +44,7 @@ import {
   normalizeIntegrationProviderToolFilter,
   refreshIntegrationInstanceStatus
 } from '../lib/versions';
+import { notifyIntegrationTransaction } from '../listeners';
 import {
   enqueueIntegrationInstanceProviderSet,
   enqueueIntegrationInstanceProvidersSet
@@ -173,6 +174,7 @@ export type SetIntegrationInstanceProviderInput = {
 export type ListIntegrationInstanceProvidersParams = {
   search?: string;
   includeMagicMcpBackings?: boolean;
+  includeAdapterBackings?: boolean;
 
   status?: IntegrationInstanceProviderStatus[];
   allowDeleted?: boolean;
@@ -245,9 +247,11 @@ class integrationInstanceProviderServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
-              integrationInstance: d.includeMagicMcpBackings
-                ? { isHiddenDraft: false }
-                : { isMagicMcpBacking: false, isHiddenDraft: false },
+              integrationInstance: {
+                isHiddenDraft: false,
+                isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
+                isAdapterBacking: d.includeAdapterBackings ? undefined : false
+              },
 
               ...normalizeStatusForList(d).hasParent,
 
@@ -820,6 +824,14 @@ class integrationInstanceProviderServiceImpl {
         )
       );
 
+      for (let integrationInstanceProvider of orderedRes) {
+        await notifyIntegrationTransaction({
+          kind: 'integrationInstanceProvider.set',
+          integrationInstance: d.integrationInstance,
+          integrationInstanceProvider
+        });
+      }
+
       return orderedRes;
     });
   }
@@ -998,6 +1010,12 @@ class integrationInstanceProviderServiceImpl {
           integrationInstanceProviderId: res.id
         })
       );
+
+      await notifyIntegrationTransaction({
+        kind: 'integrationInstanceProvider.archived',
+        integrationInstance: res.integrationInstance,
+        integrationInstanceProvider: res
+      });
 
       return res;
     });
