@@ -9,6 +9,7 @@ export type {
   ChannelType,
   ChatBody,
   ChatPart,
+  EmojiInput,
   LinkUnfurl,
   Message,
   MessageMetadata,
