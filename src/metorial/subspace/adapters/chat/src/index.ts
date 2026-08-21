@@ -1,6 +1,8 @@
 import { AdapterClient, type AdapterClientParams } from '@metorial-subspace/adapter';
 import { ChatAdapter } from '@slates/adapter-chat';
 
+export type { Workspace } from '@slates/adapter-chat';
+
 export interface ChatAdapterInstance extends AdapterClient<typeof ChatAdapter> {}
 
 export class ChatAdapterClient {

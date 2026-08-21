@@ -20,6 +20,8 @@ import {
   enqueueChatIntegrationInstanceUpdated,
   enqueueChatIntegrationUpdated
 } from '../queues/lifecycle';
+import { enqueueSyncChatWorkspacesForProvider } from '../queues/sync';
+import { archiveChatsWhere, restoreChatsWhere } from './chatLifecycle';
 
 let now = () => new Date();
 
@@ -46,6 +48,7 @@ export let archiveChatIntegrationProjection = async (adapterIntegrationOid: bigi
       where: { adapterIntegrationOid, status: { not: 'deleted' } },
       data: { status: 'archived', archivedAt }
     });
+    await archiveChatsWhere({ chatIntegration: { adapterIntegrationOid } }, archivedAt);
   });
 };
 
@@ -193,6 +196,10 @@ export let upsertChatInstanceProjection = async (
           isParentDeleted: chatIntegration.status !== 'active'
         }
       });
+      await archiveChatsWhere(
+        { chatIntegrationInstanceOid: archived.oid },
+        archived.archivedAt ?? now()
+      );
       await enqueueChatIntegrationInstanceArchived(archived.id);
       return archived;
     }
@@ -200,7 +207,8 @@ export let upsertChatInstanceProjection = async (
     let integrationInstance = await db.integrationInstance.findUnique({
       where: { oid: adapterInstance.integrationInstanceOid }
     });
-    let name = input?.name?.trim() || existing?.name || integrationInstance?.name || 'Instance';
+    let name =
+      input?.name?.trim() || existing?.name || integrationInstance?.name || 'Instance';
     let status = adapterInstance.status;
 
     if (existing) {
@@ -271,17 +279,28 @@ export let upsertChatInstanceProviderProjection = async (
         where: { oid: existing.oid },
         data: { status: 'archived', archivedAt: now() }
       });
+      await archiveChatsWhere(
+        { chatIntegrationInstanceProviderOid: archived.oid },
+        archived.archivedAt ?? now()
+      );
       await enqueueChatIntegrationInstanceUpdated(chatInstance.id);
       return archived;
     }
 
     if (existing) {
       if (existing.status === 'deleted') return existing;
+
+      let shouldSync = existing.status !== 'active';
       let updated = await db.chatIntegrationInstanceProvider.update({
         where: { oid: existing.oid },
         data: { status: 'active', archivedAt: null, isParentDeleted: false }
       });
+
+      await restoreChatsWhere({ chatIntegrationInstanceProviderOid: updated.oid });
       await enqueueChatIntegrationInstanceUpdated(chatInstance.id);
+
+      if (shouldSync) await enqueueSyncChatWorkspacesForProvider(updated.id);
+
       return updated;
     }
 
@@ -304,7 +323,10 @@ export let upsertChatInstanceProviderProjection = async (
         solutionOid: adapterInstanceProvider.solutionOid
       }
     });
+
     await enqueueChatIntegrationInstanceUpdated(chatInstance.id);
+    await enqueueSyncChatWorkspacesForProvider(created.id);
+
     return created;
   });
 };

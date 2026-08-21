@@ -2,6 +2,7 @@ import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
+import { deleteChatsWhere } from '../../lib/chatLifecycle';
 import { chatIntegrationDeletedQueue } from '../lifecycle/chatIntegration';
 import { getCutoffDate } from './_config';
 
@@ -61,6 +62,8 @@ export let chatIntegrationDeleteQueueProcessor = chatIntegrationDeleteQueue.proc
       where: { id: data.chatIntegrationId }
     });
     if (!chatIntegration || chatIntegration.status !== 'archived') return;
+
+    await deleteChatsWhere({ chatIntegrationOid: chatIntegration.oid });
 
     await db.chatIntegrationInstanceProvider.updateMany({
       where: { chatIntegrationOid: chatIntegration.oid, status: { not: 'deleted' } },

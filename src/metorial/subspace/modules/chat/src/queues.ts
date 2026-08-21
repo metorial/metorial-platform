@@ -3,9 +3,11 @@ import './listener';
 import { deleteQueues } from './queues/delete';
 import { lifecycleQueues } from './queues/lifecycle';
 import { searchQueues } from './queues/search';
+import { syncQueues } from './queues/sync';
 
 export let chatQueueProcessor = combineQueueProcessors([
   lifecycleQueues,
   searchQueues,
-  deleteQueues
+  deleteQueues,
+  syncQueues
 ]);
