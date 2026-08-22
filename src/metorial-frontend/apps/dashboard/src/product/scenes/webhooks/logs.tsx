@@ -10,7 +10,6 @@ import {
 import {
   Attributes,
   Badge,
-  Button,
   Callout,
   Datalist,
   Flex,
@@ -407,73 +406,25 @@ let DestinationFilter = ({
   value: string;
   onChange: (value: string) => void;
 }) => {
-  let [search, setSearch] = useState('');
-  let [cursor, setCursor] = useState<{ before?: string; after?: string }>({});
-  let [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   let destinations = webhookDestinationsLoader.use(
-    instanceId ? { instanceId, limit: 25, order: 'desc', ...cursor } : null
+    instanceId ? { instanceId, limit: 100, order: 'desc' } : null
   );
-  let normalizedSearch = search.trim().toLowerCase();
-  let items = (destinations.data?.items ?? []).filter(destination =>
-    normalizedSearch
-      ? `${destination.name} ${destination.url}`.toLowerCase().includes(normalizedSearch)
-      : true
-  );
-  let selectedIsOnPage = items.some(destination => destination.id === value);
+  let items = destinations.data?.items ?? [];
 
   return (
-    <Flex direction="column" gap={6} style={{ minWidth: 260 }}>
-      <Input
-        label="Search destinations"
-        hideLabel
-        placeholder="Search destination page..."
-        value={search}
-        onChange={event => setSearch(event.target.value)}
-      />
+    <Flex style={{ minWidth: 260 }}>
       <Select
         label="Destination"
         value={value}
-        onChange={nextValue => {
-          onChange(nextValue);
-          setSelectedLabel(
-            items.find(destination => destination.id === nextValue)?.name ?? null
-          );
-        }}
+        onChange={onChange}
         items={[
           { id: 'all', label: 'All destinations' },
-          ...(!selectedIsOnPage && value !== 'all'
-            ? [{ id: value, label: selectedLabel ?? value }]
-            : []),
           ...items.map(destination => ({
             id: destination.id,
             label: `${destination.name} (${destination.url})`
           }))
         ]}
       />
-      <Flex gap={6}>
-        <Button
-          size="1"
-          variant="outline"
-          disabled={!destinations.data?.pagination.hasMoreBefore}
-          onClick={() => {
-            let first = destinations.data?.items[0];
-            if (first) setCursor({ before: first.id });
-          }}
-        >
-          Previous
-        </Button>
-        <Button
-          size="1"
-          variant="outline"
-          disabled={!destinations.data?.pagination.hasMoreAfter}
-          onClick={() => {
-            let last = destinations.data?.items[destinations.data.items.length - 1];
-            if (last) setCursor({ after: last.id });
-          }}
-        >
-          Next
-        </Button>
-      </Flex>
     </Flex>
   );
 };
