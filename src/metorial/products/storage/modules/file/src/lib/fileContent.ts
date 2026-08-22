@@ -3,6 +3,9 @@ import { documentService } from '@metorial/module-documents';
 import { fileDownloadService } from '../services/fileDownload';
 import { resolveDelegatedFileContent } from './delegation';
 import { getStoredFileContent } from './pendingFileContent';
+import { downloadDelegatedFileContent } from './ssrfDownload';
+
+let delegatedContentMaxDownloadBytes = 100 * 1024 * 1024;
 
 export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
   let { link, file } = await fileDownloadService.getFileByDownloadKey(d);
@@ -18,27 +21,32 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
   if (file.delegatorOid) {
     let delegated = await resolveDelegatedFileContent(file);
     if (delegated) {
-      return delegated.type === 'url'
-        ? {
-            file,
-            link,
-            content: null,
-            redirectUrl: delegated.url,
-            metadata: {
-              contentType: file.fileType,
-              source: 'delegate' as const
-            }
+      if (delegated.type === 'url') {
+        let downloaded = await downloadDelegatedFileContent({
+          url: delegated.url,
+          maxBytes: delegatedContentMaxDownloadBytes
+        });
+
+        return {
+          file,
+          link,
+          content: downloaded.stream,
+          metadata: {
+            contentType: downloaded.mimeType ?? file.fileType,
+            source: 'delegate' as const
           }
-        : {
-            file,
-            link,
-            content: delegated.stream,
-            redirectUrl: null,
-            metadata: {
-              contentType: delegated.mimeType ?? file.fileType,
-              source: 'delegate' as const
-            }
-          };
+        };
+      }
+
+      return {
+        file,
+        link,
+        content: delegated.stream,
+        metadata: {
+          contentType: delegated.mimeType ?? file.fileType,
+          source: 'delegate' as const
+        }
+      };
     }
   }
 
@@ -50,7 +58,6 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
       file,
       link,
       content: document.resolvedContent ?? document.content.content,
-      redirectUrl: null,
       metadata: {
         contentType: file.fileType,
         source: 'document' as const
@@ -64,7 +71,6 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
     file,
     link,
     content: stored.data,
-    redirectUrl: null,
     metadata: {
       contentType: stored.contentType ?? file.fileType,
       source: stored.source
