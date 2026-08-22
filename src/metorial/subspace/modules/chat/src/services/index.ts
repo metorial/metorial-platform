@@ -1,5 +1,6 @@
 export * from './chat';
 export * from './chatChannel';
+export * from './chatChannelMember';
 export * from './chatDm';
 export * from './chatIntegration';
 export * from './chatIntegrationInstance';
@@ -9,4 +10,5 @@ export * from './chatMessage';
 export * from './chatReaction';
 export * from './chatThread';
 export * from './chatTyping';
+export * from './chatUser';
 export * from './chatWorkspace';
