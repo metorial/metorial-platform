@@ -5,6 +5,7 @@ import {
   reconcileManagedCredentialProviderManyQueue
 } from '@metorial-subspace/module-auth/src/queues';
 import { callbackQueueProcessor } from '@metorial-subspace/module-callback/src/queues';
+import { registerIntegrationLifecycleHooks } from '@metorial-subspace/module-callback/src/hooks/integrationLifecycle';
 import { catalogQueueProcessor } from '@metorial-subspace/module-catalog/src/queues';
 import { connectionQueueProcessor } from '@metorial-subspace/module-connection/src/queueProcessor';
 import { customProviderQueueProcessor } from '@metorial-subspace/module-custom-provider/src/queues';
@@ -20,6 +21,8 @@ import { tenantQueueProcessors } from '@metorial-subspace/module-tenant/src/queu
 import { nativeProviderQueues } from '@metorial-subspace/provider-native';
 import { shuttleProviderQueues } from '@metorial-subspace/provider-shuttle';
 import { slatesProviderQueues } from '@metorial-subspace/provider-slates';
+
+registerIntegrationLifecycleHooks();
 
 setTimeout(async () => {
   await syncProtoGuardFilters();

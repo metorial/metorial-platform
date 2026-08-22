@@ -4,20 +4,14 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceCallbacksInstancesCreateBody,
-  mapDashboardInstanceCallbacksInstancesCreateOutput,
   mapDashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput,
-  mapDashboardInstanceCallbacksInstancesDeleteOutput,
   mapDashboardInstanceCallbacksInstancesGetOutput,
   mapDashboardInstanceCallbacksInstancesListOutput,
   mapDashboardInstanceCallbacksInstancesListQuery,
   mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput,
   mapDashboardInstanceCallbacksInstancesSendTestEventBody,
   mapDashboardInstanceCallbacksInstancesSendTestEventOutput,
-  type DashboardInstanceCallbacksInstancesCreateBody,
-  type DashboardInstanceCallbacksInstancesCreateOutput,
   type DashboardInstanceCallbacksInstancesCreateReceiverPathSecretOutput,
-  type DashboardInstanceCallbacksInstancesDeleteOutput,
   type DashboardInstanceCallbacksInstancesGetOutput,
   type DashboardInstanceCallbacksInstancesListOutput,
   type DashboardInstanceCallbacksInstancesListQuery,
@@ -28,7 +22,7 @@ import {
 
 /**
  * @name Callback Instances controller
- * @description Attach or detach callback instances for a deployment/config/auth-config combination.
+ * @description Inspect callback instances derived from configured integration providers.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -115,38 +109,6 @@ export class MetorialManagementInstanceCallbacksInstancesEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceCallbacksInstancesGetOutput
-    );
-  }
-
-  /**
-   * @name Create callback instance
-   * @description Attaches a callback to a config and optional auth config.
-   *
-   * @param `instanceId` - string
-   * @param `callbackId` - string
-   * @param `body` - DashboardInstanceCallbacksInstancesCreateBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceCallbacksInstancesCreateOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  create(
-    instanceId: string,
-    callbackId: string,
-    body: DashboardInstanceCallbacksInstancesCreateBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceCallbacksInstancesCreateOutput> {
-    let path = `instances/${instanceId}/callbacks/${callbackId}/instances`;
-
-    let request = {
-      path,
-      body: mapDashboardInstanceCallbacksInstancesCreateBody.transformTo(body),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._post(request).transform(
-      mapDashboardInstanceCallbacksInstancesCreateOutput
     );
   }
 
@@ -245,37 +207,6 @@ export class MetorialManagementInstanceCallbacksInstancesEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceCallbacksInstancesRotateReceiverPathSecretOutput
-    );
-  }
-
-  /**
-   * @name Delete callback instance
-   * @description Detaches a callback instance.
-   *
-   * @param `instanceId` - string
-   * @param `callbackId` - string
-   * @param `callbackInstanceId` - string
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceCallbacksInstancesDeleteOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  delete(
-    instanceId: string,
-    callbackId: string,
-    callbackInstanceId: string,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceCallbacksInstancesDeleteOutput> {
-    let path = `instances/${instanceId}/callbacks/${callbackId}/instances/${callbackInstanceId}`;
-
-    let request = {
-      path,
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._delete(request).transform(
-      mapDashboardInstanceCallbacksInstancesDeleteOutput
     );
   }
 }

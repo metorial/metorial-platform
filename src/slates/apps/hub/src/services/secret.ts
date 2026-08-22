@@ -112,6 +112,8 @@ export type SecretSlateCallbackValue = {
   value: string;
 };
 
+export type SecretSlateCallbackConfig = Record<string, string>;
+
 export type SecretSlateCallbackRegistration = {
   details: unknown;
 };
@@ -122,6 +124,7 @@ export type SecretTypes = {
   slate_authentication_configuration: SecretSlateAuthConfig;
   slate_callback_path: SecretSlateCallbackPath;
   slate_callback_value: SecretSlateCallbackValue;
+  slate_callback_config: SecretSlateCallbackConfig;
   slate_callback_registration: SecretSlateCallbackRegistration;
 };
 

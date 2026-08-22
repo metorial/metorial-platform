@@ -4,6 +4,8 @@ export type ManagementInstanceCallbacksInstancesListOutput = {
   items: {
     object: 'callback.instance';
     id: string;
+    integrationInstanceId: string;
+    integrationInstanceProviderId: string;
     status: 'attached' | 'detached';
     registrationStatus:
       | 'pending'
@@ -738,6 +740,14 @@ export let mapManagementInstanceCallbacksInstancesListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          integrationInstanceId: mtMap.objectField(
+            'integration_instance_id',
+            mtMap.passthrough()
+          ),
+          integrationInstanceProviderId: mtMap.objectField(
+            'integration_instance_provider_id',
+            mtMap.passthrough()
+          ),
           status: mtMap.objectField('status', mtMap.passthrough()),
           registrationStatus: mtMap.objectField(
             'registration_status',
@@ -1320,6 +1330,7 @@ export type ManagementInstanceCallbacksInstancesListQuery = {
 } & {
   id?: string | string[] | undefined;
   status?: 'attached' | 'detached' | ('attached' | 'detached')[] | undefined;
+  integrationInstanceId?: string | string[] | undefined;
   providerConfigId?: string | string[] | undefined;
   providerAuthConfigId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -1348,6 +1359,16 @@ export let mapManagementInstanceCallbacksInstancesListQuery = mtMap.union([
       status: mtMap.objectField(
         'status',
         mtMap.union([mtMap.unionOption('array', mtMap.union([]))])
+      ),
+      integrationInstanceId: mtMap.objectField(
+        'integration_instance_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
       ),
       providerConfigId: mtMap.objectField(
         'provider_config_id',

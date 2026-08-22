@@ -17,3 +17,4 @@ export * from './scm';
 export * from './sessions';
 export * from './skills';
 export * from './token';
+export * from './webhooks';

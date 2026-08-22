@@ -25,4 +25,5 @@ model Backend {
   providerVariants        ProviderVariant[]
   providerAuthCredentials ProviderAuthCredentials[]
   providerAuthConfigs     ProviderAuthConfig[]
+  callbackConfigVersions  CallbackConfigVersion[]
 }

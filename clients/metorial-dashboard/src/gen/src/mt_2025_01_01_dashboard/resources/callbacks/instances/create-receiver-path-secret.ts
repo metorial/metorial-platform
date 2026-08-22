@@ -16,3 +16,4 @@ export let mapCallbacksInstancesCreateReceiverPathSecretOutput =
     value: mtMap.objectField('value', mtMap.passthrough()),
     webhookUrl: mtMap.objectField('webhook_url', mtMap.passthrough())
   });
+

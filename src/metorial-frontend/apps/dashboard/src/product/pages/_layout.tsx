@@ -136,13 +136,10 @@ export let ProjectPageLayout = () => {
             },
             {
               icon: <RiWebhookLine />,
-              label: 'Callbacks',
-              to: Paths.instance.callbacks(...params),
+              label: 'Webhooks',
+              to: Paths.instance.webhooks(...params),
               getProps: i => ({
-                isActive:
-                  i.pathname === Paths.instance.callbacks(...params) ||
-                  i.pathname.includes('/callbacks/') ||
-                  i.pathname.includes('/callback/')
+                isActive: i.pathname.includes('/webhooks')
               })
             }
           ]

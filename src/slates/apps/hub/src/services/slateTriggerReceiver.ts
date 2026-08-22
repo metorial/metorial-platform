@@ -7,6 +7,7 @@ import {
   SlateTriggerReceiverTriggerSource,
   type Slate,
   type SlateAuthConfig,
+  type SlateCallbackConfig,
   type SlateInstance,
   type SlateInstanceConfig,
   type Tenant
@@ -261,6 +262,7 @@ export class slateTriggerReceiverServiceImpl {
       currentConfig: SlateInstanceConfig | null;
     };
     authConfig?: SlateAuthConfig | null;
+    callbackConfig?: SlateCallbackConfig | null;
     input: {
       name?: string;
       description?: string;
@@ -318,6 +320,7 @@ export class slateTriggerReceiverServiceImpl {
           slateOid: slate.oid,
           slateInstanceOid: slateInstance.oid,
           authConfigOid: authConfig?.oid ?? null,
+          callbackConfigOid: d.callbackConfig?.oid ?? null,
           callbackId: d.input.callbackId ?? null,
           callbackInstanceId: d.input.callbackInstanceId ?? null,
           callbackOwnerVersion: d.input.callbackOwnerVersion ?? 0,
@@ -424,6 +427,7 @@ export class slateTriggerReceiverServiceImpl {
     callbackOwnerAuthority?: CallbackOwnerAuthority;
     input: {
       authConfig?: SlateAuthConfig | null;
+      callbackConfig?: SlateCallbackConfig | null;
       name?: string | null;
       description?: string | null;
       eventTypes?: string[];
@@ -461,8 +465,7 @@ export class slateTriggerReceiverServiceImpl {
       throw new ServiceError(notFoundError('slate.trigger.receiver'));
     }
     if (
-      (receiver.callbackId !== null ||
-        receiver.callbackInstanceId !== null) &&
+      (receiver.callbackId !== null || receiver.callbackInstanceId !== null) &&
       !d.callbackOwnerAuthority
     ) {
       throw callbackOwnerConflict();
@@ -517,6 +520,10 @@ export class slateTriggerReceiverServiceImpl {
         data: {
           authConfigOid:
             d.input.authConfig !== undefined ? (authConfig?.oid ?? null) : undefined,
+          callbackConfigOid:
+            d.input.callbackConfig !== undefined
+              ? (d.input.callbackConfig?.oid ?? null)
+              : undefined,
           callbackId: d.input.callbackId,
           callbackInstanceId: d.input.callbackInstanceId,
           name: d.input.name === null ? null : d.input.name,
@@ -628,6 +635,9 @@ export class slateTriggerReceiverServiceImpl {
       let receiverAuthChanged =
         d.input.authConfig !== undefined &&
         receiver.authConfigOid !== (authConfig?.oid ?? null);
+      let receiverCallbackConfigChanged =
+        d.input.callbackConfig !== undefined &&
+        receiver.callbackConfigOid !== (d.input.callbackConfig?.oid ?? null);
       for (let trigger of receiver.triggers) {
         let incoming = incomingByActionOid.get(trigger.actionOid);
         if (!incoming) continue;
@@ -670,7 +680,10 @@ export class slateTriggerReceiverServiceImpl {
         }
         if (
           trigger.source === SlateTriggerReceiverTriggerSource.webhook &&
-          (stateChanged || receiverAuthChanged || trigger.tombstonedAt)
+          (stateChanged ||
+            receiverAuthChanged ||
+            receiverCallbackConfigChanged ||
+            trigger.tombstonedAt)
         ) {
           let intent = await beginRegistrationIntentInTransaction({
             tx,
@@ -699,6 +712,7 @@ export class slateTriggerReceiverServiceImpl {
       currentConfig: SlateInstanceConfig | null;
     };
     authConfig?: SlateAuthConfig | null;
+    callbackConfig?: SlateCallbackConfig | null;
     input: {
       callbackId: string;
       callbackInstanceId: string;
@@ -715,6 +729,10 @@ export class slateTriggerReceiverServiceImpl {
       }[];
     };
   }) {
+    if (d.callbackConfig && d.callbackConfig.slateOid !== d.slateInstance.slateOid) {
+      throw new ServiceError(notFoundError('slate.callback_config'));
+    }
+
     let triggers = d.input.triggers.map(trigger => ({
       ...trigger,
       eventTypes: normalizeEventTypes(trigger.eventTypes)
@@ -725,6 +743,7 @@ export class slateTriggerReceiverServiceImpl {
       callbackInstanceId: d.input.callbackInstanceId,
       slateInstanceId: d.slateInstance.id,
       authConfigId: d.authConfig?.id ?? null,
+      callbackConfigId: d.callbackConfig?.id ?? null,
       name: d.input.name ?? null,
       description: d.input.description ?? null,
       triggers
@@ -746,6 +765,15 @@ export class slateTriggerReceiverServiceImpl {
         callbackInstanceId: d.input.callbackInstanceId
       }
     });
+
+    if (existing && existing.slateInstanceOid !== d.slateInstance.oid) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_receiver_instance_mismatch',
+          message: 'A callback receiver cannot be moved to a different provider instance.'
+        })
+      );
+    }
 
     if (existing && isIdempotentCallbackOwnerMutation(existing, authority)) {
       return await this.getTriggerReceiverById({ tenant: d.tenant, id: existing.id });
@@ -772,6 +800,7 @@ export class slateTriggerReceiverServiceImpl {
           callbackOwnerAuthority: authority,
           input: {
             authConfig: d.authConfig,
+            callbackConfig: d.callbackConfig,
             callbackId: d.input.callbackId,
             callbackInstanceId: d.input.callbackInstanceId,
             name: d.input.name,
@@ -783,6 +812,7 @@ export class slateTriggerReceiverServiceImpl {
           tenant: d.tenant,
           slateInstance: d.slateInstance,
           authConfig: d.authConfig ?? null,
+          callbackConfig: d.callbackConfig ?? null,
           input: {
             callbackId: d.input.callbackId,
             callbackInstanceId: d.input.callbackInstanceId,
@@ -831,8 +861,16 @@ export class slateTriggerReceiverServiceImpl {
       where: authority
         ? {
             tenantOid: d.tenant.oid,
-            callbackId: authority.callbackId,
-            callbackInstanceId: authority.callbackInstanceId
+            OR: [
+              {
+                callbackId: authority.callbackId,
+                callbackInstanceId: authority.callbackInstanceId
+              },
+              {
+                id: d.receiverId,
+                callbackOwnerMutationId: authority.mutationId
+              }
+            ]
           }
         : {
             tenantOid: d.tenant.oid,
@@ -844,11 +882,7 @@ export class slateTriggerReceiverServiceImpl {
       if (authority) throw callbackOwnerConflict();
       throw new ServiceError(notFoundError('slate.trigger.receiver'));
     }
-    if (
-      (receiver.callbackId !== null ||
-        receiver.callbackInstanceId !== null) &&
-      !authority
-    ) {
+    if ((receiver.callbackId !== null || receiver.callbackInstanceId !== null) && !authority) {
       throw callbackOwnerConflict();
     }
     if (authority && isIdempotentCallbackOwnerMutation(receiver, authority)) {
@@ -882,6 +916,8 @@ export class slateTriggerReceiverServiceImpl {
           tombstonedAt: now,
           ...(authority
             ? {
+                callbackId: null,
+                callbackInstanceId: null,
                 callbackOwnerVersion: { increment: 1 },
                 callbackOwnerMutationId: authority.mutationId,
                 callbackOwnerMutationDigest: authority.mutationDigest
@@ -942,10 +978,7 @@ export class slateTriggerReceiverServiceImpl {
       }
     });
     if (!trigger) throw new ServiceError(notFoundError('slate.trigger.receiver_trigger'));
-    if (
-      trigger.receiver.callbackId !== null ||
-      trigger.receiver.callbackInstanceId !== null
-    ) {
+    if (trigger.receiver.callbackId !== null || trigger.receiver.callbackInstanceId !== null) {
       throw callbackOwnerConflict();
     }
     let intent = await db.$transaction(

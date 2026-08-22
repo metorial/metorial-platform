@@ -17,6 +17,7 @@ model Slate {
   slateOAuthCredentials SlateOAuthCredentials[]
   slateOAuthSetups      SlateOAuthSetup[]
   slateAuthConfigs      SlateAuthConfig[]
+  slateCallbackConfigs  SlateCallbackConfig[]
 }
 
 model SlateVersion {

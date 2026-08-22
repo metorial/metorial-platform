@@ -178,13 +178,14 @@ export let callbackController = app.controller({
       return callbackEventPresenter(event, { includePayload: true });
     }),
 
-  listEvents: callbackApp
+  listEvents: tenantApp
     .handler()
     .input(
       Paginator.validate(
         v.object({
           tenantId: v.string(),
-          callbackId: v.string(),
+          callbackId: v.optional(v.string()),
+          callbackIds: v.optional(v.array(v.string())),
           eventTypes: v.optional(v.array(v.string())),
           callbackInstanceIds: v.optional(v.array(v.string()))
         })
@@ -193,7 +194,8 @@ export let callbackController = app.controller({
     .do(async ctx => {
       let paginator = await callbackService.listCallbackEvents({
         tenant: ctx.tenant,
-        callback: ctx.callback,
+        callbackId: ctx.input.callbackId,
+        callbackIds: ctx.input.callbackIds,
         eventTypes: ctx.input.eventTypes,
         callbackInstanceIds: ctx.input.callbackInstanceIds
       });
@@ -223,19 +225,19 @@ export let callbackController = app.controller({
       );
     }),
 
-  getEvent: callbackApp
+  getEvent: tenantApp
     .handler()
     .input(
       v.object({
         tenantId: v.string(),
-        callbackId: v.string(),
+        callbackId: v.optional(v.string()),
         callbackEventId: v.string()
       })
     )
     .do(async ctx => {
       let event = await callbackService.getCallbackEvent({
         tenant: ctx.tenant,
-        callback: ctx.callback,
+        callbackId: ctx.input.callbackId,
         callbackEventId: ctx.input.callbackEventId
       });
 

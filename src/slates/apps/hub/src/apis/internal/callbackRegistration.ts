@@ -3,6 +3,7 @@ import type { Tenant } from '../../../prisma/generated/client';
 import { slateTriggerReceiverPresenter } from '../../presenters';
 import {
   slateAuthConfigService,
+  slateCallbackConfigService,
   slateInstanceService,
   slateTriggerReceiverSecretService,
   slateTriggerReceiverService
@@ -17,6 +18,14 @@ let resolveAuthConfig = async (tenant: Tenant, authConfigId?: string | null) => 
   return await slateAuthConfigService.getSlateAuthConfigById({
     tenant,
     id: authConfigId
+  });
+};
+
+let resolveCallbackConfig = async (tenant: Tenant, callbackConfigId?: string | null) => {
+  if (!callbackConfigId) return null;
+  return await slateCallbackConfigService.getSlateCallbackConfigById({
+    tenant,
+    id: callbackConfigId
   });
 };
 
@@ -55,6 +64,7 @@ export let callbackRegistrationController = app.controller({
         ownerMutationId: v.string(),
         slateInstanceId: v.string(),
         authConfigId: v.optional(v.nullable(v.string())),
+        callbackConfigId: v.optional(v.string()),
         name: v.optional(v.nullable(v.string())),
         description: v.optional(v.nullable(v.string())),
         triggers: v.array(
@@ -73,11 +83,13 @@ export let callbackRegistrationController = app.controller({
         id: ctx.input.slateInstanceId
       });
       let authConfig = await resolveAuthConfig(ctx.tenant, ctx.input.authConfigId);
+      let callbackConfig = await resolveCallbackConfig(ctx.tenant, ctx.input.callbackConfigId);
 
       let receiver = await slateTriggerReceiverService.upsertTriggerReceiverForCallback({
         tenant: ctx.tenant,
         slateInstance,
         authConfig: authConfig ?? null,
+        callbackConfig,
         input: {
           callbackId: ctx.input.callbackId,
           callbackInstanceId: ctx.input.callbackInstanceId,

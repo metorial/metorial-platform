@@ -4,11 +4,19 @@ export type ManagementInstanceCallbacksListOutput = {
   items: {
     object: 'callback';
     id: string;
+    integrationId: string;
+    integrationProviderId: string;
     status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
     metadata: Record<string, any> | null;
     pollIntervalSecondsOverride: number | null;
+    config: {
+      object: 'callback.config';
+      id: string;
+      configuredKeys: string[];
+      createdAt: Date;
+    } | null;
     providerDeployment: {
       object: 'provider.deployment#preview';
       id: string;
@@ -21,14 +29,14 @@ export type ManagementInstanceCallbacksListOutput = {
       updatedAt: Date;
     };
     destinations: {
-      object: 'callback.destination';
+      object: 'webhook.destination';
       id: string;
       status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
       metadata: Record<string, any> | null;
       url: string;
-      method: string;
+      method: 'POST' | 'PUT' | 'PATCH';
       signingSecretConfigured: boolean;
       createdAt: Date;
       updatedAt: Date;
@@ -59,6 +67,14 @@ export let mapManagementInstanceCallbacksListOutput =
         mtMap.object({
           object: mtMap.objectField('object', mtMap.passthrough()),
           id: mtMap.objectField('id', mtMap.passthrough()),
+          integrationId: mtMap.objectField(
+            'integration_id',
+            mtMap.passthrough()
+          ),
+          integrationProviderId: mtMap.objectField(
+            'integration_provider_id',
+            mtMap.passthrough()
+          ),
           status: mtMap.objectField('status', mtMap.passthrough()),
           name: mtMap.objectField('name', mtMap.passthrough()),
           description: mtMap.objectField('description', mtMap.passthrough()),
@@ -66,6 +82,18 @@ export let mapManagementInstanceCallbacksListOutput =
           pollIntervalSecondsOverride: mtMap.objectField(
             'poll_interval_seconds_override',
             mtMap.passthrough()
+          ),
+          config: mtMap.objectField(
+            'config',
+            mtMap.object({
+              object: mtMap.objectField('object', mtMap.passthrough()),
+              id: mtMap.objectField('id', mtMap.passthrough()),
+              configuredKeys: mtMap.objectField(
+                'configured_keys',
+                mtMap.array(mtMap.passthrough())
+              ),
+              createdAt: mtMap.objectField('created_at', mtMap.date())
+            })
           ),
           providerDeployment: mtMap.objectField(
             'provider_deployment',
@@ -156,7 +184,8 @@ export type ManagementInstanceCallbacksListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   id?: string | string[] | undefined;
-  providerDeploymentId?: string | string[] | undefined;
+  integrationId?: string | string[] | undefined;
+  integrationProviderId?: string | string[] | undefined;
   status?:
     | 'active'
     | 'archived'
@@ -186,8 +215,18 @@ export let mapManagementInstanceCallbacksListQuery = mtMap.union([
           )
         ])
       ),
-      providerDeploymentId: mtMap.objectField(
-        'provider_deployment_id',
+      integrationId: mtMap.objectField(
+        'integration_id',
+        mtMap.union([
+          mtMap.unionOption('string', mtMap.passthrough()),
+          mtMap.unionOption(
+            'array',
+            mtMap.union([mtMap.unionOption('string', mtMap.passthrough())])
+          )
+        ])
+      ),
+      integrationProviderId: mtMap.objectField(
+        'integration_provider_id',
         mtMap.union([
           mtMap.unionOption('string', mtMap.passthrough()),
           mtMap.unionOption(

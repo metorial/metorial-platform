@@ -173,6 +173,10 @@ describe('callback receiver path-secret dashboard boundary', () => {
 
     expect(Object.keys(callbackInstanceController.handlers)).toContain('sendTestEvent');
     expect(Object.keys(callbackInstanceController.handlers)).not.toEqual(
+      expect.arrayContaining(['create', 'delete'])
+    );
+    expect(source).not.toMatch(/['"]callbacks\.instances\.(create|delete)['"]/);
+    expect(Object.keys(callbackInstanceController.handlers)).not.toEqual(
       expect.arrayContaining([
         'getReceiverPathSecret',
         'revokeReceiverPathSecret',

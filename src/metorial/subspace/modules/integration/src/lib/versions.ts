@@ -1,5 +1,12 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
-import { getId, Prisma, withTransaction } from '@metorial-subspace/db';
+import {
+  addAfterTransactionHook,
+  db,
+  getId,
+  Prisma,
+  withTransaction
+} from '@metorial-subspace/db';
+import { Fabric } from '@metorial/fabric';
 import { normalizeToolFilters } from '../../../provider-internal/src/lib/toolFilter';
 export { hasMaterialIntegrationProviderChange } from './material';
 
@@ -16,16 +23,37 @@ export let createIntegrationProviderVersion = async (d: {
   configOid?: bigint | null;
   toolFilter: PrismaJson.ToolFilter;
 }) => {
-  try {
-    throw new Error('debug' + d.integrationProviderOid);
-  } catch (e) {
-    console.error('createIntegrationProviderVersion', e);
-  }
+  return await withTransaction(async tx => {
+    let current = await tx.integrationProvider.findUnique({
+      where: { oid: d.integrationProviderOid },
+      select: {
+        currentVersion: {
+          select: {
+            oid: true,
+            id: true,
+            status: true,
+            deploymentOid: true,
+            authMethodOid: true,
+            authCredentialsOid: true,
+            configOid: true,
+            toolFilter: true
+          }
+        }
+      }
+    });
+    if (
+      current?.currentVersion?.status === d.status &&
+      current.currentVersion.deploymentOid === d.deploymentOid &&
+      current.currentVersion.authMethodOid === (d.authMethodOid ?? null) &&
+      current.currentVersion.authCredentialsOid === (d.authCredentialsOid ?? null) &&
+      current.currentVersion.configOid === (d.configOid ?? null) &&
+      canonicalize(current.currentVersion.toolFilter ?? null) ===
+        canonicalize(d.toolFilter ?? null)
+    ) {
+      return current.currentVersion;
+    }
 
-  console.log('createIntegrationProviderVersion', d);
-
-  return await withTransaction(async db => {
-    let integrationProvider = await db.integrationProvider.update({
+    let integrationProvider = await tx.integrationProvider.update({
       where: { oid: d.integrationProviderOid },
       data: { currentVersionIndex: { increment: 1 } },
       select: {
@@ -34,7 +62,7 @@ export let createIntegrationProviderVersion = async (d: {
       }
     });
 
-    let version = await db.integrationProviderVersion.create({
+    let version = await tx.integrationProviderVersion.create({
       data: {
         ...getId('integrationProviderVersion'),
         status: d.status,
@@ -48,10 +76,25 @@ export let createIntegrationProviderVersion = async (d: {
       }
     });
 
-    await db.integrationProvider.updateMany({
+    let pointerUpdate = await tx.integrationProvider.updateMany({
       where: { oid: integrationProvider.oid, currentVersionIndex: version.index },
       data: { currentVersionOid: version.oid }
     });
+
+    if (pointerUpdate.count === 1 && current?.currentVersion && d.status === 'active') {
+      await addAfterTransactionHook(async () => {
+        let updated = await db.integrationProvider.findUnique({
+          where: { oid: integrationProvider.oid }
+        });
+        if (!updated) return;
+        await Fabric.fire('provider.integration_provider.updated:before', {
+          integrationProvider: updated
+        });
+        await Fabric.fire('provider.integration_provider.updated:after', {
+          integrationProvider: updated
+        });
+      });
+    }
 
     return version;
   });
@@ -125,6 +168,7 @@ export let createIntegrationInstanceProviderVersion = async (d: {
         currentVersion: {
           select: {
             oid: true,
+            id: true,
             status: true,
             integrationProviderVersionOid: true,
             configOid: true,
@@ -165,10 +209,32 @@ export let createIntegrationInstanceProviderVersion = async (d: {
       }
     });
 
-    await tx.integrationInstanceProvider.updateMany({
+    let pointerUpdate = await tx.integrationInstanceProvider.updateMany({
       where: { oid: d.integrationInstanceProviderOid },
       data: { currentVersionOid: version.oid }
     });
+
+    if (pointerUpdate.count === 1) {
+      let fromVersionId = current?.currentVersion?.id ?? null;
+      await addAfterTransactionHook(async () => {
+        let integrationInstanceProvider = await db.integrationInstanceProvider.findUnique({
+          where: { oid: d.integrationInstanceProviderOid },
+          select: {
+            id: true,
+            integrationInstance: { select: { id: true } },
+            integrationProvider: { select: { id: true } }
+          }
+        });
+        if (!integrationInstanceProvider) return;
+        await Fabric.fire('provider.integration_instance_provider.version_changed:after', {
+          integrationInstanceProviderId: integrationInstanceProvider.id,
+          integrationInstanceId: integrationInstanceProvider.integrationInstance.id,
+          integrationProviderId: integrationInstanceProvider.integrationProvider.id,
+          fromVersionId,
+          toVersionId: version.id
+        });
+      });
+    }
 
     return version;
   });

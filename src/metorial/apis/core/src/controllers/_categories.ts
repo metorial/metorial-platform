@@ -54,6 +54,12 @@ export let callbackDocsCategory = createCategory({
   indexHint: getIndexHint()
 });
 
+export let webhookDocsCategory = createCategory({
+  id: 'webhook',
+  name: 'Webhooks',
+  indexHint: getIndexHint()
+});
+
 export let networkDocsCategory = createCategory({
   id: 'network',
   name: 'Network Access',

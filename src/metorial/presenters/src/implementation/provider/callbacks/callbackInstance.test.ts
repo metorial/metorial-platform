@@ -15,6 +15,8 @@ let now = new Date('2026-08-21T12:00:00.000Z');
 
 let callbackInstance = {
   id: 'cbi_1',
+  integrationInstance: { id: 'ini_1' },
+  integrationInstanceProvider: { id: 'inp_1' },
   status: 'attached',
   registrationStatus: 'failed',
   registrationGeneration: 3,
@@ -107,6 +109,8 @@ describe('v1CallbackInstancePresenter simplified security metadata', () => {
       .run();
 
     expect(result).toMatchObject({
+      integration_instance_id: 'ini_1',
+      integration_instance_provider_id: 'inp_1',
       registration_status: 'failed',
       registration_error: {
         code: 'provider_timeout',

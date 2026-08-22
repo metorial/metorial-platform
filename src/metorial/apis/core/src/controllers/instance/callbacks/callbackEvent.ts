@@ -2,14 +2,13 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { callbackEventService } from '@metorial-subspace/module-callback';
+import { callbackEventPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instancePath } from '../../../middleware/instanceGroup';
-import { callbackEventPresenter } from '@metorial/presenters';
-import { callbackGroup } from './callback';
+import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 
-let callbackEventGroup = callbackGroup.use(async ctx => {
+let callbackEventGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.callbackEventId) {
     throw new ServiceError(
       badRequestError({
@@ -18,24 +17,21 @@ let callbackEventGroup = callbackGroup.use(async ctx => {
       })
     );
   }
-
-  let callbackEvent = await callbackEventService.getCallbackEvent({
+  let callbackEvent = await callbackEventService.getCallbackEventForScope({
     instance: ctx.instance,
-    callbackId: ctx.callback.id,
-    slateTriggerEventId: ctx.params.callbackEventId
+    callbackEventId: ctx.params.callbackEventId
   });
-
   return { callbackEvent };
 });
 
 export let callbackEventController = Controller.create(
   {
     name: 'Callback Events',
-    description: 'Read callback trigger events.'
+    description: 'Read inbound callback trigger events across an instance.'
   },
   {
-    list: callbackGroup
-      .get(instancePath('callbacks/:callbackId/events', 'callbacks.events.list'), {
+    list: instanceGroup
+      .get(instancePath('callback-events', 'callbacks.events.list'), {
         name: 'List callback events',
         description: 'Returns a paginated list of callback events.',
         confidential: true
@@ -46,23 +42,18 @@ export let callbackEventController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by callback event ID(s)'
-            }),
-            type: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by event type(s)'
-            }),
-            source_id: v.optional(v.union([v.string(), v.array(v.string())]), {
-              description: 'Filter by provider source ID(s)'
-            })
+            callback_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            callback_instance_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            type: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
       .do(async ctx => {
-        let list = await callbackEventService.listCallbackEvents({
+        let list = await callbackEventService.listCallbackEventsForScope({
           instance: ctx.instance,
-          callbackId: ctx.callback.id,
           input: {
+            callbackIds: normalizeArrayParam(ctx.query.callback_id),
+            callbackInstanceIds: normalizeArrayParam(ctx.query.callback_instance_id),
             eventTypes: normalizeArrayParam(ctx.query.type),
             limit: ctx.query.limit,
             after: ctx.query.after,
@@ -71,7 +62,6 @@ export let callbackEventController = Controller.create(
             order: ctx.query.order
           }
         });
-
         return Paginator.present(
           {
             items: list.items,
@@ -85,14 +75,11 @@ export let callbackEventController = Controller.create(
       }),
 
     get: callbackEventGroup
-      .get(
-        instancePath('callbacks/:callbackId/events/:callbackEventId', 'callbacks.events.get'),
-        {
-          name: 'Get callback event',
-          description: 'Retrieves a specific callback event.',
-          confidential: true
-        }
-      )
+      .get(instancePath('callback-events/:callbackEventId', 'callbacks.events.get'), {
+        name: 'Get callback event',
+        description: 'Retrieves a specific callback event.',
+        confidential: true
+      })
       .use(checkAccess({ possibleScopes: ['instance.callback:read'] }))
       .output(callbackEventPresenter)
       .do(async ctx => callbackEventPresenter.present({ callbackEvent: ctx.callbackEvent }))

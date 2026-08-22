@@ -136,6 +136,9 @@ model SlateTriggerReceiver {
   authConfigOid BigInt?
   authConfig    SlateAuthConfig? @relation(fields: [authConfigOid], references: [oid], onDelete: SetNull)
 
+  callbackConfigOid BigInt?
+  callbackConfig    SlateCallbackConfig? @relation(fields: [callbackConfigOid], references: [oid], onDelete: SetNull)
+
   status SlateTriggerReceiverStatus @default(active)
 
   callbackId                  String?
@@ -182,6 +185,7 @@ model SlateTriggerReceiver {
   @@unique([tenantOid, callbackId, callbackInstanceId])
   @@index([tenantOid, slateInstanceOid])
   @@index([tenantOid, slateOid])
+  @@index([callbackConfigOid])
   @@index([tombstonedAt])
   @@index([telegramWebhookLeaseExpiresAt], map: "hub_telegram_webhook_lease_idx")
 }

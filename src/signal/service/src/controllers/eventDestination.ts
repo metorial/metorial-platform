@@ -6,6 +6,45 @@ import { app } from './_app';
 import { subspaceInternalTenantApp, tenantApp } from './tenant';
 
 export let eventDestinationController = app.controller({
+  upsertByExternalId: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        externalId: v.string(),
+        name: v.string(),
+        description: v.optional(v.nullable(v.string())),
+        eventTypes: v.optional(v.nullable(v.array(v.string()))),
+        retry: v.optional(
+          v.object({
+            type: v.enumOf(['exponential', 'linear']),
+            delaySeconds: v.number(),
+            maxAttempts: v.number()
+          })
+        ),
+        variant: v.object({
+          type: v.enumOf(['http_endpoint']),
+          url: v.string(),
+          method: v.enumOf(['POST', 'PUT', 'PATCH'])
+        })
+      })
+    )
+    .do(async ctx => {
+      let eventDestination =
+        await eventDestinationService.upsertCallbackDestinationByExternalId({
+          tenant: ctx.tenant,
+          input: {
+            externalId: ctx.input.externalId,
+            name: ctx.input.name,
+            description: ctx.input.description,
+            eventTypes: ctx.input.eventTypes,
+            retry: ctx.input.retry,
+            variant: ctx.input.variant
+          }
+        });
+      return eventDestinationPresenter(eventDestination);
+    }),
+
   rotateSigningSecret: subspaceInternalTenantApp
     .handler()
     .input(

@@ -1,7 +1,6 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
-import { generateCustomId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
@@ -10,14 +9,16 @@ import type {
   CallbackEventStatus,
   EventDeliveryAttemptStatus,
   EventDeliveryIntentStatus,
-  EventRetryType,
-  Tenant,
-  WebhookMethod
+  Tenant
 } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId, snowflake } from '../id';
 import { offloadCallbackEventPayloadQueue } from '../queues/send/callbackEventPayload';
 import { eventService } from './event';
+import {
+  type CallbackEventDestinationInput,
+  eventDestinationService
+} from './eventDestination';
 import { senderService } from './sender';
 
 let callbackInclude = {
@@ -83,22 +84,7 @@ let callbackEventInclude = {
   callback: true
 };
 
-type CallbackDestinationInput = {
-  externalId: string;
-  name: string;
-  description?: string | null;
-  eventTypes?: string[] | null;
-  retry?: {
-    type: EventRetryType;
-    delaySeconds: number;
-    maxAttempts: number;
-  };
-  variant: {
-    type: 'http_endpoint';
-    url: string;
-    method: WebhookMethod;
-  };
-};
+type CallbackDestinationInput = CallbackEventDestinationInput;
 
 let CALLBACK_SENDER = {
   identifier: 'callbacks',
@@ -149,145 +135,6 @@ let enqueueCallbackEventPayloadOffload = async (
 };
 
 class callbackServiceImpl {
-  private async upsertCallbackDestination(
-    prisma: Parameters<Parameters<typeof db.$transaction>[0]>[0],
-    d: {
-      input: CallbackDestinationInput;
-      tenant: Tenant;
-      sender: Awaited<ReturnType<typeof senderService.upsertSender>>;
-    }
-  ) {
-    let ownership = await prisma.eventDestination.findFirst({
-      where: { externalId: d.input.externalId },
-      select: { tenantOid: true, senderOid: true, isCallbackDestination: true }
-    });
-    if (
-      ownership &&
-      (ownership.tenantOid !== d.tenant.oid ||
-        ownership.senderOid !== d.sender.oid ||
-        !ownership.isCallbackDestination)
-    ) {
-      throw new ServiceError(
-        badRequestError({ message: 'Callback destination ownership is invalid.' })
-      );
-    }
-
-    let existing = await prisma.eventDestination.findFirst({
-      where: {
-        externalId: d.input.externalId,
-        tenantOid: d.tenant.oid,
-        senderOid: d.sender.oid,
-        isCallbackDestination: true
-      },
-      include: {
-        currentInstance: {
-          include: {
-            webhook: true
-          }
-        }
-      }
-    });
-
-    if (!existing) {
-      let destinationId = getId('eventDestination');
-      let webhook = await prisma.webhookDestinationWebhook.create({
-        data: {
-          ...getId('eventDestinationWebhook'),
-          url: d.input.variant.url,
-          method: d.input.variant.method,
-          signingSecret: generateCustomId('metorial_whsec_', 50),
-          tenantOid: d.tenant.oid
-        }
-      });
-
-      let destination = await prisma.eventDestination.create({
-        data: {
-          ...destinationId,
-          id: d.input.externalId,
-          externalId: d.input.externalId,
-          status: 'active',
-          isCallbackDestination: true,
-          type: 'http_endpoint',
-          eventTypes: d.input.eventTypes ?? [],
-          hasEventTypesFilter: !!d.input.eventTypes?.length,
-          name: d.input.name,
-          description: d.input.description,
-          retryType: d.input.retry?.type ?? 'linear',
-          retryDelaySeconds: d.input.retry?.delaySeconds ?? 30,
-          retryMaxAttempts: d.input.retry?.maxAttempts ?? 5,
-          tenantOid: d.tenant.oid,
-          senderOid: d.sender.oid
-        }
-      });
-
-      let instance = await prisma.eventDestinationInstance.create({
-        data: {
-          oid: snowflake.nextId(),
-          type: 'http_endpoint',
-          webhookOid: webhook.oid,
-          destinationOid: destination.oid
-        }
-      });
-
-      return await prisma.eventDestination.update({
-        where: { oid: destination.oid },
-        data: { currentInstanceOid: instance.oid },
-        include: {
-          currentInstance: {
-            include: {
-              webhook: true
-            }
-          }
-        }
-      });
-    }
-
-    let webhook = await prisma.webhookDestinationWebhook.create({
-      data: {
-        ...getId('eventDestinationWebhook'),
-        url: d.input.variant.url,
-        method: d.input.variant.method,
-        signingSecret:
-          existing.currentInstance?.webhook?.signingSecret ??
-          generateCustomId('metorial_whsec_', 50),
-        tenantOid: existing.tenantOid
-      }
-    });
-
-    let instance = await prisma.eventDestinationInstance.create({
-      data: {
-        oid: snowflake.nextId(),
-        type: d.input.variant.type,
-        webhookOid: webhook.oid,
-        destinationOid: existing.oid
-      }
-    });
-
-    return await prisma.eventDestination.update({
-      where: { oid: existing.oid },
-      data: {
-        status: 'active',
-        isCallbackDestination: true,
-        senderOid: d.sender.oid,
-        name: d.input.name,
-        description: d.input.description,
-        eventTypes: d.input.eventTypes ?? [],
-        hasEventTypesFilter: !!d.input.eventTypes?.length,
-        retryType: d.input.retry?.type,
-        retryDelaySeconds: d.input.retry?.delaySeconds,
-        retryMaxAttempts: d.input.retry?.maxAttempts,
-        currentInstanceOid: instance.oid
-      },
-      include: {
-        currentInstance: {
-          include: {
-            webhook: true
-          }
-        }
-      }
-    });
-  }
-
   async upsertCallback(d: {
     input: {
       callbackId: string;
@@ -304,9 +151,10 @@ class callbackServiceImpl {
       let destinations = [];
       for (let destination of d.input.destinations) {
         destinations.push(
-          await this.upsertCallbackDestination(prisma, {
+          await eventDestinationService.upsertCallbackDestinationByExternalId({
             tenant: d.tenant,
             sender,
+            prisma,
             input: destination
           })
         );
@@ -629,7 +477,8 @@ class callbackServiceImpl {
 
   async listCallbackEvents(d: {
     tenant: Tenant;
-    callback: Callback;
+    callbackId?: string;
+    callbackIds?: string[];
     eventTypes?: string[];
     callbackInstanceIds?: string[];
   }) {
@@ -638,8 +487,14 @@ class callbackServiceImpl {
         db.callbackEvent.findMany({
           ...opts,
           where: {
-            callbackOid: d.callback.oid,
-            callback: { tenantOid: d.tenant.oid },
+            callback: {
+              tenantOid: d.tenant.oid,
+              id: d.callbackId
+                ? d.callbackId
+                : d.callbackIds !== undefined
+                  ? { in: d.callbackIds }
+                  : undefined
+            },
             type: d.eventTypes ? { in: d.eventTypes } : undefined,
             callbackInstanceId: d.callbackInstanceIds
               ? { in: d.callbackInstanceIds }
@@ -663,12 +518,14 @@ class callbackServiceImpl {
     });
   }
 
-  async getCallbackEvent(d: { tenant: Tenant; callback: Callback; callbackEventId: string }) {
+  async getCallbackEvent(d: { tenant: Tenant; callbackId?: string; callbackEventId: string }) {
     let event = await db.callbackEvent.findFirst({
       where: {
         id: d.callbackEventId,
-        callbackOid: d.callback.oid,
-        callback: { tenantOid: d.tenant.oid }
+        callback: {
+          tenantOid: d.tenant.oid,
+          id: d.callbackId
+        }
       },
       include: callbackEventInclude
     });

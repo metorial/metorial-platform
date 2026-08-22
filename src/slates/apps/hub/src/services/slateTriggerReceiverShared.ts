@@ -9,6 +9,7 @@ import type {
   Slate,
   SlateAction,
   SlateAuthConfig,
+  SlateCallbackConfig,
   SlateInstance,
   SlateInstanceConfig,
   SlateConfigSchema,
@@ -60,6 +61,7 @@ export type ReceiverTriggerWithRelations = SlateTriggerReceiverTrigger & {
       currentConfig: (SlateInstanceConfig & { schema: SlateConfigSchema }) | null;
     };
     authConfig: SlateAuthConfig | null;
+    callbackConfig: SlateCallbackConfig | null;
   };
 };
 
@@ -84,7 +86,8 @@ export const receiverInclude = {
       updatedAt: true
     }
   },
-  authConfig: true
+  authConfig: true,
+  callbackConfig: true
 };
 
 export const receiverTriggerInclude = {

@@ -50,6 +50,7 @@ model Solution {
   providerRunUsageRecords                  ProviderRunUsageRecord[]
   callbackDestinations                     CallbackDestination[]
   callbacks                                Callback[]
+  callbackConfigs                          CallbackConfig[]
   providerUses                             ProviderUse[]
   identityActors                           IdentityActor[]
   agents                                   Agent[]

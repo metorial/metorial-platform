@@ -1,10 +1,10 @@
 import type { SessionWarning, Prisma as SubspacePrisma } from '@metorial-subspace/db';
 import type {
   CallbackInstanceReceiver,
-  callbackDeliveryService,
-  callbackDestinationService,
   callbackEventService,
-  callbackInstanceService
+  callbackInstanceService,
+  webhookDestinationService,
+  webhookEventService
 } from '@metorial-subspace/module-callback';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
@@ -2345,6 +2345,8 @@ export let portalOAuthAuthorizationType = PresentableType.create<{
 export let callbackType = PresentableType.create<{
   callback: SubspacePrisma.CallbackGetPayload<{
     include: {
+      integration: true;
+      integrationProvider: true;
       providerDeployment: {
         include: {
           provider: { include: { type: true } };
@@ -2353,33 +2355,47 @@ export let callbackType = PresentableType.create<{
       };
       callbackProviderTriggers: { include: { providerTrigger: true } };
       callbackDestinationLinks: { include: { callbackDestination: true } };
+      callbackConfig: { include: { currentVersion: true } };
     };
   }>;
 }>()('callback');
+
+export let callbackConfigSchemaType = PresentableType.create<{
+  schema: Record<string, any> | null;
+}>()('callback.config_schema');
 
 export let callbackEventType = PresentableType.create<{
   callbackEvent: Awaited<ReturnType<typeof callbackEventService.getCallbackEvent>>;
 }>()('callback.event');
 
-export let callbackDestinationType = PresentableType.create<{
-  callbackDestination: SubspacePrisma.CallbackDestinationGetPayload<{}>;
-}>()('callback.destination');
+export let webhookDestinationType = PresentableType.create<{
+  webhookDestination: SubspacePrisma.CallbackDestinationGetPayload<{}>;
+}>()('webhook.destination');
 
-export let callbackDestinationSigningSecretType = PresentableType.create<{
-  callbackDestinationSigningSecret: Awaited<
-    ReturnType<typeof callbackDestinationService.rotateSigningSecret>
+export let webhookDestinationSigningSecretType = PresentableType.create<{
+  webhookDestinationSigningSecret: Awaited<
+    ReturnType<typeof webhookDestinationService.rotateSigningSecret>
   >;
-}>()('callback.destination_signing_secret');
+}>()('webhook.destination_signing_secret');
 
-export let callbackNotificationType = PresentableType.create<{
-  callbackNotification: Awaited<
-    ReturnType<typeof callbackDeliveryService.getCallbackDelivery>
+export let webhookEventType = PresentableType.create<{
+  webhookEvent: Awaited<ReturnType<typeof webhookEventService.getWebhookEvent>>;
+  webhookEventDeliveries?: Awaited<
+    ReturnType<typeof webhookEventService.listWebhookEventDeliveries>
   >;
-}>()('callback.notification');
+}>()('webhook.event');
+
+export let webhookEventDeliveryType = PresentableType.create<{
+  webhookEventDelivery: Awaited<
+    ReturnType<typeof webhookEventService.listWebhookEventDeliveriesInternal>
+  >[number];
+}>()('webhook.event.delivery');
 
 export let callbackInstanceType = PresentableType.create<{
   callbackInstance: SubspacePrisma.CallbackInstanceGetPayload<{
     include: {
+      integrationInstance: true;
+      integrationInstanceProvider: true;
       providerDeploymentConfigPair: {
         include: {
           providerDeploymentVersion: {

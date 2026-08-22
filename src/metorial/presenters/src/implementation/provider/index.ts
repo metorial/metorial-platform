@@ -1,5 +1,6 @@
 export * from './auth';
 export * from './callbacks';
+export * from './webhooks';
 export * from './config';
 export * from './customProvider';
 export * from './identity';

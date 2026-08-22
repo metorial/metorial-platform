@@ -5,6 +5,7 @@ export * from './secret';
 export * from './slate';
 export * from './slateAuthConfig';
 export * from './slateAuthConfigEvent';
+export * from './slateCallbackConfig';
 export * from './slateDeployment';
 export * from './slateError';
 export * from './slateEvent';

@@ -1,7 +1,4 @@
-import {
-  DashboardInstanceCallbacksInstancesCreateBody,
-  DashboardInstanceCallbacksInstancesListQuery
-} from '@metorial/dashboard-sdk';
+import type { DashboardInstanceCallbacksInstancesListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -21,29 +18,10 @@ export let callbackInstancesLoader = createLoader({
       callbackId: string;
     } & DashboardInstanceCallbacksInstancesListQuery
   ) => withAuth(sdk => sdk.callbacks.instances.list(i.instanceId, i.callbackId, i)),
-  mutators: {
-    delete: (
-      i: { callbackInstanceId: string },
-      {
-        input: { instanceId, callbackId }
-      }: { input: { instanceId: string; callbackId: string } }
-    ) =>
-      withAuth(sdk =>
-        sdk.callbacks.instances.delete(instanceId, callbackId, i.callbackInstanceId)
-      )
-  }
+  mutators: {}
 });
 
-export let useCreateCallbackInstance = callbackInstancesLoader.createExternalMutator(
-  (
-    i: DashboardInstanceCallbacksInstancesCreateBody & {
-      instanceId: string;
-      callbackId: string;
-    }
-  ) => withAuth(sdk => sdk.callbacks.instances.create(i.instanceId, i.callbackId, i))
-);
-
-export let useCreateCallbackReceiverPathSecret = callbackInstancesLoader.createExternalMutator(
+export let useCreateReceiverPathSecret = callbackInstancesLoader.createExternalMutator(
   (i: CallbackSecretOwnerInput) =>
     withAuth(sdk =>
       sdk.callbacks.instances.createReceiverPathSecret(
@@ -78,10 +56,7 @@ export let useCallbackInstances = (
     callbackId ?? null
   );
 
-  return {
-    ...data,
-    useDeleteMutator: data.useMutator('delete')
-  };
+  return data;
 };
 
 export let callbackInstanceLoader = createLoader({

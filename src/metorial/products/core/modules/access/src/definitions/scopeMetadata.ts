@@ -165,6 +165,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Callbacks',
     description: 'These endpoints manage callback registrations and callback processing.'
   },
+  'instance.webhook': {
+    name: 'Webhooks',
+    description: 'These endpoints manage webhook destinations and delivery events.'
+  },
   'instance.network': {
     name: 'Network Access',
     description:
