@@ -60,6 +60,7 @@ export let ID = createIdGenerator({
   file: idType.sorted('fil'),
   fileLink: idType.sorted('flk'),
   fileRef: idType.sorted('frf'),
+  fileContentDelegator: idType.sorted('fcd'),
 
   secretType: idType.sorted('sty'),
   secret: idType.sorted('sec'),
